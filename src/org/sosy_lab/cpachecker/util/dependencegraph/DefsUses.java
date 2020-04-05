@@ -131,6 +131,39 @@ final class DefsUses {
     return new Data(pEdge, ImmutableSet.of(), ImmutableSet.of());
   }
 
+  private static Optional<DefsUses.Data> getDeclarationData(CDeclarationEdge pEdge)
+      throws CPATransferException {
+
+    CDeclaration declaration = pEdge.getDeclaration();
+
+    if (declaration instanceof CVariableDeclaration) {
+
+      CVariableDeclaration varDecl = (CVariableDeclaration) declaration;
+      CInitializer initializer = varDecl.getInitializer();
+      Set<MemoryLocation> defs =
+          ImmutableSet.of(MemoryLocation.valueOf(varDecl.getQualifiedName()));
+
+      if (initializer == null) {
+
+        return Optional.of(new Data(pEdge, defs, ImmutableSet.of()));
+
+      } else if (initializer instanceof CInitializerExpression) {
+
+        Set<MemoryLocation> uses =
+            getUses(
+                ((CInitializerExpression) initializer).getExpression(), PointerState.INITIAL_STATE);
+
+        if (uses != null) {
+          return Optional.of(new Data(pEdge, defs, uses));
+        }
+      } else {
+        throw new AssertionError("Unsupported CInitializer: " + initializer.getClass());
+      }
+    }
+
+    return Optional.empty();
+  }
+
   public static Optional<DefsUses.Data> getData(CFAEdge pEdge) {
 
     if (pEdge instanceof CStatementEdge) {
@@ -154,31 +187,11 @@ final class DefsUses {
         }
       }
     } else if (pEdge instanceof CDeclarationEdge) {
-      CDeclaration declaration = ((CDeclarationEdge) pEdge).getDeclaration();
 
-      if (declaration instanceof CVariableDeclaration) {
-        CVariableDeclaration varDecl = (CVariableDeclaration) declaration;
-        CInitializer initializer = varDecl.getInitializer();
-
-        if (initializer instanceof CInitializerExpression) {
-          Set<MemoryLocation> defs =
-              ImmutableSet.of(MemoryLocation.valueOf(varDecl.getQualifiedName()));
-
-          try {
-            Set<MemoryLocation> uses =
-                getUses(
-                    ((CInitializerExpression) initializer).getExpression(),
-                    PointerState.INITIAL_STATE);
-
-            if (defs != null && uses != null) {
-              return Optional.of(new Data(pEdge, defs, uses));
-            } else {
-              return Optional.empty();
-            }
-          } catch (CPATransferException ex) {
-            // TODO: handle exception
-          }
-        }
+      try {
+        return getDeclarationData((CDeclarationEdge) pEdge);
+      } catch (CPATransferException e) {
+        // TODO: handle exception
       }
 
     } else {
