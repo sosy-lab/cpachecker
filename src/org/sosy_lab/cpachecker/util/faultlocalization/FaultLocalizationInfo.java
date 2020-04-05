@@ -41,6 +41,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 public class FaultLocalizationInfo extends CounterexampleInfo {
 
+  private  CounterexampleInfo created;
+
   private List<Fault> rankedList;
   private FaultReportWriter htmlWriter;
 
@@ -83,6 +85,8 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         pCreated.getCFAPathWithAssignments(),
         pCreated.isPreciseCounterExample(),
         CFAPathWithAdditionalInfo.empty());
+    created = pCreated;
+
     rankedList = pFaults;
     htmlWriter = new FaultReportWriter();
 
@@ -257,11 +261,9 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   }
 
   /**
-   * to show the result in the report.html pass the target state
-   * @param lastState target state of the error trace
+   * Replace default CounterexampleInfo with this extended version of a CounterexampleInfo.
    */
-  public void applyTo(ARGState lastState){
-    assert lastState.isTarget();
-    lastState.replaceCounterexampleInformation(this);
+  public void apply(){
+    created.getTargetPath().getLastState().replaceCounterexampleInformation(this);
   }
 }
