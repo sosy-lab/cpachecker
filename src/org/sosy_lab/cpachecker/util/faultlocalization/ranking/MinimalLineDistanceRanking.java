@@ -54,21 +54,16 @@ public class MinimalLineDistanceRanking implements FaultRanking {
     }
     RankingResults ranking = FaultRankingUtils.rankedListFor(result,
         e -> e.stream()
-            .mapToDouble(l -> (Math.abs(errorLocation - l.correspondingEdge().getFileLocation().getStartingLineInOrigin())))
-            .min()
+            .mapToDouble(fc -> fc.correspondingEdge().getFileLocation().getStartingLineInOrigin())
+            .max()
             .orElse(0.0));
 
-    double max = ranking.getLikelihoodMap().values().stream().mapToDouble(Double::doubleValue).max().orElse(0);
-    double sum = 0;
-    for (Entry<Fault, Double> entry : ranking.getLikelihoodMap().entrySet()) {
-      ranking.getLikelihoodMap().put(entry.getKey(), max - entry.getValue());
-      sum += max - entry.getValue();
-    }
+    double sum = ranking.getLikelihoodMap().values().stream().mapToDouble(Double::doubleValue).sum();
 
     for (Entry<Fault, Double> entry : ranking.getLikelihoodMap().entrySet()) {
       double value = entry.getValue();
       entry.getKey().addReason(
-          FaultReason.justify("Minimal distance to error location: " + (int)value + " line(s)", value/sum));
+          FaultReason.justify("Minimal distance to error location: " + (errorLocation-(int)value) + " line(s)", value/sum));
     }
 
     return ranking.getRankedList();

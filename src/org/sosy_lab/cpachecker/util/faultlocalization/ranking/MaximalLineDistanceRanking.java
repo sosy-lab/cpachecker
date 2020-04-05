@@ -54,7 +54,7 @@ public class MaximalLineDistanceRanking implements FaultRanking {
     }
    RankingResults ranking = FaultRankingUtils.rankedListFor(result,
         e -> e.stream()
-        .mapToDouble(l -> (Math.abs(errorLocation - l.correspondingEdge().getFileLocation().getStartingLineInOrigin())))
+        .mapToDouble(fc -> (Math.abs(errorLocation - fc.correspondingEdge().getFileLocation().getStartingLineInOrigin())))
         .max()
         .orElse(0.0));
 

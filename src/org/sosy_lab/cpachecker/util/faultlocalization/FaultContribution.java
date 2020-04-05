@@ -65,14 +65,6 @@ public class FaultContribution {
     reasons.add(pFaultReason);
   }
 
-  // Override this method to change the default score evaluation
-  protected double evaluateScore() {
-    return reasons.stream().filter(l -> !l.isHint())
-            .mapToDouble(FaultReason::getLikelihood)
-            .average()
-            .orElse(0);
-  }
-
   public List<FaultReason> getReasons() {
     return reasons;
   }

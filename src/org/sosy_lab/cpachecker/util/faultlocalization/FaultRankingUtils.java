@@ -119,10 +119,20 @@ public class FaultRankingUtils {
         .collect(Collectors.toList());
   }
 
+  /**
+   * Assign a score to a Fault with the default score evaluation function (average of all likelihoods).
+   * When implementing a own method that assigns a score to a Fault make sure that hints are not included in the calculation.
+   * @param fault Assigns a score to the Fault.
+   */
   public static void assignScoreTo(Fault fault){
     fault.setScore(evaluationFunction.apply(fault.getReasons()));
   }
 
+  /**
+   * Assign a score to a FaultContribution with the default score evaluation function (average of all likelihoods).
+   * When implementing a own method that assigns a score to a FaultContribution make sure that hints are not included in the calculation.
+   * @param faultContribution Assigns a score to the FaultContribution.
+   */
   public static void assignScoreTo(FaultContribution faultContribution){
     faultContribution.setScore(evaluationFunction.apply(faultContribution.getReasons()));
   }

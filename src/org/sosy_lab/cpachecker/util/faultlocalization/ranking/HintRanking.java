@@ -27,12 +27,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultExplanation;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultReason;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultReason.ReasonType;
 
 public class HintRanking implements FaultRanking {
   private int maxNumberOfHints;
+  /**
+   * Custom explanation for a singleton.
+   * This explanation should be restricted to explain single edges only.
+   */
+  private FaultExplanation explanation;
 
   /**
    * Create hints for the first pMaxNumberOfHints sets in the ErrorIndicatorSet
@@ -40,18 +47,32 @@ public class HintRanking implements FaultRanking {
    */
   public HintRanking(int pMaxNumberOfHints){
     maxNumberOfHints=pMaxNumberOfHints;
+    explanation = new NoContextExplanation();
+  }
+
+  /**
+   * Create hints for the first pMaxNumberOfHints sets in the ErrorIndicatorSet
+   * @param pMaxNumberOfHints number of hints to be printed. Passing -1 leads to hints for all elements in the set.
+   * @param pFaultExplanation explanation for Faults containing only one FaultContribution.
+   */
+  public HintRanking(int pMaxNumberOfHints, FaultExplanation pFaultExplanation){
+    maxNumberOfHints=pMaxNumberOfHints;
+    explanation = pFaultExplanation;
   }
 
   @Override
   public List<Fault> rank(
       Set<Fault> result) {
+    // if maxNumberOfHints is negative create hints for all elements in the set.
+    boolean maxNumberOfHintsNegative = maxNumberOfHints < 0;
     for (Fault faultLocalizationOutputs : result) {
       int hints = 0;
       for (FaultContribution faultContribution : faultLocalizationOutputs) {
-        if(hints == maxNumberOfHints){
-          break;
+        FaultReason reason = FaultReason.explain(ReasonType.HINT, explanation, new Fault(faultContribution),0);
+        if(maxNumberOfHintsNegative || hints < maxNumberOfHints){
+          faultLocalizationOutputs.addReason(reason);
         }
-        faultContribution.addReason(FaultReason.hintFor(new Fault(faultContribution)));
+        faultContribution.addReason(reason);
         hints++;
       }
     }
