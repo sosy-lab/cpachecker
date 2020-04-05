@@ -756,8 +756,14 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     BooleanFormula formula =
         buildPathFormula(start, stop, segmentList, startSSAMap, startPts, solver, pfmgr, true)
             .getFormula();
-    try (ProverEnvironment thmProver = parallelSolvers.get(currentThreadId).newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      thmProver.push(formula);
+    BooleanFormula parallelFormula =
+        parallelSolvers
+            .get(currentThreadId)
+            .getFormulaManager()
+            .translateFrom(formula, solver.getFormulaManager());
+    try (ProverEnvironment thmProver =
+        parallelSolvers.get(currentThreadId).newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+      thmProver.push(parallelFormula);
       stats.increaseSolverCallCounter();
       if (thmProver.isUnsat()) {
         infeasible = true;
