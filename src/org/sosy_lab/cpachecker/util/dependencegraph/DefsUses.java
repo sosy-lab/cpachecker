@@ -159,6 +159,8 @@ final class DefsUses {
       } else {
         throw new AssertionError("Unsupported CInitializer: " + initializer.getClass());
       }
+    } else if (declaration instanceof CFunctionDeclaration) {
+      return Optional.of(new Data(pEdge, ImmutableSet.of(), ImmutableSet.of()));
     }
 
     return Optional.empty();
