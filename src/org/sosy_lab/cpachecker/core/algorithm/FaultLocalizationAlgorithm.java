@@ -203,7 +203,7 @@ public class FaultLocalizationAlgorithm implements Algorithm {
       ranked.sort(Comparator.comparingDouble(Fault::getScore).reversed());
 
       FaultLocalizationInfo info = new FaultLocalizationInfo(ranked, pInfo);
-      info.applyTo(pInfo.getTargetPath().getLastState());
+      info.apply();
       logger.log(
           Level.INFO,
           "Running " + pAlgorithm.getClass().getSimpleName() + ":\n" + info.toString());

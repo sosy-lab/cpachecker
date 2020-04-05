@@ -19,19 +19,20 @@ public class CallHierarchyRanking implements FaultRanking {
   public CallHierarchyRanking(List<CFAEdge> pEdgeList, int pNumberErrorEdges) {
     mapEdgeToPosition = new HashMap<>();
     for (int i = 0; i < pEdgeList.size(); i++) {
-      mapEdgeToPosition.put(pEdgeList.get(i), i);
+      mapEdgeToPosition.put(pEdgeList.get(i), i+1);
     }
-    firstErrorEdge = pEdgeList.size()-pNumberErrorEdges;
+    firstErrorEdge = pEdgeList.size()-pNumberErrorEdges+1;
   }
 
   @Override
   public List<Fault> rank(Set<Fault> result) {
     FaultRankingUtils.RankingResults results =
-        FaultRankingUtils.rankedListFor(result, f -> f.stream().mapToDouble(fc -> mapEdgeToPosition.get(fc.correspondingEdge())).sum());
+        FaultRankingUtils.rankedListFor(result, f -> f.stream().mapToDouble(fc -> mapEdgeToPosition.get(fc.correspondingEdge())).max().orElse(0));
     double overallSum = results.getLikelihoodMap().values().stream().mapToDouble(Double::doubleValue).sum();
     for (Entry<Fault, Double> faultDoubleEntry : results.getLikelihoodMap().entrySet()) {
-      int min = faultDoubleEntry.getKey().stream().mapToInt(f -> firstErrorEdge - mapEdgeToPosition.get(f.correspondingEdge())).min().orElse(0);
-      faultDoubleEntry.getKey().addReason(FaultReason.justify("This fault is " + min + " execution step(s) away from the error location.", faultDoubleEntry.getValue()/overallSum));
+      int min = firstErrorEdge - (int)faultDoubleEntry.getValue().doubleValue();
+      faultDoubleEntry.getKey().addReason(FaultReason.justify("This fault is " + min + " execution step(s) away from the error location.",
+          faultDoubleEntry.getValue() /overallSum));
     }
     return results.getRankedList();
   }
