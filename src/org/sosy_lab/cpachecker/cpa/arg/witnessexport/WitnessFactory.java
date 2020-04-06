@@ -154,7 +154,6 @@ class WitnessFactory implements EdgeAppender {
           KeyDef.LINECOLS,
           KeyDef.ASSUMPTIONSCOPE,
           KeyDef.ASSUMPTIONRESULTFUNCTION,
-          KeyDef.THREADID,
           KeyDef.THREADNAME);
 
   private static final ARGState getCoveringState(ARGState pChild) {
@@ -1496,6 +1495,10 @@ class WitnessFactory implements EdgeAppender {
       return true;
     }
 
+    // Some keys are not sufficient to limit the explored state space,
+    // i.e., by cutting off branching control flow.
+    // They are only a weak hint on the analysis direction.
+    // We remove edges that only contain such insufficient keys.
     if (witnessOptions.removeInsufficientEdges() &&
         INSUFFICIENT_KEYS.containsAll(label.getMapping().keySet())) {
       return true;
