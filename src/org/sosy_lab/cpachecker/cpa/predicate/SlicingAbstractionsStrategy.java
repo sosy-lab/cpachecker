@@ -725,20 +725,29 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     return infeasible;
   }
 
+  /** This method is called asynchronously in parallel context. */
   private boolean isInfeasibleEdgeParallel(ARGState start, ARGState stop, List<ARGState> segmentList, int currentThreadId)
       throws InterruptedException, CPAException {
     boolean infeasible = false;
 
     SSAMap startSSAMap = SSAMap.emptySSAMap().withDefault(1);
     PointerTargetSet startPts = PointerTargetSet.emptyPointerTargetSet();
-    BooleanFormula formula =
-        buildPathFormula(start, stop, segmentList, startSSAMap, startPts, solver, pfmgr, true)
-            .getFormula();
-    BooleanFormula parallelFormula =
-        parallelSolvers
-            .get(currentThreadId)
-            .getFormulaManager()
-            .translateFrom(formula, solver.getFormulaManager());
+
+    final BooleanFormula formula;
+    synchronized (solver) { // synchronize central solver usage in parallel context.
+      formula =
+          buildPathFormula(start, stop, segmentList, startSSAMap, startPts, solver, pfmgr, true)
+              .getFormula();
+    }
+
+    final BooleanFormula parallelFormula;
+    synchronized (solver) { // synchronize central solver usage in parallel context.
+      parallelFormula =
+          parallelSolvers.get(currentThreadId)
+              .getFormulaManager()
+              .translateFrom(formula, solver.getFormulaManager());
+    }
+
     try (ProverEnvironment thmProver =
         parallelSolvers.get(currentThreadId).newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       thmProver.push(parallelFormula);
