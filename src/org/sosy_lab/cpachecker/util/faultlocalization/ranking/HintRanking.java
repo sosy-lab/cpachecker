@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.faultlocalization.ranking;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
@@ -65,6 +66,7 @@ public class HintRanking implements FaultRanking {
       Set<Fault> result) {
     // if maxNumberOfHints is negative create hints for all elements in the set.
     boolean maxNumberOfHintsNegative = maxNumberOfHints < 0;
+    Set<FaultContribution> alreadyAttached = new HashSet<>();
     for (Fault faultLocalizationOutputs : result) {
       int hints = 0;
       for (FaultContribution faultContribution : faultLocalizationOutputs) {
@@ -72,7 +74,11 @@ public class HintRanking implements FaultRanking {
         if(maxNumberOfHintsNegative || hints < maxNumberOfHints){
           faultLocalizationOutputs.addReason(reason);
         }
-        faultContribution.addReason(reason);
+        //Prevent attaching the same hint twice
+        if(!alreadyAttached.contains(faultContribution)) {
+          faultContribution.addReason(reason);
+          alreadyAttached.add(faultContribution);
+        }
         hints++;
       }
     }

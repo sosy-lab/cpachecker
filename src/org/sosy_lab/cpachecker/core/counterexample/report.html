@@ -110,12 +110,6 @@ with considerably less effort -->
           <div id="sort-fault-localization-info">
             <button id="fault-button" class="btn btn-success" ng-click="sortFaultClicked()" data-toggle="tooltip" data-placement="bottom" title="Click here to get more detailed information about the error">Change view</button>
           </div>
-          <div id="sort-fault-localization-slider">
-            <label class="switch" data-toggle="tooltip" data-placement="bottom" title="Toggle slider to show/hide subset ranking">
-            <input type="checkbox" checked id="toggle-fault-subset" ng-click="toggleFaultSubset()">
-            <span class="slider round"></span>
-          </label>
-          </div>
         </div>
         <div id="matches">
           <p class="markedValues">Matches in value-assignements (V): {{numOfValueMatches}}</p>
@@ -129,8 +123,8 @@ with considerably less effort -->
             <td ng-click="showValues($event)" data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{line.valString}}">
               <pre>-V-</pre>
             </td>
-	    <td id="rank-{{$index}}" ng-click="showValues($event)" data-toggle="popover" data-placement="bottom" data-trigger="click" data-content="{{line.showfault}}">
-              <pre>{{line.showrank}}</pre>
+	    <td id="rank-{{$index}}" ng-click="showValues($event)" data-toggle="popover" data-placement="bottom" data-trigger="click" data-content="{{line.showreason}}">
+              <pre>{{line.bestrank}}</pre>
             </td>
             <td class="disabled" ng-click="clickedErrpathElement($event)">
               <pre class="make-pretty">{{line.desc}}</pre>

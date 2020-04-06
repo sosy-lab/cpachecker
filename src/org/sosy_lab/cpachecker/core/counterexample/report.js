@@ -294,29 +294,10 @@ with considerably less effort */
 
 		// initialize array that stores the important edges. Index counts only, when edges appear in the report.
         var importantEdges = [];
-		var importantIndex = -1;
-		
-		// heuristic for single edges provided?
-		var isFaultLocalizationEnabled = false;
+        var importantIndex = -1;
+        let faultEdges = [];
 
-		// heuristic for set ranking provided?
-		var isFaultLocalizationSubsetUsed = false;
-
-		// state of toggle button
-		var showDetailed = false;
-
-		// state of toggle slider
-		var showSubset = false;
-
-		// edges that are marked as potential bug
-		var faultEdgesIndex = [];
-		var faultEdges = [];
-
-		var faultEdgesSubsetIndex = [];
-		var faultEdgesSubset = [];
-		var lastSelectedLine = [];
-
-		var redLine = 0;
+        var redLine = 0;
 
 		if (errorPath !== undefined) {
 			var indentationlevel = 0;
@@ -329,8 +310,6 @@ with considerably less effort */
 					var previousValueDictionary = {};
 					errPathElem["valDict"] = {};
 					errPathElem["valString"] = "";
-					errPathElem["showrank"] = errPathElem.rank;
-					errPathElem["showfault"] = errPathElem.fault;
 					if (i > 0) {
 						$.extend(errPathElem.valDict, $rootScope.errorPath[$rootScope.errorPath.length - 1].valDict);
 						previousValueDictionary = $rootScope.errorPath[$rootScope.errorPath.length - 1].valDict;
@@ -354,18 +333,9 @@ with considerably less effort */
 					indentationlevel += 1;
 				}
 
-				if(errPathElem.enabled) {
-					faultEdgesIndex.push(importantIndex);
-					faultEdges.push(errPathElem);	
-					isFaultLocalizationEnabled = true;	
-				}
-
-				if(errPathElem.setminrank !== "-"){
-					faultEdgesSubsetIndex.push(importantIndex);
-				}
-				if(errPathElem.setindicator) {
-					faultEdgesSubset.push(errPathElem);
-					isFaultLocalizationSubsetUsed = true;	
+				if(errPathElem.isFault){
+					errPathElem["importantindex"] = importantIndex;
+					faultEdges.push(errPathElem);
 				}
 
 				// store the important edges
@@ -382,21 +352,10 @@ with considerably less effort */
 			};
 						
 
-			function addFaultLocalizationInfo(indicatorEdges, setIndicatorEdges){
-				if(isFaultLocalizationEnabled || isFaultLocalizationSubsetUsed) {
-					if(isFaultLocalizationEnabled ^ isFaultLocalizationSubsetUsed){
-						$("#sort-fault-localization-slider").remove();
-						$("#fault-interaction-div").removeClass("horizontal-div");
-						$("#fault-interaction-div").addClass("horizontal-div-center");
-						showSubset = isFaultLocalizationSubsetUsed;
-					}
-
-					//TODO: find more elegant way
+			function addFaultLocalizationInfo(indicatorEdges){
+				if(Object.keys(faultEdges).length !== 0;) {
 					for(var j = 0; j < errorPath.length; j++){
 						$("#rank-"+j).addClass("rank");
-					}
-					for (var j = 0; j < setIndicatorEdges.length; j++){
-						d3.selectAll("#errpath-" + setIndicatorEdges[j] + " td pre").classed("fault", true);
 					}
 					for (var j = 0; j < indicatorEdges.length; j++){
 						d3.selectAll("#errpath-" + indicatorEdges[j] + " td pre").classed("fault", true);
@@ -408,7 +367,6 @@ with considerably less effort */
 				} else {
 				 	$("#errpath-header").remove();
 					$("#sort-fault-localization-info").remove();
-					$("#sort-fault-localization-slider").remove();
 					for(var i = 0; i < errorPath.length; i++){
 						$("#rank-"+i).remove();		
 					}
@@ -417,30 +375,16 @@ with considerably less effort */
 
             angular.element(document).ready(function(){
                 highlightEdges(importantEdges);
-				if(isFaultLocalizationEnabled){
-					$("#value-assignment").append(createSingleFaultLocTable(faultEdges));
-					$("#single-fault-loc-table").hide();
-				}
-				if(isFaultLocalizationSubsetUsed){
-					$("#value-assignment").append(createSetFaultLocTable(faultEdgesSubset));
-					$("#set-fault-loc-table").hide();
-				}
-				addFaultLocalizationInfo(faultEdgesIndex, faultEdgesSubsetIndex);
-				if(showSubset){
-					for(const elem of errorPath){
-						elem.showrank = elem.setminrank;
-						elem.showfault = elem.setminrankreason;
-					}
-					// otherwise event has to be triggered to apply changes.
-					$scope.$apply();
-				}
+                $("#value-assignment").append(createSetFaultLocTable(faultEdgesSubset));
+                $("#set-fault-loc-table").hide();
+                addFaultLocalizationInfo(faultEdgesSubsetIndex);
             });
 
 
 		}
 
-		//append a cell to row //TODO filename
-		function appendCell(row, text, colspan, title, line, filename, background){
+		//append a cell to row
+		function appendCell(row, text, colspan, title, line){
 			var cell = row.insertCell();
 			cell.innerHTML = text;
 			if(title !== ""){
@@ -466,47 +410,8 @@ with considerably less effort */
 			return hexString.toUpperCase();
 		}
 
-		// create table for ranked edges
-		function createSingleFaultLocTable(indicatorEdgesObject){
-			var faultDict = {};
-			var rankList = Array.from({length: indicatorEdgesObject.length}, (v, i) => 0);
-			for (var j = 0; j < indicatorEdgesObject.length; j++){
-				var edge = indicatorEdgesObject[j];
-				var htmlTable = document.createElement("table");
-				var headerRow = htmlTable.insertRow();
-				var line = [edge.line];
 
-				appendCell(headerRow, edge.rank + ".", 1, "Rank", line, edge.file);
-				var hexString = interpolateRGB(edge.score);
-				appendCell(headerRow, edge.score, 1, "Score", line, edge.file).style.backgroundColor="#FF"+ hexString +"07";
-				appendCell(headerRow, edge.desc.trim(), 1, "", line, edge.file);
-
-				var explanationRow = htmlTable.insertRow();
-				appendCell(explanationRow, edge.fault, 3, "", line, edge.file);
-				htmlTable.className = "fault-table";
-
-				if(typeof rankList[edge.rank] === "undefined"){
-					rankList[edge.rank] = 1;
-				} else {
-					rankList[edge.rank] = rankList[edge.rank]+1;
-				}
-				//htmlTable.id = "fault-loc-table-"+j;
-				faultDict["rank_" + edge.rank + "_" + rankList[edge.rank]] = htmlTable;
-			}
-			//Sorting tables
-			var table = document.createElement("table");
-			for(var j = 0; j < rankList.length; j++){
-				for(var i = 0; i < rankList[j+1]; i++){
-				var row = table.insertRow();
-				var cell = row.insertCell();
-				cell.appendChild(faultDict["rank_"+(j+1)+"_"+(i+1)]);
-				}
-			}
-			table.id = "single-fault-loc-table";
-			return table;
-		}
-
-		//Whenever a entry of the fault loc view is selected the highlighted lines have to change
+		//Whenever an entry of the fault loc view is selected the highlighted lines have to change
 		function selectLines(line){
 			$("#source-"+redLine).removeClass("highlight-selected-line");
 			for(var i = 0; i < lastSelectedLine.length; i++){
@@ -518,15 +423,15 @@ with considerably less effort */
 			lastSelectedLine = line;
 		}
 
-		// the first element of a set gets all the information about the set error. This method extracts this information
+		// the first element of a set gets all the information about all faults that contain this edge.
 		function tablesFromErrorPathElement(element, rankList){
 			var tabledict = {}
-			for(var i = 0; i < element.setnumber; i++){
-				var rank = element.setrank[i];
-				var score = element.setscores[i];
-				var descriptions = element.setdescriptions[i]; //Array of line descriptions for combobox
-				var reason = element.setreason[i];
-				var lines = element.setlines[i];//Array of lines
+			for(var i = 0; i < element.numbersets; i++){
+				var rank = element.ranks[i];
+				var score = element.scores[i];
+				var descriptions = element.descriptions[i]; //Array of line descriptions for combobox
+				var reason = element.reasons[i];
+				var lines = element.lines[i];//Array of lines
 
 				if(rankList[rank] === undefined){
 					rankList[rank] = 1;
@@ -537,9 +442,9 @@ with considerably less effort */
 				var htmlTable = document.createElement("table");
 				var headerRow = htmlTable.insertRow();
 
-				appendCell(headerRow, rank + ".", 1, "Rank", lines, element.file);
+				appendCell(headerRow, rank + ".", 1, "Rank", lines);
 				hexString = interpolateRGB(score);
-				appendCell(headerRow, score, 1, "Score", lines, element.file).style.backgroundColor = "#FF"+ hexString +"07";;
+				appendCell(headerRow, score, 1, "Score", lines).style.backgroundColor = "#FF"+ hexString +"07";;
 
 				var selectLine = document.createElement("select");
 				for(var k = 0; k < descriptions.length; k++){
@@ -551,7 +456,6 @@ with considerably less effort */
 
 				var descCell = headerRow.insertCell();
 				descCell.appendChild(selectLine);
-				//descCell.onclick = function(){selectLines(lines)};
 
 				selectLine.addEventListener("click", function(){
 					selectLines(lines);
@@ -564,8 +468,8 @@ with considerably less effort */
 				}, false);
 
 				var explanationRow = htmlTable.insertRow();
-				appendCell(explanationRow, reason, 3, "", lines, element.file);
-				htmlTable.id = "set-fault-id-"+rank;
+				appendCell(explanationRow, reason, 3, "", lines);
+				htmlTable.id = "fault-"+rank;
 				htmlTable.className = "fault-table";
 				tabledict["rank_"+rank+"_"+rankList[rank]] = htmlTable;
 			}
@@ -592,36 +496,6 @@ with considerably less effort */
 			return table;
 		}
 
-		function toggleSubsetView(){
-			if(showSubset){
-				for(var j = 0; j < errorPath.length; j++){
-					errorPath[j].showrank = errorPath[j].setminrank;
-					errorPath[j].showfault = errorPath[j].setminrankreason;
-					//d3.selectAll("#errpath-" + j + " td pre").classed("fault", false);
-				}
-				for (var j = 0; j < faultEdgesSubsetIndex.length; j++){
-					//d3.selectAll("#errpath-" + faultEdgesSubsetIndex[j] + " td").classed("fault", true);	    	
-				}
-				if(showDetailed){
-					$("#set-fault-loc-table").show();
-					$("#single-fault-loc-table").hide();
-				}
-			} else {
-				for(var j = 0; j < errorPath.length; j++){
-					errorPath[j].showrank = errorPath[j].rank;
-					errorPath[j].showfault = errorPath[j].fault;
-					//d3.selectAll("#errpath-" + j + " td pre").classed("fault", false);
-				}
-				if(showDetailed){
-					$("#set-fault-loc-table").hide();
-					$("#single-fault-loc-table").show();
-				}
-				for (var j = 0; j < faultEdgesIndex.length; j++){
-					//d3.selectAll("#errpath-" + faultEdgesIndex[j] + " td pre").classed("fault", true);	    	
-				}
-			}
-		}
-
 		$scope.sortFaultClicked = function(){
 			showDetailed = !showDetailed;
 			if(showDetailed) {
@@ -639,11 +513,6 @@ with considerably less effort */
 				$("#single-fault-loc-table").hide();
 				$("#set-fault-loc-table").hide();
 			}
-		}
-
-		$scope.toggleFaultSubset = function(){
-			showSubset = !showSubset;
-			toggleSubsetView();
 		}
 
 		$scope.errPathPrevClicked = function ($event) {
