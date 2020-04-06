@@ -449,37 +449,24 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
         ExecutorService executor = Executors.newFixedThreadPool(threadNum);
         List<Callable<Boolean>> tasks = new ArrayList<>();
         int threadCounter = 0;
-        for (Map.Entry<ARGState,List<ARGState>> entry : segmentMap.entrySet()) {
-            ARGState key = entry.getKey();
-            List<ARGState> segment = entry.getValue();
+        for (Map.Entry<ARGState, List<ARGState>> entry : segmentMap.entrySet()) {
+          ARGState key = entry.getKey();
+          List<ARGState> segment = entry.getValue();
           final int currentThreadId = threadCounter;
-            if (currentState instanceof SLARGState) {
-            Callable<Boolean> c =
-                new Callable<>() {
-                    @Override
-                    public Boolean call() throws Exception {
-                    return checkSymbolicEdgeParallel(currentState, key, segment, currentThreadId);
-                    }
-                };
-            tasks.add(c);
-            } else {
-            Callable<Boolean> c =
-                new Callable<>() {
-                    @Override
-                    public Boolean call() throws Exception {
-                    return checkEdgeParallel(
-                        currentState,
-                        key,
-                        segment,
-                        pAbstractionStatesTrace,
-                        rootState,
-                        pInfeasiblePartOfART,
-                        pChangedElements,
-                        currentThreadId);
-                    }
-                };
-            tasks.add(c);
-            }
+          if (currentState instanceof SLARGState) {
+            tasks.add(() -> checkSymbolicEdgeParallel(currentState, key, segment, currentThreadId));
+          } else {
+            tasks.add(
+                () -> checkEdgeParallel(
+                    currentState,
+                    key,
+                    segment,
+                    pAbstractionStatesTrace,
+                    rootState,
+                    pInfeasiblePartOfART,
+                    pChangedElements,
+                    currentThreadId));
+          }
           threadCounter = (threadCounter + 1) % threadNum;
         }
         try {
