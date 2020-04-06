@@ -198,12 +198,9 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
                 pPredicateCpa.getConfiguration(),
                 pPredicateCpa.getLogger(),
                 pPredicateCpa.getShutdownNotifier()));
-        }
-      solver = parallelSolvers.get(threadNum);
-    } else {
-        solver = pPredicateCpa.getSolver();
+      }
     }
-
+    solver = pPredicateCpa.getSolver();
     bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
     predAbsMgr = pPredicateCpa.getPredicateManager();
     impact =
