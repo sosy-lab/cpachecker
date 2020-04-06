@@ -73,6 +73,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.ArrayFormula;
@@ -88,6 +89,7 @@ class AssignmentHandler {
 
   private final FormulaEncodingWithPointerAliasingOptions options;
   private final FormulaManagerView fmgr;
+  private final BitvectorFormulaManagerView efmgr;
   private final BooleanFormulaManagerView bfmgr;
 
   private final CToFormulaConverterWithPointerAliasing conv;
@@ -119,6 +121,7 @@ class AssignmentHandler {
     typeHandler = pConv.typeHandler;
     options = conv.options;
     fmgr = conv.fmgr;
+    efmgr = conv.efmgr;
     bfmgr = conv.bfmgr;
 
     edge = pEdge;
@@ -826,9 +829,23 @@ class AssignmentHandler {
         if(region == null) {
           region = regionMgr.makeMemoryRegion(pRValueType);
         }
+        final Formula addressCast;
+        if (options.useVariableClassification()
+            && (pRValue.asAliasedLocation().getAddress() instanceof BitvectorFormula)) {
+          addressCast =
+              efmgr.toIntegerFormula(
+                  (BitvectorFormula) pRValue.asAliasedLocation().getAddress(),
+                  false);
+        } else {
+          addressCast = pRValue.asAliasedLocation().getAddress();
+        }
         return Optional.of(
             conv.makeDereference(
-                pRValueType, pRValue.asAliasedLocation().getAddress(), ssa, errorConditions, region));
+                pRValueType,
+                addressCast,
+                ssa,
+                errorConditions,
+                region));
       case UNALIASED_LOCATION:
         return Optional.of(
             conv.makeVariable(pRValue.asUnaliasedLocation().getVariableName(), pRValueType, ssa));
