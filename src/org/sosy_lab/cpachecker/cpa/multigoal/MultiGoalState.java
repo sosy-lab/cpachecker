@@ -134,7 +134,9 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
         pEdgesToWeave == null
             ? ImmutableSet.copyOf(Collections.emptySet())
             : ImmutableSet.copyOf(pEdgesToWeave);
-    calculateCoveredGoals();
+    coveredGoals =
+        ImmutableSet.copyOf(
+            calculateCoveredGoals(pGoals, negatedPathStates, weavedEdges, variablesToWeave));
   }
 
   public MultiGoalState(
@@ -169,10 +171,13 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
     }
 
     builder.append("\nNegated Path States:\n");
+    int i = 0;
     for (Entry<CFAEdgesGoal, ImmutableMap<PartialPath, Integer>> entry : getNegatedPathsPerGoal()
         .entrySet()) {
       for (Entry<PartialPath, Integer> pathState : entry.getValue().entrySet()) {
-        builder.append(pathState.getKey().toString());
+        // builder.append(pathState.getKey().toString());
+        builder.append("Path " + i + " state");
+        i++;
         builder.append("\t:");
         builder.append(pathState.getValue());
       }
@@ -205,33 +210,46 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
     return new HashSet<>(goalStates.keySet());
   }
 
-  private void calculateCoveredGoals() {
+  public static Set<CFAEdgesGoal> calculateCoveredGoals(
+      ImmutableMap<CFAEdgesGoal, Integer> goalStates,
+      ImmutableMap<CFAEdgesGoal, ImmutableMap<PartialPath, Integer>> negatedPathStates,
+      Set<CFAEdge> pWeavedEdges,
+      ImmutableSet<Pair<WeavingVariable, WeavingType>> pEdgesToWeave) {
+
+    if (!pWeavedEdges.isEmpty() || !pEdgesToWeave.isEmpty()) {
+      return Collections.emptySet();
+    }
+
     if (goalStates.isEmpty()) {
-      coveredGoals = ImmutableSet.copyOf(Collections.emptySet());
+      return Collections.emptySet();
     }else {
       Set<CFAEdgesGoal> tempCoveredGoals = new HashSet<>();
 
       for (Entry<CFAEdgesGoal, Integer> goal : goalStates.entrySet()) {
           if (goal.getValue() >= goal.getKey().getPath().size()) {
-            if (!getNegatedPathsPerGoal().containsKey(goal.getKey())) {
+          if (!negatedPathStates.containsKey(goal.getKey())) {
               tempCoveredGoals.add(goal.getKey());
             } else {
               ImmutableMap<PartialPath, Integer> negatedPaths =
-                  getNegatedPathsPerGoal().get(goal.getKey());
+                negatedPathStates.get(goal.getKey());
+            boolean allPathsFree = true;
               for (Entry<PartialPath, Integer> path : negatedPaths.entrySet()) {
-                if (path.getKey().size() != path.getValue()) {
-                  tempCoveredGoals.add(goal.getKey());
+              if (path.getKey().size() == path.getValue()) {
+                allPathsFree = false;
                 }
               }
+            if (allPathsFree) {
+              tempCoveredGoals.add(goal.getKey());
+            }
             }
           }
         }
-      coveredGoals = ImmutableSet.copyOf(tempCoveredGoals);
+      return tempCoveredGoals;
     }
   }
 
-  public Set<CFAEdgesGoal> getCoveredGoal() {
-    return new HashSet<>(coveredGoals);
+  public ImmutableSet<CFAEdgesGoal> getCoveredGoal() {
+    return coveredGoals;
   }
 
 
@@ -358,8 +376,13 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
     mergedState.goalStates = mergeGoals(pState1, pState2);
 
     mergedState.negatedPathStates = mergeNegatedPaths(pState1, pState2);
+    // do not calculate covered Goals during merging!
+    HashSet<CFAEdgesGoal> goals = new HashSet<>();
+    goals.addAll(pState1.getCoveredGoal());
+    goals.addAll(pState2.getCoveredGoal());
 
-    mergedState.calculateCoveredGoals();
+
+    mergedState.coveredGoals = ImmutableSet.copyOf(goals);
 
     return mergedState;
   }

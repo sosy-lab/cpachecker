@@ -502,17 +502,18 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
     for (CFAEdge edge : cex.getTargetPath().asEdgesList()) {
       if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
         String edgeRawStatement = edge.getRawStatement();
-        if (!edgeRawStatement.startsWith("[weaved")) {
+        if (edgeRawStatement.startsWith("[weaved")) {
           if (WeaveEdgeFactory.getSingleton()
               .getWeavedEdgesToOriginalEdgesMap()
               .containsKey(edge)) {
             assumeEdges
                 .add(WeaveEdgeFactory.getSingleton().getWeavedEdgesToOriginalEdgesMap().get(edge));
-          } else {
+          }
+        } else {
             assumeEdges.add(edge);
           }
-        }
       }
+
     }
     return assumeEdges;
   }

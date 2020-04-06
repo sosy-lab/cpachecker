@@ -27,15 +27,22 @@ public class WeavingVariable {
   public WeavingVariable(
       CVariableDeclaration pVarDecl,
       CExpressionAssignmentStatement pIncrement,
-      CExpression pAssumption) {
+      CExpression pAssumption,
+      int pAssumptionValue) {
     this.varDecl = pVarDecl;
     this.increment = pIncrement;
     this.assumption = pAssumption;
+    assumptionValue = pAssumptionValue;
   }
 
   CVariableDeclaration varDecl;
   CExpressionAssignmentStatement increment;
   CExpression assumption;
+  int assumptionValue;
+
+  public int getAssumptionValue() {
+    return assumptionValue;
+  }
 
   public CVariableDeclaration getVarDecl() {
     return varDecl;

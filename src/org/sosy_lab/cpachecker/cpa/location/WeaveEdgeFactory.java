@@ -20,6 +20,7 @@
 package org.sosy_lab.cpachecker.cpa.location;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.UnmodifiableIterator;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -32,6 +33,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cpa.multigoal.MultiGoalState;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -54,7 +56,14 @@ public class WeaveEdgeFactory {
 
     @Override
     public int hashCode() {
-      int hashCode = weavingEdges.hashCode();
+      int hashCode = 0;
+      UnmodifiableIterator<Pair<WeavingVariable, WeavingType>> i = weavingEdges.iterator();
+      while (i.hasNext()) {
+        Pair<WeavingVariable, WeavingType> obj = i.next();
+        if (obj != null) {
+          hashCode += obj.hashCode();
+        }
+      }
       hashCode = 37 * hashCode + initialCFANode.hashCode();
       hashCode = 37 * hashCode + finalCFANode.hashCode();
       // TODO Auto-generated method stub
@@ -110,16 +119,7 @@ public class WeaveEdgeFactory {
     return singleton;
   }
 
-  private String WeavingEdgeToVarName(CFAEdge edge) {
-    String description = edge.getDescription();
-    String code = Integer.toString(edge.hashCode());
-    description = description.replaceAll("[^0-9a-zA-Z_]+", "");
-    code = code.replaceAll("[^0-9a-zA-Z_]+", "");
-    return "Edge_"
-        + description
-        + "_"
-        + code;
-  }
+
 
   private CFAEdge
       createWeaveEdge(
@@ -178,12 +178,21 @@ public class WeaveEdgeFactory {
     return locations.get(node);
   }
 
-  private CFAEdge copy(CFAEdge edge, CFANode predecessor, CFANode successor) {
+  private CFAEdge copy(CFAEdge edge, CFANode successor) {
+
+    if (edge.getEdgeType() == CFAEdgeType.FunctionReturnEdge) {
+      return new CFunctionReturnEdge(
+          edge.getFileLocation(),
+          ((CFunctionReturnEdge) edge).getPredecessor(),
+          successor,
+          ((CFunctionReturnEdge) edge).getSummaryEdge());
+    }
+
     if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
       return new CAssumeEdge(
           "weaved: " + edge.getRawStatement(),
           edge.getFileLocation(),
-          predecessor,
+          edge.getPredecessor(),
           successor,
           ((CAssumeEdge) edge).getExpression(),
           ((CAssumeEdge) edge).getTruthAssumption());
@@ -192,7 +201,7 @@ public class WeaveEdgeFactory {
       return new BlankEdge(
               "weaved: " + edge.getRawStatement(),
               edge.getFileLocation(),
-              predecessor,
+          edge.getPredecessor(),
               successor,
               "weaved: " + edge.getDescription());
     }
@@ -201,7 +210,7 @@ public class WeaveEdgeFactory {
       return new CDeclarationEdge(
           declEdge.getRawStatement(),
           declEdge.getFileLocation(),
-          predecessor,
+          edge.getPredecessor(),
           successor,
           declEdge.getDeclaration());
     }
@@ -211,11 +220,10 @@ public class WeaveEdgeFactory {
           edge.getRawStatement(),
           ((CStatementEdge) edge).getStatement(),
           edge.getFileLocation(),
-          predecessor,
+          edge.getPredecessor(),
           successor);
     }
-
-    throw new RuntimeException();
+    throw new RuntimeException("Not handled Edge for weaving " + edge.toString());
   }
 
   public Map<CFAEdge, CFAEdge> getWeavedEdgesToOriginalEdgesMap() {
@@ -232,7 +240,7 @@ public class WeaveEdgeFactory {
     // TODO important to weave NEGATEDASSUMPTION last!
     List<CFAEdge> weavedEdges = new ArrayList<>();
     CFANode predecessor = new CFANode(functionName);
-    CFAEdge initialEdge = copy(pCfaEdge, pCfaEdge.getPredecessor(), predecessor);
+    CFAEdge initialEdge = copy(pCfaEdge, predecessor);
     weavedEdgesToOriginalEdgesMap.put(initialEdge, pCfaEdge);
 
     predecessor.addEnteringEdge(initialEdge);

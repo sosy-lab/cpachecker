@@ -201,12 +201,17 @@ public abstract class TigerBaseAlgorithm<T extends Goal>
       inputValues = Collections.emptyList();
       outputValus = Collections.emptyList();
 //      shrinkedErrorPath = Collections.emptyList();
+      String logString = "Counterexample is ";
+      if (cex.isSpurious() && !cex.isPreciseCounterExample()) {
+        logString += "spurios and inprecise";
+      } else if (cex.isSpurious()) {
+        logString += "spurios";
+      } else if (!cex.isPreciseCounterExample()) {
+        logString += "inprecise";
+      }
       logger.log(
           Level.SEVERE,
-          "Counterexample is either\nSpurios: "
-              + cex.isSpurious()
-              + "or inprecise: "
-              + !cex.isPreciseCounterExample());
+          logString);
     }
     // calculate shrinked error path
 

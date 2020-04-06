@@ -465,6 +465,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             // We expect this situation of one of the children is a target state created by PredicateCPA.
             continue;
           } else {
+
+            for (CFAEdge edge : outgoingEdges) {
+              logger.log(Level.WARNING, "Edge: " + edge.toString());
+            }
+
             logger.log(Level.WARNING, "ARG branching without AssumeEdge at ARG node " + pathElement.getStateId() + ".");
             return bfmgr.makeTrue();
           }
