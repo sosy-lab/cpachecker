@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 public class FaultLocalizationInfo extends CounterexampleInfo {
 
@@ -73,7 +72,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    *
    * To see the result of FaultLocalizationInfo replace the CounterexampleInfo of the target state by this.
    *
-   * @param pFaults set of indicators obtained by a fault localization algorithm
+   * @param pFaults Ranked list of faults obtained by a fault localization algorithm
    * @param pCreated the counterexample info of the target state
    */
   public FaultLocalizationInfo(
@@ -150,10 +149,6 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     }
   }
 
-  public FaultLocalizationInfo(Set<Fault> pResult, FaultRanking pRanking, CounterexampleInfo pCreated){
-    this(pRanking.rank(pResult), pCreated);
-  }
-
   public int getRankOfOutput(FaultContribution key) {
     return mapFaultContribToRank.get(key);
   }
@@ -196,63 +191,72 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    */
   @Override
   protected void addAdditionalInfo(Map<String, Object> elem, CFAEdge edge) {
-    elem.put("fault", "");
-    elem.put("score", 0);
-    elem.put("rank", "-");
-    elem.put("enabled", false);
-    elem.put("set-indicator", false);
-    elem.put("setminrank", "-");
-
-    if(mapEdgeToBestRank.get(edge)!= null){
-      elem.put("setminrank", mapEdgeToBestRank.get(edge));
-      elem.put("setminrankreason", mapEdgeToBestDescription.get(edge));
-    } else {
-      elem.put("setminrank", "-");
-      elem.put("setminrankreason", "-");
+    if(mapEdgeToFaultContribution.keySet().contains(edge)){
+      elem.put("additional", htmlWriter.toHtml(mapEdgeToFaultContribution.get(edge)));
+      elem.put("singlerank", mapFaultContribToRank.get(edge));
+    }
+    if(bannedEdges.contains(edge)){
+      return;
     }
 
-    if (mapEdgeToFaultContribution.get(edge) != null) {
-      FaultContribution infoEdge = mapEdgeToFaultContribution.get(edge);
-      elem.put("enabled", true);
-      if (mapEdgeToFaultContribution.get(edge).hasReasons()) {
-        elem.put("fault", htmlWriter.toHtml(infoEdge));
-        elem.put("score", (int) (100*infoEdge.getScore()));
-        elem.put("rank", mapFaultContribToRank.get(infoEdge));
-      }
-    }
-    if(mapEdgeToFault.get(edge) != null && !bannedEdges.contains(edge)){
+    // if the edge is contained in more than one set store the best rank here.
+    elem.put("bestrank", 0);
+    // the reason corresponding to the above rank
+    elem.put("bestreason", "");
+    // if additional information is provided for a single edge store it in additional
+    elem.put("additional", "");
+    // if additional information is provided the rank has to be present to
+    elem.put("singlerank", 0);
+    // in how many sets is the current edge contained.
+    elem.put("numbersets", 0);
+    // array of edge descriptions
+    elem.put("descriptions", new ArrayList<>());
+    // array of all reasons of the sets this edge is contained in
+    elem.put("reasons", new ArrayList<>());
+    // array of all lines of the sets this edge is contained in
+    elem.put("lines", new ArrayList<>());
+    //Ranks and scores of all sets this is contained in
+    elem.put("scores", new ArrayList<>());
+    elem.put("ranks", new ArrayList<>());
+
+    boolean isFault = mapEdgeToFault.keySet().contains(edge);
+    elem.put("isfault",isFault);
+
+    if(isFault){
       bannedEdges.add(edge);
-      elem.put("setindicator", true);
-      List<Fault> infoSet = mapEdgeToFault.get(edge);
-
-      List<List<Integer>> concatLines = new ArrayList<>();
-      List<String> reasons = new ArrayList<>();
+      elem.put("bestrank", mapEdgeToBestRank.get(edge));
+      elem.put("bestreason", mapEdgeToBestDescription.get(edge));
+      List<Fault> associatedFaults = mapEdgeToFault.get(edge);
+      elem.put("numbersets", associatedFaults.size());
       List<List<String>> descriptions = new ArrayList<>();
+      List<String> reasons = new ArrayList<>();
+      List<List<Integer>> lines = new ArrayList<>();
       List<Integer> scores = new ArrayList<>();
       List<Integer> ranks = new ArrayList<>();
-      for (Fault info : infoSet) {
-        descriptions.add(info
+      for(Fault fault: associatedFaults){
+        // get description of all edge types in the Fault
+        descriptions.add(fault
             .stream()
-            .sorted(Comparator.comparingInt(a -> a.correspondingEdge().getFileLocation().getStartingLineInOrigin()))
-            .map(l -> {
-              CFAEdge cfaEdge = l.correspondingEdge();
+            .sorted(Comparator.comparingInt(fc -> fc.correspondingEdge().getFileLocation().getStartingLineInOrigin()))
+            .map(fc -> {
+              CFAEdge cfaEdge = fc.correspondingEdge();
               if(cfaEdge.getEdgeType().equals(CFAEdgeType.FunctionReturnEdge)){
                 return Splitter.on(":").split(cfaEdge.getDescription()).iterator().next();
               }
-              return l.correspondingEdge().getDescription();
+              return fc.correspondingEdge().getDescription();
             })
             .collect(Collectors.toList()));
-        concatLines.add(info.sortedLineNumbers());
-        reasons.add(htmlWriter.toHtml(info));
-        scores.add((int)(info.getScore()*100));
-        ranks.add(mapFaultToRank.get(info));
+
+        lines.add(fault.sortedLineNumbers());
+        reasons.add(htmlWriter.toHtml(fault));
+        scores.add((int)fault.getScore()*100);
+        ranks.add(mapFaultToRank.get(fault));
       }
-      elem.put("setnumber", reasons.size());
-      elem.put("setreason", reasons);
-      elem.put("setlines", concatLines); //array
-      elem.put("setscores", scores);
-      elem.put("setdescriptions", descriptions); //array
-      elem.put("setrank", ranks);
+      elem.put("descriptions", descriptions);
+      elem.put("reasons", reasons);
+      elem.put("lines", lines);
+      elem.put("scores", scores);
+      elem.put("ranks", ranks);
     }
   }
 
