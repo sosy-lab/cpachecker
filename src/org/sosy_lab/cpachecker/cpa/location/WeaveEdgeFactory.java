@@ -240,6 +240,8 @@ public class WeaveEdgeFactory {
     // TODO important to weave NEGATEDASSUMPTION last!
     List<CFAEdge> weavedEdges = new ArrayList<>();
     CFANode predecessor = new CFANode(functionName);
+    int reversePostOrderId = pCfaEdge.getPredecessor().getReversePostorderId();
+    predecessor.setReversePostorderId(reversePostOrderId);
     CFAEdge initialEdge = copy(pCfaEdge, predecessor);
     weavedEdgesToOriginalEdgesMap.put(initialEdge, pCfaEdge);
 
@@ -251,6 +253,7 @@ public class WeaveEdgeFactory {
       Pair<WeavingVariable, WeavingType> pair = iter.next();
       if (iter.hasNext()) {
         successor = new CFANode(functionName);
+        successor.setReversePostorderId(reversePostOrderId);
       } else {
         successor = pCfaEdge.getSuccessor();
       }
