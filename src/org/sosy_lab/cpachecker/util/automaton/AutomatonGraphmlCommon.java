@@ -530,14 +530,15 @@ public class AutomatonGraphmlCommon {
     return handleAsEpsilonEdge(pEdge);
   }
 
+  /**
+   * This method checks whether an edge qualifies as epsilon edge.
+   * Epsilon edges are irrelevant edges that are not required in the witness.
+   * <li>global declarations (there is no other path possible in the CFA),
+   * <li>CPAchecker-internal temporary variable declarations (irrelevant for the witness),
+   * <li>blank edges and function summary edges (not required for a path in the witness).
+   */
   public static boolean handleAsEpsilonEdge(CFAEdge edge) {
-    if (handleAsEpsilonEdge0(edge)) {
-      if (edge.getSuccessor().getNumLeavingEdges() <= 0) {
-        return false;
-      }
-      return true;
-    }
-    return false;
+    return handleAsEpsilonEdge0(edge) && edge.getSuccessor().getNumLeavingEdges() > 0;
   }
 
   private static boolean handleAsEpsilonEdge0(CFAEdge edge) {
