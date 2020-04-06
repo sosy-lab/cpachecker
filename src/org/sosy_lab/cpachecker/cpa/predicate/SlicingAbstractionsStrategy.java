@@ -190,10 +190,9 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
   public SlicingAbstractionsStrategy(final PredicateCPA pPredicateCpa, final Configuration config)
       throws InvalidConfigurationException {
     super(pPredicateCpa.getSolver());
-    parallelSolvers = new ArrayList<Solver>();
+    parallelSolvers = new ArrayList<>();
     if (executeParallel) {
       for (int i = 0; i < threadNum + 1; i++) {
-
         parallelSolvers.add(
             Solver.create(
                 pPredicateCpa.getConfiguration(),
@@ -303,10 +302,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     } else {
       // TODO: refactor so that the caller provides the full abstractionStatesTrace including the
       // root state. Then handling more than one root state would be no problem.
-      rootState =
-          rootStates.stream()
-              .reduce((x, y) -> x.getStateId() < y.getStateId() ? x : y)
-              .orElseThrow();
+      rootState = Collections.min(rootStates);
       logger.log(
           Level.INFO,
           String.format(
@@ -452,26 +448,26 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
 
       // TODO
 
-      if (executeParallel == true) {
+      if (executeParallel) {
         ExecutorService executor = Executors.newFixedThreadPool(threadNum);
-        List<Callable<Boolean>> tasks = new ArrayList<Callable<Boolean>>();
-        final int[] currentThreadId = new int[1];
-        currentThreadId[0] = 0;
+        List<Callable<Boolean>> tasks = new ArrayList<>();
+        int threadCounter = 0;
         for (Map.Entry<ARGState,List<ARGState>> entry : segmentMap.entrySet()) {
             ARGState key = entry.getKey();
             List<ARGState> segment = entry.getValue();
+          final int currentThreadId = threadCounter;
             if (currentState instanceof SLARGState) {
             Callable<Boolean> c =
-                new Callable<Boolean>() {
+                new Callable<>() {
                     @Override
                     public Boolean call() throws Exception {
-                    return checkSymbolicEdgeParallel(currentState, key, segment,currentThreadId[0]);
+                    return checkSymbolicEdgeParallel(currentState, key, segment, currentThreadId);
                     }
                 };
             tasks.add(c);
             } else {
             Callable<Boolean> c =
-                new Callable<Boolean>() {
+                new Callable<>() {
                     @Override
                     public Boolean call() throws Exception {
                     return checkEdgeParallel(
@@ -482,25 +478,23 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
                         rootState,
                         pInfeasiblePartOfART,
                         pChangedElements,
-                        currentThreadId[0]);
+                        currentThreadId);
                     }
                 };
             tasks.add(c);
             }
-            currentThreadId[0] = (currentThreadId[0] + 1)%threadNum;
+          threadCounter = (threadCounter + 1) % threadNum;
         }
         try {
             List<Future<Boolean>> results = executor.invokeAll(tasks);
             int counter = 0;
             for (Map.Entry<ARGState, List<ARGState>> entry : segmentMap.entrySet()) {
             ARGState key = entry.getKey();
-            boolean res;
-            res = results.get(counter).get();
-            infeasibleMap.put(key, res);
+            infeasibleMap.put(key, results.get(counter).get());
             counter++;
             }
         } catch (ExecutionException e) {
-            ;
+
         } finally {
             executor.shutdown();
         }
@@ -765,13 +759,9 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
         parallelSolvers.get(currentThreadId).newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       thmProver.push(parallelFormula);
       stats.increaseSolverCallCounter();
-      if (thmProver.isUnsat()) {
-        infeasible = true;
-      } else {
-        infeasible = false;
-      }
-    } catch (SolverException  e){
-         throw new CPAException("Solver Failure", e);
+      infeasible = thmProver.isUnsat();
+    } catch (SolverException e) {
+      throw new CPAException("Solver Failure", e);
     }
     return infeasible;
   }
