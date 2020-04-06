@@ -189,7 +189,7 @@ public class CtoFormulaConverter {
   protected final FormulaManagerView fmgr;
   protected final BooleanFormulaManagerView bfmgr;
   protected final IntegerFormulaManagerView ifmgr;
-  private final BitvectorFormulaManagerView efmgr;
+  protected final BitvectorFormulaManagerView efmgr;
   final FunctionFormulaManagerView ffmgr;
   protected final LogManagerWithoutDuplicates logger;
   protected final ShutdownNotifier shutdownNotifier;
@@ -721,10 +721,12 @@ public class CtoFormulaConverter {
         IntegerFormula iformula = efmgr.toIntegerFormula((BitvectorFormula) formula, signed);
         IntegerFormula zero = ifmgr.makeNumber(0);
         return bfmgr.not(ifmgr.equal(iformula, zero));
-      } else if (toType.isIntegerType()) {
+      } else if (toType.isIntegerType() && (cTypeNoPointer instanceof CSimpleType)) {
         final CSimpleType sType = (CSimpleType) cTypeNoPointer;
         final boolean signed = machineModel.isSigned(sType);
         return efmgr.toIntegerFormula((BitvectorFormula) formula, signed);
+      } else if (toType.isIntegerType()) {
+        return efmgr.toIntegerFormula((BitvectorFormula) formula, false);
       } else {
         throw new UnrecognizedCodeException(
             "Formula type cast from " + toType + " to " + fromType + " not supported!",
