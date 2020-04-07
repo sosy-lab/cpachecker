@@ -233,10 +233,12 @@ deploy-gh-pages:
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
+  variables:
+    EXTRA_ARGS: ""
   script:
     - mkdir -p /root/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-    - /kaniko/executor --dockerfile $CI_PROJECT_DIR/$DOCKERFILE --destination $CI_REGISTRY_IMAGE/$IMAGE
+    - /kaniko/executor --dockerfile $CI_PROJECT_DIR/$DOCKERFILE --destination $CI_REGISTRY_IMAGE$IMAGE $EXTRA_ARGS
   only:
     - schedules
     - web
@@ -245,10 +247,10 @@ build-docker:test:jdk-11:
   extends: .build-docker
   variables:
     DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-11
-    IMAGE: test:jdk-11
+    IMAGE: /test:jdk-11
 
 build-docker:test:jdk-14:
   extends: .build-docker
   variables:
     DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-14
-    IMAGE: test:jdk-14
+    IMAGE: /test:jdk-14

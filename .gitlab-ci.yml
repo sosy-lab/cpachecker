@@ -122,13 +122,14 @@ build-docker:test:java-node:
   extends: .build-docker
   variables:
     DOCKERFILE: build/gitlab-ci.Dockerfile.java-node
-    IMAGE: test:java-node
+    IMAGE: /test:java-node
 
 build-docker:release:
   extends: .build-docker
   variables:
     DOCKERFILE: build/Dockerfile.release
-    IMAGE: ":1.9 --destination $CI_REGISTRY_IMAGE:latest"
+    IMAGE: :1.9
+    EXTRA_ARGS: "--destination $CI_REGISTRY_IMAGE:latest"
 
 
 javascript-e2e-tests:
@@ -188,7 +189,7 @@ build-tar:
   needs:
     - build-dependencies
     - build:jdk-11
-  script: "ant $ANT_PROPS_BUILD dist-unix -Dnamet=cpachecker"
+  script: "ant $ANT_PROPS_CHECKS dist-unix -Dnamet=cpachecker"
   artifacts:
     paths:
       - "cpachecker.tar.bz2"
@@ -203,7 +204,8 @@ deploy-docker:
   extends: .build-docker
   variables:
     DOCKERFILE: build/Dockerfile.dev
-    IMAGE: ":dev --context dir://."
+    IMAGE: :dev
+    EXTRA_ARGS: "--context dir://."
   only:
     refs:
       - trunk
