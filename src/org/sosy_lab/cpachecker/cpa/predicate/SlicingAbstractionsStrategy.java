@@ -191,15 +191,6 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       throws InvalidConfigurationException {
     super(pPredicateCpa.getSolver());
     parallelSolvers = new ArrayList<>();
-    if (executeParallel) {
-      for (int i = 0; i < threadNum + 1; i++) {
-        parallelSolvers.add(
-            Solver.create(
-                pPredicateCpa.getConfiguration(),
-                pPredicateCpa.getLogger(),
-                pPredicateCpa.getShutdownNotifier()));
-      }
-    }
     solver = pPredicateCpa.getSolver();
     bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
     predAbsMgr = pPredicateCpa.getPredicateManager();
@@ -210,6 +201,16 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     argLogger = new ARGLogger(pPredicateCpa.getConfiguration(), logger);
 
     config.inject(this);
+
+    if (executeParallel) {
+      for (int i = 0; i < threadNum; i++) {
+        parallelSolvers.add(
+            Solver.create(
+                pPredicateCpa.getConfiguration(),
+                pPredicateCpa.getLogger(),
+                pPredicateCpa.getShutdownNotifier()));
+      }
+    }
   }
 
   @Override
@@ -501,7 +502,6 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
                     pInfeasiblePartOfART,
                     pChangedElements);
             }
-
             infeasibleMap.put(key, infeasible);
         }
       }
