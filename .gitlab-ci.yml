@@ -128,7 +128,7 @@ build-docker:release:
   extends: .build-docker
   variables:
     DOCKERFILE: build/Dockerfile.release
-    IMAGE: :1.9
+    IMAGE: ":1.9"
     EXTRA_ARGS: "--destination $CI_REGISTRY_IMAGE:latest"
 
 
@@ -204,7 +204,7 @@ deploy-docker:
   extends: .build-docker
   variables:
     DOCKERFILE: build/Dockerfile.dev
-    IMAGE: :dev
+    IMAGE: ":dev"
     EXTRA_ARGS: "--context dir://."
   only:
     refs:
