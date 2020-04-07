@@ -68,8 +68,8 @@ public class TarantulaAlgorithm implements Algorithm {
   /**
    * Calculates suspiciousness of tarantula algorithm.
    *
-   * @param failed Is the number of failed cases are in each edge.
-   * @param passed Is the number of passed cases are in each edge.
+   * @param failed Is the number of failed cases in each edge.
+   * @param passed Is the number of passed cases in each edge.
    * @param pReachedSet Input.
    * @return Calculated suspicious.
    */
@@ -123,7 +123,7 @@ public class TarantulaAlgorithm implements Algorithm {
     table.forEach(
         (key, value) -> resultMap.put(key, suspiciousness(value[0], value[1], reachedSet)));
 
-    // Sort the result by its value
+    // Sort the result by its value and ignore the suspicious with 0.0 ration.
     final Map<CFAEdge, Double> sortedByCount =
         resultMap.entrySet().stream()
             .filter(e -> e.getValue() != 0)

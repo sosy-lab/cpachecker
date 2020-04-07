@@ -215,7 +215,7 @@ public class TarantulaUtils {
    */
   public static Map<CFAEdge, int[]> getTable(ReachedSet reachedSet) {
 
-    return convertingInformation(
+    return coverageInformation(
         TarantulaUtils.mergeInto2dArray(
             TarantulaUtils.getEdgesOfSafePaths(reachedSet),
             TarantulaUtils.getEdgesOfErrorPaths(reachedSet)),
@@ -329,7 +329,7 @@ public class TarantulaUtils {
    * @param path The whole path contains all error paths and passed paths.
    * @return result as <code>Map<code/>.
    */
-  public static Map<CFAEdge, int[]> convertingInformation(
+  public static Map<CFAEdge, int[]> coverageInformation(
       List<List<CFAEdge>> path, ReachedSet reachedSet) {
 
     Map<CFAEdge, int[]> map = new LinkedHashMap<>();
@@ -352,7 +352,10 @@ public class TarantulaUtils {
             tuple[1] = 1;
           }
         }
-        map.put(individualArray.get(j), tuple);
+        // Skipp the "none" line numbers.
+        if (individualArray.get(j).getLineNumber() != 0) {
+          map.put(individualArray.get(j), tuple);
+        }
       }
     }
     return map;
@@ -390,7 +393,7 @@ public class TarantulaUtils {
 
       // Add all parents
       for (ARGState parentElement : curPath.get(curPath.size() - 1).getParents()) {
-        List<ARGState> tmp = new ArrayList<>(List.copyOf(curPath));
+        List<ARGState> tmp = new ArrayList<>(ImmutableList.copyOf(curPath));
         tmp.add(parentElement);
         paths.add(tmp);
       }
