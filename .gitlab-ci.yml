@@ -124,6 +124,13 @@ build-docker:test:java-node:
     DOCKERFILE: build/gitlab-ci.Dockerfile.java-node
     IMAGE: test:java-node
 
+build-docker:release:
+  extends: .build-docker
+  variables:
+    DOCKERFILE: build/Dockerfile.release
+    IMAGE: ":1.9 --destination $CI_REGISTRY_IMAGE:latest"
+
+
 javascript-e2e-tests:
   stage: checks
   dependencies:
@@ -171,6 +178,35 @@ flake8:
   script:
     - flake8
   allow_failure: true # need to fix existing code first
+
+
+build-tar:
+  stage: checks
+  dependencies:
+    - build-dependencies
+    - build:jdk-11
+  needs:
+    - build-dependencies
+    - build:jdk-11
+  script: "ant $ANT_PROPS_BUILD dist-unix -Dnamet=cpachecker"
+  artifacts:
+    paths:
+      - "cpachecker.tar.bz2"
+  only:
+    refs:
+      - trunk
+
+deploy-docker:
+  stage: deploy
+  dependencies:
+    - build-tar
+  extends: .build-docker
+  variables:
+    DOCKERFILE: build/Dockerfile.dev
+    IMAGE: ":dev --context dir://."
+  only:
+    refs:
+      - trunk
 
 
 # No coverage is computed for CPAchecker

@@ -16,6 +16,17 @@ Install CPAchecker -- Binary
 
 2. Extract the content of the CPAchecker zip or tar file into a directory of your choice.
 
+
+Install CPAchecker -- Docker
+----------------------------
+We provide an Ubuntu-based Docker image with a CPAchecker binary under the following name:
+```
+registry.gitlab.com/sosy-lab/software/cpachecker
+```
+You can specify the tag `:latest` for the latest release,
+or the tag `:dev` for the latest development version.
+
+
 Install CPAchecker -- Source
 ----------------------------
 

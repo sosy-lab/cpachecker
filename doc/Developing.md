@@ -150,10 +150,15 @@ Releasing a New Version
 5. Add a tag in the repository with name `cpachecker-<version>`,
    where `<version>` is constructed as outlined below in Sect. "Release Tagging".
 
-6. Send a mail with the release announcement to cpachecker-announce and
+6. Update version number in build/Dockerfile.release and .gitlab-ci.yml
+   and either build and push the Docker image manually
+   or trigger the scheduled GitLab CI job after pushing
+   (https://gitlab.com/sosy-lab/software/cpachecker/pipeline_schedules).
+
+7. Send a mail with the release announcement to cpachecker-announce and
    cpachecker-users mailing lists.
 
-7. Prepare for next development cycle by setting `version.base` in [`build.xml`](../build.xml)
+8. Prepare for next development cycle by setting `version.base` in [`build.xml`](../build.xml)
    to a new development version, which is the next possible version number
    with the suffix `-svn`.
    For example, if `1.9` was just released, the next possible feature release

@@ -65,6 +65,13 @@ Verifying a Program with CPAchecker
    or use less powerful analyses that work with Java-based solvers,
    for example this one instead of `-default`:
    `-predicateAnalysis-linear -setprop solver.solver=SMTInterpol`
+   Of course you can also use solutions like the Windows Subsystem for Linux (WSL)
+   or Docker for executing the Linux version of CPAchecker.
+
+   If you installed CPAchecker using Docker, the above example command line would look like this:
+   `docker run -v $(pwd)/output:/cpachecker/output:rw registry.gitlab.com/sosy-lab/software/cpachecker -default doc/examples/example.c`
+   By using the parameter `-v`, the output files of CPAchecker are made accessible outside of the container.
+   To verify a program of your own, you need to similarly make it accessible from within the container.
 
 5. Additionally to the console output,
    an interactive HTML report is generated in the directory `output/`,
