@@ -9,7 +9,7 @@ variables:
   REFASTER_VERSION: 2.3.4
 
 
-build:jdk-13:
+build:jdk-14:
   variables:
     # https://github.com/google/error-prone/issues/1106
     ANT_PROPS_BUILD: "-Divy.disable=true -Derrorprone.disable=true"
@@ -37,15 +37,15 @@ configuration-checks:jdk-11:
     - build:jdk-11
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
-configuration-checks:jdk-13:
+configuration-checks:jdk-14:
   <<: *configuration-checks
   dependencies:
     - build-dependencies
-    - build:jdk-13
+    - build:jdk-14
   needs:
     - build-dependencies
-    - build:jdk-13
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-13
+    - build:jdk-14
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-14
 
 
 configuration-documentation:
@@ -89,15 +89,15 @@ python-unit-tests:jdk-11:
     - build:jdk-11
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
-python-unit-tests:jdk-13:
+python-unit-tests:jdk-14:
   <<: *python-unit-tests
   dependencies:
     - build-dependencies
-    - build:jdk-13
+    - build:jdk-14
   needs:
     - build-dependencies
-    - build:jdk-13
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-13
+    - build:jdk-14
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-14
 
 
 javascript-unit-tests:
@@ -177,7 +177,7 @@ flake8:
 unit-tests:jdk-11:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
 
-unit-tests:jdk-13:
+unit-tests:jdk-14:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
 
 
