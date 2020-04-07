@@ -26,7 +26,7 @@ public class FaultReportWriter {
   }
 
   public String toHtml(FaultContribution faultContribution) {
-    return toHtml(faultContribution.getReasons(), Collections.singletonList(faultContribution.correspondingEdge()));
+    return toHtml(faultContribution.getReasons(), Collections.singletonList(faultContribution.correspondingEdge())) + "<br><i>Score: " + (int)(faultContribution.getScore()*100)+"</i>";
   }
 
   public String toHtml(Fault fault) {

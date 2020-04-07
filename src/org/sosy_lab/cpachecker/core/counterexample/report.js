@@ -274,6 +274,9 @@ with considerably less effort */
 
 	var errorpathController = app.controller("ErrorpathController", ['$rootScope', '$scope', function ($rootScope, $scope) {
 		$rootScope.errorPath = [];
+		$rootScope.faults = [];
+		$scope.selectedLines = [];
+		$scope.redLine = -1;
 
 		function getValues(val, prevValDict) {
 			var values = {};
@@ -294,10 +297,9 @@ with considerably less effort */
 
 		// initialize array that stores the important edges. Index counts only, when edges appear in the report.
         var importantEdges = [];
-        var importantIndex = -1;
+		var importantIndex = -1;
+		
         let faultEdges = [];
-
-        var redLine = 0;
 
 		if (errorPath !== undefined) {
 			var indentationlevel = 0;
@@ -333,9 +335,26 @@ with considerably less effort */
 					indentationlevel += 1;
 				}
 
-				if(errPathElem.isFault){
+				if(errPathElem.isfault){
 					errPathElem["importantindex"] = importantIndex;
 					faultEdges.push(errPathElem);
+					for(let i = 0; i < errPathElem.numbersets; i++){
+						let rank = errPathElem.ranks[i];
+						let score = errPathElem.scores[i];
+						let descriptions = errPathElem.descriptions[i]; //Array of line descriptions for combobox
+						let reason = errPathElem.reasons[i];
+						let lines = errPathElem.lines[i];//Array of lines
+						currFault = {};
+						currFault["reason"] = reason;
+						currFault["rank"] = rank;
+						currFault["score"] = score;
+						currFault["lines"] = lines;
+						currFault["descriptions"] = descriptions;
+						$rootScope.faults.push(currFault);
+						$rootScope.faults.sort(function(a,b){
+							return a.rank - b.rank;
+						});
+					}
 				}
 
 				// store the important edges
@@ -352,22 +371,21 @@ with considerably less effort */
 			};
 						
 
-			function addFaultLocalizationInfo(indicatorEdges){
-				if(Object.keys(faultEdges).length !== 0;) {
-					for(var j = 0; j < errorPath.length; j++){
+			function addFaultLocalizationInfo(){
+				if(Object.keys(faultEdges).length !== 0) {
+					for(let j = 0; j < errorPath.length; j++){
 						$("#rank-"+j).addClass("rank");
 					}
-					for (var j = 0; j < indicatorEdges.length; j++){
-						d3.selectAll("#errpath-" + indicatorEdges[j] + " td pre").classed("fault", true);
+					for (let j = 0; j < faultEdges.length; j++){
+						d3.selectAll("#errpath-" + faultEdges[j].importantindex + " td pre").classed("fault", true);
 					}
 					
 					// header to describe the columns in the info table
 					d3.selectAll("#errpath-header td pre").classed("tableheader", true);
-					
 				} else {
 				 	$("#errpath-header").remove();
-					$("#sort-fault-localization-info").remove();
-					for(var i = 0; i < errorPath.length; i++){
+					$("#fault-localization-info").remove();
+					for(let i = 0; i < errorPath.length; i++){
 						$("#rank-"+i).remove();		
 					}
 				}
@@ -375,144 +393,15 @@ with considerably less effort */
 
             angular.element(document).ready(function(){
                 highlightEdges(importantEdges);
-                $("#value-assignment").append(createSetFaultLocTable(faultEdgesSubset));
-                $("#set-fault-loc-table").hide();
-                addFaultLocalizationInfo(faultEdgesSubsetIndex);
+				addFaultLocalizationInfo();
             });
 
 
 		}
 
-		//append a cell to row
-		function appendCell(row, text, colspan, title, line){
-			var cell = row.insertCell();
-			cell.innerHTML = text;
-			if(title !== ""){
-				cell.title = title;
-			}
-			cell.colSpan = colspan;
-			cell.onclick = function() {selectLines(line)};
-			return cell;
-		}
-
-		// interpolate the green value to get colors between orange and red.
-		// low score => orange, high score => red
-		function interpolateRGB(score){
-			var interpolate = (193 - (1.36 * score));
-			interpolate = parseInt(interpolate+"");
-			var hex = Number(interpolate).toString(16);
-			var hexString = "";
-			if(hex < 10){
-				hexString = "0"+hex;
-			} else {
-				hexString = ""+hex;
-			}
-			return hexString.toUpperCase();
-		}
-
-
-		//Whenever an entry of the fault loc view is selected the highlighted lines have to change
-		function selectLines(line){
-			$("#source-"+redLine).removeClass("highlight-selected-line");
-			for(var i = 0; i < lastSelectedLine.length; i++){
-				$("#source-"+lastSelectedLine[i]).removeClass("highlight-line");
-			}
-			for(var i = 0; i < line.length; i++){
-				$("#source-"+line[i]).addClass("highlight-line");
-			}
-			lastSelectedLine = line;
-		}
-
-		// the first element of a set gets all the information about all faults that contain this edge.
-		function tablesFromErrorPathElement(element, rankList){
-			var tabledict = {}
-			for(var i = 0; i < element.numbersets; i++){
-				var rank = element.ranks[i];
-				var score = element.scores[i];
-				var descriptions = element.descriptions[i]; //Array of line descriptions for combobox
-				var reason = element.reasons[i];
-				var lines = element.lines[i];//Array of lines
-
-				if(rankList[rank] === undefined){
-					rankList[rank] = 1;
-				} else {
-					rankList[rank] = rankList[rank] + 1;
-				}
-
-				var htmlTable = document.createElement("table");
-				var headerRow = htmlTable.insertRow();
-
-				appendCell(headerRow, rank + ".", 1, "Rank", lines);
-				hexString = interpolateRGB(score);
-				appendCell(headerRow, score, 1, "Score", lines).style.backgroundColor = "#FF"+ hexString +"07";;
-
-				var selectLine = document.createElement("select");
-				for(var k = 0; k < descriptions.length; k++){
-					var option = document.createElement("option");
-					option.value = lines[k];
-					option.text = descriptions[k];
-					selectLine.appendChild(option);
-				}
-
-				var descCell = headerRow.insertCell();
-				descCell.appendChild(selectLine);
-
-				selectLine.addEventListener("click", function(){
-					selectLines(lines);
-
-					if(selectLine.selectedIndex!== -1) {
-						$("#source-"+lines[selectLine.selectedIndex]).addClass("highlight-selected-line");
-						redLine = lines[selectLine.selectedIndex];
-					}
-
-				}, false);
-
-				var explanationRow = htmlTable.insertRow();
-				appendCell(explanationRow, reason, 3, "", lines);
-				htmlTable.id = "fault-"+rank;
-				htmlTable.className = "fault-table";
-				tabledict["rank_"+rank+"_"+rankList[rank]] = htmlTable;
-			}
-			return tabledict;
-		}
-		
-		// Table for ranked sets (fault localization)
-		function createSetFaultLocTable(setIndicatorEdgesObject){
-			var allEntries = {}
-			var rankList = [];
-			for(var i = 0; i < setIndicatorEdgesObject.length; i++){
-				Object.assign(allEntries, tablesFromErrorPathElement(setIndicatorEdgesObject[i], rankList));
-			}
-			
-			var table = document.createElement("table");
-			for(var j = 0; j < Object.keys(allEntries).length; j++){
-				for(var i = 0; i < rankList[j+1]; i++){
-					var row = table.insertRow();
-					var cell = row.insertCell();
-					cell.appendChild(allEntries["rank_"+(j+1) + "_" + (i+1)]);
-				}
-			}
-			table.id = "set-fault-loc-table";
-			return table;
-		}
-
-		$scope.sortFaultClicked = function(){
-			showDetailed = !showDetailed;
-			if(showDetailed) {
-				$("#err-table").hide();
-				if(showSubset){
-					$("#single-fault-loc-table").hide();
-					$("#set-fault-loc-table").show();
-				} else {
-					$("#set-fault-loc-table").hide();
-					$("#single-fault-loc-table").show();
-				}
-				$("#report-controller").scope().setTab(3);
-			} else {
-				$("#err-table").show();
-				$("#single-fault-loc-table").hide();
-				$("#set-fault-loc-table").hide();
-			}
+		$scope.faultClicked = function(){
+			$("#report-controller").scope().setTab(3);
+			$scope.hideErrorTable = !$scope.hideErrorTable;
 		}
 
 		$scope.errPathPrevClicked = function ($event) {
@@ -521,7 +410,9 @@ with considerably less effort */
 				var prevId = parseInt(selection.attr("id").substring("errpath-".length)) - 1;
 				selection.classed("clickedErrPathElement", false);
 				d3.select("#errpath-" + prevId).classed("clickedErrPathElement", true);
-				$("#value-assignment").scrollTop($("#value-assignment").scrollTop() - 18);
+				if(!$scope.hideErrorTable) {
+					$("#value-assignment").scrollTop($("#value-assignment").scrollTop() - 18);
+				}
 				markErrorPathElementInTab("Prev", prevId);
 			}
 		};
@@ -529,7 +420,9 @@ with considerably less effort */
 		$scope.errPathStartClicked = function () {
 			d3.select("tr.clickedErrPathElement").classed("clickedErrPathElement", false);
 			d3.select("#errpath-0").classed("clickedErrPathElement", true);
-			$("#value-assignment").scrollTop(0);
+			if(!$scope.hideErrorTable) {
+				$("#value-assignment").scrollTop(0);
+			}
 			markErrorPathElementInTab("Start", 0);
 		};
 
@@ -539,7 +432,9 @@ with considerably less effort */
 				var nextId = parseInt(selection.attr("id").substring("errpath-".length)) + 1;
 				selection.classed("clickedErrPathElement", false);
 				d3.select("#errpath-" + nextId).classed("clickedErrPathElement", true);
-				$("#value-assignment").scrollTop($("#value-assignment").scrollTop() + 18);
+				if(!$scope.hideErrorTable) {
+					$("#value-assignment").scrollTop($("#value-assignment").scrollTop() + 18);
+				}
 				markErrorPathElementInTab("Next", nextId);
 			}
 		};
@@ -808,7 +703,7 @@ with considerably less effort */
 		}
 	}]);
 
-	var valueAssignmentsController = app.controller("ValueAssignmentsController", ['$rootScope', '$scope', function ($rootScope, $scope) {
+	var valueAssignmentsController = app.controller("ValueAssignmentsController", ['$rootScope', '$sce', '$scope', function ($rootScope, $sce, $scope) {
 		$scope.showValues = function ($event) {
 			var element = $event.currentTarget;
 			if (element.classList.contains("markedTableElement")) {
@@ -817,6 +712,24 @@ with considerably less effort */
 				element.classList.add("markedTableElement");
 			}
 		};
+		$scope.showLines = function (lines){
+			$("#source-"+$scope.redLine).removeClass("highlight-selected-line");
+			for(let i = 0; i < $scope.selectedLines.length; i++){
+				$("#source-"+$scope.selectedLines[i]).removeClass("highlight-line");
+			}
+			for(let i = 0; i < lines.length; i++){
+				$("#source-"+lines[i]).addClass("highlight-line");
+			}
+			$scope.selectedLines = lines;
+		}
+		$scope.showRedLine = function (index, edge){
+			$("#source-"+$scope.redLine).removeClass("highlight-selected-line");
+			$scope.redLine = edge.lines[index];
+			$("#source-"+$scope.redLine).addClass("highlight-selected-line");
+		}
+		$scope.htmlTrusted = function(html) {
+			return $sce.trustAsHtml(html);
+		}
 	}]);
 
 	cfaToolbarController = app.controller('CFAToolbarController', ['$scope',

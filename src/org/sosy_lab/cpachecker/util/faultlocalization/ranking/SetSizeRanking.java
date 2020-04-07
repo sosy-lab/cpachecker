@@ -23,6 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.faultlocalization.ranking;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -43,16 +46,23 @@ public class SetSizeRanking implements FaultRanking {
   public List<Fault> rank(
       Set<Fault> result) {
 
-    double max = result.stream().mapToDouble(c -> c.size()).max().orElse(0);
-    RankingResults rankingResults = FaultRankingUtils
-        .rankedListFor(result, l -> max - (double)l.size());
-    double sum = rankingResults.getLikelihoodMap().values().stream().mapToDouble(Double::doubleValue).sum();
+    if(result.isEmpty()){
+      return Collections.emptyList();
+    }
+    RankingResults ranking = FaultRankingUtils.rankedListFor(result,
+        e -> e.stream()
+            .mapToDouble(fc -> fc.correspondingEdge().getFileLocation().getStartingLineInOrigin())
+            .max()
+            .orElse(0.0));
 
-    for (Entry<Fault, Double> entry : rankingResults.getLikelihoodMap().entrySet()) {
-      entry.getKey().addReason(
-          FaultReason.justify("The set has a size of " + entry.getKey().size(), entry.getValue()/sum));
+    BigDecimal sum = BigDecimal.valueOf(2).pow(ranking.getRankedList().size()+1);
+    for(int i = 0; i < ranking.getRankedList().size(); i++){
+      Fault current = ranking.getRankedList().get(i);
+      current.addReason(FaultReason.justify(
+          "The set has a size of " + current.size()+".",
+          BigDecimal.valueOf(2).pow(i).divide(sum, 5, RoundingMode.HALF_UP).doubleValue()));
     }
 
-    return rankingResults.getRankedList();
+    return ranking.getRankedList();
   }
 }

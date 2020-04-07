@@ -45,7 +45,6 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   private List<Fault> rankedList;
   private FaultReportWriter htmlWriter;
 
-  private Map<FaultContribution, Integer> mapFaultContribToRank;
   private Map<Fault, Integer> mapFaultToRank;
 
   private Map<CFAEdge, FaultContribution> mapEdgeToFaultContribution;
@@ -92,7 +91,6 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     bannedEdges = new HashSet<>();
 
     mapFaultToRank = new HashMap<>();
-    mapFaultContribToRank = new HashMap<>();
 
     mapEdgeToFaultContribution = new HashMap<>();
     mapEdgeToFault = new MultiMap<>();
@@ -114,19 +112,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
       }
     }
 
-    //Rank FaultContrib and put them into the map
-    List<FaultContribution> allFaultContributions = scoreMap
-        .keySet()
-        .stream()
-        .sorted(Comparator.comparingDouble(d -> scoreMap.get(d)).reversed())
-        .collect(Collectors.toList());
-
-    //assign ranks to FaultContribution and map it to the corresponding edge
-    for (int i = 0; i < allFaultContributions.size(); i++) {
-      FaultContribution current = allFaultContributions.get(i);
-      mapFaultContribToRank.put(current, i+1);
-      mapEdgeToFaultContribution.put(current.correspondingEdge(), current);
-    }
+    scoreMap.keySet().forEach(fc -> mapEdgeToFaultContribution.put(fc.correspondingEdge(),fc));
 
     // find the best rank and the related description for all edges
     for (Fault set : mapFaultToRank.keySet()) {
@@ -135,7 +121,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
       for(FaultContribution elem: set){
         int newRank = mapEdgeToBestRank.merge(elem.correspondingEdge(), mapFaultToRank.get(set), Integer::min);
         mapEdgeToBestDescription.merge(elem.correspondingEdge(), htmlWriter.toHtml(set), (a, b) -> {
-          if(mapFaultToRank.get(set).intValue() == newRank){
+          if(mapFaultToRank.get(set) == newRank){
             return a;
           } else {
             return b;
@@ -149,10 +135,6 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     }
   }
 
-  public int getRankOfOutput(FaultContribution key) {
-    return mapFaultContribToRank.get(key);
-  }
-
   public int getRankOfSet(Fault set) {
     return mapFaultToRank.get(set);
   }
@@ -162,7 +144,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     StringBuilder toString = new StringBuilder();
     if(!mapFaultToRank.isEmpty()){
       if(!rankedList.isEmpty()){
-        toString.append("Ranking sets:\n").append(rankedList.stream().map(l -> l.toString()).collect(Collectors.joining("\n\n")));
+        toString.append(rankedList.stream().map(l -> l.toString()).collect(Collectors.joining("\n\n")));
       }
     }
     return toString.toString();
@@ -191,22 +173,10 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    */
   @Override
   protected void addAdditionalInfo(Map<String, Object> elem, CFAEdge edge) {
-    if(mapEdgeToFaultContribution.keySet().contains(edge)){
-      elem.put("additional", htmlWriter.toHtml(mapEdgeToFaultContribution.get(edge)));
-      elem.put("singlerank", mapFaultContribToRank.get(edge));
-    }
-    if(bannedEdges.contains(edge)){
-      return;
-    }
-
     // if the edge is contained in more than one set store the best rank here.
-    elem.put("bestrank", 0);
+    elem.put("bestrank", "-");
     // the reason corresponding to the above rank
     elem.put("bestreason", "");
-    // if additional information is provided for a single edge store it in additional
-    elem.put("additional", "");
-    // if additional information is provided the rank has to be present to
-    elem.put("singlerank", 0);
     // in how many sets is the current edge contained.
     elem.put("numbersets", 0);
     // array of edge descriptions
@@ -219,15 +189,27 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     elem.put("scores", new ArrayList<>());
     elem.put("ranks", new ArrayList<>());
 
-    boolean isFault = mapEdgeToFault.keySet().contains(edge);
-    elem.put("isfault",isFault);
+    if(bannedEdges.contains(edge)){
+      return;
+    }
 
+    boolean isFault = mapEdgeToBestRank.containsKey(edge);
+    elem.put("isfault",isFault);
     if(isFault){
-      bannedEdges.add(edge);
       elem.put("bestrank", mapEdgeToBestRank.get(edge));
-      elem.put("bestreason", mapEdgeToBestDescription.get(edge));
+      FaultContribution corresponding = mapEdgeToFaultContribution.get(edge);
+      if(corresponding.hasReasons()){
+        elem.put("bestreason", mapEdgeToBestDescription.get(edge) + "<br><br><strong>Additional information has been provided:</strong><br>" + htmlWriter.toHtml(corresponding));
+      } else {
+        elem.put("bestreason", mapEdgeToBestDescription.get(edge));
+      }
+    }
+
+    if(mapEdgeToFault.containsKey(edge)){
+      bannedEdges.add(edge);
       List<Fault> associatedFaults = mapEdgeToFault.get(edge);
       elem.put("numbersets", associatedFaults.size());
+      // Calculate list.
       List<List<String>> descriptions = new ArrayList<>();
       List<String> reasons = new ArrayList<>();
       List<List<Integer>> lines = new ArrayList<>();
@@ -235,6 +217,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
       List<Integer> ranks = new ArrayList<>();
       for(Fault fault: associatedFaults){
         // get description of all edge types in the Fault
+        // e.g. Fault = {StatementEdge[i=0], AssumeEdge[i<5]} then description = {[i = 0;], [i < 5;]}
         descriptions.add(fault
             .stream()
             .sorted(Comparator.comparingInt(fc -> fc.correspondingEdge().getFileLocation().getStartingLineInOrigin()))
@@ -249,7 +232,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
 
         lines.add(fault.sortedLineNumbers());
         reasons.add(htmlWriter.toHtml(fault));
-        scores.add((int)fault.getScore()*100);
+        scores.add((int)(fault.getScore()*100));
         ranks.add(mapFaultToRank.get(fault));
       }
       elem.put("descriptions", descriptions);

@@ -296,15 +296,8 @@ input:checked+.slider:before {
 	font-weight: 700;
 }
 
-.horizontal-div{
-	display: flex;
-	width: 50%;
-	margin: 0 auto;
-	justify-content:space-between; 
-}
-
-.horizontal-div-center {
-    display: block;
+.horizontal-div {
+    display: inline;
     margin-left: auto;
 	margin-right: auto 
 }
