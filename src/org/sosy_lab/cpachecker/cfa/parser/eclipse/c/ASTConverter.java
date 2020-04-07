@@ -2010,7 +2010,7 @@ class ASTConverter {
               ((IASTEqualsInitializer) initializer).getInitializerClause();
 
             if (arrayType.getType() instanceof CSimpleType) {
-              CExpression lengthExp = computeLengthOfArray(initClause, arrayType);
+            CExpression lengthExp = computeLengthOfArray(initClause, arrayType, specifier, d);
             if (arrayType.getLength() != null
                 && !(arrayType.getLength() instanceof CIdExpression)) {
               compareArrayLengths(arrayType.getLength(), lengthExp, d);
@@ -2023,7 +2023,6 @@ class ASTConverter {
                       lengthExp);
             }
           }
-
 
           // if there are nested arrays
           if (arrayType.getType() instanceof CArrayType) {
@@ -2045,10 +2044,15 @@ class ASTConverter {
 
 
               if (arrayType.getLength() == null) {
-                arrayPlusLength.put(arrayType, computeLengthOfArray(initClause, arrayType));
+              arrayPlusLength
+                  .put(arrayType, computeLengthOfArray(initClause, arrayType, specifier, d));
               } else {
                 CIntegerLiteralExpression computedL =
-                    (CIntegerLiteralExpression) computeLengthOfArray(initClause, arrayType);
+                  (CIntegerLiteralExpression) computeLengthOfArray(
+                      initClause,
+                      arrayType,
+                      specifier,
+                      d);
 
               // check if number of contained elements doesn't surpass max possible length
               if (!isFullyBracketed(initClause, modifiers.size())) {
@@ -2077,7 +2081,8 @@ class ASTConverter {
                 }
 
 
-            arrayPlusLength = computeLengthMultiDimArray(arrayType, arrayPlusLength, initClause);
+            arrayPlusLength =
+                computeLengthMultiDimArray(arrayType, arrayPlusLength, initClause, specifier, d);
               List<CArrayType> types = new ArrayList<>(arrayPlusLength.keySet());
               List<CExpression> lenghts = new ArrayList<>(arrayPlusLength.values());
 
@@ -2137,7 +2142,9 @@ class ASTConverter {
   private Map<CArrayType, CExpression> computeLengthMultiDimArray(
       CArrayType arrayType,
       Map<CArrayType, CExpression> arrPlusLength,
-      IASTInitializerClause initClause) {
+      IASTInitializerClause initClause,
+      CType specifier,
+      IASTDeclarator d) {
 
     if (!(arrayType.getType() instanceof CArrayType)) {
       return arrPlusLength;
@@ -2148,7 +2155,7 @@ class ASTConverter {
       for (IASTInitializerClause x : ((IASTInitializerList) initClause).getClauses()) {
         if (!(x instanceof CIntegerLiteralExpression)) {
           CIntegerLiteralExpression lengthNested =
-              (CIntegerLiteralExpression) (computeLengthOfArray(x, arrayType));
+            (CIntegerLiteralExpression) (computeLengthOfArray(x, arrayType, specifier, d));
         // nested array with highest number of elements is actual length of dimension
           if (realLength.getValue().compareTo(lengthNested.getValue()) == -1) {
           if (arrayType.getLength() != null) {
@@ -2163,7 +2170,7 @@ class ASTConverter {
       }
 
     for (IASTInitializerClause x : ((IASTInitializerList) initClause).getClauses()) {
-      return computeLengthMultiDimArray(arrayType, arrPlusLength, x);
+      return computeLengthMultiDimArray(arrayType, arrPlusLength, x, specifier, d);
     }
     return arrPlusLength;
   }
@@ -2184,7 +2191,11 @@ class ASTConverter {
   }
 
   private CExpression
-      computeLengthOfArray(IASTInitializerClause initClause, CType type) {
+      computeLengthOfArray(
+          IASTInitializerClause initClause,
+          CType type,
+          CType specifier,
+          IASTDeclarator pD) {
     CArrayType arrayType = (CArrayType) type;
 
       int length = 0;
@@ -2195,6 +2206,10 @@ class ASTConverter {
           if (length == -1) {
             break;
           }
+        if (x instanceof IASTLiteralExpression) {
+          checkTypes(x, specifier, pD);
+
+        }
 
           if (x instanceof ICASTDesignatedInitializer) {
             for (ICASTDesignator designator : ((ICASTDesignatedInitializer) x).getDesignators()) {
@@ -2262,15 +2277,38 @@ class ASTConverter {
                 BigInteger.valueOf(length));
 
           return lengthExp;
-          // type = new CArrayType(arrayType.isConst(), arrayType.isVolatile(),
-          // arrayType.getType(), lengthExp);
+
         }
       }
     return arrayType.getLength();
 
     }
 
+  // check if array contains any elements that don't match the type of the specifier
+  // e.g. int a [] = {'a', 'b', 'c'};
+  private void
+      checkTypes(IASTInitializerClause pX, CType pSpecifier, IASTDeclarator pD) {
+    CBasicType type = ((CSimpleType) pSpecifier).getType();
+    int kind = ((IASTLiteralExpression) pX).getKind();
 
+    if ((type.equals(CBasicType.INT)) && kind == 0) {
+      return;
+    } else if ((type.equals(CBasicType.FLOAT)) && kind == 1) {
+      return;
+    } else if ((type.equals(CBasicType.CHAR)) && (kind == 2 || kind == 3)) {
+      return;
+    } else if ((type.equals(CBasicType.BOOL)) && (kind == 4 || kind == 5)) {
+      return;
+    } else {
+      parseContext.parseError(
+          "Type of initializer: "
+              + ((IASTLiteralExpression) pX).getExpressionType()
+              + ", does not match type of declarator: "
+              + type.toASTString(),
+          pD);
+    }
+
+  }
 
 
   private CType convert(IASTArrayModifier am, CType type) {
