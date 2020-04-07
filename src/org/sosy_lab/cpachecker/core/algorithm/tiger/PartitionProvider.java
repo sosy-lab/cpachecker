@@ -49,21 +49,36 @@ public class PartitionProvider {
   }
 
 
-  @Option(secure = true, name = "partitionSizeDistribution", description = "")
+  @Option(
+    secure = true,
+    name = "partitionSizeDistribution",
+    description = "Selects the partition distribution style")
   private PartitionSizeDistribution partitionSizeDistribution = PartitionSizeDistribution.RELATIVE;
-  @Option(secure = true, name = "partitionSize", description = "")
+  @Option(secure = true, name = "partitionSize", description = "Selects the size of partitions")
   private int partitionSize = 25;
 
-  @Option(secure = true, name = "strategy", description = "")
+  @Option(
+    secure = true,
+    name = "strategy",
+    description = "Selects the strategy of partition distribution")
   private Strategy strategy = Strategy.RANDOM;
 
-  @Option(secure = true, name = "minimumPartitionSize", description = "")
+  @Option(
+    secure = true,
+    name = "minimumPartitionSize",
+    description = "Selects the minimum partition size")
   private int minimumPartitionSize = 25;
 
-  @Option(secure = true, name = "lessGoalsPerPartitionTolerance", description = "")
+  @Option(
+    secure = true,
+    name = "lessGoalsPerPartitionTolerance",
+    description = "Selects the tolerance of having less goals in certain paritions")
   private int lessGoalsPerPartitionTolerance = 10;
 
-  @Option(secure = true, name = "additionalGoalsPerPartitionTolerance", description = "")
+  @Option(
+    secure = true,
+    name = "additionalGoalsPerPartitionTolerance",
+    description = "Selects the tolerance of having more goals in certain paritions")
   private int additionalGoalsPerPartitionTolerance = 5;
 
   public PartitionProvider(Configuration pConfig) throws InvalidConfigurationException {

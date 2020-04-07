@@ -284,7 +284,7 @@ public class MutliGoalTransferRelation extends SingleEdgeTransferRelation {
       MultiGoalState predState) {
 
 
-    HashMap<CFAEdgesGoal, ImmutableMap<PartialPath, Integer>> immutableCopy = new HashMap<>();
+    Map<CFAEdgesGoal, ImmutableMap<PartialPath, Integer>> immutableCopy = new HashMap<>();
     for (Entry<CFAEdgesGoal, Map<PartialPath, Integer>> entry : negatedPathStates.entrySet()) {
       immutableCopy.put(entry.getKey(), ImmutableMap.copyOf(entry.getValue()));
     }

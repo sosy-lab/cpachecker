@@ -187,16 +187,25 @@ public class TigerAlgorithmConfiguration {
   @Option(
     secure = true,
     name = "goalReduction",
-    description = "")
+    description = "Selects the goal reduction strategy")
   private GoalReduction goalReduction = GoalReduction.COMPLEX;
 
-  @Option(secure = true, name = "appendFileNameToOutput", description = "")
+  @Option(
+    secure = true,
+    name = "appendFileNameToOutput",
+    description = "specifies if the filename should be added to the output folder")
   private boolean appendFileNameToOutput = false;
 
-  @Option(secure = true, name = "addElapsedTimeToTC", description = "")
+  @Option(
+    secure = true,
+    name = "addElapsedTimeToTC",
+    description = "specifies if the elapsed time for tc generation should be added to the test-cases written to disk")
   private boolean addElapsedTimeToTC = false;
 
-  @Option(secure = true, name = "numberOfDefaultTestCases", description = "")
+  @Option(
+    secure = true,
+    name = "numberOfDefaultTestCases",
+    description = "selects the number of initial test-cases with random values")
   private int numberOfDefaultTestCases = 0;
 
   public int getNumberOfDefaultTestCases() {

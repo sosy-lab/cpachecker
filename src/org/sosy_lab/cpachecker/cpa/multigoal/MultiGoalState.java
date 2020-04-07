@@ -340,7 +340,7 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
     } else if (set1 == null && set2 != null) {
       return new HashSet<>(set2);
     } else {
-      HashSet<T> set = new HashSet<>(set1);
+      Set<T> set = new HashSet<>(set1);
       set.addAll(set2);
       return set;
     }
@@ -355,7 +355,7 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
     } else if (pState1.goalStates == null && pState2.goalStates != null) {
       return ImmutableMap.copyOf(pState2.goalStates);
     } else {
-      HashMap<CFAEdgesGoal, Integer> newGoals = new HashMap<>(pState1.goalStates);
+      Map<CFAEdgesGoal, Integer> newGoals = new HashMap<>(pState1.goalStates);
       pState2.goalStates
           .forEach((key, value) -> newGoals.merge(key, value, (v1, v2) -> v1 > v2 ? v1 : v2));
       return ImmutableMap.copyOf(newGoals);
@@ -377,7 +377,7 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
 
     mergedState.negatedPathStates = mergeNegatedPaths(pState1, pState2);
     // do not calculate covered Goals during merging!
-    HashSet<CFAEdgesGoal> goals = new HashSet<>();
+    Set<CFAEdgesGoal> goals = new HashSet<>();
     goals.addAll(pState1.getCoveredGoal());
     goals.addAll(pState2.getCoveredGoal());
 
@@ -396,7 +396,7 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
     } else if (pState1.negatedPathStates == null && pState2.negatedPathStates != null) {
       return pState2.negatedPathStates;
     } else {
-      HashMap<CFAEdgesGoal, ImmutableMap<PartialPath, Integer>> newGoals = new HashMap<>();
+      Map<CFAEdgesGoal, ImmutableMap<PartialPath, Integer>> newGoals = new HashMap<>();
       for (Entry<CFAEdgesGoal, ImmutableMap<PartialPath, Integer>> entry : pState1.negatedPathStates
           .entrySet()) {
         Map<PartialPath, Integer> newStates = new HashMap<>();

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.timeout;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -37,7 +38,7 @@ public class TimeoutTransferRelation extends SingleEdgeTransferRelation {
   public Collection<? extends AbstractState>
       getAbstractSuccessorsForEdge(AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
           throws CPATransferException, InterruptedException {
-    ArrayList<AbstractState> successors = new ArrayList<>();
+    List<AbstractState> successors = new ArrayList<>();
     if (((TimeoutState) pState).getTimeoutExceeded()) {
       successors.add(TimeoutState.TIMEOUTEXCEEDED);
     } else {
