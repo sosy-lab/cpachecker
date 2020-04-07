@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.faultlocalization.ranking;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -46,6 +47,7 @@ public class OverallOccurrenceRanking implements FaultRanking {
   @Override
   public List<Fault> rank(
       Set<Fault> result) {
+    Set<FaultContribution> alreadyAttached = new HashSet<>();
     Map<FaultContribution, Double> occurrence = new HashMap<>();
     double elements = 0;
     for (Fault faultLocalizationOutputs : result) {
@@ -62,8 +64,14 @@ public class OverallOccurrenceRanking implements FaultRanking {
       entry.getKey().addReason(
           FaultReason.justify("Overall occurrence of elements in this set.", entry.getValue()/elements));
       for (FaultContribution faultContribution : entry.getKey()) {
-        double elementOverall = occurrence.get(faultContribution);
-        faultContribution.addReason(FaultReason.justify("Overall occurrence in the sets: " + (int)elementOverall, elementOverall/elements));
+        if (!alreadyAttached.contains(faultContribution)) {
+          double elementOverall = occurrence.get(faultContribution);
+          faultContribution.addReason(
+              FaultReason.justify(
+                  "Overall occurrence in the sets: " + (int) elementOverall,
+                  elementOverall / elements));
+          alreadyAttached.add(faultContribution);
+        }
       }
     }
 
