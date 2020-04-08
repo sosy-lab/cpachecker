@@ -94,19 +94,20 @@ public class SMGAbstractionManager {
     return bestCandidate;
   }
 
-  public boolean execute() throws SMGInconsistentException {
-
+  public int execute() throws SMGInconsistentException {
+int length = 0;
     SMGAbstractionCandidate currentAbstraction = executeOneStep();
 
     if (currentAbstraction.isEmpty()) {
-      return false;
+      return length;
     }
 
     while (!currentAbstraction.isEmpty()) {
       currentAbstraction = executeOneStep();
+      length = Integer.max(length, currentAbstraction.getLength());
     }
 
-    return true;
+    return length;
   }
 
   public SMGAbstractionCandidate executeOneStep() throws SMGInconsistentException {

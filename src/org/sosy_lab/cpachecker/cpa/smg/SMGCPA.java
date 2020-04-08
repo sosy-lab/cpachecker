@@ -131,7 +131,7 @@ public class SMGCPA
     pConfig.inject(blockOperator);
     blockOperator.setCFA(cfa);
 
-    precision = SMGPrecision.createStaticPrecision(options.isHeapAbstractionEnabled());
+    precision = SMGPrecision.createStaticPrecision(options.isHeapAbstractionEnabled(), options.countPossibleAbstrations());
 
     smgPredicateManager = new SMGPredicateManager(config, logger, pShutdownNotifier);
   }

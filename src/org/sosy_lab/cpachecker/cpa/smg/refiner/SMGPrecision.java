@@ -53,14 +53,18 @@ public abstract class SMGPrecision implements Precision {
   }
 
   public static SMGPrecision createStaticPrecision(boolean pEnableHeapAbstraction) {
+    return createStaticPrecision(pEnableHeapAbstraction, false);
+  }
+
+  public static SMGPrecision createStaticPrecision(boolean pEnableHeapAbstraction, boolean pCountPossibleAbstractions) {
     SMGPrecisionAbstractionOptions options =
-        new SMGPrecisionAbstractionOptions(pEnableHeapAbstraction, false, false);
+        new SMGPrecisionAbstractionOptions(pEnableHeapAbstraction, false, false, pCountPossibleAbstractions);
     return new SMGStaticPrecision(options);
   }
 
-  public static SMGPrecision createStaticPrecision(boolean pEnableHeapAbstraction, int pMaxLength) {
+  public static SMGPrecision createStaticPrecision(boolean pEnableHeapAbstraction, int pMaxLength, boolean pCountPossibleAbstractions) {
     SMGPrecisionAbstractionOptions options =
-        new SMGPrecisionAbstractionOptions(pEnableHeapAbstraction, false, false);
+        new SMGPrecisionAbstractionOptions(pEnableHeapAbstraction, false, false, pCountPossibleAbstractions);
     return new SMGStaticPrecision(options, pMaxLength);
   }
 
@@ -70,7 +74,7 @@ public abstract class SMGPrecision implements Precision {
 
   public static SMGPrecision createRefineablePrecision(SMGPrecision pPrecision) {
     return new SMGRefineablePrecision(
-        new SMGPrecisionAbstractionOptions(pPrecision.options.allowsHeapAbstraction(), true, true),
+        new SMGPrecisionAbstractionOptions(pPrecision.options.allowsHeapAbstraction(), true, true, pPrecision.options.countPossibleAbstractions()),
         PersistentMultimap.of(),
         PersistentMultimap.of(),
         PersistentMultimap.of());
@@ -275,13 +279,15 @@ public abstract class SMGPrecision implements Precision {
     private final boolean heapAbstraction;
     private final boolean fieldAbstraction;
     private final boolean stackAbstraction;
+    private final boolean countPossibleAbstractions;
 
     public SMGPrecisionAbstractionOptions(boolean pHeapAbstraction, boolean pFieldAbstraction,
-        boolean pStackAbstraction) {
+        boolean pStackAbstraction, boolean pCountPossibleAbstractions) {
       super();
       heapAbstraction = pHeapAbstraction;
       fieldAbstraction = pFieldAbstraction;
       stackAbstraction = pStackAbstraction;
+      countPossibleAbstractions = pCountPossibleAbstractions;
     }
 
     public boolean allowsHeapAbstraction() {
@@ -294,6 +300,10 @@ public abstract class SMGPrecision implements Precision {
 
     public boolean allowsStackAbstraction() {
       return stackAbstraction;
+    }
+
+    public boolean countPossibleAbstractions() {
+      return countPossibleAbstractions;
     }
 
     @Override

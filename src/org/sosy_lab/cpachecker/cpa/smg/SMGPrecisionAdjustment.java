@@ -45,6 +45,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.BlockOperator;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
@@ -52,6 +54,8 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
 
   // statistics
   final StatCounter abstractions    = new StatCounter("Number of abstraction computations");
+  final StatInt possibleAbstraction = new StatInt(StatKind.COUNT, "Number of possible abstractions");
+
   final StatTimer totalAbstraction  = new StatTimer("Total time for abstraction computation");
 
   private final Statistics statistics;
@@ -72,6 +76,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
 
         StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
         writer.put(abstractions);
+        put(pOut, 0, totalAbstraction);
         writer.put(totalAbstraction);
       }
 
@@ -101,6 +106,7 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
     boolean allowsFieldAbstraction = pPrecision.getAbstractionOptions().allowsFieldAbstraction();
     boolean allowsHeapAbstraction = pPrecision.allowsHeapAbstractionOnNode(node, blockOperator);
     boolean allowsStackAbstraction = pPrecision.getAbstractionOptions().allowsStackAbstraction();
+    boolean countPossibleAbstractions = pPrecision.getAbstractionOptions().countPossibleAbstractions();
 
     if (!allowsFieldAbstraction && !allowsHeapAbstraction && !allowsStackAbstraction) {
       return Optional.of(PrecisionAdjustmentResult.create(pState, pPrecision, Action.CONTINUE));
@@ -146,10 +152,10 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
 
     if (allowsHeapAbstraction) {
 
-      boolean heapAbstractionChange =
+      int heapAbstractionChange =
           newState.executeHeapAbstraction(pPrecision.getAbstractionBlocks(node));
 
-      if (heapAbstractionChange) {
+      if (heapAbstractionChange > 0) {
         String name = String.format("%03d-before-heap-abstraction", result.getId());
         String name2 = String.format("%03d-after-heap-abstraction", result.getId());
         String description = "before-heap-abstraction-of-smg-" + result.getId();
@@ -161,6 +167,13 @@ public class SMGPrecisionAdjustment implements PrecisionAdjustment, StatisticsPr
         logger.log(Level.ALL, "Heap abstraction on node ", node.getNodeNumber(),
             " with state id: ", pState.getId());
         result = newState;
+      }
+    }
+
+    if (countPossibleAbstractions) {
+      int newHeapAbstractionLenght = newState.executeHeapAbstraction(pPrecision.getAbstractionBlocks(node));
+      if (newHeapAbstractionLenght > 0) {
+        possibleAbstraction.setNextValue(newHeapAbstractionLenght);
       }
     }
 

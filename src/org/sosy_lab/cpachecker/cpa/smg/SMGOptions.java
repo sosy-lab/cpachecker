@@ -161,6 +161,13 @@ public class SMGOptions {
 
   @Option(
       secure = true,
+      name = "countPossibleAbstrations",
+      description = "Count possible abstractions."
+  )
+  private boolean countPossibleAbstrations = false;
+
+  @Option(
+      secure = true,
       name = "memoryErrors",
       description = "Determines if memory errors are target states")
   private boolean memoryErrors = true;
@@ -292,6 +299,10 @@ public class SMGOptions {
 
   public boolean isHeapAbstractionEnabled() {
     return enableHeapAbstraction;
+  }
+
+  public boolean countPossibleAbstrations() {
+    return countPossibleAbstrations;
   }
 
   public boolean isMemoryErrorTarget() {

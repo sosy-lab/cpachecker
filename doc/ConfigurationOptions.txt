@@ -2468,6 +2468,9 @@ cpa.smg.arrayAllocationFunctions = {"calloc"}
 # function returns, and not only at the end of the main function
 cpa.smg.checkForMemLeaksAtEveryFrameDrop = true
 
+# Count possible abstractions.
+cpa.smg.countPossibleAbstrations = false
+
 # Deallocation functions
 cpa.smg.deallocationFunctions = {"free"}
 

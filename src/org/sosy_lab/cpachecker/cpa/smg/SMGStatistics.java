@@ -28,8 +28,16 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatInt;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
 public class SMGStatistics implements Statistics {
+
+  final StatCounter abstractions = new StatCounter("Number of abstraction computations");
+  final StatInt possibleAbstraction = new StatInt(StatKind.COUNT, "Number of possible abstractions");
+  final StatTimer totalAbstraction = new StatTimer("Total time for abstraction computation");
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
@@ -37,6 +45,9 @@ public class SMGStatistics implements Statistics {
     put(pOut, 1, SMGIsLessOrEqual.globalsTimer);
     put(pOut, 1, SMGIsLessOrEqual.stackTimer);
     put(pOut, 1, SMGIsLessOrEqual.heapTimer);
+    put(pOut, 0, abstractions);
+    put(pOut, 0, totalAbstraction);
+    put(pOut, 0, possibleAbstraction);
   }
 
   @Override
