@@ -400,8 +400,11 @@ with considerably less effort */
 		}
 
 		$scope.faultClicked = function(){
-			$("#report-controller").scope().setTab(3);
-			$scope.hideErrorTable = !$scope.hideErrorTable;
+			let toggle = !$scope.hideErrorTable;
+			if(toggle) {
+				$("#report-controller").scope().setTab(3);
+			}
+			$scope.hideErrorTable = toggle;
 		}
 
 		$scope.errPathPrevClicked = function ($event) {

@@ -108,9 +108,7 @@ with considerably less effort -->
         </div>
         <!--shown iff property analysis.algorithm.FaultLocalization=true-->
         <div id="fault-localization-info" class="horizontal-div">
-          <div id="fault-localization-info">
-            <button id="fault-button" class="btn btn-success" ng-click="faultClicked()" data-toggle="tooltip" data-placement="bottom" title="Click here to get more detailed information about the error">Change view</button>
-          </div>
+          <button id="fault-button" class="btn btn-success" ng-click="faultClicked()" data-toggle="tooltip" data-placement="bottom" title="Click here to get more detailed information about the error">Change view</button>
         </div>
         <div id="matches">
           <p class="markedValues">Matches in value-assignements (V): {{numOfValueMatches}}</p>
@@ -134,10 +132,10 @@ with considerably less effort -->
         </table>
           <table id="fault-loc-table" ng-show="hideErrorTable" class="fault-table" ng-repeat="edge in faults">
             <tr id="fault-{{$index}}">
-              <td ng-click="showLines(edge.lines)">
+              <td ng-click="showLines(edge.lines)" data-toggle="tooltip" data-placement="bottom" title="Rank">
                 <pre>{{edge.rank}}.</pre>
               </td>
-              <td ng-click="showLines(edge.lines)">
+              <td ng-click="showLines(edge.lines)" data-toggle="tooltip" data-placement="bottom" title="Score">
                 <pre>{{edge.score}}</pre>
               </td>
               <td>
