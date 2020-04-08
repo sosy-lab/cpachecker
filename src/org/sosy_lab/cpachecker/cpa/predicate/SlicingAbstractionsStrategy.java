@@ -741,20 +741,28 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     }
 
     final BooleanFormula parallelFormula;
-    synchronized (solver) { // synchronize central solver usage in parallel context.
-      parallelFormula =
-          parallelSolvers.get(currentThreadId)
-              .getFormulaManager()
-              .translateFrom(formula, solver.getFormulaManager());
+    synchronized (
+        parallelSolvers.get(
+            currentThreadId)) { // synchronize central solver usage in parallel context.
+      synchronized (solver) {
+        parallelFormula =
+            parallelSolvers
+                .get(currentThreadId)
+                .getFormulaManager()
+                .translateFrom(formula, solver.getFormulaManager());
+      }
     }
-
-    try (ProverEnvironment thmProver =
-        parallelSolvers.get(currentThreadId).newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      thmProver.push(parallelFormula);
-      stats.increaseSolverCallCounter();
-      infeasible = thmProver.isUnsat();
-    } catch (SolverException e) {
-      throw new CPAException("Solver Failure", e);
+    synchronized (parallelSolvers.get(currentThreadId)) {
+      try (ProverEnvironment thmProver =
+          parallelSolvers
+              .get(currentThreadId)
+              .newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+        thmProver.push(parallelFormula);
+        stats.increaseSolverCallCounter();
+        infeasible = thmProver.isUnsat();
+      } catch (SolverException e) {
+        throw new CPAException("Solver Failure", e);
+      }
     }
     return infeasible;
   }
