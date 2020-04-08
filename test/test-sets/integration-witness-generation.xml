@@ -17,6 +17,34 @@
     <option name="-svcomp20"/>
   </rundefinition>
 
+  <tasks name="ConcurrencySafety-Main">
+    <includesfile>../programs/benchmarks/ConcurrencySafety-Main.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <!-- exclude some files to keep the integration set smaller.
+         We actually want to use only a whitelist of files matching
+         'pthread-wmm/*008*opt*' and 'pthread-wmm/*009*opt*',
+         but need to use a blacklist, thus we exclude several pattern.
+    -->
+    <exclude>../programs/benchmarks/pthread*/*000*</exclude>
+    <exclude>../programs/benchmarks/pthread*/*01*</exclude>
+    <exclude>../programs/benchmarks/pthread*/*02*</exclude>
+    <exclude>../programs/benchmarks/pthread*/*03*</exclude>
+    <exclude>../programs/benchmarks/pthread*/*04*</exclude>
+    <exclude>../programs/benchmarks/pthread*/*05*</exclude>
+    <exclude>../programs/benchmarks/pthread*/*06*</exclude>
+    <exclude>../programs/benchmarks/pthread*/*07*</exclude>
+    <exclude>../programs/benchmarks/pthread/*</exclude>
+    <exclude>../programs/benchmarks/pthread-wmm/*oepc*</exclude>
+    <exclude>../programs/benchmarks/pthread-atomic/*</exclude>
+    <exclude>../programs/benchmarks/pthread-C-DAC/*</exclude>
+    <exclude>../programs/benchmarks/pthread-complex/*</exclude>
+    <exclude>../programs/benchmarks/pthread-divine/*</exclude>
+    <exclude>../programs/benchmarks/pthread-driver-races/*</exclude>
+    <exclude>../programs/benchmarks/pthread-ext/*</exclude>
+    <exclude>../programs/benchmarks/pthread-nondet/*</exclude>
+    <exclude>../programs/benchmarks/ldv*/*</exclude>
+    <option name="-32"/>
+  </tasks>
   <tasks name="BitVectorsOverflows">
     <includesfile>../programs/benchmarks/NoOverflows-BitVectors.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
