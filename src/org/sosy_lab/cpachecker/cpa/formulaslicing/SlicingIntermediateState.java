@@ -7,7 +7,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 /**
  * Intermediate state: a formula describing all possible executions at a point.
  */
-class SlicingIntermediateState extends SlicingState {
+final class SlicingIntermediateState extends SlicingState {
 
   private final CFANode node;
 

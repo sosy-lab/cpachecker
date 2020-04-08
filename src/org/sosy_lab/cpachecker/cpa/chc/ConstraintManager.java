@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.chc;
 
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
@@ -39,6 +41,7 @@ import jpl.Query;
 import jpl.Term;
 import jpl.Util;
 import jpl.Variable;
+import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -71,7 +74,14 @@ public class ConstraintManager {
 
   public static boolean init(String firingRelation, String generalizationOperator, LogManager logM) {
 
-    String initstr[] = {"swipl", "-x", "./lib/native/x86_64-linux/chc_lib", "-g", "true", "-nosignals"};
+    String[] initstr = {
+      "swipl",
+      "-x",
+      NativeLibraries.getNativeLibraryPath().resolve("chc_lib").toString(),
+      "-g",
+      "true",
+      "-nosignals"
+    };
 
     boolean init = JPL.init(initstr);
 
@@ -89,7 +99,7 @@ public class ConstraintManager {
     // Create a list of variable to solve the constraint
     Term varList = Util.termArrayToList(vars.values().toArray(new Term[0]));
     // Solve constraint w.r.t. variables occurring in varList
-    Term args[] = {constraint, varList, new Variable("S")};
+    Term[] args = {constraint, varList, new Variable("S")};
     Query q = new Query("solve", args);
 
     logger.log(Level.FINEST, "\n * solve (w.r.t. " + varList + ")");
@@ -107,7 +117,7 @@ public class ConstraintManager {
     // Constraint 2
     Term constraint2 = Util.termArrayToList(cn2.getConstraint().toArray(new Term[0]));
 
-    Term args[] = {constraint1, constraint2};
+    Term[] args = {constraint1, constraint2};
 
     Query q = new Query("entails", args);
 
@@ -128,7 +138,7 @@ public class ConstraintManager {
     // Constraint 2
     Term constraint2 = Util.termArrayToList(cn2.getConstraint().toArray(new Term[0]));
 
-    Term args[] = {constraint1, constraint2, new Variable("G")};
+    Term[] args = {constraint1, constraint2, new Variable("G")};
 
     Query q = new Query("generalize", args);
 
@@ -458,26 +468,27 @@ public class ConstraintManager {
           negAtomCnT = new Compound(">=", 2);
           negAtomCnT.setArg(1, atomCnT.arg(1));
           negAtomCnT.setArg(2, atomCnT.arg(2));
-          return ImmutableSet.of(Pair.of((Term)negAtomCnT, cn.getSecond()));
+        return ImmutableSet.of(Pair.of(negAtomCnT, cn.getSecond()));
         case "=<":
           negAtomCnT = new Compound(">", 2);
           negAtomCnT.setArg(1, atomCnT.arg(1));
           negAtomCnT.setArg(2, atomCnT.arg(2));
-          return ImmutableSet.of(Pair.of((Term)negAtomCnT, cn.getSecond()));
+        return ImmutableSet.of(Pair.of(negAtomCnT, cn.getSecond()));
         case ">":
           negAtomCnT = new Compound("=<", 2);
           negAtomCnT.setArg(1, atomCnT.arg(1));
           negAtomCnT.setArg(2, atomCnT.arg(2));
-          return ImmutableSet.of(Pair.of((Term)negAtomCnT, cn.getSecond()));
+        return ImmutableSet.of(Pair.of(negAtomCnT, cn.getSecond()));
         case ">=":
           negAtomCnT = new Compound("<", 2);
           negAtomCnT.setArg(1, atomCnT.arg(1));
           negAtomCnT.setArg(2, atomCnT.arg(2));
-          return ImmutableSet.of(Pair.of((Term)negAtomCnT, cn.getSecond()));
+        return ImmutableSet.of(Pair.of(negAtomCnT, cn.getSecond()));
         case "=:=":
-          return Arrays.asList(
-              Pair.of((Term)new Compound("<", new Term[] {atomCnT.arg(1), atomCnT.arg(2)}), cn.getSecond()),
-              Pair.of((Term)new Compound(">", new Term[] {atomCnT.arg(1), atomCnT.arg(2)}), cn.getSecond()) );
+        return Arrays.asList(
+            Pair.of(new Compound("<", new Term[] {atomCnT.arg(1), atomCnT.arg(2)}), cn.getSecond()),
+            Pair.of(
+                new Compound(">", new Term[] {atomCnT.arg(1), atomCnT.arg(2)}), cn.getSecond()));
         default:
           return null;
       }
@@ -489,7 +500,7 @@ public class ConstraintManager {
 
     if (ce instanceof CIdExpression) {
       vars.add(CVar2PrologVar(ce.toString()));
-      return ImmutableSet.of(Pair.of((Term)CVar2PrologVar(ce.toString()), vars));
+      return ImmutableSet.of(Pair.of(CVar2PrologVar(ce.toString()), vars));
     } else if (ce instanceof CIntegerLiteralExpression) {
       return ImmutableSet.of(Pair.of(Util.textToTerm("rdiv(" + ce + ",1)"), vars));
     } else if (ce instanceof CBinaryExpression ) {
@@ -511,7 +522,7 @@ public class ConstraintManager {
           Collection<Pair<Term, List<Term>>> opUnion =
               new ArrayList<>(addOperands(">", operand1, operand2));
           opUnion.addAll(addOperands("<", operand1, operand2));
-          return opUnion;
+          return ImmutableList.copyOf(opUnion);
         case LESS_THAN:
           return addOperands("<", operand1, operand2);
         case LESS_EQUAL:
@@ -549,7 +560,8 @@ public class ConstraintManager {
     } else if (ce instanceof CBinaryExpression ) {
       CBinaryExpression bexp = (CBinaryExpression)ce;
       Collection<Pair<Term, List<Term>>> aexpTerms = expressionToCLP(ce);
-      Collection<Pair<Term, List<Term>>> paramAexpTerms = new ArrayList<>(aexpTerms.size());
+      ImmutableCollection.Builder<Pair<Term, List<Term>>> paramAexpTerms =
+          ImmutableList.builderWithExpectedSize(aexpTerms.size());
       switch (bexp.getOperator()) {
         case PLUS:
         case MINUS:
@@ -561,7 +573,7 @@ public class ConstraintManager {
             Term paramAexpTerm = new Compound("=:=", new Term[] {paramVariable, aexpTerm.getFirst()});
             paramAexpTerms.add(Pair.of(Util.termArrayToList(new Term[] {paramAexpTerm}), aexpTermVars));
           }
-          return paramAexpTerms;
+          return paramAexpTerms.build();
         // add an extra atomic constraint
         case EQUALS:
         case LESS_THAN:
@@ -579,7 +591,7 @@ public class ConstraintManager {
               paramAexpTerms.add(Pair.of(Util.termArrayToList(new Term[] {paramAexpTerm, negAexpTerm.getFirst()}), aexpTermVars));
             }
           }
-          return paramAexpTerms;
+          return paramAexpTerms.build();
         default:
           return null;
       }
@@ -593,20 +605,20 @@ public class ConstraintManager {
       Collection<Pair<Term, List<Term>>> operand1,
       Collection<Pair<Term, List<Term>>> operand2) {
 
-    Collection<Pair<Term, List<Term>>> termList = new ArrayList<>();
+    ImmutableCollection.Builder<Pair<Term, List<Term>>> termList = ImmutableList.builder();
     List<Term> vars = new ArrayList<>();
 
     for (Pair<Term, List<Term>> subop1 : operand1) {
       for (Pair<Term, List<Term>> subop2 : operand2) {
         vars.addAll(subop1.getSecond());
         vars.addAll(subop2.getSecond());
-        termList.add(Pair.of(
-            (Term)new Compound(operator, new Term[] {subop1.getFirst(), subop2.getFirst()}),
-            vars));
+        termList.add(
+            Pair.of(
+                new Compound(operator, new Term[] {subop1.getFirst(), subop2.getFirst()}), vars));
       }
     }
 
-    return termList;
+    return termList.build();
   }
 
 

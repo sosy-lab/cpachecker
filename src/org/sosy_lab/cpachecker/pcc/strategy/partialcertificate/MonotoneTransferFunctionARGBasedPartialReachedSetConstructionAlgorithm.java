@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.pcc.strategy.partialcertificate;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -92,7 +93,7 @@ public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgori
     }
 
     protected boolean isToAdd(final ARGState pNode) {
-      return pNode == root
+      return Objects.equals(pNode, root)
           || pNode.getParents().size() > 1
           || (!pNode.getCoveredByThis().isEmpty() && !pNode.isCovered())
           || (withCMC

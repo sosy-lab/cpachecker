@@ -38,6 +38,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -539,7 +540,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     InvariantsState state = (InvariantsState) pElement;
 
     for (AbstractStateWithAssumptions assumptionState : FluentIterable.from(pOtherElements).filter(AbstractStateWithAssumptions.class)) {
-      String function = pCfaEdge.getSuccessor().getFunctionName();
+      AFunctionDeclaration function = pCfaEdge.getSuccessor().getFunction();
       for (AExpression assumption : assumptionState.getAssumptions()) {
         AssumeEdge fakeEdge;
         if (assumption instanceof CExpression) {
@@ -654,7 +655,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     if (!variableClassification.isPresent()) {
       return pState.clear();
     }
-    VariableClassification varClassification = variableClassification.get();
+    VariableClassification varClassification = variableClassification.orElseThrow();
     InvariantsState result = pState;
     for (String variable : varClassification.getAddressedVariables()) {
       MemoryLocation location = MemoryLocation.valueOf(variable);

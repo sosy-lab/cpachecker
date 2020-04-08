@@ -19,6 +19,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -353,7 +354,8 @@ public class PolicyIterationManager {
 
         // Emulate large-step (join followed by value-determination) on the
         // resulting abstraction at the same location.
-        outState = emulateLargeStep(abstraction, sibling.get(), inputPrecision, extraInvariant);
+        outState =
+            emulateLargeStep(abstraction, sibling.orElseThrow(), inputPrecision, extraInvariant);
       } else {
         outState = abstraction;
       }
@@ -377,7 +379,7 @@ public class PolicyIterationManager {
 
     // Strengthening only runs on abstracted states.
     PolicyAbstractedState aState = pState.asAbstracted();
-    PolicyIntermediateState iState = aState.getGeneratingState().get();
+    PolicyIntermediateState iState = aState.getGeneratingState().orElseThrow();
 
     // We re-perform abstraction and value determination.
     BooleanFormula strengthening =
@@ -413,7 +415,8 @@ public class PolicyIterationManager {
       // Emulate large-step (join followed by value-determination) on the
       // resulting abstraction at the same location.
       outState =
-          emulateLargeStep(abstraction, aState.getSibling().get(), pPrecision, strengthening);
+          emulateLargeStep(
+              abstraction, aState.getSibling().orElseThrow(), pPrecision, strengthening);
     } else {
       outState = abstraction;
     }
@@ -426,7 +429,7 @@ public class PolicyIterationManager {
   private int getLocationID(Optional<PolicyAbstractedState> sibling, CFANode node) {
     int locationID;
     if (sibling.isPresent()) {
-      locationID = sibling.get().getLocationID();
+      locationID = sibling.orElseThrow().getLocationID();
     } else {
       locationID = getFreshLocationID();
       logger.log(Level.INFO, "Generating new location ID", locationID, " for node ", node);
@@ -481,7 +484,7 @@ public class PolicyIterationManager {
               + "unfeasible at node " + newState.getNode());
         }
       }
-      out = element.get();
+      out = element.orElseThrow();
     }
 
     return out;
@@ -496,7 +499,7 @@ public class PolicyIterationManager {
       PolicyIntermediateState oldState
   ) throws InterruptedException {
 
-    Preconditions.checkState(newState.getNode() == oldState.getNode());
+    Preconditions.checkState(Objects.equals(newState.getNode(), oldState.getNode()));
 
     if (!newState.getBackpointerState().equals(oldState.getBackpointerState())) {
 
@@ -531,7 +534,7 @@ public class PolicyIterationManager {
       final TemplatePrecision precision,
       Map<Template, PolicyBound> updated,
       BooleanFormula extraInvariant) {
-    Preconditions.checkState(newState.getNode() == oldState.getNode());
+    Preconditions.checkState(Objects.equals(newState.getNode(), oldState.getNode()));
     Preconditions.checkState(
         newState.getLocationID() == oldState.getLocationID());
 
@@ -555,7 +558,7 @@ public class PolicyIterationManager {
         continue;
       }
       PolicyBound mergedBound;
-      if (newValue.get().getBound().compareTo(oldValue.get().getBound()) > 0) {
+      if (newValue.orElseThrow().getBound().compareTo(oldValue.orElseThrow().getBound()) > 0) {
         TemplateUpdateEvent updateEvent = TemplateUpdateEvent.of(
             newState.getLocationID(), template);
 
@@ -566,16 +569,23 @@ public class PolicyIterationManager {
               "at", newState.getNode(), "was reached, widening to infinity.");
           continue;
         }
-        mergedBound = newValue.get();
+        mergedBound = newValue.orElseThrow();
         updated.put(template, mergedBound);
 
-        logger.log(Level.FINE, "Updating template", template, "at",
+        logger.log(
+            Level.FINE,
+            "Updating template",
+            template,
+            "at",
             newState.getNode(),
-            "to", newValue.get().getBound(),
-            "(was: ", oldValue.get().getBound(), ")");
+            "to",
+            newValue.orElseThrow().getBound(),
+            "(was: ",
+            oldValue.orElseThrow().getBound(),
+            ")");
         statistics.templateUpdateCounter.add(updateEvent);
       } else {
-        mergedBound = oldValue.get();
+        mergedBound = oldValue.orElseThrow();
       }
       newAbstraction.put(template, mergedBound);
     }
@@ -661,9 +671,9 @@ public class PolicyIterationManager {
 
         Optional<Rational> value = optEnvironment.upper(handle, EPSILON);
 
-        if (value.isPresent() &&
-            !templateToFormulaConversionManager.isOverflowing(template, value.get())) {
-          Rational v = value.get();
+        if (value.isPresent()
+            && !templateToFormulaConversionManager.isOverflowing(template, value.orElseThrow())) {
+          Rational v = value.orElseThrow();
           logger.log(Level.FINE, "Updating", template, "to value", v);
           newAbstraction.put(template, mergedBound.updateValueFromValueDetermination(v));
         } else {
@@ -742,13 +752,13 @@ public class PolicyIterationManager {
           (template.getKind() == Kind.NEG_LOWER_BOUND ||
               template.getKind() == Kind.NEG_SUM_LOWER_BOUND);
       if ((bound.isPresent()
-              && !templateToFormulaConversionManager.isOverflowing(template, bound.get()))
+              && !templateToFormulaConversionManager.isOverflowing(template, bound.orElseThrow()))
           || unsignedAndLower) {
         Rational boundValue;
         if (bound.isPresent() && unsignedAndLower) {
-          boundValue = Rational.max(bound.get(), Rational.ZERO);
+          boundValue = Rational.max(bound.orElseThrow(), Rational.ZERO);
         } else if (bound.isPresent()){
-          boundValue = bound.get();
+          boundValue = bound.orElseThrow();
         } else {
           boundValue = Rational.ZERO;
         }
@@ -913,7 +923,7 @@ public class PolicyIterationManager {
                 template, precision, optEnvironment, bound, annotatedFormula,
                 p, generatorState, objective);
             if (policyBound.isPresent()) {
-              abstraction.put(template, policyBound.get());
+              abstraction.put(template, policyBound.orElseThrow());
             }
 
             logger.log(Level.FINE, "Got bound: ", bound);
@@ -1216,7 +1226,7 @@ public class PolicyIterationManager {
         LoopBoundState loopState =
             AbstractStates.extractStateByType(totalState, LoopBoundState.class);
 
-        return (cfa.getAllLoopHeads().get().contains(node)
+        return (cfa.getAllLoopHeads().orElseThrow().contains(node)
             && (loopState == null || loopState.isLoopCounterAbstracted()));
       case MERGE:
         return node.getNumEnteringEdges() > 1;
@@ -1264,7 +1274,7 @@ public class PolicyIterationManager {
           if (!genState.isPresent()) {
             return Optional.empty();
           }
-          a = genState.get().getBackpointerState();
+          a = genState.orElseThrow().getBackpointerState();
         }
 
       } else {
@@ -1324,7 +1334,7 @@ public class PolicyIterationManager {
       PolicyBound bound2 = e.getValue();
 
       Optional<PolicyBound> bound1 = aState1.getBound(t);
-      if (!bound1.isPresent() || bound1.get().getBound().compareTo(bound2.getBound()) > 0) {
+      if (!bound1.isPresent() || bound1.orElseThrow().getBound().compareTo(bound2.getBound()) > 0) {
         return false;
       }
     }

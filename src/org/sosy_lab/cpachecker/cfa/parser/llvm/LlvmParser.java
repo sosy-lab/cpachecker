@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -75,31 +75,26 @@ public class LlvmParser implements Parser {
 
   private void addLlvmLookupDirs() {
     List<Path> libDirs = new ArrayList<>(3);
-    try {
-      Path nativeDir = NativeLibraries.getNativeLibraryPath();
-      libDirs.add(nativeDir);
+    Path nativeDir = NativeLibraries.getNativeLibraryPath();
+    libDirs.add(nativeDir);
 
-      // If cpachecker.jar is used, decodedBasePath will look similar to CPACHECKER/cpachecker.jar .
-      // If the compiled class files are used outside of a jar, decodedBasePath will look similar to
-      // CPACHECKER/bin .
-      // In both cases, we strip the last part to get the CPAchecker base directory.
-      String encodedBasePath =
-          LlvmParser.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-      String decodedBasePath = URLDecoder.decode(encodedBasePath, "UTF-8");
+    // If cpachecker.jar is used, decodedBasePath will look similar to CPACHECKER/cpachecker.jar .
+    // If the compiled class files are used outside of a jar, decodedBasePath will look similar to
+    // CPACHECKER/bin .
+    // In both cases, we strip the last part to get the CPAchecker base directory.
+    String encodedBasePath =
+        LlvmParser.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+    String decodedBasePath = URLDecoder.decode(encodedBasePath, StandardCharsets.UTF_8);
 
-      Path cpacheckerDir = Paths.get(decodedBasePath).getParent();
-      if (cpacheckerDir != null) {
-        Path runtimeLibDir = Paths.get(cpacheckerDir.toString(), "lib", "java", "runtime");
-        libDirs.add(runtimeLibDir);
-      } else {
-        logger.logf(
-            Level.INFO,
-            "Base path %s of CPAchecker seems to have no parent directory",
-            decodedBasePath);
-      }
-
-    } catch (UnsupportedEncodingException e) {
-      throw new AssertionError(e);
+    Path cpacheckerDir = Paths.get(decodedBasePath).getParent();
+    if (cpacheckerDir != null) {
+      Path runtimeLibDir = Paths.get(cpacheckerDir.toString(), "lib", "java", "runtime");
+      libDirs.add(runtimeLibDir);
+    } else {
+      logger.logf(
+          Level.INFO,
+          "Base path %s of CPAchecker seems to have no parent directory",
+          decodedBasePath);
     }
 
     for (Path p : libDirs) {

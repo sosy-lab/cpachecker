@@ -1,0 +1,11 @@
+OBSERVER AUTOMATON AssumptionAutomaton
+
+INITIAL STATE init;
+
+STATE __FALSE :
+    TRUE -> GOTO __FALSE;
+
+STATE USEALL init :
+    TRUE -> GOTO __FALSE;
+
+END AUTOMATON

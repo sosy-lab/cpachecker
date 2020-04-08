@@ -121,7 +121,7 @@ public class ASTConverterTest {
   public final void testInvalidIntegerExpressions() {
     ImmutableList<ASTLiteralConverter> converters = ImmutableList.of(converter32, converter64);
     ImmutableList<String> invalidValues =
-        ImmutableList.<String>of(
+        ImmutableList.of(
             "18446744073709551617u",
             "36893488147419103232",
             "36893488147419103232u",

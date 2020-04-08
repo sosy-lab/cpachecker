@@ -134,12 +134,12 @@ public class JClassType extends JClassOrInterfaceType implements JReferenceType 
     while (nextSuperClass != null) {
       found.add(nextSuperClass);
       nextSuperClass = nextSuperClass.getParentClass();
-      checkArgument(!found.contains(this),
-          "Class " + getName() + " may not be a super class of itself." );
+      checkArgument(
+          !found.contains(this), "Class %s may not be a super class of itself.", getName());
     }
 
-    checkArgument(found.contains(typeOfObject),
-        "Class " + getName() + " must be a sub class of Object");
+    checkArgument(
+        found.contains(typeOfObject), "Class %s must be a sub class of Object", getName());
   }
 
   // Creates the object describing java.lang.Object

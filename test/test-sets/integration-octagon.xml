@@ -13,7 +13,7 @@
   <tasks name="ControlFlowInteger">
       <include>../programs/benchmarks/ntdrivers-simplified/*.cil.yml</include>
       <include>../programs/benchmarks/ssh-simplified/*.cil.yml</include>
-      <include>../programs/benchmarks/locks/*.c</include>
+      <include>../programs/benchmarks/locks/*.yml</include>
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
       <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>
       <option name="-setprop">cpa.octagon.octagonLibrary=INT</option>
@@ -23,12 +23,13 @@
       <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
       <exclude reason="timeout">../programs/benchmarks/systemc/token_ring.1*</exclude>
       <exclude reason="timeout">../programs/benchmarks/systemc/transmitter.1*</exclude>
+      <exclude>../programs/benchmarks/systemc/transmitter.06.cil.yml</exclude> <!-- flapping timeout -->
       <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>
       <option name="-setprop">cpa.octagon.octagonLibrary=INT</option>
   </tasks>
   <tasks name="OctagonRegression-int">
       <includesfile>../programs/simple/octagon/octagon-int.set</includesfile>
-      <propertyfile>../programs/simple/ALL.prp</propertyfile>
+      <propertyfile>../config/properties/unreach-label.prp</propertyfile>
       <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>
       <option name="-setprop">cpa.octagon.octagonLibrary=INT</option>
   </tasks>
@@ -39,6 +40,7 @@
       <option name="-setprop">OctagonCPA.precision.trackFloatVariables=false</option>
       <option name="-setprop">cpa.octagon.octagonLibrary=INT</option>
       <option name="-64"/>
+      <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_linux-43_1a-drivers--usb--gadget--mv_udc.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout / OOM -->
   </tasks>
 
   <!-- Widening Tests -->
@@ -62,7 +64,7 @@
   <!-- Float Tests -->
   <tasks name="OctagonRegression-float">
       <includesfile>../programs/simple/octagon/octagon-float.set</includesfile>
-      <propertyfile>../programs/simple/ALL.prp</propertyfile>
+      <propertyfile>../config/properties/unreach-label.prp</propertyfile>
       <option name="-setprop">OctagonCPA.precision.trackFloatVariables=true</option>
       <option name="-setprop">cpa.octagon.octagonLibrary=FLOAT</option>
   </tasks>

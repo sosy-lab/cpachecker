@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -71,7 +72,6 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
@@ -359,7 +359,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   /** the whole program will terminate after this edge */
   private boolean isEndOfMainFunction(CFAEdge edge) {
-    return cfa.getMainFunction().getExitNode() == edge.getSuccessor();
+    return Objects.equals(cfa.getMainFunction().getExitNode(), edge.getSuccessor());
   }
 
   private ThreadingState exitThreads(ThreadingState tmp) {
@@ -408,13 +408,6 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     // now create the thread
     CIdExpression id = (CIdExpression) expr0;
     String functionName = ((CIdExpression) expr2).getName();
-
-    if (callstackCPA
-        .getOptions()
-        .getUnsupportedFunctions()
-        .contains(CFACloner.extractFunctionName(functionName))) {
-      throw new UnsupportedCodeException(functionName, null);
-    }
 
     if (useAllPossibleClones) {
       // for witness validation we need to produce all possible successors,

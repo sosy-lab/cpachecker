@@ -34,6 +34,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -159,8 +160,9 @@ public class LabelAdder {
     final CFANode start = pEdge.getPredecessor();
     final CFANode end = pEdge.getSuccessor();
     final String functionName = start.getFunctionName();
+    final AFunctionDeclaration function = start.getFunction();
     final FunctionCloner fc = new FunctionCloner(functionName, functionName, false);
-    final CFANode labelNode = new CLabelNode(functionName, pLabelName);
+    final CFANode labelNode = new CLabelNode(function, pLabelName);
     pCfa.addNode(labelNode);
 
     final CFAEdge redirectedEdge = fc.cloneEdge(pEdge, labelNode, end);
@@ -178,9 +180,10 @@ public class LabelAdder {
     final CFANode start = pEdge.getPredecessor();
     final CFANode end = pEdge.getSuccessor();
     final String functionName = start.getFunctionName();
+    final AFunctionDeclaration function = start.getFunction();
     final FunctionCloner fc = new FunctionCloner(functionName, functionName, false);
-    final CFANode labelConnector = new CFANode(functionName);
-    final CFANode labelNode = new CLabelNode(functionName, pLabelName);
+    final CFANode labelConnector = new CFANode(function);
+    final CFANode labelNode = new CLabelNode(function, pLabelName);
     pCfa.addNode(labelNode);
     pCfa.addNode(labelConnector);
 

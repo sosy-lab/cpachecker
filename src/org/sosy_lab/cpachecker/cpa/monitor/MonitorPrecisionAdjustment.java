@@ -100,7 +100,7 @@ public class MonitorPrecisionAdjustment implements PrecisionAdjustment {
       return Optional.empty();
     }
 
-    PrecisionAdjustmentResult unwrapped = unwrappedResult.get();
+    PrecisionAdjustmentResult unwrapped = unwrappedResult.orElseThrow();
 
     // no. of nodes and no. of branches on the path does not change, just update the
       // set the adjusted wrapped element and update the time

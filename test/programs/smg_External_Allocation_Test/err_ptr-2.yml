@@ -1,0 +1,9 @@
+format_version: '1.0'
+
+# old file name: err_ptr_false-valid-free.c
+input_files: 'err_ptr-2.c'
+
+properties:
+  - property_file: ../../config/properties/valid-memsafety.prp
+    expected_verdict: false
+    subproperty: valid-free

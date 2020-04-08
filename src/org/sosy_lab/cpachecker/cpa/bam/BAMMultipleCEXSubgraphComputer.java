@@ -148,7 +148,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
         waitlist.add(tmpState);
         while (!waitlist.isEmpty()) {
           tmpState = (BackwardARGState) waitlist.pop();
-          if (tmpState == newCurrentElement) {
+          if (tmpState.equals(newCurrentElement)) {
             break;
           }
           if (checkRepeatitionOfState(tmpState.getARGState())) {
@@ -204,7 +204,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
     try {
       ARGState rootOfSubgraph = findPath(pLastElement, pRefinedStates);
       assert (rootOfSubgraph != null);
-      if (rootOfSubgraph == BAMMultipleCEXSubgraphComputer.DUMMY_STATE_FOR_REPEATED_STATE) {
+      if (rootOfSubgraph.equals(BAMMultipleCEXSubgraphComputer.DUMMY_STATE_FOR_REPEATED_STATE)) {
         return null;
       }
       ARGPath result = ARGUtils.getRandomPath(rootOfSubgraph);

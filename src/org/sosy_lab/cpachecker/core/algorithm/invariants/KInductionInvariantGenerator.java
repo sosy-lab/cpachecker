@@ -78,6 +78,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -207,6 +208,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
   // to be able to ask for termination and see thrown exceptions.
   private Future<Pair<InvariantSupplier, ExpressionTreeSupplier>> invariantGenerationFuture = null;
 
+  @SuppressWarnings("UnnecessaryAnonymousClass") // ShutdownNotifier needs a strong reference
   private final ShutdownRequestListener shutdownListener = new ShutdownRequestListener() {
 
     @Override
@@ -309,7 +311,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
           @Override
           public Iterator<CandidateInvariant> iterator() {
             final Iterator<CandidateInvariant> it = pCandidateGenerator.iterator();
-            return new Iterator<CandidateInvariant>() {
+            return new Iterator<>() {
 
               @Override
               public boolean hasNext() {
@@ -535,7 +537,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
         @Override
         public Iterator<CandidateInvariant> iterator() {
           final Iterator<CandidateInvariant> iterator = super.iterator();
-          return new Iterator<CandidateInvariant>() {
+          return new Iterator<>() {
 
             private CandidateInvariant candidate;
 
@@ -665,7 +667,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
             getRelevantAssumeEdges(
                 pTargetLocationProvider.tryGetAutomatonTargetLocations(
                     pCfa.getMainFunction(), pSpecification));
-        return asNegatedCandidateInvariants(assumeEdges, loopHeads.get());
+        return asNegatedCandidateInvariants(assumeEdges, loopHeads.orElseThrow());
       }
     },
 
@@ -709,9 +711,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
           }
         }
 
-        VariableClassification varClassification = pCfa.getVarClassification().get();
+        VariableClassification varClassification = pCfa.getVarClassification().orElseThrow();
         Equivalence<AssumeEdge> equivalence =
-            new Equivalence<AssumeEdge>() {
+            new Equivalence<>() {
 
               @Override
               protected boolean doEquivalent(AssumeEdge pA, AssumeEdge pB) {
@@ -810,7 +812,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
           }
         }
         return asNegatedCandidateInvariants(
-            FluentIterable.from(assumeEdges).transform(Wrapper::get), loopHeads.get());
+            FluentIterable.from(assumeEdges).transform(Wrapper::get), loopHeads.orElseThrow());
       }
 
       private boolean allowSubstitution(AIdExpression pVariable, AIdExpression pSubstitute) {
@@ -840,7 +842,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
           throw new InvalidConfigurationException(
               "Variable classification not available but required to generate candidate invariants.");
         }
-        VariableClassification varClassification = pCfa.getVarClassification().get();
+        VariableClassification varClassification = pCfa.getVarClassification().orElseThrow();
         Optional<ImmutableSet<CFANode>> loopHeads = pCfa.getAllLoopHeads();
         if (!loopHeads.isPresent()) {
           throw new InvalidConfigurationException(
@@ -856,7 +858,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
         Map<String, CIdExpression> idExpressions = new LinkedHashMap<>();
         NavigableSet<BigInteger> constants = new TreeSet<>();
         Multimap<CType, String> typePartitions = LinkedHashMultimap.create();
-        Map<CIdExpression, String> functions = new HashMap<>();
+        Map<CIdExpression, AFunctionDeclaration> functions = new HashMap<>();
         for (String var : vars) {
           if (!idExpressions.containsKey(var)) {
             for (Partition partition : varClassification.getIntAddPartitions()) {
@@ -877,7 +879,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
                       idExpressions.put(decl.getQualifiedName(), id);
                       CType type = id.getExpressionType().getCanonicalType();
                       typePartitions.put(type, decl.getQualifiedName());
-                      functions.put(id, e.getPredecessor().getFunctionName());
+                      functions.put(id, e.getPredecessor().getFunction());
                       if (type instanceof CSimpleType) {
                         constants.add(
                             machineModel.getMaximalIntegerValue((CSimpleType) type));
@@ -893,7 +895,8 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
 
         CBinaryExpressionBuilder binExpBuilder =
             new CBinaryExpressionBuilder(pCfa.getMachineModel(), pLogger);
-        Multimap<String, CExpression> instantiatedTemplates = LinkedHashMultimap.create();
+        Multimap<AFunctionDeclaration, CExpression> instantiatedTemplates =
+            LinkedHashMultimap.create();
         for (Map.Entry<CType, Collection<String>> typePartition :
             typePartitions.asMap().entrySet()) {
           CType type = typePartition.getKey();
@@ -907,13 +910,13 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
                 continue;
               }
               CVariableDeclaration xVarDecl = (CVariableDeclaration) xDecl;
-              String function = functions.get(xId);
+              AFunctionDeclaration function = functions.get(xId);
               for (String y : variables) {
                 if (x.equals(y)) {
                   continue;
                 }
                 CIdExpression yId = idExpressions.get(y);
-                String yFunction = functions.get(yId);
+                AFunctionDeclaration yFunction = functions.get(yId);
                 if (xVarDecl.isGlobal()) {
                   function = yFunction;
                 } else {
@@ -951,9 +954,9 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
         }
 
         List<AssumeEdge> assumeEdges = new ArrayList<>();
-        for (Map.Entry<String, Collection<CExpression>> entry :
+        for (Map.Entry<AFunctionDeclaration, Collection<CExpression>> entry :
             instantiatedTemplates.asMap().entrySet()) {
-          String function = entry.getKey();
+          AFunctionDeclaration function = entry.getKey();
           Collection<CExpression> expressions = entry.getValue();
           CFANode dummyPred = new CFANode(function);
           CFANode dummySucc = new CFANode(function);
@@ -963,7 +966,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
             assumeEdges.add(dummyEdge);
           }
         }
-        return asNegatedCandidateInvariants(assumeEdges, loopHeads.get());
+        return asNegatedCandidateInvariants(assumeEdges, loopHeads.orElseThrow());
       }
     };
   }

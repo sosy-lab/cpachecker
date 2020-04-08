@@ -1,0 +1,6 @@
+format_version: '1.0'
+
+# old file name: irrelevant-if.c
+input_files: 'irrelevant-if.c'
+
+properties: []

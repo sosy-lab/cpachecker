@@ -102,7 +102,7 @@ abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressA
                   smgExpressionEvaluator.getBitSizeof(getCfaEdge(), varDcl.getType(), state),
                   varDcl.getName());
           if (addedLocalVariable.isPresent()) {
-            object = addedLocalVariable.get();
+            object = addedLocalVariable.orElseThrow();
           } else {
             return Collections.singletonList(SMGAddressAndState.of(state, SMGAddress.UNKNOWN));
           }

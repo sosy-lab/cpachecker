@@ -28,7 +28,7 @@ import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
-@SuiteClasses({TigerTest.class, TigerVariabilityTest.class})
+@SuiteClasses({TigerTest.class})
 public class AllTigerTests {
 
 }

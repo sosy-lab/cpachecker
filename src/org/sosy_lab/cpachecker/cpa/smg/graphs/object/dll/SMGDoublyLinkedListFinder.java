@@ -51,7 +51,6 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
   @VisibleForTesting
   public SMGDoublyLinkedListFinder() {
-    super();
   }
 
   public SMGDoublyLinkedListFinder(

@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import java.io.Serializable;
@@ -35,13 +35,13 @@ import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperPrecision;
 
-public class CompositePrecision implements WrapperPrecision, AdjustablePrecision, Serializable {
+class CompositePrecision implements WrapperPrecision, AdjustablePrecision, Serializable {
 
   private static final long serialVersionUID = 1L;
 
   private final ImmutableList<Precision> precisions;
 
-  public CompositePrecision(List<Precision> precisions) {
+  CompositePrecision(List<Precision> precisions) {
     this.precisions = ImmutableList.copyOf(precisions);
   }
 
@@ -61,7 +61,7 @@ public class CompositePrecision implements WrapperPrecision, AdjustablePrecision
     return precisions.hashCode();
   }
 
-  public Precision get(int idx) {
+  Precision get(int idx) {
     return precisions.get(idx);
   }
 
@@ -154,17 +154,18 @@ public class CompositePrecision implements WrapperPrecision, AdjustablePrecision
         continue;
       }
 
-      Preconditions.checkArgument(
+      checkArgument(
           currentPrecision instanceof AdjustablePrecision,
-          "Precision " + currentPrecision + "does not support adjusting precision");
-      Preconditions.checkArgument(
+          "Precision %s does not support adjusting precision",
+          currentPrecision);
+      checkArgument(
           adjustedPrecision instanceof AdjustablePrecision,
-          "Precision " + adjustedPrecision + "does not support adjusting precision");
+          "Precision %s does not support adjusting precision",
+          adjustedPrecision);
 
       Precision newPrecision =
-          adjustFunction.apply(
-              (AdjustablePrecision) currentPrecision,
-              (AdjustablePrecision) adjustedPrecision);
+              adjustFunction.apply(
+                      (AdjustablePrecision) currentPrecision, (AdjustablePrecision) adjustedPrecision);
       newPrecisions.add(newPrecision);
     }
     return new CompositePrecision(newPrecisions.build());

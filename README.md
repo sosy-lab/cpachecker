@@ -25,7 +25,7 @@ Verifying a Program with CPAchecker
 
 1. Choose a source code file that you want to be checked.
    If you use your own program, remember to pre-process it as mentioned above.
-   Example: doc/examples/example.c
+   Example: `doc/examples/example.c` or `doc/examples/example_bug.c`
    A good source for more example programs is the benchmark set of the
    [International Competition on Software Verification](http://sv-comp.sosy-lab.org/),
    which can be checked out from https://github.com/sosy-lab/sv-benchmarks.
@@ -53,10 +53,10 @@ Verifying a Program with CPAchecker
    Example: `scripts/cpa.sh -config config/default.properties doc/examples/example.c`
    This example can also be abbreviated to:
    `scripts/cpa.sh -default doc/examples/example.c`
-   A Java 1.8 compatible JVM is necessary. If it is not in your PATH,
+   Java 11 or later is necessary. If it is not in your PATH,
    you need to specify it in the environment variable JAVA.
-   Example: `export JAVA=/usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java`
-   for 64bit OpenJDK 8 on Ubuntu.
+   Example: `export JAVA=/usr/lib/jvm/java-11-openjdk-amd64/bin/java`
+   for 64bit OpenJDK 11 on Ubuntu.
    On Windows (without Cygwin), you need to use `cpa.bat` instead of `cpa.sh`.
 
    Please note that not all analysis configurations are available for Windows and Mac
@@ -65,6 +65,13 @@ Verifying a Program with CPAchecker
    or use less powerful analyses that work with Java-based solvers,
    for example this one instead of `-default`:
    `-predicateAnalysis-linear -setprop solver.solver=SMTInterpol`
+   Of course you can also use solutions like the Windows Subsystem for Linux (WSL)
+   or Docker for executing the Linux version of CPAchecker.
+
+   If you installed CPAchecker using Docker, the above example command line would look like this:
+   `docker run -v $(pwd)/output:/cpachecker/output:rw registry.gitlab.com/sosy-lab/software/cpachecker -default doc/examples/example.c`
+   By using the parameter `-v`, the output files of CPAchecker are made accessible outside of the container.
+   To verify a program of your own, you need to similarly make it accessible from within the container.
 
 5. Additionally to the console output,
    an interactive HTML report is generated in the directory `output/`,

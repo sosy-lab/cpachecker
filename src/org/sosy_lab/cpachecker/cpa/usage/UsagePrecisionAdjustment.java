@@ -59,9 +59,7 @@ class UsagePrecisionAdjustment implements PrecisionAdjustment {
 
     UnmodifiableReachedSet elements =
         new UnmodifiableReachedSetView(
-            pElements,
-            AbstractSingleWrapperState.getUnwrapFunction(),
-            Functions.<Precision>identity());
+            pElements, AbstractSingleWrapperState.getUnwrapFunction(), Functions.identity());
 
     AbstractState oldElement = element.getWrappedState();
 
@@ -79,7 +77,7 @@ class UsagePrecisionAdjustment implements PrecisionAdjustment {
       return Optional.empty();
     }
 
-    PrecisionAdjustmentResult unwrappedResult = optionalUnwrappedResult.get();
+    PrecisionAdjustmentResult unwrappedResult = optionalUnwrappedResult.orElseThrow();
 
     AbstractState newElement = unwrappedResult.abstractState();
     Precision newPrecision = unwrappedResult.precision();

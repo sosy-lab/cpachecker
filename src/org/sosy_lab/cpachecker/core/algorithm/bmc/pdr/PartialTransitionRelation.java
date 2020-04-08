@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc.pdr;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.END_STATE_FILTER;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.getLocationPredicate;
 
@@ -230,9 +231,7 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
       throw new IllegalArgumentException(
           String.format("Minimum (%d) not lower than maximum (%d)", pMinIt, pMaxIt));
     }
-    if (pMinIt < 0) {
-      throw new IllegalArgumentException("Minimum must not be lower than 0 but is " + pMinIt);
-    }
+    checkArgument(pMinIt >= 0, "Minimum must not be lower than 0 but is %s", pMinIt);
     int min = pMinIt;
     int max = pMaxIt;
     Set<CFANode> startLocations = loopHeads;
@@ -429,11 +428,11 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
         OptionalInt index = pair.getSecond();
         Object value = valueAssignment.getValue();
         if (index.isPresent()
-            && index.getAsInt() == 1
+            && index.orElseThrow() == 1
             && value instanceof Number
             && (actualName.equals(TotalTransitionRelation.getLocationVariableName())
                 || (variables.containsKey(actualName)
-                    && !inputs.get(actualName).contains(index.getAsInt())))) {
+                    && !inputs.get(actualName).contains(index.orElseThrow())))) {
           BooleanFormula assignment = fmgr.uninstantiate(valueAssignment.getAssignmentAsFormula());
           ModelValue modelValue =
               new ModelValue(
@@ -474,7 +473,7 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
         // a) those that have an SSA index and are contained in our list of input variables and
         // b) those that have no SSA index and are not known as actual variables,
         // such as __ADDRESS_OF:
-        if ((index.isPresent() && inputs.get(actualName).contains(index.getAsInt()))
+        if ((index.isPresent() && inputs.get(actualName).contains(index.orElseThrow()))
             || (!index.isPresent() && !pVariables.containsKey(actualName))) {
           inputAssignments = bfmgr.and(inputAssignments, valueAssignment.getAssignmentAsFormula());
         }

@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -84,7 +85,7 @@ public class BAMCounterexampleCheckAlgorithm extends CounterexampleCheckAlgorith
     ARGState target = rootAndTargetOfSubgraph.getSecond();
     Set<ARGState> statesOnErrorPath = rootState.getSubgraph();
 
-    assert ((BackwardARGState) target).getARGState() == errorState;
+    assert Objects.equals(((BackwardARGState) target).getARGState(), errorState);
 
     return checker.checkCounterexample(rootState, target, statesOnErrorPath);
   }

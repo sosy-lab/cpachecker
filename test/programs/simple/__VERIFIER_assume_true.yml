@@ -1,0 +1,7 @@
+format_version: '1.0'
+
+# old file name: __VERIFIER_assume_true.c
+input_files: '__VERIFIER_assume_true.c'
+
+properties:
+  - property_file: ../../config/properties/unreach-label.prp

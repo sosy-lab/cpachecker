@@ -62,10 +62,11 @@ public abstract class WrappingPrecisionAdjustment implements PrecisionAdjustment
     Optional<PrecisionAdjustmentResult> result = wrappedPrecOp.prec(pState, pPrecision, pStates, pProjection, pFullState);
 
     if (result.isPresent()) {
-      if (result.get().action() == Action.BREAK) {
+      if (result.orElseThrow().action() == Action.BREAK) {
         return result;
       } else {
-        return wrappingPrec(result.get().abstractState(), pPrecision, pStates, pProjection, pFullState);
+        return wrappingPrec(
+            result.orElseThrow().abstractState(), pPrecision, pStates, pProjection, pFullState);
       }
     } else {
       return wrappingPrec(pState, pPrecision, pStates, pProjection, pFullState);

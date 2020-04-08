@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.lock;
 
 import java.util.Objects;
 
-public class LockIdentifierWithVariable extends LockIdentifier {
+public final class LockIdentifierWithVariable extends LockIdentifier {
 
   private final String varName;
 

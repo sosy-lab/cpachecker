@@ -127,7 +127,7 @@ public class ValueAnalysisConcreteErrorPathAllocator
             new SingleConcreteState(
                 Iterables.getOnlyElement(edges),
                 new ConcreteState(
-                    ImmutableMap.<LeftHandSide, Object>of(),
+                    ImmutableMap.of(),
                     allocateAddresses(valueState, variableAddresses),
                     variableAddresses,
                     exp -> MEMORY_NAME)));
@@ -166,7 +166,7 @@ public class ValueAnalysisConcreteErrorPathAllocator
         generateVariableAddresses(Collections.singleton(pValueState));
     // We assign every variable to the heap, thats why the variable map is empty.
     return new ConcreteState(
-        ImmutableMap.<LeftHandSide, Object>of(),
+        ImmutableMap.of(),
         allocateAddresses(pValueState, variableAddresses),
         variableAddresses,
         exp -> MEMORY_NAME);

@@ -26,13 +26,16 @@ package org.sosy_lab.cpachecker.cpa.ldd;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -382,14 +385,15 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
   }
 
   /**
-   * Tries to reduce the expression to a rational linear term. If this is not
-   * possible, <code>null</code> is returned.
+   * Tries to reduce the expression to a rational linear term. If this is not possible, <code>null
+   * </code> is returned.
    *
    * @param expression the expression to convert.
-   * @return the rational linear term the expression was converted to or <code>null</code>
-   * if the conversion failed.
+   * @return the rational linear term the expression was converted to or <code>null</code> if the
+   *     conversion failed.
    */
-  private Map<String, Pair<Integer, Integer>> reduceToRationalTerm(CExpression expression) {
+  private @Nullable ImmutableMap<String, Pair<Integer, Integer>> reduceToRationalTerm(
+      CExpression expression) {
     expression.toASTString();
     Map<String, Pair<Integer, Integer>> variableCoeffs = new HashMap<>();
     if (expression instanceof CIntegerLiteralExpression) {
@@ -458,7 +462,7 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
             variableCoeffs.put(entry.getKey(), Pair.of(num, denom));
           }
         }
-        return variableCoeffs;
+        return ImmutableMap.copyOf(variableCoeffs);
       }
       // Constant divided by term is not supported
       if (firstAsTerm != null && secondAsTerm != null && operator == BinaryOperator.DIVIDE) { return null; }
@@ -466,7 +470,8 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
       // Adding constants to or subtracting them from terms is also supported by treating
       // the constant as a coefficient of a "const" variable
       int constant = firstAsConstant != null ? firstAsConstant : secondAsConstant;
-      Map<String, Pair<Integer, Integer>> term = firstAsTerm != null ? firstAsTerm : secondAsTerm;
+      Map<String, Pair<Integer, Integer>> term =
+          Objects.requireNonNullElse(firstAsTerm, secondAsTerm);
       switch (operator) {
       case MULTIPLY:
         for (Map.Entry<String, Pair<Integer, Integer>> coeff : term.entrySet()) {
@@ -512,7 +517,7 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
       default:
         return null;
       }
-      return variableCoeffs;
+      return ImmutableMap.copyOf(variableCoeffs);
     }
     if (expression instanceof CUnaryExpression) {
       CUnaryExpression unaryExpression = (CUnaryExpression) expression;
@@ -535,17 +540,20 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
 
   /**
    * Negates the given rational linear term by negating each numerator of the coefficients.
+   *
    * @param toNegate the rational linear term to negate.
    * @return the negated rational linear term.
    */
-  private Map<String, Pair<Integer, Integer>> negateRational(Map<String, Pair<Integer, Integer>> toNegate) {
-    Map<String, Pair<Integer, Integer>> result = new HashMap<>();
-    for (Map.Entry<String, Pair<Integer, Integer>> coeff : toNegate.entrySet()) {
-      int num = -coeff.getValue().getFirst();
-      int denom = coeff.getValue().getSecond();
-      result.put(coeff.getKey(), Pair.of(num, denom));
-    }
-    return result;
+  private ImmutableMap<String, Pair<Integer, Integer>> negateRational(
+      Map<String, Pair<Integer, Integer>> toNegate) {
+    return ImmutableMap.copyOf(
+        Maps.<String, Pair<Integer, Integer>, Pair<Integer, Integer>>transformValues(
+            toNegate,
+            coeff -> {
+              int num = -coeff.getFirst();
+              Integer denom = coeff.getSecond();
+              return Pair.of(num, denom);
+            }));
   }
 
   /**

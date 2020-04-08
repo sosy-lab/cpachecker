@@ -533,9 +533,10 @@ public abstract class ForwardingTransferRelation<S, T extends AbstractState, P e
    * In that case the successor-node is a FunctionExitNode.
    *
    * @param cfaEdge the edge to handle
+   * @throws CPATransferException may be thrown in subclasses
    */
   @SuppressWarnings("unchecked")
-  protected S handleBlankEdge(BlankEdge cfaEdge) {
+  protected S handleBlankEdge(BlankEdge cfaEdge) throws CPATransferException {
     return (S)state;
   }
 

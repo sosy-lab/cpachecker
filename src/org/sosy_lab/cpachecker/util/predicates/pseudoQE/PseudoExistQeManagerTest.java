@@ -191,7 +191,7 @@ public class PseudoExistQeManagerTest extends SolverViewBasedTest0 {
         mgrv.makeGreaterThan(y, mgrv.getIntegerFormulaManager().makeNumber(5), true);
 
     // Assert result is equivalent to y>5
-    BooleanFormula result = pQEmgr.eliminateQuantifiers(boundVars, toExist).get();
+    BooleanFormula result = pQEmgr.eliminateQuantifiers(boundVars, toExist).orElseThrow();
     assertThatFormula(result).isEquivalentTo(expectedResult);
   }
 

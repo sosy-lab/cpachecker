@@ -21,4 +21,8 @@ STATE USEFIRST Init :
    -> PRINT "WARNING: Function __VERIFIER_error() is ignored by this specification. If you want to check for reachability of __VERIFIER_error, pass '-spec sv-comp-reachability' as parameter."
       GOTO Init;
 
+  MATCH {reach_error($?)}
+   -> PRINT "WARNING: Function reach_error() is ignored by this specification. If you want to check for reachability of reach_error, pass '-spec sv-comp-reachability' as parameter."
+      GOTO Init;
+
 END AUTOMATON

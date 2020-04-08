@@ -347,7 +347,7 @@ public class VariableClassification implements Serializable {
       newScore += factor;
 
       if (loopStructure.isPresent()
-          && loopStructure.get().getLoopIncDecVariables().contains(variableName)) {
+          && loopStructure.orElseThrow().getLoopIncDecVariables().contains(variableName)) {
         return Integer.MAX_VALUE;
       }
 

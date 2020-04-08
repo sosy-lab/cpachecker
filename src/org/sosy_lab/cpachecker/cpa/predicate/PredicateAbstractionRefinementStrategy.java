@@ -245,8 +245,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
   private ListMultimap<LocationInstance, AbstractionPredicate> newPredicates;
 
 
-  final void setUseAtomicPredicates(boolean atomicPredicates) {
-    this.atomicPredicates = atomicPredicates;
+  final void setUseAtomicPredicates(boolean pAtomicPredicates) {
+    this.atomicPredicates = pAtomicPredicates;
   }
 
   @Override
@@ -609,9 +609,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     try (Writer w = IO.openOutputFile(precFile, Charset.defaultCharset())) {
       precisionWriter.writePredicateMap(
           ImmutableSetMultimap.copyOf(newPredicates),
-          ImmutableSetMultimap.<CFANode, AbstractionPredicate>of(),
-          ImmutableSetMultimap.<String, AbstractionPredicate>of(),
-          ImmutableSet.<AbstractionPredicate>of(),
+          ImmutableSetMultimap.of(),
+          ImmutableSetMultimap.of(),
+          ImmutableSet.of(),
           newPredicates.values(),
           w);
     } catch (IOException e) {

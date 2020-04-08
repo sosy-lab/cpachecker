@@ -1,0 +1,8 @@
+format_version: '1.0'
+
+# old file name: intparser_true-unreach-call.c
+input_files: 'intparser.c'
+
+properties:
+  - property_file: ../../config/properties/unreach-call.prp
+    expected_verdict: true

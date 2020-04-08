@@ -41,8 +41,7 @@ public class JMethodEntryNode extends FunctionEntryNode {
       final FunctionExitNode pExitNode,
       final Optional<? extends JVariableDeclaration> pReturnVariable) {
 
-    super(
-        pFileLocation, pMethodDefinition.getName(), pExitNode, pMethodDefinition, pReturnVariable);
+    super(pFileLocation, pExitNode, pMethodDefinition, pReturnVariable);
   }
 
   @Override

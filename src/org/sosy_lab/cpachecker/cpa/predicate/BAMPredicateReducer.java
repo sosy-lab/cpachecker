@@ -102,7 +102,8 @@ public class BAMPredicateReducer
     this.rmgr = cpa.getAbstractionManager().getRegionCreator();
     this.logger = cpa.getLogger();
     this.shutdownNotifier = cpa.getShutdownNotifier();
-    this.addressedVariables = cpa.getCfa().getVarClassification().get().getAddressedVariables();
+    this.addressedVariables =
+        cpa.getCfa().getVarClassification().orElseThrow().getAddressedVariables();
   }
 
   @Override

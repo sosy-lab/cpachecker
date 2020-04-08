@@ -27,6 +27,7 @@ import static org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPr
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -36,8 +37,11 @@ import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -88,7 +92,14 @@ public class OctagonAnalysisFeasibilityChecker {
 
       Multimap<CFANode, MemoryLocation> increment = ArrayListMultimap.<CFANode, MemoryLocation>create();
       for (MemoryLocation loc : getMemoryLocationsFromUseDefRelation()) {
-        increment.put(new CFANode("BOGUS-NODE"), loc);
+        increment.put(
+            new CFANode(
+                new CFunctionDeclaration(
+                    FileLocation.DUMMY,
+                    CFunctionType.NO_ARGS_VOID_FUNCTION,
+                    "BOGUS-NODE",
+                    ImmutableList.of())),
+            loc);
       }
 
       return increment;

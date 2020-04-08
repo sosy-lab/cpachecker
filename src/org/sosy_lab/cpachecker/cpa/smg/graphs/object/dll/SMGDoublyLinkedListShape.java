@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll;
 import com.google.common.collect.ComparisonChain;
 import java.util.Objects;
 
-public class SMGDoublyLinkedListShape implements Comparable<SMGDoublyLinkedListShape> {
+public final class SMGDoublyLinkedListShape implements Comparable<SMGDoublyLinkedListShape> {
 
   /** head field offset */
   private final long hfo;

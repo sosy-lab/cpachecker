@@ -29,11 +29,12 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -71,11 +72,14 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
 
   private final BAMCPAStatistics stats;
 
+  private final boolean searchTargetStatesOnExit;
+
   public BAMTransferRelation(
       BAMCPA bamCpa,
       ShutdownNotifier pShutdownNotifier,
       AlgorithmFactory pFactory,
-      BAMPCCManager pBamPccManager) {
+      BAMPCCManager pBamPccManager,
+      boolean pSearchTargetStatesOnExit) {
     super(bamCpa, pShutdownNotifier);
     algorithmFactory = pFactory;
     callstackTransfer =
@@ -84,6 +88,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
                 .retrieveWrappedTransferRelation(CallstackTransferRelation.class));
     bamPccManager = pBamPccManager;
     stats = bamCpa.getStatistics();
+    searchTargetStatesOnExit = pSearchTargetStatesOnExit;
   }
 
   @Override
@@ -302,7 +307,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
         data.getCache().get(reducedInitialState, reducedInitialPrecision, innerSubtree);
 
     final ReachedSet reached;
-    final List<AbstractState> reducedResult;
+    final Set<AbstractState> reducedResult;
 
     if (entry == null) { // MISS
       entry =
@@ -319,7 +324,8 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     } else {
       final ReachedSet cachedReached = entry.getReachedSet();
       Preconditions.checkNotNull(cachedReached);
-      @Nullable final List<AbstractState> cachedReturnStates = entry.getExitStates();
+      @Nullable
+      final Set<AbstractState> cachedReturnStates = entry.getExitStates();
       if (isCacheHit(cachedReached, cachedReturnStates)) { // FULL HIT
         // cache hit, return element from cache
         logger.log(
@@ -387,7 +393,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
    *     <p>NB: return states will be either {@link
    *     org.sosy_lab.cpachecker.core.interfaces.Targetable}, or associated with the block end.
    */
-  private List<AbstractState> performCompositeAnalysisWithCPAAlgorithm(
+  private Set<AbstractState> performCompositeAnalysisWithCPAAlgorithm(
       final ReachedSet reached, final Block innerSubtree)
       throws InterruptedException, CPAException {
 
@@ -396,28 +402,38 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     final Algorithm algorithm = algorithmFactory.newInstance();
     algorithm.run(reached);
 
+    return extractExitStates(reached, innerSubtree, searchTargetStatesOnExit);
+  }
+
+  public static Set<AbstractState> extractExitStates(
+      final ReachedSet reached, final Block innerSubtree, boolean pSearchTargetStatesOnExit) {
     // if the element is an error element
-    final List<AbstractState> returnStates;
+    final Set<AbstractState> returnStates;
     final AbstractState lastState = reached.getLastState();
-    if (isTargetState(lastState)) {
+    if (!pSearchTargetStatesOnExit && isTargetState(lastState)) {
       // found a target state inside a recursive subgraph call
       // this needs to be propagated to outer subgraph (till main is reached)
-      returnStates = Collections.singletonList(lastState);
+      returnStates = Collections.singleton(lastState);
 
     } else {
       assert !reached.hasWaitingState();
       // get only those states, that are at block-exit.
       // in case of recursion, the block-exit-nodes might also appear in the middle of the block,
       // but the middle states have children, the exit-states have not.
-      returnStates = new ArrayList<>();
+      returnStates = new LinkedHashSet<>();
       for (AbstractState returnState :
           AbstractStates.filterLocations(reached, innerSubtree.getReturnNodes())) {
-        if (((ARGState)returnState).getChildren().isEmpty()) {
+        if (((ARGState) returnState).getChildren().isEmpty()) {
           returnStates.add(returnState);
         }
       }
+      if (pSearchTargetStatesOnExit) {
+        for (AbstractState targetState : Iterables.filter(reached, AbstractStates::isTargetState)) {
+          assert ((ARGState) targetState).getChildren().isEmpty();
+          returnStates.add(targetState);
+        }
+      }
     }
-
     return returnStates;
   }
 

@@ -29,9 +29,9 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /**
  * {@link BinarySymbolicExpression} representing the 'shift right' operation.
  *
- * <p>There is no differentiation between signed and unsigned shifts.</p>
+ * <p>There is no differentiation between signed and unsigned shifts.
  */
-public class ShiftRightExpression extends BinarySymbolicExpression {
+public final class ShiftRightExpression extends BinarySymbolicExpression {
 
   private static final long serialVersionUID = -9068365554036095329L;
 

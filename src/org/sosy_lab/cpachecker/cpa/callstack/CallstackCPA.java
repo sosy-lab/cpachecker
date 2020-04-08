@@ -127,8 +127,4 @@ public class CallstackCPA extends AbstractCPA
       return new CallstackTransferRelation(options, logger);
     }
   }
-
-  public CallstackOptions getOptions() {
-    return options;
-  }
 }

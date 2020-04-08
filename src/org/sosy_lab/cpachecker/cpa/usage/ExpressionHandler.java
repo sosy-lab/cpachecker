@@ -23,7 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage;
 
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -64,8 +65,8 @@ public class ExpressionHandler extends DefaultCExpressionVisitor<Void, NoExcepti
 
   @Override
   public Void visit(CBinaryExpression expression) {
-    Preconditions.checkArgument(
-        accessMode == Access.READ, "Writing to BinaryExpression: " + expression.toASTString());
+    checkArgument(
+        accessMode == Access.READ, "Writing to BinaryExpression: %s", expression.toASTString());
     expression.getOperand1().accept(this);
     expression.getOperand2().accept(this);
     return null;

@@ -136,7 +136,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
 
     VariableClassification variableClassification;
     if (pLang == Language.C) {
-      variableClassification = pVarClass.get();
+      variableClassification = pVarClass.orElseThrow();
     } else {
       variableClassification = null;
     }

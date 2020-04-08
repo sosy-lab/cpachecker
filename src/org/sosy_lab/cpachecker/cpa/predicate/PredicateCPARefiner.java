@@ -40,6 +40,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -190,7 +191,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     invariantsManager = pInvariantsManager;
 
     if (pLoopStructure.isPresent()) {
-      loopFinder = new LoopCollectingEdgeVisitor(pLoopStructure.get(), pConfig);
+      loopFinder = new LoopCollectingEdgeVisitor(pLoopStructure.orElseThrow(), pConfig);
     } else {
       loopFinder = null;
       if (invariantsManager.addToPrecision()) {
@@ -403,7 +404,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
           return performNewtonRefinement(allStatesTrace, formulas);
         } catch (RefinementFailedException e) {
           if (e.getReason() == Reason.SequenceOfAssertionsToWeak
-              && newtonManager.get().fallbackToInterpolation()) {
+              && newtonManager.orElseThrow().fallbackToInterpolation()) {
             logger.log(
                 Level.FINEST,
                 "Fallback from Newton-based refinement to interpolation-based refinement");
@@ -420,7 +421,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       }
     } else if (useUCBRefinement) {
       logger.log(Level.FINEST, "Starting unsat-core-based refinement");
-      return performUCBRefinement(abstractionStatesTrace, formulas);
+      return performUCBRefinement(allStatesTrace, abstractionStatesTrace, formulas);
 
     } else {
       logger.log(Level.FINEST, "Starting interpolation-based refinement.");
@@ -482,15 +483,15 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       final ARGPath pAllStatesTrace, final BlockFormulas pFormulas)
       throws CPAException, InterruptedException {
     // Delegate the refinement task to the NewtonManager
-    return newtonManager.get().buildCounterexampleTrace(pAllStatesTrace, pFormulas);
+    return newtonManager.orElseThrow().buildCounterexampleTrace(pAllStatesTrace, pFormulas);
   }
 
   private CounterexampleTraceInfo performUCBRefinement(
-      final List<ARGState> pAbstractionStatesTrace, final BlockFormulas pFormulas)
+      final ARGPath allStatesTrace, final List<ARGState> pAbstractionStatesTrace, final BlockFormulas pFormulas)
       throws CPAException, InterruptedException {
 
     assert ucbManager.isPresent();
-    return ucbManager.get().buildCounterexampleTrace(pAbstractionStatesTrace, pFormulas);
+    return ucbManager.orElseThrow().buildCounterexampleTrace(allStatesTrace, pAbstractionStatesTrace, pFormulas);
   }
 
   private List<BooleanFormula> addInvariants(final List<ARGState> abstractionStatesTrace)
@@ -599,7 +600,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     //assert from(result).allMatch(state -> state.getParents().size() <= 1)
     //    : "PredicateCPARefiner expects abstraction states to have only one parent, but at least one state has more.";
 
-    assert pPath.getLastState() == result.get(result.size()-1);
+    assert Objects.equals(pPath.getLastState(), result.get(result.size() - 1));
     return result;
   }
 
@@ -655,7 +656,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
       ((StatisticsProvider) strategy).collectStatistics(pStatsCollection);
     }
     if (useNewtonRefinement) {
-      newtonManager.get().collectStatistics(pStatsCollection);
+      newtonManager.orElseThrow().collectStatistics(pStatsCollection);
     }
   }
 

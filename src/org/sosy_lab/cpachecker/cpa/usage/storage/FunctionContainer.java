@@ -55,7 +55,6 @@ public class FunctionContainer extends AbstractUsageStorage {
   }
 
   private FunctionContainer(StorageStatistics pStats, Multiset<LockEffect> pEffects) {
-    super();
     stats = pStats;
     stats.numberOfFunctionContainers.inc();
     effects = pEffects;

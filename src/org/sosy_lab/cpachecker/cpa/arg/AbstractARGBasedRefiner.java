@@ -29,6 +29,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.ForOverride;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -135,8 +136,12 @@ public class AbstractARGBasedRefiner implements Refiner, StatisticsProvider {
 
       // new targetPath must contain root and error node
       assert path != null : "Counterexample should come from a correct path.";
-      assert targetPath.getFirstState() == path.getFirstState() : "Target path from refiner does not contain root node";
-      assert targetPath.getLastState()  == path.getLastState() : "Target path from refiner does not contain target state";
+      assert Objects.equals(
+          targetPath.getFirstState(),
+          path.getFirstState()) : "Target path from refiner does not contain root node";
+      assert Objects.equals(
+          targetPath.getLastState(),
+          path.getLastState()) : "Target path from refiner does not contain target state";
 
       lastElement.addCounterexampleInformation(counterexample);
 

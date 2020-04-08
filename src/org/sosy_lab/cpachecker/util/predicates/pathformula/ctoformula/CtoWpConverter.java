@@ -31,7 +31,10 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
@@ -40,6 +43,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
@@ -98,6 +105,11 @@ public class CtoWpConverter extends CtoFormulaConverter {
         {
           return makePreconditionForStatement((CStatementEdge) pEdge, pPostcond, functionName);
         }
+      case ReturnStatementEdge:
+        {
+          final var edge = (CReturnStatementEdge)pEdge;
+          return makePreconditionForReturn(edge.asAssignment(), edge, pPostcond, functionName);
+        }
       case DeclarationEdge:
         {
           final CDeclarationEdge edge = (CDeclarationEdge) pEdge;
@@ -112,9 +124,13 @@ public class CtoWpConverter extends CtoFormulaConverter {
         {
           return makePreconditionForAssumption((CAssumeEdge) pEdge, pPostcond, functionName);
         }
-      case ReturnStatementEdge:
+      case FunctionCallEdge:
         {
-          return pPostcond;
+          return makePreconditionForFunctionCall((CFunctionCallEdge)pEdge, pPostcond, functionName);
+        }
+      case FunctionReturnEdge:
+        {
+          return makePreconditionForFunctionExit(((CFunctionReturnEdge)pEdge).getSummaryEdge(), pPostcond);
         }
       case BlankEdge:
         {
@@ -125,11 +141,47 @@ public class CtoWpConverter extends CtoFormulaConverter {
     }
   }
 
-  private static final SSAMapBuilder emptySSAMap() {
+  private static SSAMapBuilder emptySSAMap() {
     return SSAMap.emptySSAMap().builder();
   }
 
-  private final BooleanFormula makePreconditionForAssumption(
+
+  private BooleanFormula makePreconditionForStatement(
+      final CStatementEdge pEdge, final BooleanFormula pPostcond, final String pFunction)
+      throws UnrecognizedCodeException {
+
+    CStatement stmt = pEdge.getStatement();
+    if (stmt instanceof CAssignment) {
+      return makePreconditionForAssignment((CAssignment) stmt, pEdge, pPostcond, pFunction);
+
+    } else {
+      if (stmt instanceof CFunctionCallStatement) {
+        return makePreconditionForFunctionCallStatement(pEdge, (CFunctionCallStatement)stmt, pPostcond, pFunction);
+      } else if (!(stmt instanceof CExpressionStatement)) {
+        throw new UnrecognizedCodeException("Unknown statement", pEdge, stmt);
+      }
+
+      return pPostcond;
+    }
+  }
+
+  private BooleanFormula makePreconditionForReturn(
+      final com.google.common.base.Optional<CAssignment> pAssgn,
+      final CReturnStatementEdge pEdge,
+      final BooleanFormula pPostcond,
+      final String pFunction)
+      throws UnrecognizedCodeException {
+
+    if (!pAssgn.isPresent()) {
+      // void return, i.e. no substitution needed
+      return pPostcond;
+    } else {
+      return makePreconditionForAssignement(pAssgn.get().getLeftHandSide(), pAssgn.get().getRightHandSide(),
+          pEdge, pPostcond, pFunction);
+    }
+  }
+
+  private BooleanFormula makePreconditionForAssumption(
       final CAssumeEdge pEdge, final BooleanFormula pPostcond, final String pFunction)
       throws UnrecognizedCodeException, InterruptedException {
 
@@ -147,29 +199,7 @@ public class CtoWpConverter extends CtoFormulaConverter {
     return bfmgr.and(fmgr.uninstantiate(f), pPostcond);
   }
 
-  private final BooleanFormula makePreconditionForStatement(
-      final CStatementEdge pEdge, final BooleanFormula pPostcond, final String pFunction)
-      throws UnrecognizedCodeException {
-
-    CStatement stmt = pEdge.getStatement();
-    if (stmt instanceof CAssignment) {
-      return makePreconditionForAssignment((CAssignment) stmt, pEdge, pPostcond, pFunction);
-
-    } else {
-      if (stmt instanceof CFunctionCallStatement) {
-        // TODO: add support
-        throw new UnrecognizedCodeException(
-            "Preconditions for a function call are not supported", pEdge);
-
-      } else if (!(stmt instanceof CExpressionStatement)) {
-        throw new UnrecognizedCodeException("Unknown statement", pEdge, stmt);
-      }
-
-      return pPostcond;
-    }
-  }
-
-  private final BooleanFormula makePreconditionForAssignment(
+  private BooleanFormula makePreconditionForAssignment(
       final CAssignment pAssgn,
       final CFAEdge pEdge,
       final BooleanFormula pPostcond,
@@ -183,7 +213,7 @@ public class CtoWpConverter extends CtoFormulaConverter {
 
     if (lhsType instanceof CArrayType) {
       // CtoFormulaConverter converts such assignment to True,
-      // hence the postcondition
+      // hence the post-condition
       return pPostcond;
     }
 
@@ -191,24 +221,38 @@ public class CtoWpConverter extends CtoFormulaConverter {
       rhs = this.makeCastFromArrayToPointerIfNecessary((CExpression) rhs, lhsType);
     }
 
-    Formula l = null, r = null;
-    if (direction == AnalysisDirection.BACKWARD) {
-      l = buildLvalueTerm(lhs, pEdge, pFunction, emptySSAMap(), pts, constraints, errorConditions);
-      r = buildTerm(rhs, pEdge, pFunction, emptySSAMap(), pts, constraints, errorConditions);
-    } else {
-      r = buildTerm(rhs, pEdge, pFunction, emptySSAMap(), pts, constraints, errorConditions);
-      l = buildLvalueTerm(lhs, pEdge, pFunction, emptySSAMap(), pts, constraints, errorConditions);
-    }
+    return makePreconditionForAssignement(lhs, rhs, pEdge, pPostcond, pFunction);
+  }
+
+
+  private BooleanFormula makePreconditionForAssignement(
+    final CLeftHandSide lhs,
+    final CRightHandSide rhs,
+    final CFAEdge pEdge,
+    final BooleanFormula pPostcond,
+    final String pFunction)
+      throws UnrecognizedCodeException {
+
+//    Formula l, r;
+//    if (direction == AnalysisDirection.BACKWARD) {
+//      l = buildLvalueTerm(lhs, pEdge, pFunction, emptySSAMap(), pts, constraints, errorConditions);
+//      r = buildTerm(rhs, pEdge, pFunction, emptySSAMap(), pts, constraints, errorConditions);
+//    } else {
+//      r = buildTerm(rhs, pEdge, pFunction, emptySSAMap(), pts, constraints, errorConditions);
+//      l = buildLvalueTerm(lhs, pEdge, pFunction, emptySSAMap(), pts, constraints, errorConditions);
+//    }
+
+    var l = buildLvalueTerm(lhs, pEdge, pFunction, emptySSAMap(), pts, constraints, errorConditions);
+    var r = buildTerm(rhs, pEdge, pFunction, emptySSAMap(), pts, constraints, errorConditions);
 
     final Map<Formula, Formula> substitution = new HashMap<>();
     substitution.put(fmgr.uninstantiate(l), fmgr.uninstantiate(r));
 
-    BooleanFormula result = fmgr.substitute(pPostcond, substitution);
-
-    return result;
+    return fmgr.substitute(pPostcond, substitution);
   }
 
-  private final BooleanFormula makePreconditionForVarDeclaration(
+
+  private BooleanFormula makePreconditionForVarDeclaration(
       final CDeclarationEdge pEdge,
       final CVariableDeclaration pDecl,
       final BooleanFormula pPostcond,
@@ -226,5 +270,99 @@ public class CtoWpConverter extends CtoFormulaConverter {
     }
 
     return result;
+  }
+
+  private BooleanFormula makePreconditionForFunctionCall(
+      final CFunctionCallEdge pEdge,
+      final BooleanFormula pPostcond,
+      final String pFunction)
+      throws UnrecognizedCodeException {
+
+
+    final var callStmt = pEdge.getRawAST().orNull();
+    if(callStmt == null){
+      throw new UnrecognizedCodeException("Unknown function call statement", pEdge);
+    }
+
+
+    final var callExpr = callStmt.getFunctionCallExpression();
+    if(callExpr == null){
+      throw new UnrecognizedCodeException("Unknown function call expression", pEdge, callStmt);
+    }
+
+
+    final var params = callExpr.getDeclaration().getParameters();
+    final var paramsExprs = callExpr.getParameterExpressions();
+
+    if (params.size() != paramsExprs.size()) {
+      throw new UnrecognizedCodeException(
+          "Number of parameters on function call does " + "not match function definition", pEdge);
+    }
+
+
+    var result = pPostcond;
+    final var vars = fmgr.extractVariables(pPostcond);
+
+    for(int i = 0; i < params.size(); i++) {
+      final var param = params.get(i).getQualifiedName();
+      final var paramVar = vars.get(param);
+
+      if (paramVar != null) {
+        final var expr = paramsExprs.get(i);
+        final var exprFormula = buildTerm(expr, pEdge, pFunction, emptySSAMap(), pts, constraints, errorConditions);
+
+        final var substitution = new HashMap<Formula, Formula>();
+        substitution.put(paramVar, fmgr.uninstantiate(exprFormula));
+
+        result = fmgr.substitute(result, substitution);
+      }
+    }
+
+    return result;
+  }
+
+  private BooleanFormula makePreconditionForFunctionExit(
+      final CFunctionSummaryEdge pEdge,
+      final BooleanFormula pPostcond)
+      throws UnrecognizedCodeException {
+
+    var retExp = pEdge.getExpression();
+    if (retExp instanceof CFunctionCallStatement) {
+      // void return, i.e. no substitution needed
+      return pPostcond;
+    } else if (retExp instanceof CFunctionCallAssignmentStatement) {
+      // substitute lhs in the post-condition by the func's return variable
+      final var callStmt = (CFunctionCallAssignmentStatement)retExp;
+      final var callExpr = callStmt.getRightHandSide();
+
+      final var callerFunction = pEdge.getSuccessor().getFunctionName();
+      final var retVarDecl =  pEdge.getFunctionEntry().getReturnVariable();
+      if (!retVarDecl.isPresent()) {
+        throw new UnrecognizedCodeException("Void function used in assignment", pEdge, retExp);
+      }
+
+      final var rhs = new CIdExpression(callExpr.getFileLocation(), retVarDecl.get());
+      return makePreconditionForAssignement(callStmt.getLeftHandSide(), rhs, pEdge, pPostcond, callerFunction);
+    } else {
+      throw new UnrecognizedCodeException("Unknown function exit expression", pEdge, retExp);
+    }
+
+  }
+
+  private BooleanFormula makePreconditionForFunctionCallStatement(
+      final CStatementEdge pEdge,
+      final CFunctionCall pStmt,
+      final BooleanFormula pPostcond,
+      final String pFunction)
+      throws UnrecognizedCodeException {
+
+    if (pStmt instanceof CFunctionCallStatement) {
+      return pPostcond;
+    } else if (pStmt instanceof CFunctionCallAssignmentStatement) {
+      final var callStmt = (CFunctionCallAssignmentStatement)pStmt;
+      return makePreconditionForAssignement(callStmt.getLeftHandSide(), callStmt.getRightHandSide(), pEdge, pPostcond, pFunction);
+    } else {
+      throw new UnrecognizedCodeException("Unknown call statement", pEdge, pStmt);
+    }
   }
 }

@@ -45,4 +45,9 @@ public class SMGDoublyLinkedListCandidateSequenceBlock
   public boolean equals(Object obj) {
     return obj instanceof SMGDoublyLinkedListCandidateSequenceBlock && super.equals(obj);
   }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode(); // equals() in this class checks nothing more
+  }
 }

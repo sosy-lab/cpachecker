@@ -74,7 +74,7 @@ public abstract class AbstractSetBasedCounterexampleFilter<T> implements Counter
       return true;
     }
 
-    boolean setChanged = foundCounterexamples.add(representation.get());
+    boolean setChanged = foundCounterexamples.add(representation.orElseThrow());
     return setChanged; // relevant <=> new cex <=> set changed
   }
 

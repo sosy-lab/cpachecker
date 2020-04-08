@@ -239,10 +239,10 @@ class PolicyReducer implements Reducer {
       } else if (template
           .getUsedVars()
           .stream()
-          .allMatch(v -> !(summarySSA.getIndex(v) > STARTING_SSA_IDX))) {
+          .noneMatch(v -> summarySSA.getIndex(v) > STARTING_SSA_IDX)) {
 
         // Otherwise, use the bound from the parent state.
-        insertedBound = pParent.getBound(template).get();
+        insertedBound = pParent.getBound(template).orElseThrow();
       }
 
       if (insertedBound != null) {

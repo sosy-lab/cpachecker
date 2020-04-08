@@ -73,7 +73,7 @@ class FrameSet implements AutoCloseable {
     @SuppressWarnings("resource")
     ProverEnvironmentWithFallback prover =
         new ProverEnvironmentWithFallback(
-            solver, proverOptions.stream().toArray(ProverOptions[]::new));
+            solver, proverOptions.toArray(new ProverOptions[0]));
     frameProvers.add(prover);
   }
 
@@ -163,9 +163,7 @@ class FrameSet implements AutoCloseable {
 
   public int getFrontierIndex(CandidateInvariant pRootInvariant) {
     Integer index = rootCandidateInvariantFrontierIndices.get(pRootInvariant);
-    if (index == null) {
-      throw new IllegalArgumentException("Unknown root invariant: " + pRootInvariant);
-    }
+    checkArgument(index != null, "Unknown root invariant: %s", pRootInvariant);
     return index;
   }
 

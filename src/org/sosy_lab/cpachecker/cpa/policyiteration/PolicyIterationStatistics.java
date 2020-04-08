@@ -67,7 +67,7 @@ public class PolicyIterationStatistics implements Statistics {
     printStats(out, templateUpdateStats, "updates for given template on a given location");
     printStats(out, mergeUpdateStats, "merges of abstract states on a given location");
 
-    out.printf("Number of loop heads: %d%n", cfa.getAllLoopHeads().get().size());
+    out.printf("Number of loop heads: %d%n", cfa.getAllLoopHeads().orElseThrow().size());
     printTimer(out, linearizationTimer, "formula linearization");
   }
 

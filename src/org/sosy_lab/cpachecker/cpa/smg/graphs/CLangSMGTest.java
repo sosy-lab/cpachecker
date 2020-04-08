@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 
 public class CLangSMGTest {
   static private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
-  private static final CFunctionDeclaration functionDeclaration =
+  public static final CFunctionDeclaration DUMMY_FUNCTION =
       new CFunctionDeclaration(FileLocation.DUMMY, functionType, "foo", ImmutableList.of());
   private CLangStackFrame sf;
 
@@ -66,7 +66,7 @@ public class CLangSMGTest {
   @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
-    sf = new CLangStackFrame(functionDeclaration, MachineModel.LINUX64);
+    sf = new CLangStackFrame(DUMMY_FUNCTION, MachineModel.LINUX64);
     CLangSMG.setPerformChecks(true, logger);
   }
 

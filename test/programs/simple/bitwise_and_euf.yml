@@ -1,0 +1,7 @@
+format_version: '1.0'
+
+# old file name: bitwise_and_euf.c
+input_files: 'bitwise_and_euf.c'
+
+properties:
+  - property_file: ../../config/properties/unreach-label.prp

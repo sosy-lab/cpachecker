@@ -32,7 +32,6 @@ import com.google.common.collect.ImmutableSortedSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -44,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.configuration.OptionCollector;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArgument.CmdLineArgument1;
@@ -344,7 +344,7 @@ class CmdLineArguments {
     }
     out.println();
     out.println("You can also specify any of the configuration files in the directory config/");
-    out.println("with -CONFIG_FILE, e.g., -predicateAnalysis for config/predicateAnalysis.properties.");
+    out.println("with -CONFIG_FILE, e.g., -default for config/default.properties.");
     out.println();
     out.println("More information on how to configure CPAchecker can be found in 'doc/Configuration.md'.");
   }
@@ -424,17 +424,7 @@ class CmdLineArguments {
     }
 
     // look relative to code location second
-    Path codeLocation;
-    try {
-      codeLocation =
-          Paths.get(
-              CmdLineArguments.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-    } catch (SecurityException | URISyntaxException e) {
-      Output.warning(
-          "Cannot resolve paths relative to project directory of CPAchecker: %s", e.getMessage());
-      return null;
-    }
-    file = codeLocation.resolveSibling(fileName);
+    file = Classes.getCodeLocation(CmdLineArguments.class).resolveSibling(fileName);
     if (Files.exists(file)) {
       return file;
     }

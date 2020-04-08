@@ -56,7 +56,7 @@ public class ARGReplayState implements LatticeAbstractState<ARGReplayState> {
 
   @Override
   public ARGReplayState join(ARGReplayState other) {
-    if (this == other) {
+    if (this.equals(other)) {
       return this;
     }
     return new ARGReplayState(Sets.union(this.states, other.states), cpa);
@@ -64,7 +64,7 @@ public class ARGReplayState implements LatticeAbstractState<ARGReplayState> {
 
   @Override
   public boolean isLessOrEqual(ARGReplayState other) {
-    if (this == other) {
+    if (this.equals(other)) {
       return true;
     }
     return other.states.containsAll(this.states);

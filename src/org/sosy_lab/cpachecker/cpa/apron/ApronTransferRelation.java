@@ -659,9 +659,8 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
 
       state = state.makeAssignment(assignedVarName, right);
 
-
-    // g(b), do nothing
     } else if (exprOnSummary instanceof CFunctionCallStatement) {
+      // g(b), do nothing
 
     } else {
       throw new UnrecognizedCodeException("on function return", cfaEdge, exprOnSummary);
@@ -817,7 +816,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
     } else if (left instanceof CFieldReference) {
       variableName = ((CFieldReference) left).getFieldOwner().toASTString();
     } else {
-      variableName = ((CIdExpression) left).toASTString();
+      variableName = left.toASTString();
     }
 
     if (!isGlobal(left)) {
@@ -1033,7 +1032,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
       if (varIndex == -1) {
         return ImmutableSet.of();
       }
-      return Collections.singleton((Texpr0Node)new Texpr0DimNode(varIndex));
+      return Collections.singleton(new Texpr0DimNode(varIndex));
     }
 
     @Override
@@ -1085,7 +1084,7 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
           Scalar inf = Scalar.create();
           inf.setInfty(-1);
           Interval interval = new Interval(inf, sup);
-          return Collections.singleton((Texpr0Node)new Texpr0CstNode(interval));
+              return Collections.singleton(new Texpr0CstNode(interval));
             }
           case "__VERIFIER_nondet_uint":
             {
@@ -1093,12 +1092,12 @@ public class ApronTransferRelation extends ForwardingTransferRelation<Collection
           Scalar sup = Scalar.create();
           sup.setInfty(1);
           interval.setSup(sup);
-          return Collections.singleton((Texpr0Node)new Texpr0CstNode(interval));
+              return Collections.singleton(new Texpr0CstNode(interval));
             }
           case "__VERIFIER_nondet_bool":
             {
           Interval interval = new Interval(0, 1);
-          return Collections.singleton((Texpr0Node)new Texpr0CstNode(interval));
+              return Collections.singleton(new Texpr0CstNode(interval));
             }
         }
       }

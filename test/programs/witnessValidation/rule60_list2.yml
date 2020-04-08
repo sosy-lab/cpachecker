@@ -1,0 +1,9 @@
+format_version: '1.0'
+
+# old file name: rule60_list2.c_false-unreach-call_1.i
+input_files: 'rule60_list2.i'
+
+properties:
+  - property_file: ../../config/properties/unreach-call.prp
+    expected_verdict: false
+  - property_file: ../../config/properties/coverage-error-call.prp

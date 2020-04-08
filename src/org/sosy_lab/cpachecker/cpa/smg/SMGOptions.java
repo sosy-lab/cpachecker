@@ -60,6 +60,13 @@ public class SMGOptions {
       description = "Sets how unknown functions are handled.")
   private UnknownFunctionHandling handleUnknownFunctions = UnknownFunctionHandling.STRICT;
 
+  @Option(
+      secure = true,
+      description =
+          "Which unknown function are always considered as safe functions, "
+              + "i.e., free of memory-related side-effects?")
+  private ImmutableSet<String> safeUnknownFunctions = ImmutableSet.of("abort");
+
   public enum UnknownFunctionHandling {
     STRICT,
     ASSUME_SAFE,
@@ -229,6 +236,10 @@ public class SMGOptions {
 
   public UnknownFunctionHandling getHandleUnknownFunctions() {
     return handleUnknownFunctions;
+  }
+
+  public ImmutableSet<String> getSafeUnknownFunctions() {
+    return safeUnknownFunctions;
   }
 
   public boolean isGCCZeroLengthArray() {

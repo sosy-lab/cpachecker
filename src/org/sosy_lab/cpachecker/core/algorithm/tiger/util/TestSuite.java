@@ -39,7 +39,7 @@ import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
 import org.sosy_lab.cpachecker.core.algorithm.AlgorithmResult;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.AutomatonGoal;
+//import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.AutomatonGoal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.CFAGoal;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.Goal;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -59,7 +59,7 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
   private Set<T> allGoals;
 
   private static TestSuite<CFAGoal> cFAGoalTS;
-  private static TestSuite<AutomatonGoal> automatonGoalTS;
+  // private static TestSuite<AutomatonGoal> automatonGoalTS;
 
 
   private static boolean sameTestGoals(Set<?> p1, Set<?> p2) {
@@ -93,21 +93,22 @@ public class TestSuite<T extends Goal> implements AlgorithmResult {
     return cFAGoalTS;
   }
 
-  public static TestSuite<AutomatonGoal> getAutomatonGoalTS(
-      BDDUtils pBddUtils,
-      Set<AutomatonGoal> includedTestGoals,
-      String premovePrefixString,
-      Set<AutomatonGoal> pAllGoals) {
-    if (automatonGoalTS != null) {
-      if (automatonGoalTS.getBddUtils() == pBddUtils
-          && sameTestGoals(automatonGoalTS.includedTestGoals, includedTestGoals)
-          && premovePrefixString.equals(automatonGoalTS.removePrefixString)) {
-        return automatonGoalTS;
-      }
-    }
-    automatonGoalTS = new TestSuite<>(pBddUtils, includedTestGoals, premovePrefixString, pAllGoals);
-    return automatonGoalTS;
-  }
+  // public static TestSuite<AutomatonGoal> getAutomatonGoalTS(
+  // BDDUtils pBddUtils,
+  // Set<AutomatonGoal> includedTestGoals,
+  // String premovePrefixString,
+  // Set<AutomatonGoal> pAllGoals) {
+  // if (automatonGoalTS != null) {
+  // if (automatonGoalTS.getBddUtils() == pBddUtils
+  // && sameTestGoals(automatonGoalTS.includedTestGoals, includedTestGoals)
+  // && premovePrefixString.equals(automatonGoalTS.removePrefixString)) {
+  // return automatonGoalTS;
+  // }
+  // }
+  // automatonGoalTS = new TestSuite<>(pBddUtils, includedTestGoals, premovePrefixString,
+  // pAllGoals);
+  // return automatonGoalTS;
+  // }
 
   private TestSuite(
       BDDUtils pBddUtils,

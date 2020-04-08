@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-
 public abstract class FunctionEntryNode extends CFANode {
 
   private static final long serialVersionUID = 1837494813423960670L;
@@ -45,11 +44,13 @@ public abstract class FunctionEntryNode extends CFANode {
   // Check if call edges are added in the second pass
   private final FunctionExitNode exitNode;
 
-  protected FunctionEntryNode(final FileLocation pFileLocation, String pFunctionName,
-      FunctionExitNode pExitNode, final AFunctionDeclaration pFunctionDefinition,
+  protected FunctionEntryNode(
+      final FileLocation pFileLocation,
+      FunctionExitNode pExitNode,
+      final AFunctionDeclaration pFunctionDefinition,
       final Optional<? extends AVariableDeclaration> pReturnVariable) {
 
-    super(pFunctionName);
+    super(pFunctionDefinition);
     location = checkNotNull(pFileLocation);
     functionDefinition = pFunctionDefinition;
     exitNode = pExitNode;

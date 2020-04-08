@@ -45,17 +45,16 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.GeometricN
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.InfiniteFixpointRepetition;
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgument;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgument;
+import de.uni_freiburg.informatik.ultimate.lib.modelcheckerutils.cfg.variables.IProgramVar;
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.ConstantTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Rational;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
-import de.uni_freiburg.informatik.ultimate.modelcheckerutils.cfg.variables.IProgramVar;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.math.BigDecimal;
-import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
@@ -68,10 +67,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -107,7 +106,9 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
@@ -141,6 +142,13 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   )
   @FileOption(Type.OUTPUT_FILE)
   private Path violationWitness = Paths.get("nontermination_witness.graphml");
+
+  @Option(
+      secure = true,
+      name = "violation.witness.dot",
+      description = "Export termination counterexample to file as dot/graphviz automaton ")
+  @FileOption(Type.OUTPUT_FILE)
+  private Path violationWitnessDot = Paths.get("nontermination_witness.dot");
 
   @Option(
     secure = true,
@@ -416,7 +424,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
     exportSynthesizedArguments();
 
-    if (pResult == Result.FALSE && violationWitness != null) {
+    if (pResult == Result.FALSE && (violationWitness != null || violationWitnessDot != null)) {
       Iterator<ARGState> violations =
           pReached
               .asCollection()
@@ -464,7 +472,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   }
 
   private void exportViolationWitness(final ARGState root, final ARGState loopStart) {
-    CounterexampleInfo cexInfo = loopStart.getCounterexampleInformation().get();
+    CounterexampleInfo cexInfo = loopStart.getCounterexampleInformation().orElseThrow();
 
     ARGState loopStartInCEX =
         new ARGState(AbstractStates.extractStateByType(loopStart, LocationState.class), null);
@@ -478,7 +486,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
     Function<? super ARGState, ExpressionTree<Object>> provideQuasiInvariant =
         (ARGState argState) -> {
-          if (argState == loopStartInCEX) {
+          if (Objects.equals(argState, loopStartInCEX)) {
             return quasiInvariant;
           }
           return ExpressionTrees.getTrue();
@@ -488,35 +496,28 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
     Predicate<? super ARGState> relevantStates = Predicates.in(cexStates);
 
-    try {
-      if (!compressWitness) {
-        try (Writer writer = IO.openOutputFile(violationWitness, Charset.defaultCharset())) {
-          witnessExporter.writeTerminationErrorWitness(
-              writer,
-              newRoot,
-              relevantStates,
-              BiPredicates.bothSatisfy(relevantStates),
-              state -> state == loopStartInCEX,
-              provideQuasiInvariant);
-        }
-      } else {
-        Path file = violationWitness;
-        file = file.resolveSibling(file.getFileName() + ".gz");
-        IO.writeGZIPFile(
-            file,
-            Charset.defaultCharset(),
-            (Appender)
-                pAppendable ->
-                    witnessExporter.writeTerminationErrorWitness(
-                        pAppendable,
-                        newRoot,
-                        relevantStates,
-                        BiPredicates.bothSatisfy(relevantStates),
-                        state -> state == loopStartInCEX,
-                        provideQuasiInvariant));
-      }
-    } catch (IOException e) {
-      logger.logException(WARNING, e, "Violation witness export failed.");
+    final Witness witness =
+        witnessExporter.generateTerminationErrorWitness(
+            newRoot,
+            relevantStates,
+            BiPredicates.bothSatisfy(relevantStates),
+            state -> Objects.equals(state, loopStartInCEX),
+            provideQuasiInvariant);
+
+    if (violationWitness != null) {
+      WitnessToOutputFormatsUtils.writeWitness(
+          violationWitness,
+          compressWitness,
+          pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable),
+          logger);
+    }
+
+    if (violationWitnessDot != null) {
+      WitnessToOutputFormatsUtils.writeWitness(
+          violationWitnessDot,
+          compressWitness,
+          pAppendable -> WitnessToOutputFormatsUtils.writeToDot(witness, pAppendable),
+          logger);
     }
   }
 
@@ -536,7 +537,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
         continue;
       }
 
-      if (state == loopStart) {
+      if (Objects.equals(state, loopStart)) {
         newLoopStart.addParent(parent);
         newStates.add(newLoopStart);
         break;
@@ -612,8 +613,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
               newContext = Pair.of(leaveFun.getSuccessor(), context.getSecond());
 
               if (leaveFun instanceof FunctionReturnEdge) {
-                if (context.getSecond().getCallNode()
-                    != ((FunctionReturnEdge) leaveFun).getSummaryEdge().getPredecessor()) {
+                if (!context.getSecond().getCallNode()
+                    .equals(((FunctionReturnEdge) leaveFun).getSummaryEdge().getPredecessor())) {
                   continue; // false context
                 }
                 newContext =
@@ -630,7 +631,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
                             leaveFun.getPredecessor()));
               }
 
-              if (leaveFun.getSuccessor() != locContinueLoop) {
+              if (!Objects.equals(leaveFun.getSuccessor(), locContinueLoop)) {
                 succFun = contextToARGState.get(newContext);
               } else {
                 succFun = nodeToARGState.get(locContinueLoop);
@@ -638,7 +639,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
               }
               if (succFun == null) {
                 succFun = new ARGState(locFac.getState(leaveFun.getSuccessor()), null);
-                if (leaveFun.getSuccessor() != locContinueLoop) {
+                if (!Objects.equals(leaveFun.getSuccessor(), locContinueLoop)) {
                   contextToARGState.put(newContext, succFun);
                   waitlistFun.push(newContext);
                 } else {
@@ -679,8 +680,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
       for (Entry<IProgramVar, Rational> entry : arg.getStateHonda().entrySet()) {
         RankVar rankVar = (RankVar) entry.getKey();
-        if (rankVar.getDefinition() instanceof ApplicationTerm
-            && ((ApplicationTerm) rankVar.getDefinition()).getParameters().length != 0) {
+        if (rankVar.getTerm() instanceof ApplicationTerm
+            && ((ApplicationTerm) rankVar.getTerm()).getParameters().length != 0) {
           // ignore UFs
           continue;
         }

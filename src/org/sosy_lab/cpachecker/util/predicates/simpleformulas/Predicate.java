@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.util.predicates.simpleformulas;
 
 import com.google.common.base.Preconditions;
 
-public class Predicate {
+public final class Predicate {
 
   public enum Comparison {
     GREATER_OR_EQUAL(">="),

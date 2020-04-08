@@ -142,7 +142,8 @@ public class ValueTransferBasedStrongestPostOperator
         }
 
         return Optional.of(
-            getNewCompositeState(valueStrengthenResult.get(), constraintsStrengthenResult.get()));
+            getNewCompositeState(
+                valueStrengthenResult.orElseThrow(), constraintsStrengthenResult.orElseThrow()));
       }
     }
   }
@@ -203,10 +204,7 @@ public class ValueTransferBasedStrongestPostOperator
   ) throws CPATransferException {
 
     Collection<? extends AbstractState> strengthenResult =
-        valueTransfer.strengthen(pValues,
-                                 ImmutableList.<AbstractState>of(pConstraints),
-                                 pOperation,
-                                 pPrecision);
+        valueTransfer.strengthen(pValues, ImmutableList.of(pConstraints), pOperation, pPrecision);
 
     if (isContradiction(strengthenResult)) {
       return Optional.empty();

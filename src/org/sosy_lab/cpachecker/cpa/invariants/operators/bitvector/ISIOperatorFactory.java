@@ -43,7 +43,7 @@ public enum ISIOperatorFactory {
    * The addition operator for adding intervals to big integers.
    */
   public Operator<BitVectorInterval, BigInteger, BitVectorInterval> getAdd(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return new Operator<BitVectorInterval, BigInteger, BitVectorInterval>() {
+    return new Operator<>() {
 
       /**
        * Computes the interval of possible results from adding any value of
@@ -76,7 +76,7 @@ public enum ISIOperatorFactory {
    * The multiplication operator for multiplying intervals with big integers.
    */
   public Operator<BitVectorInterval, BigInteger, BitVectorInterval> getMultiply(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return new Operator<BitVectorInterval, BigInteger, BitVectorInterval>() {
+    return new Operator<>() {
 
       /**
        * Calculates a superset of the possible results obtained by multiplying
@@ -145,7 +145,7 @@ public enum ISIOperatorFactory {
    * The division operator for dividing intervals by big integers.
    */
   public Operator<BitVectorInterval, BigInteger, BitVectorInterval> getDivide(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return new Operator<BitVectorInterval, BigInteger, BitVectorInterval>() {
+    return new Operator<>() {
 
       /**
        * Calculates a superset of the possible results from dividing any
@@ -205,7 +205,7 @@ public enum ISIOperatorFactory {
    * by big integers.
    */
   public Operator<BitVectorInterval, BigInteger, BitVectorInterval> getModulo(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return new Operator<BitVectorInterval, BigInteger, BitVectorInterval>() {
+    return new Operator<>() {
 
       /**
        * Computes a superset of the possible values resulting from calculating
@@ -424,7 +424,7 @@ public enum ISIOperatorFactory {
    * integer value.
    */
   public Operator<BitVectorInterval, BigInteger, BitVectorInterval> getShiftLeft(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return new Operator<BitVectorInterval, BigInteger, BitVectorInterval>() {
+    return new Operator<>() {
 
       /**
        * Computes an interval representing a superset of the possible values of
@@ -491,7 +491,7 @@ public enum ISIOperatorFactory {
    * integer value.
    */
   public Operator<BitVectorInterval, BigInteger, BitVectorInterval> getShiftRight(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return new Operator<BitVectorInterval, BigInteger, BitVectorInterval>() {
+    return new Operator<>() {
 
       /**
        * Computes an interval representing a superset of the possible values

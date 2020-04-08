@@ -54,7 +54,7 @@ public class LocationCPA extends AbstractCPA
 
     Optional<CFAInfo> cfaInfo = GlobalInfo.getInstance().getCFAInfo();
     if (cfaInfo.isPresent()) {
-      cfaInfo.get().storeLocationStateFactory(stateFactory);
+      cfaInfo.orElseThrow().storeLocationStateFactory(stateFactory);
     }
   }
 

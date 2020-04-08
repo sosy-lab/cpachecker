@@ -258,8 +258,8 @@ public class IntConverter extends Converter {
       // UF --> cast every parameter to correct bitsize
       assert op.getSecond().getParameterTypes().size() == terms.size();
       List<String> params = new ArrayList<>();
-      for (int i=0; i<terms.size(); i++) {
-        params.add(terms.get(i).getFirst());
+      for (Pair<String, Type<FormulaType<?>>> term : terms) {
+        params.add(term.getFirst());
       }
       return Pair.of(
           format("(%s %s)",

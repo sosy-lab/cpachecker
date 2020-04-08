@@ -45,14 +45,15 @@ public class PrefixSelector {
 
   public int obtainScoreForPrefixes(final List<InfeasiblePrefix> pPrefixes, final PrefixPreference pPreference) {
 
-    int defaultScore = Integer.MAX_VALUE;
-
     if (!classification.isPresent()) {
-      return defaultScore;
+      return Scorer.DEFAULT_SCORE;
     }
 
     Scorer scorer = factory.createScorer(pPreference);
-    return pPrefixes.stream().mapToInt(p -> scorer.computeScore(p)).min().orElse(defaultScore);
+    return pPrefixes.stream()
+        .mapToInt(p -> scorer.computeScore(p))
+        .min()
+        .orElse(Scorer.DEFAULT_SCORE);
   }
 
   private List<Comparator<InfeasiblePrefix>> createComparators(List<PrefixPreference> pPrefixPreference) {
@@ -156,6 +157,7 @@ public class PrefixSelector {
   }
 
   private interface Scorer {
+    static final int DEFAULT_SCORE = Integer.MAX_VALUE;
 
     int computeScore(final InfeasiblePrefix pPrefix);
 
@@ -170,7 +172,7 @@ public class PrefixSelector {
         public int computeScore(InfeasiblePrefix pPrefix) {
           int score = delegate.computeScore(pPrefix);
           if (score == Integer.MIN_VALUE) {
-            return Integer.MAX_VALUE;
+            return DEFAULT_SCORE;
           }
           return -score;
         }
@@ -191,7 +193,9 @@ public class PrefixSelector {
 
     @Override
     public int computeScore(final InfeasiblePrefix pPrefix) {
-      return classification.get().obtainDomainTypeScoreForVariables(pPrefix.extractSetOfIdentifiers(), loopStructure);
+      return classification
+          .orElseThrow()
+          .obtainDomainTypeScoreForVariables(pPrefix.extractSetOfIdentifiers(), loopStructure);
     }
   }
 
@@ -208,9 +212,13 @@ public class PrefixSelector {
 
     @Override
     public int computeScore(final InfeasiblePrefix pPrefix) {
-      int score = classification.get().obtainDomainTypeScoreForVariables(pPrefix.extractSetOfIdentifiers(), loopStructure);
+      int score =
+          classification
+              .orElseThrow()
+              .obtainDomainTypeScoreForVariables(pPrefix.extractSetOfIdentifiers(), loopStructure);
 
-      if(score != Integer.MAX_VALUE) {
+      // TODO next line looks like a bug. The score is either MAX_INT or ZERO afterwards.
+      if (score != DEFAULT_SCORE) {
         score = 0;
       }
 
@@ -254,7 +262,7 @@ public class PrefixSelector {
     public int computeScore(final InfeasiblePrefix pPrefix) {
       int count = 0;
       for (String variable : pPrefix.extractSetOfIdentifiers()) {
-        count = count + classification.get().getAssignedVariables().count(variable);
+        count = count + classification.orElseThrow().getAssignedVariables().count(variable);
       }
 
       return count;
@@ -273,7 +281,7 @@ public class PrefixSelector {
     public int computeScore(final InfeasiblePrefix pPrefix) {
       int count = 0;
       for (String variable : pPrefix.extractSetOfIdentifiers()) {
-        count = count + classification.get().getAssumedVariables().count(variable);
+        count = count + classification.orElseThrow().getAssumedVariables().count(variable);
       }
 
       return count;

@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.andersen;
 
 import com.google.common.collect.ImmutableListMultimap;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.cpa.andersen.util.BaseConstraint;
 import org.sosy_lab.cpachecker.cpa.andersen.util.ComplexConstraint;
@@ -108,7 +109,9 @@ public class AndersenState implements LatticeAbstractState<AndersenState> {
 
   @Override
   public boolean isLessOrEqual(AndersenState pReachedState) {
-    return this == pReachedState || (this.localConstraintSystem.getBaseConstraints().containsAll(pReachedState.localConstraintSystem.getBaseConstraints())
+    return Objects.equals(this, pReachedState)
+        || (this.localConstraintSystem.getBaseConstraints()
+            .containsAll(pReachedState.localConstraintSystem.getBaseConstraints())
         && this.localConstraintSystem.getSimpleConstraints().containsAll(pReachedState.localConstraintSystem.getSimpleConstraints())
         && this.localConstraintSystem.getComplexConstraints().containsAll(pReachedState.localConstraintSystem.getComplexConstraints()));
   }

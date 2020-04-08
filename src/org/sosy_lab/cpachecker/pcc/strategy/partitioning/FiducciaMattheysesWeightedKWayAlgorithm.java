@@ -43,7 +43,6 @@ public class FiducciaMattheysesWeightedKWayAlgorithm {
 
   public FiducciaMattheysesWeightedKWayAlgorithm(List<Set<Integer>> pInitPartitioning,
       double pBalanceCriterion, WeightedGraph pWGraph, int pMaxLoad, OptimizationCriteria opt) {
-    super();
     optimizer=FiducciaMattheysesOptimzerFactory.createFMOptimizer(opt);
     balanceCriterion = pBalanceCriterion;
     wGraph = pWGraph;

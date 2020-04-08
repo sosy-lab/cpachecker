@@ -41,18 +41,19 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
  */
 public class CPATestRunner {
 
-  public static TestResults run(Map<String, String> pProperties, String pSourceCodeFilePath)
-      throws Exception {
-    pProperties.put("specification", "config/specification/default.spc");
-    if (pProperties.containsKey("counterexample.checker.config")
-        && pProperties.get("counterexample.checker.config")
-            .contains("cex-checks/valueAnalysis-as-cex-check.properties")) {
-      pProperties.put(
-          "counterexample.checker.config",
-          "config/cex-checks/valueAnalysis-as-cex-check.properties");
-    }
+  public enum ExpectedVerdict {
+    TRUE,
+    FALSE,
+    NONE
+  }
 
-    Configuration config = TestDataTools.configurationForTest().setOptions(pProperties).build();
+  public static TestResults run(
+      Map<String, String> pProperties,
+      String pSourceCodeFilePath) throws Exception {
+
+    Configuration config = TestDataTools.configurationForTest()
+        .setOptions(pProperties)
+        .build();
     return run(config, pSourceCodeFilePath);
   }
 
@@ -61,7 +62,7 @@ public class CPATestRunner {
   }
 
   public static TestResults run(Configuration config, String pSourceCodeFilePath, Level logLevel) throws Exception {
-    StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
+        StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
     stringLogHandler.setLevel(logLevel);
     stringLogHandler.setFormatter(ConsoleLogFormatter.withoutColors());
     LogManager logger = BasicLogManager.createWithHandler(stringLogHandler);

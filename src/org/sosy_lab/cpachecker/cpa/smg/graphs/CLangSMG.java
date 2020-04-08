@@ -531,7 +531,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
       return Optional.empty();
     }
 
-    SMGObject object = initialRegion.get();
+    SMGObject object = initialRegion.orElseThrow();
     final ImmutableLongArray offsets = pLocation.getPathOffset();
 
     for (int i = 0; i < offsets.length(); i++) {
@@ -604,21 +604,6 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     }
   }
 
-  @Override
-  public boolean equals(Object pObj) {
-    /*
-     * A Clang Smg is equal to a CLang smg
-     * iff their super classes are equal to another.
-     */
-
-    return super.equals(pObj);
-  }
-
-  @Override
-  public int hashCode() {
-    return super.hashCode();
-  }
-
   /**
    * Remove all values and every edge from the smg.
    */
@@ -662,7 +647,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     if (!edgeToForget.isPresent()) {
       return Optional.empty();
     }
-    removeHasValueEdge(edgeToForget.get());
+    removeHasValueEdge(edgeToForget.orElseThrow());
     return edgeToForget;
   }
 

@@ -24,12 +24,11 @@
 package org.sosy_lab.cpachecker.cpa.monitor;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -166,13 +165,14 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // wrap elements
-    List<MonitorState> wrappedSuccessors = new ArrayList<>(successors.size());
+    ImmutableList.Builder<MonitorState> wrappedSuccessors =
+        ImmutableList.builderWithExpectedSize(successors.size());
     for (AbstractState absElement : successors) {
       MonitorState successorElem = new MonitorState(absElement, totalTimeOnPath, preventingCondition);
 
       wrappedSuccessors.add(successorElem);
     }
-    return wrappedSuccessors;
+    return wrappedSuccessors.build();
   }
 
   @Override
@@ -260,14 +260,15 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // wrap elements
-    List<MonitorState> wrappedSuccessors = new ArrayList<>(successors.size());
+    ImmutableList.Builder<MonitorState> wrappedSuccessors =
+        ImmutableList.builderWithExpectedSize(successors.size());
     for (AbstractState absElement : successors) {
       MonitorState successorElem = new MonitorState(
           absElement, totalTimeOnPath, preventingCondition);
 
       wrappedSuccessors.add(successorElem);
     }
-    return wrappedSuccessors;
+    return wrappedSuccessors.build();
   }
 
   private static interface TransferCallable extends Callable<Collection<? extends AbstractState>> {

@@ -30,6 +30,7 @@ import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -45,7 +46,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public class ToFormulaVisitor
     extends CachingVisitor<AExpression, BooleanFormula, ToFormulaException> {
 
-  private static final CFANode DUMMY_NODE = new CFANode("dummy");
+  private static final CFANode DUMMY_NODE = new CFANode(CFunctionDeclaration.DUMMY);
 
   private final FormulaManagerView formulaManagerView;
 

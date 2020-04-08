@@ -28,6 +28,7 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.collect.Collections2;
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -195,7 +196,7 @@ public class BAMARGStatistics extends ARGStatistics {
     //   "Last state %s of reachedset with root %s is not in target states %s",
     //   pReached.getLastState(), pReached.getFirstState(), targets);
     ARGReachedSet pMainReachedSet =
-        new ARGReachedSet((ReachedSet) pReached, (ARGCPA) cpa, 0 /* irrelevant number */);
+        new ARGReachedSet((ReachedSet) pReached, cpa, 0 /* irrelevant number */);
     // assertion disabled, because it happens with interrupts from user or on timeouts.
     // assert pMainReachedSet.asReachedSet().asCollection().containsAll(frontierStates)
     //   : "The following states are frontier states, but not part of the reachedset: "
@@ -253,9 +254,9 @@ public class BAMARGStatistics extends ARGStatistics {
     if (argState != null && argState.isTarget()) {
       Optional<CounterexampleInfo> cex = argState.getCounterexampleInformation();
       com.google.common.base.Optional<BackwardARGState> matchingState =
-          from(targets).firstMatch(t -> t.getARGState() == argState);
+          from(targets).firstMatch(t -> Objects.equals(t.getARGState(), argState));
       if (cex.isPresent() && matchingState.isPresent()) {
-        matchingState.get().addCounterexampleInformation(cex.get());
+        matchingState.get().addCounterexampleInformation(cex.orElseThrow());
       }
     }
   }

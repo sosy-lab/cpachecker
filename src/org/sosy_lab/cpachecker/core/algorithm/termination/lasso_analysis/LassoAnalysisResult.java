@@ -58,11 +58,11 @@ public class LassoAnalysisResult {
   }
 
   public NonTerminationArgument getNonTerminationArgument() {
-    return nonTerminationArgument.get();
+    return nonTerminationArgument.orElseThrow();
   }
 
   public RankingRelation getTerminationArgument() {
-    return terminationArgument.get();
+    return terminationArgument.orElseThrow();
   }
 
   public boolean isUnknown() {

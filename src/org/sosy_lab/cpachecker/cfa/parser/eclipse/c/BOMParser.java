@@ -64,7 +64,7 @@ public class BOMParser {
   private static final int MAX_BOM_LENGTH =
       Arrays.stream(ByteOrderMark.values())
           .max(Comparator.comparingInt(bom -> bom.sequence.size()))
-          .get()
+          .orElseThrow()
           .sequence
           .size();
 

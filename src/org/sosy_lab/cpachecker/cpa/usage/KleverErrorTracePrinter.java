@@ -31,6 +31,7 @@ import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import javax.xml.parsers.ParserConfigurationException;
@@ -242,7 +243,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       Element edge = printEdge(builder, pEdge);
 
       if (!warningIsPrinted
-          && pEdge.getSuccessor() == usage.getCFANode()
+          && Objects.equals(pEdge.getSuccessor(), usage.getCFANode())
           && containsId(pEdge, pIdName)) {
         warningIsPrinted = true;
         builder.addDataElementChild(edge, KeyDef.WARNING, usage.toString());

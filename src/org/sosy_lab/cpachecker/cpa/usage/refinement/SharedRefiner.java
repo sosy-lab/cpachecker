@@ -69,7 +69,7 @@ public class SharedRefiner extends GenericSinglePathRefiner {
     for (CFAEdge edge : edges) {
       assert(successors.size() <= 1);
       Iterator<LocalState> sharedIterator= successors.iterator();
-      if (sharedUsage.getCFANode() == edge.getSuccessor()) {
+      if (sharedUsage.getCFANode().equals(edge.getSuccessor())) {
         LocalState usageState = sharedIterator.next();
         assert (usageState != null);
 

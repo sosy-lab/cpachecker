@@ -1,0 +1,6 @@
+format_version: '1.0'
+
+# old file name: blast_array_1.c
+input_files: 'blast_array_1.c'
+
+properties: []

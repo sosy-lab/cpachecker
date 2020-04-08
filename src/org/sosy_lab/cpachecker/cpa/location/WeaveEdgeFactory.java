@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -234,12 +235,12 @@ public class WeaveEdgeFactory {
       create(
           MultiGoalState mgState,
           CFAEdge pCfaEdge,
-          String functionName,
           WeavingCacheKey wck) {
     Iterator<Pair<WeavingVariable, WeavingType>> iter = mgState.getEdgesToWeave().iterator();
     // TODO important to weave NEGATEDASSUMPTION last!
     List<CFAEdge> weavedEdges = new ArrayList<>();
-    CFANode predecessor = new CFANode(functionName);
+    AFunctionDeclaration function = pCfaEdge.getPredecessor().getFunction();
+    CFANode predecessor = new CFANode(function);
     int reversePostOrderId = pCfaEdge.getPredecessor().getReversePostorderId();
     predecessor.setReversePostorderId(reversePostOrderId);
     CFAEdge initialEdge = copy(pCfaEdge, predecessor);
@@ -252,7 +253,7 @@ public class WeaveEdgeFactory {
 
       Pair<WeavingVariable, WeavingType> pair = iter.next();
       if (iter.hasNext()) {
-        successor = new CFANode(functionName);
+        successor = new CFANode(function);
         successor.setReversePostorderId(reversePostOrderId);
       } else {
         successor = pCfaEdge.getSuccessor();
@@ -273,7 +274,6 @@ public class WeaveEdgeFactory {
 
   public LocationState create(MultiGoalState mgState, CFAEdge pCfaEdge) {
 
-    String functionName = pCfaEdge.getPredecessor().getFunctionName();
 
     WeavingCacheKey wck =
         new WeavingCacheKey(
@@ -285,7 +285,7 @@ public class WeaveEdgeFactory {
       // {
       // createNegatedEdges(mgState, pCfaEdge, functionName, wck);
       // } else {
-        create(mgState, pCfaEdge, functionName, wck);
+      create(mgState, pCfaEdge, wck);
       // }
     }
 

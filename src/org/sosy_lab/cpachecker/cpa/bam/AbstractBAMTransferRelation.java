@@ -27,8 +27,11 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -175,11 +178,33 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
   /**
    * We assume that the root of a reached-set is a initial state at block-entry-location. Searching
    * backwards from an ARGstate should end in the root-state.
+   *
+   * <p>This method traverses the reached-set and might be costly. Please call only when needed.
    */
   protected Block getBlockForState(ARGState state) {
-    while (!state.getParents().isEmpty()) {
-      state = state.getParents().iterator().next();
+
+    // search backwards for initial states, we assume there is only one
+    final Collection<ARGState> finished = new HashSet<>();
+    final Deque<ARGState> waitlist = new ArrayDeque<>();
+    waitlist.add(state);
+    while (!waitlist.isEmpty()) {
+      state = waitlist.pop();
+
+      // optimization to skip plain chains
+      while (state.getParents().size() == 1) {
+        state = state.getParents().iterator().next();
+      }
+
+      // initial states in the reached-set have no predecessor
+      if (state.getParents().isEmpty()) {
+        break;
+      }
+
+      if (finished.add(state)) {
+        waitlist.addAll(state.getParents());
+      }
     }
+
     CFANode location = extractLocation(state);
     assert partitioning.isCallNode(location)
         : "root of reached-set must be located at block entry.";
@@ -220,6 +245,13 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
 
       AbstractState expandedState =
           wrappedReducer.getVariableExpandedState(state, innerSubtree, reducedState);
+
+      if (expandedState == null) {
+        // if the expanded reducedResult is not satisfiable, ignore it.
+        // TODO If this happens, we might want to re-analyze
+        // the nested reached-set for further states from the waitlist.
+        continue;
+      }
 
       Precision expandedPrecision =
           outerSubtree == null

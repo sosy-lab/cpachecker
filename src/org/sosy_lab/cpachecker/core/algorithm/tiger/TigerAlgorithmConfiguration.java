@@ -30,8 +30,8 @@ import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.cpachecker.core.algorithm.tiger.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerBaseAlgorithm.TimeoutStrategy;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.PredefinedCoverageCriteria;
 
 
 @Options(prefix = "tiger")

@@ -99,13 +99,7 @@ public abstract class AbstractCFAEdge implements CFAEdge {
     }
 
     AbstractCFAEdge otherEdge = (AbstractCFAEdge) pOther;
-
-    if ((otherEdge.predecessor != predecessor)
-        || (otherEdge.successor != successor)) {
-      return false;
-    }
-
-    return true;
+    return predecessor.equals(otherEdge.predecessor) && successor.equals(otherEdge.successor);
   }
 
   @Override

@@ -40,9 +40,9 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -168,7 +168,7 @@ public class GraphUtils {
       List<ARGState> subList = pStates.subList(startIndex, pStates.size());
       Set<ARGState> excludeSet = new HashSet<>(pStates);
       if (pExcludeStates.isPresent()) {
-        excludeSet.addAll(pExcludeStates.get());
+        excludeSet.addAll(pExcludeStates.orElseThrow());
       }
       excludeSet.removeAll(subList);
       ImmutableSet<StronglyConnectedComponent> SCCs =
@@ -184,7 +184,7 @@ public class GraphUtils {
                 .map(x -> pStates.indexOf(x.getRootNode()))
                 .reduce((x, y) -> x.compareTo(y) <= 0 ? x : y)
                 .map(pStates::get)
-                .get();
+                .orElseThrow();
 
         blockedSet.clear();
         blockedMap.clear();
@@ -212,7 +212,7 @@ public class GraphUtils {
       List<List<ARGState>> pAllCycles,
       Optional<Set<ARGState>> pExcludeSet) {
 
-    if (pExcludeSet.isPresent() && pExcludeSet.get().contains(pCurrentState)) {
+    if (pExcludeSet.isPresent() && pExcludeSet.orElseThrow().contains(pCurrentState)) {
       // Do not regard nodes which were deliberately put into a set of excluded states
       return false;
     }
@@ -306,7 +306,7 @@ public class GraphUtils {
 
     for (ARGState state : pARGStates) {
       if (pExcludeStates.isPresent()) {
-        if (pExcludeStates.get().contains(state)) {
+        if (pExcludeStates.orElseThrow().contains(state)) {
           continue;
         }
       }
@@ -333,9 +333,8 @@ public class GraphUtils {
     pIndex++;
     pDfsStack.push(pState);
 
-    for (Iterator<ARGState> iterator = pState.getChildren().iterator(); iterator.hasNext(); ) {
-      ARGState sucessorState = iterator.next();
-      if (pExcludeStates.isPresent() && pExcludeStates.get().contains(sucessorState)) {
+    for (ARGState sucessorState : pState.getChildren()) {
+      if (pExcludeStates.isPresent() && pExcludeStates.orElseThrow().contains(sucessorState)) {
         continue;
       }
       if (!pStateIndex.containsKey(sucessorState)) {
@@ -360,7 +359,7 @@ public class GraphUtils {
       do {
         s = pDfsStack.pop();
         scc.addNode(s);
-      } while (pState != s);
+      } while (!Objects.equals(pState, s));
       pSCCs.add(scc);
     }
   }

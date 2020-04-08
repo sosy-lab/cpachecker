@@ -20,7 +20,6 @@
 package org.sosy_lab.cpachecker.util.ltl;
 
 import com.google.common.collect.ImmutableList;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.util.ltl.formulas.BinaryFormula;
 import org.sosy_lab.cpachecker.util.ltl.formulas.BooleanConstant;
@@ -31,6 +30,7 @@ import org.sosy_lab.cpachecker.util.ltl.formulas.Globally;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Literal;
 import org.sosy_lab.cpachecker.util.ltl.formulas.LtlFormula;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Next;
+import org.sosy_lab.cpachecker.util.ltl.formulas.PropositionalFormula;
 import org.sosy_lab.cpachecker.util.ltl.formulas.Release;
 import org.sosy_lab.cpachecker.util.ltl.formulas.StrongRelease;
 import org.sosy_lab.cpachecker.util.ltl.formulas.UnaryFormula;
@@ -55,36 +55,32 @@ public class LtlStringVisitor implements LtlFormulaVisitor {
     return pBooleanConstant.toString();
   }
 
+  private String visitPropositionalFormula(PropositionalFormula pProp) {
+    return pProp
+        .getChildren()
+        .stream()
+        .map(this::visitFormula)
+        .collect(Collectors.joining(String.format(" %s ", pProp.getSymbol()), "(", ")"));
+  }
+
   @Override
   public String visit(Conjunction pConjunction) {
-    return "("
-        + pConjunction
-            .children
-            .stream()
-            .map((Function<LtlFormula, CharSequence>) this::visitFormula)
-            .collect(Collectors.joining(String.format(" %s ", pConjunction.getSymbol())))
-        + ")";
+    return visitPropositionalFormula(pConjunction);
   }
 
   @Override
   public String visit(Disjunction pDisjunction) {
-    return "("
-        + pDisjunction
-            .children
-            .stream()
-            .map((Function<LtlFormula, CharSequence>) this::visitFormula)
-            .collect(Collectors.joining(String.format(" %s ", pDisjunction.getSymbol())))
-        + ")";
+    return visitPropositionalFormula(pDisjunction);
   }
 
   @Override
   public String visit(Finally pFinally) {
-    return visit((UnaryFormula) pFinally);
+    return visitUnaryFormula(pFinally);
   }
 
   @Override
   public String visit(Globally pGlobally) {
-    return visit((UnaryFormula) pGlobally);
+    return visitUnaryFormula(pGlobally);
   }
 
   @Override
@@ -101,41 +97,37 @@ public class LtlStringVisitor implements LtlFormulaVisitor {
 
   @Override
   public String visit(Next pNext) {
-    return visit((UnaryFormula) pNext);
+    return visitUnaryFormula(pNext);
   }
 
   @Override
   public String visit(Release pRelease) {
-    return visit((BinaryFormula) pRelease);
+    return visitBinaryFormula(pRelease);
   }
 
   @Override
   public String visit(StrongRelease pStrongRelease) {
-    return visit((BinaryFormula) pStrongRelease);
+    return visitBinaryFormula(pStrongRelease);
   }
 
   @Override
   public String visit(Until pUntil) {
-    return visit((BinaryFormula) pUntil);
+    return visitBinaryFormula(pUntil);
   }
 
   @Override
   public String visit(WeakUntil pWeakUntil) {
-    return visit((BinaryFormula) pWeakUntil);
+    return visitBinaryFormula(pWeakUntil);
   }
 
-  private String visit(UnaryFormula pFormula) {
-    return pFormula.getSymbol() + " " + pFormula.operand.accept(this);
+  private String visitUnaryFormula(UnaryFormula pFormula) {
+    return pFormula.getSymbol() + " " + pFormula.getOperand().accept(this);
   }
 
-  private String visit(BinaryFormula pFormula) {
-    return "(("
-        + pFormula.left.accept(this)
-        + ") "
-        + pFormula.getSymbol()
-        + " ("
-        + pFormula.right.accept(this)
-        + "))";
+  private String visitBinaryFormula(BinaryFormula pFormula) {
+    return String.format(
+        "((%s) %s (%s))",
+        pFormula.getLeft().accept(this), pFormula.getSymbol(), pFormula.getRight().accept(this));
   }
 
   private String visitFormula(LtlFormula pFormula) {

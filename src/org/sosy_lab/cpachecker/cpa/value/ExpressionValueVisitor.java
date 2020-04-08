@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import java.math.BigInteger;
+import java.util.Objects;
 import java.util.OptionalLong;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -133,7 +134,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       CType actualType = (CType) valueAndType.getType();
       CType readType = pLValue.getExpressionType();
       MachineModel machineModel = getMachineModel();
-      if (machineModel.getSizeof(readType) == machineModel.getSizeof(actualType)) {
+      if (Objects.equals(machineModel.getSizeof(readType), machineModel.getSizeof(actualType))) {
 
         if (doesRequireUnionFloatConversion(actualType, readType)) {
           if (valueAndType.getValue().isNumericValue()) {
@@ -370,10 +371,13 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
       if (pStartLocation.isOnFunctionStack()) {
 
         return MemoryLocation.valueOf(
-            pStartLocation.getFunctionName(), pStartLocation.getIdentifier(), baseOffset + offset.getAsLong());
+            pStartLocation.getFunctionName(),
+            pStartLocation.getIdentifier(),
+            baseOffset + offset.orElseThrow());
       } else {
 
-        return MemoryLocation.valueOf(pStartLocation.getIdentifier(), baseOffset + offset.getAsLong());
+        return MemoryLocation.valueOf(
+            pStartLocation.getIdentifier(), baseOffset + offset.orElseThrow());
       }
     }
 

@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
@@ -87,9 +88,12 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 @Options(prefix="cpa.arg.export.code")
 public class ARGToCTranslator {
-  private static String ASSERTFAIL = "__assert_fail";
-  private static String DEFAULTRETURN = "default return";
-  private static String TMPVARPREFIX = "__tmp_";
+  private static final String ASSERTFAIL = "__assert_fail";
+  private static final String DEFAULTRETURN = "default return";
+  private static final String TMPVARPREFIX = "__tmp_";
+
+  private final static AbstractState BOTTOM = new AbstractState() {
+  };
 
   abstract static class Statement {
     private static int gotoCounter = 0;
@@ -120,6 +124,17 @@ public class ARGToCTranslator {
         isGotoTarget = true;
       }
       return gotoLabel;
+    }
+
+    /**
+     * Creates a String representation of this object.
+     * Created strings may get really big, so use with care.
+     */
+    @Override
+    public String toString() {
+      StringBuilder sb = new StringBuilder();
+      translateToCode(sb, 0);
+      return sb.toString();
     }
   }
 
@@ -164,6 +179,14 @@ public class ARGToCTranslator {
     public CompoundStatement getSurroundingBlock() {
       return outerBlock;
     }
+
+    public boolean isEmpty() {
+      return statements.isEmpty();
+    }
+
+    public Statement getLast() {
+      return statements.get(statements.size() - 1);
+    }
   }
 
   static class SimpleStatement extends Statement {
@@ -201,6 +224,25 @@ public class ARGToCTranslator {
       buffer.append("\n");
 
       functionBody.translateToCode(buffer, indent);
+    }
+  }
+
+  static class Label extends Statement {
+
+    private final String name;
+
+    public Label(String pLabelName) {
+      name = pLabelName;
+    }
+
+    @Override
+    public String getLabel() {
+      return name;
+    }
+
+    @Override
+    void translateToCode0(StringBuilder buffer, int indent) {
+      buffer.append(name).append(":;");
     }
   }
 
@@ -272,6 +314,11 @@ public class ARGToCTranslator {
 
   @Option(secure=true, name="handleTargetStates", description="How to deal with target states during code generation")
   private TargetTreatment targetStrategy = TargetTreatment.NONE;
+
+  @Option(
+    secure = true,
+    description = "Enable the integration of __VERIFIER_assume statements for non-true assumption in states. Disable if you want to create residual programs.")
+  private boolean addAssumptions = true;
 
   public ARGToCTranslator(LogManager pLogger, Configuration pConfig, MachineModel pMachineModel)
       throws InvalidConfigurationException {
@@ -391,7 +438,9 @@ public class ARGToCTranslator {
       } else {
         // check whether we have a return statement for the main method before (only when main is non-void)
         CFANode loc = AbstractStates.extractLocation(currentElement);
-        if (!isVoidMain && currentElement.getWrappedState() != null && loc.getNumLeavingEdges() == 0
+        if (!isVoidMain
+            && currentElement.getWrappedState() != BOTTOM
+            && loc.getNumLeavingEdges() == 0
             && loc.getEnteringEdge(0).getEdgeType() == CFAEdgeType.ReturnStatementEdge) {
           currentBlock.addStatement(
               new SimpleStatement("return " + "__return_" + currentElement.getStateId() + ";"));
@@ -436,7 +485,7 @@ public class ARGToCTranslator {
           pushToWaitlist(
               waitlist,
               currentElement,
-              new ARGState(null, null),
+              new ARGState(BOTTOM, null),
               edgeToChild.getPredecessor().getLeavingEdge(0) == edgeToChild
                   ? edgeToChild.getPredecessor().getLeavingEdge(1)
                   : edgeToChild.getPredecessor().getLeavingEdge(0),
@@ -450,7 +499,7 @@ public class ARGToCTranslator {
           pushToWaitlist(
               waitlist,
               currentElement,
-              new ARGState(null, null),
+              new ARGState(BOTTOM, null),
             edgeToChild.getPredecessor().getLeavingEdge(0) == edgeToChild
                 ? edgeToChild.getPredecessor().getLeavingEdge(1)
                 : edgeToChild.getPredecessor().getLeavingEdge(0),
@@ -768,18 +817,20 @@ public class ARGToCTranslator {
   }
 
   private void handleAssumptions(ARGState childElement, CompoundStatement currentBlock) {
-    List<AExpression> assumptions = new ArrayList<>();
-    AbstractStates.asIterable(childElement)
-        .filter(AbstractStateWithAssumptions.class)
-        .transform(x -> x.getAssumptions())
-        .forEach(x -> assumptions.addAll(x));
+    if (addAssumptions) {
+      List<AExpression> assumptions = new ArrayList<>();
+      AbstractStates.asIterable(childElement)
+          .filter(AbstractStateWithAssumptions.class)
+          .transform(x -> x.getAssumptions())
+          .forEach(x -> assumptions.addAll(x));
 
-    if (!assumptions.isEmpty()) {
-      StringJoiner joiner = new StringJoiner(" && ", "__VERIFIER_assume(", ");");
-      assumptions.stream().map(x -> x.toQualifiedASTString()).forEach(joiner::add);
-      String statement = joiner.toString();
-      currentBlock.addStatement(new SimpleStatement(statement));
-      verifierAssumeUsed = true;
+      if (!assumptions.isEmpty()) {
+        StringJoiner joiner = new StringJoiner(" && ", "__VERIFIER_assume(", ");");
+        assumptions.stream().map(x -> x.toQualifiedASTString()).forEach(joiner::add);
+        String statement = joiner.toString();
+        currentBlock.addStatement(new SimpleStatement(statement));
+        verifierAssumeUsed = true;
+      }
     }
   }
 
@@ -1057,7 +1108,6 @@ public class ARGToCTranslator {
     CFAEdge edge;
     Set<ARGState> visited = new HashSet<>();
     Deque<Pair<ARGState, DeclarationInfo>> waitlist = new ArrayDeque<>();
-    List<Pair<ARGState, DeclarationInfo>> assumeInfo = new ArrayList<>(2);
 
     Multimap<ARGState, Map<CDeclaration, String>> decProblems = HashMultimap.create();
 
@@ -1066,7 +1116,7 @@ public class ARGToCTranslator {
     while (!waitlist.isEmpty()) {
       current = waitlist.pop();
       parent = current.getFirst();
-      assumeInfo.clear();
+      final List<Pair<ARGState, DeclarationInfo>> assumeInfo = new ArrayList<>(2);
 
       if (visited.add(parent)) {
 
@@ -1099,9 +1149,7 @@ public class ARGToCTranslator {
           }
         }
 
-        for (int i = 0; i < assumeInfo.size(); i++) {
-          waitlist.push(assumeInfo.get(i));
-        }
+        waitlist.addAll(assumeInfo);
       }
     }
 

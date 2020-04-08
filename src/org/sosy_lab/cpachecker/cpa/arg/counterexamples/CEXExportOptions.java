@@ -103,6 +103,14 @@ public final class CEXExportOptions {
   private PathTemplate errorPathAutomatonGraphmlFile =
       PathTemplate.ofFormatString("Counterexample.%d.graphml");
 
+  @Option(
+      secure = true,
+      name = "dot",
+      description = "export counterexample to file as Dot/Graphviz automaton")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate errorPathAutomatonDotFile =
+      PathTemplate.ofFormatString("Counterexample.%d.dot");
+
   @Option(secure = true, description = "Export extended witness in addition to regular witness")
   private boolean exportExtendedWitness = false;
 
@@ -117,6 +125,14 @@ public final class CEXExportOptions {
   @Option(secure = true, name = "harness", description = "export test harness to file as code")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate testHarnessFile = PathTemplate.ofFormatString("Counterexample.%d.harness.c");
+
+  @Option(
+      secure = true,
+      name = "exportTestCase",
+      description = "export test case that represents the counterexample. Further options can be"
+          + " set with options 'testcase.*'"
+  )
+  private boolean exportTest = false;
 
   @Option(
       secure = true,
@@ -148,7 +164,8 @@ public final class CEXExportOptions {
         && getSourceFile() == null
         && getTestHarnessFile() == null
         && getWitnessFile() == null
-        && getExtendedWitnessFile() == null;
+        && getExtendedWitnessFile() == null
+        && !exportTest;
   }
 
   @Nullable
@@ -216,11 +233,23 @@ public final class CEXExportOptions {
   }
 
   @Nullable
+  PathTemplate getWitnessDotFile() {
+    if (!exportErrorPath) {
+      return null;
+    }
+    return exportWitness ? errorPathAutomatonDotFile : null;
+  }
+
+  @Nullable
   PathTemplate getExtendedWitnessFile() {
     if (!exportErrorPath) {
       return null;
     }
     return exportExtendedWitness ? extendedWitnessFile : null;
+  }
+
+  boolean exportToTest() {
+    return exportTest;
   }
 
   public boolean dumpAllFoundErrorPaths() {

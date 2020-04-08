@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
-
 public class ARGBasedPartialReachedSetConstructionAlgorithm extends
     MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgorithm {
 
@@ -58,8 +57,12 @@ public class ARGBasedPartialReachedSetConstructionAlgorithm extends
     if (!GlobalInfo.getInstance().getCPA().isPresent()) {
       throw new InvalidConfigurationException("No CPA specified.");
     } else {
-      ARGCPA cpa = CPAs.retrieveCPAOrFail(GlobalInfo.getInstance().getCPA().get(), ARGCPA.class, ARGBasedPartialReachedSetConstructionAlgorithm.class);
-      this.cpa = cpa.getWrappedCPAs().get(0); // TODO this line looks dangerous!
+      ARGCPA argCpa =
+          CPAs.retrieveCPAOrFail(
+              GlobalInfo.getInstance().getCPA().orElseThrow(),
+              ARGCPA.class,
+              ARGBasedPartialReachedSetConstructionAlgorithm.class);
+      this.cpa = argCpa.getWrappedCPAs().get(0); // TODO this line looks dangerous!
     }
     return new ExtendedNodeSelectionARGPass(pRootPrecision, pRoot);
   }

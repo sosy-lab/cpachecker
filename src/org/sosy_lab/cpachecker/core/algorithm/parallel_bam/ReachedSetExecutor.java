@@ -43,12 +43,10 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -57,16 +55,18 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmFactory;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm.ParallelBAMStatistics;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithBreakOnMissingBlock;
+import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
 import org.sosy_lab.cpachecker.cpa.bam.MissingBlockAbstractionState;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
+import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
@@ -80,7 +80,6 @@ import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWra
 class ReachedSetExecutor {
 
   private static final Level level = Level.ALL;
-  private static final Runnable NOOP = () -> {};
 
   /** the working reached-set, single-threaded access. */
   private final ReachedSet rs;
@@ -91,7 +90,7 @@ class ReachedSetExecutor {
   /** the working algorithm for the reached-set, single-threaded access. */
   private final Algorithm algorithm;
 
-  /** flag that causes termination if enabled. */
+  /** flag that causes termination if enabled. Never disabled after being enabled. */
   private boolean targetStateFound = false;
 
   /** main reached-set is used for checking termination of the algorithm. */
@@ -106,9 +105,16 @@ class ReachedSetExecutor {
   private final AlgorithmFactory algorithmFactory;
   private final ShutdownNotifier shutdownNotifier;
   private final ParallelBAMStatistics stats;
-  private final AtomicReference<Throwable> error;
+  private final List<Throwable> errors;
   private final AtomicBoolean terminateAnalysis;
   private final LogManager logger;
+
+  /**
+   * This variable is shared acros all threads and counts the number of currently scheduled, but not
+   * yet running jobs. It is used to automatically shutdown the thread pool as soon as all jobs are
+   * done.
+   */
+  private final AtomicInteger scheduledJobs;
 
   int execCounter = 0; // statistics
   private final TimerWrapper threadTimer;
@@ -144,8 +150,9 @@ class ReachedSetExecutor {
       AlgorithmFactory pAlgorithmFactory,
       ShutdownNotifier pShutdownNotifier,
       ParallelBAMStatistics pStats,
-      AtomicReference<Throwable> pError,
+      List<Throwable> pErrors,
       AtomicBoolean pTerminateAnalysis,
+      AtomicInteger pScheduledJobs,
       LogManager pLogger) {
     bamcpa = pBamCpa;
     rs = pRs;
@@ -156,8 +163,9 @@ class ReachedSetExecutor {
     algorithmFactory = pAlgorithmFactory;
     shutdownNotifier = pShutdownNotifier;
     stats = pStats;
-    error = pError;
+    errors = pErrors;
     terminateAnalysis = pTerminateAnalysis;
+    scheduledJobs = pScheduledJobs;
     logger = pLogger;
 
     algorithm = algorithmFactory.newInstance();
@@ -170,26 +178,58 @@ class ReachedSetExecutor {
     addingStatesTimer = stats.addingStatesTime.getNewTimer();
     terminationCheckTimer = stats.terminationCheckTime.getNewTimer();
 
-    waitingTask = CompletableFuture.runAsync(NOOP, pool); // initialization
+    // initialization with a NOOP, more tasks are appended later
+    waitingTask = CompletableFuture.runAsync(() -> {}, pool);
   }
 
   public Runnable asRunnable() {
     return asRunnable(ImmutableSet.of());
   }
 
-  public Runnable asRunnable(Collection<AbstractState> pStatesToBeAdded) {
+  /**
+   * create a new execution step where some states are added to the waitlist before running the
+   * execution step.
+   */
+  private Runnable asRunnable(Collection<AbstractState> pStatesToBeAdded) {
     // copy needed, because access to pStatesToBeAdded is done in the future
     ImmutableSet<AbstractState> copy = ImmutableSet.copyOf(pStatesToBeAdded);
-    return () -> apply(copy);
+    return () -> apply0(copy);
   }
 
   synchronized void addNewTask(Runnable r) {
+    scheduledJobs.incrementAndGet();
     waitingTask = waitingTask.thenRunAsync(r, pool).exceptionally(new ExceptionHandler(this));
   }
 
   /** use only for debugging and exception handling */
   CompletableFuture<Void> getWaitingTasks() {
     return waitingTask;
+  }
+
+  private void apply0(Collection<AbstractState> pStatesToBeAdded) {
+    threadTimer.start();
+    int running = stats.numActiveThreads.incrementAndGet();
+    stats.histActiveThreads.insertValue(running);
+    stats.numMaxRSE.accumulate(reachedSetMapping.size());
+    stats.runningRSESeries.add(running);
+    execCounter++;
+
+    scheduledJobs.decrementAndGet();
+
+    try { // big try-block to catch all exceptions
+      shutdownNotifier.shutdownIfNecessary();
+
+      apply(pStatesToBeAdded);
+
+    } catch (Throwable e) { // catch everything to avoid deadlocks after a problem.
+      logger.logException(level, e, e.getClass().getName());
+      terminateAnalysis.set(true);
+      errors.add(e);
+      pool.shutdownNow();
+    } finally {
+      stats.numActiveThreads.decrementAndGet();
+      threadTimer.stop();
+    }
   }
 
   /**
@@ -199,79 +239,55 @@ class ReachedSetExecutor {
    * <p>This method should be synchronized by design of the algorithm. There exists a mapping of
    * ReachedSet to ReachedSetExecutor that guarantees single-threaded access to each ReachedSet.
    */
-  private void apply(Collection<AbstractState> pStatesToBeAdded) {
-    threadTimer.start();
-    int running = stats.numActiveThreads.incrementAndGet();
-    stats.histActiveThreads.insertValue(running);
-    stats.numMaxRSE.accumulate(reachedSetMapping.size());
-    stats.runningRSESeries.add(running);
-    execCounter++;
+  private void apply(Collection<AbstractState> pStatesToBeAdded)
+      throws InterruptedException, CPAEnabledAnalysisPropertyViolationException, CPAException {
+    logger.logf(
+        level,
+        "%s :: starting, target=%s, statesToBeAdded=%s",
+        this,
+        targetStateFound,
+        id(pStatesToBeAdded));
 
-    try { // big try-block to catch all exceptions
+    addingStatesTimer.start();
+    updateStates(pStatesToBeAdded);
+    addingStatesTimer.stop();
 
-      if (shutdownNotifier.shouldShutdown()) {
-        terminateAnalysis.set(true);
-        pool.shutdownNow();
-        return;
-      }
+    // handle finished reached-set after refinement
+    // TODO checking this once on RSE-creation would be sufficient
+    checkForTargetState();
 
-      logger.logf(
-          level,
-          "%s :: starting, target=%s, statesToBeAdded=%s",
-          this,
-          targetStateFound,
-          id(pStatesToBeAdded));
+    if (!targetStateFound) {
+      // further analysis of the reached-set, sub-analysis is scheduled if necessary
+      algorithm.run(rs);
 
-      addingStatesTimer.start();
-      updateStates(pStatesToBeAdded);
-      addingStatesTimer.stop();
-
-      // handle finished reached-set after refinement
-      // TODO checking this once on RSE-creation would be sufficient
-      checkForTargetState();
-
-      if (!targetStateFound) {
-        // further analysis of the reached-set, sub-analysis is scheduled if necessary
-          @SuppressWarnings("unused")
-          AlgorithmStatus tmpStatus = algorithm.run(rs);
-
-        if (bamcpa.doesBreakForMissingBlock()) {
-          AbstractState lastState = rs.getLastState();
-          if (lastState instanceof MissingBlockAbstractionState) {
-            handleMissingBlock((MissingBlockAbstractionState) lastState);
+      if (bamcpa.doesBreakForMissingBlock()) {
+        AbstractState lastState = rs.getLastState();
+        if (lastState instanceof MissingBlockAbstractionState) {
+          handleMissingBlock((MissingBlockAbstractionState) lastState);
         }
-        } else {
-          // create local copy of important states, because RS will be modified later.
-          Collection<MissingBlockAbstractionState> missingBlockAbstractionStates =
-              Lists.newArrayList(Iterables.filter(rs, MissingBlockAbstractionState.class));
-          for (MissingBlockAbstractionState state : missingBlockAbstractionStates) {
-            handleMissingBlock(state);
-      }
+      } else {
+        // create local copy of important states, because RS will be modified later.
+        Collection<MissingBlockAbstractionState> missingBlockAbstractionStates =
+            Lists.newArrayList(Iterables.filter(rs, MissingBlockAbstractionState.class));
+        for (MissingBlockAbstractionState state : missingBlockAbstractionStates) {
+          handleMissingBlock(state);
         }
-
-        assert FluentIterable.from(rs).filter(MissingBlockAbstractionState.class).isEmpty()
-            : "dummy state should be removed from reached-set";
       }
 
-      terminationCheckTimer.start();
-      handleTermination();
-      terminationCheckTimer.stop();
-
-      logger.logf(level, "%s :: exiting, targetStateFound=%s", this, targetStateFound);
-
-    } catch (Throwable e) { // catch everything to avoid deadlocks after a problem.
-      logger.logException(level, e, e.getClass().getName());
-      terminateAnalysis.set(true);
-      error.set(e);
-      pool.shutdownNow();
-    } finally {
-      stats.numActiveThreads.decrementAndGet();
-      threadTimer.stop();
+      assert FluentIterable.from(rs).filter(MissingBlockAbstractionState.class).isEmpty()
+          : "dummy state should be removed from reached-set";
     }
+
+    terminationCheckTimer.start();
+    handleTermination();
+    terminationCheckTimer.stop();
+
+    logger.logf(level, "%s :: exiting, targetStateFound=%s", this, targetStateFound);
   }
 
   private void checkForTargetState() {
-    boolean endsWithTargetState = endsWithTargetState();
+    boolean endsWithTargetState =
+        rs.getLastState() != null && AbstractStates.isTargetState(rs.getLastState());
 
     if (targetStateFound) {
       Preconditions.checkState(
@@ -282,11 +298,12 @@ class ReachedSetExecutor {
           "when a target was found before, we want to stop further scheduling");
     }
 
-    if (endsWithTargetState) {
+    if (endsWithTargetState && !bamcpa.searchTargetStatesOnExit()) {
       targetStateFound = true;
       terminateAnalysis.set(true);
     }
   }
+
   private static String id(final Collection<AbstractState> states) {
     return Collections2.transform(states, s -> id(s)).toString();
   }
@@ -296,11 +313,12 @@ class ReachedSetExecutor {
   }
 
   private static String id(ReachedSet pRs) {
+    if (pRs.getFirstState() == null) {
+      // - happens on empty reached set, i.e. very rarely.
+      // - happens with a merge-join operator, if a loop-head is merged with itself.
+      return "no initial state";
+    }
     return id(pRs.getFirstState());
-  }
-
-  private String idd() {
-    return id(rs);
   }
 
   /**
@@ -312,10 +330,6 @@ class ReachedSetExecutor {
       rs.reAddToWaitlist(state);
       dependsOn.remove(state);
     }
-  }
-
-  private boolean endsWithTargetState() {
-    return rs.getLastState() != null && AbstractStates.isTargetState(rs.getLastState());
   }
 
   boolean isTargetStateFound() {
@@ -330,29 +344,29 @@ class ReachedSetExecutor {
     boolean isFinished = dependsOn.isEmpty();
     if (isFinished) {
       if (rs.getWaitlist().isEmpty() || targetStateFound) {
-        updateCache(targetStateFound);
+        updateCache();
       } else {
         // otherwise we have an unfinished reached-set and do not cache the incomplete result.
       }
       reAddStatesToDependingReachedSets();
 
-      if (isMainReachedSet) {
-        logger.logf(level, "%s :: mainRS finished, shutdown threadpool", this);
-        pool.shutdown();
-      }
-
       // we never need to execute this RSE again,
       // thus we can clean up and avoid a (small) memory-leak
-        reachedSetMapping.remove(rs);
-        stats.executionCounter.insertValue(execCounter);
+      reachedSetMapping.remove(rs);
+      stats.executionCounter.insertValue(execCounter);
       // no need to wait for this#waitingTask, we assume a error-free exit after this point.
+
+      if (scheduledJobs.get() == 0 && reachedSetMapping.isEmpty()) {
+        logger.logf(level, "%s :: all RSEs finished, shutdown threadpool", this);
+        pool.shutdown();
       }
+    }
 
     logger.logf(
         level, "%s :: finished=%s, targetStateFound=%s", this, isFinished, targetStateFound);
   }
 
-  private void updateCache(boolean pEndsWithTargetState) {
+  private void updateCache() {
     if (isMainReachedSet) {
       // we do not cache main reached set, because it should not be used internally
       return;
@@ -361,7 +375,8 @@ class ReachedSetExecutor {
     AbstractState reducedInitialState = rs.getFirstState();
     Precision reducedInitialPrecision = rs.getPrecision(reducedInitialState);
     Block innerBlock = getBlockForState(reducedInitialState);
-    final List<AbstractState> exitStates = extractExitStates(pEndsWithTargetState, innerBlock);
+    final Set<AbstractState> exitStates =
+        BAMTransferRelation.extractExitStates(rs, innerBlock, bamcpa.searchTargetStatesOnExit());
     BAMCacheEntry entry =
         bamcpa.getCache().get(reducedInitialState, reducedInitialPrecision, innerBlock);
     assert entry.getReachedSet() == rs
@@ -380,17 +395,6 @@ class ReachedSetExecutor {
     }
   }
 
-  private List<AbstractState> extractExitStates(boolean pEndsWithTargetState, Block pBlock) {
-    if (pEndsWithTargetState) {
-      assert AbstractStates.isTargetState(rs.getLastState());
-      return Collections.singletonList(rs.getLastState());
-    } else {
-      return AbstractStates.filterLocations(rs, pBlock.getReturnNodes())
-          .filter(s -> ((ARGState) s).getChildren().isEmpty())
-          .toList();
-    }
-  }
-
   private void reAddStatesToDependingReachedSets() {
     // first lock is only against deadlock of locks for 'reachedSetMapping' and 'dependingFrom'.
     // TODO optimize lock/unlock behavior if performance is too bad
@@ -402,7 +406,7 @@ class ReachedSetExecutor {
       }
       dependingFrom.clear();
     }
-    }
+  }
 
   private void addDependencies(
       MissingBlockAbstractionState pBsme, final ReachedSetExecutor subRse) {
@@ -411,7 +415,7 @@ class ReachedSetExecutor {
     synchronized (subRse.dependingFrom) {
       subRse.dependingFrom.put(this, pBsme.getState());
     }
-    }
+  }
 
   /**
    * When a block summary is missing, the BAM-CPA throws a {@link MissingBlockAbstractionState} and
@@ -493,40 +497,41 @@ class ReachedSetExecutor {
     BAMDataManager data = bamcpa.getData();
 
     synchronized (data) {
-    if (newRs == null) {
-      // We are only synchronized in the current method. Thus, we need to check
-      // the cache again, maybe another thread already created the needed reached-set.
+      if (newRs == null) {
+        // We are only synchronized in the current method. Thus, we need to check
+        // the cache again, maybe another thread already created the needed reached-set.
         final BAMCacheEntry entry =
             data.getCache()
-              .get(pBsme.getReducedState(), pBsme.getReducedPrecision(), pBsme.getBlock());
+                .get(pBsme.getReducedState(), pBsme.getReducedPrecision(), pBsme.getBlock());
         newRs = entry == null ? null : entry.getReachedSet();
-    }
+      }
 
-    // now we can be sure, whether the sub-reached-set exists or not.
-    if (newRs == null) {
-      // we have not even cached a partly computed reached-set,
-      // so we must compute the subgraph specification from scratch
+      // now we can be sure, whether the sub-reached-set exists or not.
+      if (newRs == null) {
+        // we have not even cached a partly computed reached-set,
+        // so we must compute the subgraph specification from scratch
         BAMCacheEntry entry =
             data.createAndRegisterNewReachedSet(
-                  pBsme.getReducedState(), pBsme.getReducedPrecision(), pBsme.getBlock());
+                pBsme.getReducedState(), pBsme.getReducedPrecision(), pBsme.getBlock());
         newRs = entry.getReachedSet();
-    }
+      }
     }
 
     ReachedSetExecutor newSubRse =
-          new ReachedSetExecutor(
-              bamcpa,
-              newRs,
+        new ReachedSetExecutor(
+            bamcpa,
+            newRs,
             pBsme.getBlock(),
             false, // mainReachedSet is never nested in another reached-set
-              reachedSetMapping,
-              pool,
-              algorithmFactory,
-              shutdownNotifier,
-              stats,
-              error,
-              terminateAnalysis,
-              logger);
+            reachedSetMapping,
+            pool,
+            algorithmFactory,
+            shutdownNotifier,
+            stats,
+            errors,
+            terminateAnalysis,
+            scheduledJobs,
+            logger);
 
     // check whether we already have a matching RSE. If not use the new one.
     ReachedSetExecutor subRse = reachedSetMapping.putIfAbsent(newRs, newSubRse);
@@ -542,9 +547,9 @@ class ReachedSetExecutor {
    * reached-set.
    */
   private void registerJob(ReachedSetExecutor pRse, Runnable r) {
-      logger.logf(level, "%s :: scheduling RSE: %s", this, pRse);
+    logger.logf(level, "%s :: scheduling RSE: %s", this, pRse);
     pRse.addNewTask(r);
-    }
+  }
 
   private Block getBlockForState(AbstractState state) {
     CFANode location = extractLocation(state);
@@ -555,7 +560,7 @@ class ReachedSetExecutor {
 
   @Override
   public String toString() {
-    return "RSE " + idd();
+    return "RSE " + id(rs);
   }
 
   /** for debugging, warning: might not be thread-safe! */
@@ -580,15 +585,13 @@ class ReachedSetExecutor {
 
     @Override
     public Void apply(Throwable e) {
-      if (e instanceof RejectedExecutionException || e instanceof CompletionException) {
-        // pool will shutdown on forced termination after timeout and throw lots of them.
-        // we can ignore those exceptions.
-        logger.logException(level, e, e.getClass().getSimpleName());
-      } else {
-        logger.logException(Level.WARNING, e, e.getClass().getSimpleName());
-        error.compareAndSet(null, e);
-        rse.terminateAnalysis.set(true);
-      }
+      // if (e instanceof RejectedExecutionException || e instanceof CompletionException) {
+      // pool will shutdown on forced termination after timeout and throw lots of them.
+      // we could ignore those exceptions.
+      // }
+
+      errors.add(e);
+      rse.terminateAnalysis.set(true);
 
       return null;
     }

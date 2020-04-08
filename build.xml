@@ -9,7 +9,7 @@
     <property file="build.properties"/>
     <property environment="env"/>
 
-    <property name="version.base" value="1.8-svn"/> <!-- change here for a release -->
+    <property name="version.base" value="1.9.1-svn"/> <!-- change here for a release -->
 
     <!-- Customization of build process. -->
     <property name="jar.file" value="cpachecker.jar"/>
@@ -23,19 +23,11 @@
 
     <!-- The following error-prone checks are disabled:
          BadImport: we often import FluentIterable.from and we have a Checkstyle check instead
-         ReferenceEquality: TODO enable this and fix alarms
-         EqualsGetClass: TODO enable this and fix alarms?
-         GuardedBy: crashes current error-prone
-         Finally: crashes current error-prone
-         MixedMutabilityReturnType: too many warnings, need to fix them first
+         ReferenceEquality: TODO enable this and fix alarms (but there are many cases where reference equality is desired)
          -->
     <property name="errorprone.options" value="
         -Xep:BadImport:OFF
         -Xep:ReferenceEquality:OFF
-        -Xep:EqualsGetClass:OFF
-        -Xep:GuardedBy:OFF
-        -Xep:Finally:OFF
-        -Xep:MixedMutabilityReturnType:OFF
         "/>
 
     <import file="build/build-ivy.xml"/>
@@ -112,25 +104,6 @@
     </target>
 
     <target name="build-dependencies" depends="init, resolve-dependencies, build-subprojects"/>
-
-    <target name="build-project-ecj" depends="build-dependencies" description="Build project with the Eclipse JDT compiler">
-        <condition property="java8">
-            <equals arg1="${ant.java.version}" arg2="1.8"/>
-        </condition>
-        <replace
-            dir="${source.dir}" includes="**/*Scanner.java **/*Parser.java"
-            preserveLastModified="true"
-            token="@javax.annotation.Generated"
-            value="@javax.annotation.processing.Generated"
-            unless:set="java8"/>
-        <antcall target="compile.build-project-ecj"/>
-        <replace
-            dir="${source.dir}" includes="**/*Scanner.java **/*Parser.java"
-            preserveLastModified="true"
-            token="@javax.annotation.processing.Generated"
-            value="@javax.annotation.Generated"
-            unless:set="java8"/>
-    </target>
 
     <available file=".factorypath" property="factorypath.present"/>
     <target name="-warn-factorypath" unless="factorypath.present">

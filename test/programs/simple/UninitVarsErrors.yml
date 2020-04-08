@@ -1,0 +1,7 @@
+format_version: '1.0'
+
+# old file name: UninitVarsErrors.c
+input_files: 'UninitVarsErrors.c'
+
+properties:
+  - property_file: ../../config/properties/unreach-label.prp

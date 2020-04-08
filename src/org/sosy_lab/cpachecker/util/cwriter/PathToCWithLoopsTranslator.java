@@ -41,6 +41,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.Appender;
@@ -97,7 +98,7 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
   private String currentFunctionName = "";
 
   private PathToCWithLoopsTranslator(CFA pCFA, Map<Loop, Set<ARGState>> pLoopsInPathToRecreate) {
-    this.loopStructure = pCFA.getLoopStructure().get();
+    this.loopStructure = pCFA.getLoopStructure().orElseThrow();
     this.loopsInPathToRecreate = pLoopsInPathToRecreate;
   }
 
@@ -119,7 +120,8 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
     PathToCTranslator translator = new PathToCTranslator();
 
     // at first we fetch all loops that we want to uproll
-    LoopCollectingEdgeVisitor loopCollectingVisitor = new LoopCollectingEdgeVisitor(cfa.getLoopStructure().get(), config);
+    LoopCollectingEdgeVisitor loopCollectingVisitor =
+        new LoopCollectingEdgeVisitor(cfa.getLoopStructure().orElseThrow(), config);
     translator.translateSinglePath0(pPath, loopCollectingVisitor);
     Map<Loop, Set<ARGState>> loopsInPathToRecreate = loopCollectingVisitor.getRelevantLoops();
 
@@ -312,7 +314,7 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
       CFAEdge currentEdge = nextEdge.poll();
       wholeFunction.append(processSimpleWithLoop(currentEdge, block, ""));
 
-      if (currentEdge.getSuccessor() == untilNode) {
+      if (Objects.equals(currentEdge.getSuccessor(), untilNode)) {
         return wholeFunction.toString();
       }
 
@@ -499,7 +501,7 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
         CFAEdge onlyEdge = leaving.get(0);
 
         // this is an edge from inside the loop back to the loop
-        if (loopToHead.get(loopStack.peek()) == onlyEdge.getSuccessor()
+        if (Objects.equals(loopToHead.get(loopStack.peek()), onlyEdge.getSuccessor())
             && !loopStack.peek().getIncomingEdges().contains(onlyEdge)) {
           handledEdges.add(onlyEdge);
 
@@ -804,7 +806,7 @@ public class PathToCWithLoopsTranslator extends PathTranslator {
           branchStack.push(branch1.getLeavingEdge(1).getSuccessor());
         }
         CFANode tmpSucc = branch1.getLeavingEdge(0).getSuccessor();
-        if (tmpSucc != bottom) {
+        if (!Objects.equals(tmpSucc, bottom)) {
           branchStack.push(tmpSucc);
         }
       }

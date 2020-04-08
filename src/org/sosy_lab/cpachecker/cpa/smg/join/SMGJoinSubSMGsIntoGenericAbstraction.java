@@ -142,7 +142,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       }
     }
 
-    int score = pMatchResult.getScore() > pMatchResult2.getScore() ? pMatchResult.getScore() : pMatchResult2.getScore();
+    int score = Math.max(pMatchResult.getScore(), pMatchResult2.getScore());
 
     MatchResult destres = builder.build();
 
@@ -528,7 +528,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
         return false;
       }
 
-      SMGEdgePointsToTemplate pointerEdgeTemplate = pointerEdgeTemplateOpt.get();
+      SMGEdgePointsToTemplate pointerEdgeTemplate = pointerEdgeTemplateOpt.orElseThrow();
 
       if(pointerEdgeTemplate.getOffset() != pointerEdge.getOffset()) {
         return false;

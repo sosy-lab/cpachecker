@@ -256,11 +256,11 @@ class CParserUtils {
         parseStatement(pCode, pResultFunction, pCParser, pScope, pParserTools);
     if (!tree.equals(ExpressionTrees.getTrue())) {
       if (tree.equals(ExpressionTrees.getFalse())) {
-        return Collections.<CStatement> singleton(
-          new CExpressionStatement(
-              FileLocation.DUMMY,
-              new CIntegerLiteralExpression(
-                  FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO)));
+        return Collections.singleton(
+            new CExpressionStatement(
+                FileLocation.DUMMY,
+                new CIntegerLiteralExpression(
+                    FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO)));
       }
       if (tree instanceof LeafExpression) {
         LeafExpression<AExpression> leaf = (LeafExpression<AExpression>) tree;
@@ -410,7 +410,7 @@ class CParserUtils {
   private static String replaceResultVar(
       Optional<String> pResultFunction, Scope pScope, String assumeCode) {
     if (pResultFunction.isPresent()) {
-      String resultFunctionName = pResultFunction.get();
+      String resultFunctionName = pResultFunction.orElseThrow();
       if (pScope instanceof CProgramScope) {
       CProgramScope scope = (CProgramScope) pScope;
       if (scope.hasFunctionReturnVariable(resultFunctionName)) {
@@ -460,7 +460,7 @@ class CParserUtils {
       ParserTools pParserTools) {
     ExpressionTreeFactory<AExpression> factory = pParserTools.expressionTreeFactory;
     Map<CFANode, ExpressionTree<AExpression>> memo = new HashMap<>();
-    memo.put(pEntry, ExpressionTrees.<AExpression> getTrue());
+    memo.put(pEntry, ExpressionTrees.getTrue());
     Set<CFANode> ready = new HashSet<>();
     ready.add(pEntry);
     Queue<CFANode> waitlist = new ArrayDeque<>();

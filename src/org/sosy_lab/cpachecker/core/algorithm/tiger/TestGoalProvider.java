@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.core.algorithm.tiger.fql.PredefinedCoverageCriteria;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.goals.CFAGoal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 

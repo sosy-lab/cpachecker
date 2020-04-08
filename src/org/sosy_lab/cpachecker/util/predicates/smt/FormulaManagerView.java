@@ -332,7 +332,7 @@ public class FormulaManagerView {
     switch (encodeIntegerAs) {
       case BITVECTOR:
         return new ReplaceIntegerWithBitvectorTheory(
-            wrappingHandler, bitvectorFormulaManager, booleanFormulaManager, pIntegerOptions);
+            wrappingHandler, getBitvectorFormulaManager(), booleanFormulaManager, pIntegerOptions);
       case INTEGER:
         return manager.getIntegerFormulaManager();
       case RATIONAL:
@@ -1194,7 +1194,7 @@ public class FormulaManagerView {
     // Add the formula to the work queue
     toProcess.push(pFormula);
 
-    FormulaVisitor<Void> process = new FormulaVisitor<Void>() {
+    FormulaVisitor<Void> process = new FormulaVisitor<>() {
       // This visitor works with unwrapped formulas.
       // After calls to other methods that might return wrapped formulas we need to unwrap them.
 
@@ -1250,11 +1250,13 @@ public class FormulaManagerView {
           toProcess.pop();
           Formula out;
           if (decl.getKind() == FunctionDeclarationKind.UF) {
-
-            out =
-                unwrap(
-                    getFunctionFormulaManager().declareAndCallUF(
-                        pRenameFunction.apply(decl.getName()), getFormulaType(f), newArgs));
+            FunctionDeclaration<Formula> uf =
+                getFunctionFormulaManager()
+                    .declareUF(
+                        pRenameFunction.apply(decl.getName()),
+                        getFormulaType(f),
+                        decl.getArgumentTypes());
+            out = unwrap(getFunctionFormulaManager().callUF(uf, newArgs));
 
           } else {
             out = manager.makeApplication(decl, newArgs);
@@ -1481,7 +1483,7 @@ public class FormulaManagerView {
 
   public boolean isPurelyConjunctive(BooleanFormula t) {
     final BooleanFormulaVisitor<Boolean> isAtomicVisitor =
-        new DefaultBooleanFormulaVisitor<Boolean>() {
+        new DefaultBooleanFormulaVisitor<>() {
           @Override protected Boolean visitDefault() {
             return false;
           }
@@ -1644,7 +1646,7 @@ public class FormulaManagerView {
         return true;
       }
     } else {
-      if (idx.getAsInt() != ssa.getIndex(name)) {
+      if (idx.orElseThrow() != ssa.getIndex(name)) {
         return true;
       }
     }

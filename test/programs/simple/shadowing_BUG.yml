@@ -1,0 +1,6 @@
+format_version: '1.0'
+
+# old file name: shadowing_BUG.c
+input_files: 'shadowing_BUG.c'
+
+properties: []

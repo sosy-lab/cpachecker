@@ -113,7 +113,7 @@ public final class JConstructorDeclaration extends JMethodDeclaration {
     int i = 0;
 
     for (JType parameterType : parameterTypes) {
-      final String parameterName = "parameter" + String.valueOf(i);
+      final String parameterName = "parameter" + i;
       parameters.add(
           new JParameterDeclaration(externFileLoc, parameterType, parameterName,
               pName + "::" + parameterName, false));

@@ -124,7 +124,7 @@ class CFAGenerationRuntimeException extends RuntimeException {
       fullLine = fullLine.getParent();
     }
 
-    if (fullLine != null && fullLine != node) {
+    if (fullLine != null && !fullLine.equals(node)) {
       String lineRawSignature = fullLine.toString();
 
       String codeWithoutWhitespace = CharMatcher.whitespace().removeFrom(rawSignature);

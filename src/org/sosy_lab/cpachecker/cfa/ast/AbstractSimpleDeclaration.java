@@ -39,7 +39,23 @@ public abstract class AbstractSimpleDeclaration extends AbstractAstNode implemen
 
   private static final long serialVersionUID = 1078153969461542233L;
   private  Type type;
+
+  /**
+   * The name of the declared item as it should be used by analyses in CPAchecker. This is a
+   * (possibly unique) name that might, but does not have to match the {@link #origName}.
+   *
+   * We should use this name in all cases where conflicting names could cause problems in
+   * CPAchecker, e.g., when decoding variables in an abstract state.
+   */
   private final String name;
+
+  /**
+   * The name of the declared item as written in the source code of the analyzed task.
+   *
+   * <p>
+   * We should use this name in all cases where data is imported or exported, e.g., for automaton
+   * transition matching and counterexample export.
+   */
   private final String origName;
 
   public AbstractSimpleDeclaration(FileLocation pFileLocation, final Type pType, final String pName, final String pOrigName) {

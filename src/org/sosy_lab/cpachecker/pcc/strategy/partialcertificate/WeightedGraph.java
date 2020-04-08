@@ -156,7 +156,7 @@ public class WeightedGraph implements Iterable<WeightedNode> {
   }
 
   public Iterable<WeightedNode> randomIterator() {
-    return new Iterable<WeightedNode>() {
+    return new Iterable<>() {
       @Override
       public Iterator<WeightedNode> iterator() {
         return new WeightedGraphRandomIterator(WeightedGraph.this);

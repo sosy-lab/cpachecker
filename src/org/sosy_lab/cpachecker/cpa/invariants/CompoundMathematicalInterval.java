@@ -87,7 +87,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
    * {@code null}.
    */
   private CompoundMathematicalInterval(SimpleInterval pInterval) {
-    this.intervals = new SimpleInterval[] { pInterval };
+    this.intervals = new SimpleInterval[] {pInterval};
   }
 
   /**

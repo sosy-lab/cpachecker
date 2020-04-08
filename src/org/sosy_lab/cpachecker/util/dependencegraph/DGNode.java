@@ -32,62 +32,64 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /** Node of a dependence graph. Represents a {@link CFAEdge}. */
-public class DGNode implements Serializable {
+public interface DGNode extends Serializable {
 
-  private static final long serialVersionUID = -3772112168117340401L;
+  public boolean isUnknownPointerNode();
 
-  private CFAEdge cfaEdge;
-  private MemoryLocation cause;
+  public CFAEdge getCfaEdge();
 
-  public DGNode(final CFAEdge pCfaEdge, @Nullable final MemoryLocation pCause) {
-    checkNotNull(pCfaEdge);
-    cfaEdge = pCfaEdge;
-    cause = pCause;
-  }
+  public class EdgeNode implements DGNode {
+    private static final long serialVersionUID = -3772112168117340401L;
 
-  public DGNode(final CFAEdge pCfaEdge) {
-    this(pCfaEdge, null);
-  }
+    private final CFAEdge cfaEdge;
+    private final MemoryLocation cause;
 
-  DGNode() {}
-
-  public CFAEdge getCfaEdge() {
-    return cfaEdge;
-  }
-
-  public boolean isUnknownPointerNode() {
-    return false;
-  }
-
-  @Override
-  public boolean equals(Object pO) {
-    if (this == pO) {
-      return true;
+    public EdgeNode(final CFAEdge pCfaEdge, @Nullable final MemoryLocation pCause) {
+      checkNotNull(pCfaEdge);
+      cfaEdge = pCfaEdge;
+      cause = pCause;
     }
-    if (pO == null || getClass() != pO.getClass()) {
+
+    public EdgeNode(final CFAEdge pCfaEdge) {
+      this(pCfaEdge, null);
+    }
+
+    @Override
+    public CFAEdge getCfaEdge() {
+      return cfaEdge;
+    }
+
+    @Override
+    public boolean isUnknownPointerNode() {
       return false;
     }
-    DGNode dgNode = (DGNode) pO;
-    return cfaEdge.equals(dgNode.cfaEdge) && Objects.equals(cause, dgNode.cause);
-  }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(cfaEdge, cause);
-  }
+    @Override
+    public boolean equals(Object pO) {
+      if (this == pO) {
+        return true;
+      }
+      if (!(pO instanceof EdgeNode)) {
+        return false;
+      }
+      EdgeNode other = (EdgeNode) pO;
+      return cfaEdge.equals(other.cfaEdge) && Objects.equals(cause, other.cause);
+    }
 
-  @Override
-  public String toString() {
-    return "(" + cfaEdge + ", " + cause + ")";
+    @Override
+    public int hashCode() {
+      return Objects.hash(cfaEdge, cause);
+    }
+
+    @Override
+    public String toString() {
+      return "(" + cfaEdge + ", " + cause + ")";
+    }
   }
 
   /** {@link DGNode} that signalizes the dependency on an unknown memory location. * */
-  public static class UnknownPointerNode extends DGNode {
-
-    private static final long serialVersionUID = 6558402143061075378L;
-    private static final UnknownPointerNode INSTANCE = new UnknownPointerNode();
-
-    private UnknownPointerNode() {}
+  public enum UnknownPointerNode implements DGNode {
+    INSTANCE;
 
     public static UnknownPointerNode getInstance() {
       return INSTANCE;
@@ -101,16 +103,6 @@ public class DGNode implements Serializable {
     @Override
     public CFAEdge getCfaEdge() {
       throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean equals(Object pO) {
-      return pO instanceof UnknownPointerNode;
-    }
-
-    @Override
-    public int hashCode() {
-      return 1;
     }
 
     @Override

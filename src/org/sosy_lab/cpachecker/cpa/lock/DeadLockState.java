@@ -39,7 +39,7 @@ import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleNode;
 import org.sosy_lab.cpachecker.cpa.usage.CompatibleState;
 
-public class DeadLockState extends AbstractLockState {
+public final class DeadLockState extends AbstractLockState {
 
   @SuppressWarnings("checkstyle:IllegalType") // TODO: use composition instead of inheritance
   public static class DeadLockTreeNode extends ArrayList<LockIdentifier> implements CompatibleNode {
@@ -214,7 +214,6 @@ public class DeadLockState extends AbstractLockState {
   // Used for function annotations like annotate.function_name.restore
   @SuppressWarnings("JdkObsolete") // TODO consider replacing this with ArrayList or ArrayDeque
   public DeadLockState() {
-    super();
     lockList = new LinkedList<>();
   }
 

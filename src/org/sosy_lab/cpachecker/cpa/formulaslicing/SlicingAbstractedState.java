@@ -20,7 +20,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * The invariant is universally true wrt the intermediate state
  * which was used for the abstraction.
  */
-class SlicingAbstractedState
+final class SlicingAbstractedState
     extends SlicingState implements FormulaReportingState, Graphable {
 
   /**

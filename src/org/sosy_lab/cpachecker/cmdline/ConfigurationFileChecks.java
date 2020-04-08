@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.truth.StreamSubject.streams;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
@@ -55,6 +54,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -149,6 +149,7 @@ public class ConfigurationFileChecks {
           "cpa.automaton.breakOnTargetState",
           "WitnessAutomaton.cpa.automaton.treatErrorsAsTargets",
           "witness.stopNotBreakAtSinkStates",
+          "witness.invariantsSpecificationAutomaton",
           // handled by component that is loaded lazily on demand
           "invariantGeneration.config",
           "invariantGeneration.kInduction.async",
@@ -338,72 +339,44 @@ public class ConfigurationFileChecks {
   @BeforeClass
   public static void createDummyInputFiles() throws IOException {
     // Create files that some analyses expect as input files.
-    try (Reader r =
-            Files.newBufferedReader(Paths.get("test/config/automata/AssumptionAutomaton.spc"));
-        Writer w =
-            IO.openOutputFile(
-                Paths.get("output/AssumptionAutomaton.txt"), StandardCharsets.UTF_8)) {
-      CharStreams.copy(r, w);
-    }
+    copyFile("test/config/automata/AssumptionAutomaton.spc", "output/AssumptionAutomaton.txt");
   }
 
   @Before
   public void createDummyInputAutomatonFiles() throws IOException {
     // Create files that some analyses expect as input files.
 
-    try (Reader r =
-            Files.newBufferedReader(Paths.get("config/specification/AssumptionGuidingAutomaton.spc"));
-        Writer w =
-            IO.openOutputFile(
-                Paths.get(tempFolder.newFolder("config").getAbsolutePath()+"/specification/AssumptionGuidingAutomaton.spc"), StandardCharsets.UTF_8)) {
-      CharStreams.copy(r, w);
-    }
-    try (Reader r =
-        Files.newBufferedReader(Paths.get("test/config/automata/AssumptionAutomaton.spc"));
-        Writer w =
-            IO.openOutputFile(
-                Paths.get(tempFolder.newFolder("output").getAbsolutePath()+"/AssumptionAutomaton.txt"), StandardCharsets.UTF_8)) {
-      CharStreams.copy(r, w);
-    }
-    try (Reader r =
-            Files.newBufferedReader(Paths.get("config/specification/modifications-present.spc"));
-        Writer w =
-            IO.openOutputFile(
-                Paths.get(
-                    tempFolder.getRoot().getAbsolutePath()
-                        + "/config/specification/modifications-present.spc"),
-                StandardCharsets.UTF_8)) {
-      CharStreams.copy(r, w);
-    }
-    try (Reader r =
-            Files.newBufferedReader(Paths.get("config/specification/sv-comp-reachability.spc"));
-        Writer w =
-            IO.openOutputFile(
-                Paths.get(
-                    tempFolder.getRoot().getAbsolutePath()
-                        + "/config/specification/sv-comp-reachability.spc"),
-                StandardCharsets.UTF_8)) {
-      CharStreams.copy(r, w);
-    }
-    try (Reader r = Files.newBufferedReader(Paths.get("config/specification/TargetState.spc"));
-        Writer w =
-            IO.openOutputFile(
-                Paths.get(
-                    tempFolder.getRoot().getAbsolutePath()
-                        + "/config/specification/TargetState.spc"),
-                StandardCharsets.UTF_8)) {
-      CharStreams.copy(r, w);
-    }
+    copyFile(
+        "config/specification/AssumptionGuidingAutomaton.spc",
+        tempFolder.newFolder("config").getAbsolutePath(),
+        "specification/AssumptionGuidingAutomaton.spc");
+    copyFile(
+        "test/config/automata/AssumptionAutomaton.spc",
+        tempFolder.newFolder("output").getAbsolutePath(),
+        "AssumptionAutomaton.txt");
+    copyFile(
+        "config/specification/modifications-present.spc",
+        tempFolder.getRoot().getAbsolutePath(),
+        "config/specification/modifications-present.spc");
+    copyFile(
+        "config/specification/TargetState.spc",
+        tempFolder.getRoot().getAbsolutePath(),
+        "config/specification/TargetState.spc");
+    copyFile(
+        "config/specification/test-comp-terminatingfunctions.spc",
+        tempFolder.getRoot().getAbsolutePath(),
+        "config/specification/test-comp-terminatingfunctions.spc");
+  }
 
-    try (Reader r =
-            Files.newBufferedReader(
-                Paths.get("config/specification/test-comp-terminatingfunctions.spc"));
-        Writer w =
-            IO.openOutputFile(
-                Paths.get(
-                    tempFolder.getRoot().getAbsolutePath()
-                        + "/config/specification/test-comp-terminatingfunctions.spc"),
-                StandardCharsets.UTF_8)) {
+  /**
+   * @param from name of the input file
+   * @param to name of the output file
+   * @param toMore optional further names for the output file, will be concatenated to the name of
+   *     the output file.
+   */
+  private static void copyFile(String from, String to, String... toMore) throws IOException {
+    try (Reader r = Files.newBufferedReader(Paths.get(from));
+        Writer w = IO.openOutputFile(Paths.get(to, toMore), StandardCharsets.UTF_8)) {
       CharStreams.copy(r, w);
     }
   }
@@ -423,9 +396,9 @@ public class ConfigurationFileChecks {
     @SuppressWarnings("deprecation")
     final String spec = config.getProperty("specification");
     @SuppressWarnings("deprecation")
-    final String cpas = firstNonNull(config.getProperty("CompositeCPA.cpas"), "");
+    final String cpas = Objects.requireNonNullElse(config.getProperty("CompositeCPA.cpas"), "");
     @SuppressWarnings("deprecation")
-    final String cpaBelowArgCpa = firstNonNull(config.getProperty("ARGCPA.cpa"), "");
+    final String cpaBelowArgCpa = Objects.requireNonNullElse(config.getProperty("ARGCPA.cpa"), "");
     final boolean isSvcompConfig = basePath.toString().contains("svcomp");
     final boolean isTestGenerationConfig = basePath.toString().contains("testCaseGeneration");
     final boolean isDifferentialConfig = basePath.toString().contains("differentialAutomaton");
@@ -487,7 +460,8 @@ public class ConfigurationFileChecks {
     if (configFile instanceof Path) {
       assume()
           .that((Iterable<?>) configFile)
-          .containsNoneOf(Paths.get("includes"), Paths.get("pcc"));
+          .containsNoneOf(
+              Paths.get("includes"), Paths.get("pcc"), Paths.get("witnessValidation.properties"));
     }
 
     final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();
@@ -601,7 +575,7 @@ public class ConfigurationFileChecks {
     // during the parsing of configuration files
     Stream<LogRecord> logRecords = pLogHandler.getStoredLogRecords().stream();
     if (pOptions.useParallelAlgorithm) {
-      Iterator<LogRecord> logRecordIterator = new Iterator<LogRecord>() {
+      Iterator<LogRecord> logRecordIterator = new Iterator<>() {
 
         private Iterator<LogRecord> underlyingIterator = pLogHandler.getStoredLogRecords().iterator();
 
@@ -615,12 +589,12 @@ public class ConfigurationFileChecks {
         @Override
         public LogRecord next() {
           LogRecord result = underlyingIterator.next();
-          if (!oneComponentSuccessful && result.getLevel() == Level.INFO ) {
+          if (!oneComponentSuccessful && Level.INFO.equals(result.getLevel())) {
             if (result.getMessage().endsWith("finished successfully.")) {
               oneComponentSuccessful = true;
               underlyingIterator = Iterators.filter(
                   underlyingIterator,
-                  r -> r.getLevel() != Level.WARNING
+                      r -> !Level.WARNING.equals(r.getLevel())
                     || !PARALLEL_ALGORITHM_ALLOWED_WARNINGS_AFTER_SUCCESS.matcher(r.getMessage()).matches());
             }
           }
@@ -654,6 +628,6 @@ public class ConfigurationFileChecks {
   private static boolean isOptionEnabled(Configuration config, String key) {
     @SuppressWarnings("deprecation")
     String value = config.getProperty(key);
-    return parseBoolean(firstNonNull(value, "false"));
+    return parseBoolean(Objects.requireNonNullElse(value, "false"));
   }
 }

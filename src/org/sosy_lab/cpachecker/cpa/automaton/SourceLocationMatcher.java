@@ -46,7 +46,7 @@ class SourceLocationMatcher {
       if (!originFileName.isPresent()) {
         return true;
       }
-      String fileName = this.originFileName.get();
+      String fileName = this.originFileName.orElseThrow();
       String fileLocationFileName = pFileLocation.getFileName();
       fileName = getBaseName(fileName);
       fileLocationFileName = getBaseName(fileLocationFileName);
@@ -63,11 +63,6 @@ class SourceLocationMatcher {
       } else {
         return pOf.substring(index + 1);
       }
-    }
-
-    @Override
-    public int hashCode() {
-      return originFileName.hashCode();
     }
 
     @Override

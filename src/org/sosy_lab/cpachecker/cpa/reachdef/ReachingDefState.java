@@ -409,11 +409,7 @@ public class ReachingDefState implements AbstractState, Serializable,
 
     @Override
     public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + ((entry == null) ? 0 : entry.hashCode());
-      result = prime * result + ((exit == null) ? 0 : exit.hashCode());
-      return result;
+      return Objects.hash(entry, exit);
     }
 
     @Override
@@ -421,28 +417,11 @@ public class ReachingDefState implements AbstractState, Serializable,
       if (this == obj) {
         return true;
       }
-      if (obj == null) {
-        return false;
-      }
-      if (getClass() != obj.getClass()) {
+      if (!(obj instanceof ProgramDefinitionPoint)) {
         return false;
       }
       ProgramDefinitionPoint other = (ProgramDefinitionPoint) obj;
-      if (entry == null) {
-        if (other.entry != null) {
-          return false;
-        }
-      } else if (!entry.equals(other.entry)) {
-        return false;
-      }
-      if (exit == null) {
-        if (other.exit != null) {
-          return false;
-        }
-      } else if (!exit.equals(other.exit)) {
-        return false;
-      }
-      return true;
+      return Objects.equals(entry, other.entry) && Objects.equals(exit, other.exit);
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws IOException {
@@ -453,7 +432,7 @@ public class ReachingDefState implements AbstractState, Serializable,
     @SuppressWarnings("UnusedVariable") // parameter is required by API
     private void readObject(java.io.ObjectInputStream in) throws IOException {
       int nodeNumber = in.readInt();
-      CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
+      CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().orElseThrow();
       entry = cfaInfo.getNodeByNodeNumber(nodeNumber);
       nodeNumber = in.readInt();
       exit = cfaInfo.getNodeByNodeNumber(nodeNumber);

@@ -41,7 +41,7 @@ public enum IICOperatorFactory {
   INSTANCE;
 
   public Operator<BitVectorInterval, BitVectorInterval, CompoundBitVectorInterval> getAdd(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return new Operator<BitVectorInterval, BitVectorInterval, CompoundBitVectorInterval>() {
+    return new Operator<>() {
 
       @Override
       public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, BitVectorInterval pSecondOperand) {
@@ -51,7 +51,7 @@ public enum IICOperatorFactory {
   }
 
   public Operator<BitVectorInterval, BitVectorInterval, CompoundBitVectorInterval> getDivide(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return new Operator<BitVectorInterval, BitVectorInterval, CompoundBitVectorInterval>() {
+    return new Operator<>() {
 
       @Override
       public CompoundBitVectorInterval apply(
@@ -68,7 +68,7 @@ public enum IICOperatorFactory {
   }
 
   public Operator<BitVectorInterval, BitVectorInterval, CompoundBitVectorInterval> getModulo(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return new Operator<BitVectorInterval, BitVectorInterval, CompoundBitVectorInterval>() {
+    return new Operator<>() {
 
       @Override
       public CompoundBitVectorInterval apply(
@@ -188,7 +188,7 @@ public enum IICOperatorFactory {
   }
 
   public Operator<BitVectorInterval, BitVectorInterval, CompoundBitVectorInterval> getMultiply(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-      return new Operator<BitVectorInterval, BitVectorInterval, CompoundBitVectorInterval>() {
+      return new Operator<>() {
 
       @Override
       public CompoundBitVectorInterval apply(BitVectorInterval pFirstOperand, BitVectorInterval pSecondOperand) {
@@ -199,7 +199,7 @@ public enum IICOperatorFactory {
   }
 
   public Operator<BitVectorInterval, BitVectorInterval, CompoundBitVectorInterval> getShiftLeft(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return new Operator<BitVectorInterval, BitVectorInterval, CompoundBitVectorInterval>() {
+    return new Operator<>() {
 
       @Override
       public CompoundBitVectorInterval apply(
@@ -274,7 +274,7 @@ public enum IICOperatorFactory {
   }
 
   public Operator<BitVectorInterval, BitVectorInterval, CompoundBitVectorInterval> getShiftRight(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {
-    return new Operator<BitVectorInterval, BitVectorInterval, CompoundBitVectorInterval>() {
+    return new Operator<>() {
 
       @Override
       public CompoundBitVectorInterval apply(

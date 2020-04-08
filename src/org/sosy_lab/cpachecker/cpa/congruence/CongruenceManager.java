@@ -197,7 +197,7 @@ public class CongruenceManager implements
     Optional<ABEAbstractedState<CongruenceState>> sibling =
         findSibling(states, fullState, out);
     if (sibling.isPresent()) {
-      out = join(sibling.get().cast(), out);
+      out = join(sibling.orElseThrow().cast(), out);
     }
     return out;
   }
@@ -316,8 +316,7 @@ public class CongruenceManager implements
       Template template = e.getKey();
       Congruence congruence = e.getValue();
       Optional<Congruence> smallerCongruence = a.get(template);
-      if (!smallerCongruence.isPresent()
-          || smallerCongruence.get() != congruence) {
+      if (!smallerCongruence.isPresent() || smallerCongruence.orElseThrow() != congruence) {
         return false;
       }
     }
@@ -353,7 +352,7 @@ public class CongruenceManager implements
             // Empty.
             return Optional.empty();
           }
-          a = aState.getGeneratingState().get().getBackpointerState();
+          a = aState.getGeneratingState().orElseThrow().getBackpointerState();
         }
       } else {
         ABEIntermediateState<CongruenceState> iState = a.asIntermediate();

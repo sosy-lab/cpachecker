@@ -128,7 +128,7 @@ public class PredicateProvider {
       for (AbstractionNode absNode : abstractionStorage.getAbstractions().values()) {
         OptionalInt location = absNode.getLocationId();
         if (location.isPresent()) {
-          abstractions.put(location.getAsInt(), absNode.getFormula());
+          abstractions.put(location.orElseThrow(), absNode.getFormula());
         }
       }
     }

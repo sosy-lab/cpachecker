@@ -116,7 +116,7 @@ public interface StrongestPostOperator<S extends ForgetfulState<?>> {
 
     } else {
       // extract singleton successor state
-      next = successors.get();
+      next = successors.orElseThrow();
 
       // some variables might be blacklisted or tracked by BDDs
       // so perform abstraction computation here

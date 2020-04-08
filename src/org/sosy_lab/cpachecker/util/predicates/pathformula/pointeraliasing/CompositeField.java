@@ -21,7 +21,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import com.google.common.collect.ComparisonChain;
 import java.io.Serializable;
-import javax.annotation.concurrent.Immutable;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDeclaration;
@@ -35,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
  * CompositeField} and keep the set of currently tracked fields in rather simple way (no
  * special-case merging is required).
  */
-@Immutable
+@javax.annotation.concurrent.Immutable // cannot prove deep immutability
 final class CompositeField implements Comparable<CompositeField>, Serializable {
 
   private static final long serialVersionUID = -5194535211223682619L;

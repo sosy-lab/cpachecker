@@ -28,7 +28,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
+import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -127,7 +127,7 @@ public class BAMTransferRelationWithBreakOnMissingBlock
     final BAMCacheEntry entry =
         data.getCache().get(reducedInitialState, reducedInitialPrecision, innerSubtree);
     final ReachedSet cachedReached = entry == null ? null : entry.getReachedSet();
-    final List<AbstractState> cachedReturnStates = entry == null ? null : entry.getExitStates();
+    final Set<AbstractState> cachedReturnStates = entry == null ? null : entry.getExitStates();
 
     assert cachedReturnStates == null || cachedReached != null
         : "there cannot be result-states without reached-states";

@@ -77,7 +77,9 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.InvariantProvider;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -379,27 +381,26 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                 }
               }
               final ExpressionTreeSupplier expSup = tmpExpressionTreeSupplier;
-
-              try (Writer w = IO.openOutputFile(invariantsExport, StandardCharsets.UTF_8)) {
-                argWitnessExporter.writeProofWitness(
-                    w,
-                    rootState,
-                    Predicates.alwaysTrue(),
-                    BiPredicates.alwaysTrue(),
-                    new InvariantProvider() {
-
-                      @Override
-                      public ExpressionTree<Object> provideInvariantFor(
-                          CFAEdge pCFAEdge,
-                          Optional<? extends Collection<? extends ARGState>> pStates) {
-                        CFANode node = pCFAEdge.getSuccessor();
-                        ExpressionTree<Object> result = expSup.getInvariantFor(node);
-                        if (ExpressionTrees.getFalse().equals(result) && !pStates.isPresent()) {
-                          return ExpressionTrees.getTrue();
+              final Witness generatedWitness =
+                  argWitnessExporter.generateProofWitness(
+                      rootState,
+                      Predicates.alwaysTrue(),
+                      BiPredicates.alwaysTrue(),
+                      new InvariantProvider() {
+                        @Override
+                        public ExpressionTree<Object> provideInvariantFor(
+                            CFAEdge pCFAEdge,
+                            Optional<? extends Collection<? extends ARGState>> pStates) {
+                          CFANode node = pCFAEdge.getSuccessor();
+                          ExpressionTree<Object> result = expSup.getInvariantFor(node);
+                          if (ExpressionTrees.getFalse().equals(result) && !pStates.isPresent()) {
+                            return ExpressionTrees.getTrue();
+                          }
+                          return result;
                         }
-                        return result;
-                      }
-                    });
+                      });
+              try (Writer w = IO.openOutputFile(invariantsExport, StandardCharsets.UTF_8)) {
+                WitnessToOutputFormatsUtils.writeToGraphMl(generatedWitness, w);
               } catch (IOException e) {
                 logger.logUserException(
                     Level.WARNING, e, "Could not write invariants to file " + invariantsExport);

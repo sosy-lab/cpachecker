@@ -59,8 +59,11 @@ public class PrecisionDelegatingPrecisionAdjustment
       final Function<AbstractState, AbstractState> pStateProjection,
       final AbstractState pFullState
   ) throws CPAException, InterruptedException {
-    checkState(pPrecision instanceof SlicingPrecision, "Precision not of type " +
-        SlicingPrecision.class.getSimpleName() + ", but " + pPrecision.getClass().getSimpleName());
+    checkState(
+        pPrecision instanceof SlicingPrecision,
+        "Precision not of type %s, but %s",
+        SlicingPrecision.class.getSimpleName(),
+        pPrecision.getClass().getSimpleName());
 
     AbstractState wrappedState = pState;
     Precision wrappedPrecision = ((SlicingPrecision) pPrecision).getWrappedPrec();
@@ -68,7 +71,7 @@ public class PrecisionDelegatingPrecisionAdjustment
         delegate.prec(wrappedState, wrappedPrecision, pStates, pStateProjection, pFullState);
 
     if (delegateResult.isPresent()) {
-      PrecisionAdjustmentResult adjustmentResult = delegateResult.get();
+      PrecisionAdjustmentResult adjustmentResult = delegateResult.orElseThrow();
       AbstractState state = adjustmentResult.abstractState();
       Precision precision = adjustmentResult.precision();
 

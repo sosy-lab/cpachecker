@@ -35,6 +35,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
@@ -114,12 +115,12 @@ enum GraphBuilder {
 
               assert (!(innerEdge instanceof AssumeEdge));
 
-              Iterable<CFAEdgeWithAssumptions> assumptions = pValueMap.get(s);
-              assumptions = Iterables.filter(assumptions, a -> a.getCFAEdge().equals(innerEdge));
+              boolean isAssumptionAvailableForEdge =
+                  Iterables.any(pValueMap.get(s), a -> a.getCFAEdge().equals(innerEdge));
               Optional<Collection<ARGState>> absentStates =
-                  Iterables.isEmpty(assumptions)
-                      ? Optional.empty()
-                      : Optional.of(Collections.singleton(s));
+                  isAssumptionAvailableForEdge
+                      ? Optional.of(Collections.singleton(s))
+                      : Optional.empty();
               pEdgeAppender.appendNewEdge(
                   prevStateId,
                   pseudoStateId,
@@ -134,8 +135,7 @@ enum GraphBuilder {
             edgeToNextState = allEdgeToNextState.get(allEdgeToNextState.size() - 1);
           }
 
-          Optional<Collection<ARGState>> state =
-              Optional.<Collection<ARGState>>of(Collections.singleton(s));
+          Optional<Collection<ARGState>> state = Optional.of(Collections.singleton(s));
 
           // Only proceed with this state if the path states contain the child
           if (pPathStates.apply(child) && pIsRelevantEdge.test(s, child)) {
@@ -153,7 +153,7 @@ enum GraphBuilder {
               AssumeEdge siblingEdge = CFAUtils.getComplimentaryAssumeEdge(assumeEdge);
               boolean addArtificialSinkEdge = true;
               for (ARGState sibling : s.getChildren()) {
-                if (sibling != child
+                if (!Objects.equals(sibling, child)
                     && siblingEdge.equals(s.getEdgeToChild(sibling))
                     && pIsRelevantEdge.test(s, sibling)) {
                   addArtificialSinkEdge = false;

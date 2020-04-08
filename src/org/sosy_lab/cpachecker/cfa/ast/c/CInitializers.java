@@ -34,7 +34,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Range;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
@@ -185,7 +184,8 @@ public final class CInitializers {
       }
     }
 
-    List<CExpressionAssignmentStatement> result = new ArrayList<>(initializerList.getInitializers().size());
+    ImmutableList.Builder<CExpressionAssignmentStatement> result =
+        ImmutableList.builderWithExpectedSize(initializerList.getInitializers().size());
     for (CInitializer init : initializerList.getInitializers()) {
 
       if (init instanceof CDesignatedInitializer) {
@@ -250,7 +250,7 @@ public final class CInitializers {
       }
     }
 
-    return result;
+    return result.build();
   }
 
 
@@ -449,6 +449,7 @@ public final class CInitializers {
     Iterator<CFieldReference> fields =
         from(structType.getMembers()).filter(
             field -> !(field.getName().contains("__anon_type_member") && (!isAggregateType(field.getType())
+                && (field.getType() instanceof CElaboratedType)
                 && !((CElaboratedType) field.getType()).getKind().equals(ComplexTypeKind.UNION))))
             .filter(field -> !field.getName().contains("__anon_type_member"))
             .transform(
@@ -468,14 +469,19 @@ public final class CInitializers {
       // find the designated field and advance the iterator up to this point
       while (fields.hasNext()) {
         CFieldReference f = fields.next();
-        if (f.getFieldName().equals(startingFieldName.get())) {
+        if (f.getFieldName().equals(startingFieldName.orElseThrow())) {
           designatedField = f;
           break;
         }
       }
       if (designatedField == null) {
-        throw new UnrecognizedCodeException("Initializer for field " + startingFieldName.get()
-            + " but no field with this name exists in " + structType, edge, designator);
+        throw new UnrecognizedCodeException(
+            "Initializer for field "
+                + startingFieldName.orElseThrow()
+                + " but no field with this name exists in "
+                + structType,
+            edge,
+            designator);
       }
 
     } else {

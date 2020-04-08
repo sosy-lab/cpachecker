@@ -30,7 +30,7 @@ public class RoundRobinWaitlist implements Waitlist {
 
   protected RoundRobinWaitlist() {
     waitlistStrategies =
-        ImmutableList.<Waitlist>of(
+        ImmutableList.of(
             Waitlist.TraversalMethod.DFS.createWaitlistInstance(),
             Waitlist.TraversalMethod.BFS.createWaitlistInstance());
   }

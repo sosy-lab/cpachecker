@@ -41,7 +41,7 @@ public class ToCodeVisitor<LeafType> extends CachingVisitor<LeafType, String, No
   }
 
   private final Function<ExpressionTree<LeafType>, String> toParenthesizedCodeFunction() {
-    return new Function<ExpressionTree<LeafType>, String>() {
+    return new Function<>() {
 
       @Override
       public String apply(ExpressionTree<LeafType> pExpressionTree) {

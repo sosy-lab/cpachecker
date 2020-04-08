@@ -1,0 +1,6 @@
+format_version: '1.0'
+
+# old file name: global_struct.cil.c
+input_files: 'global_struct.cil.c'
+
+properties: []

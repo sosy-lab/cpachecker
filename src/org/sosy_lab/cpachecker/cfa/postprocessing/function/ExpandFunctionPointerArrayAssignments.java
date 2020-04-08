@@ -133,8 +133,8 @@ public class ExpandFunctionPointerArrayAssignments {
     CFANode predecessor = startNode;
     for (long i = 0; i < length; i++) {
 
-      CFANode trueNode = new CFANode(startNode.getFunctionName());
-      CFANode falseNode = new CFANode(startNode.getFunctionName());
+      CFANode trueNode = new CFANode(startNode.getFunction());
+      CFANode falseNode = new CFANode(startNode.getFunction());
       cfa.addNode(trueNode);
       cfa.addNode(falseNode);
 

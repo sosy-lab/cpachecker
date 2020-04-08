@@ -30,12 +30,14 @@ import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
+import javax.management.RuntimeErrorException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.resources.ManagementUtils;
 import org.sosy_lab.cpachecker.util.resources.ProcessCpuTime;
 
 
@@ -147,6 +149,8 @@ class GlobalConditionsSimplePrecisionAdjustment extends SimplePrecisionAdjustmen
     Object memUsedObject;
     try {
       memUsedObject = mbeanServer.getAttribute(osMbean, MEMORY_SIZE);
+    } catch (RuntimeErrorException e) {
+      throw ManagementUtils.handleRuntimeErrorException(e);
     } catch (JMException e) {
       logger.logDebugException(e, "Querying memory size failed");
       logger.log(Level.WARNING, "Your Java VM does not support measuring the memory size, process memory threshold disabled");

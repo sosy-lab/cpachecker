@@ -29,12 +29,12 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
-import edu.umd.cs.findbugs.annotations.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -121,7 +121,7 @@ public class AutomatonTransition {
       assumptions = ImmutableList.of();
       actions = ImmutableList.of();
       followStateName = pFollowStateName;
-      candidateInvariants = ExpressionTrees.<AExpression>getTrue();
+      candidateInvariants = ExpressionTrees.getTrue();
     }
 
     Builder(AutomatonBoolExpr pTrigger, @Nullable AutomatonInternalState pFollowState) {
@@ -379,7 +379,7 @@ public class AutomatonTransition {
     for (AExpression assumption : assumptions) {
       Optional<AExpression> resolved = tryResolve(assumption, pEdge, pLogger, pMachineModel);
       if (resolved.isPresent()) {
-        builder.add(resolved.get());
+        builder.add(resolved.orElseThrow());
       }
     }
     return builder.build();

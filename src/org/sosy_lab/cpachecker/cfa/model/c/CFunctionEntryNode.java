@@ -43,7 +43,6 @@ public class CFunctionEntryNode extends FunctionEntryNode {
 
     super(
         pFileLocation,
-        pFunctionDefinition.getName(),
         pExitNode,
         pFunctionDefinition,
         pReturnVariable);

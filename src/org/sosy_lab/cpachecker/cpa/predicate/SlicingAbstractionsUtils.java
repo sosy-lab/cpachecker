@@ -514,7 +514,7 @@ public class SlicingAbstractionsUtils {
       List<ARGState> intermediateStateList = entry.getValue();
       copyEdge(intermediateStateList, originalState, endState, forkedState, endState, pReached);
       // if we have a self-loop, we have to make a self-loop from forkedState->forkedState:
-      if (endState == originalState) {
+      if (endState.equals(originalState)) {
         copyEdge(intermediateStateList, originalState, endState,forkedState,forkedState, pReached);
       }
     }
@@ -539,7 +539,7 @@ public class SlicingAbstractionsUtils {
       } else {
         newEndState.addParent(newStartState);
       }
-      if (newEndState == newStartState) {
+      if (newEndState.equals(newStartState)) {
         // self loop already exists, no need to copy something
       }
     }
@@ -609,7 +609,7 @@ public class SlicingAbstractionsUtils {
     for (int i = -1 ; i < abstractionStatesTrace.size()-1; i++) {
        ARGState first = (i==-1) ? root : abstractionStatesTrace.get(i);
        ARGState second = abstractionStatesTrace.get(i+1);
-       if (!SlicingAbstractionsUtils.calculateOutgoingSegments(first).keySet().contains(second)) {
+      if (!SlicingAbstractionsUtils.calculateOutgoingSegments(first).containsKey(second)) {
          return true;
        }
     }
@@ -629,7 +629,7 @@ public class SlicingAbstractionsUtils {
 
     final ARGPath path;
     if (errorState.getCounterexampleInformation().isPresent()) {
-      CounterexampleInfo cexInfo = errorState.getCounterexampleInformation().get();
+      CounterexampleInfo cexInfo = errorState.getCounterexampleInformation().orElseThrow();
       path = cexInfo.getTargetPath();
     } else {
       // fall back solution:

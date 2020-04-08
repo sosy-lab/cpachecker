@@ -34,15 +34,14 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import de.uni_freiburg.informatik.ultimate.icfgtransformer.transformulatransformers.TermException;
 import de.uni_freiburg.informatik.ultimate.lassoranker.Lasso;
-import de.uni_freiburg.informatik.ultimate.lassoranker.exceptions.TermException;
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgument;
 import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -177,8 +176,9 @@ public class DCARefiner implements Refiner, StatisticsProvider {
       final CFA pCfa,
       final LogManager pLogger,
       final ShutdownNotifier pNotifier,
-      final Configuration pConfig)
+      Configuration pConfig)
       throws InvalidConfigurationException {
+    pConfig = Solver.adjustConfigForSolver(pConfig);
     pConfig.inject(this);
 
     argCPA = checkNotNull(pArgCpa);
@@ -459,7 +459,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
           Dnf stemDnf = lassoBuilder.toDnf(stemAndLoop.getStem());
           Dnf loopDnf = lassoBuilder.toDnf(stemAndLoop.getLoop(), stemDnf.getUfEliminationResult());
 
-          LoopStructure loopStructure = cfa.getLoopStructure().get();
+          LoopStructure loopStructure = cfa.getLoopStructure().orElseThrow();
           // TODO: Rewrite the code below so that always the correct loop is selected
           // The current logic below will most likely not work for programs with several / complex
           // loops
@@ -587,7 +587,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
         Level.INFO,
         "Removing %d states that are attached to the given state",
         statesToRemove.size());
-    statesToRemove.stream().forEach(ARGState::removeFromARG);
+    statesToRemove.forEach(ARGState::removeFromARG);
     reached.removeAll(statesToRemove);
   }
 
@@ -683,8 +683,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
   private PathFormula createSinglePathFormula(
       List<PathFormula> pPathFormulas, PathFormula pStartFormula) {
     PathFormula result = pathFormulaManager.makeEmptyPathFormula(pStartFormula);
-    for (Iterator<PathFormula> iterator = pPathFormulas.iterator(); iterator.hasNext(); ) {
-      PathFormula next = iterator.next();
+    for (PathFormula next : pPathFormulas) {
       BooleanFormula resultFormula =
           formulaManagerView.getBooleanFormulaManager().and(result.getFormula(), next.getFormula());
       result =

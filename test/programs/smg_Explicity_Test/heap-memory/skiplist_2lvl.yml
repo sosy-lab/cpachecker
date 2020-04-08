@@ -1,0 +1,8 @@
+format_version: '1.0'
+
+# old file name: skiplist_2lvl_true-valid-memsafety.c
+input_files: 'skiplist_2lvl.c'
+
+properties:
+  - property_file: ../../../config/properties/valid-memsafety.prp
+    expected_verdict: true

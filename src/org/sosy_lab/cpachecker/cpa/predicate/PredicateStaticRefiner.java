@@ -280,7 +280,7 @@ public class PredicateStaticRefiner extends StaticRefiner
     Set<String> referenced =
         CFAUtils.getVariableNamesOfExpression((CExpression) e.getExpression()).toSet();
     Set<String> loopExitConditionVariables =
-        cfa.getLoopStructure().get().getLoopExitConditionVariables();
+        cfa.getLoopStructure().orElseThrow().getLoopExitConditionVariables();
 
     return !Collections.disjoint(referenced, loopExitConditionVariables);
   }
@@ -491,8 +491,8 @@ public class PredicateStaticRefiner extends StaticRefiner
     logger.log(Level.FINER, "Extracting finished, found", allPredicates.size(), "predicates");
 
     return new PredicatePrecision(
-        ImmutableSetMultimap.<PredicatePrecision.LocationInstance, AbstractionPredicate>of(),
-        ArrayListMultimap.<CFANode, AbstractionPredicate>create(),
+        ImmutableSetMultimap.of(),
+        ArrayListMultimap.create(),
         functionPredicates,
         globalPredicates);
   }

@@ -25,11 +25,10 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import java.io.Serializable;
 import java.util.Objects;
-import javax.annotation.concurrent.Immutable;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-@Immutable
+@javax.annotation.concurrent.Immutable // cannot prove deep immutability
 public final class PointerTarget implements Serializable {
 
   /**

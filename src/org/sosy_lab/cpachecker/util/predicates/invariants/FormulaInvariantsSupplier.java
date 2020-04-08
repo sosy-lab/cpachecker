@@ -228,7 +228,7 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
     }
   }
 
-  private static class InvariantsCacheKey {
+  private static final class InvariantsCacheKey {
     private final CFANode node;
     private final Optional<CallstackStateEqualsWrapper> callstackInformation;
     private final FormulaManagerView fmgr;

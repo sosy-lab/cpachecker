@@ -40,7 +40,7 @@ enum AlwaysTopStopOperator implements StopOperator {
 
     assert pElement == AlwaysTopState.INSTANCE;
     assert pPrecision == AlwaysTopPrecision.INSTANCE;
-    assert Iterables.all(pReached, Predicates.<AbstractState>equalTo(AlwaysTopState.INSTANCE));
+    assert Iterables.all(pReached, Predicates.equalTo(AlwaysTopState.INSTANCE));
 
     return !pReached.isEmpty();
   }

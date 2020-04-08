@@ -1,0 +1,6 @@
+format_version: '1.0'
+
+# old file name: externalModelTest_UNSAFE.c
+input_files: 'externalModelTest_UNSAFE.c'
+
+properties: []

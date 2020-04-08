@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.value.type;
 import java.io.Serializable;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class FunctionValue  implements Value, Serializable  {
+public final class FunctionValue implements Value, Serializable {
 
   private static final long serialVersionUID = -3829943575180448170L;
 

@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.ltl.formulas;
 
-import com.google.common.collect.ImmutableList;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.cpachecker.util.ltl.LtlFormulaVisitor;
 
 /** Globally. */
@@ -42,24 +42,18 @@ public final class Globally extends UnaryFormula {
       return pOperand;
     }
 
-    if (pOperand instanceof Finally && ((Finally) pOperand).operand instanceof Globally) {
+    if (pOperand instanceof Finally && ((Finally) pOperand).getOperand() instanceof Globally) {
       return pOperand;
     }
 
     if (pOperand instanceof Release) {
-      return of(((Release) pOperand).right);
+      return of(((Release) pOperand).getRight());
     }
 
     if (pOperand instanceof Conjunction) {
-      ImmutableList.Builder<LtlFormula> builder = ImmutableList.builder();
-
-      for (LtlFormula child : ((Conjunction) pOperand).children) {
-        builder.add(Globally.of(child));
-      }
-
-      ImmutableList<LtlFormula> list = builder.build();
-
-      return new Conjunction(list);
+      return new Conjunction(
+          Collections3.transformedImmutableListCopy(
+              ((Conjunction) pOperand).getChildren(), Globally::of));
     }
 
     return new Globally(pOperand);
@@ -72,7 +66,7 @@ public final class Globally extends UnaryFormula {
 
   @Override
   public UnaryFormula not() {
-    return new Finally(operand.not());
+    return new Finally(getOperand().not());
   }
 
   @Override

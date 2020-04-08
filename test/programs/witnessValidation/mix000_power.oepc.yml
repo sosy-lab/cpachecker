@@ -1,0 +1,8 @@
+format_version: '1.0'
+
+# old file name: mix000_power.oepc_false-unreach-call.i
+input_files: 'mix000_power.oepc.i'
+
+properties:
+  - property_file: ../properties/unreach-call.prp
+    expected_verdict: false

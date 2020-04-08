@@ -111,7 +111,7 @@ public class ConfigurationParser {
                       new LockIdUnprepared(
                           lockName, getValue(lockName + "." + f + ".parameters", 0))));
     }
-    return new HashMap<>();
+    return ImmutableMap.of();
   }
 
   @SuppressWarnings("deprecation")

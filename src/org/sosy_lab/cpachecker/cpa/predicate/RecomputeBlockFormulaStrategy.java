@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -38,7 +39,6 @@ public class RecomputeBlockFormulaStrategy extends BlockFormulaStrategy {
   private final PathFormulaManager pfmgr;
 
   public RecomputeBlockFormulaStrategy(final PathFormulaManager pPathFormulaManager) {
-    super();
     pfmgr = pPathFormulaManager;
   }
 
@@ -52,7 +52,7 @@ public class RecomputeBlockFormulaStrategy extends BlockFormulaStrategy {
     PathFormula previousPathFormula = null;
     for (ARGState next : abstractionStates) {
       final ARGState start = current;
-      partialPath = ARGUtils.getOnePathFromTo((x) -> x == start, next).getFullPath();
+      partialPath = ARGUtils.getOnePathFromTo((x) -> Objects.equals(x, start), next).getFullPath();
       PathFormula partialFormula = pfmgr.makeFormulaForPath(partialPath);
       if (previousPathFormula != null) {
         partialFormula =

@@ -99,6 +99,57 @@ public class LassoRankerLogger implements ILogger {
     logger.log(Level.ALL, pMessage);
   }
 
+  @Override
+  public boolean isLogLevelEnabled(LogLevel pLevel) {
+    switch (pLevel) {
+      case DEBUG:
+        return logger.wouldBeLogged(Level.ALL);
+      case ERROR:
+        return logger.wouldBeLogged(Level.WARNING);
+      case FATAL:
+        return logger.wouldBeLogged(Level.SEVERE);
+      case INFO:
+        return logger.wouldBeLogged(Level.FINEST);
+      case OFF:
+        return logger.wouldBeLogged(Level.OFF);
+      case WARN:
+        return logger.wouldBeLogged(Level.INFO);
+      default:
+        throw new IllegalArgumentException(this.getClass() + "Unhandled loglevel");
+    }
+  }
+
+  @Override
+  public void log(LogLevel pLevel, String pMessage) {
+    switch (pLevel) {
+      case DEBUG:
+        debug(pMessage);
+        break;
+      case ERROR:
+        error(pMessage);
+        break;
+      case FATAL:
+        fatal(pMessage);
+        break;
+      case INFO:
+        info(pMessage);
+        break;
+      case WARN:
+        warn(pMessage);
+        break;
+      case OFF:
+        // logging disabled
+        break;
+      default:
+        throw new AssertionError("Unhandled loglevel: " + pLevel);
+    }
+  }
+
+  @Override
+  public void setLevel(LogLevel pLevel) {
+    throw new UnsupportedOperationException(this.getClass() + "::setLevel is not implemented");
+  }
+
   private void logException(Level level, Object pMessage, Throwable pThrowable) {
     if (pThrowable != null) {
       logger.logException(level, pThrowable, pMessage.toString());

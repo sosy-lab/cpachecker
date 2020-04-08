@@ -198,7 +198,8 @@ public class MemoryLocationExtractor {
 
     if (pSubscript instanceof CIntegerLiteralExpression) {
       CIntegerLiteralExpression literal = (CIntegerLiteralExpression) pSubscript;
-      return MemoryLocation.valueOf(String.format("%s[%d]", getMemoryLocation(pOwner), literal.asLong()).toString());
+      return MemoryLocation.valueOf(
+          String.format("%s[%d]", getMemoryLocation(pOwner), literal.asLong()));
     }
     final CompoundInterval subscriptValue;
     ExpressionToFormulaVisitor expressionToFormulaVisitor =
@@ -212,7 +213,7 @@ public class MemoryLocationExtractor {
     }
     if (subscriptValue.isSingleton()) {
       return MemoryLocation.valueOf(
-          String.format("%s[%s]", getMemoryLocation(pOwner), subscriptValue.getValue()).toString());
+          String.format("%s[%s]", getMemoryLocation(pOwner), subscriptValue.getValue()));
     }
     return MemoryLocation.valueOf(String.format("%s[*]", getMemoryLocation(pOwner)));
   }

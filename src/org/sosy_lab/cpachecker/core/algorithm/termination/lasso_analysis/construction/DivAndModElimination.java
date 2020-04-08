@@ -29,7 +29,7 @@ import static org.sosy_lab.java_smt.api.FunctionDeclarationKind.MODULO;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import de.uni_freiburg.informatik.ultimate.lassoranker.preprocessors.RewriteDivision;
+import de.uni_freiburg.informatik.ultimate.icfgtransformer.transformulatransformers.RewriteDivision;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
