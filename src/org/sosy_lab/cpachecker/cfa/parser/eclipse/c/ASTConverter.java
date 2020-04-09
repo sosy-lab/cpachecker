@@ -2732,6 +2732,7 @@ class ASTConverter {
         FileLocation loc = getLocation(i);
 
         if (declaration != null && !declaration.getType().getCanonicalType().isConst()) {
+          if (((CFunctionCallExpression) initializer).getDeclaration() == null) {
           if (!areInitializerAssignable(
               declaration.getType(),
               ((CFunctionCallExpression) initializer).getFunctionNameExpression())) {
@@ -2741,6 +2742,7 @@ class ASTConverter {
                     + " does not match initializer type "
                     + ((CFunctionCallExpression) initializer).getExpressionType(),
                 e);
+          }
           }
           // This is a variable declaration like "int i = f();"
           // We can replace this with "int i; i = f();"
