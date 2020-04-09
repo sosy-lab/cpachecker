@@ -199,7 +199,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       waitlist.remove(current);
 
       // already handled
-      assert !s2v.keySet().contains(current);
+      assert !s2v.containsKey(current);
 
       // we have to wait for all children completed,
       // because we want to join the branches
@@ -566,7 +566,7 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
       waitlist.remove(current);
 
       // already handled
-      assert !s2f.keySet().contains(current);
+      assert !s2f.containsKey(current);
 
       // we have to wait for all parents completed,
       // because we want to join the branches
