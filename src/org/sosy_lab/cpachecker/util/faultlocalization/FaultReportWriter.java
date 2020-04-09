@@ -50,20 +50,7 @@ public class FaultReportWriter {
     reasons.sort(sortReasons);
     int numberReasons = reasons.stream().filter(r -> !r.isHint()).mapToInt(r -> 1).sum();
 
-    String header = "Error suspected on line(s): <strong>" + correspondingEdges
-        .stream()
-        .mapToInt(l -> l.getFileLocation().getStartingLineInOrigin())
-        .sorted()
-        .distinct()
-        .mapToObj(l -> (Integer)l + "")
-        .collect(Collectors.collectingAndThen(Collectors.toList(), list -> {
-          int lastIndex = list.size() - 1;
-          if (lastIndex < 1) return String.join("", list);
-          if (lastIndex == 1) return String.join(" and ", list);
-          return String.join(" and ",
-              String.join(", ", list.subList(0, lastIndex)),
-              list.get(lastIndex));
-        }))
+    String header = "Error suspected on line(s): <strong>" + listDistinctLineNumbersAndJoin(correspondingEdges)
         + "</strong><br>";
     String reasonsString = "Detected <strong>" + numberReasons + "</strong> possible reason(s):<br>";
     StringBuilder html = new StringBuilder();
@@ -86,6 +73,25 @@ public class FaultReportWriter {
     return header + "\n" + reasonsString + "\n" + html;
   }
 
-
+  private String listDistinctLineNumbersAndJoin(List<CFAEdge> edges){
+    return edges
+        .stream()
+        .mapToInt(l -> l.getFileLocation().getStartingLineInOrigin())
+        .sorted()
+        .distinct()
+        .mapToObj(l -> (Integer)l + "")
+        .collect(Collectors.collectingAndThen(Collectors.toList(), list -> {
+          int lastIndex = list.size() - 1;
+          if (lastIndex < 1) {
+            return String.join("", list);
+          }
+          if (lastIndex == 1) {
+            return String.join(" and ", list);
+          }
+          return String.join(" and ",
+              String.join(", ", list.subList(0, lastIndex)),
+              list.get(lastIndex));
+        }));
+  }
 
 }

@@ -188,7 +188,7 @@ input:checked+.slider:before {
 }
 
 #errorpath_section .fileContent {
-	height: calc(100% - 185px);
+	height: calc(100% - 225px);
 	margin: 5px;
 	overflow: auto;
 }
@@ -261,6 +261,10 @@ input:checked+.slider:before {
 
 #err-table tr td pre.make-pretty {
 	background-color: #ffe5d5;
+}
+
+#err-table tr.clickedErrPathElement {
+	outline: #df80ff solid 2px;
 }
 
 .rank {

@@ -25,10 +25,10 @@ package org.sosy_lab.cpachecker.util.faultlocalization.ranking;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Set;
+
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
@@ -38,7 +38,8 @@ import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils.RankingR
 public class SetSizeRanking implements FaultRanking {
 
   /**
-   *
+   * Ranks the sets according to the size of the Faults. The smaller a set
+   * the higher the rank.
    * @param result The result of any FaultLocalizationAlgorithm
    * @return Ranked list of faults
    */
@@ -46,20 +47,24 @@ public class SetSizeRanking implements FaultRanking {
   public List<Fault> rank(
       Set<Fault> result) {
 
-    if(result.isEmpty()){
-      return Collections.emptyList();
+    if (result.isEmpty()) {
+      return ImmutableList.of();
     }
     RankingResults ranking = FaultRankingUtils.rankedListFor(result,
-        e -> e.stream()
-            .mapToDouble(fc -> fc.correspondingEdge().getFileLocation().getStartingLineInOrigin())
-            .max()
-            .orElse(0.0));
+        e -> 1d/e.size());
 
-    BigDecimal sum = BigDecimal.valueOf(2).pow(ranking.getRankedList().size()+1);
+    if(ranking.getRankedList().size()==1){
+      Fault current = ranking.getRankedList().get(0);
+      current.addReason(FaultReason.justify(
+          "The set has a size of " + current.size()+ ".",
+          1d));
+      return ranking.getRankedList();
+    }
+    BigDecimal sum = BigDecimal.valueOf(2).pow(ranking.getRankedList().size()).subtract(BigDecimal.ONE);
     for(int i = 0; i < ranking.getRankedList().size(); i++){
       Fault current = ranking.getRankedList().get(i);
       current.addReason(FaultReason.justify(
-          "The set has a size of " + current.size()+".",
+          "The set has a size of " + current.size() + ".",
           BigDecimal.valueOf(2).pow(i).divide(sum, 5, RoundingMode.HALF_UP).doubleValue()));
     }
 

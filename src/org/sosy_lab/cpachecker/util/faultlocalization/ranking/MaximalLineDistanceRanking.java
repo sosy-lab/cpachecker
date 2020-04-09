@@ -25,9 +25,10 @@ package org.sosy_lab.cpachecker.util.faultlocalization.ranking;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
@@ -51,11 +52,11 @@ public class MaximalLineDistanceRanking implements FaultRanking {
   @Override
   public List<Fault> rank(Set<Fault> result) {
     if(result.isEmpty()){
-      return Collections.emptyList();
+      return ImmutableList.of();
     }
    RankingResults ranking = FaultRankingUtils.rankedListFor(result,
         e -> e.stream()
-        .mapToDouble(fc -> (Math.abs(errorLocation - fc.correspondingEdge().getFileLocation().getStartingLineInOrigin())))
+        .mapToDouble(fc -> Math.abs(errorLocation - fc.correspondingEdge().getFileLocation().getStartingLineInOrigin()))
         .max()
         .orElse(0.0));
 

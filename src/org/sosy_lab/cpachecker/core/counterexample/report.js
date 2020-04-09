@@ -338,12 +338,12 @@ with considerably less effort */
 				if(errPathElem.isfault){
 					errPathElem["importantindex"] = importantIndex;
 					faultEdges.push(errPathElem);
-					for(let i = 0; i < errPathElem.numbersets; i++){
-						let rank = errPathElem.ranks[i];
-						let score = errPathElem.scores[i];
-						let descriptions = errPathElem.descriptions[i]; //Array of line descriptions for combobox
-						let reason = errPathElem.reasons[i];
-						let lines = errPathElem.lines[i];//Array of lines
+					for(let j = 0; j < errPathElem.numbersets; j++){
+						let rank = errPathElem.ranks[j];
+						let score = errPathElem.scores[j];
+						let descriptions = errPathElem.descriptions[j]; //Array of line descriptions for combobox
+						let reason = errPathElem.reasons[j];
+						let lines = errPathElem.lines[j];//Array of lines
 						currFault = {};
 						currFault["reason"] = reason;
 						currFault["rank"] = rank;
@@ -361,7 +361,7 @@ with considerably less effort */
                 if(errPathElem.importance == 1){
                     importantEdges.push(importantIndex);
                 }
-			}
+			};
 
                         // this function puts the important edges into a CSS class that highlights them
 			function highlightEdges(impEdges){
@@ -372,7 +372,7 @@ with considerably less effort */
 						
 
 			function addFaultLocalizationInfo(){
-				if(Object.keys(faultEdges).length !== 0) {
+				if(faultEdges.length !== 0) {
 					for(let j = 0; j < errorPath.length; j++){
 						$("#rank-"+j).addClass("rank");
 					}
@@ -389,7 +389,7 @@ with considerably less effort */
 						$("#rank-"+i).remove();		
 					}
 				}
-			}
+			};
 
             angular.element(document).ready(function(){
                 highlightEdges(importantEdges);
@@ -405,7 +405,7 @@ with considerably less effort */
 				$("#report-controller").scope().setTab(3);
 			}
 			$scope.hideErrorTable = toggle;
-		}
+		};
 
 		$scope.errPathPrevClicked = function ($event) {
 			var selection = d3.select("tr.clickedErrPathElement");
@@ -724,15 +724,15 @@ with considerably less effort */
 				$("#source-"+lines[i]).addClass("highlight-line");
 			}
 			$scope.selectedLines = lines;
-		}
+		};
 		$scope.showRedLine = function (index, edge){
 			$("#source-"+$scope.redLine).removeClass("highlight-selected-line");
 			$scope.redLine = edge.lines[index];
 			$("#source-"+$scope.redLine).addClass("highlight-selected-line");
-		}
+		};
 		$scope.htmlTrusted = function(html) {
 			return $sce.trustAsHtml(html);
-		}
+		};
 	}]);
 
 	cfaToolbarController = app.controller('CFAToolbarController', ['$scope',

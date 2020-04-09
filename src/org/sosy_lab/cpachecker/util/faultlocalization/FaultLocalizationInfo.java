@@ -115,13 +115,16 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     scoreMap.keySet().forEach(fc -> mapEdgeToFaultContribution.put(fc.correspondingEdge(),fc));
 
     // find the best rank and the related description for all edges
-    for (Fault set : mapFaultToRank.keySet()) {
+    for (Map.Entry<Fault, Integer> entry : mapFaultToRank.entrySet()) {
+      Fault set = entry.getKey();
       boolean alreadyAssigned = false;
-      if(set.isEmpty()) continue;
+      if(entry.getKey().isEmpty()) {
+        continue;
+      }
       for(FaultContribution elem: set){
-        int newRank = mapEdgeToBestRank.merge(elem.correspondingEdge(), mapFaultToRank.get(set), Integer::min);
+        int newRank = mapEdgeToBestRank.merge(elem.correspondingEdge(), entry.getValue(), Integer::min);
         mapEdgeToBestDescription.merge(elem.correspondingEdge(), htmlWriter.toHtml(set), (a, b) -> {
-          if(mapFaultToRank.get(set) == newRank){
+          if(entry.getValue() == newRank){
             return a;
           } else {
             return b;
