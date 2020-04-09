@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.tarantula;
 
 import java.io.PrintStream;
-import java.text.DecimalFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,39 +48,34 @@ public class TarantulaAlgorithm implements Algorithm {
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     AlgorithmStatus result = analysis.run(reachedSet);
 
-    if (TarantulaUtils.checkForErrorPath(reachedSet)) {
-      if (!TarantulaUtils.checkForSafePath(reachedSet)) {
+    if (TarantulaUtils.existsErrorPath(reachedSet)) {
+      if (!TarantulaUtils.existsSafePath(reachedSet)) {
 
         logger.log(
             Level.WARNING, "There is no safe Path, the algorithm is therefore not efficient");
       }
       logger.log(Level.INFO, "Start tarantula algorithm ... ");
       printResult(System.out, reachedSet);
-
-    } else {
-      logger.log(Level.WARNING, "There is no CounterExample, the program is therefore safe");
     }
 
-    logger.log(Level.INFO, "Tarantula algorithm Finished ... ");
     return result;
   }
   /**
-   * Calculates suspiciousness of tarantula algorithm.
+   * Calculates computeSuspicious of tarantula algorithm.
    *
-   * @param failed Is the number of failed cases in each edge.
-   * @param passed Is the number of passed cases in each edge.
+   * @param pFailed Is the number of pFailed cases in each edge.
+   * @param pPassed Is the number of pPassed cases in each edge.
    * @param pReachedSet Input.
    * @return Calculated suspicious.
    */
-  public double suspiciousness(double failed, double passed, ReachedSet pReachedSet) {
-    DecimalFormat df = new DecimalFormat("0.00");
-    double numerator = failed / totalFailed(pReachedSet);
-    double denominator = (passed / totalPassed(pReachedSet)) + (failed / totalFailed(pReachedSet));
+  public double computeSuspicious(double pFailed, double pPassed, ReachedSet pReachedSet) {
+    double numerator = pFailed / totalFailed(pReachedSet);
+    double denominator =
+        (pPassed / totalPassed(pReachedSet)) + (pFailed / totalFailed(pReachedSet));
     if (denominator == 0.0) {
       return 0.0;
     }
-    double result = numerator / denominator;
-    return Double.parseDouble(df.format(result));
+    return numerator / denominator;
   }
   /**
    * Calculates how many total failed cases are in ARG.
@@ -93,8 +87,8 @@ public class TarantulaAlgorithm implements Algorithm {
     List<List<CFAEdge>> allPaths = TarantulaUtils.getAllPossiblePaths(pReachedSet);
 
     int counterResult = 0;
-    for (int i = 0; i < allPaths.size(); i++) {
-      if (TarantulaUtils.isFailedPath(allPaths.get(i), pReachedSet)) {
+    for (List<CFAEdge> pAllPath : allPaths) {
+      if (TarantulaUtils.isFailedPath(pAllPath, pReachedSet)) {
         counterResult++;
       }
     }
@@ -117,11 +111,14 @@ public class TarantulaAlgorithm implements Algorithm {
    * store the result into <code>Map</code>.
    */
   public void printResult(PrintStream out, ReachedSet reachedSet) {
-    Map<CFAEdge, int[]> table = TarantulaUtils.getTable(reachedSet);
+    Map<CFAEdge, Pair> table = TarantulaUtils.getTable(reachedSet);
     Map<CFAEdge, Double> resultMap = new LinkedHashMap<>();
 
     table.forEach(
-        (key, value) -> resultMap.put(key, suspiciousness(value[0], value[1], reachedSet)));
+        (key, value) ->
+            resultMap.put(
+                key,
+                computeSuspicious(value.getFailedCases(), value.getPassedCases(), reachedSet)));
 
     // Sort the result by its value and ignore the suspicious with 0.0 ration.
     final Map<CFAEdge, Double> sortedByCount =
