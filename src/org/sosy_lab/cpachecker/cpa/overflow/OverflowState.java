@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.overflow;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
@@ -33,7 +32,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -41,32 +39,31 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 /**
  * Abstract state for tracking overflows.
  */
-final class OverflowState
+public final class OverflowState
     implements AbstractStateWithAssumptions,
     Graphable,
     AbstractQueryableState {
 
   private final ImmutableSet<? extends AExpression> assumptions;
+  private final OverflowState parent;
   private final boolean hasOverflow;
   private final boolean nextHasOverflow;
   private static final String PROPERTY_OVERFLOW = "overflow";
-  private ImmutableSet<AbstractState> currentStates;
-  private boolean alreadyStrengthened;
 
-  public OverflowState(Set<? extends AExpression> pAssumptions, boolean pHasOverflow, boolean pNextHasOverflow) {
-    this(pAssumptions, pHasOverflow, pNextHasOverflow, null);
+  public OverflowState(Set<? extends AExpression> pAssumptions, boolean pNextHasOverflow) {
+    this(pAssumptions, pNextHasOverflow, null);
   }
 
   public OverflowState(
-      Set<? extends AExpression> pAssumptions, boolean pHasOverflow, boolean pNextHasOverflow, OverflowState parent) {
+      Set<? extends AExpression> pAssumptions, boolean pNextHasOverflow, OverflowState pParent) {
     assumptions = ImmutableSet.copyOf(pAssumptions);
-    hasOverflow = pHasOverflow;
-    nextHasOverflow = pNextHasOverflow;
+    parent = pParent;
     if (parent != null) {
-      currentStates = parent.currentStates;
+      hasOverflow = parent.nextHasOverflow();
     } else {
-      currentStates = ImmutableSet.of();
+      hasOverflow = false;
     }
+    nextHasOverflow = pNextHasOverflow;
   }
 
   public boolean hasOverflow() {
@@ -75,6 +72,10 @@ final class OverflowState
 
   public boolean nextHasOverflow() {
     return nextHasOverflow;
+  }
+
+  public AbstractStateWithAssumptions getParent() {
+    return parent;
   }
 
   @Override
@@ -133,15 +134,5 @@ final class OverflowState
       return hasOverflow;
     }
     throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
-  }
-
-  protected void updateStatesForPreconditions(Iterable<AbstractState> pCurrentStates) {
-    if (!alreadyStrengthened) {
-      // update current states while deliberately removing "this".
-      // Other states may get hold of this set via getStatesForPreconditions().
-      // We want to prevent infinite recursion and accelerate garbage collection.
-      currentStates = FluentIterable.from(pCurrentStates).filter(x -> !x.equals(this)).toSet();
-      alreadyStrengthened = true;
-    }
   }
 }
