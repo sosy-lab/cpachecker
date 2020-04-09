@@ -28,12 +28,22 @@ public class PartialPath {
 
   public PartialPath(List<CFAEdge> edges) {
     this.edges = ImmutableList.copyOf(edges);
-    // TODO Auto-generated constructor stub
   }
 
   @Override
   public int hashCode() {
     return edges.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object pObj) {
+    if (pObj == this) {
+      return true;
+    }
+    if (pObj instanceof PartialPath) {
+      return edges.equals(((PartialPath) pObj).edges);
+    }
+    return false;
   }
 
   public boolean acceptsEdge(CFAEdge edge, int index) {

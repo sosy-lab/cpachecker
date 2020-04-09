@@ -39,11 +39,4 @@ public class VariablesToWeave {
   public ImmutableSet<Pair<WeavingVariable, WeavingType>> getMap() {
     return vars;
   }
-
-  @Override
-  public int hashCode() {
-    // TODO Auto-generated method stub
-    return super.hashCode();
-  }
-
 }
