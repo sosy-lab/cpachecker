@@ -177,9 +177,7 @@ public class SymbolEncoding {
       }
       for (CFunctionCallEdge edge : edges.filter(CFunctionCallEdge.class)) {
         final List<? extends CParameterDeclaration> params = edge.getSuccessor().getFunctionParameters();
-        for (CParameterDeclaration param : params) {
-          sd.add(param);
-        }
+        sd.addAll(params);
       }
       for (CFunctionReturnEdge edge : edges.filter(CFunctionReturnEdge.class)) {
         Optional<? extends CVariableDeclaration> retVar = edge.getFunctionEntry().getReturnVariable();

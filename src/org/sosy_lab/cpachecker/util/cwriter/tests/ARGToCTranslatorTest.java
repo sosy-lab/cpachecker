@@ -124,14 +124,12 @@ public final class ARGToCTranslatorTest {
     }
 
     private static Object[] simpleTask(String program, boolean verdict) {
-      String label = String.format("SimpleTest(%s is %s)", program, Boolean.toString(verdict));
+      String label = String.format("SimpleTest(%s is %s)", program, verdict);
       return new Object[] {label, program, verdict, false};
     }
 
     private static Object[] simpleTestWithGotoDecProblem(String program, boolean verdict) {
-      String label =
-          String.format(
-              "SimpleTestWithGotoDecProblem(%s is %s)", program, Boolean.toString(verdict));
+      String label = String.format("SimpleTestWithGotoDecProblem(%s is %s)", program, verdict);
       return new Object[] {label, program, verdict, true};
     }
   }

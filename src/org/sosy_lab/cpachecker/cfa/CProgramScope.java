@@ -103,7 +103,7 @@ public class CProgramScope implements Scope {
 
   private static final Iterable<CSimpleDeclaration> toCSimpleDeclarations(CFANode pNode) {
     return CFAUtils.leavingEdges(pNode)
-        .<CSimpleDeclaration>transformAndConcat(
+        .transformAndConcat(
             pEdge -> {
               if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
                 CDeclaration dcl = ((CDeclarationEdge) pEdge).getDeclaration();

@@ -238,7 +238,10 @@ public class ReportGenerator {
         witnessOptional =
             Optional.of(
                 argWitnessExporter.generateProofWitness(
-                    rootState, Predicates.alwaysTrue(), BiPredicates.alwaysTrue()));
+                    rootState,
+                    Predicates.alwaysTrue(),
+                    BiPredicates.alwaysTrue(),
+                    argWitnessExporter.getProofInvariantProvider()));
       } catch (InvalidConfigurationException e) {
         logger.logUserException(Level.WARNING, e, "Could not generate witness for witness view");
       }
@@ -746,7 +749,6 @@ public class ReportGenerator {
       } else {
         edgeLabel.append("Line ");
         edgeLabel.append(edges.get(0).getFileLocation().getStartingLineInOrigin());
-        edgeLabel.append("");
         argEdge.put("line", edgeLabel.substring(5));
       }
       for (CFAEdge edge : edges) {

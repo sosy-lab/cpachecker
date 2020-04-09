@@ -99,7 +99,7 @@ public abstract class SplitInfoState implements AbstractQueryableState {
       return new SequenceSplitInfoState(
           Arrays.copyOfRange(
               inSplit,
-              splitPart * minElem + (splitPart < numAdditionalElem ? splitPart : numAdditionalElem),
+              splitPart * minElem + Math.min(splitPart, numAdditionalElem),
               (splitPart + 1) * minElem
                   + ((splitPart + 1) < numAdditionalElem ? splitPart + 1 : numAdditionalElem)));
     }
@@ -191,9 +191,7 @@ public abstract class SplitInfoState implements AbstractQueryableState {
 
       Set<Integer> newSplit = Sets.newHashSetWithExpectedSize(minElem + 1);
 
-      for (int i =
-              pSplitPart * minElem
-                  + (pSplitPart < numAdditionalElem ? pSplitPart : numAdditionalElem);
+      for (int i = pSplitPart * minElem + Math.min(pSplitPart, numAdditionalElem);
           i
               < ((pSplitPart + 1) * minElem
                   + ((pSplitPart + 1) < numAdditionalElem ? pSplitPart + 1 : numAdditionalElem));

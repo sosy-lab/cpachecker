@@ -74,7 +74,7 @@ public class ConstraintManager {
 
   public static boolean init(String firingRelation, String generalizationOperator, LogManager logM) {
 
-    String initstr[] = {
+    String[] initstr = {
       "swipl",
       "-x",
       NativeLibraries.getNativeLibraryPath().resolve("chc_lib").toString(),
@@ -99,7 +99,7 @@ public class ConstraintManager {
     // Create a list of variable to solve the constraint
     Term varList = Util.termArrayToList(vars.values().toArray(new Term[0]));
     // Solve constraint w.r.t. variables occurring in varList
-    Term args[] = {constraint, varList, new Variable("S")};
+    Term[] args = {constraint, varList, new Variable("S")};
     Query q = new Query("solve", args);
 
     logger.log(Level.FINEST, "\n * solve (w.r.t. " + varList + ")");
@@ -117,7 +117,7 @@ public class ConstraintManager {
     // Constraint 2
     Term constraint2 = Util.termArrayToList(cn2.getConstraint().toArray(new Term[0]));
 
-    Term args[] = {constraint1, constraint2};
+    Term[] args = {constraint1, constraint2};
 
     Query q = new Query("entails", args);
 
@@ -138,7 +138,7 @@ public class ConstraintManager {
     // Constraint 2
     Term constraint2 = Util.termArrayToList(cn2.getConstraint().toArray(new Term[0]));
 
-    Term args[] = {constraint1, constraint2, new Variable("G")};
+    Term[] args = {constraint1, constraint2, new Variable("G")};
 
     Query q = new Query("generalize", args);
 
@@ -468,26 +468,27 @@ public class ConstraintManager {
           negAtomCnT = new Compound(">=", 2);
           negAtomCnT.setArg(1, atomCnT.arg(1));
           negAtomCnT.setArg(2, atomCnT.arg(2));
-          return ImmutableSet.of(Pair.of((Term)negAtomCnT, cn.getSecond()));
+        return ImmutableSet.of(Pair.of(negAtomCnT, cn.getSecond()));
         case "=<":
           negAtomCnT = new Compound(">", 2);
           negAtomCnT.setArg(1, atomCnT.arg(1));
           negAtomCnT.setArg(2, atomCnT.arg(2));
-          return ImmutableSet.of(Pair.of((Term)negAtomCnT, cn.getSecond()));
+        return ImmutableSet.of(Pair.of(negAtomCnT, cn.getSecond()));
         case ">":
           negAtomCnT = new Compound("=<", 2);
           negAtomCnT.setArg(1, atomCnT.arg(1));
           negAtomCnT.setArg(2, atomCnT.arg(2));
-          return ImmutableSet.of(Pair.of((Term)negAtomCnT, cn.getSecond()));
+        return ImmutableSet.of(Pair.of(negAtomCnT, cn.getSecond()));
         case ">=":
           negAtomCnT = new Compound("<", 2);
           negAtomCnT.setArg(1, atomCnT.arg(1));
           negAtomCnT.setArg(2, atomCnT.arg(2));
-          return ImmutableSet.of(Pair.of((Term)negAtomCnT, cn.getSecond()));
+        return ImmutableSet.of(Pair.of(negAtomCnT, cn.getSecond()));
         case "=:=":
-          return Arrays.asList(
-              Pair.of((Term)new Compound("<", new Term[] {atomCnT.arg(1), atomCnT.arg(2)}), cn.getSecond()),
-              Pair.of((Term)new Compound(">", new Term[] {atomCnT.arg(1), atomCnT.arg(2)}), cn.getSecond()) );
+        return Arrays.asList(
+            Pair.of(new Compound("<", new Term[] {atomCnT.arg(1), atomCnT.arg(2)}), cn.getSecond()),
+            Pair.of(
+                new Compound(">", new Term[] {atomCnT.arg(1), atomCnT.arg(2)}), cn.getSecond()));
         default:
           return null;
       }
@@ -499,7 +500,7 @@ public class ConstraintManager {
 
     if (ce instanceof CIdExpression) {
       vars.add(CVar2PrologVar(ce.toString()));
-      return ImmutableSet.of(Pair.of((Term)CVar2PrologVar(ce.toString()), vars));
+      return ImmutableSet.of(Pair.of(CVar2PrologVar(ce.toString()), vars));
     } else if (ce instanceof CIntegerLiteralExpression) {
       return ImmutableSet.of(Pair.of(Util.textToTerm("rdiv(" + ce + ",1)"), vars));
     } else if (ce instanceof CBinaryExpression ) {
@@ -611,9 +612,9 @@ public class ConstraintManager {
       for (Pair<Term, List<Term>> subop2 : operand2) {
         vars.addAll(subop1.getSecond());
         vars.addAll(subop2.getSecond());
-        termList.add(Pair.of(
-            (Term)new Compound(operator, new Term[] {subop1.getFirst(), subop2.getFirst()}),
-            vars));
+        termList.add(
+            Pair.of(
+                new Compound(operator, new Term[] {subop1.getFirst(), subop2.getFirst()}), vars));
       }
     }
 

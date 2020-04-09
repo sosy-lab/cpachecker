@@ -30,6 +30,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
@@ -45,6 +46,7 @@ public class ExtendedWitnessFactory extends WitnessFactory {
   ExtendedWitnessFactory(
       WitnessOptions pOptions,
       CFA pCfa,
+      LogManager pLogger,
       VerificationTaskMetaData pMetaData,
       ExpressionTreeFactory<Object> pFactory,
       Simplifier<Object> pSimplifier,
@@ -54,6 +56,7 @@ public class ExtendedWitnessFactory extends WitnessFactory {
     super(
         pOptions,
         pCfa,
+        pLogger,
         pMetaData,
         pFactory,
         pSimplifier,

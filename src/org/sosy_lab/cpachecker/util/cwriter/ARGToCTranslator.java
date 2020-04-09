@@ -1108,7 +1108,6 @@ public class ARGToCTranslator {
     CFAEdge edge;
     Set<ARGState> visited = new HashSet<>();
     Deque<Pair<ARGState, DeclarationInfo>> waitlist = new ArrayDeque<>();
-    List<Pair<ARGState, DeclarationInfo>> assumeInfo = new ArrayList<>(2);
 
     Multimap<ARGState, Map<CDeclaration, String>> decProblems = HashMultimap.create();
 
@@ -1117,7 +1116,7 @@ public class ARGToCTranslator {
     while (!waitlist.isEmpty()) {
       current = waitlist.pop();
       parent = current.getFirst();
-      assumeInfo.clear();
+      final List<Pair<ARGState, DeclarationInfo>> assumeInfo = new ArrayList<>(2);
 
       if (visited.add(parent)) {
 
@@ -1150,9 +1149,7 @@ public class ARGToCTranslator {
           }
         }
 
-        for (int i = 0; i < assumeInfo.size(); i++) {
-          waitlist.push(assumeInfo.get(i));
-        }
+        waitlist.addAll(assumeInfo);
       }
     }
 

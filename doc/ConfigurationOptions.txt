@@ -888,6 +888,9 @@ counterexample.export.compressWitness = true
 # export counterexample core as text file
 counterexample.export.core = "Counterexample.%d.core.txt"
 
+# export counterexample to file as Dot/Graphviz automaton
+counterexample.export.dot = "Counterexample.%d.dot"
+
 # export counterexample to file, if one is found
 counterexample.export.enabled = true
 
@@ -915,6 +918,10 @@ counterexample.export.exportHarness = false
 
 # export error paths to files immediately after they were found
 counterexample.export.exportImmediately = false
+
+# export test case that represents the counterexample. Further options can be
+# set with options 'testcase.*'
+counterexample.export.exportTestCase = false
 
 # export counterexample as witness/graphml file
 counterexample.export.exportWitness = true
@@ -1126,6 +1133,9 @@ cpa.arg.pixelGraphicFile = "ARG"
 
 # export a proof as .graphml file
 cpa.arg.proofWitness = no default value
+
+# export a proof as dot/graphviz file
+cpa.arg.proofWitness.dot = no default value
 
 # export simplified ARG that shows all refinements to .dot file
 cpa.arg.refinements.file = "ARGRefinements.dot"
@@ -3955,6 +3965,9 @@ termination.useCexImpreciseHeuristic = false
 
 # Export termination counterexample to file as GraphML automaton 
 termination.violation.witness = "nontermination_witness.graphml"
+
+# Export termination counterexample to file as dot/graphviz automaton 
+termination.violation.witness.dot = "nontermination_witness.dot"
 
 # Use the counterexample model to provide test-vector values
 testHarnessExport.useModel = true

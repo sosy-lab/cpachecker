@@ -101,7 +101,7 @@ public class ValidationConfigurationBuilder {
 
         if (prop.contains("cpa") || prop.equals("pcc.strategy")
             || prop.equals("analysis.restartAfterUnknown")) {
-          value = line.substring(eqSignPos + 1, line.length()).trim();
+          value = line.substring(eqSignPos + 1).trim();
           relevantPropertyEntries.put(prop, value);
         }
 

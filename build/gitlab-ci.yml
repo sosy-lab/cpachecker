@@ -48,9 +48,9 @@ build:jdk-11:
   <<: *build
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
-build:jdk-13:
+build:jdk-14:
   <<: *build
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-13
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-14
 
 
 # For checks that need the binaries
@@ -76,9 +76,9 @@ build-project-ecj:jdk-11:
   <<: *build-project-ecj
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
-build-project-ecj:jdk-13:
+build-project-ecj:jdk-14:
   <<: *build-project-ecj
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-13
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-14
 
 
 check-format:
@@ -146,15 +146,15 @@ unit-tests:jdk-11:
     - build:jdk-11
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
-unit-tests:jdk-13:
+unit-tests:jdk-14:
   <<: *unit-tests
   dependencies:
     - build-dependencies
-    - build:jdk-13
+    - build:jdk-14
   needs:
     - build-dependencies
-    - build:jdk-13
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-13
+    - build:jdk-14
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-14
 
 
 refaster:
@@ -233,10 +233,12 @@ deploy-gh-pages:
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
+  variables:
+    EXTRA_ARGS: ""
   script:
     - mkdir -p /root/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-    - /kaniko/executor --dockerfile $CI_PROJECT_DIR/$DOCKERFILE --destination $CI_REGISTRY_IMAGE/$IMAGE
+    - /kaniko/executor --dockerfile $CI_PROJECT_DIR/$DOCKERFILE --destination $CI_REGISTRY_IMAGE$IMAGE $EXTRA_ARGS
   only:
     - schedules
     - web
@@ -245,10 +247,10 @@ build-docker:test:jdk-11:
   extends: .build-docker
   variables:
     DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-11
-    IMAGE: test:jdk-11
+    IMAGE: /test:jdk-11
 
-build-docker:test:jdk-13:
+build-docker:test:jdk-14:
   extends: .build-docker
   variables:
-    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-13
-    IMAGE: test:jdk-13
+    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-14
+    IMAGE: /test:jdk-14

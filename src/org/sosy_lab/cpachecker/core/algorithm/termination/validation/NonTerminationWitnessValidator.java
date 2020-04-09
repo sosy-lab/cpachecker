@@ -708,7 +708,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                               succ,
                               reached.getPrecision(stateWithoutSucc),
                               reached,
-                              Functions.<AbstractState>identity(),
+                              Functions.identity(),
                               succ);
                   pNegInvCheck.getPredecessor().removeLeavingEdge(pNegInvCheck);
                   if (precResult.isPresent()) {

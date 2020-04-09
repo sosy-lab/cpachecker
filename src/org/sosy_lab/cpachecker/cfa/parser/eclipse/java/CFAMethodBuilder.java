@@ -995,7 +995,7 @@ class CFAMethodBuilder extends ASTVisitor {
       }
 
       // if not finished, continue iff there is only one path
-      finished = finished || !(traversedNode.getNumEnteringEdges() != 1);
+      finished = finished || traversedNode.getNumEnteringEdges() == 1;
 
       if (!finished) {
         traversedNode = currentEdge.getPredecessor();

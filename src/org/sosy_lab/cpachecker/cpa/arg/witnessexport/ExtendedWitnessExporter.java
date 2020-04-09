@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import java.io.IOException;
 import java.util.Optional;
 import java.util.function.BiPredicate;
 import org.sosy_lab.common.configuration.Configuration;
@@ -45,27 +44,25 @@ public class ExtendedWitnessExporter extends WitnessExporter {
   }
 
   @Override
-  public void writeErrorWitness(
-      Appendable pTarget,
+  public Witness generateErrorWitness(
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
       final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
-      CounterexampleInfo pCounterExample)
-      throws IOException {
+      CounterexampleInfo pCounterExample) {
 
     String defaultFileName = getInitialFileName(pRootState);
     WitnessFactory writer =
         new ExtendedWitnessFactory(
             options,
             cfa,
+            logger,
             verificationTaskMetaData,
             factory,
             simplifier,
             defaultFileName,
             WitnessType.VIOLATION_WITNESS,
             InvariantProvider.TrueInvariantProvider.INSTANCE);
-    writer.writePath(
-        pTarget,
+    return writer.produceWitness(
         pRootState,
         pIsRelevantState,
         pIsRelevantEdge,

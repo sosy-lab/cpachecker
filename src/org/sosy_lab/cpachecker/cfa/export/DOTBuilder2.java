@@ -33,6 +33,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.SetMultimap;
 import com.google.common.html.HtmlEscapers;
+import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
@@ -251,9 +252,9 @@ public final class DOTBuilder2 {
 
     void writeFunctionFile(String funcname, Path outdir) throws IOException {
 
-      try (Writer out =
-          Files.newBufferedWriter(
-              outdir.resolve("cfa__" + funcname + ".dot"), StandardCharsets.UTF_8)) {
+      Path cfaFile = outdir.resolve("cfa__" + funcname + ".dot");
+      MoreFiles.createParentDirectories(cfaFile);
+      try (Writer out = Files.newBufferedWriter(cfaFile, StandardCharsets.UTF_8)) {
         out.write("digraph " + funcname + " {\n");
         StringBuilder outb = new StringBuilder();
 

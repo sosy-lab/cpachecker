@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2016  Dirk Beyer
+ *  Copyright (C) 2007-2019  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,9 +21,10 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.util.harness;
+package org.sosy_lab.cpachecker.util.testcase;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
@@ -32,14 +33,18 @@ import com.google.common.collect.Ordering;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
+import org.sosy_lab.common.collect.PersistentLinkedList;
+import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.collect.PersistentSortedMap;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.util.harness.PredefinedTypes;
 
-class TestVector {
+public class TestVector {
 
   private final PersistentSortedMap<
           ComparableFunctionDeclaration, ImmutableList<ExpressionTestValue>>
@@ -48,17 +53,23 @@ class TestVector {
   private final PersistentSortedMap<ComparableVariableDeclaration, InitializerTestValue>
       inputVariableValues;
 
+  private final PersistentList<TestValue> inputValues;
+
   private TestVector() {
-    this(PathCopyingPersistentTreeMap.of(), PathCopyingPersistentTreeMap.of());
+    this(
+        PathCopyingPersistentTreeMap.of(),
+        PathCopyingPersistentTreeMap.of(),
+        PersistentLinkedList.of());
   }
 
   private TestVector(
       PersistentSortedMap<ComparableFunctionDeclaration, ImmutableList<ExpressionTestValue>>
           pInputFunctionValues,
-      PersistentSortedMap<ComparableVariableDeclaration, InitializerTestValue>
-          pInputVariableValues) {
+      PersistentSortedMap<ComparableVariableDeclaration, InitializerTestValue> pInputVariableValues,
+      PersistentList<TestValue> pInputsInOrder) {
     inputFunctionValues = pInputFunctionValues;
     inputVariableValues = pInputVariableValues;
+    inputValues = pInputsInOrder;
   }
 
   public TestVector addInputValue(AFunctionDeclaration pFunction, AExpression pValue) {
@@ -76,8 +87,22 @@ class TestVector {
       valueListBuilder.addAll(currentValues).add(pValue);
       newValues = valueListBuilder.build();
     }
-    return new TestVector(inputFunctionValues.putAndCopy(function, newValues), inputVariableValues);
+    return new TestVector(
+        inputFunctionValues.putAndCopy(function, newValues),
+        inputVariableValues,
+        inputValues.with(pValue));
   }
+
+  public List<TestValue> getTestInputsInOrder() {
+    checkState(
+        inputValues.size()
+            == inputVariableValues.values().size()
+                + inputFunctionValues.values().stream()
+                    .map(l -> l.size())
+                    .reduce(0, (x, y) -> x + y));
+    return inputValues;
+  }
+
 
   public TestVector addInputValue(AVariableDeclaration pVariable, AInitializer pValue) {
     return addInputValue(pVariable, InitializerTestValue.of(pValue));
@@ -90,7 +115,10 @@ class TestVector {
       throw new IllegalArgumentException(
           String.format("Variable %s already declared with value %s: ", pVariable, pValue));
     }
-    return new TestVector(inputFunctionValues, inputVariableValues.putAndCopy(variable, pValue));
+    return new TestVector(
+        inputFunctionValues,
+        inputVariableValues.putAndCopy(variable, pValue),
+        inputValues.with(pValue));
   }
 
   public Iterable<AFunctionDeclaration> getInputFunctions() {
@@ -260,5 +288,47 @@ class TestVector {
 
   private static <T> Iterable<T> upcast(Iterable<? extends T> pIterable, Class<T> pClass) {
     return FluentIterable.from(pIterable).filter(pClass);
+  }
+
+  public static class TargetTestVector {
+
+    private final CFAEdge edgeToTarget;
+
+    private final TestVector testVector;
+
+    public TargetTestVector(CFAEdge pEdgeToTarget, TestVector pTestVector) {
+      edgeToTarget = Objects.requireNonNull(pEdgeToTarget);
+      testVector = Objects.requireNonNull(pTestVector);
+    }
+
+    public TestVector getVector() {
+      return testVector;
+    }
+
+    public CFAEdge getEdgeToTarget() {
+      return edgeToTarget;
+    }
+
+    @Override
+    public String toString() {
+      return testVector.toString();
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(edgeToTarget, testVector);
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      if (pObj == this) {
+        return true;
+      }
+      if (pObj instanceof TargetTestVector) {
+        TargetTestVector other = (TargetTestVector) pObj;
+        return edgeToTarget.equals(other.edgeToTarget) && testVector.equals(other.testVector);
+      }
+      return false;
+    }
   }
 }

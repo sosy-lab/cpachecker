@@ -52,8 +52,7 @@ class OctagonDomain implements AbstractDomain {
     OctagonState octState1 = (OctagonState) element1;
     OctagonState octState2 = (OctagonState) element2;
 
-    if (covers.containsKey(octState2)
-        && ((HashSet<OctagonState>) covers.get(octState2)).contains(octState1)) {
+    if (covers.containsKey(octState2) && covers.get(octState2).contains(octState1)) {
       return true;
     }
 

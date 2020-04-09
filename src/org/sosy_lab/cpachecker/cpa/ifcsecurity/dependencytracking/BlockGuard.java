@@ -70,22 +70,22 @@ public class BlockGuard implements Cloneable, Serializable{
       }
       //Copy internal structure
       List<Pair<Pair<CFANode,CFANode>, Pair< Pair<CExpression,Boolean>,SortedSet<Variable>>>> tmpallcontexts=new ArrayList<>();
-      for(int i=0;i<contextstack.size();i++){
-        Pair<Pair<CFANode,CFANode>, Pair<Pair<CExpression,Boolean>, SortedSet<Variable>>> value = contextstack.get(i);
-        CFANode node=value.first.first;
-        CFANode node2=value.first.second;
-        CExpression expr=value.second.first.first;
-        boolean truth=value.second.first.second.booleanValue();
-        SortedSet<Variable> scs=value.second.second;
-        SortedSet<Variable> secsec=new TreeSet<>();
-        secsec.addAll(scs);
-
-        Pair<CExpression,Boolean> secfirst=new Pair<>(expr,truth);
-        Pair<Pair<CExpression,Boolean>,SortedSet<Variable>> sec= new Pair<>(secfirst,secsec);
-        Pair<CFANode,CFANode> first=new Pair<> (node,node2);
-        Pair<Pair<CFANode,CFANode>, Pair<Pair<CExpression,Boolean>,SortedSet<Variable>>> elem=new Pair<> (first, sec);
-        tmpallcontexts.add(elem);
-      }
+    for (Pair<Pair<CFANode, CFANode>, Pair<Pair<CExpression, Boolean>, SortedSet<Variable>>> value :
+        contextstack) {
+      CFANode node = value.first.first;
+      CFANode node2 = value.first.second;
+      CExpression expr = value.second.first.first;
+      boolean truth = value.second.first.second.booleanValue();
+      SortedSet<Variable> scs = value.second.second;
+      SortedSet<Variable> secsec = new TreeSet<>();
+      secsec.addAll(scs);
+      Pair<CExpression, Boolean> secfirst = new Pair<>(expr, truth);
+      Pair<Pair<CExpression, Boolean>, SortedSet<Variable>> sec = new Pair<>(secfirst, secsec);
+      Pair<CFANode, CFANode> first = new Pair<>(node, node2);
+      Pair<Pair<CFANode, CFANode>, Pair<Pair<CExpression, Boolean>, SortedSet<Variable>>> elem =
+          new Pair<>(first, sec);
+      tmpallcontexts.add(elem);
+    }
       //create copy
       BlockGuard tmp=new BlockGuard(tmpallcontexts);
       return tmp;

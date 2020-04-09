@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -274,9 +273,7 @@ public class UseDefRelation {
 
         List<ASimpleDeclaration> parameters =
             new ArrayList<>(functionEntryNode.getFunctionParameters().size());
-        for (AParameterDeclaration parameterDeclaration : functionEntryNode.getFunctionParameters()) {
-          parameters.add(parameterDeclaration);
-        }
+        parameters.addAll(functionEntryNode.getFunctionParameters());
 
         Set<ASimpleDeclaration> defs = new HashSet<>();
         Set<ASimpleDeclaration> uses = new HashSet<>();

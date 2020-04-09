@@ -192,7 +192,7 @@ public class BuechiConverterUtils {
               "state-acc",
               "no-univ-branch");
       // The automaton should only contain properties which are included in the above list
-      if (!storedHeader.getProperties().stream().allMatch(x -> requiredProperties.contains(x))) {
+      if (!requiredProperties.containsAll(storedHeader.getProperties())) {
         throw new LtlParseException(
             String.format(
                 "The storedAutomaton-param may only contain %s as properties, but instead "

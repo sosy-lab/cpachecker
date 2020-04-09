@@ -160,7 +160,7 @@ public class SMGSingleLinkedListFinderTest {
     assertThat(!candidates.isEmpty()).isTrue();
 
     for (SMGAbstractionCandidate candidate : candidates) {
-      assertThat(((SMGSingleLinkedListCandidateSequence) candidate).getLength() < 5).isTrue();
+      assertThat(candidate.getLength() < 5).isTrue();
     }
   }
 }
