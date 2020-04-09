@@ -92,7 +92,7 @@ public class DeterministicVariablesTransferRelation
       return state;
     }
 
-    Wrapper<ASimpleDeclaration> varDeclaration = LIVE_DECL_EQUIVALENCE.wrap((ASimpleDeclaration)pDeclaration);
+    Wrapper<ASimpleDeclaration> varDeclaration = LIVE_DECL_EQUIVALENCE.wrap(pDeclaration);
     AInitializer initializer = ((AVariableDeclaration) pDeclaration).getInitializer();
 
     // initializer is empty, return identity
@@ -179,7 +179,7 @@ public class DeterministicVariablesTransferRelation
     Set<Wrapper<ASimpleDeclaration>> deterministicParameters = new HashSet<>(arguments.size());
     for (int i = 0; i < parameters.size(); i++) {
       if(areAllDeterministic(handleExpression(arguments.get(i)))) {
-        deterministicParameters.add(LIVE_DECL_EQUIVALENCE.wrap((ASimpleDeclaration)parameters.get(i)));
+        deterministicParameters.add(LIVE_DECL_EQUIVALENCE.wrap(parameters.get(i)));
       }
     }
     return state.addDeterministicVariables(deterministicParameters);
@@ -216,7 +216,7 @@ public class DeterministicVariablesTransferRelation
     // cleanup by removing function parameter from state
     Set<Wrapper<ASimpleDeclaration>> parameters = new HashSet<>(fnkCall.getFunctionEntry().getFunctionDefinition().getParameters().size());
     for(AParameterDeclaration param : fnkCall.getFunctionEntry().getFunctionDefinition().getParameters()) {
-      parameters.add(LIVE_DECL_EQUIVALENCE.wrap((ASimpleDeclaration)param));
+      parameters.add(LIVE_DECL_EQUIVALENCE.wrap(param));
     }
     return state.removeDeterministicVariables(parameters);
   }

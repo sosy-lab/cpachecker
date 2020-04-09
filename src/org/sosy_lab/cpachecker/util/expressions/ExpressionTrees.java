@@ -678,8 +678,6 @@ public final class ExpressionTrees {
                 if (current instanceof LeafExpression && other instanceof LeafExpression) {
                   if (current.equals(other)) {
                     simplifiedCurrent = getTrue();
-                  } else if (current.equals(other)) {
-                    simplifiedCurrent = getFalse();
                   } else {
                     simplifiedCurrent = current;
                   }

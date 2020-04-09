@@ -328,15 +328,17 @@ public class CPAMain {
 
     // get name of config file (may be null)
     // and remove this from the list of options (it's not a real option)
-    String configFile = cmdLineOptions.remove(CmdLineArguments.CONFIGURATION_FILE_OPTION);
+    Optional<String> configFile =
+        Optional.ofNullable(cmdLineOptions.remove(CmdLineArguments.CONFIGURATION_FILE_OPTION));
 
     // create initial configuration
     // from default values, config file, and command-line arguments
     ConfigurationBuilder configBuilder = Configuration.builder();
     configBuilder.setOptions(EXTERN_OPTION_DEFAULTS);
-    if (configFile != null) {
-      configBuilder.setOption(APPROACH_NAME_OPTION, extractApproachNameFromConfigName(configFile));
-      configBuilder.loadFromFile(configFile);
+    if (configFile.isPresent()) {
+      configBuilder.setOption(
+          APPROACH_NAME_OPTION, extractApproachNameFromConfigName(configFile.orElseThrow()));
+      configBuilder.loadFromFile(configFile.orElseThrow());
     }
     configBuilder.setOptions(cmdLineOptions);
 
@@ -361,8 +363,7 @@ public class CPAMain {
             .build();
 
     // Read witness file if present, switch to appropriate config and adjust cmdline options
-    config =
-        handleWitnessOptions(config, cmdLineOptions, extractApproachNameFromConfigName(configFile));
+    config = handleWitnessOptions(config, cmdLineOptions, configFile);
 
     BootstrapOptions options = new BootstrapOptions();
     config.inject(options);
@@ -657,7 +658,7 @@ public class CPAMain {
   }
 
   private static Configuration handleWitnessOptions(
-      Configuration config, Map<String, String> overrideOptions, String approachName)
+      Configuration config, Map<String, String> overrideOptions, Optional<String> configFileName)
       throws InvalidConfigurationException, IOException, InterruptedException {
     WitnessOptions options = new WitnessOptions();
     config.inject(options);
@@ -688,16 +689,20 @@ public class CPAMain {
       throw new InvalidConfigurationException(
           "Validating (violation|correctness) witnesses is not supported if option witness.validation.(violation|correctness).config is not specified.");
     }
-    return Configuration.builder()
-        .loadFromFile(validationConfigFile)
-        .setOptions(overrideOptions)
-        .setOption(APPROACH_NAME_OPTION, approachName)
-        .clearOption("witness.validation.file")
-        .clearOption("witness.validation.violation.config")
-        .clearOption("witness.validation.correctness.config")
-        .clearOption("output.path")
-        .clearOption("rootDirectory")
-        .build();
+    ConfigurationBuilder configBuilder =
+        Configuration.builder()
+            .loadFromFile(validationConfigFile)
+            .setOptions(overrideOptions)
+            .clearOption("witness.validation.file")
+            .clearOption("witness.validation.violation.config")
+            .clearOption("witness.validation.correctness.config")
+            .clearOption("output.path")
+            .clearOption("rootDirectory");
+    if (configFileName.isPresent()) {
+      configBuilder.setOption(
+          APPROACH_NAME_OPTION, extractApproachNameFromConfigName(configFileName.orElseThrow()));
+    }
+    return configBuilder.build();
   }
 
   @SuppressWarnings("resource")

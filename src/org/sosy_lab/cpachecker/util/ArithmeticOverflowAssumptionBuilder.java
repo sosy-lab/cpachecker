@@ -300,7 +300,7 @@ public final class ArithmeticOverflowAssumptionBuilder implements
         }
       }
     } else if (exp instanceof CUnaryExpression) {
-      CType calculationType = ((CUnaryExpression) exp).getExpressionType();
+      CType calculationType = exp.getExpressionType();
       CUnaryExpression unaryexp = (CUnaryExpression) exp;
       if (unaryexp.getOperator().equals(CUnaryExpression.UnaryOperator.MINUS)
           && lowerBounds.get(calculationType) != null) {

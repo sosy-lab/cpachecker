@@ -121,7 +121,7 @@ class AutomatonTransition {
       assumptions = ImmutableList.of();
       actions = ImmutableList.of();
       followStateName = pFollowStateName;
-      candidateInvariants = ExpressionTrees.<AExpression>getTrue();
+      candidateInvariants = ExpressionTrees.getTrue();
     }
 
     Builder(AutomatonBoolExpr pTrigger, @Nullable AutomatonInternalState pFollowState) {

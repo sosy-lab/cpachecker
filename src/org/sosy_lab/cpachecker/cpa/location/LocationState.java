@@ -133,11 +133,12 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
       throw new InvalidQueryException("The Query \"" + pProperty
           + "\" is invalid. Could not split the property string correctly.");
     } else {
-      if (parts.get(0).toLowerCase().equals("line")) {
+      switch (parts.get(0).toLowerCase()) {
+      case "line":
         try {
           int queryLine = Integer.parseInt(parts.get(1));
           for (CFAEdge edge : CFAUtils.enteringEdges(this.locationNode)) {
-            if (edge.getLineNumber()  == queryLine) {
+            if (edge.getLineNumber() == queryLine) {
               return true;
             }
           }
@@ -150,13 +151,13 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
                   + parts.get(1)
                   + "\"");
         }
-      } else if (parts.get(0).toLowerCase().equals("functionname")) {
+      case "functionname":
         return this.locationNode.getFunctionName().equals(parts.get(1));
-      } else if (parts.get(0).toLowerCase().equals("label")) {
+      case "label":
         return this.locationNode instanceof CLabelNode
             ? ((CLabelNode) this.locationNode).getLabel().equals(parts.get(1))
             : false;
-      } else if (parts.get(0).toLowerCase().equals("nodenumber")) {
+      case "nodenumber":
         try {
           int queryNumber = Integer.parseInt(parts.get(1));
           return this.locationNode.getNodeNumber() == queryNumber;
@@ -168,7 +169,7 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
                   + parts.get(1)
                   + "\"");
         }
-      } else if (parts.get(0).toLowerCase().equals("mainentry")) {
+      case "mainentry":
         if (locationNode.getNumEnteringEdges() == 1
             && locationNode.getFunctionName().equals(parts.get(1))) {
           CFAEdge enteringEdge = locationNode.getEnteringEdge(0);
@@ -179,7 +180,7 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
           }
         }
         return false;
-      } else {
+      default:
         throw new InvalidQueryException(
             "The Query \""
                 + pProperty

@@ -521,12 +521,7 @@ public abstract class ConditionFolder {
         newLoopContext = newLoopContext.substring(0, newLoopContext.lastIndexOf("/"));
       }
       if (pEdge instanceof FunctionCallEdge) {
-        newLoopContext =
-            newLoopContext
-                + "/"
-                + "N"
-                + ((FunctionCallEdge) pEdge).getPredecessor().getNodeNumber()
-                + "N";
+        newLoopContext = newLoopContext + "/" + "N" + pEdge.getPredecessor().getNodeNumber() + "N";
       }
 
       // enter loop or start next iteration
@@ -610,7 +605,7 @@ public abstract class ConditionFolder {
         prevLoopIt =
             Integer.parseInt(
                 newLoopBoundID.substring(
-                    newLoopBoundID.lastIndexOf(":") + 1, newLoopBoundID.length()));
+                    newLoopBoundID.lastIndexOf(":") + 1));
         newLoopBoundID = newLoopBoundID.substring(0, newLoopBoundID.lastIndexOf("|"));
       }
 
@@ -618,12 +613,7 @@ public abstract class ConditionFolder {
         newLoopBoundID = newLoopBoundID.substring(0, newLoopBoundID.lastIndexOf("/"));
       }
       if (pEdge instanceof FunctionCallEdge) {
-        newLoopBoundID =
-            newLoopBoundID
-                + "/"
-                + "N"
-                + ((FunctionCallEdge) pEdge).getPredecessor().getNodeNumber()
-                + "N";
+        newLoopBoundID = newLoopBoundID + "/" + "N" + pEdge.getPredecessor().getNodeNumber() + "N";
       }
 
       // enter loop or start next iteration
@@ -699,11 +689,7 @@ public abstract class ConditionFolder {
       }
       if (pEdge instanceof FunctionCallEdge) {
         newLoopBoundContextID =
-            newLoopBoundContextID
-                + "/"
-                + "N"
-                + ((FunctionCallEdge) pEdge).getPredecessor().getNodeNumber()
-                + "N";
+            newLoopBoundContextID + "/" + "N" + pEdge.getPredecessor().getNodeNumber() + "N";
       }
 
       // enter loop or start next iteration

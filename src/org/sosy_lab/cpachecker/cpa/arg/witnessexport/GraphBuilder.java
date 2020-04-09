@@ -115,12 +115,12 @@ enum GraphBuilder {
 
               assert (!(innerEdge instanceof AssumeEdge));
 
-              Iterable<CFAEdgeWithAssumptions> assumptions = pValueMap.get(s);
-              assumptions = Iterables.filter(assumptions, a -> a.getCFAEdge().equals(innerEdge));
+              boolean isAssumptionAvailableForEdge =
+                  Iterables.any(pValueMap.get(s), a -> a.getCFAEdge().equals(innerEdge));
               Optional<Collection<ARGState>> absentStates =
-                  Iterables.isEmpty(assumptions)
-                      ? Optional.empty()
-                      : Optional.of(Collections.singleton(s));
+                  isAssumptionAvailableForEdge
+                      ? Optional.of(Collections.singleton(s))
+                      : Optional.empty();
               pEdgeAppender.appendNewEdge(
                   prevStateId,
                   pseudoStateId,

@@ -414,12 +414,10 @@ public class BlockWaitlist implements Waitlist {
     }
 
     //slow path
-    Iterator<BKey> i = activeBlocksMap.descendingKeySet().iterator();
 
-    while(i.hasNext()) {
-      BKey key = i.next();
+    for (BKey key : activeBlocksMap.descendingKeySet()) {
       Block b = activeBlocksMap.get(key);
-      if(!b.isEmpty()) {
+      if (!b.isEmpty()) {
         return false;
       }
     }

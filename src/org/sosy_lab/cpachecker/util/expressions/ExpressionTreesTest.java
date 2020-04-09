@@ -33,16 +33,16 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 public class ExpressionTreesTest {
 
   private static final ExpressionTree<AExpression> LITERAL_A =
-      LeafExpression.of((AExpression) TestDataTools.makeVariable("a", CNumericTypes.INT));
+      LeafExpression.of(TestDataTools.makeVariable("a", CNumericTypes.INT));
 
   private static final ExpressionTree<AExpression> LITERAL_NOT_A =
-      LeafExpression.of((AExpression) TestDataTools.makeVariable("a", CNumericTypes.INT), false);
+      LeafExpression.of(TestDataTools.makeVariable("a", CNumericTypes.INT), false);
 
   private static final ExpressionTree<AExpression> LITERAL_B =
-      LeafExpression.of((AExpression) TestDataTools.makeVariable("b", CNumericTypes.INT));
+      LeafExpression.of(TestDataTools.makeVariable("b", CNumericTypes.INT));
 
   private static final ExpressionTree<AExpression> LITERAL_C =
-      LeafExpression.of((AExpression) TestDataTools.makeVariable("c", CNumericTypes.INT));
+      LeafExpression.of(TestDataTools.makeVariable("c", CNumericTypes.INT));
 
   private static final ExpressionTree<AExpression> COMPLEX_CNF =
       And.of(Or.of(LITERAL_A, LITERAL_B), Or.of(LITERAL_C, LITERAL_NOT_A));

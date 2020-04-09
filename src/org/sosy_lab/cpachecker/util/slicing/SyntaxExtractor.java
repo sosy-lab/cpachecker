@@ -23,13 +23,12 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -56,6 +55,7 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInternalState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
@@ -106,17 +106,17 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
       final LogManager pLogger)
       throws InterruptedException {
 
-    Multimap<CFANode, CFAEdge> targetsReachableFrom =
+    Multimap<CFANode, CFAEdge> nodesReachingTargetEdges =
         computeReachableTargetsPerLocation(
             getTargetStates(pCfa, pError, pShutdownNotifier, pLogger), pShutdownNotifier);
 
-    Set<CFAEdge> notFoundTargets = new HashSet<>(targetsReachableFrom.values());
+    Set<CFAEdge> notFoundTargets = new HashSet<>(nodesReachingTargetEdges.values());
     List<CFAEdge> relevantTargets = new ArrayList<>(notFoundTargets.size());
     Collection<CFAEdge> allEdges = extractAllCFAEdges(pCfa);
 
     // currently we assume that
-    // (1) we goto dedicated state FALSE when successors are not explored
-    // (2) TRUE -> ... edge never necessary
+    // (1) we goto dedicated state __FALSE when successors are not explored
+    // (2) __TRUE -> ... edge never necessary
     for (AutomatonInternalState state : condition.getStates()) {
       if (state.isTarget()) {
         continue;
@@ -125,9 +125,9 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
         if (notFoundTargets.contains(edge) && state.nontriviallyMatches(edge, pLogger)) {
           notFoundTargets.remove(edge);
           relevantTargets.add(edge);
-        } else if (state.nontriviallyMatchesAndEndsIn(edge, "FALSE", pLogger)) {
-          relevantTargets.addAll(targetsReachableFrom.get(edge.getSuccessor()));
-          notFoundTargets.removeAll(targetsReachableFrom.get(edge.getSuccessor()));
+        } else if (state.nontriviallyMatchesAndEndsIn(edge, "__FALSE", pLogger)) {
+          relevantTargets.addAll(nodesReachingTargetEdges.get(edge.getSuccessor()));
+          notFoundTargets.removeAll(nodesReachingTargetEdges.get(edge.getSuccessor()));
         }
 
         if (notFoundTargets.isEmpty()) {
@@ -148,6 +148,16 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
     return edges;
   }
 
+  private Configuration getConfigurationForTargetLocationCpa()
+      throws InvalidConfigurationException {
+    // Create new configuration with default set of CPAs
+    // might not work correctly in the presence of recursion and function pointers
+    ConfigurationBuilder configurationBuilder = Configuration.builder();
+    configurationBuilder.loadFromResource(getClass(), "find-target-locations-ARG.properties");
+    configurationBuilder.setOption("cpa.automaton.breakOnTargetState", "0");
+    return configurationBuilder.build();
+  }
+
   private Iterable<ARGState> getTargetStates(
       final CFA pCfa,
       final Specification targetSpec,
@@ -155,14 +165,7 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
       final LogManager pLogger)
       throws InterruptedException {
     try {
-      // Create new configuration with default set of CPAs
-      // might not work correctly in the presence of recursion and function pointers
-      ConfigurationBuilder configurationBuilder = Configuration.builder();
-      configurationBuilder.loadFromResource(getClass(), "find-target-locations.properties");
-      configurationBuilder.setOption("cpa.automaton.breakOnTargetState", "0");
-      configurationBuilder.setOption("ARGCPA.cpa", "");
-      Configuration configuration = configurationBuilder.build();
-
+      Configuration configuration = getConfigurationForTargetLocationCpa();
       ReachedSetFactory reachedSetFactory = new ReachedSetFactory(configuration, pLogger);
       CPABuilder cpaBuilder = new CPABuilder(configuration, pLogger, pShutdown, reachedSetFactory);
       final ConfigurableProgramAnalysis cpa =
@@ -196,51 +199,44 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
       throw new AssertionError(
           "Computation of target states that are syntactically reachable failed unexpectedly.", e);
     }
+
   }
 
   private Multimap<CFANode, CFAEdge> computeReachableTargetsPerLocation(
       final Iterable<ARGState> targets, final ShutdownNotifier pShutdown)
       throws InterruptedException {
     Multimap<CFANode, CFAEdge> locToTargets = HashMultimap.create();
-    CFAEdge targetEdge;
-    List<CFAEdge> pathSeq;
-    Set<ARGState> seen = new HashSet<>();
-    Deque<ARGState> waitlist = new ArrayDeque<>();
-    ARGState succ;
     for (ARGState target : targets) {
       pShutdown.shutdownIfNecessary();
-
       for (ARGState predTarget : target.getParents()) {
         pShutdown.shutdownIfNecessary();
 
-        pathSeq = predTarget.getEdgesToChild(target);
-        targetEdge = pathSeq.get(pathSeq.size() - 1);
-        addToMultiMap(targetEdge, pathSeq, locToTargets);
-
-        seen.clear();
-        seen.add(predTarget);
-        waitlist.add(predTarget);
-
-        while (!waitlist.isEmpty()) {
-          pShutdown.shutdownIfNecessary();
-
-          succ = waitlist.pop();
-          for (ARGState pred : succ.getParents()) {
-            pathSeq = pred.getEdgesToChild(succ);
-            addToMultiMap(targetEdge, pathSeq, locToTargets);
-            if (seen.add(pred)) {
-              waitlist.push(pred);
-            }
-          }
-        }
+        final List<CFAEdge> directEdgesToTarget = predTarget.getEdgesToChild(target);
+        final CFAEdge targetEdge = directEdgesToTarget.get(directEdgesToTarget.size() - 1);
+        List<CFAEdge> allEdgesOnPathsToTarget = getAllEdgesOnPathToTarget(predTarget);
+        putAllLocationsOnPathWithTarget(allEdgesOnPathsToTarget, targetEdge, locToTargets);
       }
     }
     return locToTargets;
   }
 
-  private void addToMultiMap(
-      final CFAEdge pTargetEdge,
+  private List<CFAEdge> getAllEdgesOnPathToTarget(ARGState target) {
+    List<CFAEdge> allEdgesOnPathToTarget = new ArrayList<>();
+    ImmutableSet<ARGState> allStatesOnPathsToTarget = ARGUtils.getAllStatesOnPathsTo(target);
+    for (ARGState stateOnPathToTarget : allStatesOnPathsToTarget) {
+      for (ARGState child : stateOnPathToTarget.getChildren()) {
+        if (allStatesOnPathsToTarget.contains(child)) {
+          List<CFAEdge> edgesToChild = stateOnPathToTarget.getEdgesToChild(child);
+          allEdgesOnPathToTarget.addAll(edgesToChild);
+        }
+      }
+    }
+    return allEdgesOnPathToTarget;
+  }
+
+  private void putAllLocationsOnPathWithTarget(
       final List<CFAEdge> edges,
+      final CFAEdge pTargetEdge,
       final Multimap<CFANode, CFAEdge> locToTargets) {
     for (CFAEdge edge : edges) {
       locToTargets.put(edge.getPredecessor(), pTargetEdge);

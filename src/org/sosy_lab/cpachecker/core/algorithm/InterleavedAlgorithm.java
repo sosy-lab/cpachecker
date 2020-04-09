@@ -231,7 +231,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
         String str = annotation.orElseThrow();
         if(str.contains("_")) {
           try {
-            int limit = Integer.parseInt(str.substring(str.indexOf("_") + 1, str.length()));
+            int limit = Integer.parseInt(str.substring(str.indexOf("_") + 1));
             if (limit > 0) {
               return limit;
             }

@@ -156,7 +156,7 @@ public class WitnessExporter {
           return ExpressionTrees.getFalse();
         }
         if (!invString.equals("1")) {
-          return LeafExpression.of((Object) invString);
+          return LeafExpression.of(invString);
         }
       }
       return ExpressionTrees.getTrue(); // no new invariant
@@ -180,7 +180,7 @@ public class WitnessExporter {
               .getExpStmts();
       ImmutableList.Builder<ExpressionTree<Object>> stateInvariants = ImmutableList.builder();
       for (AExpressionStatement expressionStatement : invariants) {
-        stateInvariants.add(LeafExpression.of((Object) expressionStatement.getExpression()));
+        stateInvariants.add(LeafExpression.of(expressionStatement.getExpression()));
       }
       return stateInvariants.build();
     }
@@ -191,6 +191,7 @@ public class WitnessExporter {
   protected final WitnessOptions options;
 
   protected final CFA cfa;
+  protected final LogManager logger;
   private final FormulaManagerView fmgr;
 
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
@@ -199,6 +200,7 @@ public class WitnessExporter {
   protected final Simplifier<Object> simplifier = ExpressionTrees.newSimplifier(factory);
 
   protected final VerificationTaskMetaData verificationTaskMetaData;
+
 
   public WitnessExporter(
       final Configuration pConfig,
@@ -210,6 +212,7 @@ public class WitnessExporter {
     options = new WitnessOptions();
     pConfig.inject(options);
     this.cfa = pCFA;
+    this.logger = pLogger;
     this.fmgr = Solver.create(pConfig, pLogger, ShutdownNotifier.createDummy()).getFormulaManager();
     this.assumptionToEdgeAllocator =
         AssumptionToEdgeAllocator.create(pConfig, pLogger, pCFA.getMachineModel());
@@ -231,6 +234,7 @@ public class WitnessExporter {
         new WitnessFactory(
             options,
             cfa,
+            logger,
             verificationTaskMetaData,
             factory,
             simplifier,
@@ -258,6 +262,7 @@ public class WitnessExporter {
         new WitnessFactory(
             options,
             cfa,
+            logger,
             verificationTaskMetaData,
             factory,
             simplifier,
@@ -290,6 +295,7 @@ public class WitnessExporter {
         new WitnessFactory(
             options,
             cfa,
+            logger,
             verificationTaskMetaData,
             factory,
             simplifier,

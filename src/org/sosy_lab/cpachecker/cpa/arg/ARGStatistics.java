@@ -352,7 +352,7 @@ public class ARGStatistics implements Statistics {
     String path = pPath.toString();
     int sepIx = path.lastIndexOf(".");
     String prefix = path.substring(0, sepIx);
-    String extension = path.substring(sepIx, path.length());
+    String extension = path.substring(sepIx);
     return Paths.get(prefix + "-" + partitionKey + extension);
   }
 
@@ -388,7 +388,8 @@ public class ARGStatistics implements Statistics {
       Result pResult) {
     SetMultimap<ARGState, ARGState> relevantSuccessorRelation =
         ARGUtils.projectARG(rootState, ARGState::getChildren, ARGUtils.RELEVANT_STATE);
-    Function<ARGState, Collection<ARGState>> relevantSuccessorFunction = Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.<ARGState>of());
+    Function<ARGState, Collection<ARGState>> relevantSuccessorFunction =
+        Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.of());
 
     if (EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult)) {
       final Witness witness =

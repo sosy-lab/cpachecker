@@ -150,34 +150,39 @@ Releasing a New Version
 5. Add a tag in the repository with name `cpachecker-<version>`,
    where `<version>` is constructed as outlined below in Sect. "Release Tagging".
 
-6. Send a mail with the release announcement to cpachecker-announce and
+6. Update version number in build/Dockerfile.release and .gitlab-ci.yml
+   and either build and push the Docker image manually
+   or trigger the scheduled GitLab CI job after pushing
+   (https://gitlab.com/sosy-lab/software/cpachecker/pipeline_schedules).
+
+7. Send a mail with the release announcement to cpachecker-announce and
    cpachecker-users mailing lists.
 
-7. Prepare for next development cycle by setting `version.base` in [`build.xml`](../build.xml)
+8. Prepare for next development cycle by setting `version.base` in [`build.xml`](../build.xml)
    to a new development version, which is the next possible version number
    with the suffix `-svn`.
-   For example, if `1.9` was just released, the next possible version
+   For example, if `1.9` was just released, the next possible feature release
    is `1.9.1` and the new development version should be `1.9.1-svn`.
 
 
 Release Tagging
 ---------------
 
-We use the following schema to construct tags for CPAchecker releases.
+We use the following schema to construct tags for CPAchecker releases
+(from `cpachecker-1.8` onwards):
 
-- `X.Y` is to be used as version for the major release in year `20XY`.
-  There should be exactly one major CPAchecker release every year.
-- `X.Y.z` should be used for (minor) feature releases.
-- `X.Y.z-<component-version>` (old) or `X.Y-<component-version>` (new) should be used for (minor) component releases.
+- `X.Y` is the *yearly release* in year `20XY`.
+  There is exactly one such CPAchecker release every year.
+- `X.Y.Z` is a *feature release*, where
+  - `X.Y` is the last yearly release that already exists and that the new release builds on, and
+  - `Z` is `n+1` if a release `X.Y.n` already exists, and `1` otherwise.
+- `X.Y[.z]-<component-version>` is a *component release*, where
+   `X.Y[.z]` is defined as above and `<component-version>` is a label that
+    should give a hint on a special purpose for the release.
+    Ideally, the component version ends with a date stamp.
 - Examples:
-  - `cpachecker-1.9` is the major release in the year 2019.
-  - `cpachecker-1.6.1` is a (minor) feature release after major release `1.6`.
-  - `cpachecker-1.7.11-svcomp19` is a minor release after major release `1.7`
-    for the purpose of tagging the version submitted to SV-COMP 2019.
-  - `cpachecker-1.8-coveritest-sttt` is a (minor) component release after major release `1.8`
+  - `cpachecker-1.9` is the yearly release for 2019.
+  - `cpachecker-1.8-coveritest-sttt-20190729` is a component release after yearly release `1.8`,
+    which points to a commit that was made on 2019-07-29
     for the purpose of tagging the component version used for the STTT paper on CoVeriTest.
-- Invariant: For two tags with prefixes `X1.Y1` and `X2.Y2` the following holds:
-    If `(X1, Y1) < (X2, Y2)` using the numerical tuple order,
-    then `X1.Y1` points to an older commit than `X2.Y2`.
-
 

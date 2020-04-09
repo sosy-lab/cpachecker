@@ -55,6 +55,7 @@ public class ExtendedWitnessExporter extends WitnessExporter {
         new ExtendedWitnessFactory(
             options,
             cfa,
+            logger,
             verificationTaskMetaData,
             factory,
             simplifier,
