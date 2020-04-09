@@ -82,8 +82,12 @@ public class FaultReportWriter {
         .mapToObj(l -> (Integer)l + "")
         .collect(Collectors.collectingAndThen(Collectors.toList(), list -> {
           int lastIndex = list.size() - 1;
-          if (lastIndex < 1) return String.join("", list);
-          if (lastIndex == 1) return String.join(" and ", list);
+          if (lastIndex < 1) {
+            return String.join("", list);
+          }
+          if (lastIndex == 1) {
+            return String.join(" and ", list);
+          }
           return String.join(" and ",
               String.join(", ", list.subList(0, lastIndex)),
               list.get(lastIndex));

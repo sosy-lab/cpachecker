@@ -32,6 +32,8 @@ import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultExplanation;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 public class NoContextExplanation implements FaultExplanation {
 
   /**
@@ -45,9 +47,7 @@ public class NoContextExplanation implements FaultExplanation {
    */
   @Override
   public String explanationFor(Fault subset) {
-    if (subset.size() != 1) {
-      throw new IllegalArgumentException("NoContextExplanation requires exactly one edge in Fault");
-    }
+    checkArgument(subset.size() == 1, "NoContextExplanation requires exactly one edge in Fault");
     FaultContribution faultContribution = new ArrayList<>(subset).get(0);
     CFAEdge pEdge = faultContribution.correspondingEdge();
     String description = pEdge.getDescription();

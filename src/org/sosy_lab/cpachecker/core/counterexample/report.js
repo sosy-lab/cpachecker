@@ -372,7 +372,7 @@ with considerably less effort */
 						
 
 			function addFaultLocalizationInfo(){
-				if(Object.keys(faultEdges).length !== 0) {
+				if(faultEdges.length !== 0) {
 					for(let j = 0; j < errorPath.length; j++){
 						$("#rank-"+j).addClass("rank");
 					}
