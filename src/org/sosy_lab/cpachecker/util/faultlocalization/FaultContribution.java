@@ -41,7 +41,6 @@ public class FaultContribution {
    * The score will be printed to the user as an indicator of how likely this edge is to fix the error when changed.
    * However, there exists an example method for calculating the score.
    * For more details see the documentation of setScore() below.
-   * @see this#setScore(double)
    */
   private double score;
 
