@@ -28,10 +28,10 @@ public class TarantulaCasesStatus {
   private int failedCases;
   private int passedCases;
 
-  public TarantulaCasesStatus() {
+  public TarantulaCasesStatus(int pFailedCases, int pPassedCases) {
 
-    this.failedCases = 0;
-    this.passedCases = 0;
+    this.failedCases = pFailedCases;
+    this.passedCases = pPassedCases;
   }
 
   public int getFailedCases() {
@@ -40,13 +40,5 @@ public class TarantulaCasesStatus {
 
   public int getPassedCases() {
     return passedCases;
-  }
-
-  public void setFailedCases(int pFailedCases) {
-    this.failedCases = pFailedCases;
-  }
-
-  public void setPassedCases(int pPassedCases) {
-    this.passedCases = pPassedCases;
   }
 }

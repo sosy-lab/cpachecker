@@ -28,12 +28,13 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.Set;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -79,7 +80,7 @@ public class TarantulaUtils {
    * @param pReachedSet Input.
    * @return Detected all failed Paths.
    */
-  private static List<List<CFAEdge>> getCounterExamplePaths(ReachedSet pReachedSet) {
+  private static Set<List<CFAEdge>> getCounterExamplePaths(ReachedSet pReachedSet) {
     FluentIterable<CounterexampleInfo> counterExamples =
         Optionals.presentInstances(
             from(pReachedSet)
@@ -87,7 +88,7 @@ public class TarantulaUtils {
                 .filter(ARGState.class)
                 .transform(ARGState::getCounterexampleInformation));
 
-    List<List<CFAEdge>> failedPaths = new ArrayList<>();
+    Set<List<CFAEdge>> failedPaths = new HashSet<>();
     for (CounterexampleInfo counterExample : counterExamples) {
       failedPaths.add(counterExample.getTargetPath().getFullPath());
     }
@@ -139,9 +140,9 @@ public class TarantulaUtils {
    * @param reachedSet input.
    * @return Detected safe edges.
    */
-  private static List<List<CFAEdge>> getEdgesOfSafePaths(ReachedSet reachedSet) {
+  private static Set<List<CFAEdge>> getEdgesOfSafePaths(ReachedSet reachedSet) {
 
-    List<List<CFAEdge>> allSafePathsTogether = new ArrayList<>();
+    Set<List<CFAEdge>> allSafePathsTogether = new HashSet<>();
     for (ARGState safePath : mergeAllSafeStates(reachedSet)) {
 
       if (existsSafePath(reachedSet)) {
@@ -164,15 +165,15 @@ public class TarantulaUtils {
         reachedSet);
   }
 
-  public static List<List<CFAEdge>> getAllPossiblePaths(ReachedSet reachedSet) {
+  public static Set<List<CFAEdge>> getAllPossiblePaths(ReachedSet reachedSet) {
 
     return mergeInto2dArray(getEdgesOfSafePaths(reachedSet), getCounterExamplePaths(reachedSet));
   }
 
-  private static List<List<CFAEdge>> mergeInto2dArray(
-      List<List<CFAEdge>> safePaths, List<List<CFAEdge>> errorPaths) {
+  private static Set<List<CFAEdge>> mergeInto2dArray(
+      Set<List<CFAEdge>> safePaths, Set<List<CFAEdge>> errorPaths) {
 
-    return Stream.concat(safePaths.stream(), errorPaths.stream()).collect(Collectors.toList());
+    return Sets.union(safePaths, errorPaths);
   }
 
   /**
@@ -266,25 +267,26 @@ public class TarantulaUtils {
    * @return result as <code>Map<code/>.
    */
   private static Map<CFAEdge, TarantulaCasesStatus> coverageInformation(
-      List<List<CFAEdge>> path, ReachedSet reachedSet) {
+      Set<List<CFAEdge>> path, ReachedSet reachedSet) {
 
     Map<CFAEdge, TarantulaCasesStatus> map = new LinkedHashMap<>();
     for (List<CFAEdge> individualArray : path) {
       for (int j = 0; j < individualArray.size(); j++) {
-        TarantulaCasesStatus pair = new TarantulaCasesStatus();
+        TarantulaCasesStatus pair;
         if (map.containsKey(individualArray.get(j))) {
           pair = map.get(individualArray.get(j));
           if (isFailedPath(individualArray, reachedSet)) {
-            pair.setFailedCases(pair.getFailedCases() + 1);
+            pair = new TarantulaCasesStatus(pair.getFailedCases() + 1, pair.getPassedCases());
+
           } else {
-            pair.setPassedCases(pair.getPassedCases() + 1);
+            pair = new TarantulaCasesStatus(pair.getFailedCases(), pair.getPassedCases() + 1);
           }
 
         } else {
           if (isFailedPath(individualArray, reachedSet)) {
-            pair.setFailedCases(1);
+            pair = new TarantulaCasesStatus(1, 0);
           } else {
-            pair.setPassedCases(1);
+            pair = new TarantulaCasesStatus(0, 1);
           }
         }
         // Skipp the "none" line numbers.

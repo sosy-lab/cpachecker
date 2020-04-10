@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.tarantula;
 
 import java.io.PrintStream;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -61,52 +60,6 @@ public class TarantulaAlgorithm implements Algorithm {
 
     return result;
   }
-  /**
-   * Calculates computeSuspicious of tarantula algorithm.
-   *
-   * @param pFailed Is the number of pFailed cases in each edge.
-   * @param pPassed Is the number of pPassed cases in each edge.
-   * @param pReachedSet Input.
-   * @return Calculated suspicious.
-   */
-  public double computeSuspicious(double pFailed, double pPassed, ReachedSet pReachedSet) {
-    double numerator = pFailed / totalFailed(pReachedSet);
-
-    double denominator =
-        (pPassed / totalPassed(pReachedSet)) + (pFailed / totalFailed(pReachedSet));
-    if (denominator == 0.0) {
-      return 0.0;
-    }
-    return numerator / denominator;
-  }
-  /**
-   * Calculates how many total failed cases are in ARG.
-   *
-   * @param pReachedSet Input.
-   * @return how many failed cases are found.
-   */
-  public int totalFailed(ReachedSet pReachedSet) {
-    List<List<CFAEdge>> allPaths = TarantulaUtils.getAllPossiblePaths(pReachedSet);
-
-    int counterResult = 0;
-    for (List<CFAEdge> pAllPath : allPaths) {
-      if (TarantulaUtils.isFailedPath(pAllPath, pReachedSet)) {
-        counterResult++;
-      }
-    }
-    return counterResult;
-  }
-  /**
-   * Calculates how many total passed cases are in ARG.
-   *
-   * @param pReachedSet Input.
-   * @return how many passed cases are found.
-   */
-  public int totalPassed(ReachedSet pReachedSet) {
-    List<List<CFAEdge>> allPaths = TarantulaUtils.getAllPossiblePaths(pReachedSet);
-
-    return allPaths.size() - totalFailed(pReachedSet);
-  }
 
   /**
    * Just prints result after calculating suspicious and make the ranking for all edges and then
@@ -115,12 +68,14 @@ public class TarantulaAlgorithm implements Algorithm {
   public void printResult(PrintStream out, ReachedSet reachedSet) {
     Map<CFAEdge, TarantulaCasesStatus> table = TarantulaUtils.getTable(reachedSet);
     Map<CFAEdge, Double> resultMap = new LinkedHashMap<>();
+    TarantulaRanking ranking = new TarantulaRanking();
 
     table.forEach(
         (key, value) ->
             resultMap.put(
                 key,
-                computeSuspicious(value.getFailedCases(), value.getPassedCases(), reachedSet)));
+                ranking.computeSuspicious(
+                    value.getFailedCases(), value.getPassedCases(), reachedSet)));
 
     // Sort the result by its value and ignore the suspicious with 0.0 ration.
     final Map<CFAEdge, Double> sortedByCount =
