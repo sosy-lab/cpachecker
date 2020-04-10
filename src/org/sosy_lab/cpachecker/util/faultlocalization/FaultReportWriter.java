@@ -58,7 +58,7 @@ public class FaultReportWriter {
     //This works because reasons is sorted by ReasonType first.
     int numberHints = reasons.size()-numberReasons;
     html.append("<ul id=\"hint-list\">");
-    for(int i = 0; i < numberHints; i++){
+    for (int i = 0; i < numberHints; i++) {
       html.append("<li>").append(toHtml(reasons.get(i))).append("</li>");
     }
     html.append("</ul>");

@@ -35,23 +35,18 @@ import java.util.stream.Collectors;
 /**
  * A Fault is a set of FaultContributions.
  * The set has to be obtained by a fault localizing algorithm.
- * Every FaultContribution represents an edge in the program that contains a fault
- * or is responsible for a fault in combination with the other edges in the set.
+ * FaultReasons can be appended to a Fault to explain why this set of FaultContributions caused an error.
+ * The score of a Fault is used to rank the Faults. The higher the score the higher the rank.
  */
 public class Fault extends ForwardingSet<FaultContribution> {
 
   private Set<FaultContribution> errorSet;
   private List<FaultReason> reasons;
-  private double score;
 
-  public List<Integer> sortedLineNumbers(){
-    List<Integer> lines = new ArrayList<>();
-    for(FaultContribution elem: errorSet){
-      lines.add(elem.correspondingEdge().getFileLocation().getStartingLineInOrigin());
-    }
-    Collections.sort(lines);
-    return lines;
-  }
+  /**
+   * The recommended way is to calculate the score based on the likelihoods of the appended reasons.
+   */
+  private double score;
 
   /**
    * Error Indicators indicate a subset of all edges that most likely contain an error.
@@ -77,6 +72,15 @@ public class Fault extends ForwardingSet<FaultContribution> {
     errorSet = new HashSet<>(Collections.singleton(singleton));
     reasons = new ArrayList<>();
     score = 0;
+  }
+
+  public List<Integer> sortedLineNumbers(){
+    List<Integer> lines = new ArrayList<>();
+    for(FaultContribution elem: errorSet){
+      lines.add(elem.correspondingEdge().getFileLocation().getStartingLineInOrigin());
+    }
+    Collections.sort(lines);
+    return lines;
   }
 
   /**
@@ -106,19 +110,37 @@ public class Fault extends ForwardingSet<FaultContribution> {
     score = pScore;
   }
 
-  /**
-   * This is the actual toString method. If another class extends this class overriding the toString
-   * method may be useful. The extra method then still provides the default string representation.
-   * @return the text representation of this class
-   */
-  protected String textRepresentation(){
+  @Override
+  public String toString(){
+    sortReasonByReasonTypeThenByLikelihood();
+    int numberReasons = reasons.stream().filter(l -> !l.isHint()).mapToInt(l -> 1).sum();
+
+    String header = "Error suspected on line(s): " + listDistinctLinesAndJoin();
+
+    String amountReasons = "Detected " + numberReasons + " possible reason(s):\n";
+    StringBuilder reasonString = new StringBuilder();
+    int lastHint = 0;
+    for (int i = 0; i < reasons.size(); i++) {
+      FaultReason current = reasons.get(i);
+      if (current.isHint()) {
+        reasonString.append(" Hint: ").append(current.toString()).append("\n");
+        lastHint = i+1;
+      } else {
+        reasonString.append("    ").append(i+1-lastHint).append(") ").append(current.toString()).append("\n");
+      }
+    }
+    return header + "\n" + amountReasons + reasonString;
+  }
+
+  private void sortReasonByReasonTypeThenByLikelihood(){
     Comparator<FaultReason> sortReasons =
         Comparator.comparingInt(l -> l.isHint() ? 0 : 1);
     sortReasons = sortReasons.thenComparingDouble(b -> 1d/b.getLikelihood());
     reasons.sort(sortReasons);
-    int numberReasons = reasons.stream().filter(l -> !l.isHint()).mapToInt(l -> 1).sum();
+  }
 
-    String header = "Error suspected on line(s): " + errorSet
+  private String listDistinctLinesAndJoin(){
+    return errorSet
         .stream()
         .mapToInt(l -> l.correspondingEdge().getFileLocation().getStartingLineInOrigin())
         .sorted()
@@ -137,25 +159,6 @@ public class Fault extends ForwardingSet<FaultContribution> {
               list.get(lastIndex));
         }))
         + " (Score: " + (int)(score*100) + ")";
-
-    String amountReasons = "Detected " + numberReasons + " possible reason(s):\n";
-    StringBuilder reasonString = new StringBuilder();
-    int lastHint = 0;
-    for (int i = 0; i < reasons.size(); i++) {
-      FaultReason current = reasons.get(i);
-      if (current.isHint()) {
-        reasonString.append(" Hint: ").append(current.toString()).append("\n");
-        lastHint = i+1;
-      } else {
-        reasonString.append("    ").append(i+1-lastHint).append(") ").append(current.toString()).append("\n");
-      }
-    }
-    return header + "\n" + amountReasons + reasonString;
-  }
-
-  @Override
-  public String toString(){
-    return textRepresentation();
   }
 
   @Override

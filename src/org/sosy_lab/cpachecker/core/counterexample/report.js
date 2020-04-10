@@ -340,10 +340,10 @@ with considerably less effort */
 					faultEdges.push(errPathElem);
 					for(let j = 0; j < errPathElem.numbersets; j++){
 						let rank = errPathElem.ranks[j];
-						let score = errPathElem.scores[j];
-						let descriptions = errPathElem.descriptions[j]; //Array of line descriptions for combobox
-						let reason = errPathElem.reasons[j];
-						let lines = errPathElem.lines[j];//Array of lines
+						const score = errPathElem.scores[j];
+						const descriptions = errPathElem.descriptions[j]; //Array of line descriptions for combobox
+						const reason = errPathElem.reasons[j];
+						const lines = errPathElem.lines[j];//Array of lines
 						currFault = {};
 						currFault["reason"] = reason;
 						currFault["rank"] = rank;

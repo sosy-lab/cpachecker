@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.faultlocalization.ranking;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.stream.Collectors;
+
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
@@ -56,16 +59,30 @@ public class SetSizeRanking implements FaultRanking {
     if(ranking.getRankedList().size()==1){
       Fault current = ranking.getRankedList().get(0);
       current.addReason(FaultReason.justify(
-          "The set has a size of " + current.size()+ ".",
-          1d));
+              "The set has a size of " + current.size() + ".",
+              1d));
       return ranking.getRankedList();
     }
-    BigDecimal sum = BigDecimal.valueOf(2).pow(ranking.getRankedList().size()).subtract(BigDecimal.ONE);
-    for(int i = 0; i < ranking.getRankedList().size(); i++){
-      Fault current = ranking.getRankedList().get(i);
+
+    List<Double> sortedLikelihood = ranking.getLikelihoodMap().values().stream().distinct().sorted().collect(Collectors.toList());
+    Map<Double, Integer> index = new HashMap<>();
+    for(int i = 0; i < sortedLikelihood.size(); i++){
+      index.put(sortedLikelihood.get(i), i);
+    }
+
+    int total = 0;
+
+    for(Double val: ranking.getLikelihoodMap().values()){
+      total += 1<<index.get(val);
+    }
+
+    double single = 1d/total;
+
+    for(Map.Entry<Fault, Double> entry: ranking.getLikelihoodMap().entrySet()){
+      Fault current = entry.getKey();
       current.addReason(FaultReason.justify(
-          "The set has a size of " + current.size() + ".",
-          BigDecimal.valueOf(2).pow(i).divide(sum, 5, RoundingMode.HALF_UP).doubleValue()));
+              "The set has a size of " + current.size() + ".",
+              Math.pow(2, index.get(entry.getValue()))*single));
     }
 
     return ranking.getRankedList();

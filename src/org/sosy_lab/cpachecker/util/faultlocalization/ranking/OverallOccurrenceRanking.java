@@ -58,7 +58,7 @@ public class OverallOccurrenceRanking implements FaultRanking {
     }
 
     RankingResults rankingResults = FaultRankingUtils.rankedListFor(result,
-        c -> c.stream().mapToDouble(l -> occurrence.get(l)).sum());
+        c -> c.stream().mapToDouble(occurrence::get).sum());
 
     for (Entry<Fault, Double> entry : rankingResults.getLikelihoodMap().entrySet()) {
       entry.getKey().addReason(
