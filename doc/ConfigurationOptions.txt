@@ -431,9 +431,6 @@ analysis.unknownAsTrue = false
 # certain restrictions.
 analysis.unknownIfUnrestrictedProgram = false
 
-# use delta debugging algorithm
-analysis.useDeltaDebugging = true
-
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
 
@@ -3117,9 +3114,6 @@ custominstructions.requirementsStateClassName = no default value
 # which are in turn also counted to the last loop.
 cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
   enum:     [ALL_LOOPS, ONLY_LAST_LOOP]
-
-# Export auxiliary invariants used for induction.
-dd.test = false
 
 # Whether to consider control dependencies.
 dependencegraph.controldeps.use = true

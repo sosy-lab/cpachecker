@@ -51,7 +51,6 @@ import org.sosy_lab.cpachecker.core.algorithm.CEGARAlgorithm.CEGARAlgorithmFacto
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CounterexampleStoreAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.DeltaDebuggingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.InterleavedAlgorithm;
@@ -129,9 +128,6 @@ public class CoreComponentsFactory {
 
   @Option(secure=true, description="use a second model checking run (e.g., with CBMC or a different CPAchecker configuration) to double-check counter-examples")
   private boolean checkCounterexamples = false;
-
-  @Option(secure=true, description = "use delta debugging algorithm")
-  private boolean useDeltaDebugging = true;
 
   @Option(secure = true, description = "use counterexample check and the BDDCPA Restriction option")
   private boolean checkCounterexamplesWithBDDCPARestriction = false;
@@ -484,11 +480,6 @@ public class CoreComponentsFactory {
               new CounterexampleCheckAlgorithm(
                   algorithm, cpa, config, specification, logger, shutdownNotifier, cfa);
         }
-      }
-
-      if (useDeltaDebugging) {
-        algorithm = new DeltaDebuggingAlgorithm(algorithm, cpa, config, specification, logger,
-            shutdownNotifier, cfa);
       }
 
       algorithm =
