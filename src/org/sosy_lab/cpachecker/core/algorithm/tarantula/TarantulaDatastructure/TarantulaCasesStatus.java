@@ -21,17 +21,17 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.core.algorithm.tarantula;
+package org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure;
 
-public class Pair {
+public class TarantulaCasesStatus {
 
   private int failedCases;
   private int passedCases;
 
-  public Pair(int pFailedCases, int pPassedCases) {
+  public TarantulaCasesStatus() {
 
-    this.failedCases = pFailedCases;
-    this.passedCases = pPassedCases;
+    this.failedCases = 0;
+    this.passedCases = 0;
   }
 
   public int getFailedCases() {

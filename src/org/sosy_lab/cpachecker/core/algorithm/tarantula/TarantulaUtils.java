@@ -34,34 +34,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.sosy_lab.common.Optionals;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.TarantulaCasesStatus;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class TarantulaUtils {
 
-  private static List<ARGState> targetStates;
   private static ARGState root;
 
   /** Helper class for TarantulaAlgorithm related utility methods. */
   private TarantulaUtils() {}
-  /**
-   * Gets error states (error leaves) from ARG.
-   *
-   * @param reachedSet input.
-   * @return Detected error states.
-   */
-  private static List<ARGState> getErrorStates(ReachedSet reachedSet) {
-
-    return FluentIterable.from(reachedSet)
-        .transform(s -> getRootState(s))
-        .filter(ARGState::isTarget)
-        .toList();
-  }
 
   /**
    * Gets safe states (safe leaves) from ARG.
@@ -69,7 +59,7 @@ public class TarantulaUtils {
    * @param pRoot root at ARG.
    * @return Detected safe states.
    */
-  public static List<ARGState> getSafeStates(ARGState pRoot) {
+  private static List<ARGState> getSafeStates(ARGState pRoot) {
     return from(pRoot.getSubgraph())
         .filter(
             e -> {
@@ -84,12 +74,33 @@ public class TarantulaUtils {
         .toList();
   }
   /**
+   * Gets all CFAEdges from generated counter Examples and consider this as failed paths.
+   *
+   * @param pReachedSet Input.
+   * @return Detected all failed Paths.
+   */
+  private static List<List<CFAEdge>> getCounterExamplePaths(ReachedSet pReachedSet) {
+    FluentIterable<CounterexampleInfo> counterExamples =
+        Optionals.presentInstances(
+            from(pReachedSet)
+                .filter(AbstractStates::isTargetState)
+                .filter(ARGState.class)
+                .transform(ARGState::getCounterexampleInformation));
+
+    List<List<CFAEdge>> failedPaths = new ArrayList<>();
+    for (CounterexampleInfo counterExample : counterExamples) {
+      failedPaths.add(counterExample.getTargetPath().getFullPath());
+    }
+
+    return failedPaths;
+  }
+  /**
    * Gets safe states in case of loop (safe leaves) from ARG.
    *
    * @param pRoot root at ARG.
    * @return Detected safe loop states.
    */
-  public static List<ARGState> getSafeLoopStates(ARGState pRoot) {
+  private static List<ARGState> getSafeLoopStates(ARGState pRoot) {
 
     return from(pRoot.getSubgraph())
         .filter(
@@ -121,22 +132,6 @@ public class TarantulaUtils {
     }
     return mergedAllSafeStates;
   }
-  /**
-   * Gets two dimensional CFAEdge list of the error paths.
-   *
-   * @param reachedSet input.
-   * @return Detected error edges.
-   */
-  public static List<List<CFAEdge>> getEdgesOfErrorPaths(ReachedSet reachedSet) {
-
-    targetStates = getErrorStates(reachedSet);
-    List<List<CFAEdge>> allErrorPathsTogether = new ArrayList<>();
-
-    for (ARGState targetState : targetStates) {
-      allErrorPathsTogether.addAll(getAllPaths(reachedSet, targetState));
-    }
-    return allErrorPathsTogether;
-  }
 
   /**
    * Gets two dimensional CFAEdge list of the safe paths.
@@ -144,7 +139,7 @@ public class TarantulaUtils {
    * @param reachedSet input.
    * @return Detected safe edges.
    */
-  public static List<List<CFAEdge>> getEdgesOfSafePaths(ReachedSet reachedSet) {
+  private static List<List<CFAEdge>> getEdgesOfSafePaths(ReachedSet reachedSet) {
 
     List<List<CFAEdge>> allSafePathsTogether = new ArrayList<>();
     for (ARGState safePath : mergeAllSafeStates(reachedSet)) {
@@ -162,19 +157,19 @@ public class TarantulaUtils {
    * @param reachedSet Input.
    * @return Covered edges.
    */
-  public static Map<CFAEdge, Pair> getTable(ReachedSet reachedSet) {
+  public static Map<CFAEdge, TarantulaCasesStatus> getTable(ReachedSet reachedSet) {
 
     return coverageInformation(
-        mergeInto2dArray(getEdgesOfSafePaths(reachedSet), getEdgesOfErrorPaths(reachedSet)),
+        mergeInto2dArray(getEdgesOfSafePaths(reachedSet), getCounterExamplePaths(reachedSet)),
         reachedSet);
   }
 
   public static List<List<CFAEdge>> getAllPossiblePaths(ReachedSet reachedSet) {
 
-    return mergeInto2dArray(getEdgesOfSafePaths(reachedSet), getEdgesOfErrorPaths(reachedSet));
+    return mergeInto2dArray(getEdgesOfSafePaths(reachedSet), getCounterExamplePaths(reachedSet));
   }
 
-  public static List<List<CFAEdge>> mergeInto2dArray(
+  private static List<List<CFAEdge>> mergeInto2dArray(
       List<List<CFAEdge>> safePaths, List<List<CFAEdge>> errorPaths) {
 
     return Stream.concat(safePaths.stream(), errorPaths.stream()).collect(Collectors.toList());
@@ -222,7 +217,7 @@ public class TarantulaUtils {
    * @return <code>boolean</code>
    */
   public static boolean isFailedPath(List<CFAEdge> path, ReachedSet reachedSet) {
-    targetStates = getErrorStates(reachedSet);
+    List<ARGState> targetStates = ARGUtils.getErrorStates(reachedSet);
 
     for (AbstractState targetState : targetStates) {
       CFANode nodeOfTargetState = AbstractStates.extractLocation(targetState);
@@ -241,7 +236,7 @@ public class TarantulaUtils {
    * @param chosenState whether targetStates or safeStates
    * @return Full paths
    */
-  public static List<List<CFAEdge>> getAllPaths(ReachedSet reachedSet, ARGState chosenState) {
+  private static List<List<CFAEdge>> getAllPaths(ReachedSet reachedSet, ARGState chosenState) {
     List<List<ARGState>> getAllStates = getAllStatesReversed(reachedSet, chosenState);
     List<List<CFAEdge>> paths = new ArrayList<>();
 
@@ -270,13 +265,13 @@ public class TarantulaUtils {
    * @param reachedSet input.
    * @return result as <code>Map<code/>.
    */
-  public static Map<CFAEdge, Pair> coverageInformation(
+  private static Map<CFAEdge, TarantulaCasesStatus> coverageInformation(
       List<List<CFAEdge>> path, ReachedSet reachedSet) {
 
-    Map<CFAEdge, Pair> map = new LinkedHashMap<>();
+    Map<CFAEdge, TarantulaCasesStatus> map = new LinkedHashMap<>();
     for (List<CFAEdge> individualArray : path) {
       for (int j = 0; j < individualArray.size(); j++) {
-        Pair pair = new Pair(0, 0);
+        TarantulaCasesStatus pair = new TarantulaCasesStatus();
         if (map.containsKey(individualArray.get(j))) {
           pair = map.get(individualArray.get(j));
           if (isFailedPath(individualArray, reachedSet)) {

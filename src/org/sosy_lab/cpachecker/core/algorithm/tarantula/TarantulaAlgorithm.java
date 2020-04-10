@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.TarantulaCasesStatus;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -70,6 +71,7 @@ public class TarantulaAlgorithm implements Algorithm {
    */
   public double computeSuspicious(double pFailed, double pPassed, ReachedSet pReachedSet) {
     double numerator = pFailed / totalFailed(pReachedSet);
+
     double denominator =
         (pPassed / totalPassed(pReachedSet)) + (pFailed / totalFailed(pReachedSet));
     if (denominator == 0.0) {
@@ -111,7 +113,7 @@ public class TarantulaAlgorithm implements Algorithm {
    * store the result into <code>Map</code>.
    */
   public void printResult(PrintStream out, ReachedSet reachedSet) {
-    Map<CFAEdge, Pair> table = TarantulaUtils.getTable(reachedSet);
+    Map<CFAEdge, TarantulaCasesStatus> table = TarantulaUtils.getTable(reachedSet);
     Map<CFAEdge, Double> resultMap = new LinkedHashMap<>();
 
     table.forEach(

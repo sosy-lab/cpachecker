@@ -36,6 +36,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Verify;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -1314,5 +1315,18 @@ public class ARGUtils {
 
   public static Set<ARGState> getNonCoveredStatesInSubgraph(ARGState pRoot) {
     return Sets.filter(pRoot.getSubgraph(), s -> !s.isCovered());
+  }
+  /**
+   * Gets error states (error leaves) from ARG.
+   *
+   * @param pReachedSet input.
+   * @return Detected error states.
+   */
+  public static List<ARGState> getErrorStates(ReachedSet pReachedSet) {
+
+    return FluentIterable.from(pReachedSet)
+        .transform(s -> AbstractStates.extractStateByType(s, ARGState.class))
+        .filter(ARGState::isTarget)
+        .toList();
   }
 }
