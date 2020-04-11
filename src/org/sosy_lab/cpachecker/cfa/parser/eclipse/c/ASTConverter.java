@@ -2002,6 +2002,29 @@ class ASTConverter {
       // have their length calculated from the initializer.
       // Example: int a[] = { 1, 2 };
       // will be converted as int a[2] = { 1, 2 };
+      if (type instanceof CTypedefType) {
+        type = type.getCanonicalType();
+        if (type instanceof CArrayType) {
+          CArrayType aType = (CArrayType) ((CTypedefType) specifier).getRealType();
+          int length = 1;
+          if (aType.getLength() != null) {
+            length = ((CIntegerLiteralExpression) aType.getLength()).getValue().intValue();
+            length++;
+          }
+          CExpression lengthExp =
+              new CIntegerLiteralExpression(
+                  getLocation(initializer), CNumericTypes.INT, BigInteger.valueOf(length));
+          CArrayType newType =
+              new CArrayType(
+                  type.isConst(), type.isVolatile(), ((CArrayType) type).getType(), lengthExp);
+          specifier =
+              new CTypedefType(
+                  specifier.isConst(),
+                  specifier.isVolatile(),
+                  ((CTypedefType) specifier).getName(),
+                  newType);
+        }
+      }
       if (type instanceof CArrayType) {
         CArrayType arrayType = (CArrayType) type;
 
@@ -2106,9 +2129,11 @@ class ASTConverter {
               type = typesWLength.get(lastIndex);
             }
           }
-
+          // struct array
+          if (arrayType.getType() instanceof CElaboratedType) {}
         }
       }
+
 
       if (bitFieldSize != null) {
         type = typeConverter.convertBitFieldType(bitFieldSize, type);
