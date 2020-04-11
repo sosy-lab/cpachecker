@@ -298,7 +298,7 @@ with considerably less effort */
 		// initialize array that stores the important edges. Index counts only, when edges appear in the report.
                 var importantEdges = [];
 		var importantIndex = -1;
-		let faultEdges = [];
+		const faultEdges = [];
 		if (errorPath !== undefined) {
 			var indentationlevel = 0;
 			for (var i = 0; i < errorPath.length; i++) {
