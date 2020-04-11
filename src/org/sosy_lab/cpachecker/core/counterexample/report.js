@@ -297,8 +297,8 @@ with considerably less effort */
 
 		// initialize array that stores the important edges. Index counts only, when edges appear in the report.
                 var importantEdges = [];
-				var importantIndex = -1;
-				let faultEdges = [];
+		var importantIndex = -1;
+		let faultEdges = [];
 		if (errorPath !== undefined) {
 			var indentationlevel = 0;
 			for (var i = 0; i < errorPath.length; i++) {
@@ -341,7 +341,7 @@ with considerably less effort */
 						const score = errPathElem.scores[j];
 						const descriptions = errPathElem.descriptions[j]; //Array of descriptions
 						const reason = errPathElem.reasons[j];
-						const lines = errPathElem.lines[j];
+						const lines = errPathElem.lines[j]; //Array of lines
 						currFault = {};
 						currFault["reason"] = reason;
 						currFault["rank"] = rank;
@@ -387,8 +387,8 @@ with considerably less effort */
                         };
 
                         angular.element(document).ready(function(){
-							highlightEdges(importantEdges);
-							addFaultLocalizationInfo();
+				highlightEdges(importantEdges);
+				addFaultLocalizationInfo();
                         });
 
 
@@ -396,7 +396,7 @@ with considerably less effort */
 
 		$scope.faultClicked = function(){
 			let toggle = !$scope.hideErrorTable;
-			if (toogle) {
+			if (toggle) {
 				$("#report-controller").scope().setTab(3);
 			}
 			$scope.hideErrorTable = toggle;
