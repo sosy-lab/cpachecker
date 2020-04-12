@@ -96,6 +96,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.IsRelevantWithHavocAbstractionVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.RealPointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
@@ -115,6 +116,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   final FormulaManagerView fmgr = super.fmgr;
   @SuppressWarnings("hiding")
   final BooleanFormulaManagerView bfmgr = super.bfmgr;
+  @SuppressWarnings("hiding")
+  final BitvectorFormulaManagerView efmgr = super.efmgr;
   @SuppressWarnings("hiding")
   final MachineModel machineModel = super.machineModel;
   @SuppressWarnings("hiding")
