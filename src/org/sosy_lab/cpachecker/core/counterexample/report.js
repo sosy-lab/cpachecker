@@ -346,6 +346,7 @@ with considerably less effort */
 						currFault["reason"] = reason;
 						currFault["rank"] = rank;
 						currFault["score"] = score;
+						currFault["lines"] = lines;
 						currFault["descriptions"] = descriptions;
 						$rootScope.faults.push(currFault);
 						$rootScope.faults.sort(function(a,b){
