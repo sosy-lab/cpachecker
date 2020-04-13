@@ -365,6 +365,19 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     return ptsMgr.makePointerDereference(ufName, returnType, index, address);
   }
 
+  Formula makeSafeDereferenceWithVarClass(
+      CType type,
+      String name,
+      final Formula address,
+      final SSAMapBuilder ssa,
+      final MemoryRegion region) {
+    checkIsSimplified(type);
+    final String ufName = regionMgr.getPointerAccessName(region);
+    final int index = getIndex(ufName, type, ssa);
+    final FormulaType<?> returnType = getFormulaType(type, name);
+    return ptsMgr.makePointerDereference(ufName, returnType, index, address);
+  }
+
   Formula makeFormulaForTarget(final PointerTarget target) {
     return fmgr.makePlus(
         fmgr.makeVariableWithoutSSAIndex(voidPointerFormulaType, target.getBaseName()),
@@ -518,7 +531,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         }
         constraints.addConstraint(
             fmgr.makeEqual(
-                makeSafeDereference(baseType, address, ssa, newRegion),
+                makeSafeDereferenceWithVarClass(baseType, baseName, address, ssa, newRegion),
                 makeVariable(baseName, baseType, ssa)));
       }
     }
