@@ -56,16 +56,11 @@ import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 @Options
 public class CollectorCPA extends AbstractSingleWrapperCPA implements StatisticsProvider {
 
-  public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(CollectorCPA.class);
-  }
-
   private final MergeOperator merge;
   private final LogManager logger;
   private final ARGStatistics stats;
   private final CollectorStatistics statistics;
   private final StateToFormulaWriter writer;
-
   private CollectorCPA(
       ConfigurableProgramAnalysis cpa,
       LogManager clogger,
@@ -78,10 +73,10 @@ public class CollectorCPA extends AbstractSingleWrapperCPA implements Statistics
     this.logger = clogger;
 
     statistics = new CollectorStatistics(this, config, logger);
-      writer = new StateToFormulaWriter(config, logger, pShutdownNotifier, cfa);
+    writer = new StateToFormulaWriter(config, logger, pShutdownNotifier, cfa);
 
 
-    if ( cpa instanceof ARGCPA) {
+    if (cpa instanceof ARGCPA) {
       ARGMergeJoin wrappedMergeOperator = (ARGMergeJoin) cpa.getMergeOperator();
       merge = new CollectorMergeJoin(wrappedMergeOperator, cpa.getAbstractDomain(), config, logger);
       stats = new ARGStatistics(config, logger, this, pSpecification, cfa);
@@ -89,15 +84,22 @@ public class CollectorCPA extends AbstractSingleWrapperCPA implements Statistics
       throw new InvalidConfigurationException("This is not a valid CPA");
     }
   }
+
+  public static CPAFactory factory() {
+    return AutomaticCPAFactory.forType(CollectorCPA.class);
+  }
+
   @Override
-  public MergeOperator getMergeOperator() { return merge; }
+  public MergeOperator getMergeOperator() {
+    return merge;
+  }
 
 
   @Override
   public TransferRelation getTransferRelation() {
 
     TransferRelation supertr = super.getWrappedCpa().getTransferRelation();
-    if (!(supertr instanceof ARGTransferRelation)){
+    if (!(supertr instanceof ARGTransferRelation)) {
       throw new AssertionError("Transfer relation not ARG!");
     }
     return new CollectorTransferRelation(supertr, logger);
@@ -105,34 +107,35 @@ public class CollectorCPA extends AbstractSingleWrapperCPA implements Statistics
 
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
+      throws InterruptedException {
 
     AbstractState initialState = super.getInitialState(pNode, pPartition);
-    return new CollectorState(initialState, null, null,false,null,null,null,logger);
+    return new CollectorState(initialState, null, null, false, null, null, null, logger);
   }
 
 
-@Override
-public void collectStatistics(Collection<Statistics> pStatsCollection) {
-  pStatsCollection.add(stats);
-  pStatsCollection.add(statistics);
-  writer.collectStatistics(pStatsCollection);
-}
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
+    pStatsCollection.add(statistics);
+    writer.collectStatistics(pStatsCollection);
+  }
 
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
     PrecisionAdjustment wrappedPrecSUPER = super.getPrecisionAdjustment();
-    if (!(wrappedPrecSUPER instanceof ARGPrecisionAdjustment)){
+    if (!(wrappedPrecSUPER instanceof ARGPrecisionAdjustment)) {
       throw new AssertionError("PrecisionAdjustment not ARG!");
     }
-     return new CollectorPrecisionAdjustment(wrappedPrecSUPER,logger);
+    return new CollectorPrecisionAdjustment(wrappedPrecSUPER, logger);
   }
 
   @Override
   public StopOperator getStopOperator() {
     StopOperator stopOperator = super.getStopOperator();
-    if (!(stopOperator instanceof ARGStopSep)){
+    if (!(stopOperator instanceof ARGStopSep)) {
       throw new AssertionError("StopOperator not ARG!");
     }
     return new CollectorStop(stopOperator, logger);

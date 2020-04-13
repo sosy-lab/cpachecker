@@ -50,8 +50,9 @@ public class CollectorMergeJoin implements MergeOperator {
   private CollectorState mergedElementabs;
 
 
-  public CollectorMergeJoin(MergeOperator pWrappedMerge, AbstractDomain pWrappedDomain,
-                            Configuration config, LogManager mjLogger)
+  public CollectorMergeJoin(
+      MergeOperator pWrappedMerge, AbstractDomain pWrappedDomain,
+      Configuration config, LogManager mjLogger)
       throws InvalidConfigurationException {
 
     wrappedMergeCol = pWrappedMerge;
@@ -60,8 +61,9 @@ public class CollectorMergeJoin implements MergeOperator {
   }
 
   @Override
-  public AbstractState merge(AbstractState pElement1,
-                             AbstractState pElement2, Precision pPrecision) throws CPAException, InterruptedException {
+  public AbstractState merge(
+      AbstractState pElement1,
+      AbstractState pElement2, Precision pPrecision) throws CPAException, InterruptedException {
 
     parentsM.clear();
     ARGState wrappedState1 = (ARGState) ((CollectorState) pElement1).getWrappedState();
@@ -77,45 +79,42 @@ public class CollectorMergeJoin implements MergeOperator {
     children1.addAll(wrappedChildren1);
     children2.addAll(wrappedChildren2);
 
-   // boolean toMerge = true;
-
-    myARGState myARG2;
-    myARGState myARG1;
-    if (parents2.size() >= 1 && parents1.size() >=1) {
+    ARGStateView myARG2;
+    ARGStateView myARG1;
+    if (parents2.size() >= 1 && parents1.size() >= 1) {
       ARGState firstparent = parents2.get(0);
       ARGState firstparent1 = parents1.get(0);
 
-      myARG1 = new myARGState(wrappedState1, firstparent1,parents1, wrappedChildren1, true,logger);
+      myARG1 =
+          new ARGStateView(wrappedState1, firstparent1, parents1, wrappedChildren1, true, logger);
       parents1.clear();
-      myARG2 = new myARGState(wrappedState2, firstparent,parents2, wrappedChildren2, true, logger);
+      myARG2 = new ARGStateView(wrappedState2, firstparent, parents2, wrappedChildren2, true, logger);
       parents2.clear();
     } else {
-      myARG2 = new myARGState(wrappedState2,null,null,wrappedChildren2, true,logger);
-      myARG1 = new myARGState(wrappedState1,null,null,wrappedChildren1, true,logger);
+      myARG2 = new ARGStateView(wrappedState2, null, null, wrappedChildren2, true, logger);
+      myARG1 = new ARGStateView(wrappedState1, null, null, wrappedChildren1, true, logger);
     }
 
     //children of parent of mergepartner are still alive but get destroyed after next step
-    ARGState mergedElement = (ARGState) wrappedMergeCol.merge(wrappedState1,wrappedState2,
+    ARGState mergedElement = (ARGState) wrappedMergeCol.merge(wrappedState1, wrappedState2,
         pPrecision);
-
-   // boolean isMerged = true;
 
     Collection<ARGState> wrappedParentMerged = mergedElement.getParents();
     parentsM.addAll(wrappedParentMerged);
 
 
-    myARGState myARGmerged;
-    if(!mergedElement.equals(wrappedState2)){
-      myARGmerged = new myARGState(mergedElement,null,parentsM,null,false,logger);
+    ARGStateView myARGmerged;
+    if (!mergedElement.equals(wrappedState2)) {
+      myARGmerged = new ARGStateView(mergedElement, null, parentsM, null, false, logger);
 
       mergedElementabs = new CollectorState
-          (mergedElement,null, null, true, myARG1, myARG2, myARGmerged,logger);
+          (mergedElement, null, null, true, myARG1, myARG2, myARGmerged, logger);
     }
-    if(!mergedElement.equals(wrappedState1)){
-      myARGmerged = new myARGState(mergedElement,null,parentsM,null,false,logger);
+    if (!mergedElement.equals(wrappedState1)) {
+      myARGmerged = new ARGStateView(mergedElement, null, parentsM, null, false, logger);
 
       mergedElementabs = new CollectorState
-          (mergedElement,null, null, true, myARG1, myARG2, myARGmerged,logger);
+          (mergedElement, null, null, true, myARG1, myARG2, myARGmerged, logger);
     }
 
     return mergedElementabs;

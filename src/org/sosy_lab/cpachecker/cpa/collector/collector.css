@@ -22,19 +22,31 @@
  *    http://cpachecker.sosy-lab.org
  */
 
+p, input {
+    font-size: 16px;
+    font-family: sans-serif;
+    color: darkblue;
+}
 
-p, input {font-size:16px; font-family: sans-serif; color:darkblue;}
+h1, input {
+    font-size: 18px;
+    font-family: sans-serif;
+    color: darkblue;
+}
 
-h1, input {font-size:18px; font-family: sans-serif; color:darkblue;}
-
-h3, input {font-size:24px; font-family: sans-serif; color:darkblue;}
+h3, input {
+    font-size: 24px;
+    font-family: sans-serif;
+    color: darkblue;
+}
 
 text {
     font-weight: 300;
     font-family: sans-serif;
     font-size: 12px;
 }
-.node text:hover{
+
+.node text:hover {
     fill: darkmagenta;
     opacity: 1;
 }
@@ -42,48 +54,60 @@ text {
 .node text {
     visibility: hidden;
 }
+
 .node rect {
     visibility: hidden;
 }
+
 .edgePath {
     visibility: hidden;
 }
+
 .edgeLabel {
     visibility: hidden;
 }
+
 .edgeLabel text {
     visibility: hidden;
 }
+
 .edgePath text {
     visibility: hidden;
 }
+
 .contentshow {
     visibility: visible;
 }
+
 .contentshow text {
     font-weight: 300;
     font-family: sans-serif;
     font-size: 12px;
-    fill:black;
+    fill: black;
     visibility: visible;
 }
-.contentshow.node rect{
+
+.contentshow.node rect {
     stroke: #999;
     fill: white;
-    stroke-width: 1.5px;
+    stroke-width: 2px;
     visibility: visible;
 }
+
 .contentshow.edgePath path {
     stroke: #333;
-    stroke-width: 1.5px;
+    stroke-width: 2px;
     visibility: visible;
 }
+
 .contentshow.mergedColored > rect {
     fill: #00ffd0;
 }
+
 .contentshow.toMerge > rect {
     fill: plum;
 }
+
 .contentshow.analysisStop > rect {
     stroke-width: 10px;
     stroke-dasharray: 5;
@@ -95,7 +119,7 @@ text {
     font-family: 'Roboto', sans-serif;
     font-size: 11px;
     text-transform: uppercase;
-    letter-spacing: 2.5px;
+    letter-spacing: 3px;
     font-weight: 500;
     color: #000;
     background-color: #fff;
@@ -120,7 +144,7 @@ text {
     font-family: 'Roboto', sans-serif;
     font-size: 11px;
     text-transform: uppercase;
-    letter-spacing: 2.5px;
+    letter-spacing: 3px;
     font-weight: 500;
     color: #000;
     background-color: #fff;
@@ -150,7 +174,7 @@ text {
     background-color: #f1f1f1;
     min-width: 160px;
     overflow: auto;
-    box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
+    box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
     z-index: 1;
     border-radius: 5px;
 }
@@ -163,16 +187,21 @@ text {
     font-size: 10px;
     font-family: 'Roboto', sans-serif;
     text-transform: uppercase;
-    letter-spacing: 2.5px;
+    letter-spacing: 3px;
 }
 
-.dropdown a:hover {background-color: #ddd;}
+.dropdown a:hover {
+    background-color: #ddd;
+}
 
-.show {display: block;}
+.show {
+    display: block;
+}
 
 .slidecontainer {
     width: 100%;
 }
+
 .slider {
     -webkit-appearance: none;
     width: 100%;
@@ -222,9 +251,8 @@ text {
     top: 25%;
     right: 100%;
     margin-top: -5px;
-    border-width: 5px;
-    border-style: solid;
-    border-color: transparent #2EE59D transparent transparent;
+    border: 5px solid transparent;
+    border-right-color: #2EE59D;
 }
 
 #insideBox {

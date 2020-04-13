@@ -27,11 +27,14 @@
     <meta charset="UTF-8">
     <title>CPAchecker Computation steps report</title>
     <!--REPORT_CSS-->
-    <script src="https://www.sosy-lab.org/lib/d3js/5.4.0/d3.min.js" integrity="sha384-Ha//YQhNUuPzmPKgC8aYpurZcTiV3JhEvEhH5uGW0IRjBfEgDQxvo0aF1Gef+blI"
+    <script src="https://www.sosy-lab.org/lib/d3js/5.4.0/d3.min.js"
+            integrity="sha384-Ha//YQhNUuPzmPKgC8aYpurZcTiV3JhEvEhH5uGW0IRjBfEgDQxvo0aF1Gef+blI"
             crossorigin="anonymous"></script>
-    <script src="https://www.sosy-lab.org/lib/dagre-d3/0.5.0/dagre-d3.min.js" integrity="sha384-0qz1K6Ihi4XT9AwqcOOC/ciBQ9ufdzKZUc8G1It6RZ+oLJSk41EhaZiLPVoBE0JT"
+    <script src="https://www.sosy-lab.org/lib/dagre-d3/0.5.0/dagre-d3.min.js"
+            integrity="sha384-0qz1K6Ihi4XT9AwqcOOC/ciBQ9ufdzKZUc8G1It6RZ+oLJSk41EhaZiLPVoBE0JT"
             crossorigin="anonymous"></script>
-    <script src="https://www.sosy-lab.org/lib/jquery/3.3.1/jquery.min.js" integrity="sha384-tsQFqpEReu7ZLhBV2VZlAu7zcOV+rXbYlF2cqB8txI/8aZajjp4Bqd+V6D5IgvKT"
+    <script src="https://www.sosy-lab.org/lib/jquery/3.3.1/jquery.min.js"
+            integrity="sha384-tsQFqpEReu7ZLhBV2VZlAu7zcOV+rXbYlF2cqB8txI/8aZajjp4Bqd+V6D5IgvKT"
             crossorigin="anonymous"></script>
     <script>
         <!-- REPORT_JS -->
@@ -39,31 +42,33 @@
 </head>
 <body>
 <h3>CPAchecker Computation steps</h3>
-</body></html>
+</body>
+</html>
 
 <h1>
 
     <div class="dropdown">
         <button onclick="myFunction()" class="dropbtn">Final ARG GRAPH</button>
         <div id="myDropdown" class="dropdown-content">
-            <a onclick="buttonFinalGraph()" >highlight Merge</a>
+            <a onclick="buttonFinalGraph()">highlight Merge</a>
             <a onclick="buttonFinalGraph2()">standard ARG </a>
         </div>
     </div>
     <button onclick="reset()" class="dropbtn">Reset ARG GRAPH</button>
-    <br />
-    <br />
+    <br/>
+    <br/>
 
 
     <div class="slidecontainer">
-        <input type="range" min="0" max="100" value="0" class="slider" id="myRange">
-        <p> <b>Computation step: <span id="demo"></span></b></p>
+        <label for="myRange"></label><input type="range" min="0" max="100" value="0" class="slider"
+                                            id="myRange">
+        <p><b>Computation step: <span id="demo"></span></b></p>
     </div>
 
     <div id="statButtons">
         <input type="button" class="button" value="PREV" onclick="removenode()" id="removenode">
         <input type="button" class="button" value="NEXT" onclick="shownode()" id="shownode">
-        <br />
+        <br/>
     </div>
 
 </h1>
@@ -75,4 +80,4 @@
     </div>
 </div>
 
-<svg id="canvas" ></svg>
+<svg id="canvas"></svg>

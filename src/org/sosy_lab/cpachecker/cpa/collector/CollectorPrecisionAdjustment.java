@@ -37,17 +37,18 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-public class CollectorPrecisionAdjustment implements PrecisionAdjustment{
+public class CollectorPrecisionAdjustment implements PrecisionAdjustment {
 
 
   private final LogManager logger;
 
   private final PrecisionAdjustment delegate;
 
-  public CollectorPrecisionAdjustment(final PrecisionAdjustment pDelegateAdjustment,
-                                      LogManager clogger) {
+  public CollectorPrecisionAdjustment(
+      final PrecisionAdjustment pDelegateAdjustment,
+      LogManager clogger) {
 
-      delegate = pDelegateAdjustment;
+    delegate = pDelegateAdjustment;
     this.logger = clogger;
   }
 
@@ -61,10 +62,10 @@ public class CollectorPrecisionAdjustment implements PrecisionAdjustment{
   ) throws CPAException, InterruptedException {
 
     assert pState instanceof CollectorState;
-    //logger.log(Level.INFO, "sonja PrecisionAdjustment:\n" + pState);
     ARGState wrappedState2 = (ARGState) ((CollectorState) pState).getWrappedState();
     Optional<PrecisionAdjustmentResult> delegateResult =
-        delegate.prec(Objects.requireNonNull(wrappedState2), pPrecision, pStates, pStateProjection, pFullState);
+        delegate.prec(Objects.requireNonNull(wrappedState2), pPrecision, pStates, pStateProjection,
+            pFullState);
 
     if (delegateResult.isPresent()) {
       PrecisionAdjustmentResult unwrappedResult = delegateResult.get();
@@ -72,15 +73,17 @@ public class CollectorPrecisionAdjustment implements PrecisionAdjustment{
       Precision precision = unwrappedResult.precision();
 
 
-      CollectorState preAdj = new CollectorState(wrappedState2, null,null,false,null,null,null,logger);
+      CollectorState preAdj =
+          new CollectorState(wrappedState2, null, null, false, null, null, null, logger);
       Collection<AbstractState> wrappedAbstract = new ArrayList<>();
       wrappedAbstract.add(preAdj);
 
 
       PrecisionAdjustmentResult finalResult;
-      if (state != wrappedState2 ) {
+      if (state != wrappedState2) {
         // something changed
-        CollectorState preAdjchange = new CollectorState(state, null,null,false,null,null,null,logger);
+        CollectorState preAdjchange =
+            new CollectorState(state, null, null, false, null, null, null, logger);
         wrappedAbstract.add(preAdjchange);
 
 

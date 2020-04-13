@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.collector;
 
-import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Objects;
@@ -54,20 +53,21 @@ public class CollectorTransferRelation implements TransferRelation {
       AbstractState pElement, Precision pPrecision)
       throws CPATransferException, InterruptedException {
 
-  assert pElement instanceof CollectorState;
+    assert pElement instanceof CollectorState;
 
-  CollectorState state = (CollectorState) pElement;
-  if (state.isStopped()){
-    return new ArrayList<>();
-  }
+    CollectorState state = (CollectorState) pElement;
+    if (state.isStopped()) {
+      return new ArrayList<>();
+    }
 
-  ARGState wrappedState = (ARGState) ((CollectorState) pElement).getWrappedState();
+    ARGState wrappedState = (ARGState) ((CollectorState) pElement).getWrappedState();
 
     Collection<? extends AbstractState> successors;
     assert transferRelation instanceof ARGTransferRelation : "Transfer relation no ARG transfer"
         + " relation, but " + transferRelation.getClass().getSimpleName();
 
-    successors = transferRelation.getAbstractSuccessors(Objects.requireNonNull(wrappedState), pPrecision);
+    successors =
+        transferRelation.getAbstractSuccessors(Objects.requireNonNull(wrappedState), pPrecision);
 
 
     Collection<AbstractState> wrappedSuccessors = new ArrayList<>();
@@ -75,8 +75,8 @@ public class CollectorTransferRelation implements TransferRelation {
       ARGState succARG = (ARGState) absElement;
       Collection<ARGState> wrappedParent = succARG.getParents();
       parents.addAll(wrappedParent);
-      myARGState mytransferARG =
-          new myARGState(succARG, wrappedState, parents, null, false, logger);
+      ARGStateView mytransferARG =
+          new ARGStateView(succARG, wrappedState, parents, null, false, logger);
       CollectorState successorElem =
           new CollectorState(absElement, null, mytransferARG, false, null, null, null, logger);
       wrappedSuccessors.add(successorElem);

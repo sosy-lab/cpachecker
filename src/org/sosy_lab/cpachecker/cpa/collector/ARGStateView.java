@@ -36,24 +36,24 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-public class myARGState implements Graphable {
+public class ARGStateView implements Graphable {
+  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
   private final int currentID;
   private final AbstractState wrappedelement;
   private final boolean toMergeID;
-  private ImmutableList<ARGState> childrenlist;
   private final ARGState element;
-  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
   private final int stateId;
+  private ImmutableList<ARGState> childrenlist;
   private ImmutableList<ARGState> parentslist;
 
 
-  public myARGState(ARGState cElement,
-                    @Nullable ARGState pParentElement,
-                    @Nullable Collection<ARGState> cParents,
-                    @Nullable Collection<ARGState> cChildren,
-                    boolean toMerge,
-                    LogManager clogger){
-    LogManager logger = clogger;
+  public ARGStateView(
+      ARGState cElement,
+      @Nullable ARGState pParentElement,
+      @Nullable Collection<ARGState> cParents,
+      @Nullable Collection<ARGState> cChildren,
+      boolean toMerge,
+      LogManager clogger) {
     stateId = idGenerator.getFreshId();
     element = cElement;
     toMergeID = toMerge;
@@ -77,11 +77,11 @@ public class myARGState implements Graphable {
     sb.append(currentID);
     sb.append(", toMerge: ");
     sb.append(toMergeID);
-    if (parentslist != null){
+    if (parentslist != null) {
       sb.append(", myParentslist: ");
       sb.append(stateIdsOf(parentslist));
     }
-    if (childrenlist != null){
+    if (childrenlist != null) {
       sb.append(", myChildrenlist: ");
       sb.append(stateIdsOf(childrenlist));
     }
@@ -93,16 +93,28 @@ public class myARGState implements Graphable {
   public boolean shouldBeHighlighted() {
     return false;
   }
+
   private Iterable<Integer> stateIdsOf(Iterable<ARGState> elements) {
     return from(elements).transform(ARGState::getStateId);
   }
+
   public Collection<ARGState> getChildrenOfToMerge() {
     return Collections.unmodifiableCollection(childrenlist);
   }
+
   public ARGState getARGState() {
     return element;
   }
-  public int getStateId(){return currentID;}
-  public int getMyStateId(){return stateId;}
-  public ImmutableList<ARGState> getParentslist(){return parentslist;}
+
+  public int getStateId() {
+    return currentID;
+  }
+
+  public int getMyStateId() {
+    return stateId;
+  }
+
+  public ImmutableList<ARGState> getParentslist() {
+    return parentslist;
+  }
 }

@@ -43,31 +43,31 @@ public class CollectorStop implements StopOperator {
   }
 
   @Override
- public boolean stop(
+  public boolean stop(
       AbstractState state, Collection<AbstractState> reached, Precision precision)
       throws CPAException, InterruptedException {
 
     assert state instanceof CollectorState;
 
     CollectorState stateC = (CollectorState) state;
-      ARGState wrappedState = (ARGState) ((CollectorState)state).getWrappedState();
+    ARGState wrappedState = (ARGState) ((CollectorState) state).getWrappedState();
 
-      Collection<? extends AbstractState> stopcollection;
-      stopcollection = reached;
+    Collection<? extends AbstractState> stopcollection;
+    stopcollection = reached;
 
-      Collection<AbstractState> wrappedstop = new ArrayList<>();
+    Collection<AbstractState> wrappedstop = new ArrayList<>();
 
-   for (AbstractState absElement : stopcollection) {
+    for (AbstractState absElement : stopcollection) {
       CollectorState c = (CollectorState) absElement;
       ARGState stopElem = c.getARGState();
       wrappedstop.add(stopElem);
     }
 
-    //return delegateStop.stop(Objects.requireNonNull(wrappedState), wrappedstop, precision);
-    boolean isStopped = delegateStop.stop(Objects.requireNonNull(wrappedState), wrappedstop, precision);
-   if (isStopped){
-     stateC.setStopped();
-   }
-   return isStopped && wrappedState.isDestroyed();
+    boolean isStopped =
+        delegateStop.stop(Objects.requireNonNull(wrappedState), wrappedstop, precision);
+    if (isStopped) {
+      stateC.setStopped();
+    }
+    return isStopped && wrappedState.isDestroyed();
   }
 }

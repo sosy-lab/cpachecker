@@ -48,7 +48,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.logging.Level;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -72,37 +71,43 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 
-@Options(prefix="cpa.collector")
+@Options(prefix = "cpa.collector")
 public class CollectorStatistics implements Statistics {
 
 
-
-  @Option(secure=true, name="export", description="export collector as .dot file")
-  private boolean exportARG = true;
-
-  @Option(secure=true, name="file",
-      description="export collector as .dot file")
-  @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path argFile = Paths.get("collector.dot");
-
-
-  private final LogManager logger;
   private static final String HTML_TEMPLATE = "collector.html";
   private static final String CSS_TEMPLATE = "collector.css";
   private static final String JS_TEMPLATE = "collector3.js";
-  private final LinkedHashMap<Integer, Object> cNodes= new LinkedHashMap<>();
+  private final LogManager logger;
+  private final LinkedHashMap<Integer, Object> cNodes = new LinkedHashMap<>();
   private final Multimap<Integer, Object> cEdges;
+  private final LinkedHashMap<Map<Integer, Object>, Multimap<Integer, Object>>
+      collectorlinkedNodesAndEdges = new LinkedHashMap<>();
+  @Option(secure = true, name = "export", description = "export collector as .dot file")
+  private boolean exportARG = true;
+  @Option(secure = true, name = "file",
+      description = "export collector as .dot file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path argFile = Paths.get("collector.dot");
   private int count;
-  private final LinkedHashMap<Map<Integer, Object>,Multimap<Integer, Object>> collectorlinkedNodesAndEdges = new LinkedHashMap<>();
 
 
-
-  public CollectorStatistics(CollectorCPA ccpa, Configuration config,LogManager pLogger) throws InvalidConfigurationException {
-    this.logger=pLogger;
+  public CollectorStatistics(CollectorCPA ccpa, Configuration config, LogManager pLogger)
+      throws InvalidConfigurationException {
+    this.logger = pLogger;
 
     config.inject(this, CollectorStatistics.class);
 
     cEdges = ArrayListMultimap.create();
+  }
+
+  // Similar to the getEdgeText method in DOTBuilder2
+  private static String getEdgeText(CFAEdge edge) {
+    return edge.getDescription()
+        .replaceAll("\\\"", "\\\\\\\"")
+        .replaceAll("\n", " ")
+        .replaceAll("\\s+", " ")
+        .replaceAll(" ;", ";");
   }
 
   @Override
@@ -115,19 +120,16 @@ public class CollectorStatistics implements Statistics {
 
 
     if (!reached.isEmpty() && reached.getFirstState() instanceof CollectorState) {
-      //reconstructARG(reached);
-      //buildFromCollector(reached);
       build(reached);
-
     }
 
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
     writer.put("Verification result", result);
-    writer.put("Reached States", reached.toString()) ;
-    }
+    writer.put("Reached States", reached.toString());
+  }
 
   private void makeDotFile(Collection<ARGState> pReachedcollectionARG) {
-    try{
+    try {
       int i = 0;
       String filenamepart1 = "./output/CollectorDotFiles/etape_";
       String filenamefinal = filenamepart1 + Integer.toString(i) + ".dot";
@@ -144,54 +146,55 @@ public class CollectorStatistics implements Statistics {
       ARGToDotWriter.write(bw, pReachedcollectionARG, "Reconstruction of ARGstates");
 
       bw.close();
-    }catch (IOException e) {
+    } catch (IOException e) {
       logger.logUserException(
           WARNING, e, "Could not create DotFiles.");
     }
   }
 
-  private void makeHTMLFile(){
+  private void makeHTMLFile() {
     try {
-      BufferedReader  reader = Resources.asCharSource(Resources.getResource(getClass(), HTML_TEMPLATE), Charsets.UTF_8)
-          .openBufferedStream();
+      BufferedReader reader =
+          Resources.asCharSource(Resources.getResource(getClass(), HTML_TEMPLATE), Charsets.UTF_8)
+              .openBufferedStream();
 
-    Writer writerhtml = IO.openOutputFile(Paths.get("./output/ComputationSteps.html"),
-        Charsets.UTF_8);
-    BufferedWriter bwhtml = new BufferedWriter(writerhtml);
-    String line2;
-    while (null != (line2 = reader.readLine())){
-      if (line2.contains("REPORT_CSS")) {
-        bwhtml.write("<style>" + "\n");
-        Resources.asCharSource(Resources.getResource(getClass(), CSS_TEMPLATE), Charsets.UTF_8)
-            .copyTo(bwhtml);
-        bwhtml.write("</style>");
-      } else if (line2.contains("REPORT_JS")){
-        insertJs(bwhtml);
-      } else {
-        bwhtml.write(line2 + "\n");
+      Writer writerhtml = IO.openOutputFile(Paths.get("./output/ComputationSteps.html"),
+          Charsets.UTF_8);
+      BufferedWriter bwhtml = new BufferedWriter(writerhtml);
+      String line2;
+      while (null != (line2 = reader.readLine())) {
+        if (line2.contains("REPORT_CSS")) {
+          bwhtml.write("<style>" + "\n");
+          Resources.asCharSource(Resources.getResource(getClass(), CSS_TEMPLATE), Charsets.UTF_8)
+              .copyTo(bwhtml);
+          bwhtml.write("</style>");
+        } else if (line2.contains("REPORT_JS")) {
+          insertJs(bwhtml);
+        } else {
+          bwhtml.write(line2 + "\n");
+        }
       }
-    }
-    bwhtml.close();
+      bwhtml.close();
 
-  }catch (IOException e) {
-    logger.logUserException(
-        WARNING, e, "Could not create HTMLFile.");
+    } catch (IOException e) {
+      logger.logUserException(
+          WARNING, e, "Could not create HTMLFile.");
     }
   }
 
-  private void makeAFileDirectory () {
+  private void makeAFileDirectory() {
 
     String directoryName = "./output/CollectorDotFiles";
     File directory = new File(directoryName);
-   if (! directory.exists()){
-     try {
-       directory.mkdir();
-     }catch(SecurityException se){
-       logger.logUserException(
-           WARNING, se, "Could not create directory.");
-     }
+    if (!directory.exists()) {
+      try {
+        directory.mkdir();
+      } catch (SecurityException se) {
+        logger.logUserException(
+            WARNING, se, "Could not create directory.");
+      }
     }
-}
+  }
 
   private void insertJs(
       Writer writer)
@@ -201,27 +204,29 @@ public class CollectorStatistics implements Statistics {
                  .openBufferedStream()) {
       String line;
       while (null != (line = reader.readLine())) {
-         if (line.contains("ARG_JSON_INPUT")) {
+        if (line.contains("ARG_JSON_INPUT")) {
           makeArgJson(writer);
-        }  else {
+        } else {
           writer.write(line + "\n");
         }
       }
     }
   }
 
-  private void makeLinkedCollectorData(){
+  private void makeLinkedCollectorData() {
 
     //sort Nodes by key(myID)
     Map<Integer, Object> sortedcNodes = new TreeMap<>(cNodes);
 
-    ImmutableMap<Integer, Object> immutableMapNodesC = ImmutableMap.<Integer, Object>builder().putAll(sortedcNodes)
-        .build();
+    ImmutableMap<Integer, Object> immutableMapNodesC =
+        ImmutableMap.<Integer, Object>builder().putAll(sortedcNodes)
+            .build();
 
-    ImmutableMultimap<Integer, Object> immutableMapEdgesC = ImmutableMultimap.<Integer, Object>builder().putAll(cEdges)
-        .build();
+    ImmutableMultimap<Integer, Object> immutableMapEdgesC =
+        ImmutableMultimap.<Integer, Object>builder().putAll(cEdges)
+            .build();
 
-    collectorlinkedNodesAndEdges.put(immutableMapNodesC,immutableMapEdgesC);
+    collectorlinkedNodesAndEdges.put(immutableMapNodesC, immutableMapEdgesC);
   }
 
   private void makeArgJson(Writer writer) {
@@ -230,10 +235,10 @@ public class CollectorStatistics implements Statistics {
       collectorlinkedNodesAndEdges.forEach((key, value) -> {
         try {
           writer.write("var myData" + count + " = { ");
-            writer.write("\n\"nodes\":");
-            JSON.writeJSONString(key.values(), writer);
-            writer.write(",\n\"edges\":");
-            JSON.writeJSONString(value.values(), writer);
+          writer.write("\n\"nodes\":");
+          JSON.writeJSONString(key.values(), writer);
+          writer.write(",\n\"edges\":");
+          JSON.writeJSONString(value.values(), writer);
           writer.write("}\n");
         } catch (IOException e) {
           logger.logUserException(WARNING, e, "Inserting ARG Json failed.");
@@ -242,43 +247,42 @@ public class CollectorStatistics implements Statistics {
     }
   }
 
-
-  private void build(UnmodifiableReachedSet reached){
+  private void build(UnmodifiableReachedSet reached) {
     String destroyed = "destroyed";
     String notDestroyed = "";
 
     for (AbstractState entry : reached.asCollection()) {
       boolean merged = ((CollectorState) entry).ismerged();
       boolean stopped = ((CollectorState) entry).isStopped();
-      //logger.log(Level.INFO, "stopped:\n" + stopped + "\n" + entry);
 
-      if (merged){
+      if (merged) {
         String type = "toMerge";
         String typeM = "merged";
         String typeC = "mergeChild";
 
         int ID = ((CollectorState) entry).getStateId();
 
-        myARGState myA1 = ((CollectorState) entry).getmyARG1();
+        ARGStateView myA1 = ((CollectorState) entry).getmyARG1();
         int ID1 = myA1.getStateId();
         int myID1 = myA1.getMyStateId();
         ARGState entryARG1 = myA1.getARGState();
         boolean destroyed1 = entryARG1.isDestroyed();
 
-        myARGState myA2 = ((CollectorState) entry).getMyARG2();
+        ARGStateView myA2 = ((CollectorState) entry).getMyARG2();
         int ID2 = myA2.getStateId();
         int myID2 = myA2.getMyStateId();
         ARGState entryARG2 = myA2.getARGState();
         boolean destroyed2 = entryARG2.isDestroyed();
 
-        myARGState myAM = ((CollectorState) entry).getMyARGmerged();
+        ARGStateView myAM = ((CollectorState) entry).getMyARGmerged();
         int ID3 = myAM.getStateId();
         int myID3 = myAM.getMyStateId();
         ARGState entryARG = ((CollectorState) entry).getARGState();
 
-        if(!destroyed1){
+        if (!destroyed1) {
           for (CFANode node : AbstractStates.extractLocations(entry)) {
-            cNodes.put(myID1, createNEWNode(ID1, ID1, node, entryARG1, type, notDestroyed, stopped));
+            cNodes
+                .put(myID1, createNEWNode(ID1, ID1, node, entryARG1, type, notDestroyed, stopped));
           }
 
           Collection<ARGState> children = entryARG1.getChildren();
@@ -288,13 +292,13 @@ public class CollectorStatistics implements Statistics {
                 ID1, childID, entryARG.getEdgesToChild(child), type);
             cEdges.put(myID1, edgeValue);
           }
-        }else{
+        } else {
           for (CFANode node : AbstractStates.extractLocations(entry)) {
             cNodes.put(myID1, createNEWNode(ID1, ID3, node, entryARG1, type, destroyed, stopped));
           }
 
           Collection<ARGState> children = ((CollectorState) entry).getChildrenTomerge1();
-          for (ARGState child : children){
+          for (ARGState child : children) {
             int childID = child.getStateId();
             Map<String, Object> edgeValue1 = createChildEdge(
                 ID1, childID, typeC, destroyed);
@@ -302,17 +306,18 @@ public class CollectorStatistics implements Statistics {
           }
 
           ImmutableList<ARGState> parents1 = myA1.getParentslist();
-          if(parents1 != null) {
+          if (parents1 != null) {
             int parentID = getParentsId(parents1);
-              Map<String, Object> edgeValue1 = createExtraEdge(
-                  parentID, ID1, type, destroyed);
-              cEdges.put(myID1, edgeValue1);
+            Map<String, Object> edgeValue1 = createExtraEdge(
+                parentID, ID1, type, destroyed);
+            cEdges.put(myID1, edgeValue1);
           }
         }
 
-        if(!destroyed2){
+        if (!destroyed2) {
           for (CFANode node : AbstractStates.extractLocations(entry)) {
-            cNodes.put(myID2, createNEWNode(ID2, ID2, node, entryARG2, type, notDestroyed, stopped));
+            cNodes
+                .put(myID2, createNEWNode(ID2, ID2, node, entryARG2, type, notDestroyed, stopped));
           }
           Collection<ARGState> children = entryARG2.getChildren();
           for (ARGState child : children) {
@@ -321,13 +326,13 @@ public class CollectorStatistics implements Statistics {
                 ID2, childID, entryARG.getEdgesToChild(child), type);
             cEdges.put(myID2, edgeValue);
           }
-        }else {
+        } else {
           for (CFANode node : AbstractStates.extractLocations(entry)) {
             cNodes.put(myID2, createNEWNode(ID2, ID3, node, entryARG2, type, destroyed, stopped));
           }
 
           Collection<ARGState> children = ((CollectorState) entry).getChildrenTomerge2();
-          for (ARGState child : children){
+          for (ARGState child : children) {
             int childID = child.getStateId();
             Map<String, Object> edgeValue2 = createChildEdge(
                 ID2, childID, typeC, destroyed);
@@ -337,35 +342,35 @@ public class CollectorStatistics implements Statistics {
           ImmutableList<ARGState> parents2 = myA2.getParentslist();
           if (parents2 != null) {
             int parentID = getParentsId(parents2);
-              Map<String, Object> edgeValue2 = createExtraEdge(
-                  parentID, ID2, type, destroyed);
-              cEdges.put(myID2, edgeValue2);
+            Map<String, Object> edgeValue2 = createExtraEdge(
+                parentID, ID2, type, destroyed);
+            cEdges.put(myID2, edgeValue2);
           }
         }
 
         for (CFANode node : AbstractStates.extractLocations(entry)) {
-          cNodes.put(myID3, createNEWNode(ID3, ID3 ,node, entryARG, typeM,notDestroyed, stopped));
+          cNodes.put(myID3, createNEWNode(ID3, ID3, node, entryARG, typeM, notDestroyed, stopped));
         }
-       Collection<ARGState> children = entryARG.getChildren();
+        Collection<ARGState> children = entryARG.getChildren();
         for (ARGState child : children) {
           int childID = child.getStateId();
           Map<String, Object> edgeValue = createStandardEdge(
               ID, childID, entryARG.getEdgesToChild(child), typeM);
           cEdges.put(myID3, edgeValue);
         }
-      }
-      else {
+      } else {
         int ID = ((CollectorState) entry).getStateId();
-        myARGState myA = ((CollectorState) entry).getMyARGTransferRelation();
+        ARGStateView myA = ((CollectorState) entry).getMyARGTransferRelation();
         if (myA != null) {
           int IDtr = myA.getStateId();
           int myIDtr = myA.getMyStateId();
           String type = determineType((CollectorState) entry);
           ARGState entryARG = ((CollectorState) entry).getARGState();
           for (CFANode node : AbstractStates.extractLocations(entry)) {
-            cNodes.put(myIDtr, createNEWNode(ID, IDtr,node, entryARG, type, notDestroyed, stopped));
+            cNodes
+                .put(myIDtr, createNEWNode(ID, IDtr, node, entryARG, type, notDestroyed, stopped));
           }
-         Collection<ARGState> children = entryARG.getChildren();
+          Collection<ARGState> children = entryARG.getChildren();
           for (ARGState child : children) {
             int childID = child.getStateId();
             Map<String, Object> edgeValue = createStandardEdge(
@@ -374,17 +379,17 @@ public class CollectorStatistics implements Statistics {
           }
         }
         // Start node
-        else{
+        else {
           String type = determineType((CollectorState) entry);
           String destroyedType = "";
           ARGState entryARG = ((CollectorState) entry).getARGState();
           boolean destroyedFirst = entryARG.isDestroyed();
-          if(destroyedFirst){
+          if (destroyedFirst) {
             switch (destroyedType = "destroyed") {
             }
           }
           for (CFANode node : AbstractStates.extractLocations(entry)) {
-            cNodes.put(-1, createFirstNode(ID, node, entryARG, type, destroyedType, false));
+            cNodes.put(-1, createFirstNode(ID, node, entryARG, type, destroyedType));
           }
           Collection<ARGState> children = entryARG.getChildren();
           for (ARGState child : children) {
@@ -396,9 +401,6 @@ public class CollectorStatistics implements Statistics {
         }
       }
     }
-    //logger.log(Level.INFO, "cnodes:\n" + cNodes.size());
-    //logger.log(Level.INFO, "cnodes:\n" + cNodes);
-    //logger.log(Level.INFO, "cedges:\n" + cEdges.size());
     makeLinkedCollectorData();
     makeHTMLFile();
   }
@@ -410,7 +412,6 @@ public class CollectorStatistics implements Statistics {
     }
     return parentID;
   }
-
 
   // Nodes and Edges
   private Map<String, Object> createNEWNode(
@@ -427,10 +428,9 @@ public class CollectorStatistics implements Statistics {
         : "";
     Map<String, Object> argNode = new HashMap<>();
     argNode.put("destroyed", destroyed);
-    if(!(interval <= parentStateId)){
+    if (!(interval <= parentStateId)) {
       argNode.put("intervalStop", interval);
-    }
-    else{
+    } else {
       argNode.put("intervalStop", "");
     }
     argNode.put("intervalStart", parentStateId);
@@ -450,7 +450,13 @@ public class CollectorStatistics implements Statistics {
     argNode.put("type", type);
     return argNode;
   }
-  private Map<String, Object> createFirstNode(int parentStateId, CFANode node, ARGState argState, String type, String destroyed, boolean stopped) {
+
+  private Map<String, Object> createFirstNode(
+      int parentStateId,
+      CFANode node,
+      ARGState argState,
+      String type,
+      String destroyed) {
     String dotLabel =
         argState.toDOTLabel().length() > 2
         ? argState.toDOTLabel().substring(0, argState.toDOTLabel().length() - 2)
@@ -458,7 +464,7 @@ public class CollectorStatistics implements Statistics {
     Map<String, Object> argNode = new HashMap<>();
 
     argNode.put("destroyed", destroyed);
-    argNode.put("analysisStop", stopped);
+    argNode.put("analysisStop", false);
     argNode.put("intervalStop", "");
     argNode.put("intervalStart", parentStateId);
     argNode.put("index", parentStateId);
@@ -499,34 +505,36 @@ public class CollectorStatistics implements Statistics {
       int parentStateId,
       int childStateId,
       String type,
-      String destroyed){
+      String destroyed) {
     Map<String, Object> argEdge = new HashMap<>();
 
     argEdge.put("source", parentStateId);
     argEdge.put("target", childStateId);
-    argEdge.put("mergetype",type);
-    argEdge.put("destroyed",destroyed);
+    argEdge.put("mergetype", type);
+    argEdge.put("destroyed", destroyed);
 
     argEdge.put("type", "dummy type");
     argEdge.put("label", "merge edge");
     return argEdge;
   }
+
   private Map<String, Object> createChildEdge(
       int parentStateId,
       int childStateId,
       String type,
-      String destroyed){
+      String destroyed) {
     Map<String, Object> argEdge = new HashMap<>();
 
     argEdge.put("source", parentStateId);
     argEdge.put("target", childStateId);
-    argEdge.put("mergetype",type);
-    argEdge.put("destroyed",destroyed);
+    argEdge.put("mergetype", type);
+    argEdge.put("destroyed", destroyed);
 
     argEdge.put("type", "dummy type");
     argEdge.put("label", "Child merge edge");
     return argEdge;
   }
+
   //Method createStandardEdge is similar to createArgEdge in ReportGenerator
   private Map<String, Object> createStandardEdge(
       int parentStateId, int childStateId, List<CFAEdge> edges, String mergetype) {
@@ -570,15 +578,6 @@ public class CollectorStatistics implements Statistics {
     }
     argEdge.put("label", edgeLabel.toString());
     return argEdge;
-  }
-
-  // Similar to the getEdgeText method in DOTBuilder2
-  private static String getEdgeText(CFAEdge edge) {
-    return edge.getDescription()
-        .replaceAll("\\\"", "\\\\\\\"")
-        .replaceAll("\n", " ")
-        .replaceAll("\\s+", " ")
-        .replaceAll(" ;", ";");
   }
 }
 
