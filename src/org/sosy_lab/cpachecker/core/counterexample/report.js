@@ -296,15 +296,13 @@ with considerably less effort */
 		};
 
 		// initialize array that stores the important edges. Index counts only, when edges appear in the report.
-        var importantEdges = [];
+                var importantEdges = [];
 		var importantIndex = -1;
-		
-        let faultEdges = [];
-
+		const faultEdges = [];
 		if (errorPath !== undefined) {
 			var indentationlevel = 0;
 			for (var i = 0; i < errorPath.length; i++) {
-				var errPathElem = errorPath[i];					
+				var errPathElem = errorPath[i];
 
 				// do not show start, return and blank edges
 				if (errPathElem.desc.indexOf("Return edge from") === -1 && errPathElem.desc != "Function start dummy edge" && errPathElem.desc != "") {
@@ -338,17 +336,16 @@ with considerably less effort */
 				if(errPathElem.isfault){
 					errPathElem["importantindex"] = importantIndex;
 					faultEdges.push(errPathElem);
-					for(let j = 0; j < errPathElem.numbersets; j++){
-						let rank = errPathElem.ranks[j];
-						let score = errPathElem.scores[j];
-						let descriptions = errPathElem.descriptions[j]; //Array of line descriptions for combobox
-						let reason = errPathElem.reasons[j];
-						let lines = errPathElem.lines[j];//Array of lines
-						currFault = {};
+					for(var j = 0; j < errPathElem.numbersets; j++){
+						var rank = errPathElem.ranks[j];
+						const score = errPathElem.scores[j];
+						const descriptions = errPathElem.descriptions[j]; //Array of descriptions
+						const reason = errPathElem.reasons[j];
+						const lines = errPathElem.lines[j]; //Array of lines
+						const currFault = {};
 						currFault["reason"] = reason;
 						currFault["rank"] = rank;
 						currFault["score"] = score;
-						currFault["lines"] = lines;
 						currFault["descriptions"] = descriptions;
 						$rootScope.faults.push(currFault);
 						$rootScope.faults.sort(function(a,b){
@@ -358,50 +355,40 @@ with considerably less effort */
 				}
 
 				// store the important edges
-                if(errPathElem.importance == 1){
-                    importantEdges.push(importantIndex);
-                }
+                                if(errPathElem.importance == 1){
+                                      importantEdges.push(importantIndex);
+                                   }
+			};
+
+			function addFaultLocalizationInfo(){
+				if (faultEdges.length !== 0) {
+					for (var j = 0; j < faultEdges.length; j++) {
+						d3.selectAll("#errpath-" + faultEdges[j].importantindex + " td pre").classed("fault", true);
+					}
+					d3.selectAll("#errpath-header td pre").classed("tableheader", true);
+				} else {
+					$scope.hideFaults = true;
+				}
 			};
 
                         // this function puts the important edges into a CSS class that highlights them
 			function highlightEdges(impEdges){
 			    for (var j = 0; j < impEdges.length; j++){
-				d3.selectAll("#errpath-" + impEdges[j] + " td pre").classed("important", true);
+			        d3.selectAll("#errpath-" + impEdges[j] + " td pre").classed("important", true);
 			    }
-			};
-						
+                        };
 
-			function addFaultLocalizationInfo(){
-				if(faultEdges.length !== 0) {
-					for(let j = 0; j < errorPath.length; j++){
-						$("#rank-"+j).addClass("rank");
-					}
-					for (let j = 0; j < faultEdges.length; j++){
-						d3.selectAll("#errpath-" + faultEdges[j].importantindex + " td pre").classed("fault", true);
-					}
-					
-					// header to describe the columns in the info table
-					d3.selectAll("#errpath-header td pre").classed("tableheader", true);
-				} else {
-				 	$("#errpath-header").remove();
-					$("#fault-localization-info").remove();
-					for(let i = 0; i < errorPath.length; i++){
-						$("#rank-"+i).remove();		
-					}
-				}
-			};
-
-            angular.element(document).ready(function(){
-                highlightEdges(importantEdges);
+                        angular.element(document).ready(function(){
+				highlightEdges(importantEdges);
 				addFaultLocalizationInfo();
-            });
+                        });
 
 
 		}
 
 		$scope.faultClicked = function(){
-			let toggle = !$scope.hideErrorTable;
-			if(toggle) {
+			var toggle = !$scope.hideErrorTable;
+			if (toggle) {
 				$("#report-controller").scope().setTab(3);
 			}
 			$scope.hideErrorTable = toggle;
@@ -413,9 +400,7 @@ with considerably less effort */
 				var prevId = parseInt(selection.attr("id").substring("errpath-".length)) - 1;
 				selection.classed("clickedErrPathElement", false);
 				d3.select("#errpath-" + prevId).classed("clickedErrPathElement", true);
-				if(!$scope.hideErrorTable) {
-					$("#value-assignment").scrollTop($("#value-assignment").scrollTop() - 18);
-				}
+				$("#value-assignment").scrollTop($("#value-assignment").scrollTop() - 18);
 				markErrorPathElementInTab("Prev", prevId);
 			}
 		};
@@ -423,9 +408,7 @@ with considerably less effort */
 		$scope.errPathStartClicked = function () {
 			d3.select("tr.clickedErrPathElement").classed("clickedErrPathElement", false);
 			d3.select("#errpath-0").classed("clickedErrPathElement", true);
-			if(!$scope.hideErrorTable) {
-				$("#value-assignment").scrollTop(0);
-			}
+			$("#value-assignment").scrollTop(0);
 			markErrorPathElementInTab("Start", 0);
 		};
 
@@ -435,9 +418,7 @@ with considerably less effort */
 				var nextId = parseInt(selection.attr("id").substring("errpath-".length)) + 1;
 				selection.classed("clickedErrPathElement", false);
 				d3.select("#errpath-" + nextId).classed("clickedErrPathElement", true);
-				if(!$scope.hideErrorTable) {
-					$("#value-assignment").scrollTop($("#value-assignment").scrollTop() + 18);
-				}
+				$("#value-assignment").scrollTop($("#value-assignment").scrollTop() + 18);
 				markErrorPathElementInTab("Next", nextId);
 			}
 		};
@@ -717,10 +698,10 @@ with considerably less effort */
 		};
 		$scope.showLines = function (lines){
 			$("#source-"+$scope.redLine).removeClass("highlight-selected-line");
-			for(let i = 0; i < $scope.selectedLines.length; i++){
+			for(var i = 0; i < $scope.selectedLines.length; i++){
 				$("#source-"+$scope.selectedLines[i]).removeClass("highlight-line");
 			}
-			for(let i = 0; i < lines.length; i++){
+			for(var i = 0; i < lines.length; i++){
 				$("#source-"+lines[i]).addClass("highlight-line");
 			}
 			$scope.selectedLines = lines;

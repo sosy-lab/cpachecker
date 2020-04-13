@@ -23,12 +23,15 @@
  */
 package org.sosy_lab.cpachecker.util.faultlocalization.ranking;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableList;
+
+import java.util.stream.Collectors;
+
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
@@ -67,12 +70,26 @@ public class MinimalLineDistanceRanking implements FaultRanking {
           1d));
       return ranking.getRankedList();
     }
-    BigDecimal sum = BigDecimal.valueOf(2).pow(ranking.getRankedList().size()).subtract(BigDecimal.ONE);
-    for(int i = 0; i < ranking.getRankedList().size(); i++){
-      Fault current = ranking.getRankedList().get(i);
+
+    List<Double> sortedLikelihood = ranking.getLikelihoodMap().values().stream().distinct().sorted().collect(Collectors.toList());
+    Map<Double, Integer> index = new HashMap<>();
+    for(int i = 0; i < sortedLikelihood.size(); i++){
+      index.put(sortedLikelihood.get(i), i);
+    }
+
+    int total = 0;
+
+    for(Double val: ranking.getLikelihoodMap().values()){
+      total += 1<<index.get(val);
+    }
+
+    double single = 1d/total;
+
+    for(Map.Entry<Fault, Double> entry: ranking.getLikelihoodMap().entrySet()){
+      Fault current = entry.getKey();
       current.addReason(FaultReason.justify(
-          "Minimal distance to error location: " + (errorLocation-(int)ranking.getLikelihoodMap().get(current).doubleValue()) + " line(s)",
-          BigDecimal.valueOf(2).pow(i).divide(sum, 5, RoundingMode.HALF_UP).doubleValue()));
+              "Minimal distance to error location: " + (errorLocation-(int)ranking.getLikelihoodMap().get(current).doubleValue()) + " line(s)",
+              Math.pow(2, index.get(entry.getValue()))*single));
     }
 
     return ranking.getRankedList();

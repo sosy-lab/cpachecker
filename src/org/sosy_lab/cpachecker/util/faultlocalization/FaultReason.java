@@ -25,14 +25,19 @@ package org.sosy_lab.cpachecker.util.faultlocalization;
 
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.NoContextExplanation;
 
+/**
+ * A FaultReason is a hint, fix or justification of why a certain Fault or FaultContribution is
+ * directly connected to an error. The description of a Reason will be shown to the user in the final
+ * report.
+ */
 public class FaultReason {
 
   public enum ReasonType{
-    /**A hint is displayed separately and ignored when calculating score. */
+    /** A hint is displayed separately and ignored when calculating score. */
     HINT,
-    /** Not implemented yet. Same behaviour as DEFAULT*/
+    /** Not implemented yet. Same behaviour as DEFAULT */
     FIX,
-    /** Reasons of this type are scored and ranked.*/
+    /** Reasons of this type are scored and ranked. */
     DEFAULT
   }
 

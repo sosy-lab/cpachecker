@@ -37,13 +37,11 @@ import static com.google.common.base.Preconditions.checkArgument;
 public class NoContextExplanation implements FaultExplanation {
 
   /**
-   * Possible implementation of a function that maps a FaultContribution object to a
-   * description (as string). This function relies on singleton sets otherwise an error is thrown.
+   * This method relies on singleton sets otherwise an error is thrown.
    * Make a suggestion for a bug fix based on the EdgeType.
-   * See FaultReason for an example.
-   * @see org.sosy_lab.cpachecker.util.faultlocalization.FaultReason#hintFor(Fault)
    * @param subset set of FaultLocalizationOutputs.
    * @return explanation of what might be a fix
+   * @see org.sosy_lab.cpachecker.util.faultlocalization.FaultReason#hintFor(Fault)
    */
   @Override
   public String explanationFor(Fault subset) {

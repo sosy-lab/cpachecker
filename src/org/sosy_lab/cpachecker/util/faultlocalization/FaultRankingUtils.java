@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -53,20 +54,20 @@ public class FaultRankingUtils {
   }
 
   /**
-   * Example heuristics for sorting FaultContribution.
+   * Rankings for Faults.
    *
-   * @param ranking the RankingMode decides which heuristic will be applied
+   * @param ranking the RankingMode decides which ranking will be applied
    * @return a ranked list of all faults.
    */
-  public static FaultRanking rank(RankingMode ranking) {
+  public static List<Fault> rank(RankingMode ranking, Set<Fault> faults) {
     switch (ranking) {
       case OVERALL:
-        return new OverallOccurrenceRanking();
+        return new OverallOccurrenceRanking().rank(faults);
       case SET_SIZE:
-        return new SetSizeRanking();
+        return new SetSizeRanking().rank(faults);
       case IDENTITY:
       default:
-        return new IdentityRanking();
+        return new IdentityRanking().rank(faults);
     }
   }
 
@@ -140,8 +141,8 @@ public class FaultRankingUtils {
   public static RankingResults rankedListFor(Set<Fault> pFaults, Function<Fault, Double> scoringFunction){
     Map<Fault, Double> scoreMap = new HashMap<>();
     pFaults.forEach(e -> scoreMap.put(e, scoringFunction.apply(e)));
-    List<Fault> ranked = scoreMap.keySet().stream().sorted(Comparator.comparingDouble(l -> scoreMap.get(l)).reversed()).collect(
-        Collectors.toList());
+    List<Fault> ranked = new ArrayList<>(scoreMap.keySet());
+    ranked.sort(Comparator.comparingDouble(l -> scoreMap.get(l)).reversed());
     return new RankingResults(ranked, scoreMap);
   }
 

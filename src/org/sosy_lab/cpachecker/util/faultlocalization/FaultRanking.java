@@ -38,11 +38,11 @@ public interface FaultRanking {
    * implements this interface can be created.
    * For more details and an example see MaximalLineDistanceRanking.
    * To concatenate multiple heuristics FaultRankingUtils.concatHeuristics() can be used.
-   * @see FaultRankingUtils#concatHeuristics(Function, FaultRanking...)
-   * @see FaultRankingUtils#concatHeuristicsDefaultFinalScoring(FaultRanking...) 
-   * @see MaximalLineDistanceRanking
    * @param result The result of any FaultLocalizationAlgorithm
    * @return a ranked list of all contained FaultContribution objects.
+   * @see FaultRankingUtils#concatHeuristics(Function, FaultRanking...)
+   * @see FaultRankingUtils#concatHeuristicsDefaultFinalScoring(FaultRanking...)
+   * @see MaximalLineDistanceRanking
    */
   List<Fault> rank(Set<Fault> result);
 }

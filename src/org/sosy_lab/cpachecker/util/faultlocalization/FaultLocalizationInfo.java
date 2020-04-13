@@ -40,7 +40,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 
 public class FaultLocalizationInfo extends CounterexampleInfo {
 
-  private  CounterexampleInfo created;
+  private  CounterexampleInfo parent;
 
   private List<Fault> rankedList;
   private FaultReportWriter htmlWriter;
@@ -53,8 +53,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   private Map<CFAEdge, String> mapEdgeToBestDescription;
 
   /**
-   * already processed edges.
-   * prevents adding the same information twice.
+   * Already processed edges.
    */
   private Set<CFAEdge> bannedEdges;
 
@@ -72,18 +71,18 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    * To see the result of FaultLocalizationInfo replace the CounterexampleInfo of the target state by this.
    *
    * @param pFaults Ranked list of faults obtained by a fault localization algorithm
-   * @param pCreated the counterexample info of the target state
+   * @param pParent the counterexample info of the target state
    */
   public FaultLocalizationInfo(
       List<Fault> pFaults,
-      CounterexampleInfo pCreated) {
+      CounterexampleInfo pParent) {
     super(
-        pCreated.isSpurious(),
-        pCreated.getTargetPath(),
-        pCreated.getCFAPathWithAssignments(),
-        pCreated.isPreciseCounterExample(),
+        pParent.isSpurious(),
+        pParent.getTargetPath(),
+        pParent.getCFAPathWithAssignments(),
+        pParent.isPreciseCounterExample(),
         CFAPathWithAdditionalInfo.empty());
-    created = pCreated;
+    parent = pParent;
 
     rankedList = pFaults;
     htmlWriter = new FaultReportWriter();
@@ -254,6 +253,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    * Replace default CounterexampleInfo with this extended version of a CounterexampleInfo.
    */
   public void apply(){
-    created.getTargetPath().getLastState().replaceCounterexampleInformation(this);
+    parent.getTargetPath().getLastState().replaceCounterexampleInformation(this);
   }
+
 }
