@@ -116,8 +116,8 @@ with considerably less effort -->
         </div>
       </header>
       <div class="fileContent" ng-controller="ValueAssignmentsController" id="value-assignment">
-        <table id="err-table" ng-hide="hideFaults">
-          <tr id="errpath-header" ng-hide="fault"> <td><pre></pre></td> <td><pre>Rank</pre></td> <td><pre>Scope</pre></td> </tr>
+        <table id="err-table" ng-hide="hideErrorTable">
+          <tr id="errpath-header" ng-hide="hideFaults"> <td><pre></pre></td> <td><pre>Rank</pre></td> <td><pre>Scope</pre></td> </tr>
           <tr id="errpath-{{$index}}" ng-repeat="line in errorPath">
             <td ng-click="showValues($event)" data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{line.valString}}">
               <pre>-V-</pre>
