@@ -336,13 +336,13 @@ with considerably less effort */
 				if(errPathElem.isfault){
 					errPathElem["importantindex"] = importantIndex;
 					faultEdges.push(errPathElem);
-					for(let j = 0; j < errPathElem.numbersets; j++){
-						let rank = errPathElem.ranks[j];
+					for(var j = 0; j < errPathElem.numbersets; j++){
+						var rank = errPathElem.ranks[j];
 						const score = errPathElem.scores[j];
 						const descriptions = errPathElem.descriptions[j]; //Array of descriptions
 						const reason = errPathElem.reasons[j];
 						const lines = errPathElem.lines[j]; //Array of lines
-						currFault = {};
+						const currFault = {};
 						currFault["reason"] = reason;
 						currFault["rank"] = rank;
 						currFault["score"] = score;
@@ -362,20 +362,12 @@ with considerably less effort */
 
 			function addFaultLocalizationInfo(){
 				if (faultEdges.length !== 0) {
-					for (let j = 0; j < errorPath.length; j++) {
-						$("#rank-"+j).addClass("rank");
-					}
-					for (let j = 0; j < faultEdges.length; j++) {
+					for (var j = 0; j < faultEdges.length; j++) {
 						d3.selectAll("#errpath-" + faultEdges[j].importantindex + " td pre").classed("fault", true);
 					}
-
 					d3.selectAll("#errpath-header td pre").classed("tableheader", true);
 				} else {
-					$("#errpath-header").remove();
-					$("#fault-localization-info").remove();
-					for (let j = 0; j < errorPath.length; j++) {
-						$("#rank-" + j).remove();
-					}
+					$scope.hideFaults = true;
 				}
 			};
 
@@ -395,7 +387,7 @@ with considerably less effort */
 		}
 
 		$scope.faultClicked = function(){
-			let toggle = !$scope.hideErrorTable;
+			var toggle = !$scope.hideErrorTable;
 			if (toggle) {
 				$("#report-controller").scope().setTab(3);
 			}
@@ -706,10 +698,10 @@ with considerably less effort */
 		};
 		$scope.showLines = function (lines){
 			$("#source-"+$scope.redLine).removeClass("highlight-selected-line");
-			for(let i = 0; i < $scope.selectedLines.length; i++){
+			for(var i = 0; i < $scope.selectedLines.length; i++){
 				$("#source-"+$scope.selectedLines[i]).removeClass("highlight-line");
 			}
-			for(let i = 0; i < lines.length; i++){
+			for(var i = 0; i < lines.length; i++){
 				$("#source-"+lines[i]).addClass("highlight-line");
 			}
 			$scope.selectedLines = lines;

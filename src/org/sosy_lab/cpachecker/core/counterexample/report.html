@@ -107,7 +107,7 @@ with considerably less effort -->
           </label>
         </div>
         <!--shown iff property analysis.algorithm.FaultLocalization=true-->
-        <div id="fault-localization-info" class="horizontal-div">
+        <div id="fault-localization-info" ng-hide="hideFaults" class="horizontal-div">
           <button id="fault-button" class="btn btn-success" ng-click="faultClicked()" data-toggle="tooltip" data-placement="bottom" title="Click here to get more detailed information about the error">Change view</button>
         </div>
         <div id="matches">
@@ -116,13 +116,13 @@ with considerably less effort -->
         </div>
       </header>
       <div class="fileContent" ng-controller="ValueAssignmentsController" id="value-assignment">
-        <table id="err-table" ng-hide="hideErrorTable">
-          <tr id="errpath-header"> <td><pre></pre></td> <td><pre>Rank</pre></td> <td><pre>Scope</pre></td> </tr>
+        <table id="err-table" ng-hide="hideFaults">
+          <tr id="errpath-header" ng-hide="fault"> <td><pre></pre></td> <td><pre>Rank</pre></td> <td><pre>Scope</pre></td> </tr>
           <tr id="errpath-{{$index}}" ng-repeat="line in errorPath">
             <td ng-click="showValues($event)" data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{line.valString}}">
               <pre>-V-</pre>
             </td>
-	          <td id="rank-{{$index}}" ng-click="showValues($event)" tabindex="0" data-trigger="focus" data-toggle="popover" data-placement="bottom" data-trigger="click" data-content="{{line.bestreason}}">
+	          <td ng-click="showValues($event)" ng-hide="hideFaults" class="rank" tabindex="0" data-trigger="focus" data-toggle="popover" data-placement="bottom" data-trigger="click" data-content="{{line.bestreason}}">
               <pre>{{line.bestrank}}</pre>
             </td>
             <td class="disabled" ng-click="clickedErrpathElement($event)">
@@ -130,7 +130,7 @@ with considerably less effort -->
             </td>
           </tr>
         </table>
-          <table id="fault-loc-table" ng-show="hideErrorTable" class="fault-table" ng-repeat="edge in faults">
+          <table ng-show="hideErrorTable" class="fault-table" ng-repeat="edge in faults">
             <tr id="fault-{{$index}}">
               <td ng-click="showLines(edge.lines)" data-toggle="tooltip" data-placement="bottom" title="Rank">
                 <pre>{{edge.rank}}.</pre>
