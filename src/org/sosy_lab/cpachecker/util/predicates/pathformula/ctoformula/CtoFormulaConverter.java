@@ -339,6 +339,10 @@ public class CtoFormulaConverter {
       }
     }
 
+    if (options.useVariableClassification() && type instanceof CPointerType) {
+      return typeHandler.getPointerType();
+    }
+
     int bitSize = typeHandler.getBitSizeof(type);
 
     return FormulaType.getBitvectorTypeWithSize(bitSize);
