@@ -298,9 +298,9 @@ public class ExpressionToFormulaVisitor
         ret = mgr.makeDivide(f1Cast, f2Cast, signed);
       break;
     case MODULO:
-        ret = mgr.makeModulo(f1, f2, signed);
+        ret = mgr.makeModulo(f1Cast, f2Cast, signed);
 
-        addModuloConstraints(exp, f1, f2, signed, ret);
+        addModuloConstraints(exp, f1Cast, f2Cast, signed, ret);
 
       break;
     case BINARY_AND:
