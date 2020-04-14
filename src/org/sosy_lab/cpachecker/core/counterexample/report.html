@@ -122,7 +122,7 @@ with considerably less effort -->
             <td ng-click="showValues($event)" data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{line.valString}}">
               <pre>-V-</pre>
             </td>
-	          <td ng-click="showValues($event)" ng-hide="hideFaults" class="rank" tabindex="0" data-trigger="focus" data-toggle="popover" data-placement="bottom" data-trigger="click" data-content="{{line.bestreason}}">
+	          <td ng-hide="hideFaults" class="rank" tabindex="0" data-trigger="focus" data-toggle="popover" data-placement="right" data-content="{{line.bestreason}}">
               <pre>{{line.bestrank}}</pre>
             </td>
             <td class="disabled" ng-click="clickedErrpathElement($event)">
