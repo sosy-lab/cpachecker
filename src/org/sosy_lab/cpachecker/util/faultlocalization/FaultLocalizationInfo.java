@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
 import com.google.common.base.Splitter;
+import java.io.IOException;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -33,6 +35,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.antlr.v4.runtime.misc.MultiMap;
+import org.sosy_lab.common.JSON;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
@@ -45,17 +48,9 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   private List<Fault> rankedList;
   private FaultReportWriter htmlWriter;
 
-  private Map<Fault, Integer> mapFaultToRank;
-
+  private MultiMap<CFAEdge, Integer> mapEdgeToFaults;
   private Map<CFAEdge, FaultContribution> mapEdgeToFaultContribution;
-  private MultiMap<CFAEdge, Fault> mapEdgeToFault;
-  private Map<CFAEdge, Integer> mapEdgeToBestRank;
-  private Map<CFAEdge, String> mapEdgeToBestDescription;
-
-  /**
-   * Already processed edges.
-   */
-  private Set<CFAEdge> bannedEdges;
+  private Map<Fault, Integer> mapFaultToRank;
 
   /**
    * Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to fix a bug.
@@ -84,57 +79,23 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         CFAPathWithAdditionalInfo.empty());
     parent = pParent;
 
+    mapEdgeToFaultContribution = new HashMap<>();
+    mapFaultToRank = new HashMap<>();
+    mapEdgeToFaults = new MultiMap<>();
+
+    for(int i = 0; i < pFaults.size(); i++){
+      Fault fault = pFaults.get(0);
+      for (FaultContribution faultContribution : fault) {
+        mapEdgeToFaults.map(faultContribution.correspondingEdge(), i);
+        mapEdgeToFaultContribution.put(faultContribution.correspondingEdge(), faultContribution);
+      }
+      mapFaultToRank.put(fault, (i+1));
+    }
+
     rankedList = pFaults;
     htmlWriter = new FaultReportWriter();
 
-    bannedEdges = new HashSet<>();
 
-    mapFaultToRank = new HashMap<>();
-
-    mapEdgeToFaultContribution = new HashMap<>();
-    mapEdgeToFault = new MultiMap<>();
-    mapEdgeToBestRank = new HashMap<>();
-    mapEdgeToBestDescription = new HashMap<>();
-
-    //Create the mapping of a fault to a rank
-    Map<FaultContribution, Double> scoreMap = new HashMap<>();
-    for (int i = 0; i < pFaults.size(); i++) {
-      Fault current = pFaults.get(i);
-      if(current.isEmpty()){
-        continue;
-      }
-      mapFaultToRank.put(current, i+1);
-      for (FaultContribution faultContribution : current) {
-        if(faultContribution.hasReasons()){
-          scoreMap.merge(faultContribution, faultContribution.getScore(), Double::max);
-        }
-      }
-    }
-
-    scoreMap.keySet().forEach(fc -> mapEdgeToFaultContribution.put(fc.correspondingEdge(),fc));
-
-    // find the best rank and the related description for all edges
-    for (Map.Entry<Fault, Integer> entry : mapFaultToRank.entrySet()) {
-      Fault set = entry.getKey();
-      boolean alreadyAssigned = false;
-      if(entry.getKey().isEmpty()) {
-        continue;
-      }
-      for(FaultContribution elem: set){
-        int newRank = mapEdgeToBestRank.merge(elem.correspondingEdge(), entry.getValue(), Integer::min);
-        mapEdgeToBestDescription.merge(elem.correspondingEdge(), htmlWriter.toHtml(set), (a, b) -> {
-          if(entry.getValue() == newRank){
-            return a;
-          } else {
-            return b;
-          }
-        });
-        if(!alreadyAssigned){
-          mapEdgeToFault.map(elem.correspondingEdge(), set);
-          alreadyAssigned = true;
-        }
-      }
-    }
   }
 
   public int getRankOfSet(Fault set) {
@@ -168,82 +129,54 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     return transformed;
   }
 
+  public void faultsToJSON(Writer pWriter) throws IOException {
+    List<Map<String, Object>> faults = new ArrayList<>();
+    for (Fault fault : rankedList) {
+      Map<String, Object> faultMap = new HashMap<>();
+      faultMap.put("rank", mapFaultToRank.get(fault));
+      faultMap.put("score", fault.getScore());
+      faultMap.put("reason", htmlWriter.toHtml(fault));
+      faultMap.put("lines", fault.sortedLineNumbers());
+      faultMap.put("descriptions", descriptionsOfFault(fault));
+      faults.add(faultMap);
+    }
+    JSON.writeJSONString(faults ,pWriter);
+  }
+
   /**
-   * append additional information to the CounterexampleInfo output
+   * Append additional information to the CounterexampleInfo output
    * @param elem maps a property of edge to an object
    * @param edge the edge that is currently transformed into JSON format.
    */
   @Override
   protected void addAdditionalInfo(Map<String, Object> elem, CFAEdge edge) {
-    // if the edge is contained in more than one set store the best rank here.
-    elem.put("bestrank", "-");
-    // the reason corresponding to the above rank
-    elem.put("bestreason", "");
-    // in how many sets is the current edge contained.
-    elem.put("numbersets", 0);
-    // array of edge descriptions
-    elem.put("descriptions", new ArrayList<>());
-    // array of all reasons of the sets this edge is contained in
-    elem.put("reasons", new ArrayList<>());
-    // array of all lines of the sets this edge is contained in
-    elem.put("lines", new ArrayList<>());
-    //Ranks and scores of all sets this is contained in
-    elem.put("scores", new ArrayList<>());
-    elem.put("ranks", new ArrayList<>());
-
-    if(bannedEdges.contains(edge)){
-      return;
-    }
-
-    boolean isFault = mapEdgeToBestRank.containsKey(edge);
-    elem.put("isfault",isFault);
-    if(isFault){
-      elem.put("bestrank", mapEdgeToBestRank.get(edge));
-      FaultContribution corresponding = mapEdgeToFaultContribution.get(edge);
-      if(corresponding.hasReasons()){
-        elem.put("bestreason", mapEdgeToBestDescription.get(edge) + "<br><br><strong>Additional information has been provided:</strong><br>" + htmlWriter.toHtml(corresponding));
-      } else {
-        elem.put("bestreason", mapEdgeToBestDescription.get(edge));
+    elem.put("additional", "");
+    elem.put("faults", new ArrayList<>());
+    FaultContribution fc = mapEdgeToFaultContribution.get(edge);
+    if(fc != null){
+      if(fc.hasReasons()){
+        elem.put("additional", "<br><br><strong>Additional information provided:</strong>" + htmlWriter.toHtml(fc) + "<br><i>Score: " + fc.getScore() + "</i>");
       }
     }
-
-    if(mapEdgeToFault.containsKey(edge)){
-      bannedEdges.add(edge);
-      List<Fault> associatedFaults = mapEdgeToFault.get(edge);
-      elem.put("numbersets", associatedFaults.size());
-      // Calculate list.
-      List<List<String>> descriptions = new ArrayList<>();
-      List<String> reasons = new ArrayList<>();
-      List<List<Integer>> lines = new ArrayList<>();
-      List<Integer> scores = new ArrayList<>();
-      List<Integer> ranks = new ArrayList<>();
-      for(Fault fault: associatedFaults){
-        // get description of all edge types in the Fault
-        // e.g. Fault = {StatementEdge[i=0], AssumeEdge[i<5]} then description = {[i = 0;], [i < 5;]}
-        descriptions.add(fault
-            .stream()
-            .sorted(Comparator.comparingInt(fc -> fc.correspondingEdge().getFileLocation().getStartingLineInOrigin()))
-            .map(fc -> {
-              CFAEdge cfaEdge = fc.correspondingEdge();
-              if(cfaEdge.getEdgeType().equals(CFAEdgeType.FunctionReturnEdge)){
-                return Splitter.on(":").split(cfaEdge.getDescription()).iterator().next();
-              }
-              return fc.correspondingEdge().getDescription();
-            })
-            .collect(Collectors.toList()));
-
-        lines.add(fault.sortedLineNumbers());
-        reasons.add(htmlWriter.toHtml(fault));
-        scores.add((int)(fault.getScore()*100));
-        ranks.add(mapFaultToRank.get(fault));
-      }
-      elem.put("descriptions", descriptions);
-      elem.put("reasons", reasons);
-      elem.put("lines", lines);
-      elem.put("scores", scores);
-      elem.put("ranks", ranks);
+    if(mapEdgeToFaults.containsKey(edge)){
+      elem.put("faults", mapEdgeToFaults.get(edge));
     }
   }
+
+  protected List<String> descriptionsOfFault(Fault fault){
+    return fault
+        .stream()
+        .sorted(Comparator.comparingInt(fc -> fc.correspondingEdge().getFileLocation().getStartingLineInOrigin()))
+        .map(fc -> {
+          CFAEdge cfaEdge = fc.correspondingEdge();
+          if(cfaEdge.getEdgeType().equals(CFAEdgeType.FunctionReturnEdge)){
+            return Splitter.on(":").split(cfaEdge.getDescription()).iterator().next();
+          }
+          return fc.correspondingEdge().getDescription();
+        })
+        .collect(Collectors.toList());
+  }
+
 
   public void replaceHtmlWriter(FaultReportWriter pFaultToHtml){
     htmlWriter = pFaultToHtml;
@@ -255,5 +188,4 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   public void apply(){
     parent.getTargetPath().getLastState().replaceCounterexampleInformation(this);
   }
-
 }
