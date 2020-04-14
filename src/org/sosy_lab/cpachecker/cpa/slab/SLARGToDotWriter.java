@@ -89,7 +89,7 @@ public class SLARGToDotWriter {
       builder.append("\"");
     }
 
-    builder.append("]%n");
+    builder.append("]").append(System.lineSeparator());
     return builder.toString();
   }
 
@@ -109,7 +109,8 @@ public class SLARGToDotWriter {
     builder.append("@N");
     builder.append(generateLocationString(locationNumbers));
     builder.append("\" ");
-    builder.append("id=\"").append(pState.getStateId()).append("\"]%n");
+    builder.append("id=\"").append(pState.getStateId());
+    builder.append("\"]").append(System.lineSeparator());
     return builder.toString();
   }
 
