@@ -50,7 +50,6 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
 
   private MultiMap<CFAEdge, Integer> mapEdgeToFaults;
   private Map<CFAEdge, FaultContribution> mapEdgeToFaultContribution;
-  private Map<Fault, Integer> mapFaultToRank;
 
   /**
    * Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to fix a bug.
@@ -80,35 +79,28 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     parent = pParent;
 
     mapEdgeToFaultContribution = new HashMap<>();
-    mapFaultToRank = new HashMap<>();
     mapEdgeToFaults = new MultiMap<>();
 
     for(int i = 0; i < pFaults.size(); i++){
-      Fault fault = pFaults.get(0);
-      for (FaultContribution faultContribution : fault) {
+      for (FaultContribution faultContribution : pFaults.get(i)) {
         mapEdgeToFaults.map(faultContribution.correspondingEdge(), i);
         mapEdgeToFaultContribution.put(faultContribution.correspondingEdge(), faultContribution);
       }
-      mapFaultToRank.put(fault, (i+1));
     }
 
     rankedList = pFaults;
     htmlWriter = new FaultReportWriter();
-
-
   }
 
   public int getRankOfSet(Fault set) {
-    return mapFaultToRank.get(set);
+    return rankedList.indexOf(set);
   }
 
   @Override
   public String toString() {
     StringBuilder toString = new StringBuilder();
-    if(!mapFaultToRank.isEmpty()){
-      if(!rankedList.isEmpty()){
-        toString.append(rankedList.stream().map(l -> l.toString()).collect(Collectors.joining("\n\n")));
-      }
+    if(!rankedList.isEmpty()){
+      toString.append(rankedList.stream().map(l -> l.toString()).collect(Collectors.joining("\n\n")));
     }
     return toString.toString();
   }
@@ -131,10 +123,11 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
 
   public void faultsToJSON(Writer pWriter) throws IOException {
     List<Map<String, Object>> faults = new ArrayList<>();
-    for (Fault fault : rankedList) {
+    for (int i = 0; i < rankedList.size(); i++) {
+      Fault fault = rankedList.get(i);
       Map<String, Object> faultMap = new HashMap<>();
-      faultMap.put("rank", mapFaultToRank.get(fault));
-      faultMap.put("score", fault.getScore());
+      faultMap.put("rank", (i+1));
+      faultMap.put("score", (int) (100 * fault.getScore()));
       faultMap.put("reason", htmlWriter.toHtml(fault));
       faultMap.put("lines", fault.sortedLineNumbers());
       faultMap.put("descriptions", descriptionsOfFault(fault));
@@ -155,7 +148,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     FaultContribution fc = mapEdgeToFaultContribution.get(edge);
     if(fc != null){
       if(fc.hasReasons()){
-        elem.put("additional", "<br><br><strong>Additional information provided:</strong>" + htmlWriter.toHtml(fc) + "<br><i>Score: " + fc.getScore() + "</i>");
+        elem.put("additional", "<br><br><strong>Additional information provided:</strong><br>" + htmlWriter.toHtml(fc));
       }
     }
     if(mapEdgeToFaults.containsKey(edge)){

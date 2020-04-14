@@ -278,7 +278,11 @@ with considerably less effort */
 		//Fault Localization
 		$scope.selectedLines = [];
 		$scope.redLine = -1;
-		$rootScope.faults = faults;
+		$rootScope.faults = [];
+                const allFaults = cfaJson.faults;
+                if(allFaults !== undefined && allFaults.length > 0){
+                        $rootScope.faults = allFaults;
+                }
 
 		function getValues(val, prevValDict) {
 			var values = {};
@@ -337,8 +341,8 @@ with considerably less effort */
 
 				if (errPathElem.faults !== undefined && errPathElem.faults.length > 0) {
 					errPathElem["importantindex"] = importantIndex;
-					errPathElem["bestrank"] = faults[errPathElem.faults[0]].rank;
-					errPathElem["bestreason"] = faults[errPathElem.faults[0]].reason;
+					errPathElem["bestrank"] = allFaults[errPathElem.faults[0]].rank;
+					errPathElem["bestreason"] = allFaults[errPathElem.faults[0]].reason;
 					if (errPathElem["additional"] !== undefined && errPathElem["additional"] !== "") {
 						errPathElem["bestreason"] = errPathElem["bestreason"] + errPathElem["additional"];
 					}
