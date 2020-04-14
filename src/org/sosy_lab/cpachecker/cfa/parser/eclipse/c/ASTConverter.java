@@ -2691,17 +2691,14 @@ class ASTConverter {
         FileLocation loc = getLocation(i);
 
         if (declaration != null && !declaration.getType().getCanonicalType().isConst()) {
-          if (((CFunctionCallExpression) initializer).getDeclaration() == null) {
-            if (!areInitializerAssignable(
-                declaration.getType(),
-                ((CFunctionCallExpression) initializer).getFunctionNameExpression())) {
-              throw parseContext.parseError(
-                  "Declaration type "
-                      + declaration.getType()
-                      + " does not match initializer type "
-                      + ((CFunctionCallExpression) initializer).getExpressionType(),
-                  e);
-            }
+          if (!areInitializerAssignable(declaration.getType(), (CRightHandSide) initializer)) {
+            throw parseContext.parseError(
+                "Type "
+                    + declaration.getType()
+                    + " of declaration and type "
+                    + ((CFunctionCallExpression) initializer).getExpressionType()
+                    + " of initializer are not assignment compatible",
+                e);
           }
           // This is a variable declaration like "int i = f();"
           // We can replace this with "int i; i = f();"
@@ -2763,7 +2760,7 @@ class ASTConverter {
 
   /** Check for legal initializer according to C11 § 6.7.9 (11), (13) */
   private boolean areInitializerAssignable(
-      CType pDeclarationType, CExpression pInitializerExpression) {
+      CType pDeclarationType, CRightHandSide pInitializerExpression) {
     return pDeclarationType.canBeAssignedFrom(pInitializerExpression.getExpressionType())
         || isStringInitialization(pDeclarationType, pInitializerExpression)
         || ((pInitializerExpression instanceof CIntegerLiteralExpression)
@@ -2783,7 +2780,7 @@ class ASTConverter {
    *     of/to <b><code>char</code></b>
    */
   private boolean isStringInitialization(
-      CType pDeclarationType, CExpression pInitializerExpression) {
+      CType pDeclarationType, CRightHandSide pInitializerExpression) {
     // TODO: Can we somehow handle wide-char-arrays and corresponding Strings?
     // E.g., 'wchar_t a[] = L"abc";' is valid, whereas 'char a[] = L"abc";' is not.
     if (pInitializerExpression instanceof CStringLiteralExpression) {
