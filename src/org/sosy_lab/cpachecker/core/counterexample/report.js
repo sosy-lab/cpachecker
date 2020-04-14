@@ -274,9 +274,11 @@ with considerably less effort */
 
 	var errorpathController = app.controller("ErrorpathController", ['$rootScope', '$scope', function ($rootScope, $scope) {
 		$rootScope.errorPath = [];
-		$rootScope.faults = [];
+
+		//Fault Localization
 		$scope.selectedLines = [];
 		$scope.redLine = -1;
+		$rootScope.faults = faults;
 
 		function getValues(val, prevValDict) {
 			var values = {};
@@ -333,26 +335,14 @@ with considerably less effort */
 					indentationlevel += 1;
 				}
 
-				if(errPathElem.isfault){
+				if (errPathElem.faults !== undefined && errPathElem.faults.length > 0) {
 					errPathElem["importantindex"] = importantIndex;
-					faultEdges.push(errPathElem);
-					for(var j = 0; j < errPathElem.numbersets; j++){
-						var rank = errPathElem.ranks[j];
-						const score = errPathElem.scores[j];
-						const descriptions = errPathElem.descriptions[j]; //Array of descriptions
-						const reason = errPathElem.reasons[j];
-						const lines = errPathElem.lines[j]; //Array of lines
-						const currFault = {};
-						currFault["reason"] = reason;
-						currFault["rank"] = rank;
-						currFault["score"] = score;
-						currFault["lines"] = lines;
-						currFault["descriptions"] = descriptions;
-						$rootScope.faults.push(currFault);
-						$rootScope.faults.sort(function(a,b){
-							return a.rank - b.rank;
-						});
+					errPathElem["bestrank"] = faults[errPathElem.faults[0]].rank;
+					errPathElem["bestreason"] = faults[errPathElem.faults[0]].reason;
+					if (errPathElem["additional"] !== undefined && errPathElem["additional"] !== "") {
+						errPathElem["bestreason"] = errPathElem["bestreason"] + errPathElem["additional"];
 					}
+					faultEdges.push(errPathElem);
 				}
 
 				// store the important edges
