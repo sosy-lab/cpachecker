@@ -62,7 +62,8 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    * heuristic should be applied. FaultRankingUtils provides a method that creates a new
    * heuristic out of multiple heuristics.
    *
-   * To see the result of FaultLocalizationInfo replace the CounterexampleInfo of the target state by this.
+   * To see the result of FaultLocalizationInfo replace the CounterexampleInfo of the target state by this
+   * or simply call apply() on an instance of this class.
    *
    * @param pFaults Ranked list of faults obtained by a fault localization algorithm
    * @param pParent the counterexample info of the target state
@@ -76,6 +77,45 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         pParent.getCFAPathWithAssignments(),
         pParent.isPreciseCounterExample(),
         CFAPathWithAdditionalInfo.empty());
+    initialize(pParent, pFaults);
+  }
+
+  /**
+   * Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to fix a bug.
+   * Transforming it into a Set of Faults enables the possibility to attach reasons of why this edge is in this set.
+   * After ranking the set of faults an instance of this class can be created.
+   *
+   * The class should be used to display information to the user.
+   *
+   * Note that there is no need to create multiple instances of this object if more than one
+   * heuristic should be applied. FaultRankingUtils provides a method that creates a new
+   * heuristic out of multiple heuristics.
+   *
+   * To see the result of FaultLocalizationInfo replace the CounterexampleInfo of the target state by this
+   * or simply call apply() on an instance of this class.
+   *
+   * @param pFaults set of faults obtained by a fault localization algorithm
+   * @param pRanking the ranking for pFaults
+   * @param pParent the counterexample info of the target state
+   */
+  public FaultLocalizationInfo(Set<Fault> pFaults, FaultRanking pRanking, CounterexampleInfo pParent){
+    super(
+        pParent.isSpurious(),
+        pParent.getTargetPath(),
+        pParent.getCFAPathWithAssignments(),
+        pParent.isPreciseCounterExample(),
+        CFAPathWithAdditionalInfo.empty());
+    List<Fault> rankedFault = pRanking.rank(pFaults);
+    for (Fault fault : rankedFault) {
+      FaultRankingUtils.assignScoreTo(fault);
+      for (FaultContribution faultContribution : fault) {
+        FaultRankingUtils.assignScoreTo(faultContribution);
+      }
+    }
+    initialize(pParent, rankedFault);
+  }
+
+  private void initialize(CounterexampleInfo pParent, List<Fault> pFaults){
     parent = pParent;
 
     mapEdgeToFaultContribution = new HashMap<>();

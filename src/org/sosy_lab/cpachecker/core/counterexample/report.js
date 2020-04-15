@@ -356,13 +356,11 @@ with considerably less effort */
 			}
 
 			function addFaultLocalizationInfo(){
-				if (faultEdges.length !== 0) {
+				if (allFaults !== undefined && allFaults.length !== 0) {
 					for (var j = 0; j < faultEdges.length; j++) {
 						d3.selectAll("#errpath-" + faultEdges[j].importantindex + " td pre").classed("fault", true);
 					}
 					d3.selectAll("#errpath-header td pre").classed("tableheader", true);
-				} else {
-					$scope.hideFaults = true;
 				}
 			};
 
@@ -380,6 +378,8 @@ with considerably less effort */
 
 
 		}
+
+		$scope.hideFaults = (allFaults == undefined || allFaults.length == 0);
 
 		$scope.faultClicked = function(){
 			var toggle = !$scope.hideErrorTable;
