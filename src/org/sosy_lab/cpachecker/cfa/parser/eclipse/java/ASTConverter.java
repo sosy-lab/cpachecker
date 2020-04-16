@@ -32,15 +32,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import java.lang.reflect.Constructor;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
-import java.util.Random;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -1253,18 +1250,7 @@ class ASTConverter {
     final AnonymousClassDeclaration anonymousDecl = pCIC.getAnonymousClassDeclaration();
     String fullName = getFullName(pCIC);
     JConstructorDeclaration declaration;
-    Object obj = new Random();
 
-    Class cls = obj.getClass();
-    try {
-      Constructor<?> constructor= (cls.getConstructor());
-    } catch (NoSuchMethodException pE) {
-    }
-    JClassType jClassType = JClassType.valueOf(cls.getName(), cls.getSimpleName(), VisibilityModifier.PUBLIC,
-        false, false, false, (JClassType)scope.getCurrentClassType(), Collections.emptySet());
-
-//    parent = scope.getCurrentClassType();
-//    JMethodDeclaration jMethodDeclaration = new JMethodDeclaration(FileLocation.DUMMY, new JMethodType(JType.class(Random)));
     if (anonymousDecl == null) {
       declaration = (JConstructorDeclaration) scope.lookupMethod(fullName);
 
