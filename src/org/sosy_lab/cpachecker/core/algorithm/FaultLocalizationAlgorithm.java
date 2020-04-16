@@ -49,8 +49,10 @@ import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.MaxSatAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.SingleUnsatCoreAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula.TraceFormulaOptions;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.rankings.CallHierarchyRanking;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.rankings.EdgeTypeRanking;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.rankings.ForwardPreConditionRanking;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -81,6 +83,7 @@ public class FaultLocalizationAlgorithm implements Algorithm {
   private final PathFormulaManagerImpl manager;
   private final ShutdownNotifier shutdownNotifier;
   private final Configuration config;
+  private final TraceFormulaOptions options;
   //private final CFA cfa;
 
   @Option(secure=true, name="type", toUppercase=true, values={"UNSAT", "MAXSAT", "ERRINV"},
@@ -95,6 +98,7 @@ public class FaultLocalizationAlgorithm implements Algorithm {
       final ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
     pConfig.inject(this);
+    options = new TraceFormulaOptions(pConfig);
     algorithm = pStoreAlgorithm;
     Solver solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
     manager =
@@ -178,7 +182,7 @@ public class FaultLocalizationAlgorithm implements Algorithm {
         return;
       }
 
-      TraceFormula tf = new TraceFormula(context, config, edgeList);
+      TraceFormula tf = new TraceFormula(context, options, edgeList);
       if(tf.isAlwaysUnsat()){
         logger.log(Level.INFO, "Pre and post condition are unsatisfiable when conjugated. This means the initial variable assignment contradicts the post condition. No further analysis required.");
         return;
@@ -190,6 +194,7 @@ public class FaultLocalizationAlgorithm implements Algorithm {
 
       FaultRanking concat =
           FaultRankingUtils.concatHeuristicsDefaultFinalScoring(
+              new ForwardPreConditionRanking(tf, context),
               new EdgeTypeRanking(),
               new SetSizeRanking(),
               new HintRanking(3),
@@ -213,7 +218,7 @@ public class FaultLocalizationAlgorithm implements Algorithm {
       logger.log(Level.SEVERE, "SolverException: " + sE.getMessage());
       logger.log(Level.INFO, "The solver was not able to find the UNSAT-core of the path formula.");
     } catch (VerifyException vE) {
-      logger.log(Level.INFO, "No bugs found because the trace formula is satisfiable.");
+      logger.log(Level.INFO, "No bugs found because the trace formula is satisfiable or the counterexample is spurious.");
     } catch (InvalidConfigurationException iE) {
       logger.log(Level.INFO, "Incomplete analysis because of invalid configuration");
     } catch (IllegalStateException iE) {

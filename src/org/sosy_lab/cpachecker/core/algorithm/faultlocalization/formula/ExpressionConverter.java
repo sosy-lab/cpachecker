@@ -33,7 +33,7 @@ public class ExpressionConverter {
   /**
    * Converts every string which matches: expr = ('binary_operator' expr expr) | ('unary_operator'
    * expr) | Variable | Literal operator = and | or | = | <= | < | >= | > ... unary_operator =
-   * not... Variable = methode::varname@Zahl varname = String Literal = Zahl | String
+   * not... Variable = methode::varname@digit varname = String Literal = Zahl | String
    *
    * @param input input-string in pre-order
    * @return infix notation of input

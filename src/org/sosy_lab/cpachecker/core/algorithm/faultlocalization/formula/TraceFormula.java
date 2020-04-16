@@ -45,7 +45,6 @@ import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@Options(prefix="traceformula")
 public class TraceFormula {
 
   private List<CFAEdge> edges;
@@ -62,22 +61,31 @@ public class TraceFormula {
   private BooleanFormula precondition;
 
   private boolean isAlwaysUnsat;
+  private TraceFormulaOptions options;
 
-  @Option(secure=true, name="filter",
-      description="filter the alternative precondition by scopes")
-  private String filter = "";
+  @Options(prefix="traceformula")
+  public static class TraceFormulaOptions {
+    @Option(secure=true, name="filter",
+        description="filter the alternative precondition by scopes")
+    private String filter = "";
 
-  @Option(
-      secure = true,
-      name = "altpre",
-      description = "force alternative pre condition")
-  boolean forceAlternativePreCondition = false;
+    @Option(
+        secure = true,
+        name = "altpre",
+        description = "force alternative pre condition")
+    private boolean forceAlternativePreCondition = false;
 
-  public TraceFormula(FormulaContext pContext, Configuration pConfig, List<CFAEdge> pEdges)
-      throws CPATransferException, InterruptedException, SolverException,
-             InvalidConfigurationException {
-    pConfig.inject(this);
+    public TraceFormulaOptions(Configuration pConfiguration) throws InvalidConfigurationException {
+      pConfiguration.inject(this);
+    }
+  }
+
+
+
+  public TraceFormula(FormulaContext pContext, TraceFormulaOptions pOptions, List<CFAEdge> pEdges)
+      throws CPATransferException, InterruptedException, SolverException {
     isAlwaysUnsat = false;
+    options = pOptions;
     edges = pEdges;
     context = pContext;
     selectors = new ArrayList<>();
@@ -126,6 +134,8 @@ public class TraceFormula {
     return negated;
   }
 
+  //TODO prover precondition does not guarantee that corresponding edge is excluded in the report as possible resource.
+  //TODO altpre cannot be used if undet_X() are in the formula
   private void createTraceFormulas()
       throws CPATransferException, InterruptedException, SolverException {
 
@@ -171,7 +181,7 @@ public class TraceFormula {
 
     PathFormula current = manager.makeEmptyPathFormula();
     ssaMaps.add(current.getSsa());
-    AlternativePrecondition altPre = new AlternativePrecondition(filter);
+    AlternativePrecondition altPre = new AlternativePrecondition();
     // edges.removeIf(l -> !l.getEdgeType().equals(CFAEdgeType.AssumeEdge));
     for (CFAEdge e : edges) {
       BooleanFormula prev = current.getFormula();
@@ -213,7 +223,7 @@ public class TraceFormula {
     }
 
     //TODO: it is possible that a forced pre condition gets denied. Tell the user that this happened
-    if((forceAlternativePreCondition || bmgr.isTrue(precondition)) && !context.getSolver().isUnsat(bmgr.and(altPre.toFormula(), postcondition))){
+    if((options.forceAlternativePreCondition || bmgr.isTrue(precondition)) && !context.getSolver().isUnsat(bmgr.and(altPre.toFormula(), postcondition))){
       precondition = altPre.toFormula();
       for (BooleanFormula booleanFormula : altPre.getPreCondition()) {
         int index = atoms.indexOf(booleanFormula);
@@ -262,7 +272,7 @@ public class TraceFormula {
 
   @Override
   public String toString() {
-    return ExpressionConverter.convert(actualForm);
+    return actualForm.toString();
   }
 
   private class AlternativePrecondition{
@@ -270,15 +280,14 @@ public class TraceFormula {
     private Map<Formula, Integer> variableToIndexMap;
     private List<BooleanFormula> preCondition;
 
-    AlternativePrecondition(String pFilter){
+    AlternativePrecondition(){
       variableToIndexMap = new HashMap<>();
       preCondition = new ArrayList<>();
-      filter = pFilter;
     }
 
     void add(BooleanFormula formula, SSAMap currentMap, CFAEdge edge){
-      //First check = is variable in desired scope?
-      if(formula.toString().contains(filter + "::") && isAccepted(formula, currentMap, edge)){
+      //First check if variable is in desired scope, then check if formula is accepted.
+      if(formula.toString().contains(options.filter + "::") && isAccepted(formula, currentMap, edge)){
         preCondition.add(formula);
       }
     }
@@ -291,7 +300,18 @@ public class TraceFormula {
       return preCondition;
     }
 
+    /**
+     * Accept all edges that contain statements where all operands have their minimal SSAIndex or are constants.
+     * @param formula Check if this formula is accepted
+     * @param currentMap The SSAMap for formula
+     * @param pEdge The edge that can be converted to formula
+     * @return is the formula accepted for the alternative precondition
+     */
     private boolean isAccepted(BooleanFormula formula, SSAMap currentMap, CFAEdge pEdge){
+      if(!(pEdge.getEdgeType().equals(CFAEdgeType.StatementEdge)
+          || pEdge.getEdgeType().equals(CFAEdgeType.DeclarationEdge))){
+        return false;
+      }
       Map<String, Formula> variables = context.getSolver().getFormulaManager().extractVariables(formula);
       Map<Formula, Integer> index = new HashMap<>();
       for (String s : variables.keySet()) {
@@ -300,18 +320,14 @@ public class TraceFormula {
       }
       boolean isAccepted = true;
       for (Formula f : index.keySet()) {
-        if(variableToIndexMap.get(f) == null){
+        if (variableToIndexMap.get(f) == null) {
           variableToIndexMap.put(f, index.get(f));
         } else {
           int firstIndex = variableToIndexMap.get(f);
-          if(firstIndex != index.get(f)){
+          if (firstIndex != index.get(f)) {
             isAccepted = false;
           }
         }
-      }
-      if(!(pEdge.getEdgeType().equals(CFAEdgeType.StatementEdge)
-          || pEdge.getEdgeType().equals(CFAEdgeType.DeclarationEdge))){
-        return false;
       }
       return isAccepted;
     }

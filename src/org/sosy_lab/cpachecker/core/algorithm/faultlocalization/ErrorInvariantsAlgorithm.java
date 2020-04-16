@@ -37,7 +37,6 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.ExpressionConverter;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula;
@@ -152,7 +151,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
       String description = allInterpolants.get(selector)
           .stream()
           //ExpressionConverter is not 100% reliable but better to read
-          .map(l -> ExpressionConverter.convert(l))
+          .map(l -> l.toString())//ExpressionConverter.convert(l))
           .distinct()
           .collect(Collectors.joining(","));
       if(!description.isEmpty())
@@ -165,8 +164,11 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
   private int search(int low, int high, Function<Integer, Boolean> incLow) {
     if (high < low) return low;
     int mid = (low + high) / 2;
-    if (incLow.apply(mid)) return search(mid + 1, high, incLow);
-    else return search(low, mid - 1, incLow);
+    if (incLow.apply(mid)) {
+      return search(mid + 1, high, incLow);
+    } else {
+      return search(low, mid - 1, incLow);
+    }
   }
 
   private boolean isErrInv(BooleanFormula interpolant, int i) {
