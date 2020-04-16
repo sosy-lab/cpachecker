@@ -215,7 +215,7 @@ class EclipseJavaParser implements JavaParser {
    */
   @Override
   public ParseResult parseFile(String entryFunction) throws JParserException, IOException {
-    String mainClassAbsolutePath = getMainClassAbsolutePath(entryFunction) + ".java";
+    String mainClassAbsolutePath = getAbsolutePathToEntryFunction(entryFunction) + ".java";
     String mainClassFile = stripMethodNameFromEntryFunction(entryFunction);
     Scope scope = prepareScope(mainClassFile);
     ParseResult result = buildCFA(parse(getPathToFile(mainClassAbsolutePath)), scope);
@@ -272,39 +272,49 @@ class EclipseJavaParser implements JavaParser {
    * method is not given, method will return default entry method. JavaClassPaths has to be set for
    * this method to work!
    *
-   * @param mainFunctionPath path to entry method
+   * @param entryFunctionPath path to entry method
    * @return Array with first element being absolute path to class, second element relative path and
    * third element entry method
    */
-  private String getMainClassAbsolutePath(String mainFunctionPath) throws JParserException {
-    if (mainFunctionPath.endsWith(JAVA_SOURCE_FILE_EXTENSION)) {
-      mainFunctionPath =
-          mainFunctionPath.substring(
-              0, mainFunctionPath.length() - JAVA_SOURCE_FILE_EXTENSION.length());
+  private String getAbsolutePathToEntryFunction(String entryFunctionPath) throws JParserException {
+    if (entryFunctionPath.endsWith(JAVA_SOURCE_FILE_EXTENSION)) {
+      entryFunctionPath =
+          entryFunctionPath.substring(
+              0, entryFunctionPath.length() - JAVA_SOURCE_FILE_EXTENSION.length());
     }
     // TODO check if replacing with slash works for windows
-    mainFunctionPath = mainFunctionPath.replaceAll("\\.", "/");
-    for (Path javaClassPath : javaClassPaths) {
+    entryFunctionPath = entryFunctionPath.replaceAll("\\.", "/");
+    Optional<String> mainClassAbsolutePath =
+        findMethodInPathList(javaSourcePaths, entryFunctionPath);
+    if (mainClassAbsolutePath.isEmpty()) {
+      mainClassAbsolutePath = findMethodInPathList(javaClassPaths, entryFunctionPath);
+    }
+    return mainClassAbsolutePath.orElseThrow(() -> new
+        JParserException("Could not find entry point"));
+  }
+
+  private Optional<String> findMethodInPathList(List<Path> pPathList, String pMainFunctionPath) {
+    for (Path path : pPathList) {
       // In case only file without method name is given
-      Path path = javaClassPath.resolve(Paths.get(mainFunctionPath + JAVA_SOURCE_FILE_EXTENSION));
-      if (Files.exists(path)) {
-        return javaClassPath.resolve(Paths.get(mainFunctionPath)).toString();
+      Path pathToFile = path.resolve(Paths.get(pMainFunctionPath + JAVA_SOURCE_FILE_EXTENSION));
+      if (Files.exists(pathToFile)) {
+        return Optional.of(path.resolve(Paths.get(pMainFunctionPath)).toString());
       }
       // In case file and method name is given
-      int indexOfLastSlash = mainFunctionPath.lastIndexOf('/');
+      int indexOfLastSlash = pMainFunctionPath.lastIndexOf('/');
       if (indexOfLastSlash >= 0) {
         Path pathToFileParent =
-            javaClassPath.resolve(
+            path.resolve(
                 Paths.get(
-                    mainFunctionPath.substring(0, indexOfLastSlash) + JAVA_SOURCE_FILE_EXTENSION));
+                    pMainFunctionPath.substring(0, indexOfLastSlash) + JAVA_SOURCE_FILE_EXTENSION));
         if (Files.exists(pathToFileParent)) {
-          return javaClassPath
-              .resolve(Paths.get(mainFunctionPath.substring(0, indexOfLastSlash)))
-              .toString();
+          return Optional.of(path
+              .resolve(Paths.get(pMainFunctionPath.substring(0, indexOfLastSlash)))
+              .toString());
         }
       }
     }
-    throw new JParserException("Could not find entry point");
+    return Optional.empty();
   }
 
   private void exportTypeHierarchy(Scope pScope) {
