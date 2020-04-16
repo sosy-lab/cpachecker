@@ -69,17 +69,24 @@ public class Selector extends FaultContribution {
   /**
    * The truth value of the corresponding edge is essential. Enabling a selector is equivalent to
    * making the corresponding constraint hard.
+   * Note as soon as the selector is part of a formula enable, disable and free will not have any effect.
    */
   public void enable() {
     formula = context.getSolver().getFormulaManager().getBooleanFormulaManager().makeTrue();
   }
 
-  /** The truth value of the corresponding edge is ignored */
+  /**
+   * The truth value of the corresponding edge is ignored
+   * Note as soon as the selector is part of a formula enable, disable and free will not have any effect.
+   */
   public void disable() {
     formula = context.getSolver().getFormulaManager().getBooleanFormulaManager().makeFalse();
   }
 
-  /** The solver does not know the truth value of this selector */
+  /**
+   * The solver does not know the truth value of this selector.
+   * Note as soon as the selector is part of a formula enable, disable and free will not have any effect.
+   */
   public void free() {
     formula = selectorFormula;
   }
@@ -98,8 +105,7 @@ public class Selector extends FaultContribution {
     Selector s = selectors.get(pFormula.toString());
     if (s != null) return s;
 
-    s =
-        new Selector(
+    s = new Selector(
             index,
             pContext
                 .getSolver()

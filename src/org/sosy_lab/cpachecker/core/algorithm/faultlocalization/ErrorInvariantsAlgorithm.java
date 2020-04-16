@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -106,7 +107,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
 
     List<Interval> sortedIntervals = new ArrayList<>();
     for (int i = 0; i < interpolants.size(); i++) {
-      // TODO edge for precondition
+      // TODO edge for precondition is the first edge at the moment
       // TODO actualForm can be false (c.f. SingleUnsatCore)
       BooleanFormula interpolant = interpolants.get(i);
       sortedIntervals.add(
@@ -126,12 +127,17 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
       if (currInterval.start > prevEnd) {
         interpolantsForPosition.add(
             new InterpolantToEdge(maxInterval.invariant, maxInterval.correspondingEdge));
-        if (maxInterval.end < tf.traceSize())
+        if (maxInterval.end < tf.traceSize()) {
           interpolantsForPosition.add(
               new InterpolantToEdge(tf.getAtom(maxInterval.end), tf.getAtom(maxInterval.end)));
+        }
         prevEnd = maxInterval.end;
         maxInterval = currInterval;
-      } else if (currInterval.end > maxInterval.end) maxInterval = currInterval;
+      } else {
+        if (currInterval.end > maxInterval.end) {
+           maxInterval = currInterval;
+        }
+      }
     }
     // All interpolants containing the post condition as interpolant must be removed. The post
     // condition cannot be a suitable explanation of why the error happens.
@@ -139,23 +145,30 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     MultiMap<Selector, BooleanFormula> allInterpolants = new MultiMap<>();
     Set<Fault> indicators = new HashSet<>();
     for (InterpolantToEdge interpolantToEdge : interpolantsForPosition) {
-      Fault indicator = new Fault();
       Selector current = Selector.of(interpolantToEdge.edge).orElse(null);
       if(current != null){
+        //Don't show pre-condition statements in the result set
+        if(!errorTrace.getPreconditionSymbols().isEmpty() && current.getEdge().toString().contains("__VERIFIER_nondet")){
+          continue;
+        }
+
         allInterpolants.map(current, interpolantToEdge.interpolant);
-        indicator.add(current);
-        indicators.add(indicator);
+        indicators.add(new Fault(current));
       }
     }
-    for (Selector selector : allInterpolants.keySet()) {
-      String description = allInterpolants.get(selector)
+    int sumInterpolants = allInterpolants.values().stream().mapToInt(v -> v.size()).sum();
+    for (Entry<Selector, List<BooleanFormula>> selectorListEntry : allInterpolants.entrySet()) {
+      String description = selectorListEntry.getValue()
           .stream()
           //ExpressionConverter is not 100% reliable but better to read
           .map(l -> l.toString())//ExpressionConverter.convert(l))
           .distinct()
           .collect(Collectors.joining(","));
-      if(!description.isEmpty())
-        selector.addReason(FaultReason.hint("The error is described by the invariant(s): " + description));
+      if (!description.isEmpty()) {
+        selectorListEntry.getKey().addReason(FaultReason
+            .justify("The error is described by the invariant(s): " + description,
+                (double)selectorListEntry.getValue().size()/sumInterpolants));
+      }
     }
 
     return indicators;

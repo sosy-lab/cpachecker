@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula;
 
+import com.google.common.base.Splitter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -41,7 +42,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.Model;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -54,13 +55,19 @@ public class TraceFormula {
   private List<SSAMap> ssaMaps;
   private FormulaContext context;
 
+  private List<String> preconditionSymbols;
+
   // all available formulas
   private BooleanFormula implicationForm;
   private BooleanFormula actualForm;
   private BooleanFormula postcondition;
   private BooleanFormula precondition;
 
+  /**
+   * If post- and pre-condition are UNSAT set this flag to true.
+   */
   private boolean isAlwaysUnsat;
+
   private TraceFormulaOptions options;
 
   @Options(prefix="traceformula")
@@ -80,8 +87,6 @@ public class TraceFormula {
     }
   }
 
-
-
   public TraceFormula(FormulaContext pContext, TraceFormulaOptions pOptions, List<CFAEdge> pEdges)
       throws CPATransferException, InterruptedException, SolverException {
     isAlwaysUnsat = false;
@@ -91,6 +96,7 @@ public class TraceFormula {
     selectors = new ArrayList<>();
     atoms = new ArrayList<>();
     ssaMaps = new ArrayList<>();
+    preconditionSymbols = new ArrayList<>();
     createTraceFormulas();
   }
 
@@ -149,24 +155,23 @@ public class TraceFormula {
 
     ArrayList<BooleanFormula> negate = new ArrayList<>();
 
-    // Search last AssumeEdge to make it to the post condition.
-    // Imagine the program:
-    // int x = 0;
-    // if (x == 0) {
-    //    x = 1;
-    //    goto ERROR;
-    // }
-    // This would lead to the wrong post condition x != 1. (x != 0 is correct)
+    /* Search last AssumeEdge to make it to the post condition.
+     Imagine the program:
+     int x = 0;
+     if (x == 0) {
+        x = 1;
+       goto ERROR;
+     }
+     This would lead to the wrong post condition x != 1. (x != 0 is correct)
 
-    /* Note that the following program cannot be analyzed because the post condition is x <= 0 but it should equal to x!=0.
+    Note that the following program cannot be analyzed because the post condition is x <= 0 but it should equal to x!=0.
     int x = 0;
     if (x == 0) {
        x = 1;
        while(x > 0) x--; <-- last AssumeEdge but that edge is not important.
        goto ERROR;
-    }
+    } */
 
-    */
     int errorStartingLine = -1;
     for (int i = edges.size() - 1; i >= 0; i--) {
       if (edges.get(i).getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
@@ -204,35 +209,13 @@ public class TraceFormula {
         selectors.add(Selector.makeSelector(context, currentAtom, e));
       }
     }
-    // Create post condition
+    // Create post-condition
     postcondition = bmgr.not(bmgr.and(negate));
 
-    // Create pre condition as model of the actual formula.
-    // If the program is has a bug the model is guaranteed to be existent.
-    try (ProverEnvironment prover = context.getProver()){
-      prover.push(bmgr.and(bmgr.and(atoms), bmgr.and(negate)));
-      if (!prover.isUnsat()) {
-        precondition =
-            prover.getModelAssignments().stream()
-                .map(Model.ValueAssignment::getAssignmentAsFormula)
-                .filter(l -> l.toString().contains("__VERIFIER_nondet"))
-                .collect(bmgr.toConjunction());
-      } else {
-        throw new AssertionError("a model has to be existent");
-      }
-    }
+    // Create pre-condition
+    precondition = calculatePreCondition(negate, altPre);
 
-    //TODO: it is possible that a forced pre condition gets denied. Tell the user that this happened
-    if((options.forceAlternativePreCondition || bmgr.isTrue(precondition)) && !context.getSolver().isUnsat(bmgr.and(altPre.toFormula(), postcondition))){
-      precondition = altPre.toFormula();
-      for (BooleanFormula booleanFormula : altPre.getPreCondition()) {
-        int index = atoms.indexOf(booleanFormula);
-        atoms.remove(index);
-        selectors.remove(index);
-        ssaMaps.remove(index);
-      }
-    }
-    //If however the pre condition conjugated with the post condition is unsat tell the main algorithm that this formula is always unsat.
+    //If however the pre condition conjugated with the post-condition is UNSAT tell the main algorithm that this formula is always unsat.
     if(context.getSolver().isUnsat(bmgr.and(precondition, postcondition))){
       isAlwaysUnsat = true;
     }
@@ -247,6 +230,61 @@ public class TraceFormula {
     actualForm = bmgr.and(bmgr.and(atoms), postcondition);
     implicationForm = bmgr.and(implicationFormula, postcondition);
     negated = negate;
+  }
+
+  private BooleanFormula calculatePreCondition(List<BooleanFormula> negate, AlternativePrecondition altPre) throws SolverException, InterruptedException {
+    // Create pre condition as model of the actual formula.
+    // If the program is has a bug the model is guaranteed to be existent.
+    BooleanFormulaManager bmgr = context.getSolver().getFormulaManager().getBooleanFormulaManager();
+    List<BooleanFormula> preconditions = new ArrayList<>();
+    BooleanFormula precond = bmgr.makeTrue();
+    try (ProverEnvironment prover = context.getProver()) {
+      prover.push(bmgr.and(bmgr.and(atoms), bmgr.and(negate)));
+      if (!prover.isUnsat()) {
+        for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
+          BooleanFormula formula = modelAssignment.getAssignmentAsFormula();
+          if(formula.toString().contains("__VERIFIER_nondet")){
+            preconditions.add(formula);
+            precond = bmgr.and(precond, formula);
+          }
+        }
+      } else {
+        throw new AssertionError("a model has to be existent");
+      }
+    }
+
+    //TODO: it is possible that a forced pre condition gets denied. Tell the user that this happened
+    if((options.forceAlternativePreCondition || bmgr.isTrue(precond)) && !context.getSolver().isUnsat(bmgr.and(altPre.toFormula(), postcondition))){
+      for (BooleanFormula booleanFormula : altPre.getPreCondition()) {
+        int index = atoms.indexOf(booleanFormula);
+        atoms.remove(index);
+        selectors.remove(index);
+        ssaMaps.remove(index);
+      }
+      return altPre.toFormula();
+    }
+
+    for (BooleanFormula booleanFormula : preconditions) {
+      for (int i = 0; i < atoms.size(); i++) {
+        String nondetString ="";
+        for(String symbol: Splitter.on(" ").split(booleanFormula.toString())){
+          if (symbol.contains("__VERIFIER_nondet")){
+            nondetString = symbol;
+            preconditionSymbols.add(nondetString);
+            break;
+          }
+        }
+        if(atoms.get(i).toString().contains(nondetString)){
+          selectors.get(i).enable();
+        }
+      }
+    }
+
+    return precond;
+  }
+
+  public List<String> getPreconditionSymbols() {
+    return preconditionSymbols;
   }
 
   public BooleanFormula getAtom(int i) {
@@ -308,11 +346,14 @@ public class TraceFormula {
      * @return is the formula accepted for the alternative precondition
      */
     private boolean isAccepted(BooleanFormula formula, SSAMap currentMap, CFAEdge pEdge){
-      if(!(pEdge.getEdgeType().equals(CFAEdgeType.StatementEdge)
-          || pEdge.getEdgeType().equals(CFAEdgeType.DeclarationEdge))){
+      if(!pEdge.getEdgeType().equals(CFAEdgeType.DeclarationEdge)){
         return false;
       }
       Map<String, Formula> variables = context.getSolver().getFormulaManager().extractVariables(formula);
+      //only accept declarations like int a = 2; and not int b = a + 2;
+      if(variables.entrySet().size() != 1){
+        return false;
+      }
       Map<Formula, Integer> index = new HashMap<>();
       for (String s : variables.keySet()) {
         Formula uninstantiated = context.getSolver().getFormulaManager().uninstantiate(variables.get(s));
@@ -330,6 +371,20 @@ public class TraceFormula {
         }
       }
       return isAccepted;
+    }
+  }
+
+  private static class FormulaParts{
+    private SSAMap map;
+    private CFAEdge edge;
+    private BooleanFormula atom;
+    private Selector selector;
+
+    public FormulaParts(CFAEdge pEdge, BooleanFormula pAtom, Selector pSelector, SSAMap pMap){
+      map = pMap;
+      atom = pAtom;
+      edge = pEdge;
+      selector = pSelector;
     }
   }
 }
