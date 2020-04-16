@@ -466,8 +466,6 @@ public class CFACreator {
 
       switch (language) {
         case JAVA:
-          Preconditions.checkArgument(
-              sourceFiles.size() == 1, "Multiple input files not supported by 'getJavaMainMethod'");
           mainFunction = getJavaMainMethod(sourceFiles, mainFunctionName, c.getFunctions());
           checkForAmbiguousMethod(mainFunction, mainFunctionName, c.getFunctions());
           break;
@@ -489,32 +487,36 @@ public class CFACreator {
   static FunctionEntryNode getJavaMainMethod(
       List<String> sourceFiles, String mainFunction, Map<String, FunctionEntryNode> cfas)
       throws InvalidConfigurationException {
-    Optional<FunctionEntryNode> mainMethodKey;
+    Optional<FunctionEntryNode> mainMethodKey = Optional.empty();
 
-    // Try classPath given in sourceFiles and plain method name in mainFunction
-    String classPath = sourceFiles.get(0).replace("\\/", ".");
+    for (String sourceFile : sourceFiles) {
+      // Try classPath given in sourceFiles and plain method name in mainFunction
+      String classPath = sourceFile.replace("\\/", ".");
 
-    mainMethodKey = findJavaFunctionInCfa(cfas, classPath, mainFunction).stream().findFirst();
+      mainMethodKey = findJavaFunctionInCfa(cfas, classPath, mainFunction).stream().findFirst();
 
-    // Try classPath given in sourceFiles and relative Path with main function name in
-    // mainFunctionName
-    if (mainMethodKey.isEmpty()) {
-      int indexOfLastSlash = mainFunction.lastIndexOf('.');
-      if (indexOfLastSlash >= 0) {
-        classPath = mainFunction.substring(0, indexOfLastSlash);
-        String mainFunctionExtracted = mainFunction.substring(indexOfLastSlash + 1);
-        mainMethodKey =
-            findJavaFunctionInCfa(cfas, classPath, mainFunctionExtracted).stream().findFirst();
+      // Try classPath given in sourceFiles and relative Path with main function name in
+      // mainFunctionName
+      if (mainMethodKey.isEmpty()) {
+        int indexOfLastSlash = mainFunction.lastIndexOf('.');
+        if (indexOfLastSlash >= 0) {
+          classPath = mainFunction.substring(0, indexOfLastSlash);
+          String mainFunctionExtracted = mainFunction.substring(indexOfLastSlash + 1);
+          mainMethodKey =
+              findJavaFunctionInCfa(cfas, classPath, mainFunctionExtracted).stream().findFirst();
+        }
+      }
+
+      // Try classPath given in sourceFiles and relative Path without main function name in
+      // mainFunctionName
+      if (mainMethodKey.isEmpty()) {
+        classPath = mainFunction;
+        mainMethodKey = findJavaFunctionInCfa(cfas, classPath, "main").stream().findFirst();
+      }
+      if (mainMethodKey.isPresent()) {
+        break;
       }
     }
-
-    // Try classPath given in sourceFiles and relative Path without main function name in
-    // mainFunctionName
-    if (mainMethodKey.isEmpty()) {
-      classPath = mainFunction;
-      mainMethodKey = findJavaFunctionInCfa(cfas, classPath, "main").stream().findFirst();
-    }
-
     return mainMethodKey.orElseThrow(
         () ->
             new InvalidConfigurationException(
