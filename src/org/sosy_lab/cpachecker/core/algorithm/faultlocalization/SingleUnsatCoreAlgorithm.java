@@ -24,21 +24,30 @@
 package org.sosy_lab.cpachecker.core.algorithm.faultlocalization;
 
 import com.google.common.base.VerifyException;
+import java.io.PrintStream;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class SingleUnsatCoreAlgorithm implements FaultLocalizationAlgorithmInterface {
+public class SingleUnsatCoreAlgorithm implements FaultLocalizationAlgorithmInterface, Statistics {
+
+  private StatTimer totalTime = new StatTimer("Total time");
 
   /**
    * Calculate a single unsat-core (not necessarily minimal) and return the set.
@@ -53,6 +62,7 @@ public class SingleUnsatCoreAlgorithm implements FaultLocalizationAlgorithmInter
 
     Solver solver = context.getSolver();
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
+    totalTime.start();
     BooleanFormula toVerify = tf.getActualForm();
 
     // trivial programs like x = 0, if (x == 0) goto ERROR; are simplified to false (boolean
@@ -74,8 +84,21 @@ public class SingleUnsatCoreAlgorithm implements FaultLocalizationAlgorithmInter
             .map(l -> Selector.of(l).get())
             .collect(Collectors.toList());
 
+    totalTime.stop();
     Set<Fault> resultSet = new HashSet<>();
     resultSet.add(new Fault(new HashSet<>(unsatCore)));
     return resultSet;
+  }
+
+  @Override
+  public void printStatistics(
+      PrintStream out, Result result, UnmodifiableReachedSet reached) {
+    StatisticsWriter w0 = StatisticsWriter.writingStatisticsTo(out);
+    w0.put("Total time", totalTime);
+  }
+
+  @Override
+  public @Nullable String getName() {
+    return "Single UNSAT-core";
   }
 }

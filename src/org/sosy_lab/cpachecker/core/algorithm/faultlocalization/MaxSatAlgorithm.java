@@ -24,23 +24,36 @@
 package org.sosy_lab.cpachecker.core.algorithm.faultlocalization;
 
 import com.google.common.base.VerifyException;
+import java.io.PrintStream;
 import java.util.HashSet;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface {
+public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface, Statistics {
 
   private Solver solver;
   private BooleanFormulaManager bmgr;
+
+  //Statistics
+  private StatTimer totalTime = new StatTimer(StatKind.SUM, "Total time to find all subsets");
+  private StatCounter unsatCalls = new StatCounter("Total calls to sat solver");
 
   @Override
   public Set<Fault> run(FormulaContext pContext, TraceFormula tf)
@@ -57,6 +70,7 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface {
 
     Fault minUnsatCore = new Fault();
 
+    totalTime.start();
     while(minUnsatCore.size() != numberSelectors){
       minUnsatCore = getMinUnsatCore(soft, tf, hard);
       /* Subsets of size 1 cannot be added to the hard set.
@@ -77,6 +91,7 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface {
         hard.add(minUnsatCore);
       }
     }
+    totalTime.stop();
 
     hard.addAll(singletons);
 
@@ -109,6 +124,7 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface {
         Fault copy = new Fault(new HashSet<>(result));
         copy.remove(s);
         if (!isSubsetOrSupersetOf(copy, pHardSet)) {
+          unsatCalls.inc();
           if (solver.isUnsat(bmgr.and(composedFormula, softSetFormula(copy)))) {
             changed = true;
             result.remove(s);
@@ -143,5 +159,17 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface {
     return hardSet.stream()
         .map(l -> l.stream().map(f -> ((Selector)f).getFormula()).collect(bmgr.toDisjunction()))
         .collect(bmgr.toConjunction());
+  }
+
+  @Override
+  public void printStatistics(
+      PrintStream out, Result result, UnmodifiableReachedSet reached) {
+    StatisticsWriter w0 = StatisticsWriter.writingStatisticsTo(out);
+    w0.put("Total time", totalTime).put("Total calls to solver", unsatCalls);
+  }
+
+  @Override
+  public @Nullable String getName() {
+    return "Max-Sat algorithm";
   }
 }

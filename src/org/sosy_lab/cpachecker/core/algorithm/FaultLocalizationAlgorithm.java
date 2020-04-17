@@ -28,6 +28,7 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.VerifyException;
 import com.google.common.collect.FluentIterable;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -56,6 +57,8 @@ import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.rankings.Forward
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -74,16 +77,16 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix="faultlocalization")
-public class FaultLocalizationAlgorithm implements Algorithm {
+public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider {
 
   private final Algorithm algorithm;
   private final LogManager logger;
   private final BooleanFormulaManager bmgr;
   private final FormulaContext context;
   private final PathFormulaManagerImpl manager;
-  private final ShutdownNotifier shutdownNotifier;
-  private final Configuration config;
   private final TraceFormulaOptions options;
+
+  private final FaultLocalizationAlgorithmInterface faultAlgorithm;
   //private final CFA cfa;
 
   @Option(secure=true, name="type", toUppercase=true, values={"UNSAT", "MAXSAT", "ERRINV"},
@@ -113,8 +116,18 @@ public class FaultLocalizationAlgorithm implements Algorithm {
     //cfa = pCfa;
     bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     context = new FormulaContext(solver, manager);
-    shutdownNotifier = pShutdownNotifier;
-    config = pConfig;
+
+    switch (algorithmType){
+      case "MAXSAT":
+        faultAlgorithm = new MaxSatAlgorithm();
+        break;
+      case "ERRINV":
+        faultAlgorithm = new ErrorInvariantsAlgorithm(pShutdownNotifier, pConfig, logger);
+        break;
+      default:
+        faultAlgorithm = new SingleUnsatCoreAlgorithm();
+        break;
+    }
   }
 
   @Override
@@ -128,19 +141,6 @@ public class FaultLocalizationAlgorithm implements Algorithm {
                 .filter(AbstractStates::isTargetState)
                 .filter(ARGState.class)
                 .transform(ARGState::getCounterexampleInformation));
-
-    FaultLocalizationAlgorithmInterface faultAlgorithm;
-    switch (algorithmType){
-      case "MAXSAT":
-        faultAlgorithm = new MaxSatAlgorithm();
-        break;
-      case "ERRINV":
-        faultAlgorithm = new ErrorInvariantsAlgorithm(shutdownNotifier, config, logger);
-        break;
-      default:
-        faultAlgorithm = new SingleUnsatCoreAlgorithm();
-        break;
-    }
 
     // run algorithm for every error
     for (CounterexampleInfo info : counterExamples) {
@@ -226,6 +226,17 @@ public class FaultLocalizationAlgorithm implements Algorithm {
           Level.INFO, "The counterexample is spurious. Calculating interpolants is not possible.");
     } finally{
       context.getSolver().close();
+    }
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+
+    if(algorithm instanceof Statistics){
+      statsCollection.add((Statistics)algorithm);
+    }
+    if(faultAlgorithm instanceof Statistics){
+      statsCollection.add((Statistics)faultAlgorithm);
     }
   }
 }

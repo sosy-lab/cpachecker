@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.faultlocalization;
 
 import com.google.common.base.VerifyException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -34,13 +35,17 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.antlr.v4.runtime.misc.MultiMap;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
@@ -50,11 +55,15 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManage
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatKind;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInterface {
+public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInterface, Statistics {
 
   private ShutdownNotifier shutdownNotifier;
   private Configuration config;
@@ -64,6 +73,9 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
   private BooleanFormulaManager bmgr;
   //private CFA cfa;
   //private boolean useImproved;
+
+  private StatTimer totalTime = new StatTimer(StatKind.SUM, "Total time for ErrInv");
+  private StatCounter counter = new StatCounter("Search calls");
 
   public ErrorInvariantsAlgorithm(
       ShutdownNotifier pShutdownNotifier,
@@ -117,8 +129,8 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
               interpolant,
               i == 0 ? tf.getAtom(0) : tf.getAtom(i - 1)));
     }
-    // FormulaManagerView
-    sortedIntervals.sort(Comparator.comparingInt(l -> l.start));
+
+    sortedIntervals.sort(Comparator.comparingInt(i -> i.start));
 
     Interval maxInterval = sortedIntervals.get(0);
     int prevEnd = 0;
@@ -139,8 +151,9 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
         }
       }
     }
-    // All interpolants containing the post condition as interpolant must be removed. The post
-    // condition cannot be a suitable explanation of why the error happens.
+
+    /* All interpolants containing the post condition as interpolant must be removed.
+       The post condition cannot be a suitable explanation of why the error happend. */
 
     MultiMap<Selector, BooleanFormula> allInterpolants = new MultiMap<>();
     Set<Fault> indicators = new HashSet<>();
@@ -148,12 +161,10 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
       Selector current = Selector.of(interpolantToEdge.edge).orElse(null);
       if(current != null){
         //Don't show pre-condition statements in the result set
-        if(!errorTrace.getPreconditionSymbols().isEmpty() && current.getEdge().toString().contains("__VERIFIER_nondet")){
-          continue;
+        if(errorTrace.getPreconditionSymbols().isEmpty() || !current.getEdge().toString().contains("__VERIFIER_nondet")){
+          allInterpolants.map(current, interpolantToEdge.interpolant);
+          indicators.add(new Fault(current));
         }
-
-        allInterpolants.map(current, interpolantToEdge.interpolant);
-        indicators.add(new Fault(current));
       }
     }
     int sumInterpolants = allInterpolants.values().stream().mapToInt(v -> v.size()).sum();
@@ -175,6 +186,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
   }
 
   private int search(int low, int high, Function<Integer, Boolean> incLow) {
+    counter.inc();
     if (high < low) return low;
     int mid = (low + high) / 2;
     if (incLow.apply(mid)) {
@@ -209,6 +221,19 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     } catch (SolverException | InterruptedException pE) {
       throw new AssertionError("first and second formula have to be solvable for the solver");
     }
+  }
+
+  @Override
+  public void printStatistics(
+      PrintStream out, Result result, UnmodifiableReachedSet reached) {
+    StatisticsWriter w0 = StatisticsWriter.writingStatisticsTo(out);
+    w0.put("Total time", totalTime)
+        .put("Search calls", counter);
+  }
+
+  @Override
+  public @Nullable String getName() {
+    return "Error invariants algorithm";
   }
 
   private static class InterpolantToEdge {
