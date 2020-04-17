@@ -2045,44 +2045,26 @@ class ASTConverter {
               }
             }
 
-
-              if (arrayType.getLength() == null) {
+            if (arrayType.getLength() == null) {
               arrayPlusLength.put(arrayType, computeLengthOfArray(initClause, arrayType));
-              } else {
+            } else {
               CIntegerLiteralExpression computedL =
                   (CIntegerLiteralExpression) computeLengthOfArray(initClause, arrayType);
 
               // check if number of contained elements doesn't surpass max possible length
               if (!isFullyBracketed(initClause, modifiers.size())) {
-                int arraySize = 1;
-                // calculate max possible size
-                CType temp = arrayType;
-                while (temp instanceof CArrayType) {
-                  CIntegerLiteralExpression size =
-                      (CIntegerLiteralExpression) ((CArrayType) temp).getLength();
-                  arraySize *= size.getValue().intValue();
-                  temp = ((CArrayType) temp).getType();
+                checkLengthNotFullyBracketed(initClause, arrayType, 0);
 
-                }
-
-                CExpression lengthExp =
-                    new CIntegerLiteralExpression(
-                        getLocation(initClause),
-                        CNumericTypes.INT,
-                        BigInteger.valueOf(arraySize));
-                compareArrayLengths(lengthExp, computedL, d);
               } else {
 
-              compareArrayLengths(arrayType.getLength(), computedL, d);
+                compareArrayLengths(arrayType.getLength(), computedL, d);
               }
-                  arrayPlusLength.put(arrayType, arrayType.getLength());
-                }
-
-            arrayPlusLength = computeLengthMultiDimArray(arrayType, arrayPlusLength, initClause);
+              arrayPlusLength.put(arrayType, arrayType.getLength());
+            }
+            if (!hasLength) {
+              arrayPlusLength = computeLengthMultiDimArray(arrayType, arrayPlusLength, initClause);
               List<CArrayType> types = new ArrayList<>(arrayPlusLength.keySet());
               List<CExpression> lenghts = new ArrayList<>(arrayPlusLength.values());
-
-            if (!hasLength) {
 
               int lastIndex = types.size() - 1;
 
@@ -2121,6 +2103,43 @@ class ASTConverter {
       return Triple.of(type, initializer, name);
     }
   }
+  /**
+   * §6.7.9 (29) Verifies the length of initializers of not fully bracketed multidimensional arrays.
+   */
+
+  // TODO case if one of the middle brackets is missing
+  private void checkLengthNotFullyBracketed(
+      IASTInitializerClause initClause, CArrayType arrayType, int newModifier) {
+    int modifierSize = ((CIntegerLiteralExpression) arrayType.getLength()).getValue().intValue();
+    int numInit = ((IASTInitializerList) initClause).getSize();
+    if (newModifier != 0) {
+      modifierSize = newModifier;
+    }
+    if (numInit <= modifierSize) {
+      for (int i = 0; i < numInit; i++) {
+        IASTInitializerClause in = ((IASTInitializerList) initClause).getClauses()[i];
+        if (arrayType.getType() instanceof CArrayType && !(in instanceof CASTLiteralExpression)) {
+          checkLengthNotFullyBracketed(in, (CArrayType) arrayType.getType(), 0);
+        }
+      }
+    } else {
+      // if there is another nested array
+      if (((IASTInitializerList) initClause).getClauses()[0] instanceof IASTInitializerList) {
+        throw parseContext.parseError("Too many initializers in initializer list", initClause);
+      } else if (((IASTInitializerList) initClause).getClauses()[0] instanceof CASTLiteralExpression
+          && arrayType.getType() instanceof CArrayType) {
+        int nextModifierSize =
+            ((CIntegerLiteralExpression) ((CArrayType) arrayType.getType()).getLength())
+                .getValue()
+                .intValue();
+          modifierSize *= nextModifierSize;
+          checkLengthNotFullyBracketed(initClause, (CArrayType) arrayType.getType(), modifierSize);
+      } else {
+        throw parseContext.parseError("Too many initializers in initializer list", initClause);
+      }
+      }
+    }
+
 
   private boolean isFullyBracketed(IASTInitializerClause initClause, int numDimensions) {
     int counter = 0;
