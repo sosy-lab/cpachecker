@@ -49,22 +49,22 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface {
     solver = pContext.getSolver();
     bmgr = solver.getFormulaManager().getBooleanFormulaManager();
 
-    int numberSelectors = tf.getSelectors().size();
+    int numberSelectors = tf.traceSize();
 
     Set<Fault> hard = new HashSet<>();
-    Set<Selector> soft = new HashSet<>(tf.getSelectors());
+    Set<FaultContribution> soft = new HashSet<>(tf.getSelectors());
     Set<Fault> singletons = new HashSet<>();
 
     Fault minUnsatCore = new Fault();
 
     while(minUnsatCore.size() != numberSelectors){
       minUnsatCore = getMinUnsatCore(soft, tf, hard);
-      // Subsets of size 1 cannot be added to the hard set.
-      // Assume that pre & implicForm & S1 is unsat.
-      // Adding S1 to the hard set would make the formula pre & implicForm & hardSet unsat.
-      // No new minimal subset can be found.
-      // The correct handling of subsets of size 1 is to remove them from the soft set and later add
-      // them to the hard set.
+      /* Subsets of size 1 cannot be added to the hard set.
+         Assume that pre & implicForm & S1 is unsat.
+         Adding S1 to the hard set would make the formula pre & implicForm & hardSet unsat.
+         No new minimal subset can be found.
+         The correct handling of subsets of size 1 is to remove them from the soft set and later add
+         them to the hard set. */
       if (minUnsatCore.size() == 1) {
         soft.removeAll(minUnsatCore);
         singletons.add(minUnsatCore);
@@ -84,7 +84,7 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface {
   }
 
   /**
-   * get the minimal subset of selectors considering the already found ones
+   * Get the minimal subset of selectors considering the already found ones
    *
    * @param pTraceFormula TraceFormula to the error
    * @param pHardSet already found minimal sets
@@ -93,7 +93,7 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface {
    * @throws InterruptedException thrown if interrupted
    */
   private Fault getMinUnsatCore(
-      Set<Selector> pSoftSet, TraceFormula pTraceFormula, Set<Fault> pHardSet)
+      Set<FaultContribution> pSoftSet, TraceFormula pTraceFormula, Set<Fault> pHardSet)
       throws SolverException, InterruptedException {
     Fault result = new Fault(new HashSet<>(pSoftSet));
     BooleanFormula composedFormula =

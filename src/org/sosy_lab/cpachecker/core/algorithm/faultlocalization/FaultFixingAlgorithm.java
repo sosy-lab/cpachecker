@@ -29,7 +29,8 @@ public class FaultFixingAlgorithm {
   private List<CFAEdge> edges;
 
   private FaultFixingAlgorithm(
-      TraceFormula pTraceFormula, FormulaContext pContext, Map<FaultContribution, Integer> pRankedMap) {
+      TraceFormula pTraceFormula, FormulaContext pContext, Map<FaultContribution, Integer> pRankedMap)
+      throws SolverException, InterruptedException {
     List<FaultContribution> pRankedList = pRankedMap.keySet().stream().sorted(Comparator.comparingInt(l -> pRankedMap.get(l))).collect(
         Collectors.toList());
     fix = new MultiMap<>();
@@ -39,7 +40,6 @@ public class FaultFixingAlgorithm {
     bmgr = fmgr.getBooleanFormulaManager();
     edges = traceFormula.getEdges();
     for (FaultContribution current : pRankedList) {
-      try {
         switch (current.correspondingEdge().getEdgeType()) {
           case AssumeEdge:
             fixAssumeEdge(current);
@@ -55,9 +55,6 @@ public class FaultFixingAlgorithm {
           case BlankEdge:
           default:
         }
-      } catch (Exception ignore) {
-
-      }
     }
   }
 
@@ -66,12 +63,15 @@ public class FaultFixingAlgorithm {
   }
 
   public static MultiMap<FaultContribution, BooleanFormula> fix(
-      TraceFormula traceFormula, FormulaContext context, Map<FaultContribution, Integer> rankedMap) {
+      TraceFormula traceFormula, FormulaContext context, Map<FaultContribution, Integer> rankedMap)
+      throws SolverException, InterruptedException {
     return new FaultFixingAlgorithm(traceFormula, context, rankedMap).getFix();
   }
 
   /**
-   * Extract a variable. Add and subtract 1. Look at the TraceFormula.
+   * Extract a variable.
+   * Add and subtract 1.
+   * Look at the TraceFormula.
    *
    * @param errorLoc possible error location
    */

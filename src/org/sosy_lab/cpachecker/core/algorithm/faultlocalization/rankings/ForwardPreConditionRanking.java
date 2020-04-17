@@ -49,6 +49,11 @@ public class ForwardPreConditionRanking implements FaultRanking {
     context = pContext;
   }
 
+  /**
+   * Tell the user which initial variable assignment lead to an error.
+   * @param result The result of any FaultLocalizationAlgorithm
+   * @return Faults ranked by identity
+   */
   @Override
   public List<Fault> rank(Set<Fault> result) {
     // check if alternative precondition was used
