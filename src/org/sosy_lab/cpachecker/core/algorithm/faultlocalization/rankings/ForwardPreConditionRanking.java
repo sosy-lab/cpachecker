@@ -85,14 +85,23 @@ public class ForwardPreConditionRanking implements FaultRanking {
       }
     }
 
+    List<String> assignments = new ArrayList<>();
+    String hint = "The program fails for the variable assignment ";
     for (int i = 0 ; i < traceFormula.getAtoms().size(); i++) {
       BooleanFormula atom = traceFormula.getAtom(i);
       for(Entry<String, String> entry: mapFormulaToValue.entrySet()){
         if(atom.toString().contains(entry.getKey())){
-          String hint = "The program fails for the variable assignment " + ExpressionConverter.convert(atom.toString().replaceAll(entry.getKey(), entry.getValue()));
-          traceFormula.getSelectors().get(i).addReason(FaultReason.hint(hint));
+          atom = context.getSolver().getFormulaManager().uninstantiate(atom);
+          String assignment = ExpressionConverter.convert(atom.toString().replaceAll(entry.getKey(), entry.getValue()));
+          traceFormula.getSelectors().get(i).addReason(FaultReason.hint(hint + assignment));
+          assignments.add(assignment);
         }
       }
+    }
+
+    String allAssignments = String.join(",", assignments);
+    for (Fault faultContributions : rankedList) {
+      faultContributions.addReason(FaultReason.hint(hint + allAssignments));
     }
 
     return rankedList;

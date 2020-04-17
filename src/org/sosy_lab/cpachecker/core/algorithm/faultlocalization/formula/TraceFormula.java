@@ -265,15 +265,15 @@ public class TraceFormula {
     }
 
     for (BooleanFormula booleanFormula : preconditions) {
-      for (int i = 0; i < atoms.size(); i++) {
-        String nondetString ="";
-        for(String symbol: Splitter.on(" ").split(booleanFormula.toString())){
-          if (symbol.contains("__VERIFIER_nondet")){
-            nondetString = symbol;
-            preconditionSymbols.add(nondetString);
-            break;
-          }
+      String nondetString ="";
+      for(String symbol: Splitter.on(" ").split(booleanFormula.toString())){
+        if (symbol.contains("__VERIFIER_nondet")){
+          nondetString = symbol;
+          preconditionSymbols.add(nondetString);
+          break;
         }
+      }
+      for (int i = 0; i < atoms.size(); i++) {
         if(atoms.get(i).toString().contains(nondetString)){
           selectors.get(i).enable();
         }
@@ -351,7 +351,8 @@ public class TraceFormula {
       }
       Map<String, Formula> variables = context.getSolver().getFormulaManager().extractVariables(formula);
       //only accept declarations like int a = 2; and not int b = a + 2;
-      if(variables.entrySet().size() != 1){
+      //int a[] = {3,4,5} will be accepted too (thats why we filter __ADDRESS_OF_
+      if(variables.entrySet().stream().filter(v -> !v.getKey().contains("__ADDRESS_OF_")).count() != 1){
         return false;
       }
       Map<Formula, Integer> index = new HashMap<>();
@@ -371,20 +372,6 @@ public class TraceFormula {
         }
       }
       return isAccepted;
-    }
-  }
-
-  private static class FormulaParts{
-    private SSAMap map;
-    private CFAEdge edge;
-    private BooleanFormula atom;
-    private Selector selector;
-
-    public FormulaParts(CFAEdge pEdge, BooleanFormula pAtom, Selector pSelector, SSAMap pMap){
-      map = pMap;
-      atom = pAtom;
-      edge = pEdge;
-      selector = pSelector;
     }
   }
 }
