@@ -62,12 +62,11 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface, Sta
     solver = pContext.getSolver();
     bmgr = solver.getFormulaManager().getBooleanFormulaManager();
 
-    int numberSelectors = tf.traceSize();
-
     Set<Fault> hard = new HashSet<>();
     Set<FaultContribution> soft = new HashSet<>(tf.getSelectors());
     //if a selector is true (i. e. enabled) it cannot be part of the result set. This usually happens if the selector is a part of the pre-condition
     soft.removeIf(fc -> bmgr.isTrue(((Selector)fc).getFormula()));
+    int numberSelectors = soft.size();
     Set<Fault> singletons = new HashSet<>();
 
     Fault minUnsatCore = new Fault();

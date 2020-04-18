@@ -200,22 +200,20 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     FormulaManagerView fmgr = solver.getFormulaManager();
     int n = errorTrace.traceSize();
 
-    List<SSAMap> consecutiveFormulaMaps = errorTrace.getSsaMaps();
-
     BooleanFormula plainPostCondition = fmgr.uninstantiate(errorTrace.getPostCondition());
     BooleanFormula plainInterpolant = fmgr.uninstantiate(interpolant);
 
     BooleanFormula interpolant_i =
-        fmgr.instantiate(plainInterpolant, consecutiveFormulaMaps.get(i));
+        fmgr.instantiate(plainInterpolant, errorTrace.getSsaMap(i));
     BooleanFormula postCondition_i =
-        fmgr.instantiate(plainPostCondition, consecutiveFormulaMaps.get(n - i));
+        fmgr.instantiate(plainPostCondition, errorTrace.getSsaMap(n - i));
 
     BooleanFormula firstFormula =
         bmgr.implication(
             bmgr.and(errorTrace.getPreCondition(), errorTrace.slice(i)), interpolant_i);
     BooleanFormula secondFormula =
         bmgr.implication(
-            bmgr.and(plainInterpolant, errorTrace.slice(i, n), postCondition_i), bmgr.makeFalse());
+            bmgr.and(interpolant, errorTrace.slice(i, n), postCondition_i), bmgr.makeFalse());
     try {
       return solver.isUnsat(bmgr.not(firstFormula)) && solver.isUnsat(bmgr.not(secondFormula));
     } catch (SolverException | InterruptedException pE) {

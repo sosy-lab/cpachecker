@@ -48,20 +48,19 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public class TraceFormula {
 
-  private List<CFAEdge> edges;
-  private List<Selector> selectors;
-  private List<BooleanFormula> atoms;
-  private List<BooleanFormula> negated;
-  private List<SSAMap> ssaMaps;
   private FormulaContext context;
 
-  private List<String> preconditionSymbols;
+  private List<CFAEdge> edges;
+  private List<BooleanFormula> negated;
+  private FormulaEntries entries;
 
   // all available formulas
   private BooleanFormula implicationForm;
   private BooleanFormula actualForm;
+
   private BooleanFormula postcondition;
   private BooleanFormula precondition;
+  private List<String> preconditionSymbols;
 
   /**
    * If post- and pre-condition are UNSAT set this flag to true.
@@ -74,7 +73,7 @@ public class TraceFormula {
   public static class TraceFormulaOptions {
     @Option(secure=true, name="filter",
         description="filter the alternative precondition by scopes")
-    private String filter = "";
+    private String filter = "main";
 
     @Option(
         secure = true,
@@ -93,19 +92,14 @@ public class TraceFormula {
     options = pOptions;
     edges = pEdges;
     context = pContext;
-    selectors = new ArrayList<>();
-    atoms = new ArrayList<>();
-    ssaMaps = new ArrayList<>();
+    entries = new FormulaEntries(context);
+    negated = new ArrayList<>();
     preconditionSymbols = new ArrayList<>();
     createTraceFormulas();
   }
 
   public boolean isAlwaysUnsat() {
     return isAlwaysUnsat;
-  }
-
-  public List<SSAMap> getSsaMaps() {
-    return ssaMaps;
   }
 
   public BooleanFormula getPostCondition() {
@@ -117,7 +111,7 @@ public class TraceFormula {
   }
 
   public List<Selector> getSelectors() {
-    return selectors;
+    return entries.selectors;
   }
 
   public BooleanFormula getImplicationForm() {
@@ -129,7 +123,7 @@ public class TraceFormula {
   }
 
   public List<BooleanFormula> getAtoms() {
-    return atoms;
+    return entries.atoms;
   }
 
   public List<CFAEdge> getEdges() {
@@ -140,12 +134,27 @@ public class TraceFormula {
     return negated;
   }
 
+  public SSAMap getSsaMap(int i){
+    return entries.getSsaMap(i);
+  }
+
+  public List<String> getPreconditionSymbols() {
+    return preconditionSymbols;
+  }
+
+  public BooleanFormula getAtom(int i) {
+    return entries.atoms.get(i);
+  }
+
+  public int traceSize() {
+    return entries.atoms.size();
+  }
+
   //TODO prover precondition does not guarantee that corresponding edge is excluded in the report as possible resource.
   //TODO altpre cannot be used if undet_X() are in the formula
   private void createTraceFormulas()
       throws CPATransferException, InterruptedException, SolverException {
 
-    PathFormulaManagerImpl manager = context.getManager();
     BooleanFormulaManager bmgr = context.getSolver().getFormulaManager().getBooleanFormulaManager();
     if (edges.isEmpty()) {
       actualForm = bmgr.makeFalse();
@@ -153,25 +162,33 @@ public class TraceFormula {
       return;
     }
 
-    ArrayList<BooleanFormula> negate = new ArrayList<>();
+    AlternativePrecondition altPre = new AlternativePrecondition();
+    calculateEntries(altPre);
 
-    /* Search last AssumeEdge to make it to the post condition.
-     Imagine the program:
-     int x = 0;
-     if (x == 0) {
-        x = 1;
-       goto ERROR;
-     }
-     This would lead to the wrong post condition x != 1. (x != 0 is correct)
+    // Create post-condition
+    postcondition = bmgr.not(bmgr.and(negated));
 
-    Note that the following program cannot be analyzed because the post condition is x <= 0 but it should equal to x!=0.
-    int x = 0;
-    if (x == 0) {
-       x = 1;
-       while(x > 0) x--; <-- last AssumeEdge but that edge is not important.
-       goto ERROR;
-    } */
+    // Create pre-condition
+    precondition = calculatePreCondition(negated, altPre);
 
+    //If however the pre condition conjugated with the post-condition is UNSAT tell the main algorithm that this formula is always unsat.
+    if(context.getSolver().isUnsat(bmgr.and(precondition, postcondition))){
+      isAlwaysUnsat = true;
+    }
+
+    // calculate formulas
+    // No isPresent check needed, because the Selector always exists.
+    BooleanFormula implicationFormula =
+        entries.atoms.stream()
+            .map(a -> bmgr.implication(Selector.of(a).get().getFormula(), a))
+            .collect(bmgr.toConjunction());
+    actualForm = bmgr.and(bmgr.and(entries.atoms), postcondition);
+    implicationForm = bmgr.and(implicationFormula, postcondition);
+  }
+
+  private void calculateEntries(AlternativePrecondition altPre) throws CPATransferException, InterruptedException {
+    PathFormulaManagerImpl manager = context.getManager();
+    BooleanFormulaManager bmgr = context.getSolver().getFormulaManager().getBooleanFormulaManager();
     int errorStartingLine = -1;
     for (int i = edges.size() - 1; i >= 0; i--) {
       if (edges.get(i).getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
@@ -185,9 +202,6 @@ public class TraceFormula {
     }
 
     PathFormula current = manager.makeEmptyPathFormula();
-    ssaMaps.add(current.getSsa());
-    AlternativePrecondition altPre = new AlternativePrecondition();
-    // edges.removeIf(l -> !l.getEdgeType().equals(CFAEdgeType.AssumeEdge));
     for (CFAEdge e : edges) {
       BooleanFormula prev = current.getFormula();
       current = manager.makeAnd(current, e);
@@ -201,35 +215,12 @@ public class TraceFormula {
       }
       if (e.getFileLocation().getStartingLineInOrigin() == errorStartingLine
           && Objects.equals(e.getEdgeType(), CFAEdgeType.AssumeEdge)) {
-        negate.add(currentAtom);
+        negated.add(currentAtom);
       } else {
-        ssaMaps.add(current.getSsa());
-        atoms.add(currentAtom);
+        entries.addEntry(current.getSsa(), Selector.makeSelector(context, currentAtom, e), currentAtom);
         altPre.add(currentAtom, current.getSsa(), e);
-        selectors.add(Selector.makeSelector(context, currentAtom, e));
       }
     }
-    // Create post-condition
-    postcondition = bmgr.not(bmgr.and(negate));
-
-    // Create pre-condition
-    precondition = calculatePreCondition(negate, altPre);
-
-    //If however the pre condition conjugated with the post-condition is UNSAT tell the main algorithm that this formula is always unsat.
-    if(context.getSolver().isUnsat(bmgr.and(precondition, postcondition))){
-      isAlwaysUnsat = true;
-    }
-
-    // No isPresent check needed, because the Selector always exists.
-    BooleanFormula implicationFormula =
-        atoms.stream()
-            .map(a -> bmgr.implication(Selector.of(a).get().getFormula(), a))
-            .collect(bmgr.toConjunction());
-
-    // create traceformulas
-    actualForm = bmgr.and(bmgr.and(atoms), postcondition);
-    implicationForm = bmgr.and(implicationFormula, postcondition);
-    negated = negate;
   }
 
   private BooleanFormula calculatePreCondition(List<BooleanFormula> negate, AlternativePrecondition altPre) throws SolverException, InterruptedException {
@@ -239,7 +230,7 @@ public class TraceFormula {
     List<BooleanFormula> preconditions = new ArrayList<>();
     BooleanFormula precond = bmgr.makeTrue();
     try (ProverEnvironment prover = context.getProver()) {
-      prover.push(bmgr.and(bmgr.and(atoms), bmgr.and(negate)));
+      prover.push(bmgr.and(bmgr.and(entries.atoms), bmgr.and(negate)));
       if (!prover.isUnsat()) {
         for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
           BooleanFormula formula = modelAssignment.getAssignmentAsFormula();
@@ -253,17 +244,17 @@ public class TraceFormula {
       }
     }
 
+    // Check if alternative precondition is required and remove corresponding entries.
     //TODO: it is possible that a forced pre condition gets denied. Tell the user that this happened
     if((options.forceAlternativePreCondition || bmgr.isTrue(precond)) && !context.getSolver().isUnsat(bmgr.and(altPre.toFormula(), postcondition))){
       for (BooleanFormula booleanFormula : altPre.getPreCondition()) {
-        int index = atoms.indexOf(booleanFormula);
-        atoms.remove(index);
-        selectors.remove(index);
-        ssaMaps.remove(index);
+        int index = entries.atoms.indexOf(booleanFormula);
+        entries.remove(index);
       }
       return altPre.toFormula();
     }
 
+    // If the calculated pre-condition has to be used filter only the nondet assignments
     for (BooleanFormula booleanFormula : preconditions) {
       String nondetString ="";
       for(String symbol: Splitter.on(" ").split(booleanFormula.toString())){
@@ -273,9 +264,9 @@ public class TraceFormula {
           break;
         }
       }
-      for (int i = 0; i < atoms.size(); i++) {
-        if(atoms.get(i).toString().contains(nondetString)){
-          selectors.get(i).enable();
+      for (int i = 0; i < entries.size(); i++) {
+        if(entries.atoms.get(i).toString().contains(nondetString)){
+          entries.selectors.get(i).enable();
         }
       }
     }
@@ -283,23 +274,11 @@ public class TraceFormula {
     return precond;
   }
 
-  public List<String> getPreconditionSymbols() {
-    return preconditionSymbols;
-  }
-
-  public BooleanFormula getAtom(int i) {
-    return atoms.get(i);
-  }
-
-  public int traceSize() {
-    return atoms.size();
-  }
-
   public BooleanFormula slice(int start, int end) {
     BooleanFormulaManager bmgr = context.getSolver().getFormulaManager().getBooleanFormulaManager();
     BooleanFormula formula = bmgr.makeTrue();
     for (int i = start; i < end; i++) {
-      formula = bmgr.and(atoms.get(i), formula);
+      formula = bmgr.and(entries.atoms.get(i), formula);
     }
     return formula;
   }
@@ -372,6 +351,47 @@ public class TraceFormula {
         }
       }
       return isAccepted;
+    }
+  }
+
+  private static class FormulaEntries{
+    private List<SSAMap> maps;
+    private List<Selector> selectors;
+    private List<BooleanFormula> atoms;
+    private FormulaContext context;
+
+    FormulaEntries(FormulaContext pContext){
+      maps = new ArrayList<>();
+      selectors = new ArrayList<>();
+      atoms = new ArrayList<>();
+      context = pContext;
+    }
+
+    void addEntry(SSAMap pMap, Selector pSelector, BooleanFormula pAtom){
+      maps.add(pMap);
+      selectors.add(pSelector);
+      atoms.add(pAtom);
+    }
+
+    void remove(int i){
+      maps.remove(i);
+      selectors.remove(i);
+      atoms.remove(i);
+    }
+
+    SSAMap getSsaMap(int i){
+      int size = maps.size();
+      if(size == 0 || i <= 0){
+        return context.getManager().makeEmptyPathFormula().getSsa();
+      }
+      if (i >= maps.size()){
+        return maps.get(size-1);
+      }
+      return maps.get(i);
+    }
+
+    int size() {
+      return atoms.size();
     }
   }
 }
