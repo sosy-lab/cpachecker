@@ -268,11 +268,10 @@ public class AutomatonGraphmlParser {
    */
   public List<Automaton> parseAutomatonFile(Path pInputFile, Set<Property> pProperties)
       throws InvalidConfigurationException, InterruptedException {
-    return AutomatonGraphmlParser
-        .<List<Automaton>, InvalidConfigurationException>handlePotentiallyGZippedInput(
-            MoreFiles.asByteSource(pInputFile),
-            inputStream -> parseAutomatonFile(inputStream, pProperties),
-            e -> new WitnessParseException(e));
+    return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
+        MoreFiles.asByteSource(pInputFile),
+        inputStream -> parseAutomatonFile(inputStream, pProperties),
+        e -> new WitnessParseException(e));
   }
 
   /**
@@ -390,7 +389,7 @@ public class AutomatonGraphmlParser {
               stutterCondition,
               ImmutableList.of(),
               ImmutableList.of(),
-              ExpressionTrees.<AExpression>getTrue(),
+              ExpressionTrees.getTrue(),
               ImmutableList.of(),
               pState,
               pState.isViolationState(),
@@ -405,7 +404,7 @@ public class AutomatonGraphmlParser {
               AutomatonBoolExpr.TRUE,
               assertions,
               ImmutableList.of(),
-              ExpressionTrees.<AExpression>getTrue(),
+              ExpressionTrees.getTrue(),
               ImmutableList.of(),
               pState,
               true,
@@ -713,7 +712,7 @@ public class AutomatonGraphmlParser {
                   new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(transitionCondition)),
               ImmutableList.of(),
               ImmutableList.of(),
-              ExpressionTrees.<AExpression>getTrue(),
+              ExpressionTrees.getTrue(),
               ImmutableList.of(),
               pTransition.getSource(),
               sourceIsViolationNode,
@@ -1877,7 +1876,7 @@ public class AutomatonGraphmlParser {
                 nonChangingTransition,
                 ImmutableList.of(),
                 ImmutableList.of(),
-                ExpressionTrees.<AExpression>getTrue(),
+                ExpressionTrees.getTrue(),
                 ImmutableList.of(),
                 pTargetState,
                 pTargetState.isViolationState(),
@@ -2101,12 +2100,10 @@ public class AutomatonGraphmlParser {
 
   public static AutomatonGraphmlCommon.WitnessType getWitnessType(Path pPath)
       throws InvalidConfigurationException, InterruptedException {
-    return AutomatonGraphmlParser
-        .<AutomatonGraphmlCommon.WitnessType, InvalidConfigurationException>
-            handlePotentiallyGZippedInput(
-                MoreFiles.asByteSource(pPath),
-                inputStream -> getWitnessType(inputStream),
-                e -> new WitnessParseException(e));
+    return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
+        MoreFiles.asByteSource(pPath),
+        inputStream -> getWitnessType(inputStream),
+        e -> new WitnessParseException(e));
   }
 
   private static AutomatonGraphmlCommon.WitnessType getWitnessType(InputStream pInputStream)

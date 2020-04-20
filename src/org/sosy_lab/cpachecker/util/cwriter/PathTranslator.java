@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.util.cwriter;
 
 import static com.google.common.base.Predicates.in;
+import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.concat;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
@@ -50,6 +51,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -297,54 +299,47 @@ public abstract class PathTranslator {
     List<ARGState> relevantChildrenOfElement = from(currentElement.getChildren()).filter(in(elementsOnPath)).toList();
     relevantChildrenOfElement = chooseIfArbitrary(currentElement, relevantChildrenOfElement);
 
-    // if there is only one child on the path
-    if (relevantChildrenOfElement.size() == 1) {
-      // get the next ARG state, create a new edge using the same stack and add it to the waitlist
-      ARGState elem = Iterables.getOnlyElement(relevantChildrenOfElement);
-      CFAEdge e = currentElement.getEdgeToChild(elem);
-      Edge newEdge = new Edge(elem, currentElement, e, functionStack);
-      return Collections.singleton(newEdge);
+    switch (relevantChildrenOfElement.size()) {
+      case 0:
+        return ImmutableList.of();
 
-    } else if (relevantChildrenOfElement.size() > 1) {
-      // if there are more than one relevant child, then this is a condition
-      // we need to update the stack
-      assert relevantChildrenOfElement.size() == 2;
-      ImmutableList.Builder<Edge> result = ImmutableList.builder();
-      int ind = 0;
-      for (ARGState elem : relevantChildrenOfElement) {
-        Deque<FunctionBody> newStack = cloneStack(functionStack);
-        CFAEdge e = currentElement.getEdgeToChild(elem);
-        FunctionBody currentFunction = newStack.peek();
-        assert e instanceof CAssumeEdge;
-        CAssumeEdge assumeEdge = (CAssumeEdge) e;
-        boolean truthAssumption = assumeEdge.getTruthAssumption();
-
-        String cond = "";
-
-        if (ind == 0) {
-          cond = "if ";
-        } else if (ind == 1) {
-          cond = "else if ";
-        } else {
-          throw new AssertionError();
-        }
-        ind++;
-
-        if (truthAssumption) {
-          cond += "(" + assumeEdge.getExpression().toASTString() + ")";
-        } else {
-          cond += "(!(" + assumeEdge.getExpression().toASTString() + "))";
+      case 1:
+        { // If there is only one child on the path, get the next ARG state, create a new edge using
+          // the same stack and add it to the waitlist.
+          ARGState elem = Iterables.getOnlyElement(relevantChildrenOfElement);
+          CFAEdge e = currentElement.getEdgeToChild(elem);
+          return ImmutableList.of(new Edge(elem, currentElement, e, functionStack));
         }
 
-        // create a new block starting with this condition
-        currentFunction.enterBlock(currentElement.getStateId(), assumeEdge, cond);
+      case 2:
+        { // If there are more than one relevant child, then this is a condition.
+          // We need to update the stack.
+          ARGState child1 = relevantChildrenOfElement.get(0);
+          ARGState child2 = relevantChildrenOfElement.get(1);
+          CAssumeEdge edge1 = (CAssumeEdge) currentElement.getEdgeToChild(child1);
+          CAssumeEdge edge2 = (CAssumeEdge) currentElement.getEdgeToChild(child2);
+          verify(edge1.getExpression().equals(edge2.getExpression()));
+          verify(edge1.getTruthAssumption() != edge2.getTruthAssumption());
 
-        Edge newEdge = new Edge(elem, currentElement, e, newStack);
-        result.add(newEdge);
-      }
-      return result.build();
+          if (edge2.getTruthAssumption()) {
+            // swap edges such that edge1 is the positive one
+            ARGState tmpState = child1;
+            CAssumeEdge tmpEdge = edge1;
+            child1 = child2;
+            edge1 = edge2;
+            child2 = tmpState;
+            edge2 = tmpEdge;
+          }
+
+          String cond = "if (" + edge1.getExpression().toASTString() + ")";
+
+          return ImmutableList.of(
+              createNewBasicBlock(currentElement, child1, edge1, cond, functionStack),
+              createNewBasicBlock(currentElement, child2, edge2, "else", functionStack));
+        }
+      default:
+        throw new AssertionError();
     }
-    return ImmutableList.of();
   }
 
   private List<ARGState> chooseIfArbitrary(ARGState parent, List<ARGState> pRelevantChildrenOfElement) {
@@ -381,6 +376,28 @@ public abstract class PathTranslator {
       }
     }
     return result;
+  }
+
+  private Edge createNewBasicBlock(
+      ARGState parent,
+      ARGState child,
+      CAssumeEdge edge,
+      String cond,
+      Deque<FunctionBody> functionStack) {
+    Deque<FunctionBody> newStack = cloneStack(functionStack);
+    FunctionBody currentFunction = newStack.peek();
+    currentFunction.enterBlock(parent.getStateId(), edge, cond);
+
+    // Create dummy edge as next edge, otherwise we would get a __CPROVER_assume() statement that
+    // just duplicates the condition.
+    BlankEdge dummyEdge =
+        new BlankEdge(
+            edge.getRawStatement(),
+            edge.getFileLocation(),
+            edge.getPredecessor(),
+            edge.getSuccessor(),
+            "");
+    return new Edge(child, parent, dummyEdge, newStack);
   }
 
   private static FunctionBody processIncomingStacks(

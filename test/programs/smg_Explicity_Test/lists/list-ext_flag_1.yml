@@ -1,0 +1,8 @@
+format_version: '1.0'
+
+# old file name: list-ext_flag_1_true-unreach-error.prp.c
+input_files: 'list-ext_flag_1.c'
+
+properties:
+  - property_file: ../../../config/properties/unreach-call.prp
+    expected_verdict: true

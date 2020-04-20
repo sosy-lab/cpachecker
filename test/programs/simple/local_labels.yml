@@ -1,0 +1,6 @@
+format_version: '1.0'
+
+# old file name: local_labels.c
+input_files: 'local_labels.c'
+
+properties: []

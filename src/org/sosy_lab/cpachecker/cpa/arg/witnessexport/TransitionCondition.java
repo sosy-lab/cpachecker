@@ -142,11 +142,10 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
       return true;
     }
     boolean ignoreAssumptionScope =
-        !keyValues.keySet().contains(KeyDef.ASSUMPTION)
-            || !pLabel.keyValues.keySet().contains(KeyDef.ASSUMPTION);
+        !keyValues.containsKey(KeyDef.ASSUMPTION)
+            || !pLabel.keyValues.containsKey(KeyDef.ASSUMPTION);
     boolean ignoreInvariantScope =
-        !keyValues.keySet().contains(KeyDef.INVARIANT)
-        || !pLabel.keyValues.keySet().contains(KeyDef.INVARIANT);
+        !keyValues.containsKey(KeyDef.INVARIANT) || !pLabel.keyValues.containsKey(KeyDef.INVARIANT);
 
     final EnumSet<KeyDef> keyDefs;
     if (!keyValues.isEmpty()) {
@@ -210,7 +209,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
     return EMPTY;
   }
 
-  class Scope implements Comparable<Scope> {
+  static class Scope implements Comparable<Scope> {
 
     private final Optional<String> functionName;
 

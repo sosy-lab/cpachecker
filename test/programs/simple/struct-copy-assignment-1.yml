@@ -1,0 +1,9 @@
+format_version: '1.0'
+
+# old file name: struct-copy-assignment_false-unreach-call.c
+input_files: 'struct-copy-assignment-1.c'
+
+properties:
+  - property_file: ../../config/properties/unreach-call.prp
+    expected_verdict: false
+  - property_file: ../benchmarks/properties/coverage-error-call.prp

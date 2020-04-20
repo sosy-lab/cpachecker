@@ -35,13 +35,12 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
+import com.google.common.graph.Traverser;
 import java.io.Serializable;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -118,221 +117,180 @@ public final class ExpressionTrees {
   public static <LeafType> boolean isConstant(ExpressionTree<LeafType> pExpressionTree) {
     @SuppressWarnings("unchecked")
     ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor =
-        (ExpressionTreeVisitor<LeafType, Boolean, NoException>)
-            new DefaultExpressionTreeVisitor<Object, Boolean, NoException>() {
+        new DefaultExpressionTreeVisitor<>() {
 
-              @Override
-              protected Boolean visitDefault(ExpressionTree<Object> pExprTree) {
-                return false;
-              }
+          @Override
+          protected Boolean visitDefault(ExpressionTree<LeafType> pExprTree) {
+            return false;
+          }
 
-              @Override
-              public Boolean visitTrue() {
-                return true;
-              }
+          @Override
+          public Boolean visitTrue() {
+            return true;
+          }
 
-              @Override
-              public Boolean visitFalse() {
-                return true;
-              }
-            };
+          @Override
+          public Boolean visitFalse() {
+            return true;
+          }
+        };
     return pExpressionTree.accept(visitor);
   }
 
   public static <LeafType> boolean isLeaf(ExpressionTree<LeafType> pExpressionTree) {
     @SuppressWarnings("unchecked")
     ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor =
-        (ExpressionTreeVisitor<LeafType, Boolean, NoException>)
-            new DefaultExpressionTreeVisitor<Object, Boolean, NoException>() {
+        new DefaultExpressionTreeVisitor<>() {
 
-              @Override
-              protected Boolean visitDefault(ExpressionTree<Object> pExprTree) {
-                return false;
-              }
+          @Override
+          protected Boolean visitDefault(ExpressionTree<LeafType> pExprTree) {
+            return false;
+          }
 
-              @Override
-              public Boolean visit(LeafExpression<Object> pLeafExpression) {
-                return true;
-              }
+          @Override
+          public Boolean visit(LeafExpression<LeafType> pLeafExpression) {
+            return true;
+          }
 
-              @Override
-              public Boolean visitTrue() {
-                return true;
-              }
+          @Override
+          public Boolean visitTrue() {
+            return true;
+          }
 
-              @Override
-              public Boolean visitFalse() {
-                return true;
-              }
-            };
+          @Override
+          public Boolean visitFalse() {
+            return true;
+          }
+        };
     return pExpressionTree.accept(visitor);
   }
 
   public static <LeafType> boolean isOr(ExpressionTree<LeafType> pExpressionTree) {
     @SuppressWarnings("unchecked")
     ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor =
-        (ExpressionTreeVisitor<LeafType, Boolean, NoException>)
-            new DefaultExpressionTreeVisitor<Object, Boolean, NoException>() {
+        new DefaultExpressionTreeVisitor<>() {
 
-              @Override
-              protected Boolean visitDefault(ExpressionTree<Object> pExprTree) {
-                return false;
-              }
+          @Override
+          protected Boolean visitDefault(ExpressionTree<LeafType> pExprTree) {
+            return false;
+          }
 
-              @Override
-              public Boolean visit(Or<Object> pOr) {
-                return true;
-              }
-            };
+          @Override
+          public Boolean visit(Or<LeafType> pOr) {
+            return true;
+          }
+        };
     return pExpressionTree.accept(visitor);
   }
 
   public static <LeafType> boolean isAnd(ExpressionTree<LeafType> pExpressionTree) {
     @SuppressWarnings("unchecked")
     ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor =
-        (ExpressionTreeVisitor<LeafType, Boolean, NoException>)
-            new DefaultExpressionTreeVisitor<Object, Boolean, NoException>() {
+        new DefaultExpressionTreeVisitor<>() {
 
-              @Override
-              protected Boolean visitDefault(ExpressionTree<Object> pExprTree) {
-                return false;
-              }
+          @Override
+          protected Boolean visitDefault(ExpressionTree<LeafType> pExprTree) {
+            return false;
+          }
 
-              @Override
-              public Boolean visit(And<Object> pAnd) {
-                return true;
-              }
-            };
+          @Override
+          public Boolean visit(And<LeafType> pAnd) {
+            return true;
+          }
+        };
     return pExpressionTree.accept(visitor);
   }
 
   public static <LeafType> Iterable<ExpressionTree<LeafType>> traverseRecursively(
       ExpressionTree<LeafType> pExpressionTree) {
-    return new Iterable<>() {
-
-      @Override
-      public Iterator<ExpressionTree<LeafType>> iterator() {
-
-        return new Iterator<>() {
-
-          private final Deque<ExpressionTree<LeafType>> stack = new ArrayDeque<>();
-
-          {
-            stack.push(pExpressionTree);
-          }
-
-          @Override
-          public boolean hasNext() {
-            return !stack.isEmpty();
-          }
-
-          @Override
-          public ExpressionTree<LeafType> next() {
-            ExpressionTree<LeafType> next = stack.pop();
-            for (ExpressionTree<LeafType> child : getChildren(next)) {
-              stack.push(child);
-            }
-            return next;
-          }
-        };
-      }
-    };
+    return Traverser.<ExpressionTree<LeafType>>forTree(node -> getChildren(node))
+        .depthFirstPreOrder(pExpressionTree);
   }
 
   public static <LeafType> boolean isInCNF(ExpressionTree<LeafType> pExpressionTree) {
     @SuppressWarnings("unchecked")
-    ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor =
-        (ExpressionTreeVisitor<LeafType, Boolean, NoException>)
-            new ExpressionTreeVisitor<Object, Boolean, NoException>() {
+    ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor = new ExpressionTreeVisitor<>() {
 
-              @Override
-              public Boolean visit(And<Object> pAnd) {
-                return getChildren(pAnd)
-                    .allMatch(
-                        new Predicate<ExpressionTree<Object>>() {
+      @Override
+      public Boolean visit(And<LeafType> pAnd) {
+        return getChildren(pAnd).allMatch(new Predicate<ExpressionTree<LeafType>>() {
 
-                          @Override
-                          public boolean apply(ExpressionTree<Object> pClause) {
-                            // A clause may be a single literal or a disjunction of literals
-                            assert !isAnd(pClause)
-                                : "A conjunction must not contain child conjunctions";
-                            return isCNFClause(pClause);
-                          }
-                        });
-              }
+          @Override
+          public boolean apply(ExpressionTree<LeafType> pClause) {
+            // A clause may be a single literal or a disjunction of literals
+            assert !isAnd(pClause) : "A conjunction must not contain child conjunctions";
+            return isCNFClause(pClause);
+          }
+        });
+      }
 
-              @Override
-              public Boolean visit(Or<Object> pOr) {
-                return getChildren(pOr).allMatch(IS_LEAF);
-              }
+      @Override
+      public Boolean visit(Or<LeafType> pOr) {
+        return getChildren(pOr).allMatch(IS_LEAF);
+      }
 
-              @Override
-              public Boolean visit(LeafExpression<Object> pLeafExpression) {
-                // Check: One clause with one literal
-                return true;
-              }
+      @Override
+      public Boolean visit(LeafExpression<LeafType> pLeafExpression) {
+        // Check: One clause with one literal
+        return true;
+      }
 
-              @Override
-              public Boolean visitTrue() {
-                // Check: One clause with one literal
-                return true;
-              }
+      @Override
+      public Boolean visitTrue() {
+        // Check: One clause with one literal
+        return true;
+      }
 
-              @Override
-              public Boolean visitFalse() {
-                // Check: One clause with one literal
-                return true;
-              }
-            };
+      @Override
+      public Boolean visitFalse() {
+        // Check: One clause with one literal
+        return true;
+      }
+    };
     return pExpressionTree.accept(visitor);
   }
 
   public static <LeafType> boolean isInDNF(ExpressionTree<LeafType> pExpressionTree) {
     @SuppressWarnings("unchecked")
-    ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor =
-        (ExpressionTreeVisitor<LeafType, Boolean, NoException>)
-            new ExpressionTreeVisitor<Object, Boolean, NoException>() {
+    ExpressionTreeVisitor<LeafType, Boolean, NoException> visitor = new ExpressionTreeVisitor<>() {
 
-              @Override
-              public Boolean visit(And<Object> pAnd) {
-                // Check: One clause with more than one literal
-                return getChildren(pAnd).allMatch(IS_LEAF);
-              }
+      @Override
+      public Boolean visit(And<LeafType> pAnd) {
+        // Check: One clause with more than one literal
+        return getChildren(pAnd).allMatch(IS_LEAF);
+      }
 
-              @Override
-              public Boolean visit(Or<Object> pOr) {
-                return getChildren(pOr)
-                    .allMatch(
-                        new Predicate<ExpressionTree<Object>>() {
+      @Override
+      public Boolean visit(Or<LeafType> pOr) {
+        return getChildren(pOr).allMatch(new Predicate<ExpressionTree<LeafType>>() {
 
-                          @Override
-                          public boolean apply(ExpressionTree<Object> pClause) {
-                            // A clause may be a single literal or a conjunction of literals
-                            assert !isOr(pClause)
-                                : "A disjunction must not contain child disjunctions";
-                            return isDNFClause(pClause);
-                          }
-                        });
-              }
+          @Override
+          public boolean apply(ExpressionTree<LeafType> pClause) {
+            // A clause may be a single literal or a conjunction of literals
+            assert !isOr(pClause) : "A disjunction must not contain child disjunctions";
+            return isDNFClause(pClause);
+          }
+        });
+      }
 
-              @Override
-              public Boolean visit(LeafExpression<Object> pLeafExpression) {
-                // Check: One clause with one literal
-                return true;
-              }
+      @Override
+      public Boolean visit(LeafExpression<LeafType> pLeafExpression) {
+        // Check: One clause with one literal
+        return true;
+      }
 
-              @Override
-              public Boolean visitTrue() {
-                // Check: One clause with one literal
-                return true;
-              }
+      @Override
+      public Boolean visitTrue() {
+        // Check: One clause with one literal
+        return true;
+      }
 
-              @Override
-              public Boolean visitFalse() {
-                // Check: One clause with one literal
-                return true;
-              }
-            };
+      @Override
+      public Boolean visitFalse() {
+        // Check: One clause with one literal
+        return true;
+      }
+    };
     return pExpressionTree.accept(visitor);
   }
 
@@ -720,8 +678,6 @@ public final class ExpressionTrees {
                 if (current instanceof LeafExpression && other instanceof LeafExpression) {
                   if (current.equals(other)) {
                     simplifiedCurrent = getTrue();
-                  } else if (current.equals(other)) {
-                    simplifiedCurrent = getFalse();
                   } else {
                     simplifiedCurrent = current;
                   }

@@ -143,11 +143,12 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
       List<String> cbmcArgs = new ArrayList<>(getParamForMachineModel());
 
       cbmcArgs.add("--stop-on-fail");
+      cbmcArgs.add("--no-built-in-assertions"); // do not check for memory safety etc.
 
-      // Our paths are loop-free, but there might be hidden loops in stdlib functions like memcpy.
-      // CBMC would sometimes endlessly unroll them, so its better to break the loops.
+      // Our paths are loop-free, but CBMC adds loops in stdlib functions like memcmp.
+      // CBMC would endlessly unroll them, so its better to break the loops.
       cbmcArgs.add("--unwind");
-      cbmcArgs.add("3");
+      cbmcArgs.add("100");
       cbmcArgs.add("--partial-loops");
       cbmcArgs.add("--no-unwinding-assertions");
 
@@ -191,22 +192,18 @@ public class CBMCChecker implements CounterexampleChecker, Statistics {
 
   private List<String> getParamForMachineModel() {
     switch (machineModel) {
-    // CBMC provides --32 and --64 to specify the machine model,
-    // but some parameters are not specified by them (e.g., endianess)
-    // and are taken from the current system.
-    // For 32bit code, there is the additional switch --i386-linux
-    // that sets these additional parameters.
-    // However, using --i386-linux lets CBMC call the C pre-processor
-    // (not for the program but for its internal C library)
-    // and the libc 32bit development headers need to be installed,
-    // so maybe this is not what we always want (e.g., on Windows)?
-    // For --64 there is no switch similar to --i386-linux,
-    // because it would require the 64bit headers, and we cannot expect
-    // them on a 32bit system.
-    case LINUX32:
-      return ImmutableList.of("--32", "--i386-linux");
-    case LINUX64:
-      return ImmutableList.of("--64");
+      case LINUX32:
+        return ImmutableList.of("--i386-linux"); // shortcut for "--arch i386 --os linux"
+      case LINUX64:
+        // We want to use "--arch x86_64 --os linux", but "--os" is currently broken:
+        // https://github.com/diffblue/cbmc/issues/5267
+        // At least in CBMC 5.12 we can set the OS to Linux with "--i386-linux" and overwrite the
+        // arch with "--arch":
+        // https://github.com/diffblue/cbmc/blob/cbmc-5.12/src/util/config.cpp#L842-L872
+        return ImmutableList.of("--i386-linux", "--arch", "x86_64");
+      case ARM:
+        // Same as for LINUX64
+        return ImmutableList.of("--i386-linux", "--arch", "arm");
     default:
       throw new AssertionError("Unknown machine model value " + machineModel);
     }

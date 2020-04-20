@@ -1,0 +1,10 @@
+format_version: '1.0'
+
+# old file name: multivar_true-unreach-call1_true-termination.i
+input_files: 'multivar.i'
+
+properties:
+  - property_file: ../../config/properties/unreach-call.prp
+    expected_verdict: true
+  - property_file: ../../config/properties/termination.prp
+    expected_verdict: true

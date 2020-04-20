@@ -41,6 +41,12 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
  */
 public class CPATestRunner {
 
+  public enum ExpectedVerdict {
+    TRUE,
+    FALSE,
+    NONE
+  }
+
   public static TestResults run(
       Map<String, String> pProperties,
       String pSourceCodeFilePath) throws Exception {

@@ -1,0 +1,6 @@
+format_version: '1.0'
+
+# old file name: constant_extern_function.cil.c
+input_files: 'constant_extern_function.cil.c'
+
+properties: []

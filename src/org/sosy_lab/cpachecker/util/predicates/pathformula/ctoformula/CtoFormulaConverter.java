@@ -102,6 +102,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -142,6 +143,7 @@ public class CtoFormulaConverter {
           "free",
           "kfree",
           "fprintf",
+          "memcmp",
           "printf",
           "puts",
           "printk",
@@ -158,7 +160,12 @@ public class CtoFormulaConverter {
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
   private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS =
-      ImmutableMap.of("fesetround", "floating-point rounding modes");
+      ImmutableMap.of(
+          "fesetround", "floating-point rounding modes",
+          // cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/664
+          "memcpy", "memcpy",
+          "memmove", "memmove",
+          "memset", "memset");
 
   //names for special variables needed to deal with functions
   @Deprecated
@@ -547,7 +554,10 @@ public class CtoFormulaConverter {
 
   protected Formula makeNondet(
       final String name, final CType type, final SSAMapBuilder ssa, final Constraints constraints) {
-    Formula newVariable = makeFreshVariable(name, type, ssa);
+    final int index = makeFreshIndex(name, type, ssa);
+    Formula newVariable =
+        fmgr.makeVariableWithoutSSAIndex(getFormulaTypeFromCType(type), name + "!" + index);
+
     if (options.addRangeConstraintsForNondet()) {
       addRangeConstraint(newVariable, type, constraints);
     }
@@ -1784,6 +1794,8 @@ public class CtoFormulaConverter {
       return UNSUPPORTED_FUNCTIONS.get(functionName);
     } else if (functionName.startsWith("__atomic_")) {
       return "atomic operations";
+    } else if (BuiltinOverflowFunctions.isUnsupportedBuiltinOverflowFunction(functionName)) {
+      return "builtin functions for arithmetic with overflow handling";
     }
     return null;
   }

@@ -147,6 +147,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     final ExecutorService pool = Executors.newFixedThreadPool(numberOfCores, threadFactory);
     final List<Throwable> errors = Collections.synchronizedList(new ArrayList<>());
     final AtomicBoolean terminateAnalysis = new AtomicBoolean(false);
+    final AtomicInteger scheduledJobs = new AtomicInteger(0);
 
     {
       int running = stats.numActiveThreads.get();
@@ -167,6 +168,7 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
             stats,
             errors,
             terminateAnalysis,
+            scheduledJobs,
             logger);
     reachedSetMapping.put(mainReachedSet, rse); // backwards reference
 

@@ -624,13 +624,14 @@ public class CFACreator {
             "Variable Classification not present. Consider turning this on "
                 + "to improve dependence graph construction.");
       }
+      final DependenceGraphBuilder depGraphBuilder =
+          DependenceGraph.builder(cfa, varClassification, config, logger, shutdownNotifier);
       try {
-        DependenceGraphBuilder depGraphBuilder =
-            DependenceGraph.builder(cfa, varClassification, config, logger, shutdownNotifier);
         depGraph = Optional.of(depGraphBuilder.build());
-        depGraphBuilder.collectStatistics(stats.statisticsCollection);
       } catch (CPAException pE) {
         throw new CParserException(pE);
+      } finally {
+        depGraphBuilder.collectStatistics(stats.statisticsCollection);
       }
     } else {
       depGraph = Optional.empty();
@@ -1159,7 +1160,7 @@ v.addInitializer(initializer);
     // write the CFA to files (one file per function)
     if (exportCfaPerFunction && exportCfaFile != null) {
       try {
-        Path outdir = exportCfaFile.getParent();
+        Path outdir = exportCfaFile.getParent().resolve("cfa");
         new DOTBuilder2(cfa).writeGraphs(outdir);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,

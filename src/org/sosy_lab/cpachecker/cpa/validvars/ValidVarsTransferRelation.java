@@ -50,8 +50,9 @@ public class ValidVarsTransferRelation extends SingleEdgeTransferRelation {
     switch (pCfaEdge.getEdgeType()) {
     case BlankEdge:
       if (pCfaEdge.getDescription().equals("Function start dummy edge") && !(pCfaEdge.getPredecessor() instanceof FunctionEntryNode)) {
-        validVariables = validVariables.extendLocalVarsFunctionCall(pCfaEdge.getSuccessor().getFunctionName(),
-            ImmutableSet.<String> of());
+          validVariables =
+              validVariables.extendLocalVarsFunctionCall(
+                  pCfaEdge.getSuccessor().getFunctionName(), ImmutableSet.of());
       }
       if(pCfaEdge.getSuccessor() instanceof FunctionExitNode) {
         validVariables = validVariables.removeVarsOfFunction(pCfaEdge.getPredecessor().getFunctionName());

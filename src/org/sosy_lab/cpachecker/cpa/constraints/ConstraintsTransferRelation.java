@@ -408,7 +408,7 @@ public class ConstraintsTransferRelation
       try {
         if (automatonState.isTarget() && solver.isUnsat(pStateToStrengthen, functionName)) {
 
-          return Optional.<Collection<ConstraintsState>>of(ImmutableSet.of());
+          return Optional.of(ImmutableSet.of());
 
         } else {
           return Optional.empty();

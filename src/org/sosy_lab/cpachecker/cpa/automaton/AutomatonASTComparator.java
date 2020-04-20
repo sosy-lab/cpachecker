@@ -143,7 +143,12 @@ class AutomatonASTComparator {
         return new NumberedJokerMatcher(i);
 
       } else {
-        return createMatcher(CIdExpression.class, exp, compareField(exp, CIdExpression::getName));
+        return createMatcher(
+            CIdExpression.class,
+            exp,
+            compareField(
+                exp,
+                e -> e.getDeclaration() == null ? e.getName() : e.getDeclaration().getOrigName()));
       }
     }
 

@@ -98,7 +98,7 @@ public class PathChecker {
       description =
           "An imprecise counterexample of the Predicate CPA is usually a bug,"
               + " but expected in some configurations. Should it be treated as a bug or accepted?")
-  private boolean allowImpreciseCounterexamples = true;
+  private boolean allowImpreciseCounterexamples = false;
 
   private final LogManager logger;
   private final PathFormulaManager pmgr;

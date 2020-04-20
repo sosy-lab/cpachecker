@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.expressions;
 
+import java.util.Collection;
 
 public interface ExpressionTreeFactory<LeafType> {
 
@@ -32,10 +33,10 @@ public interface ExpressionTreeFactory<LeafType> {
 
   ExpressionTree<LeafType> and(ExpressionTree<LeafType> pOp1, ExpressionTree<LeafType> pOp2);
 
-  ExpressionTree<LeafType> and(Iterable<ExpressionTree<LeafType>> pOperands);
+  ExpressionTree<LeafType> and(Collection<ExpressionTree<LeafType>> pOperands);
 
   ExpressionTree<LeafType> or(ExpressionTree<LeafType> pOp1, ExpressionTree<LeafType> pOp2);
 
-  ExpressionTree<LeafType> or(Iterable<ExpressionTree<LeafType>> pOperands);
+  ExpressionTree<LeafType> or(Collection<ExpressionTree<LeafType>> pOperands);
 
 }

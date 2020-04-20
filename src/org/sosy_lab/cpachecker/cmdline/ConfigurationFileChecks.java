@@ -359,10 +359,6 @@ public class ConfigurationFileChecks {
         tempFolder.getRoot().getAbsolutePath(),
         "config/specification/modifications-present.spc");
     copyFile(
-        "config/specification/sv-comp-reachability.spc",
-        tempFolder.getRoot().getAbsolutePath(),
-        "config/specification/sv-comp-reachability.spc");
-    copyFile(
         "config/specification/TargetState.spc",
         tempFolder.getRoot().getAbsolutePath(),
         "config/specification/TargetState.spc");
@@ -464,7 +460,8 @@ public class ConfigurationFileChecks {
     if (configFile instanceof Path) {
       assume()
           .that((Iterable<?>) configFile)
-          .containsNoneOf(Paths.get("includes"), Paths.get("pcc"));
+          .containsNoneOf(
+              Paths.get("includes"), Paths.get("pcc"), Paths.get("witnessValidation.properties"));
     }
 
     final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();

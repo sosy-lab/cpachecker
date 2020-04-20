@@ -1,0 +1,7 @@
+format_version: '1.0'
+
+# old file name: integer_vs_reals.c
+input_files: 'integer_vs_reals.c'
+
+properties:
+  - property_file: ../../config/properties/unreach-label.prp

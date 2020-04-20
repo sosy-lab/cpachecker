@@ -110,8 +110,8 @@ public class GraphToPixelsWriterTest extends GraphToPixelsWriter<DummyNode> {
 
     int[] expectedNodesPerLayer = {1, 2, 1, 3};
     Iterator<GraphLevel> actualLevels = result.iterator();
-    for (int i = 0; i < expectedNodesPerLayer.length; i++) {
-      assertThat(actualLevels.next().getWidth()).isEqualTo(expectedNodesPerLayer[i]);
+    for (int expectedNodes : expectedNodesPerLayer) {
+      assertThat(actualLevels.next().getWidth()).isEqualTo(expectedNodes);
     }
   }
 }

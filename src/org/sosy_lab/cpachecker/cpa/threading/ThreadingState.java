@@ -33,7 +33,7 @@ import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.is
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -150,7 +150,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
   }
 
   Set<Integer> getThreadNums() {
-    Set<Integer> result = new HashSet<>();
+    Set<Integer> result = new LinkedHashSet<>();
     for (ThreadState ts : threads.values()) {
       result.add(ts.getNum());
     }

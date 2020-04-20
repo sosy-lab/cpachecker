@@ -1,0 +1,7 @@
+format_version: '1.0'
+
+# old file name: struct-alignment.c
+input_files: 'struct-alignment.c'
+
+properties:
+  - property_file: ../../config/properties/unreach-label.prp

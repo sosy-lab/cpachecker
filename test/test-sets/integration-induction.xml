@@ -11,7 +11,11 @@
 
   <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
-    <propertyfile>../programs/simple/ALL.prp</propertyfile>
+    <propertyfile>../config/properties/unreach-label.prp</propertyfile>
+  </tasks>
+  <tasks>
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>

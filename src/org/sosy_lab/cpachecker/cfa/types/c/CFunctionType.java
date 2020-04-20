@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cfa.types.c;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
@@ -156,9 +155,11 @@ public class CFunctionType extends AFunctionType implements CType {
 
   @Override
   public CFunctionType getCanonicalType(boolean pForceConst, boolean pForceVolatile) {
-    checkArgument(
-        !pForceConst && !pForceVolatile,
-        "const or volatile function types are undefined according to the C standard");
+    // We ignore pForceConst and pForceVolatile.
+    // const and volatile functions are undefined according to C11 §6.7.3 (9),
+    // so we used to throw an exception here, but ignoring it does not hurt.
+    // Probably no compiler does something else than ignoring these qualifiers as well.
+
     ImmutableList.Builder<CType> newParameterTypes = ImmutableList.builder();
     for (CType parameter : getParameters()) {
       newParameterTypes.add(parameter.getCanonicalType());
