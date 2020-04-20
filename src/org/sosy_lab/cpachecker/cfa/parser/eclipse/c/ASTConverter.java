@@ -2014,7 +2014,7 @@ class ASTConverter {
           IASTInitializerClause initClause =
               ((IASTEqualsInitializer) initializer).getInitializerClause();
 
-            if (arrayType.getType() instanceof CSimpleType) {
+          if (arrayType.getType() instanceof CSimpleType) {
             CExpression lengthExp = computeLengthOfArray(initClause, arrayType);
             if (arrayType.getLength() != null
                 && !(arrayType.getLength() instanceof CIdExpression)) {
@@ -2022,10 +2022,7 @@ class ASTConverter {
             } else {
               type =
                   new CArrayType(
-                      arrayType.isConst(),
-                      arrayType.isVolatile(),
-                      arrayType.getType(),
-                      lengthExp);
+                      arrayType.isConst(), arrayType.isVolatile(), arrayType.getType(), lengthExp);
             }
           }
 
@@ -2050,18 +2047,21 @@ class ASTConverter {
             if (arrayType.getLength() == null) {
               arrayPlusLength.put(arrayType, computeLengthOfArray(initClause, arrayType));
             } else {
-              CIntegerLiteralExpression computedL =
-                  (CIntegerLiteralExpression) computeLengthOfArray(initClause, arrayType);
+              if (computeLengthOfArray(initClause, arrayType)
+                  instanceof CIntegerLiteralExpression) {
+                CIntegerLiteralExpression computedL =
+                    (CIntegerLiteralExpression) computeLengthOfArray(initClause, arrayType);
 
-              // check if number of contained elements doesn't surpass max possible length
-              if (!isFullyBracketed(initClause, modifiers.size())) {
-                checkLengthNotFullyBracketed(initClause, arrayType, 0);
+                // check if number of contained elements doesn't surpass max possible length
+                if (!isFullyBracketed(initClause, modifiers.size())) {
+                  checkLengthNotFullyBracketed(initClause, arrayType, 0);
 
-              } else {
+                } else {
 
-                compareArrayLengths(arrayType.getLength(), computedL, d);
+                  compareArrayLengths(arrayType.getLength(), computedL, d);
+                }
+                arrayPlusLength.put(arrayType, arrayType.getLength());
               }
-              arrayPlusLength.put(arrayType, arrayType.getLength());
             }
             if (!hasLength) {
               arrayPlusLength = computeLengthMultiDimArray(arrayType, arrayPlusLength, initClause);
@@ -2106,7 +2106,6 @@ class ASTConverter {
         }
       }
 
-
       if (bitFieldSize != null) {
         type = typeConverter.convertBitFieldType(bitFieldSize, type);
       }
@@ -2138,21 +2137,19 @@ class ASTConverter {
         prevhasBrackets = false;
         // adds length for §6.7.9 (35)
       } else if (initC instanceof CASTDesignatedInitializer) {
-        ICASTDesignator[] designators =
-            ((CASTDesignatedInitializer) initC).getDesignators();
+        ICASTDesignator[] designators = ((CASTDesignatedInitializer) initC).getDesignators();
         if (designators[0] instanceof CASTArrayDesignator) {
           CAstNode subscript =
               convertExpressionWithSideEffects(
                   ((CASTArrayDesignator) designators[0]).getSubscriptExpression());
           if (subscript instanceof CIntegerLiteralExpression) {
-          int dIndex = ((CIntegerLiteralExpression) subscript).getValue().intValue();
+            int dIndex = ((CIntegerLiteralExpression) subscript).getValue().intValue();
             if (dIndex >= index) {
               index++;
             } else {
               subIndex++;
-          }
-            if (((CASTDesignatedInitializer) initC).getOperand()
-                instanceof CASTInitializerList) {
+            }
+            if (((CASTDesignatedInitializer) initC).getOperand() instanceof CASTInitializerList) {
               prevhasBrackets = true;
             } else {
               prevhasBrackets = false;
@@ -2173,36 +2170,40 @@ class ASTConverter {
   // TODO case if only one of the middle brackets is missing
   private void checkLengthNotFullyBracketed(
       IASTInitializerClause initClause, CArrayType arrayType, int newModifierSize) {
-    int modifierSize = ((CIntegerLiteralExpression) arrayType.getLength()).getValue().intValue();
-    int numInit = ((IASTInitializerList) initClause).getSize();
-    if (newModifierSize != 0) {
-      modifierSize = newModifierSize;
-    }
-    if (numInit <= modifierSize) {
-      for (int i = 0; i < numInit; i++) {
-        IASTInitializerClause in = ((IASTInitializerList) initClause).getClauses()[i];
-        if (arrayType.getType() instanceof CArrayType && !(in instanceof CASTLiteralExpression)) {
-          checkLengthNotFullyBracketed(in, (CArrayType) arrayType.getType(), 0);
+    if (arrayType.getLength() instanceof CIntegerLiteralExpression) {
+      int modifierSize = ((CIntegerLiteralExpression) arrayType.getLength()).getValue().intValue();
+      int numInit = ((IASTInitializerList) initClause).getSize();
+      if (newModifierSize != 0) {
+        modifierSize = newModifierSize;
+      }
+      if (numInit <= modifierSize) {
+        for (int i = 0; i < numInit; i++) {
+          IASTInitializerClause in = ((IASTInitializerList) initClause).getClauses()[i];
+          if (arrayType.getType() instanceof CArrayType && !(in instanceof CASTLiteralExpression)) {
+            checkLengthNotFullyBracketed(in, (CArrayType) arrayType.getType(), 0);
+          }
+        }
+      } else {
+        // if there is another nested array
+        if (((IASTInitializerList) initClause).getClauses()[0] instanceof IASTInitializerList) {
+          throw parseContext.parseError("Too many initializers in initializer list", initClause);
+        } else if (((IASTInitializerList) initClause).getClauses()[0]
+                instanceof CASTLiteralExpression
+            && arrayType.getType() instanceof CArrayType) {
+          if (((CArrayType) arrayType.getType()).getLength() instanceof CIntegerLiteralExpression) {
+            int nextModifierSize =
+                ((CIntegerLiteralExpression) ((CArrayType) arrayType.getType()).getLength())
+                    .getValue()
+                    .intValue();
+            modifierSize *= nextModifierSize;
+          }
+          checkLengthNotFullyBracketed(initClause, (CArrayType) arrayType.getType(), modifierSize);
+        } else {
+          throw parseContext.parseError("Too many initializers in initializer list", initClause);
         }
       }
-    } else {
-      // if there is another nested array
-      if (((IASTInitializerList) initClause).getClauses()[0] instanceof IASTInitializerList) {
-        throw parseContext.parseError("Too many initializers in initializer list", initClause);
-      } else if (((IASTInitializerList) initClause).getClauses()[0] instanceof CASTLiteralExpression
-          && arrayType.getType() instanceof CArrayType) {
-        int nextModifierSize =
-            ((CIntegerLiteralExpression) ((CArrayType) arrayType.getType()).getLength())
-                .getValue()
-                .intValue();
-          modifierSize *= nextModifierSize;
-          checkLengthNotFullyBracketed(initClause, (CArrayType) arrayType.getType(), modifierSize);
-      } else {
-        throw parseContext.parseError("Too many initializers in initializer list", initClause);
-      }
       }
     }
-
 
   private boolean isFullyBracketed(IASTInitializerClause initClause, int numDimensions) {
     int counter = 0;
@@ -2227,23 +2228,25 @@ class ASTConverter {
     }
     arrayType = (CArrayType) arrayType.getType();
 
-      CIntegerLiteralExpression realLength = CIntegerLiteralExpression.ZERO;
-      for (IASTInitializerClause x : ((IASTInitializerList) initClause).getClauses()) {
-        if (!(x instanceof CIntegerLiteralExpression)) {
-        CIntegerLiteralExpression lengthNested =
-            (CIntegerLiteralExpression) (computeLengthOfArray(x, arrayType));
-        // nested array with highest number of elements is actual length of dimension
+    CIntegerLiteralExpression realLength = CIntegerLiteralExpression.ZERO;
+    for (IASTInitializerClause x : ((IASTInitializerList) initClause).getClauses()) {
+      if (!(x instanceof CIntegerLiteralExpression)) {
+        if ((computeLengthOfArray(x, arrayType) instanceof CIntegerLiteralExpression)) {
+          CIntegerLiteralExpression lengthNested =
+              (CIntegerLiteralExpression) (computeLengthOfArray(x, arrayType));
+          // nested array with highest number of elements is actual length of dimension
           if (realLength.getValue().compareTo(lengthNested.getValue()) == -1) {
-          if (arrayType.getLength() != null) {
-            compareArrayLengths(arrayType.getLength(), lengthNested, initClause);
-            arrPlusLength.put(arrayType, arrayType.getLength());
-          } else {
-            arrPlusLength.put(arrayType, lengthNested);
-            realLength = lengthNested;
-          }
+            if (arrayType.getLength() != null) {
+              compareArrayLengths(arrayType.getLength(), lengthNested, initClause);
+              arrPlusLength.put(arrayType, arrayType.getLength());
+            } else {
+              arrPlusLength.put(arrayType, lengthNested);
+              realLength = lengthNested;
+            }
           }
         }
       }
+    }
 
     for (IASTInitializerClause x : ((IASTInitializerList) initClause).getClauses()) {
       return computeLengthMultiDimArray(arrayType, arrPlusLength, x);
@@ -2253,15 +2256,18 @@ class ASTConverter {
 
   private void compareArrayLengths(
       CExpression lengthDeclarator, CExpression lengthComputed, IASTNode i) {
-    BigInteger lengthDecl = ((CIntegerLiteralExpression) lengthDeclarator).getValue();
-    BigInteger lengthComp = ((CIntegerLiteralExpression) lengthComputed).getValue();
-    if (lengthDecl.compareTo(lengthComp) == -1) {
-      throw parseContext.parseError(
-          "Array contains more elements: "
-              + lengthComp.intValue()
-              + " than specified in the declarator: "
-              + lengthDecl.intValue(),
-          i);
+    if (lengthDeclarator instanceof CIntegerLiteralExpression
+        && lengthComputed instanceof CIntegerLiteralExpression) {
+      BigInteger lengthDecl = ((CIntegerLiteralExpression) lengthDeclarator).getValue();
+      BigInteger lengthComp = ((CIntegerLiteralExpression) lengthComputed).getValue();
+      if (lengthDecl.compareTo(lengthComp) == -1) {
+        throw parseContext.parseError(
+            "Array contains more elements: "
+                + lengthComp.intValue()
+                + " than specified in the declarator: "
+                + lengthDecl.intValue(),
+            i);
+      }
     }
   }
 
