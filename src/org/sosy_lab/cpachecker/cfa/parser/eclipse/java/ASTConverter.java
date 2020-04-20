@@ -1322,7 +1322,6 @@ class ASTConverter {
 
     if (constructor != null) {
       JClassOrInterfaceType declaringClass = scope.getCurrentClassType();
-      VisibilityModifier visibilityModifier = getVisibilityModifierForConstructor(constructor);
       JConstructorType constructorType =
           new JConstructorType(
               declaringClass,
@@ -1333,8 +1332,8 @@ class ASTConverter {
           constructorType,
           fullName,
           simpleName,
-          getJTypesOfParameters(pCIC.arguments()),
-          visibilityModifier,
+          createJParameterDeclarationsForArguments(pCIC.arguments()),
+          getVisibilityModifierForConstructor(constructor),
           false,
           declaringClass);
     }
@@ -1415,19 +1414,36 @@ class ASTConverter {
 
   private String getParametersAsString(List<SimpleName> arguments) {
     List<String> argumentsAsStringList = new ArrayList<>(arguments.size());
-    for (SimpleName argument : arguments) {
-      JSimpleDeclaration simpleDeclaration = scope.lookupVariable(argument.toString());
+    for (Object argument : arguments) {
+      JSimpleDeclaration simpleDeclaration =
+          scope.lookupVariable(((SimpleName) argument).toString());
       argumentsAsStringList.add(simpleDeclaration.getType().toString().replace(" ", ""));
     }
     return String.join(",", argumentsAsStringList);
   }
 
-  private List<JType> getJTypesOfParameters(List<SimpleName> arguments) {
+  private List<JType> getJTypesOfParameters(List<?> arguments) {
     List<JType> parameterList = new ArrayList<>();
-    for (SimpleName argument : arguments) {
-      parameterList.add(scope.lookupVariable(argument.toString()).getType());
+    for (Object argument : arguments) {
+      parameterList.add(scope.lookupVariable(((SimpleName) argument).toString()).getType());
     }
     return parameterList;
+  }
+
+  private List<JParameterDeclaration> createJParameterDeclarationsForArguments(List<?> arguments) {
+    List<JParameterDeclaration> parameterList = new ArrayList<>();
+    for (Object argument : arguments) {
+      parameterList.add(
+          convertVariableDeclarationToParameterDeclaration(
+              (JVariableDeclaration) scope.lookupVariable(((SimpleName) argument).toString())));
+    }
+    return parameterList;
+  }
+
+  private JParameterDeclaration convertVariableDeclarationToParameterDeclaration(
+      JVariableDeclaration jd) {
+    return new JParameterDeclaration(
+        jd.getFileLocation(), jd.getType(), jd.getName(), jd.getQualifiedName(), jd.isFinal());
   }
 
   private JConstructorDeclaration getConstructorOfAnonymousClass(
