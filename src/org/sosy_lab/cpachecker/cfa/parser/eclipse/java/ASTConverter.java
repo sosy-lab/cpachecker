@@ -1386,7 +1386,7 @@ class ASTConverter {
     return null;
   }
 
-  private Constructor<?> matchConstructor(String className, List<SimpleName> arguments) {
+  private Constructor<?> matchConstructor(String className, List<?> arguments) {
     Class<?> cls;
     try {
       cls = Class.forName(className);
@@ -1412,7 +1412,7 @@ class ASTConverter {
     return null;
   }
 
-  private String getParametersAsString(List<SimpleName> arguments) {
+  private String getParametersAsString(List<?> arguments) {
     List<String> argumentsAsStringList = new ArrayList<>(arguments.size());
     for (Object argument : arguments) {
       JSimpleDeclaration simpleDeclaration =
