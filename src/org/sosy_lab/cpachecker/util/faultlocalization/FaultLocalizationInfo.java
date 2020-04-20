@@ -43,8 +43,6 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 
 public class FaultLocalizationInfo extends CounterexampleInfo {
 
-  private  CounterexampleInfo parent;
-
   private List<Fault> rankedList;
   private FaultReportWriter htmlWriter;
 
@@ -77,7 +75,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         pParent.getCFAPathWithAssignments(),
         pParent.isPreciseCounterExample(),
         CFAPathWithAdditionalInfo.empty());
-    initialize(pParent, pFaults);
+    initialize(pFaults);
   }
 
   /**
@@ -112,12 +110,10 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         FaultRankingUtils.assignScoreTo(faultContribution);
       }
     }
-    initialize(pParent, rankedFault);
+    initialize(rankedFault);
   }
 
-  private void initialize(CounterexampleInfo pParent, List<Fault> pFaults){
-    parent = pParent;
-
+  private void initialize(List<Fault> pFaults){
     mapEdgeToFaultContribution = new HashMap<>();
     mapEdgeToFaults = new MultiMap<>();
 
@@ -140,7 +136,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   public String toString() {
     StringBuilder toString = new StringBuilder();
     if(!rankedList.isEmpty()){
-      toString.append(rankedList.stream().map(l -> l.toString()).collect(Collectors.joining("\n\n")));
+      toString.append(rankedList.stream().map(Fault::toString).collect(Collectors.joining("\n\n")));
     }
     return toString.toString();
   }
@@ -219,6 +215,6 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    * Replace default CounterexampleInfo with this extended version of a CounterexampleInfo.
    */
   public void apply(){
-    parent.getTargetPath().getLastState().replaceCounterexampleInformation(this);
+    super.getTargetPath().getLastState().replaceCounterexampleInformation(this);
   }
 }

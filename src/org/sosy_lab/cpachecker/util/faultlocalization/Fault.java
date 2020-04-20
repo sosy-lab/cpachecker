@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.ForwardingSet;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -112,16 +113,17 @@ public class Fault extends ForwardingSet<FaultContribution> {
 
   @Override
   public String toString(){
-    sortReasonByReasonTypeThenByLikelihood();
-    int numberReasons = reasons.stream().filter(l -> !l.isHint()).mapToInt(l -> 1).sum();
+    List<FaultReason> copy = new ArrayList<>(reasons);
+    sortReasonByReasonTypeThenByLikelihood(copy);
+    int numberReasons = copy.stream().filter(l -> !l.isHint()).mapToInt(l -> 1).sum();
 
     String header = "Error suspected on line(s): " + listDistinctLinesAndJoin();
 
     String amountReasons = "Detected " + numberReasons + " possible reason(s):\n";
     StringBuilder reasonString = new StringBuilder();
     int lastHint = 0;
-    for (int i = 0; i < reasons.size(); i++) {
-      FaultReason current = reasons.get(i);
+    for (int i = 0; i < copy.size(); i++) {
+      FaultReason current = copy.get(i);
       if (current.isHint()) {
         reasonString.append(" Hint: ").append(current.toString()).append("\n");
         lastHint = i+1;
@@ -132,7 +134,7 @@ public class Fault extends ForwardingSet<FaultContribution> {
     return header + "\n" + amountReasons + reasonString;
   }
 
-  private void sortReasonByReasonTypeThenByLikelihood(){
+  private void sortReasonByReasonTypeThenByLikelihood(List<FaultReason> reasons){
     Comparator<FaultReason> sortReasons =
         Comparator.comparingInt(l -> l.isHint() ? 0 : 1);
     sortReasons = sortReasons.thenComparingDouble(b -> 1d/b.getLikelihood());
@@ -159,6 +161,31 @@ public class Fault extends ForwardingSet<FaultContribution> {
               list.get(lastIndex));
         }))
         + " (Score: " + (int)(score*100) + ")";
+  }
+
+  @Override
+  public boolean equals(Object q){
+    if(q instanceof Fault){
+      Fault comp = (Fault)q;
+      if(comp.size() == size()){
+        for (FaultContribution faultContribution : comp) {
+          if(!contains(faultContribution)){
+            return false;
+          }
+        }
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode(){
+    int result = 4;
+    for(FaultContribution contribution: this){
+      result = Objects.hashCode(contribution, result);
+    }
+    return result;
   }
 
   @Override

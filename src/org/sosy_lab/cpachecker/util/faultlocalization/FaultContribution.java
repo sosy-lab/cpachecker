@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
+import com.google.common.base.Objects;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -137,6 +138,11 @@ public class FaultContribution {
 
   @Override
   public int hashCode() {
-    return correspondingEdge.hashCode();
+    int result = 5;
+    for(FaultReason reason: reasons){
+      result = Objects.hashCode(reason, result);
+    }
+    result = Objects.hashCode(correspondingEdge, result);
+    return result;
   }
 }
