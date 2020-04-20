@@ -401,7 +401,7 @@ class Scope {
 
     // TODO Check if there is a way to be more precise
     if (type == null) {
-      logger.log(Level.WARNING, "Could not resolve type of {}", className);
+      logger.log(Level.WARNING, "Could not resolve type of ", className);
       type =
           classBinding.isInterface()
               ? JInterfaceType.createUnresolvableType()
