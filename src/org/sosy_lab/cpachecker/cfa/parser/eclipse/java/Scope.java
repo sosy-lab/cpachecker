@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.logging.Level;
 import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.sosy_lab.common.log.LogManager;
@@ -400,6 +401,7 @@ class Scope {
 
     // TODO Check if there is a way to be more precise
     if (type == null) {
+      logger.log(Level.WARNING, "Could not resolve type of {}", className);
       type =
           classBinding.isInterface()
               ? JInterfaceType.createUnresolvableType()
