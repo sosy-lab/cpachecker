@@ -102,7 +102,9 @@ import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTArrayRangeDesignator;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTCompositeTypeSpecifier;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTDeclarator;
+import org.eclipse.cdt.internal.core.dom.parser.c.CASTDesignatedInitializer;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTFunctionCallExpression;
+import org.eclipse.cdt.internal.core.dom.parser.c.CASTInitializerList;
 import org.eclipse.cdt.internal.core.dom.parser.c.CASTLiteralExpression;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
@@ -2091,8 +2093,16 @@ class ASTConverter {
               type = typesWLength.get(lastIndex);
             }
           }
-          // TODO: struct array
-          if (arrayType.getType() instanceof CElaboratedType) {}
+          // Caculates the length of an array of the form
+          // struct { int a[3], b; } w[] = { { 1 }, 2 };
+          if (arrayType.getType() instanceof CElaboratedType) {
+            CExpression lengthExp = computeLengthArrayOfStructs(initClause);
+
+            CElaboratedType nestedType = (CElaboratedType) arrayType.getType();
+
+            type =
+                new CArrayType(arrayType.isConst(), arrayType.isVolatile(), nestedType, lengthExp);
+          }
         }
       }
 
@@ -2103,17 +2113,70 @@ class ASTConverter {
       return Triple.of(type, initializer, name);
     }
   }
+
+  private CExpression computeLengthArrayOfStructs(IASTInitializerClause initClause) {
+    int initSize = ((IASTInitializerList) initClause).getSize();
+    int index = 0;
+    int subIndex = 0;
+    boolean prevhasBrackets = false;
+    for (int i = 0; i < initSize; i++) {
+      IASTInitializerClause initC = ((IASTInitializerList) initClause).getClauses()[i];
+      if (initC instanceof IASTInitializerList) {
+        if (prevhasBrackets || i == 0) {
+          index++;
+          subIndex = 0;
+        }
+        if (subIndex != 0) {
+          subIndex++;
+        }
+        prevhasBrackets = true;
+      } else if (initC instanceof CASTLiteralExpression) {
+        if ((prevhasBrackets || i == 0) && subIndex == 0) {
+          index++;
+        }
+        subIndex++;
+        prevhasBrackets = false;
+        // adds length for §6.7.9 (35)
+      } else if (initC instanceof CASTDesignatedInitializer) {
+        ICASTDesignator[] designators =
+            ((CASTDesignatedInitializer) initC).getDesignators();
+        if (designators[0] instanceof CASTArrayDesignator) {
+          CAstNode subscript =
+              convertExpressionWithSideEffects(
+                  ((CASTArrayDesignator) designators[0]).getSubscriptExpression());
+          if (subscript instanceof CIntegerLiteralExpression) {
+          int dIndex = ((CIntegerLiteralExpression) subscript).getValue().intValue();
+            if (dIndex >= index) {
+              index++;
+            } else {
+              subIndex++;
+          }
+            if (((CASTDesignatedInitializer) initC).getOperand()
+                instanceof CASTInitializerList) {
+              prevhasBrackets = true;
+            } else {
+              prevhasBrackets = false;
+            }
+          }
+        }
+      }
+    }
+
+    return new CIntegerLiteralExpression(
+        getLocation(initClause), CNumericTypes.INT, BigInteger.valueOf(index));
+  }
+
   /**
    * §6.7.9 (29) Verifies the length of initializers of not fully bracketed multidimensional arrays.
    */
 
-  // TODO case if one of the middle brackets is missing
+  // TODO case if only one of the middle brackets is missing
   private void checkLengthNotFullyBracketed(
-      IASTInitializerClause initClause, CArrayType arrayType, int newModifier) {
+      IASTInitializerClause initClause, CArrayType arrayType, int newModifierSize) {
     int modifierSize = ((CIntegerLiteralExpression) arrayType.getLength()).getValue().intValue();
     int numInit = ((IASTInitializerList) initClause).getSize();
-    if (newModifier != 0) {
-      modifierSize = newModifier;
+    if (newModifierSize != 0) {
+      modifierSize = newModifierSize;
     }
     if (numInit <= modifierSize) {
       for (int i = 0; i < numInit; i++) {
@@ -2188,9 +2251,8 @@ class ASTConverter {
     return arrPlusLength;
   }
 
-
-  private void
-      compareArrayLengths(CExpression lengthDeclarator, CExpression lengthComputed, IASTNode i) {
+  private void compareArrayLengths(
+      CExpression lengthDeclarator, CExpression lengthComputed, IASTNode i) {
     BigInteger lengthDecl = ((CIntegerLiteralExpression) lengthDeclarator).getValue();
     BigInteger lengthComp = ((CIntegerLiteralExpression) lengthComputed).getValue();
     if (lengthDecl.compareTo(lengthComp) == -1) {
