@@ -398,6 +398,14 @@ class Scope {
     //Sub Classes need to be parsed for dynamic Binding
     JClassOrInterfaceType type = typeHierarchy.getType(className);
 
+    // TODO Check if there is a way to be more precise
+    if (type == null) {
+      type =
+          classBinding.isInterface()
+              ? JInterfaceType.createUnresolvableType()
+              : JClassType.createUnresolvableType();
+    }
+
     toBeAdded.addAll(type.getAllSubTypesOfType());
 
     for (JClassOrInterfaceType subClassType : toBeAdded) {
