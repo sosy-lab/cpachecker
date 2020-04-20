@@ -27,13 +27,14 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.VerifyException;
 import com.google.common.collect.FluentIterable;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -44,6 +45,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.ErrorInvariantsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.FaultLocalizationAlgorithmInterface;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.MaxSatAlgorithm;
@@ -60,7 +62,10 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
@@ -73,11 +78,13 @@ import org.sosy_lab.cpachecker.util.faultlocalization.ranking.OverallOccurrenceR
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.SetSizeRanking;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix="faultlocalization")
-public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider {
+public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider, Statistics {
 
   private final Algorithm algorithm;
   private final LogManager logger;
@@ -87,6 +94,7 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
   private final TraceFormulaOptions options;
 
   private final FaultLocalizationAlgorithmInterface faultAlgorithm;
+  private final StatTimer totalTime = new StatTimer("Total time");
   //private final CFA cfa;
 
   @Option(secure=true, name="type", toUppercase=true, values={"UNSAT", "MAXSAT", "ERRINV"},
@@ -133,6 +141,7 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
 
+    totalTime.start();
     // Find error labels
     AlgorithmStatus status = algorithm.run(reachedSet);
     FluentIterable<CounterexampleInfo> counterExamples =
@@ -142,21 +151,23 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
                 .filter(ARGState.class)
                 .transform(ARGState::getCounterexampleInformation));
 
+
     // run algorithm for every error
+    logger.log(Level.INFO, "Starting fault localization...");
     for (CounterexampleInfo info : counterExamples) {
+      logger.log(Level.INFO, "Find explanations for fault #" + info.getUniqueId());
       runAlgorithm(info, faultAlgorithm);
     }
-
     logger.log(Level.INFO, "Stopping fault localization...");
+    totalTime.stop();
     return status;
   }
 
   private void runAlgorithm(
       CounterexampleInfo pInfo, FaultLocalizationAlgorithmInterface pAlgorithm)
       throws CPAException, InterruptedException {
-    // Run the algorithm and create a CFAPathWithAssumptions to the last reached state.
-    logger.log(Level.INFO, "Starting fault localization...");
 
+    // Run the algorithm and create a CFAPathWithAssumptions to the last reached state.
     CFAPathWithAssumptions assumptions = pInfo.getCFAPathWithAssignments();
     if (assumptions.size() == 0) {
       logger.log(Level.INFO, "The analysis returned no assumptions.");
@@ -165,8 +176,7 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
     }
 
     try {
-      // Conjunct all but the last assumption and ignore BlankEdges and DeclarationEdges because
-      // they evaluate to true
+      // Collect all edges that do not evaluate to true
       List<CFAEdge> edgeList = new ArrayList<>();
       for (CFAEdgeWithAssumptions assumption : assumptions) {
         if (!bmgr.isTrue(
@@ -189,11 +199,12 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
       }
 
       Set<Fault> errorIndicators = pAlgorithm.run(context, tf);
-      // FaultLocalizationInfo<Selector> info =
-      // FaultLocalizationInfo.withPredefinedHeuristics(result, RankingMode.OVERALL);
 
-      FaultRanking concat =
-          FaultRankingUtils.concatHeuristicsDefaultFinalScoring(
+      //Find correct ranking
+      FaultRanking ranking;
+      switch(algorithmType){
+        case "MAXSAT": {
+          ranking =  FaultRankingUtils.concatHeuristicsDefaultFinalScoring(
               new ForwardPreConditionRanking(tf, context),
               new EdgeTypeRanking(),
               new SetSizeRanking(),
@@ -201,13 +212,27 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
               new OverallOccurrenceRanking(),
               new MinimalLineDistanceRanking(edgeList.get(edgeList.size()-1)),
               new CallHierarchyRanking(edgeList, tf.getNegated().size()));
+          break;
+        }
+        case "ERRINV": {
+          ranking = FaultRankingUtils.concatHeuristicsDefaultFinalScoring(
+              new ForwardPreConditionRanking(tf, context),
+              new EdgeTypeRanking(),
+              new HintRanking(3),
+              new MinimalLineDistanceRanking(edgeList.get(edgeList.size()-1)),
+              new CallHierarchyRanking(edgeList, tf.getNegated().size()));
+          break;
+        }
+        default: {
+          ranking = FaultRankingUtils.concatHeuristicsDefaultFinalScoring(
+              new ForwardPreConditionRanking(tf, context),
+              new EdgeTypeRanking(),
+              new HintRanking(-1),
+              new CallHierarchyRanking(edgeList, tf.getNegated().size()));
+        }
+      }
 
-      List<Fault> ranked = concat.rank(errorIndicators);
-      ranked.forEach(FaultRankingUtils::assignScoreTo);
-      ranked.forEach(l -> l.forEach(FaultRankingUtils::assignScoreTo));
-      ranked.sort(Comparator.comparingDouble(Fault::getScore).reversed());
-
-      FaultLocalizationInfo info = new FaultLocalizationInfo(ranked, pInfo);
+      FaultLocalizationInfo info = new FaultLocalizationInfo(errorIndicators, ranking, pInfo);
       info.apply();
       logger.log(
           Level.INFO,
@@ -231,12 +256,24 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
 
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
-
+    statsCollection.add(this);
     if(algorithm instanceof Statistics){
       statsCollection.add((Statistics)algorithm);
     }
     if(faultAlgorithm instanceof Statistics){
       statsCollection.add((Statistics)faultAlgorithm);
     }
+  }
+
+  @Override
+  public void printStatistics(
+      PrintStream out, Result result, UnmodifiableReachedSet reached) {
+    StatisticsWriter w0  = StatisticsWriter.writingStatisticsTo(out);
+    w0.put("Total time", totalTime);
+  }
+
+  @Override
+  public @Nullable String getName() {
+    return "Fault Localization";
   }
 }

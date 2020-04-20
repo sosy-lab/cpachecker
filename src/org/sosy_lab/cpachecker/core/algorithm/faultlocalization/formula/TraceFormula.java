@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -74,6 +75,16 @@ public class TraceFormula {
     @Option(secure=true, name="filter",
         description="filter the alternative precondition by scopes")
     private String filter = "main";
+
+    //Usage: If a variable is contained in the post-condition it may be useful to ignore it in the pre-condition
+    @Option(secure=true, name="ignore",
+        description="do not add variables to alternative precondition (separate by commas)")
+    private String ignore = "";
+
+    //Usage: If a variable is contained in the post-condition it may be useful to ignore it in the pre-condition
+    @Option(secure=true, name="ban",
+        description="do not create selectors for this variables (separate by commas)")
+    private String ban = "";
 
     @Option(
         secure = true,
@@ -147,7 +158,7 @@ public class TraceFormula {
   }
 
   public int traceSize() {
-    return entries.atoms.size();
+    return entries.size();
   }
 
   //TODO prover precondition does not guarantee that corresponding edge is excluded in the report as possible resource.
@@ -221,6 +232,26 @@ public class TraceFormula {
         altPre.add(currentAtom, current.getSsa(), e);
       }
     }
+
+    // enable banned selectors
+    if (!options.ban.equals("")) {
+      List<String> banned = Splitter.on(",").splitToList(options.ban);
+      for (int i = 0; i < entries.size(); i++) {
+        String formulaString = entries.atoms.get(i).toString();
+        Selector selector = entries.selectors.get(i);
+        for (String s : banned) {
+          if (s.contains("::")) {
+            if (formulaString.contains(s)) {
+              selector.disable();
+            }
+          } else {
+            if (formulaString.contains("::" + s)) {
+              selector.disable();
+            }
+          }
+        }
+      }
+    }
   }
 
   private BooleanFormula calculatePreCondition(List<BooleanFormula> negate, AlternativePrecondition altPre) throws SolverException, InterruptedException {
@@ -265,8 +296,10 @@ public class TraceFormula {
         }
       }
       for (int i = 0; i < entries.size(); i++) {
-        if(entries.atoms.get(i).toString().contains(nondetString)){
-          entries.selectors.get(i).enable();
+        String formulaString = entries.atoms.get(i).toString();
+        Selector selector = entries.selectors.get(i);
+        if(formulaString.contains(nondetString)){
+          selector.enable();
         }
       }
     }
@@ -296,10 +329,16 @@ public class TraceFormula {
 
     private Map<Formula, Integer> variableToIndexMap;
     private List<BooleanFormula> preCondition;
+    private List<String> ignore;
 
     AlternativePrecondition(){
       variableToIndexMap = new HashMap<>();
       preCondition = new ArrayList<>();
+      if(options.ignore.equals("")){
+        ignore = ImmutableList.of();
+      } else {
+        ignore = Splitter.on(",").splitToList(options.ignore);
+      }
     }
 
     void add(BooleanFormula formula, SSAMap currentMap, CFAEdge edge){
@@ -327,6 +366,17 @@ public class TraceFormula {
     private boolean isAccepted(BooleanFormula formula, SSAMap currentMap, CFAEdge pEdge){
       if(!pEdge.getEdgeType().equals(CFAEdgeType.DeclarationEdge)){
         return false;
+      }
+      for (String s : ignore) {
+        if(s.contains("::")){
+          if(formula.toString().contains(s)) {
+            return false;
+          }
+        } else {
+          if(formula.toString().contains("::" + s)) {
+            return false;
+          }
+        }
       }
       Map<String, Formula> variables = context.getSolver().getFormulaManager().extractVariables(formula);
       //only accept declarations like int a = 2; and not int b = a + 2;
@@ -384,7 +434,7 @@ public class TraceFormula {
       if(size == 0 || i <= 0){
         return context.getManager().makeEmptyPathFormula().getSsa();
       }
-      if (i >= maps.size()){
+      if (i >= size){
         return maps.get(size-1);
       }
       return maps.get(i);

@@ -40,7 +40,7 @@ public class EdgeTypeRanking implements FaultRanking {
         FaultRankingUtils.rankedListFor(result, f -> f.stream().mapToDouble(fc -> getScore(fc.correspondingEdge().getEdgeType())).sum());
     double overallSum = results.getLikelihoodMap().values().stream().mapToDouble(Double::doubleValue).sum();
     for (Entry<Fault, Double> faultDoubleEntry : results.getLikelihoodMap().entrySet()) {
-      faultDoubleEntry.getKey().addReason(FaultReason.justify("Score calculated by edge type(s).", faultDoubleEntry.getValue()/overallSum));
+      faultDoubleEntry.getKey().addReason(FaultReason.justify("Score calculated by edge type(s).", overallSum==0?1d:faultDoubleEntry.getValue()/overallSum));
     }
     return results.getRankedList();
   }

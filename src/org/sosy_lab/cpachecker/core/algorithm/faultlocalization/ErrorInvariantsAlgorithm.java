@@ -52,7 +52,6 @@ import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultReason;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -75,7 +74,8 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
   //private boolean useImproved;
 
   private StatTimer totalTime = new StatTimer(StatKind.SUM, "Total time for ErrInv");
-  private StatCounter counter = new StatCounter("Search calls");
+  private StatCounter searchCalls = new StatCounter("Search calls");
+  private StatCounter solverCalls = new StatCounter("Solver calls");
 
   public ErrorInvariantsAlgorithm(
       ShutdownNotifier pShutdownNotifier,
@@ -108,6 +108,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
             shutdownNotifier,
             logger);
 
+    totalTime.start();
     List<BooleanFormula> allFormulas = new ArrayList<>();
 
     allFormulas.add(tf.getPreCondition());
@@ -115,7 +116,10 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     allFormulas.add(tf.getPostCondition());
     CounterexampleTraceInfo counterexampleTraceInfo =
         interpolationManager.buildCounterexampleTrace(new BlockFormulas(allFormulas));
-    List<BooleanFormula> interpolants = counterexampleTraceInfo.getInterpolants();
+    List<BooleanFormula> interpolants = new ArrayList<>(counterexampleTraceInfo.getInterpolants());
+    if(interpolants.size() > 0){
+      interpolants.remove(0);
+    }
 
     List<Interval> sortedIntervals = new ArrayList<>();
     for (int i = 0; i < interpolants.size(); i++) {
@@ -127,7 +131,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
               search(0, i, x -> !isErrInv(interpolant, x)),
               search(i, tf.traceSize(), x -> isErrInv(interpolant, x)) - 1,
               interpolant,
-              i == 0 ? tf.getAtom(0) : tf.getAtom(i - 1)));
+              tf.getAtom(i)));
     }
 
     sortedIntervals.sort(Comparator.comparingInt(i -> i.start));
@@ -153,7 +157,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     }
 
     /* All interpolants containing the post condition as interpolant must be removed.
-       The post condition cannot be a suitable explanation of why the error happend. */
+       The post condition cannot be a suitable explanation of why the error happened. */
 
     MultiMap<Selector, BooleanFormula> allInterpolants = new MultiMap<>();
     Set<Fault> indicators = new HashSet<>();
@@ -172,7 +176,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
       String description = selectorListEntry.getValue()
           .stream()
           //ExpressionConverter is not 100% reliable but better to read
-          .map(l -> l.toString())//ExpressionConverter.convert(l))
+          .map(l -> context.getSolver().getFormulaManager().uninstantiate(l).toString())//ExpressionConverter.convert(l))
           .distinct()
           .collect(Collectors.joining(","));
       if (!description.isEmpty()) {
@@ -181,13 +185,15 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
                 (double)selectorListEntry.getValue().size()/sumInterpolants));
       }
     }
-
+    totalTime.stop();
     return indicators;
   }
 
   private int search(int low, int high, Function<Integer, Boolean> incLow) {
-    counter.inc();
-    if (high < low) return low;
+    searchCalls.inc();
+    if (high < low) {
+      return low;
+    }
     int mid = (low + high) / 2;
     if (incLow.apply(mid)) {
       return search(mid + 1, high, incLow);
@@ -226,7 +232,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
       PrintStream out, Result result, UnmodifiableReachedSet reached) {
     StatisticsWriter w0 = StatisticsWriter.writingStatisticsTo(out);
     w0.put("Total time", totalTime)
-        .put("Search calls", counter);
+        .put("Search calls", searchCalls);
   }
 
   @Override
