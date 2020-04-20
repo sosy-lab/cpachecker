@@ -227,7 +227,7 @@ class EclipseJavaParser implements JavaParser {
     Optional<Path> mainClassFile = searchForClassFile(mainFunctionName);
     while (mainClassFile.isEmpty() && !mainFunctionName.isEmpty()) {
       if (mainFunctionName.contains(".")) {
-        mainFunctionName = removeEverythingAfterLastOccurrenceOf(".", mainFunctionName);
+        mainFunctionName = removeFromStringEverythingAfterLastOccurrenceOf(mainFunctionName, ".");
         mainClassFile = searchForClassFile(mainFunctionName);
       } else {
         break;
@@ -237,8 +237,8 @@ class EclipseJavaParser implements JavaParser {
     return mainFunctionName;
   }
 
-  private static String removeEverythingAfterLastOccurrenceOf(
-      final String separator, String string) {
+  private static String removeFromStringEverythingAfterLastOccurrenceOf(
+      String string, final String separator) {
     int indexOfLastString = string.lastIndexOf(separator);
     if (indexOfLastString >= 0) {
       return string.substring(0, indexOfLastString);
