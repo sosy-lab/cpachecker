@@ -44,7 +44,6 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
@@ -1350,7 +1349,6 @@ class ASTConverter {
         JClassType.createUnresolvableType());
   }
 
-  @Nonnull
   private VisibilityModifier getVisibilityModifierForConstructor(Constructor<?> pConstructor) {
     VisibilityModifier visibilityModifier;
     int i = pConstructor.toGenericString().indexOf(' ');
