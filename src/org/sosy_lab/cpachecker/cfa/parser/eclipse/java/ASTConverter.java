@@ -32,6 +32,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import java.lang.reflect.Constructor;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
@@ -40,6 +41,10 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
@@ -63,6 +68,7 @@ import org.eclipse.jdt.core.dom.IExtendedModifier;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.IVariableBinding;
+import org.eclipse.jdt.core.dom.ImportDeclaration;
 import org.eclipse.jdt.core.dom.InfixExpression;
 import org.eclipse.jdt.core.dom.InstanceofExpression;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
@@ -1282,18 +1288,146 @@ class ASTConverter {
           mb.getVisibility(),
           mb.isStrictFp(),
           getDeclaringClassType(constructorBinding));
+    }
 
+    logger.logf(
+        Level.INFO, "Class" + fullName + " outside of given scope, trying to resolve by imports");
+
+    // Find CompilationUnit of class calling the constructor
+    ASTNode parent = pCIC.getParent();
+    while (!(parent instanceof CompilationUnit)) {
+      parent = parent.getParent();
+    }
+    // Make set of importDeclarations
+    Set<ImportDeclaration> importDeclarations =
+        ((List<?>) ((CompilationUnit) parent).imports())
+            .stream()
+                .filter(v -> v instanceof ImportDeclaration)
+                .map(ImportDeclaration.class::cast)
+                .collect(Collectors.toSet());
+
+    // Check for import declaration matching our Class Instance Creation
+    ImportDeclaration matchingImportDeclaration =
+        getMatchingImportDeclaration(pCIC, importDeclarations);
+
+    Constructor<?> constructor;
+    // Try finding constructor in java.lang
+    if (matchingImportDeclaration == null) {
+      constructor = matchConstructor("java.lang." + pCIC.getType().toString(), pCIC.arguments());
     } else {
+      constructor =
+          matchConstructor(
+              matchingImportDeclaration.getName().getFullyQualifiedName(), pCIC.arguments());
+    }
+
+    if (constructor != null) {
+      JClassOrInterfaceType declaringClass = scope.getCurrentClassType();
+      VisibilityModifier visibilityModifier = getVisibilityModifierForConstructor(constructor);
+      JConstructorType constructorType =
+          new JConstructorType(
+              declaringClass,
+              getJTypesOfParameters(pCIC.arguments()),
+              constructor.toGenericString().contains("..."));
       return new JConstructorDeclaration(
           getFileLocation(pCIC),
-          JConstructorType.createUnresolvableConstructorType(),
+          constructorType,
           fullName,
           simpleName,
-          ImmutableList.of(),
-          VisibilityModifier.NONE,
+          getJTypesOfParameters(pCIC.arguments()),
+          visibilityModifier,
           false,
-          JClassType.createUnresolvableType());
+          declaringClass);
     }
+
+    // If nothing found
+    return new JConstructorDeclaration(
+        getFileLocation(pCIC),
+        JConstructorType.createUnresolvableConstructorType(),
+        fullName,
+        simpleName,
+        ImmutableList.of(),
+        VisibilityModifier.NONE,
+        false,
+        JClassType.createUnresolvableType());
+  }
+
+  @Nonnull
+  private VisibilityModifier getVisibilityModifierForConstructor(Constructor<?> pConstructor) {
+    VisibilityModifier visibilityModifier;
+    int i = pConstructor.toGenericString().indexOf(' ');
+    String visibilityModifierString = pConstructor.toGenericString().substring(0, i);
+
+    try {
+      visibilityModifier = VisibilityModifier.valueOf(visibilityModifierString.toUpperCase());
+    } catch (IllegalArgumentException ignored) {
+      visibilityModifier = VisibilityModifier.NONE;
+    }
+    return visibilityModifier;
+  }
+
+  private ImportDeclaration getMatchingImportDeclaration(
+      ClassInstanceCreation pCIC, Set<ImportDeclaration> pImportDeclarations) {
+    for (ImportDeclaration importDeclaration : pImportDeclarations) {
+      // case non wild card import declaration
+      Pattern pattern = Pattern.compile("\\.[A-Z].*;$");
+      Matcher matcher = pattern.matcher(importDeclaration.toString());
+      String importedClass = "";
+      while (matcher.find()) {
+        importedClass =
+            importDeclaration
+                .toString()
+                .substring(matcher.start(), matcher.end())
+                .replace(".", "")
+                .replace(";", "");
+      }
+      if (importedClass.equals(pCIC.getType().toString())) {
+        return importDeclaration;
+      }
+    }
+    return null;
+  }
+
+  private Constructor<?> matchConstructor(String className, List<SimpleName> arguments) {
+    Class<?> cls;
+    try {
+      cls = Class.forName(className);
+    } catch (ClassNotFoundException pE) {
+      return null;
+    }
+    if (arguments.size() == 0) {
+      try {
+        return cls.getDeclaredConstructor();
+        // TODO Think about what to do here
+      } catch (NoSuchMethodException pE) {
+        return null;
+      }
+    } else {
+      String parameterString = getParametersAsString(arguments);
+      String constructorMethod = className + "(" + parameterString + ")";
+      for (Constructor<?> constructor : cls.getDeclaredConstructors()) {
+        if (constructor.toString().endsWith(constructorMethod)) {
+          return constructor;
+        }
+      }
+    }
+    return null;
+  }
+
+  private String getParametersAsString(List<SimpleName> arguments) {
+    List<String> argumentsAsStringList = new ArrayList<>(arguments.size());
+    for (SimpleName argument : arguments) {
+      JSimpleDeclaration simpleDeclaration = scope.lookupVariable(argument.toString());
+      argumentsAsStringList.add(simpleDeclaration.getType().toString().replace(" ", ""));
+    }
+    return String.join(",", argumentsAsStringList);
+  }
+
+  private List<JType> getJTypesOfParameters(List<SimpleName> arguments) {
+    List<JType> parameterList = new ArrayList<>();
+    for (SimpleName argument : arguments) {
+      parameterList.add(scope.lookupVariable(argument.toString()).getType());
+    }
+    return parameterList;
   }
 
   private JConstructorDeclaration getConstructorOfAnonymousClass(
