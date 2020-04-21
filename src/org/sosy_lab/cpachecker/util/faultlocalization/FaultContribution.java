@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.faultlocalization;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /**
@@ -137,6 +138,11 @@ public class FaultContribution {
 
   @Override
   public int hashCode() {
-    return correspondingEdge.hashCode();
+    int result = 5;
+    for(FaultReason reason: reasons){
+      result = Objects.hash(reason, result);
+    }
+    result = Objects.hash(correspondingEdge, result);
+    return result;
   }
 }
