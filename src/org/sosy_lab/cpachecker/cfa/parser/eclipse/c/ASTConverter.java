@@ -1712,6 +1712,22 @@ class ASTConverter {
         throw parseContext.parseError("Declaration without name", d);
       }
 
+      // Verify that length in contained in declarator of array
+      if (type instanceof CArrayType) {
+        CArrayType temp = (CArrayType) type;
+
+        if (temp.getLength() == null) {
+          throw parseContext.parseError("Missing length in declarator", d);
+        }
+        // for multi-dimensional arrays
+        while (temp.getType() instanceof CArrayType) {
+          if (temp.getLength() == null) {
+            throw parseContext.parseError("Missing length in declarator", d);
+          }
+          temp = (CArrayType) temp.getType();
+        }
+      }
+
       // first handle all special cases
 
       if (cStorageClass == CStorageClass.TYPEDEF) {
