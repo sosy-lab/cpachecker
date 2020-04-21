@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.ForwardingSet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -114,7 +114,7 @@ public class Fault extends ForwardingSet<FaultContribution> {
   @Override
   public String toString(){
     List<FaultReason> copy = new ArrayList<>(reasons);
-    sortReasonByReasonTypeThenByLikelihood(copy);
+    sortReasonsByReasonTypeThenByLikelihood(copy);
     int numberReasons = copy.stream().filter(l -> !l.isHint()).mapToInt(l -> 1).sum();
 
     String header = "Error suspected on line(s): " + listDistinctLinesAndJoin();
@@ -134,11 +134,11 @@ public class Fault extends ForwardingSet<FaultContribution> {
     return header + "\n" + amountReasons + reasonString;
   }
 
-  private void sortReasonByReasonTypeThenByLikelihood(List<FaultReason> reasons){
+  private void sortReasonsByReasonTypeThenByLikelihood(List<FaultReason> pReasons){
     Comparator<FaultReason> sortReasons =
         Comparator.comparingInt(l -> l.isHint() ? 0 : 1);
     sortReasons = sortReasons.thenComparingDouble(b -> 1d/b.getLikelihood());
-    reasons.sort(sortReasons);
+    pReasons.sort(sortReasons);
   }
 
   private String listDistinctLinesAndJoin(){
@@ -183,7 +183,7 @@ public class Fault extends ForwardingSet<FaultContribution> {
   public int hashCode(){
     int result = 4;
     for(FaultContribution contribution: this){
-      result = Objects.hashCode(contribution, result);
+      result = Objects.hash(contribution, result);
     }
     return result;
   }

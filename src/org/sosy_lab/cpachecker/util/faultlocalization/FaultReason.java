@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
+import java.util.Objects;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.NoContextExplanation;
 
 /**
@@ -124,13 +125,14 @@ public class FaultReason {
   @Override
   public boolean equals(Object q){
     if(q instanceof FaultReason){
-      return ((FaultReason)q).description.equals(description);
+      FaultReason r = (FaultReason)q;
+      return r.description.equals(description) && r.reasonType.equals(reasonType) && likelihood == r.likelihood;
     }
     return false;
   }
 
   @Override
   public int hashCode(){
-    return 17 * description.hashCode();
+    return Objects.hash(31, reasonType, description, likelihood);
   }
 }

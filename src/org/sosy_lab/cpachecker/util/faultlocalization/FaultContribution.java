@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
-import com.google.common.base.Objects;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 /**
@@ -140,9 +140,9 @@ public class FaultContribution {
   public int hashCode() {
     int result = 5;
     for(FaultReason reason: reasons){
-      result = Objects.hashCode(reason, result);
+      result = Objects.hash(reason, result);
     }
-    result = Objects.hashCode(correspondingEdge, result);
+    result = Objects.hash(correspondingEdge, result);
     return result;
   }
 }
