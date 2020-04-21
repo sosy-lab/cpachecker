@@ -2233,9 +2233,9 @@ class ASTConverter {
       if (!(x instanceof CIntegerLiteralExpression)) {
         if ((computeLengthOfArray(x, arrayType) instanceof CIntegerLiteralExpression)) {
           CIntegerLiteralExpression lengthNested =
-              (CIntegerLiteralExpression) (computeLengthOfArray(x, arrayType));
+              (CIntegerLiteralExpression) computeLengthOfArray(x, arrayType);
           // nested array with highest number of elements is actual length of dimension
-          if (realLength.getValue().compareTo(lengthNested.getValue()) == -1) {
+          if (realLength.getValue().compareTo(lengthNested.getValue()) < 0) {
             if (arrayType.getLength() != null) {
               compareArrayLengths(arrayType.getLength(), lengthNested, initClause);
               arrPlusLength.put(arrayType, arrayType.getLength());
@@ -2260,7 +2260,7 @@ class ASTConverter {
         && lengthComputed instanceof CIntegerLiteralExpression) {
       BigInteger lengthDecl = ((CIntegerLiteralExpression) lengthDeclarator).getValue();
       BigInteger lengthComp = ((CIntegerLiteralExpression) lengthComputed).getValue();
-      if (lengthDecl.compareTo(lengthComp) == -1) {
+      if (lengthDecl.compareTo(lengthComp) < 0) {
         throw parseContext.parseError(
             "Array contains more elements: "
                 + lengthComp.intValue()
