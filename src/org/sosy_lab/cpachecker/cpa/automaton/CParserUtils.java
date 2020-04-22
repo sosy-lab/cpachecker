@@ -516,7 +516,8 @@ class CParserUtils {
                     replaceCPAcheckerTMPVariables(assumeEdge.getExpression(), tmpVariableValues);
               }
               final ExpressionTree<AExpression> newPath;
-              if (!expression.toString().contains(CPACHECKER_TMP_PREFIX)) {
+              if (assumeEdge.getTruthAssumption()
+                  && !expression.toString().contains(CPACHECKER_TMP_PREFIX)) {
                 newPath =
                     factory.and(
                         currentTree, factory.leaf(expression, assumeEdge.getTruthAssumption()));
@@ -527,9 +528,13 @@ class CParserUtils {
             }
           } else {
             final ExpressionTree<AExpression> newPath;
+            if (assumeEdge.getTruthAssumption()) {
               newPath =
                   factory.and(
                       currentTree, factory.leaf(expression, assumeEdge.getTruthAssumption()));
+            } else {
+              newPath = currentTree;
+            }
             succTree = factory.or(succTree, newPath);
           }
           // All other edges do not change the path
