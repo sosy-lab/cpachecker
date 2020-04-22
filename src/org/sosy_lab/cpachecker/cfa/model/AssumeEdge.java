@@ -139,4 +139,18 @@ public class AssumeEdge extends AbstractCFAEdge {
   public boolean isArtificialIntermediate() {
     return artificialIntermediate;
   }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode() + 19 * expression.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object pOther) {
+    if((pOther instanceof AssumeEdge) && super.equals(pOther)) {
+        AssumeEdge otherEdge = (AssumeEdge) pOther;
+        return expression.equals(otherEdge.getExpression());
+    }
+    return false;
+  }
 }
