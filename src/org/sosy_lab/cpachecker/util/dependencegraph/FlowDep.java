@@ -37,7 +37,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
-import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -82,36 +81,16 @@ final class FlowDep {
 
     for (MemoryLocation variable : pBuilder.getVariables()) {
 
-      Queue<CFANode> waitlist = new ArrayDeque<>();
-      Set<CFANode> seen = new TreeSet<>();
+      Set<CFANode> defNodes = new HashSet<>();
 
       for (CFAEdge defEdge : pBuilder.getDefEdges(variable)) {
         if (!(defEdge instanceof FunctionCallEdge)) {
-          waitlist.add(defEdge.getPredecessor());
+          defNodes.add(defEdge.getPredecessor());
         }
       }
 
-      seen.addAll(waitlist);
-
-      while (!waitlist.isEmpty()) {
-
-        Set<CFANode> frontier = pFrontiers.getFrontier(waitlist.remove());
-
-        if (frontier == null) {
-          frontier = pFrontiers.getFrontier(pEntryNode);
-        }
-
-        for (CFANode node : frontier) {
-          if (!pBuilder.containsCombineDef(node, variable)) {
-
-            pBuilder.insertCombineDef(node, variable);
-
-            if (!seen.contains(node)) {
-              waitlist.add(node);
-              seen.add(node);
-            }
-          }
-        }
+      for (CFANode node : pFrontiers.getIteratedFrontier(defNodes)) {
+        pBuilder.insertCombineDef(node, variable);
       }
     }
   }
@@ -354,11 +333,6 @@ final class FlowDep {
       }
 
       return null;
-    }
-
-    private boolean containsCombineDef(CFANode pNode, MemoryLocation pVariable) {
-
-      return getCombineDef(pNode, pVariable) != null;
     }
 
     private void insertCombineDef(CFANode pNode, MemoryLocation pVariable) {
