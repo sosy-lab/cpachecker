@@ -40,7 +40,7 @@ public class TarantulaRanking {
   private final FailedCase failedCase;
 
   public TarantulaRanking(ReachedSet pPReachedSet) {
-    safeCase = new SafeCase(pPReachedSet, TarantulaUtils.getRootState(pPReachedSet));
+    safeCase = new SafeCase(pPReachedSet);
     failedCase = new FailedCase(pPReachedSet);
   }
 
@@ -59,13 +59,11 @@ public class TarantulaRanking {
    * @return how many passed cases are found.
    */
   private int totalPassed() {
-    Set<List<CFAEdge>> allPaths =
-        getAllPossiblePaths(safeCase.getEdgesOfSafePaths(), failedCase.getFailedPaths());
-
-    return allPaths.size() - totalFailed();
+    int total = Sets.union(safeCase.getEdgesOfSafePaths(), failedCase.getFailedPaths()).size();
+    return total - totalFailed();
   }
   /**
-   * Calculates computeSuspicious of tarantula algorithm.
+   * Calculates suspicious of tarantula algorithm.
    *
    * @param pFailed Is the number of pFailed cases in each edge.
    * @param pPassed Is the number of pPassed cases in each edge.
@@ -73,10 +71,6 @@ public class TarantulaRanking {
    */
   private double computeSuspicious(double pFailed, double pPassed) {
     double numerator = pFailed / totalFailed();
-    // In case there is no safe paths in the input program, then return 0.0.
-    if (totalPassed() == 0) {
-      return 0.0;
-    }
     double denominator = (pPassed / totalPassed()) + (pFailed / totalFailed());
     if (denominator == 0.0) {
       return 0.0;
@@ -88,7 +82,7 @@ public class TarantulaRanking {
    * line 5: N2 -{[cond == 0]},[2,1]</code> means that this specific Edges has `2` failed cases and
    * only one passed case.
    *
-   * @param path The whole path contains all error paths and passed paths.
+   * @param  path The whole path contains all error paths and passed paths.
    * @return result as <code>Map<code/>.
    */
   private Map<CFAEdge, TarantulaCasesStatus> coverageInformation(Set<List<CFAEdge>> path) {
@@ -130,19 +124,7 @@ public class TarantulaRanking {
   public Map<CFAEdge, TarantulaCasesStatus> getTable(
       Set<List<CFAEdge>> safePaths, Set<List<CFAEdge>> errorPaths) {
 
-    return coverageInformation(mergeInto2dArray(safePaths, errorPaths));
-  }
-
-  public Set<List<CFAEdge>> getAllPossiblePaths(
-      Set<List<CFAEdge>> safePaths, Set<List<CFAEdge>> errorPaths) {
-
-    return mergeInto2dArray(safePaths, errorPaths);
-  }
-
-  private Set<List<CFAEdge>> mergeInto2dArray(
-      Set<List<CFAEdge>> safePaths, Set<List<CFAEdge>> errorPaths) {
-
-    return Sets.union(safePaths, errorPaths);
+    return coverageInformation(Sets.union(safePaths, errorPaths));
   }
 
   public Map<CFAEdge, Double> getRanked() {

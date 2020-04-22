@@ -28,6 +28,7 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.FailedCase;
+import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.SafeCase;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -43,13 +44,18 @@ public class TarantulaAlgorithm implements Algorithm {
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     AlgorithmStatus result = analysis.run(reachedSet);
-    FailedCase errorPaths = new FailedCase(reachedSet);
+    FailedCase errorCase = new FailedCase(reachedSet);
+    SafeCase safeCase = new SafeCase(reachedSet);
+    if (errorCase.existsErrorPath()) {
+      if (!safeCase.existsSafePath()) {
 
-    if (errorPaths.existsErrorPath()) {
-      logger.log(Level.INFO, "No bugs found.");
-    } else {
-      logger.log(Level.INFO, "Starting tarantula algorithm...");
+        logger.log(
+            Level.WARNING, "There is no safe Path, the algorithm is therefore not efficient");
+      }
+      logger.log(Level.INFO, "Start tarantula algorithm ... ");
       printResult(System.out, reachedSet);
+    } else {
+      logger.log(Level.INFO, "No bugs found.");
     }
 
     return result;
