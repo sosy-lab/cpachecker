@@ -46,7 +46,6 @@ public class SafeCase {
   /**
    * Gets safe states (safe leaves) from ARG.
    *
-   * @param pRoot root at ARG.
    * @return Detected safe states.
    */
   private List<ARGState> getSafeStates() {
@@ -110,9 +109,8 @@ public class SafeCase {
 
     List<ARGState> mergedAllSafeStates = new ArrayList<>(safeStates);
 
-    List<ARGState> getSafeStatesOfLoop = safeLoopStates;
-    if (getSafeStatesOfLoop != null) {
-      mergedAllSafeStates.addAll(getSafeStatesOfLoop);
+    if (safeLoopStates != null) {
+      mergedAllSafeStates.addAll(safeLoopStates);
     }
     return mergedAllSafeStates;
   }

@@ -73,7 +73,10 @@ public class TarantulaRanking {
    */
   private double computeSuspicious(double pFailed, double pPassed) {
     double numerator = pFailed / totalFailed();
-
+    // In case there is no safe paths in the input program, then return 0.0.
+    if (totalPassed() == 0) {
+      return 0.0;
+    }
     double denominator = (pPassed / totalPassed()) + (pFailed / totalFailed());
     if (denominator == 0.0) {
       return 0.0;
@@ -125,15 +128,15 @@ public class TarantulaRanking {
    * @return Covered edges.
    */
   public Map<CFAEdge, TarantulaCasesStatus> getTable(
-      Set<List<CFAEdge>> EdgesOfSafePaths, Set<List<CFAEdge>> counterExamplePaths) {
+      Set<List<CFAEdge>> EdgesOfSafePaths, Set<List<CFAEdge>> errorPaths) {
 
-    return coverageInformation(mergeInto2dArray(EdgesOfSafePaths, counterExamplePaths));
+    return coverageInformation(mergeInto2dArray(EdgesOfSafePaths, errorPaths));
   }
 
   public Set<List<CFAEdge>> getAllPossiblePaths(
-      Set<List<CFAEdge>> EdgesOfSafePaths, Set<List<CFAEdge>> counterExamplePaths) {
+      Set<List<CFAEdge>> EdgesOfSafePaths, Set<List<CFAEdge>> errorPaths) {
 
-    return mergeInto2dArray(EdgesOfSafePaths, counterExamplePaths);
+    return mergeInto2dArray(EdgesOfSafePaths, errorPaths);
   }
 
   private Set<List<CFAEdge>> mergeInto2dArray(
