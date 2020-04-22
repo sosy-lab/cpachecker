@@ -1713,7 +1713,7 @@ class ASTConverter {
       }
 
       // Verify that length in contained in declarator of array
-      if (type instanceof CArrayType) {
+      if (type instanceof CArrayType && cStorageClass != CStorageClass.EXTERN) {
         CArrayType temp = (CArrayType) type;
 
         if (temp.getLength() == null) {
