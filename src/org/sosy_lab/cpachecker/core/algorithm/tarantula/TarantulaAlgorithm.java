@@ -24,14 +24,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.tarantula;
 
 import java.io.PrintStream;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.TarantulaCasesStatus;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -48,15 +42,7 @@ public class TarantulaAlgorithm implements Algorithm {
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     AlgorithmStatus result = analysis.run(reachedSet);
 
-    if (TarantulaUtils.existsErrorPath(reachedSet)) {
-      if (!TarantulaUtils.existsSafePath(reachedSet)) {
-
-        logger.log(
-            Level.WARNING, "There is no safe Path, the algorithm is therefore not efficient");
-      }
-      logger.log(Level.INFO, "Start tarantula algorithm ... ");
-      printResult(System.out, reachedSet);
-    }
+    printResult(System.out, reachedSet);
 
     return result;
   }
@@ -66,32 +52,8 @@ public class TarantulaAlgorithm implements Algorithm {
    * store the result into <code>Map</code>.
    */
   public void printResult(PrintStream out, ReachedSet reachedSet) {
-    Map<CFAEdge, TarantulaCasesStatus> table = TarantulaUtils.getTable(reachedSet);
-    Map<CFAEdge, Double> resultMap = new LinkedHashMap<>();
-    TarantulaRanking ranking = new TarantulaRanking();
 
-    table.forEach(
-        (key, value) ->
-            resultMap.put(
-                key,
-                ranking.computeSuspicious(
-                    value.getFailedCases(), value.getPassedCases(), reachedSet)));
-
-    // Sort the result by its value and ignore the suspicious with 0.0 ration.
-    final Map<CFAEdge, Double> sortedByCount =
-        resultMap.entrySet().stream()
-            .filter(e -> e.getValue() != 0)
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-    sortByValue(sortedByCount).forEach((k, v) -> out.println(k + "--->" + v));
-  }
-
-  private static Map<CFAEdge, Double> sortByValue(final Map<CFAEdge, Double> wordCounts) {
-
-    return wordCounts.entrySet().stream()
-        .sorted(Map.Entry.<CFAEdge, Double>comparingByValue().reversed())
-        .collect(
-            Collectors.toMap(
-                Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
+    TarantulaRanking ranking = new TarantulaRanking(reachedSet);
+    ranking.getRanked().forEach((k, v) -> out.println(k + "--->" + v));
   }
 }

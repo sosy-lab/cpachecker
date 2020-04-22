@@ -25,8 +25,8 @@ package org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure;
 
 public class TarantulaCasesStatus {
 
-  private int failedCases;
-  private int passedCases;
+  private final int failedCases;
+  private final int passedCases;
 
   public TarantulaCasesStatus(int pFailedCases, int pPassedCases) {
 
