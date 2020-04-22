@@ -23,14 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tarantula;
 
-import com.google.common.collect.FluentIterable;
 import java.io.PrintStream;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.FailedCase;
-import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
-import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -46,19 +43,15 @@ public class TarantulaAlgorithm implements Algorithm {
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     AlgorithmStatus result = analysis.run(reachedSet);
-    FluentIterable<CounterexampleInfo> counterExamples =
-        new FailedCase(reachedSet).getCounterExamples();
+    FailedCase errorPaths = new FailedCase(reachedSet);
 
-    for (CounterexampleInfo info : counterExamples) {
-
-      CFAPathWithAssumptions assumptions = info.getCFAPathWithAssignments();
-      if (assumptions.size() == 0) {
-        logger.log(Level.INFO, "No bugs found.");
-      } else {
-        logger.log(Level.INFO, "Starting tarantula algorithm...");
-        printResult(System.out, reachedSet);
-      }
+    if (errorPaths.existsErrorPath()) {
+      logger.log(Level.INFO, "No bugs found.");
+    } else {
+      logger.log(Level.INFO, "Starting tarantula algorithm...");
+      printResult(System.out, reachedSet);
     }
+
     return result;
   }
 

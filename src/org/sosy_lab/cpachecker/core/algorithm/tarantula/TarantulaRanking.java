@@ -51,7 +51,7 @@ public class TarantulaRanking {
    */
   private int totalFailed() {
 
-    return failedCase.getCounterExamples().size();
+    return failedCase.totalFailed();
   }
   /**
    * Calculates how many total passed cases are in ARG.
@@ -128,15 +128,15 @@ public class TarantulaRanking {
    * @return Covered edges.
    */
   public Map<CFAEdge, TarantulaCasesStatus> getTable(
-      Set<List<CFAEdge>> EdgesOfSafePaths, Set<List<CFAEdge>> errorPaths) {
+      Set<List<CFAEdge>> safePaths, Set<List<CFAEdge>> errorPaths) {
 
-    return coverageInformation(mergeInto2dArray(EdgesOfSafePaths, errorPaths));
+    return coverageInformation(mergeInto2dArray(safePaths, errorPaths));
   }
 
   public Set<List<CFAEdge>> getAllPossiblePaths(
-      Set<List<CFAEdge>> EdgesOfSafePaths, Set<List<CFAEdge>> errorPaths) {
+      Set<List<CFAEdge>> safePaths, Set<List<CFAEdge>> errorPaths) {
 
-    return mergeInto2dArray(EdgesOfSafePaths, errorPaths);
+    return mergeInto2dArray(safePaths, errorPaths);
   }
 
   private Set<List<CFAEdge>> mergeInto2dArray(

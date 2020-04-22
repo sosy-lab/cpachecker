@@ -106,7 +106,7 @@ public class FailedCase {
    *
    * @return how many failed cases are found.
    */
-  private int totalFailed() {
+  public int totalFailed() {
 
     return getCounterExamples().size();
   }
