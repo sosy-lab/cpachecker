@@ -569,6 +569,52 @@ final class Dominance {
       return id != null ? getFrontier(id) : null;
     }
 
+    /**
+     * Returns the iterated dominance frontier for the specified set of nodes.
+     *
+     * @param pNodes the nodes to get the iterated dominance frontier for.
+     * @return an unmodifiable set consisting of all nodes in the iterated dominance frontier.
+     * @throws IllegalArgumentException if {@code pNodes} contains a node that has no dominance
+     *     frontier (see {@link #getFrontier(Object) getFrontier}).
+     * @throws NullPointerException if {@code pNodes} is {@code null}.
+     */
+    public Set<T> getIteratedFrontier(Set<T> pNodes) {
+
+      Objects.requireNonNull(pNodes, "pNodes must not be null");
+
+      Set<T> frontier = new HashSet<>();
+      Set<Integer> seen = new HashSet<>(); // a node is in seen if it is or has been in the waitlist
+      Deque<Integer> waitlist = new ArrayDeque<>();
+
+      for (T node : pNodes) {
+
+        Integer id = ids.get(node);
+
+        if (id == null) {
+          throw new IllegalArgumentException(
+              "pNodes contains node that has no dominance frontier: " + node);
+        }
+
+        waitlist.add(id);
+        seen.add(id);
+      }
+
+      while (!waitlist.isEmpty()) {
+
+        int removed = waitlist.remove();
+
+        for (int id : frontiers[removed].set) {
+          if (frontier.add(nodes[id])) {
+            if (seen.add(id)) { // if not previously seen -> add to waitlist
+              waitlist.add(id);
+            }
+          }
+        }
+      }
+
+      return Collections.unmodifiableSet(frontier);
+    }
+
     @Override
     public String toString() {
       return Arrays.toString(frontiers);
