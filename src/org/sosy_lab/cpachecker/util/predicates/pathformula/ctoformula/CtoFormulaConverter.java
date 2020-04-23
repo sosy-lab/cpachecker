@@ -525,6 +525,17 @@ public class CtoFormulaConverter {
   }
 
   /**
+   * Only needed for safe dereferencing, where a simplified formula type is unwanted This method
+   * does not handle scoping and the NON_DET_VARIABLE!
+   *
+   * This method does not update the index of the variable.
+   */
+  protected Formula makeVariableForSafeDereference(String name, CType type, SSAMapBuilder ssa) {
+    int useIndex = getIndex(name, type, ssa);
+    return fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, useIndex);
+  }
+
+  /**
    * Takes a variable name and its type and create the corresponding formula out of it, without
    * adding SSA indices.
    *
@@ -592,6 +603,15 @@ public class CtoFormulaConverter {
   protected Formula makeNondet(
       final String name, final CType type, final SSAMapBuilder ssa, final Constraints constraints) {
     Formula newVariable = makeFreshVariable(name, type, ssa);
+    if (options.addRangeConstraintsForNondet()) {
+      addRangeConstraint(newVariable, type, constraints);
+    }
+    return newVariable;
+  }
+
+  protected IntegerFormula
+      makeIntBoolToIntNondet(int index, final CType type, final Constraints constraints) {
+    IntegerFormula newVariable = ifmgr.makeVariable(INT_BOOL_TO_INT, index);
     if (options.addRangeConstraintsForNondet()) {
       addRangeConstraint(newVariable, type, constraints);
     }
@@ -789,7 +809,7 @@ public class CtoFormulaConverter {
   private Formula
       intBoolToInt(BooleanFormula formula, CType type, SSAMapBuilder ssa, Constraints constraints) {
     int index = this.makeFreshIndex(INT_BOOL_TO_INT, type, ssa);
-    IntegerFormula placeh = ifmgr.makeVariable(INT_BOOL_TO_INT, index);
+    IntegerFormula placeh = makeIntBoolToIntNondet(index, type, constraints);
     IntegerFormula zero = ifmgr.makeNumber(0);
     BooleanFormula rhs = bfmgr.not(ifmgr.equal(placeh, zero));
     BooleanFormula constraint = bfmgr.equivalence(formula, rhs);

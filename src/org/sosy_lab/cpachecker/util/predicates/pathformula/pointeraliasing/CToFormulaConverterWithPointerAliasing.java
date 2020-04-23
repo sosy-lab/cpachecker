@@ -365,19 +365,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     return ptsMgr.makePointerDereference(ufName, returnType, index, address);
   }
 
-  Formula makeSafeDereferenceWithVarClass(
-      CType type,
-      String name,
-      final Formula address,
-      final SSAMapBuilder ssa,
-      final MemoryRegion region) {
-    checkIsSimplified(type);
-    final String ufName = regionMgr.getPointerAccessName(region);
-    final int index = getIndex(ufName, type, ssa);
-    final FormulaType<?> returnType = getFormulaType(type, name);
-    return ptsMgr.makePointerDereference(ufName, returnType, index, address);
-  }
-
   Formula makeFormulaForTarget(final PointerTarget target) {
     return fmgr.makePlus(
         fmgr.makeVariableWithoutSSAIndex(voidPointerFormulaType, target.getBaseName()),
@@ -529,10 +516,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         if (newRegion == null) {
           newRegion = regionMgr.makeMemoryRegion(baseType);
         }
+
         constraints.addConstraint(
             fmgr.makeEqual(
-                makeSafeDereferenceWithVarClass(baseType, baseName, address, ssa, newRegion),
-                makeVariable(baseName, baseType, ssa)));
+                makeSafeDereference(baseType, address, ssa, newRegion),
+                makeVariableForSafeDereference(baseName, baseType, ssa)));
       }
     }
   }
@@ -1245,6 +1233,14 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    */
   @Override
   protected Formula makeVariable(String pName, CType pType, SSAMapBuilder pSsa) {
+    return super.makeVariable(pName, pType, pSsa);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  protected Formula makeVariableForSafeDereference(String pName, CType pType, SSAMapBuilder pSsa) {
     return super.makeVariable(pName, pType, pSsa);
   }
 
