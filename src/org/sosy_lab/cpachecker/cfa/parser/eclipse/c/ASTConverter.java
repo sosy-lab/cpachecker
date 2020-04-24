@@ -2114,12 +2114,14 @@ class ASTConverter {
           // Caculates the length of an array of the form
           // struct { int a[3], b; } w[] = { { 1 }, 2 };
           if (arrayType.getType() instanceof CElaboratedType) {
+            if (((CElaboratedType) arrayType.getType()).getKind().name() == "STRUCT") {
             CExpression lengthExp = computeLengthArrayOfStructs(initClause);
 
             CElaboratedType nestedType = (CElaboratedType) arrayType.getType();
 
             type =
                 new CArrayType(arrayType.isConst(), arrayType.isVolatile(), nestedType, lengthExp);
+          }
           }
         }
       }
