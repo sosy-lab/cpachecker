@@ -1243,7 +1243,10 @@ class ASTConverter {
           new JIdExpression(idExpression.getFileLocation(), idExpression.getExpressionType(), name, declaration);
     }*/
 
-    assert declaration.getParameters().size() == params.size();
+    if (declaration.getParameters().size() != params.size()) {
+      throw new AssertionError(
+          "Error in converting ClassInstanceCreation to JClassInstanceCreation. Amount of parameters does not match.");
+    }
     return new JClassInstanceCreation(getFileLocation(cIC),
                                       declaration.getType().getReturnType(),
                                       functionName,
@@ -1344,7 +1347,7 @@ class ASTConverter {
         JConstructorType.createUnresolvableConstructorType(),
         fullName,
         simpleName,
-        ImmutableList.of(),
+        createJParameterDeclarationsForArguments(pCIC.arguments()),
         VisibilityModifier.NONE,
         false,
         JClassType.createUnresolvableType());
