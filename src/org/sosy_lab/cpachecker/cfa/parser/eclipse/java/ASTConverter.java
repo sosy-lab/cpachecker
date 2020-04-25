@@ -1291,9 +1291,8 @@ class ASTConverter {
 
     logger.logf(
         Level.INFO,
-        "No matching class for class instance creation \""
-            + fullName
-            + "\" in scope, trying to resolve by imports");
+        "No matching class for class instance creation \"%s\" in scope, trying to resolve by imports",
+        fullName);
 
     // Find CompilationUnit of class calling the constructor
     ASTNode parent = pCIC.getParent();
