@@ -1312,7 +1312,6 @@ class ASTConverter {
         getMatchingImportDeclaration(pCIC, importDeclarations);
 
     Constructor<?> constructor;
-    // Try finding constructor in java.lang
     if (matchingImportDeclaration == null) {
       constructor = matchConstructor("java.lang." + pCIC.getType().toString(), pCIC.arguments());
     } else {
@@ -1393,11 +1392,11 @@ class ASTConverter {
     } catch (ClassNotFoundException pE) {
       return null;
     }
-    if (arguments.size() == 0) {
+    if (arguments.isEmpty()) {
       try {
         return cls.getDeclaredConstructor();
-        // TODO Think about what to do here
       } catch (NoSuchMethodException pE) {
+        logger.logf(Level.WARNING, "Default Constructor for class %s not found.", className);
         return null;
       }
     } else {
