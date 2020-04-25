@@ -46,8 +46,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public class ToFormulaVisitor
     extends CachingVisitor<AExpression, BooleanFormula, ToFormulaException> {
 
-  private static final CFANode DUMMY_NODE = new CFANode(CFunctionDeclaration.DUMMY);
-
   private final FormulaManagerView formulaManagerView;
 
   private final PathFormulaManager pathFormulaManager;
@@ -87,9 +85,13 @@ public class ToFormulaVisitor
     AExpression expression = pLeafExpression.getExpression();
     final CFAEdge edge;
     if (expression instanceof CExpression) {
-      edge = new CAssumeEdge("", FileLocation.DUMMY, DUMMY_NODE, DUMMY_NODE, (CExpression) expression, pLeafExpression.assumeTruth());
+      edge = new CAssumeEdge("", FileLocation.DUMMY,
+          new CFANode(CFunctionDeclaration.DUMMY), new CFANode(CFunctionDeclaration.DUMMY),
+          (CExpression) expression, pLeafExpression.assumeTruth());
     } else if (expression instanceof JExpression) {
-      edge = new JAssumeEdge("", FileLocation.DUMMY, DUMMY_NODE, DUMMY_NODE, (JExpression) expression, pLeafExpression.assumeTruth());
+      edge = new JAssumeEdge("", FileLocation.DUMMY,
+          new CFANode(CFunctionDeclaration.DUMMY), new CFANode(CFunctionDeclaration.DUMMY),
+          (JExpression) expression, pLeafExpression.assumeTruth());
     } else {
       throw new AssertionError("Unsupported expression type.");
     }
