@@ -1403,7 +1403,7 @@ class ASTConverter {
         return null;
       }
     } else {
-      String parameterString = getParametersAsString(arguments);
+      String parameterString = getParameterTypesAsString(arguments);
       String constructorMethod = className + "(" + parameterString + ")";
       for (Constructor<?> constructor : cls.getDeclaredConstructors()) {
         if (constructor.toString().endsWith(constructorMethod)) {
@@ -1414,7 +1414,7 @@ class ASTConverter {
     return null;
   }
 
-  private String getParametersAsString(List<?> arguments) {
+  private String getParameterTypesAsString(List<?> arguments) {
     List<String> argumentsAsStringList = new ArrayList<>(arguments.size());
     for (Object argument : arguments) {
       JSimpleDeclaration simpleDeclaration =
