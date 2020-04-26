@@ -1417,11 +1417,32 @@ class ASTConverter {
   private String getParameterTypesAsString(List<?> arguments) {
     List<String> argumentsAsStringList = new ArrayList<>(arguments.size());
     for (Object argument : arguments) {
-      JSimpleDeclaration simpleDeclaration =
-          scope.lookupVariable(((SimpleName) argument).toString());
-      argumentsAsStringList.add(simpleDeclaration.getType().toString().replace(" ", ""));
+      JSimpleDeclaration simpleDeclaration = scope.lookupVariable(argument.toString());
+      if (simpleDeclaration != null) {
+        argumentsAsStringList.add(simpleDeclaration.getType().toString().replace(" ", ""));
+      } else {
+        // TODO Add Type Tester!
+        if (argument instanceof Expression) {
+          ITypeBinding binding = ((Expression) argument).resolveTypeBinding();
+          if (binding != null && binding.getBinaryName().startsWith("java.lang")) {
+            argumentsAsStringList.add(
+                removeFromStringEverythingBeforeLastOccurrenceOf(
+                    binding.getBinaryName(), "."));
+          }
+        }
+      }
     }
     return String.join(",", argumentsAsStringList);
+  }
+
+  private static String removeFromStringEverythingBeforeLastOccurrenceOf(
+      String string, final String separator) {
+    int indexOfLastString = string.lastIndexOf(separator);
+    if (indexOfLastString >= 0) {
+      return string.substring(indexOfLastString + 1);
+    } else {
+      return string;
+    }
   }
 
   private List<JType> getJTypesOfParameters(List<?> arguments) {
