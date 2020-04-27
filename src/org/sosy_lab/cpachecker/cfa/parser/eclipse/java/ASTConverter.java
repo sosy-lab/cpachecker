@@ -1456,9 +1456,25 @@ class ASTConverter {
   private List<JParameterDeclaration> createJParameterDeclarationsForArguments(List<?> arguments) {
     List<JParameterDeclaration> parameterList = new ArrayList<>();
     for (Object argument : arguments) {
-      parameterList.add(
-          convertVariableDeclarationToParameterDeclaration(
-              (JVariableDeclaration) scope.lookupVariable(((SimpleName) argument).toString())));
+      JSimpleDeclaration jSimpleDeclaration = scope.lookupVariable(argument.toString());
+      if (jSimpleDeclaration != null) {
+        parameterList.add(
+            convertVariableDeclarationToParameterDeclaration(
+                (JVariableDeclaration) jSimpleDeclaration));
+      } else if (argument instanceof Expression) {
+        ITypeBinding binding = ((Expression) argument).resolveTypeBinding();
+        JClassType jClassType = typeConverter.convertClassType(binding);
+        parameterList.add(
+            new JParameterDeclaration(
+                getFileLocation((ASTNode) argument),
+                jClassType,
+                jClassType.getName(),
+                binding.getQualifiedName(),
+                jClassType.isFinal()));
+      } else {
+        throw new CFAGenerationRuntimeException(
+            "Could not process argument: " + argument.toString() + " .");
+      }
     }
     return parameterList;
   }
