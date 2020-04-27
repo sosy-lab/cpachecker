@@ -474,6 +474,11 @@ final class Dominance {
       return doms[pId] != UNDEFINED && doms[pId] != pId;
     }
 
+    /**
+     * Returns an iterator over the nodes in this dominance tree in ascending ID-order.
+     *
+     * @return an iterator over the nodes in this dominance tree in ascending ID-order.
+     */
     @Override
     public Iterator<T> iterator() {
       return new Iterator<>() {
