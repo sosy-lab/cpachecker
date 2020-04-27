@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
+<project name="Timed automaton parser generation" default="generate-ta-grammar" basedir="./../../../../../../../">
+	<!-- basedir should be the "CPAchecker" directory -->
+
+	<property name="ta.dir" location="src/org/sosy_lab/cpachecker/cfa/parser/timedautomata/" />
+	<property name="ta.generated.dir" location="src/org/sosy_lab/cpachecker/cfa/parser/timedautomata/generated/" />
+
+	<property name="parser.source" value="TaGrammarParser" />
+	<property name="lexer.source" value="TaLexer" />
+
+	<target name="echos">
+		<echo>${dir.src}</echo>
+		<echo>${ta.generated.dir}</echo>
+		<echo>is ta antlr4 parser up to date? ${is.antlr4.uptodate}</echo>
+	</target>
+
+	<target name="clean" description="Delete generated files">
+		<delete dir="${ta.generated.dir}" />
+	</target>
+
+	<path id="classpath.antlr4">
+		<pathelement location="./lib/java/build/antlr4.jar" />
+		<pathelement location="./lib/java/build/antlr-runtime.jar" />
+		<pathelement location="./lib/java/build/antlr4-runtime.jar" />
+		<pathelement location="./lib/java/build/ST4.jar" />
+	</path>
+
+	<uptodate srcfile="${ta.dir}/${lexer.source}.g4" property="is.ta.lexer.uptodate">
+		<compositemapper>
+			<mergemapper to="${ta.generated.dir}" />
+			<mergemapper to="${ta.generated.dir}/${lexer.source}.java" />
+			<mergemapper to="${ta.generated.dir}/${lexer.source}.interp" />
+			<mergemapper to="${ta.generated.dir}/${lexer.source}.tokens" />
+		</compositemapper>
+	</uptodate>
+
+	<target name="generate-ta-lexer" unless="is.ta.lexer.uptodate">
+		<java classname="org.antlr.v4.Tool" fork="true" failonerror="true" dir="${ta.dir}">
+			<arg value="-o" />
+			<arg value="generated" />
+			<arg value="-package" />
+			<arg value="org.sosy_lab.cpachecker.cfa.parser.timedautomata.generated" />
+			<arg value="${lexer.source}.g4" />
+			<classpath>
+				<path refid="classpath.antlr4" />
+			</classpath>
+		</java>
+		<echo message="Generated lexer-files in ${ta.generated.dir}/*" level="info" />
+	</target>
+
+	<uptodate srcfile="${ta.dir}/${parser.source}.g4" property="is.ta.parser.uptodate">
+		<compositemapper>
+			<mergemapper to="${ta.generated.dir}" />
+			<mergemapper to="${ta.generated.dir}/${parser.source}BaseVisitor.java" />
+			<mergemapper to="${ta.generated.dir}/${parser.source}.java" />
+			<mergemapper to="${ta.generated.dir}/${parser.source}Visitor.java" />
+			<mergemapper to="${ta.generated.dir}/${parser.source}.interp" />
+			<mergemapper to="${ta.generated.dir}/${parser.source}.tokens" />
+		</compositemapper>
+	</uptodate>
+
+	<target name="generate-ta-parser" unless="is.ta.parser.uptodate">
+		<java classname="org.antlr.v4.Tool" fork="true" failonerror="true" dir="${ta.dir}">
+			<arg value="-o" />
+			<arg value="generated" />
+			<arg value="-package" />
+			<arg value="org.sosy_lab.cpachecker.cfa.parser.timedautomata.generated" />
+			<arg value="-visitor" />
+			<arg value="-no-listener" />
+			<arg value="${parser.source}.g4" />
+			<classpath>
+				<path refid="classpath.antlr4" />
+			</classpath>
+		</java>
+		<property name="annotation" value="@javax.annotation.processing.Generated(&quot;Antlr&quot;)${line.separator}"/>
+		<replace file="${ta.generated.dir}/${parser.source}.java" token="@SuppressWarnings" value="${annotation}@SuppressWarnings"/>
+		<echo message="Generated parser-files in ${ta.generated.dir}/*" level="info" />
+	</target>
+
+	<target name="generate-ta-grammar" depends="generate-ta-lexer,generate-ta-parser" description="Generate timed automata parser">
+	</target>
+
+</project>

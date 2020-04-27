@@ -56,6 +56,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFANode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.CompositeCFAVisitor;
@@ -364,12 +366,22 @@ public final class DOTBuilder2 {
 
     @Override
     public TraversalProcess visitNode(CFANode node) {
+      if(node instanceof TCFAEntryNode) {
+        return TraversalProcess.CONTINUE;
+      }
+
       Map<String, Object> jnode = new HashMap<>();
       jnode.put("index", node.getNodeNumber());
       jnode.put("rpid", node.getReversePostorderId());
       jnode.put("func", node.getFunctionName());
       jnode.put("type", determineNodeType(node));
       jnode.put("loop", node.isLoopStart());
+      
+      if(node instanceof TCFANode) {
+        TCFANode tcfaNode = (TCFANode)node; 
+        jnode.put("label", tcfaNode.getName() + "\nINV: " + tcfaNode.getInvariant().toASTString());
+        jnode.put("istimednode", true);
+      }
 
       nodes.put(node.getNodeNumber(), jnode);
 

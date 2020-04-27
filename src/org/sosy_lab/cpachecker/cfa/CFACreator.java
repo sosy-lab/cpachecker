@@ -383,6 +383,9 @@ public class CFACreator {
       parser = Parsers.getLlvmParser(logger, machineModel);
       language = Language.C; // After parsing we will have a CFA representing C code
       break;
+    case TA:
+      parser = Parsers.getTAParser(logger);
+      break;
 
     default:
       throw new AssertionError();
@@ -451,6 +454,18 @@ public class CFACreator {
       case C:
         mainFunction = getCMainFunction(sourceFiles, c.getFunctions());
         break;
+      case TA:
+        // Only one automaton supported currently
+        var automatonName = c.getFunctions().keySet().iterator().next();
+        var cfa = new MutableCFA(
+          machineModel,
+          c.getFunctions(),
+          c.getCFANodes(),
+          c.getFunctions().get(automatonName),
+          c.getFileNames(),
+          language);
+        cfa.makeImmutableCFA(Optional.empty(), Optional.empty());
+        return cfa;
       default:
         throw new AssertionError();
       }

@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2020  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,31 +21,9 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa;
-
 /**
- *  Enumeration for Supported Languages.
+ * Represents conditions on variables for timed automata. 
+ * Classes in these package are mostly used by model classes
+ * and dont represent an actual timed automata AST.
  */
-public enum Language {
-  C,
-  JAVA,
-  LLVM,
-  TA
-  ;
-
-  @Override
-  public String toString() {
-    switch (this) {
-    case C:
-      return "C";
-    case JAVA:
-      return "Java";
-    case LLVM:
-      return "LLVM IR";
-    case TA:
-      return "Timed Automaton";
-    default:
-      throw new AssertionError();
-    }
-  }
-}
+package org.sosy_lab.cpachecker.cfa.ast.timedautomata;

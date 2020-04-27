@@ -1290,6 +1290,8 @@ function init() {
 			var nodeIndex = "" + node.index;
 			if (Object.keys(combinedNodesLabels).includes(nodeIndex))
 				return combinedNodesLabels[nodeIndex];
+			else if (Object.keys(node).includes("label"))
+				return node.label;
 			else return "N" + nodeIndex;
 		}
 
@@ -1297,7 +1299,7 @@ function init() {
 		function nodeShapeDecider(n) {
 			if (n.loop) {
 				return "diamond";
-			} else if (Object.keys(combinedNodes).includes("" + n.index)) {
+			} else if (Object.keys(combinedNodes).includes("" + n.index) || n.istimednode === true) {
 				return "rect";
 			} else {
 				return "circle";

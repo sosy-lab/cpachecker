@@ -102,12 +102,14 @@ public class Parsers {
   private static final String C_PARSER_CLASS    = "org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCParser";
   private static final String JAVA_PARSER_CLASS = "org.sosy_lab.cpachecker.cfa.parser.eclipse.java.EclipseJavaParser";
   private static final String LLVM_PARSER_CLASS = "org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmParser";
+  private static final String TA_PARSER_CLASS   = "org.sosy_lab.cpachecker.cfa.parser.timedautomata.TAParser";
 
   private static WeakReference<ClassLoader> loadedClassLoader = new WeakReference<>(null);
 
   private static WeakReference<Constructor<? extends CParser>> loadedCParser    = new WeakReference<>(null);
   private static WeakReference<Constructor<? extends Parser>>  loadedJavaParser = new WeakReference<>(null);
   private static WeakReference<Constructor<? extends Parser>> loadedLlvmParser = new WeakReference<>(null);
+  private static WeakReference<Constructor<? extends Parser>> loadedTaParser = new WeakReference<>(null);
 
   private static final AtomicInteger loadingCount = new AtomicInteger(0);
 
@@ -221,6 +223,36 @@ public class Parsers {
       }
     } catch (ReflectiveOperationException e) {
       throw new Classes.UnexpectedCheckedException("Failed to create LLVM parser", e);
+    }
+  }
+
+  public static Parser getTAParser(
+      final LogManager pLogger
+  ) throws InvalidConfigurationException {
+    try {
+      Constructor<? extends Parser> parserConstructor = loadedTaParser.get();
+
+      if (parserConstructor == null) {
+        ClassLoader classLoader = getClassLoader(pLogger);
+
+        @SuppressWarnings("unchecked")
+        Class<? extends Parser> parserClass = (Class<? extends Parser>)
+            classLoader.loadClass(TA_PARSER_CLASS);
+        parserConstructor = parserClass.getConstructor(LogManager.class);
+        parserConstructor.setAccessible(true);
+        loadedTaParser = new WeakReference<>(parserConstructor);
+      }
+
+      try {
+        return parserConstructor.newInstance(pLogger);
+      } catch (InvocationTargetException e) {
+        if (e.getCause() instanceof InvalidConfigurationException) {
+          throw (InvalidConfigurationException)e.getCause();
+        }
+        throw e;
+      }
+    } catch (ReflectiveOperationException e) {
+      throw new Classes.UnexpectedCheckedException("Failed to create timed automaton parser", e);
     }
   }
 }
