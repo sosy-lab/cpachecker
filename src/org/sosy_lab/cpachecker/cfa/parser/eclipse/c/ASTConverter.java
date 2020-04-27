@@ -2075,14 +2075,16 @@ class ASTConverter {
                   checkLengthNotFullyBracketed(initClause, arrayType, 0);
 
                 } else {
-
                   compareArrayLengths(arrayType.getLength(), computedL, d);
+                  arrayPlusLength.put(arrayType, arrayType.getLength());
                 }
-                arrayPlusLength.put(arrayType, arrayType.getLength());
               }
             }
-            if (!hasLength) {
-              arrayPlusLength = computeLengthMultiDimArray(arrayType, arrayPlusLength, initClause);
+            // to calculate length for multi-dimensional array if no lengths are in declarator
+            // otherwise to verify given lengths
+            arrayPlusLength = computeLengthMultiDimArray(arrayType, arrayPlusLength, initClause);
+
+              if (!hasLength) {
               List<CArrayType> types = new ArrayList<>(arrayPlusLength.keySet());
               List<CExpression> lenghts = new ArrayList<>(arrayPlusLength.values());
 
@@ -2110,26 +2112,43 @@ class ASTConverter {
               }
               type = typesWLength.get(lastIndex);
             }
+
           }
           // Caculates the length of an array of the form
           // struct { int a[3], b; } w[] = { { 1 }, 2 };
           if (arrayType.getType() instanceof CElaboratedType) {
-            if (((CElaboratedType) arrayType.getType()).getKind().name() == "STRUCT") {
-            CExpression lengthExp = computeLengthArrayOfStructs(initClause);
+            if (((CElaboratedType) arrayType.getType()).getKind().equals(ComplexTypeKind.STRUCT)) {
+              CExpression lengthExp = computeLengthArrayOfStructs(initClause);
+              if (arrayType.getLength() != null) {
+                compareArrayLengths(arrayType.getLength(), lengthExp, d);
+              } else {
+                CElaboratedType nestedType = (CElaboratedType) arrayType.getType();
 
-            CElaboratedType nestedType = (CElaboratedType) arrayType.getType();
+                type =
+                    new CArrayType(
+                        arrayType.isConst(), arrayType.isVolatile(), nestedType, lengthExp);
+              }
+            }
+            if (((CElaboratedType) arrayType.getType()).getKind().equals(ComplexTypeKind.ENUM)) {
 
-            type =
-                new CArrayType(arrayType.isConst(), arrayType.isVolatile(), nestedType, lengthExp);
-          }
+              CExpression lengthExp = computeLengthOfArray(initClause, arrayType);
+              if (arrayType.getLength() != null) {
+                compareArrayLengths(arrayType.getLength(), lengthExp, d);
+              } else {
+                CElaboratedType nestedType = (CElaboratedType) arrayType.getType();
+                type =
+                    new CArrayType(
+                        arrayType.isConst(), arrayType.isVolatile(), nestedType, lengthExp);
+              }
+            }
           }
         }
       }
-
       if (bitFieldSize != null) {
         type = typeConverter.convertBitFieldType(bitFieldSize, type);
       }
       return Triple.of(type, initializer, name);
+
     }
   }
 
