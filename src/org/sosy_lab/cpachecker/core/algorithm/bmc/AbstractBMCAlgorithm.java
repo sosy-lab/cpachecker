@@ -407,7 +407,8 @@ abstract class AbstractBMCAlgorithm
           CandidateInvariant candidateInvariant = candidateInvariantIterator.next();
           // first check safety in k iterations
 
-          boolean safe = boundedModelCheck(reachedSet, prover, candidateInvariant);
+          boolean safe =
+              boundedModelCheckNoRemoveTargetStates(reachedSet, prover, candidateInvariant);
           if (!safe) {
             if (candidateInvariant == TargetLocationCandidateInvariant.INSTANCE) {
               return AlgorithmStatus.UNSOUND_AND_PRECISE;
@@ -453,6 +454,12 @@ abstract class AbstractBMCAlgorithm
                       + maxLoopIterations
                       + " > 1, compute fixed points by interpolation");
               sound = computeFixedPointByInterpolation(reachedSet);
+              if (reachedSet.hasViolatedProperties()) {
+                logger.log(
+                    Level.INFO,
+                    "Remove target states from reachedSet because they are unreachable");
+                TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
+              }
             }
           }
           if (invariantGenerator.isProgramSafe()
@@ -508,7 +515,9 @@ abstract class AbstractBMCAlgorithm
         from(reachedSet).firstMatch(AbstractStates.IS_TARGET_STATE);
     // Q1: multiple error locations?
     if (!optionalTargetState.isPresent()) {
-      logger.log(Level.WARNING, "No target state is found");
+      logger.log(
+          Level.WARNING,
+          "No target state is found in the reached set: cannot compute fixed points");
       return false;
     }
     AbstractState targetState = optionalTargetState.get();
@@ -811,6 +820,47 @@ abstract class AbstractBMCAlgorithm
     }
     return !Iterables.isEmpty(conditionCPAs);
   }
+
+  // NZ: begin of the modified bounded model check, which delays the removal of target states
+  protected boolean boundedModelCheckNoRemoveTargetStates(
+      final ReachedSet pReachedSet,
+      final ProverEnvironmentWithFallback pProver,
+      CandidateInvariant pCandidateInvariant)
+      throws CPATransferException, InterruptedException, SolverException {
+    return boundedModelCheckNoRemoveTargetStates(
+        (Iterable<AbstractState>) pReachedSet,
+        pProver,
+        pCandidateInvariant);
+  }
+
+  private boolean boundedModelCheckNoRemoveTargetStates(
+      Iterable<AbstractState> pReachedSet,
+      ProverEnvironmentWithFallback pProver,
+      CandidateInvariant pCandidateInvariant)
+      throws CPATransferException, InterruptedException, SolverException {
+    BooleanFormula program = bfmgr.not(pCandidateInvariant.getAssertion(pReachedSet, fmgr, pmgr));
+    logger.log(Level.INFO, "Starting satisfiability check...");
+    stats.satCheck.start();
+    pProver.push(program);
+    boolean safe = pProver.isUnsat();
+    stats.satCheck.stop();
+    // Leave program formula on solver stack until error path is created
+
+    if (pReachedSet instanceof ReachedSet) {
+      ReachedSet reachedSet = (ReachedSet) pReachedSet;
+      if (safe) {
+        // NZ: do not remove target states now because they are used in the interpolation phase
+        // pCandidateInvariant.assumeTruth(reachedSet);
+      } else if (pCandidateInvariant == TargetLocationCandidateInvariant.INSTANCE) {
+        analyzeCounterexample(program, reachedSet, pProver);
+      }
+    }
+
+    pProver.pop();
+
+    return safe;
+  }
+  // NZ: end of the modified bounded model check, which delays the removal of target states
 
   protected boolean boundedModelCheck(
       final ReachedSet pReachedSet,
