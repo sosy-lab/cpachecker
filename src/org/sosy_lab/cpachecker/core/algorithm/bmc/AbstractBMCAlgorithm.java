@@ -386,8 +386,7 @@ abstract class AbstractBMCAlgorithm
         // step2: collect prefix, loop, and suffix formulas
         logger.log(Level.INFO, "NZ: collecting prefix, loop, and suffix formulas");
         if (maxLoopIterations == 1) {
-          boolean reachable = errorReachableCheck(prover, getErrorFormula(reachedSet, -1));
-          if (reachable) {
+          if (errorIsReachableCheck(prover, getErrorFormula(reachedSet, -1))) {
             logger.log(Level.INFO, "NZ: there exist reachable errors before the loop");
             return AlgorithmStatus.UNSOUND_AND_PRECISE;
           }
@@ -404,16 +403,15 @@ abstract class AbstractBMCAlgorithm
         }
         BooleanFormula suffixFormula =
             bfmgr.and(tailFormula, getErrorFormula(reachedSet, maxLoopIterations - 1));
-//        logger.log(Level.INFO, "NZ: the prefix is " + prefixFormula.getFormula().toString());
-//        logger.log(Level.INFO, "NZ: the loop is " + loopFormula.toString());
-//        logger.log(Level.INFO, "NZ: the suffix is " + suffixFormula.toString());
+        //logger.log(Level.INFO, "NZ: the prefix is " + prefixFormula.getFormula().toString());
+        //logger.log(Level.INFO, "NZ: the loop is " + loopFormula.toString());
+        //logger.log(Level.INFO, "NZ: the suffix is " + suffixFormula.toString());
 
         // step3: perform bounded model checking
         logger.log(Level.INFO, "NZ: perform bounded model checking");
         BooleanFormula reachErrorFormula =
             bfmgr.and(prefixFormula.getFormula(), loopFormula, suffixFormula);
-        boolean reachable = errorReachableCheck(prover, reachErrorFormula);
-        if (reachable) {
+        if (errorIsReachableCheck(prover, reachErrorFormula)) {
           logger.log(Level.INFO, "NZ: an error is reached by BMC");
           return AlgorithmStatus.UNSOUND_AND_PRECISE;
         }
@@ -431,8 +429,7 @@ abstract class AbstractBMCAlgorithm
                   loopFormula,
                   tailFormula,
                   getLoopHeadFormula(reachedSet, maxLoopIterations).getFormula());
-          boolean forward = forwardConditionCheck(prover, forwardConditionFormula);
-          if (!forward) {
+          if (!forwardConditionCheck(prover, forwardConditionFormula)) {
             logger.log(
                 Level.INFO,
                 "NZ: the program is safe as it cannot be unrolled forward at maxLoopIterations = "
@@ -447,13 +444,7 @@ abstract class AbstractBMCAlgorithm
               Level.INFO,
               "NZ: compute fixed points by interpolation at maxLoopIterations = "
                   + maxLoopIterations);
-          boolean safe =
-              computeFixedPointByInterpolation(
-                  prover,
-                  prefixFormula,
-                  loopFormula,
-                  suffixFormula);
-          if (safe) {
+          if (reachFixedPointByInterpolation(prover, prefixFormula, loopFormula, suffixFormula)) {
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
         }
@@ -516,7 +507,7 @@ abstract class AbstractBMCAlgorithm
     return !pProver.isUnsat();
   }
 
-  private boolean errorReachableCheck(
+  private boolean errorIsReachableCheck(
       ProverEnvironmentWithFallback pProver,
       BooleanFormula pReachErrorFormula)
       throws InterruptedException, SolverException {
@@ -566,7 +557,7 @@ abstract class AbstractBMCAlgorithm
    * @return {@code true} if a fixed point is reached, i.e., property is proved; {@code false} if
    *         the current over-approximation is unsafe
    */
-  private boolean computeFixedPointByInterpolation(
+  private boolean reachFixedPointByInterpolation(
       ProverEnvironmentWithFallback pProver,
       PathFormula pPrefixPathFormula,
       BooleanFormula pLoopFormula,
