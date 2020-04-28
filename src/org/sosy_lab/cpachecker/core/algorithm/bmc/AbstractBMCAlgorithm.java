@@ -153,7 +153,7 @@ abstract class AbstractBMCAlgorithm
   private boolean interpolation = false;
 
   @Option(secure = true, description = "toggles deriving the interpolants from suffix formulas")
-  private boolean fromSuffix = false;
+  private boolean deriveInterpolantFromSuffix = false;
 
   @Option(secure=true, description="try using induction to verify programs with loops")
   private boolean induction = false;
@@ -541,7 +541,7 @@ abstract class AbstractBMCAlgorithm
       Stack<Object> formulaA,
       Stack<Object> formulaB)
       throws SolverException, InterruptedException {
-    if (fromSuffix) {
+    if (deriveInterpolantFromSuffix) {
       logger
           .log(Level.FINEST, "NZ: deriving the interpolant from suffix (formula B) and negate it");
       return bfmgr.not(proverStack.getInterpolant(formulaB));
