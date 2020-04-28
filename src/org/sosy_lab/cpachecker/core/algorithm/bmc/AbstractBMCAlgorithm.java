@@ -438,6 +438,7 @@ abstract class AbstractBMCAlgorithm
              * createInductionProver()) { sound = checkStepCase(reachedSet, candidateGenerator,
              * kInductionProver, ctiBlockingClauses); }
              */
+            // TODO: if maxLoopIterations>1, compute fixed points
             sound = computeFixedPointByInterpolation();
           }
           if (invariantGenerator.isProgramSafe()
@@ -463,25 +464,84 @@ abstract class AbstractBMCAlgorithm
    */
   private boolean computeFixedPointByInterpolation() {
     logger.log(Level.INFO, "NZ: Computing fixed points by interpolation, under construction");
+    return false;
     /*
-     * step1: get the path formula to the error location (must be UNSAT)
+     * Algorithmic steps (a block ends when a loop head is encountered)
+     *
+     * step1: get error path
      *
      * Q1: multiple error locations?
      *
      * Q2: error location inside the loop versus after the loop?
      *
-     * step2: get pointers to the interpolant and block formulas (initialization/loop/property)
+     * step2: get block formulas; prefix=1st block, loop=2nd block, suffix=rest blocks
      *
-     * step3: allocate a new SMT stack with interpolation
+     * step3: allocate a new stack with interpolation
      *
-     * step4: push loop and property formulas, change SSA index of the interpolant
+     * step4: mark prefix and loop as A, suffix as B; push suffix, loop, prefix
      *
-     * step5: if SAT, return false; if UNSAT, get a new interpolant
+     * step5: if not UNSAT (SAT or timeout), return false; else, go to step6
      *
-     * step6: if the old interpolant equals the new, return true; else, pop the old, push the new,
-     * and repeat step5
+     * step6: get the next interpolant and change its SSA indices to the biggest indices in prefix
+     *
+     * step7: if the next interpolant equals the prev interpolant, return true; else, go to step8
+     *
+     * step8: pop the prev interpolant and push the next interpolant; go to step5
+     *
      */
-    return false;
+
+    // pseudo code implementation
+    /*
+     * errorPath = getErrorPath();
+     *
+     * prefixFormula = getFirstBlock(errorPath);
+     *
+     * loopFormula = getSecondBlock(errorPath);
+     *
+     * suffixFormula = getRestBlocks(errorPath);
+     *
+     * stack = getProveEnvironmentInterpolant();
+     *
+     * stack.markA(prefixFormula);
+     *
+     * stack.markA(loopFormula);
+     *
+     * stack.markB(suffixFormula);
+     *
+     * stack.push(suffixFormula);
+     *
+     * stack.push(loopFormula);
+     *
+     * stack.push(prefixFormula);
+     *
+     * prevInterpolant = null;
+     *
+     * nextInterpolant = null;
+     *
+     * while (stack.isUnsat()) {
+     *
+     * nextInterpolant = stack.getInterpolant();
+     *
+     * nextInterpolant = changeSSAIndices(nextInterpolant, prefixFormula);
+     *
+     * if (stack.equalCheck(prevInterpolant, nextInterpolant)) {
+     *
+     * // a fixed point is reached
+     *
+     * return true;
+     *
+     * }
+     *
+     * stack.pop();
+     *
+     * stack.push(nextInterpolant);
+     *
+     * prevInterpolant = nextInterpolant;
+     *
+     * }
+     *
+     * return false;
+     */
   }
   // NZ: end of the computeFixedPointByInterpolation
 
