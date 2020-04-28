@@ -1,2 +1,2 @@
-scripts/cpa.sh -noout -heap 2000M -preprocess -bmc -timelimit 60s -stats -spec sv-comp-reachability $1
+scripts/cpa.sh -heap 2000M -preprocess -bmc -setprop cpa.loopbound.maxLoopIterations=10 -timelimit 60s -stats -spec sv-comp-reachability $1
 
