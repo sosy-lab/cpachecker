@@ -417,13 +417,10 @@ abstract class AbstractBMCAlgorithm
 
         // step3: perform bounded model checking
         logger.log(Level.INFO, "NZ: perform bounded model checking");
-        boolean safe =
-            boundedModelCheckWithLargeBlockEncoding(
-                prover,
-                prefixFormula.getFormula(),
-                loopFormula,
-                suffixFormula);
-        if (!safe) {
+        BooleanFormula reachErrorFormula =
+            bfmgr.and(prefixFormula.getFormula(), loopFormula, suffixFormula);
+        boolean reachable = boundedModelCheckWithLargeBlockEncoding(prover, reachErrorFormula);
+        if (reachable) {
           logger.log(Level.INFO, "NZ: an error is reached by BMC");
           return AlgorithmStatus.UNSOUND_AND_PRECISE;
         }
@@ -433,6 +430,21 @@ abstract class AbstractBMCAlgorithm
               "NZ: the program is safe up to maxLoopIterations = " + maxLoopIterations);
           if (reachedSet.hasViolatedProperties()) {
             TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
+          }
+          // step3.5: perform forward condition checking
+          BooleanFormula forwardConditionFormula =
+              bfmgr.and(
+                  prefixFormula.getFormula(),
+                  loopFormula,
+                  tailFormula,
+                  getLoopHeadFormula(reachedSet, maxLoopIterations).getFormula());
+          boolean forward = forwardConditionCheck(prover, forwardConditionFormula);
+          if (!forward) {
+            logger.log(
+                Level.INFO,
+                "NZ: the program is safe as it cannot be unrolled forward at maxLoopIterations = "
+                    + maxLoopIterations);
+            return AlgorithmStatus.SOUND_AND_PRECISE;
           }
         }
 
@@ -444,7 +456,7 @@ abstract class AbstractBMCAlgorithm
                 "NZ: maxLoopIterations = "
                     + maxLoopIterations
                     + " > 1, compute fixed points by interpolation");
-            safe =
+            boolean safe =
                 computeFixedPointByInterpolation(
                     prefixFormula.getFormula(),
                     loopFormula,
@@ -519,22 +531,35 @@ abstract class AbstractBMCAlgorithm
     }
   }
 
+  private boolean formulaCheckSat(ProverEnvironmentWithFallback pProver, BooleanFormula pFormula)
+      throws InterruptedException, SolverException {
+    while (!pProver.isEmpty()) {
+      pProver.pop();
+    }
+    pProver.push(pFormula);
+    return !pProver.isUnsat();
+  }
+
   private boolean boundedModelCheckWithLargeBlockEncoding(
       ProverEnvironmentWithFallback pProver,
-      BooleanFormula pPrefixFormula,
-      BooleanFormula pLoopFormula,
-      BooleanFormula pSuffixFormula)
+      BooleanFormula pReachErrorFormula)
       throws InterruptedException, SolverException {
     try {
-      while (!pProver.isEmpty()) {
-        pProver.pop();
-      }
-      pProver.push(pSuffixFormula);
-      pProver.push(pLoopFormula);
-      pProver.push(pPrefixFormula);
-      return pProver.isUnsat();
+      return formulaCheckSat(pProver, pReachErrorFormula);
     } catch (InterruptedException | SolverException e) {
       logger.log(Level.WARNING, "NZ: an exception happened during BMC phase");
+      throw e;
+    }
+  }
+
+  private boolean forwardConditionCheck(
+      ProverEnvironmentWithFallback pProver,
+      BooleanFormula pForwardConditionFormula)
+      throws InterruptedException, SolverException {
+    try {
+      return formulaCheckSat(pProver, pForwardConditionFormula);
+    } catch (InterruptedException | SolverException e) {
+      logger.log(Level.WARNING, "NZ: an exception happened during forward checking phase");
       throw e;
     }
   }
