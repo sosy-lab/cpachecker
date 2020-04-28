@@ -386,7 +386,8 @@ abstract class AbstractBMCAlgorithm
         // step2: collect prefix, loop, and suffix formulas
         logger.log(Level.INFO, "NZ: collecting prefix, loop, and suffix formulas");
         if (maxLoopIterations == 1) {
-          if (existErrorBeforeLoop(reachedSet, prover)) {
+          boolean reachable = errorReachableCheck(prover, getErrorFormula(reachedSet, -1));
+          if (reachable) {
             logger.log(Level.INFO, "NZ: there exist reachable errors before the loop");
             return AlgorithmStatus.UNSOUND_AND_PRECISE;
           }
@@ -397,10 +398,9 @@ abstract class AbstractBMCAlgorithm
         }
         else {
           tailFormula =
-              bfmgr
-                  .and(
-                      tailFormula,
-                      getLoopHeadFormula(reachedSet, maxLoopIterations - 1).getFormula());
+              bfmgr.and(
+                  tailFormula,
+                  getLoopHeadFormula(reachedSet, maxLoopIterations - 1).getFormula());
         }
         BooleanFormula suffixFormula =
             bfmgr.and(tailFormula, getErrorFormula(reachedSet, maxLoopIterations - 1));
@@ -412,7 +412,7 @@ abstract class AbstractBMCAlgorithm
         logger.log(Level.INFO, "NZ: perform bounded model checking");
         BooleanFormula reachErrorFormula =
             bfmgr.and(prefixFormula.getFormula(), loopFormula, suffixFormula);
-        boolean reachable = boundedModelCheckWithLargeBlockEncoding(prover, reachErrorFormula);
+        boolean reachable = errorReachableCheck(prover, reachErrorFormula);
         if (reachable) {
           logger.log(Level.INFO, "NZ: an error is reached by BMC");
           return AlgorithmStatus.UNSOUND_AND_PRECISE;
@@ -508,20 +508,6 @@ abstract class AbstractBMCAlgorithm
     return formulaToErrorLocations;
   }
 
-  private boolean
-      existErrorBeforeLoop(ReachedSet pReachedSet, ProverEnvironmentWithFallback pProver)
-          throws InterruptedException, SolverException {
-    BooleanFormula formulaToErrorLocations = getErrorFormula(pReachedSet, -1);
-    try {
-      pProver.push(formulaToErrorLocations);
-      return !pProver.isUnsat();
-    }
-    catch (InterruptedException | SolverException e) {
-      logger.log(Level.WARNING, "NZ: an exception happened during checking errors before the loop");
-      throw e;
-    }
-  }
-
   private boolean formulaCheckSat(ProverEnvironmentWithFallback pProver, BooleanFormula pFormula)
       throws InterruptedException, SolverException {
     while (!pProver.isEmpty()) {
@@ -531,14 +517,15 @@ abstract class AbstractBMCAlgorithm
     return !pProver.isUnsat();
   }
 
-  private boolean boundedModelCheckWithLargeBlockEncoding(
+  private boolean errorReachableCheck(
       ProverEnvironmentWithFallback pProver,
       BooleanFormula pReachErrorFormula)
       throws InterruptedException, SolverException {
     try {
       return formulaCheckSat(pProver, pReachErrorFormula);
     } catch (InterruptedException | SolverException e) {
-      logger.log(Level.WARNING, "NZ: an exception happened during BMC phase");
+      logger
+          .log(Level.WARNING, "NZ: an exception happened during checking if an error is reachable");
       throw e;
     }
   }
