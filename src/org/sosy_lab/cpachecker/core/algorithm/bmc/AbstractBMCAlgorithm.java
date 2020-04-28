@@ -514,6 +514,7 @@ abstract class AbstractBMCAlgorithm
       return !pProver.isUnsat();
     }
     catch (InterruptedException | SolverException e) {
+      logger.log(Level.WARNING, "NZ: an exception happened during checking errors before the loop");
       throw e;
     }
   }
@@ -670,14 +671,11 @@ abstract class AbstractBMCAlgorithm
       return false;
     }
   }
-  // NZ: end of computeFixedPointByInterpolation
 
-  // NZ: begin of changeSSAIndices
   private BooleanFormula changeSSAIndices(BooleanFormula f, BooleanFormula g) {
     // TODO: change the SSA indices of f to that of g
     return f;
   }
-  // NZ: end of changeSSAIndices
 
   public AlgorithmStatus run(final ReachedSet reachedSet) throws CPAException,
       SolverException,
