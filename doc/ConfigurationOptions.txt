@@ -156,7 +156,7 @@ analysis.algorithm.CBMC = false
 # Currently all refiner require the use of the ARGCPA.
 analysis.algorithm.CEGAR = false
 
-# use a interpolation-based algorithm that checks for satisfiability after
+# use an interpolation-based algorithm that checks for satisfiability after
 # the analysis has finished, works only with PredicateCPA
 analysis.algorithm.IMC = false
 
@@ -593,6 +593,9 @@ bmc.checkTargetStates = true
 
 # try using induction to verify programs with loops
 bmc.induction = false
+
+# try using interpolation to verify programs with loops
+bmc.interpolation = false
 
 # Strategy for generating auxiliary invariants
 bmc.invariantGenerationStrategy = REACHED_SET
