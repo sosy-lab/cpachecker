@@ -31,6 +31,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
@@ -346,14 +347,15 @@ abstract class AbstractBMCAlgorithm
   // NZ: begin of the run method for interpolation-based model checking
   public AlgorithmStatus runInterpolation(final ReachedSet reachedSet)
       throws CPAException, SolverException, InterruptedException {
+    Preconditions.checkState(
+        cfa.getAllLoopHeads().isPresent() && cfa.getAllLoopHeads().get().size() <= 1,
+        "NZ: programs with multiple loops are not supported yet");
     CFANode initialLocation = extractLocation(reachedSet.getFirstState());
     invariantGenerator.start(initialLocation);
 
     // The set of candidate invariants that still need to be checked.
     // Successfully proven invariants are removed from the set.
     final CandidateGenerator candidateGenerator = getCandidateInvariants();
-    // Set<Obligation> ctiBlockingClauses = new TreeSet<>();
-    // Map<SymbolicCandiateInvariant, BmcResult> checkedClauses = new HashMap<>();
 
     if (!candidateGenerator.produceMoreCandidates()) {
       for (AbstractState state : ImmutableList.copyOf(reachedSet.getWaitlist())) {
@@ -432,18 +434,11 @@ abstract class AbstractBMCAlgorithm
           // NZ: try to prove program safety via interpolation
           if (interpolation && !sound) {
             /*
-             * if (usePropertyDirection) { usePropertyDirection =
-             * refineCtiBlockingClauses(reachedSet, prover, ctiBlockingClauses, checkedClauses); if
-             * (!usePropertyDirection) { ctiBlockingClauses.clear(); } }
-             */
-            /*
              * try (@SuppressWarnings("resource") KInductionProver kInductionProver =
              * createInductionProver()) { sound = checkStepCase(reachedSet, candidateGenerator,
              * kInductionProver, ctiBlockingClauses); }
              */
-            // TODO: implement a class interpolationProver
-            // KInductionProver kInductionProver = createInductionProver();
-            sound = computeFixedPoint();
+            sound = computeFixedPointByInterpolation();
           }
           if (invariantGenerator.isProgramSafe()
               || (sound && !candidateGenerator.produceMoreCandidates())) {
@@ -459,18 +454,36 @@ abstract class AbstractBMCAlgorithm
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
   // NZ: end of the run method for interpolation-based model checking
-  // NZ: begin of the computeFixedPoint for interpolation-based model checking
+  // NZ: begin of the computeFixedPointByInterpolation
   /**
    * Compute fixed points by interpolation
    *
    * @return {@code true} if a fixed point is reached, {@code false} if the current
-   *         over-approximation is not safe.
+   *         over-approximation is unsafe.
    */
-  private boolean computeFixedPoint() {
-    logger.log(Level.INFO, "NZ: Computing fixed points by interpolation");
+  private boolean computeFixedPointByInterpolation() {
+    logger.log(Level.INFO, "NZ: Computing fixed points by interpolation, under construction");
+    /*
+     * step1: get the path formula to the error location (must be UNSAT)
+     *
+     * Q1: multiple error locations?
+     *
+     * Q2: error location inside the loop versus after the loop?
+     *
+     * step2: get pointers to the interpolant and block formulas (initialization/loop/property)
+     *
+     * step3: allocate a new SMT stack with interpolation
+     *
+     * step4: push loop and property formulas, change SSA index of the interpolant
+     *
+     * step5: if SAT, return false; if UNSAT, get a new interpolant
+     *
+     * step6: if the old interpolant equals the new, return true; else, pop the old, push the new,
+     * and repeat step5
+     */
     return false;
   }
-  // NZ: end of the computeFixedPoint for interpolation-based model checking
+  // NZ: end of the computeFixedPointByInterpolation
 
   public AlgorithmStatus run(final ReachedSet reachedSet) throws CPAException,
       SolverException,
