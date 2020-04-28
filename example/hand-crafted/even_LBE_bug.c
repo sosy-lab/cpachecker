@@ -17,8 +17,7 @@ int main(void) {
   }
   while (r != 0) {
     x += 4;
-	if (x > 8 && r == 1) x++;
-    __VERIFIER_assert(x % 4 == 0);
+	if (x > 12 && r == 1) x++;
     r = __VERIFIER_nondet_int();
   }
   __VERIFIER_assert(x % 2 == 0);
