@@ -79,7 +79,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  * Implementation of {@link BlockFormulaStrategy} that slices the formulas
  * (i.e., it removes irrelevant parts based on variable usage).
  */
-class BlockFormulaSlicer extends BlockFormulaStrategy {
+public class BlockFormulaSlicer extends BlockFormulaStrategy {
 
   /** if important or not, this does not matter, because it will be ignored later,
    * so it can be used for optimization. */
@@ -87,12 +87,12 @@ class BlockFormulaSlicer extends BlockFormulaStrategy {
 
   private final PathFormulaManager pfmgr;
 
-  BlockFormulaSlicer(PathFormulaManager pPfmgr) {
+  public BlockFormulaSlicer(PathFormulaManager pPfmgr) {
     this.pfmgr = pPfmgr;
   }
 
   @Override
-  BlockFormulas getFormulasForPath(ARGState initialState, List<ARGState> path)
+  public BlockFormulas getFormulasForPath(ARGState initialState, List<ARGState> path)
       throws CPATransferException, InterruptedException {
     // This map contains all edges that are important.
     // We store the parent- and the child-ARGState, because they are unique,
