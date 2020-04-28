@@ -450,10 +450,9 @@ abstract class AbstractBMCAlgorithm
           boolean safe =
               computeFixedPointByInterpolation(
                   prover,
-                  prefixFormula.getFormula(),
+                  prefixFormula,
                   loopFormula,
-                  suffixFormula,
-                  prefixFormula.getSsa());
+                  suffixFormula);
           if (safe) {
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
@@ -557,23 +556,35 @@ abstract class AbstractBMCAlgorithm
     }
   }
 
+  /**
+   * Compute fixed points by interpolation
+   *
+   * @param pProver SMT solver to check whether a fixed point is reached
+   * @param pPrefixPathFormula the prefix path formula with SSA map
+   * @param pLoopFormula the loop formula
+   * @param pSuffixFormula the suffix formula
+   * @return {@code true} if a fixed point is reached, i.e., property is proved; {@code false} if
+   *         the current over-approximation is unsafe
+   */
   private boolean computeFixedPointByInterpolation(
       ProverEnvironmentWithFallback pProver,
-      BooleanFormula pPrefixFormula,
+      PathFormula pPrefixPathFormula,
       BooleanFormula pLoopFormula,
-      BooleanFormula pSuffixFormula,
-      SSAMap prefixSsaMap) {
+      BooleanFormula pSuffixFormula) {
     try (ProverEnvironmentWithFallback proverStack =
         new ProverEnvironmentWithFallback(solver, ProverOptions.GENERATE_UNSAT_CORE)) {
+
+      BooleanFormula pPrefixFormula = pPrefixPathFormula.getFormula();
+      SSAMap prefixSsaMap = pPrefixPathFormula.getSsa();
+      BooleanFormula currentImage = bfmgr.makeFalse();
+      currentImage = bfmgr.or(currentImage, pPrefixFormula);
+      BooleanFormula interpolant = null;
 
       Stack<Object> formulaA = new Stack<>();
       Stack<Object> formulaB = new Stack<>();
       formulaB.push(proverStack.push(pSuffixFormula));
       formulaA.push(proverStack.push(pLoopFormula));
       formulaA.push(proverStack.push(pPrefixFormula));
-      BooleanFormula currentImage = bfmgr.makeFalse();
-      currentImage = bfmgr.or(currentImage, pPrefixFormula);
-      BooleanFormula interpolant = null;
 
       while (proverStack.isUnsat()) {
         interpolant = proverStack.getInterpolant(formulaA);
@@ -589,7 +600,7 @@ abstract class AbstractBMCAlgorithm
             "NZ: the interpolant after changing index is " + interpolant.toString());
         boolean reachFixedPoint = reachFixedPointCheck(pProver, interpolant, currentImage);
         if (reachFixedPoint) {
-          logger.log(Level.INFO, "NZ: the current image is a fixed point, property proved");
+          logger.log(Level.INFO, "NZ: the current image reaches a fixed point, property proved");
           return true;
         }
         currentImage = bfmgr.or(currentImage, interpolant);
