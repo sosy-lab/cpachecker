@@ -556,14 +556,26 @@ abstract class AbstractBMCAlgorithm
     logger.log(Level.INFO, "NZ: the loop formula is " + loopFormula.toString());
     BooleanFormula suffixFormula = blockFormulas.getFormulas().get(2);
     logger.log(Level.INFO, "NZ: the suffix formula is " + suffixFormula.toString());
+    try (ProverEnvironmentWithFallback prover =
+        new ProverEnvironmentWithFallback(
+            solver,
+            ProverOptions.GENERATE_MODELS,
+            ProverOptions.GENERATE_UNSAT_CORE)) {
+      List<Object> A = new ArrayList<>();
+      List<Object> B = new ArrayList<>();
+      B.add(prover.push(suffixFormula));
+      A.add(prover.push(loopFormula));
+      A.add(prover.push(prefixFormula));
+      assert prover.isUnsat();
+      // BooleanFormula interpolantFormula = prover.getInterpolant(A);
+      BooleanFormula interpolantFormula = bfmgr.not(prover.getInterpolant(B));
+      logger.log(Level.INFO, "NZ: the interpolant is " + interpolantFormula.toString());
+    } catch (InterruptedException e) {
+      return false;
+    } catch (SolverException e) {
+      return false;
+    }
     return false;
-//    stack = getProveEnvironmentInterpolant();
-//    stack.markA(prefixFormula);
-//    stack.markA(loopFormula);
-//    stack.markB(suffixFormula);
-//    stack.push(suffixFormula);
-//    stack.push(loopFormula);
-//    stack.push(prefixFormula);
 //    prevInterpolant = null;
 //    nextInterpolant = null;
 //    while (stack.isUnsat()) {
