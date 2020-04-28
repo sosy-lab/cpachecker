@@ -15,6 +15,7 @@ int main(void) {
   else {
      x = 0;
   }
+  __VERIFIER_assert(x != 4);
   while (r != 0) {
     x += 4;
 	if (x > 8 && r == 1) x++;
