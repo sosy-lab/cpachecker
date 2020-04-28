@@ -499,7 +499,7 @@ abstract class AbstractBMCAlgorithm
       throws InterruptedException, SolverException {
     try {
       return formulaCheckSat(pProver, pReachErrorFormula);
-    } catch (InterruptedException | SolverException e) {
+    } catch (SolverException e) {
       logger
           .log(Level.WARNING, "NZ: an exception happened during checking if an error is reachable");
       throw e;
@@ -512,7 +512,7 @@ abstract class AbstractBMCAlgorithm
       throws InterruptedException, SolverException {
     try {
       return formulaCheckSat(pProver, pForwardConditionFormula);
-    } catch (InterruptedException | SolverException e) {
+    } catch (SolverException e) {
       logger.log(Level.WARNING, "NZ: an exception happened during forward checking phase");
       throw e;
     }
@@ -527,7 +527,7 @@ abstract class AbstractBMCAlgorithm
       BooleanFormula pNotImplicationFormula =
           bfmgr.not(bfmgr.implication(pInterpolantFormula, pCurrentImageFormula));
       return !formulaCheckSat(pProver, pNotImplicationFormula);
-    } catch (InterruptedException | SolverException e) {
+    } catch (SolverException e) {
       logger.log(Level.WARNING, "NZ: an exception happened during fixed point checking phase");
       throw e;
     }
@@ -547,7 +547,8 @@ abstract class AbstractBMCAlgorithm
       ProverEnvironmentWithFallback pProver,
       PathFormula pPrefixPathFormula,
       BooleanFormula pLoopFormula,
-      BooleanFormula pSuffixFormula) {
+      BooleanFormula pSuffixFormula)
+      throws InterruptedException, SolverException {
     try (ProverEnvironmentWithFallback proverStack =
         new ProverEnvironmentWithFallback(solver, ProverOptions.GENERATE_UNSAT_CORE)) {
 
@@ -583,9 +584,9 @@ abstract class AbstractBMCAlgorithm
       }
       logger.log(Level.INFO, "NZ: the overapproximation is unsafe, going back to BMC phase");
       return false;
-    } catch (InterruptedException | SolverException e) {
+    } catch (SolverException e) {
       logger.log(Level.WARNING, "NZ: an exception happened during interpolation phase");
-      return false;
+      throw e;
     }
   }
 
