@@ -409,9 +409,12 @@ abstract class AbstractBMCAlgorithm
           return AlgorithmStatus.UNSOUND_AND_PRECISE;
         }
         else {
-//          if (reachedSet.hasViolatedProperties()) {
-//            TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
-//          }
+          logger.log(
+              Level.INFO,
+              "NZ: the program is safe up to maxLoopIterations = " + maxLoopIterations);
+          if (reachedSet.hasViolatedProperties()) {
+            TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
+          }
         }
 
         // step4: perform fixed point computation by interpolation
@@ -434,7 +437,9 @@ abstract class AbstractBMCAlgorithm
           }
         }
       } while (adjustConditions());
-    }
+    } catch (SolverException | InterruptedException e) {
+      throw e;
+      }
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
 
@@ -530,9 +535,20 @@ abstract class AbstractBMCAlgorithm
       ProverEnvironmentWithFallback pProver,
       BooleanFormula pPrefixFormula,
       BooleanFormula pLoopFormula,
-      BooleanFormula pSuffixFormula) {
-    // TODO Auto-generated method stub
-    return true;
+      BooleanFormula pSuffixFormula)
+      throws InterruptedException, SolverException {
+    try {
+      while (!pProver.isEmpty()) {
+        pProver.pop();
+      }
+      pProver.push(pSuffixFormula);
+      pProver.push(pLoopFormula);
+      pProver.push(pPrefixFormula);
+      return pProver.isUnsat();
+    } catch (InterruptedException | SolverException e) {
+      logger.log(Level.WARNING, "NZ: an exception happened during BMC phase");
+      throw e;
+    }
   }
 
   private boolean computeFixedPointByInterpolation(
