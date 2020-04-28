@@ -148,9 +148,12 @@ abstract class AbstractBMCAlgorithm
       + "(this is similar to CBMC's unwinding assertions).")
   private boolean boundingAssertions = true;
 
-  // NZ: option for interpolation-based model checking
+  // NZ: options for interpolation-based model checking
   @Option(secure = true, description = "try using interpolation to verify programs with loops")
   private boolean interpolation = false;
+
+  @Option(secure = true, description = "toggles deriving the interpolants from suffix formulas")
+  private boolean fromSuffix = false;
 
   @Option(secure=true, description="try using induction to verify programs with loops")
   private boolean induction = false;
@@ -533,6 +536,21 @@ abstract class AbstractBMCAlgorithm
     }
   }
 
+  private BooleanFormula getInterpolantFrom(
+      ProverEnvironmentWithFallback proverStack,
+      Stack<Object> formulaA,
+      Stack<Object> formulaB)
+      throws SolverException, InterruptedException {
+    if (fromSuffix) {
+      logger
+          .log(Level.FINEST, "NZ: deriving the interpolant from suffix (formula B) and negate it");
+      return bfmgr.not(proverStack.getInterpolant(formulaB));
+    } else {
+      logger.log(Level.FINEST, "NZ: deriving the interpolant from prefix and loop (formula A)");
+      return proverStack.getInterpolant(formulaA);
+    }
+  }
+
   /**
    * Compute fixed points by interpolation
    *
@@ -567,9 +585,8 @@ abstract class AbstractBMCAlgorithm
 
       while (proverStack.isUnsat()) {
         logger.log(Level.FINEST, "NZ: the current image is " + currentImage.toString());
-        interpolant = proverStack.getInterpolant(formulaA);
+        interpolant = getInterpolantFrom(proverStack, formulaA, formulaB);
         logger.log(Level.FINEST, "NZ: the interpolant is " + interpolant.toString());
-        // interpolant = bfmgr.not(proverStack.getInterpolant(formulaB));
         interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), prefixSsaMap);
         logger.log(Level.FINEST, "NZ: after changing SSA " + interpolant.toString());
         boolean reachFixedPoint = reachFixedPointCheck(pProver, interpolant, currentImage);
