@@ -446,10 +446,6 @@ abstract class AbstractBMCAlgorithm
              */
             int maxLoopIterations =
                 CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
-            if (maxLoopIterations > 2) {
-              logger.log(Level.INFO, "NZ: stop after unrolling once");
-              return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
-            }
             if (maxLoopIterations > 1) {
               logger.log(
                   Level.INFO,
@@ -506,11 +502,8 @@ abstract class AbstractBMCAlgorithm
      * step8: pop the prev interpolant and push the next interpolant; go to step5
      *
      */
-
     // pseudo code implementation
-    /*
-     * errorPath = getErrorPath();
-     */
+    // errorPath = getErrorPath();
     Optional<AbstractState> optionalTargetState =
         from(reachedSet).firstMatch(AbstractStates.IS_TARGET_STATE);
     // Q1: multiple error locations?
@@ -529,55 +522,30 @@ abstract class AbstractBMCAlgorithm
       pathIterator.advance();
     }
     return false;
-    /*
-     * prefixFormula = getFirstBlock(errorPath);
-     *
-     * loopFormula = getSecondBlock(errorPath);
-     *
-     * suffixFormula = getRestBlocks(errorPath);
-     *
-     * stack = getProveEnvironmentInterpolant();
-     *
-     * stack.markA(prefixFormula);
-     *
-     * stack.markA(loopFormula);
-     *
-     * stack.markB(suffixFormula);
-     *
-     * stack.push(suffixFormula);
-     *
-     * stack.push(loopFormula);
-     *
-     * stack.push(prefixFormula);
-     *
-     * prevInterpolant = null;
-     *
-     * nextInterpolant = null;
-     *
-     * while (stack.isUnsat()) {
-     *
-     * nextInterpolant = stack.getInterpolant();
-     *
-     * nextInterpolant = changeSSAIndices(nextInterpolant, prefixFormula);
-     *
-     * if (stack.equalCheck(prevInterpolant, nextInterpolant)) {
-     *
-     * // a fixed point is reached
-     *
-     * return true;
-     *
-     * }
-     *
-     * stack.pop();
-     *
-     * stack.push(nextInterpolant);
-     *
-     * prevInterpolant = nextInterpolant;
-     *
-     * }
-     *
-     * return false;
-     */
+//    prefixFormula = getFirstBlock(errorPath);
+//    loopFormula = getSecondBlock(errorPath);
+//    suffixFormula = getRestBlocks(errorPath);
+//    stack = getProveEnvironmentInterpolant();
+//    stack.markA(prefixFormula);
+//    stack.markA(loopFormula);
+//    stack.markB(suffixFormula);
+//    stack.push(suffixFormula);
+//    stack.push(loopFormula);
+//    stack.push(prefixFormula);
+//    prevInterpolant = null;
+//    nextInterpolant = null;
+//    while (stack.isUnsat()) {
+//      nextInterpolant = stack.getInterpolant();
+//      nextInterpolant = changeSSAIndices(nextInterpolant, prefixFormula);
+//      if (stack.equalCheck(prevInterpolant, nextInterpolant)) {
+//        // a fixed point is reached
+//        return true;
+//      }
+//      stack.pop();
+//      stack.push(nextInterpolant);
+//      prevInterpolant = nextInterpolant;
+//    }
+//    return false;
   }
   // NZ: end of the computeFixedPointByInterpolation
 
