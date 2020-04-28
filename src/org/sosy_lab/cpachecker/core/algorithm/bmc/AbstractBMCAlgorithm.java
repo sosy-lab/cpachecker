@@ -99,6 +99,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
+import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.targetreachability.ReachabilityState;
@@ -438,8 +439,16 @@ abstract class AbstractBMCAlgorithm
              * createInductionProver()) { sound = checkStepCase(reachedSet, candidateGenerator,
              * kInductionProver, ctiBlockingClauses); }
              */
-            // TODO: if maxLoopIterations>1, compute fixed points
-            sound = computeFixedPointByInterpolation();
+            int maxLoopIterations =
+                CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
+            if (maxLoopIterations > 1) {
+              logger.log(
+                  Level.INFO,
+                  "NZ: maxLoopIterations = "
+                      + maxLoopIterations
+                      + " > 1, compute fixed points by interpolation");
+              sound = computeFixedPointByInterpolation();
+            }
           }
           if (invariantGenerator.isProgramSafe()
               || (sound && !candidateGenerator.produceMoreCandidates())) {
