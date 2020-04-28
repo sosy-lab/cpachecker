@@ -31,7 +31,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -99,17 +98,11 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundState;
-import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaSlicer;
-import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.targetreachability.ReachabilityState;
@@ -624,135 +617,6 @@ abstract class AbstractBMCAlgorithm
       logger.log(Level.WARNING, "NZ: an exception happened during interpolation phase");
       return false;
     }
-  }
-
-  /**
-   * Compute fixed points by interpolation
-   *
-   * @return {@code true} if a fixed point is reached, {@code false} if the current
-   *         over-approximation is unsafe.
-   */
-  private boolean computeFixedPointByInterpolation(final ReachedSet reachedSet) {
-    logger.log(Level.INFO, "NZ: Computing fixed points by interpolation, under construction");
-    /*
-     * Algorithmic steps (a block ends when a loop head is encountered)
-     *
-     * step1: get error path
-     *
-     * Q1: multiple error locations?
-     *
-     * Q2: error location inside the loop versus after the loop?
-     *
-     * step2: get block formulas; prefix=1st block, loop=2nd block, suffix=rest blocks
-     *
-     * step3: allocate a new stack with interpolation
-     *
-     * step4: mark prefix and loop as A, suffix as B; push suffix, loop, prefix
-     *
-     * step5: if not UNSAT (SAT or timeout), return false; else, go to step6
-     *
-     * step6: get the next interpolant and change its SSA indices to the biggest indices in prefix
-     *
-     * step7: if the next interpolant equals the prev interpolant, return true; else, go to step8
-     *
-     * step8: pop the prev interpolant and push the next interpolant; go to step5
-     *
-     */
-
-    // step1: get an error path (Q1: multiple error locations; Q2: errors inside the loop)
-    Optional<AbstractState> optionalTargetState =
-        from(reachedSet).firstMatch(AbstractStates.IS_TARGET_STATE);
-    if (!optionalTargetState.isPresent()) {
-      logger.log(
-          Level.WARNING,
-          "NZ: no target state is found for fixed point computation");
-      return false;
-    }
-    AbstractState targetState = optionalTargetState.get();
-    logger.log(Level.INFO, "NZ: the target state is " + targetState.toString());
-    ARGPath errorPath = ARGUtils.getShortestPathTo((ARGState) targetState);
-
-    // step2: slice the formula into prefix, loop, and suffix
-    PathIterator pathIterator = errorPath.fullPathIterator();
-    List<ARGState> slicingPoints = new ArrayList<>();
-    while (pathIterator.hasNext()) {
-      if (slicingPoints.size() == 2) {
-        // only the first and the second loop heads are needed
-        break;
-      }
-      if (pathIterator.getLocation().isLoopStart()) {
-        slicingPoints.add(pathIterator.getAbstractState());
-      }
-      pathIterator.advance();
-    }
-    Preconditions
-        .checkState(slicingPoints.size() == 2, "NZ: the error path does not have two loop heads");
-    // add the target state to the slicing points
-    slicingPoints.add((ARGState) targetState);
-    BlockFormulaSlicer slicer = new BlockFormulaSlicer(pmgr);
-    BlockFormulas blockFormulas = null;
-    try {
-      blockFormulas = slicer.getFormulasForPath(errorPath.getFirstState(), slicingPoints);
-    } catch (CPATransferException | InterruptedException e) {
-      logger.log(Level.WARNING, "NZ: an exception happened during formula slicing");
-      return false;
-    }
-    Preconditions
-        .checkState(blockFormulas.getSize() == 3, "NZ: there are not three block formulas");
-    BooleanFormula prefixFormula = blockFormulas.getFormulas().get(0);
-    logger.log(Level.INFO, "NZ: the prefix formula is " + prefixFormula.toString());
-    BooleanFormula loopFormula = blockFormulas.getFormulas().get(1);
-    logger.log(Level.INFO, "NZ: the loop formula is " + loopFormula.toString());
-    BooleanFormula suffixFormula = blockFormulas.getFormulas().get(2);
-    logger.log(Level.INFO, "NZ: the suffix formula is " + suffixFormula.toString());
-
-    // step3: allocate a proof stack with interpolation
-    try (ProverEnvironmentWithFallback proverStack =
-        new ProverEnvironmentWithFallback(
-            solver,
-            ProverOptions.GENERATE_UNSAT_CORE)) {
-
-      // step4: label formulas
-      Stack<Object> formulaA = new Stack<>();
-      Stack<Object> formulaB = new Stack<>();
-      formulaB.push(proverStack.push(suffixFormula));
-      formulaA.push(proverStack.push(loopFormula));
-      formulaA.push(proverStack.push(prefixFormula));
-
-      // step5-8: the main interpolation loop for fixed point computation
-      BooleanFormula currentImage = prefixFormula; // TODO: how to clone? prefixFormula will be
-                                                   // changed via currentImage!
-      BooleanFormula interpolant = null;
-      while (proverStack.isUnsat()) {
-        interpolant = proverStack.getInterpolant(formulaA);
-        //interpolant = bfmgr.not(proverStack.getInterpolant(formulaB));
-        logger.log(Level.INFO, "NZ: the interpolant is " + interpolant.toString());
-        interpolant = changeSSAIndices(interpolant, prefixFormula);
-        // TODO: it seems that bfmgr does not do solving but only compares objects?
-        // The following line checks if the interpolant discovers new states; if not, a fixed
-        // point is reached
-        if (bfmgr.isTrue(bfmgr.implication(interpolant, currentImage))) {
-          logger
-              .log(Level.INFO, "NZ: the current image is a fixed point, property proved");
-          return true;
-        }
-        currentImage = bfmgr.or(currentImage, interpolant);
-        logger.log(Level.INFO, "NZ: current image is " + currentImage.toString());
-        proverStack.pop();
-        formulaA.pop();
-        formulaA.push(proverStack.push(interpolant));
-      }
-      logger.log(Level.INFO, "NZ: the overapproximation is unsafe, go back to BMC phase");
-      return false;
-    } catch (InterruptedException | SolverException e) {
-      logger.log(Level.WARNING, "NZ: an exception happened during interpolation phase");
-      return false;
-    }
-  }
-
-  private BooleanFormula changeSSAIndices(BooleanFormula f, BooleanFormula g) {
-    // TODO: change the SSA indices of f to that of g
-    return f;
   }
 
   public AlgorithmStatus run(final ReachedSet reachedSet) throws CPAException,
