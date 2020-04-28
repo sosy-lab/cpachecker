@@ -5,18 +5,18 @@
   <option name="-noout"/>
   <option name="-heap">2000M</option>
 
-  <rundefinition>
+  <rundefinition name="interpolation_from_prefix">
     <option name="-bmc-interpolation"/>
+    <option name="-setprop">bmc.deriveInterpolantFromSuffix=false</option>
   </rundefinition>
 
-  <tasks>
-    <includesfile>../programs/simple/simple.set</includesfile>
-    <propertyfile>../programs/simple/ALL.prp</propertyfile>
-    <option name="-setprop">bmc.deriveInterpolantFromSuffix=false</option>
-  </tasks>
-  <tasks>
-    <includesfile>../programs/simple/simple.set</includesfile>
-    <propertyfile>../programs/simple/ALL.prp</propertyfile>
+  <rundefinition name="interpolation_from_suffix">
+    <option name="-bmc-interpolation"/>
     <option name="-setprop">bmc.deriveInterpolantFromSuffix=true</option>
+  </rundefinition>
+  
+  <tasks>
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../programs/simple/ALL.prp</propertyfile>
   </tasks>
 </benchmark>
