@@ -411,9 +411,9 @@ abstract class AbstractBMCAlgorithm
         }
         BooleanFormula suffixFormula =
             bfmgr.and(tailFormula, getErrorFormula(reachedSet, maxLoopIterations - 1));
-        logger.log(Level.INFO, "NZ: the prefix is " + prefixFormula.getFormula().toString());
-        logger.log(Level.INFO, "NZ: the loop is " + loopFormula.toString());
-        logger.log(Level.INFO, "NZ: the suffix is " + suffixFormula.toString());
+//        logger.log(Level.INFO, "NZ: the prefix is " + prefixFormula.getFormula().toString());
+//        logger.log(Level.INFO, "NZ: the loop is " + loopFormula.toString());
+//        logger.log(Level.INFO, "NZ: the suffix is " + suffixFormula.toString());
 
         // step3: perform bounded model checking
         logger.log(Level.INFO, "NZ: perform bounded model checking");
