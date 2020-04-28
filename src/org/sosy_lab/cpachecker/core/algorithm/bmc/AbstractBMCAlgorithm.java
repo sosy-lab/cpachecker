@@ -453,7 +453,9 @@ abstract class AbstractBMCAlgorithm
                   "NZ: maxLoopIterations = "
                       + maxLoopIterations
                       + " > 1, compute fixed points by interpolation");
-              sound = computeFixedPointByInterpolation(reachedSet);
+              CandidateInvariant candidateInvariant =
+                  candidateGenerator.iterator().next();
+              sound = computeFixedPointByInterpolation(reachedSet, candidateInvariant);
               if (reachedSet.hasViolatedProperties()) {
                 logger.log(
                     Level.INFO,
@@ -483,7 +485,9 @@ abstract class AbstractBMCAlgorithm
    * @return {@code true} if a fixed point is reached, {@code false} if the current
    *         over-approximation is unsafe.
    */
-  private boolean computeFixedPointByInterpolation(final ReachedSet reachedSet) {
+  private boolean computeFixedPointByInterpolation(
+      final ReachedSet reachedSet,
+      final CandidateInvariant candidateInvariant) {
     logger.log(Level.INFO, "NZ: Computing fixed points by interpolation, under construction");
     /*
      * Algorithmic steps (a block ends when a loop head is encountered)
@@ -511,9 +515,22 @@ abstract class AbstractBMCAlgorithm
      */
     // pseudo code implementation
     // errorPath = getErrorPath();
+//    Iterable<AbstractState> targetStates = candidateInvariant.filterApplicable(reachedSet);
+//    if (((Collection<?>) targetStates).isEmpty()) {
+//      logger.log(
+//          Level.WARNING,
+//          "No target state is found in the reached set: cannot compute fixed points");
+//      return false;
+//    }
+//    // Q1: multiple error locations?
+//    if (((Collection<?>) targetStates).size() > 1) {
+//      logger.log(
+//          Level.WARNING,
+//          "More than one target states are found in the reached set: not supported yet");
+//      return false;
+//    }
     Optional<AbstractState> optionalTargetState =
         from(reachedSet).firstMatch(AbstractStates.IS_TARGET_STATE);
-    // Q1: multiple error locations?
     if (!optionalTargetState.isPresent()) {
       logger.log(
           Level.WARNING,
@@ -524,10 +541,10 @@ abstract class AbstractBMCAlgorithm
     ARGPath errorPath = ARGUtils.getShortestPathTo((ARGState) targetState);
     PathIterator pathIterator = errorPath.fullPathIterator();
     while (pathIterator.hasNext()) {
-      ARGState currentState = pathIterator.getAbstractState();
-      if (currentState.getChildren().size() > 1) {
-        logger.log(Level.INFO, "The current state" + currentState + " has more than one child");
-      }
+      PredicateAbstractState currentState =
+          PredicateAbstractState.getPredicateState(pathIterator.getAbstractState());
+      logger.log(Level.INFO, currentState.toString());
+      logger.log(Level.INFO, currentState.getPathFormula().toString());
       pathIterator.advance();
     }
     return false;
