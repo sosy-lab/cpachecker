@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="5 GB" cpuCores="1">
+
+  <option name="-noout"/>
+  <option name="-heap">2000M</option>
+
+  <rundefinition>
+    <option name="-bmc-interpolation"/>
+  </rundefinition>
+
+  <tasks>
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../programs/simple/ALL.prp</propertyfile>
+    <option name="-setprop">bmc.deriveInterpolantFromSuffix=false</option>
+  </tasks>
+  <tasks>
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../programs/simple/ALL.prp</propertyfile>
+    <option name="-setprop">bmc.deriveInterpolantFromSuffix=true</option>
+  </tasks>
+</benchmark>
