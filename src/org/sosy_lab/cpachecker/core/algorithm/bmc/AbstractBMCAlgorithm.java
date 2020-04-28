@@ -522,6 +522,7 @@ abstract class AbstractBMCAlgorithm
       return false;
     }
     AbstractState targetState = optionalTargetState.get();
+    logger.log(Level.INFO, targetState.toString());
     ARGPath errorPath = ARGUtils.getShortestPathTo((ARGState) targetState);
     // step2: get block formulas
     PathIterator pathIterator = errorPath.fullPathIterator();
@@ -538,6 +539,7 @@ abstract class AbstractBMCAlgorithm
     }
     // add the target state to the list
     slicingPoints.add((ARGState) targetState);
+    assert slicingPoints.size() == 3;
     BlockFormulaSlicer bfs = new BlockFormulaSlicer(pmgr);
     BlockFormulas blockFormulas = null;
     try {
@@ -555,9 +557,6 @@ abstract class AbstractBMCAlgorithm
     BooleanFormula suffixFormula = blockFormulas.getFormulas().get(2);
     logger.log(Level.INFO, "NZ: the suffix formula is " + suffixFormula.toString());
     return false;
-//    prefixFormula = getFirstBlock(errorPath);
-//    loopFormula = getSecondBlock(errorPath);
-//    suffixFormula = getRestBlocks(errorPath);
 //    stack = getProveEnvironmentInterpolant();
 //    stack.markA(prefixFormula);
 //    stack.markA(loopFormula);
