@@ -387,6 +387,12 @@ abstract class AbstractBMCAlgorithm
         stats.bmcPreparation.stop();
         shutdownNotifier.shutdownIfNecessary();
 
+        // step1.5: handle errors BEFORE the loop head
+        if (maxLoopIterations == 1 && existErrorBeforeLoop(reachedSet, prover)) {
+          logger.log(Level.INFO, "NZ: there exist reachable errors before the loop");
+          return AlgorithmStatus.UNSOUND_AND_PRECISE;
+        }
+
         // step2: collect prefix, loop, and suffix formulas
         logger.log(Level.INFO, "NZ: collecting prefix, loop, and suffix formulas");
         PathFormula prefixFormula = getPrefixFormula(reachedSet);
@@ -441,6 +447,35 @@ abstract class AbstractBMCAlgorithm
       throw e;
       }
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
+  }
+
+  private boolean
+      existErrorBeforeLoop(ReachedSet pReachedSet, ProverEnvironmentWithFallback pProver)
+          throws InterruptedException, SolverException {
+    List<AbstractState> errorLocations =
+        from(pReachedSet).filter(AbstractStates.IS_TARGET_STATE)
+            .filter(
+                e -> AbstractStates.extractStateByType(e, LoopBoundState.class)
+                    .getDeepestIteration()
+                    - 1 == -1)
+            .toList();
+    BooleanFormula formulaToErrorLocations = bfmgr.makeFalse();
+    for (AbstractState pErrorState : errorLocations) {
+      formulaToErrorLocations =
+          bfmgr.or(
+              formulaToErrorLocations,
+              PredicateAbstractState.getPredicateState(pErrorState)
+                  .getAbstractionFormula()
+                  .getBlockFormula()
+                  .getFormula());
+    }
+    try {
+      pProver.push(formulaToErrorLocations);
+      return !pProver.isUnsat();
+    }
+    catch (InterruptedException | SolverException e) {
+      throw e;
+    }
   }
 
   private PathFormula getPrefixFormula(ReachedSet pReachedSet) {
