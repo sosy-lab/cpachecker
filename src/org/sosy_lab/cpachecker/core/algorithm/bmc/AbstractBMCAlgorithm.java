@@ -479,7 +479,7 @@ abstract class AbstractBMCAlgorithm
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
   // NZ: end of the run method for interpolation-based model checking
-  // NZ: begin of the computeFixedPointByInterpolation
+  // NZ: begin of computeFixedPointByInterpolation
   /**
    * Compute fixed points by interpolation
    *
@@ -561,43 +561,51 @@ abstract class AbstractBMCAlgorithm
     logger.log(Level.INFO, "NZ: the suffix formula is " + suffixFormula.toString());
 
     // step3: allocate a proof stack with interpolation
-    try (ProverEnvironmentWithFallback prover =
+    try (ProverEnvironmentWithFallback proverStack =
         new ProverEnvironmentWithFallback(
             solver,
             ProverOptions.GENERATE_UNSAT_CORE)) {
+
       // step4: label formulas
-      Stack<Object> A = new Stack<>();
-      Stack<Object> B = new Stack<>();
-      B.push(prover.push(suffixFormula));
-      A.push(prover.push(loopFormula));
-      A.push(prover.push(prefixFormula));
-      Preconditions.checkState(
-          prover.isUnsat(),
-          "NZ: the formula is NOT UNSAT, cannot compute an interpolant");
-      BooleanFormula interpolantFormula = prover.getInterpolant(A);
-      //BooleanFormula interpolantFormula = bfmgr.not(prover.getInterpolant(B));
-      logger.log(Level.INFO, "NZ: the interpolant is " + interpolantFormula.toString());
+      Stack<Object> formulaA = new Stack<>();
+      Stack<Object> formulaB = new Stack<>();
+      formulaB.push(proverStack.push(suffixFormula));
+      formulaA.push(proverStack.push(loopFormula));
+      formulaA.push(proverStack.push(prefixFormula));
+
+      // step5-8: the main interpolation loop for fixed point computation
+      BooleanFormula prevInterpolant = null;
+      BooleanFormula nextInterpolant = null;
+      while (proverStack.isUnsat()) {
+        nextInterpolant = proverStack.getInterpolant(formulaA);
+        //nextInterpolant = bfmgr.not(proverStack.getInterpolant(formulaB));
+        logger.log(Level.INFO, "NZ: the interpolant is " + nextInterpolant.toString());
+        nextInterpolant = changeSSAIndices(nextInterpolant, prefixFormula);
+        if (prevInterpolant != null
+            && bfmgr.isTrue(bfmgr.equivalence(nextInterpolant, prevInterpolant))) {
+          logger.log(Level.INFO, "NZ: a fixed point is reached");
+          return true;
+        }
+        proverStack.pop();
+        formulaA.pop();
+        formulaA.push(proverStack.push(nextInterpolant));
+        prevInterpolant = nextInterpolant;
+      }
+      logger.log(Level.INFO, "NZ: the overapproximation is unsafe, go back to BMC phase");
+      return false;
     } catch (InterruptedException | SolverException e) {
-      logger.log(Level.WARNING, "NZ: an exception happened during interpolation");
+      logger.log(Level.WARNING, "NZ: an exception happened during interpolation phase");
       return false;
     }
-    return false;
-//    prevInterpolant = null;
-//    nextInterpolant = null;
-//    while (stack.isUnsat()) {
-//      nextInterpolant = stack.getInterpolant();
-//      nextInterpolant = changeSSAIndices(nextInterpolant, prefixFormula);
-//      if (stack.equalCheck(prevInterpolant, nextInterpolant)) {
-//        // a fixed point is reached
-//        return true;
-//      }
-//      stack.pop();
-//      stack.push(nextInterpolant);
-//      prevInterpolant = nextInterpolant;
-//    }
-//    return false;
   }
-  // NZ: end of the computeFixedPointByInterpolation
+  // NZ: end of computeFixedPointByInterpolation
+
+  // NZ: begin of changeSSAIndices
+  private BooleanFormula changeSSAIndices(BooleanFormula f, BooleanFormula g) {
+    // TODO: change the SSA indices of f to that of g
+    return f;
+  }
+  // NZ: end of changeSSAIndices
 
   public AlgorithmStatus run(final ReachedSet reachedSet) throws CPAException,
       SolverException,
