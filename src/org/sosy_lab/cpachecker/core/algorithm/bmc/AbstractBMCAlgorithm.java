@@ -142,6 +142,10 @@ abstract class AbstractBMCAlgorithm
       + "(this is similar to CBMC's unwinding assertions).")
   private boolean boundingAssertions = true;
 
+  // NZ: option for interpolation-based model checking
+  @Option(secure = true, description = "try using interpolation to verify programs with loops")
+  private boolean interpolation = false;
+
   @Option(secure=true, description="try using induction to verify programs with loops")
   private boolean induction = false;
 
@@ -338,6 +342,135 @@ abstract class AbstractBMCAlgorithm
 
     return true;
   }
+
+  // NZ: begin of the run method for interpolation-based model checking
+  public AlgorithmStatus runInterpolation(final ReachedSet reachedSet)
+      throws CPAException, SolverException, InterruptedException {
+    CFANode initialLocation = extractLocation(reachedSet.getFirstState());
+    invariantGenerator.start(initialLocation);
+
+    // The set of candidate invariants that still need to be checked.
+    // Successfully proven invariants are removed from the set.
+    final CandidateGenerator candidateGenerator = getCandidateInvariants();
+    // Set<Obligation> ctiBlockingClauses = new TreeSet<>();
+    // Map<SymbolicCandiateInvariant, BmcResult> checkedClauses = new HashMap<>();
+
+    if (!candidateGenerator.produceMoreCandidates()) {
+      for (AbstractState state : ImmutableList.copyOf(reachedSet.getWaitlist())) {
+        reachedSet.removeOnlyFromWaitlist(state);
+      }
+      return AlgorithmStatus.SOUND_AND_PRECISE;
+    }
+
+    AlgorithmStatus status;
+
+    try (ProverEnvironmentWithFallback prover =
+        new ProverEnvironmentWithFallback(solver, ProverOptions.GENERATE_MODELS)) {
+      invariantGeneratorHeadStart.waitForInvariantGenerator();
+
+      do {
+        shutdownNotifier.shutdownIfNecessary();
+
+        logger.log(Level.INFO, "Creating formula for program");
+        stats.bmcPreparation.start();
+        status = BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
+        stats.bmcPreparation.stop();
+        if (from(reachedSet).skip(1) // first state of reached is always an abstraction state, so
+                                     // skip it
+            .filter(not(IS_TARGET_STATE)) // target states may be abstraction states
+            .anyMatch(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)) {
+
+          logger.log(
+              Level.WARNING,
+              "BMC algorithm does not work with abstractions. Could not check for satisfiability!");
+          return status;
+        }
+        shutdownNotifier.shutdownIfNecessary();
+
+        if (invariantGenerator.isProgramSafe()) {
+          TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
+          return AlgorithmStatus.SOUND_AND_PRECISE;
+        }
+
+        // Perform a bounded model check on each candidate invariant
+        Iterator<CandidateInvariant> candidateInvariantIterator = candidateGenerator.iterator();
+        while (candidateInvariantIterator.hasNext()) {
+          shutdownNotifier.shutdownIfNecessary();
+          CandidateInvariant candidateInvariant = candidateInvariantIterator.next();
+          // first check safety in k iterations
+
+          boolean safe = boundedModelCheck(reachedSet, prover, candidateInvariant);
+          if (!safe) {
+            if (candidateInvariant == TargetLocationCandidateInvariant.INSTANCE) {
+              return AlgorithmStatus.UNSOUND_AND_PRECISE;
+            }
+            candidateInvariantIterator.remove();
+          }
+
+          if (invariantGenerator.isProgramSafe()) {
+            TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
+            return AlgorithmStatus.SOUND_AND_PRECISE;
+          }
+        }
+
+        // second check soundness
+        boolean sound;
+
+        // verify soundness, but don't bother if we are unsound anyway or we have found a bug
+        if (status.isSound()) {
+
+          // check bounding assertions
+          sound =
+              candidateGenerator.hasCandidatesAvailable()
+                  ? checkBoundingAssertions(reachedSet, prover)
+                  : true;
+
+          if (invariantGenerator.isProgramSafe()) {
+            return AlgorithmStatus.SOUND_AND_PRECISE;
+          }
+
+          // NZ: try to prove program safety via interpolation
+          if (interpolation && !sound) {
+            /*
+             * if (usePropertyDirection) { usePropertyDirection =
+             * refineCtiBlockingClauses(reachedSet, prover, ctiBlockingClauses, checkedClauses); if
+             * (!usePropertyDirection) { ctiBlockingClauses.clear(); } }
+             */
+            /*
+             * try (@SuppressWarnings("resource") KInductionProver kInductionProver =
+             * createInductionProver()) { sound = checkStepCase(reachedSet, candidateGenerator,
+             * kInductionProver, ctiBlockingClauses); }
+             */
+            // TODO: implement a class interpolationProver
+            // KInductionProver kInductionProver = createInductionProver();
+            sound = computeFixedPoint();
+          }
+          if (invariantGenerator.isProgramSafe()
+              || (sound && !candidateGenerator.produceMoreCandidates())) {
+            return AlgorithmStatus.SOUND_AND_PRECISE;
+          }
+        }
+        if (!candidateGenerator.hasCandidatesAvailable()) {
+          // no remaining invariants to be proven
+          return status;
+        }
+      } while (status.isSound() && adjustConditions());
+    }
+    return AlgorithmStatus.UNSOUND_AND_PRECISE;
+  }
+  // NZ: end of the run method for interpolation-based model checking
+  // NZ: begin of the computeFixedPoint for interpolation-based model checking
+  /**
+   * Compute fixed points by interpolation
+   *
+   * @return {@code true} if a fixed point is reached, {@code false} if the current
+   *         over-approximation is not safe.
+   */
+  private boolean computeFixedPoint() {
+    logger.log(Level.INFO, "NZ: Computing fixed points by interpolation");
+    return false;
+  }
+  // NZ: end of the computeFixedPoint for interpolation-based model checking
 
   public AlgorithmStatus run(final ReachedSet reachedSet) throws CPAException,
       SolverException,

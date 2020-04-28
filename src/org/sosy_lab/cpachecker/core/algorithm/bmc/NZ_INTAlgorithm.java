@@ -171,7 +171,7 @@ public class NZ_INTAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   public AlgorithmStatus run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
     logger.log(Level.INFO, "NZ: interpolation-based model checking, under construction.");
     try {
-      return super.run(reachedSet);
+      return super.runInterpolation(reachedSet);
     } catch (SolverException e) {
       throw new CPAException("Solver Failure " + e.getMessage(), e);
     } finally {

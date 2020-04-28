@@ -1,2 +1,1 @@
-./scripts/cpa.sh -bmc -preprocess -setprop analysis.algorithm.BMC=false -setprop analysis.algorithm.IMC=true $1 
-
+./scripts/cpa.sh -timelimit 10s -bmc -preprocess -setprop analysis.algorithm.BMC=false -setprop analysis.algorithm.IMC=true -setprop bmc.interpolation=true -setprop cpa.loopbound.maxLoopIterationAdjusterFactory=INCREMENT $1
