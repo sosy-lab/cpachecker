@@ -508,7 +508,8 @@ abstract class AbstractBMCAlgorithm
         from(pReachedSet).filter(AbstractStates.IS_TARGET_STATE)
             .filter(
                 e -> AbstractStates.extractStateByType(e, LoopBoundState.class)
-                    .getDeepestIteration() == maxLoopIterations)
+                    .getDeepestIteration()
+                    - 1 == maxLoopIterations - 1)
             .toList();
     BooleanFormula formulaToErrorLocations = bfmgr.makeFalse();
     for (AbstractState pErrorState : errorLocations) {
