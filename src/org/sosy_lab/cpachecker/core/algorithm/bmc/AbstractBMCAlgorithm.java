@@ -390,10 +390,11 @@ abstract class AbstractBMCAlgorithm
         // step2: collect prefix, loop, and suffix formulas
         logger.log(Level.INFO, "NZ: collecting prefix, loop, and suffix formulas");
         PathFormula prefixFormula = getPrefixFormula(reachedSet);
-        PathFormula loopFormula = getLoopFormula(reachedSet);
+        BooleanFormula loopFormula =
+            (maxLoopIterations == 1) ? bfmgr.makeTrue() : getLoopFormula(reachedSet);
         BooleanFormula suffixFormula = getSuffixFormula(reachedSet, maxLoopIterations);
         logger.log(Level.INFO, "NZ: the prefix is " + prefixFormula.getFormula().toString());
-        logger.log(Level.INFO, "NZ: the loop is " + loopFormula.getFormula().toString());
+        logger.log(Level.INFO, "NZ: the loop is " + loopFormula.toString());
         logger.log(Level.INFO, "NZ: the suffix is " + suffixFormula.toString());
 
         // step3: perform bounded model checking
@@ -402,7 +403,7 @@ abstract class AbstractBMCAlgorithm
             boundedModelCheckWithLargeBlockEncoding(
                 prover,
                 prefixFormula.getFormula(),
-                loopFormula.getFormula(),
+                loopFormula,
                 suffixFormula);
         if (!safe) {
           return AlgorithmStatus.UNSOUND_AND_PRECISE;
@@ -424,7 +425,7 @@ abstract class AbstractBMCAlgorithm
             safe =
                 computeFixedPointByInterpolation(
                     prefixFormula.getFormula(),
-                    loopFormula.getFormula(),
+                    loopFormula,
                     suffixFormula,
                     prefixFormula.getSsa());
             if (safe) {
@@ -457,7 +458,7 @@ abstract class AbstractBMCAlgorithm
         .getBlockFormula();
   }
 
-  private PathFormula getLoopFormula(ReachedSet pReachedSet) {
+  private BooleanFormula getLoopFormula(ReachedSet pReachedSet) {
     List<AbstractState> secondLoopHead =
         from(pReachedSet)
             .filter(
@@ -475,7 +476,8 @@ abstract class AbstractBMCAlgorithm
     }
     return PredicateAbstractState.getPredicateState(secondLoopHead.get(0))
         .getAbstractionFormula()
-        .getBlockFormula();
+        .getBlockFormula()
+        .getFormula();
   }
 
   private BooleanFormula getSuffixFormula(ReachedSet pReachedSet, int maxLoopIterations) {
