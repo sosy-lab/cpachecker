@@ -31,6 +31,7 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -97,6 +98,10 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
@@ -441,13 +446,17 @@ abstract class AbstractBMCAlgorithm
              */
             int maxLoopIterations =
                 CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
+            if (maxLoopIterations > 2) {
+              logger.log(Level.INFO, "NZ: stop after unrolling once");
+              return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
+            }
             if (maxLoopIterations > 1) {
               logger.log(
                   Level.INFO,
                   "NZ: maxLoopIterations = "
                       + maxLoopIterations
                       + " > 1, compute fixed points by interpolation");
-              sound = computeFixedPointByInterpolation();
+              sound = computeFixedPointByInterpolation(reachedSet);
             }
           }
           if (invariantGenerator.isProgramSafe()
@@ -471,9 +480,8 @@ abstract class AbstractBMCAlgorithm
    * @return {@code true} if a fixed point is reached, {@code false} if the current
    *         over-approximation is unsafe.
    */
-  private boolean computeFixedPointByInterpolation() {
+  private boolean computeFixedPointByInterpolation(final ReachedSet reachedSet) {
     logger.log(Level.INFO, "NZ: Computing fixed points by interpolation, under construction");
-    return false;
     /*
      * Algorithmic steps (a block ends when a loop head is encountered)
      *
@@ -502,7 +510,26 @@ abstract class AbstractBMCAlgorithm
     // pseudo code implementation
     /*
      * errorPath = getErrorPath();
-     *
+     */
+    Optional<AbstractState> optionalTargetState =
+        from(reachedSet).firstMatch(AbstractStates.IS_TARGET_STATE);
+    // Q1: multiple error locations?
+    if (!optionalTargetState.isPresent()) {
+      logger.log(Level.WARNING, "No target state is found");
+      return false;
+    }
+    AbstractState targetState = optionalTargetState.get();
+    ARGPath errorPath = ARGUtils.getShortestPathTo((ARGState) targetState);
+    PathIterator pathIterator = errorPath.fullPathIterator();
+    while (pathIterator.hasNext()) {
+      ARGState currentState = pathIterator.getAbstractState();
+      if (currentState.getChildren().size() > 1) {
+        logger.log(Level.INFO, "The current state" + currentState + " has more than one child");
+      }
+      pathIterator.advance();
+    }
+    return false;
+    /*
      * prefixFormula = getFirstBlock(errorPath);
      *
      * loopFormula = getSecondBlock(errorPath);
