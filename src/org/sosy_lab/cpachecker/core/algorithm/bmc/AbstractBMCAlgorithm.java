@@ -582,9 +582,12 @@ abstract class AbstractBMCAlgorithm
         //interpolant = bfmgr.not(proverStack.getInterpolant(formulaB));
         logger.log(Level.INFO, "NZ: the interpolant is " + interpolant.toString());
         interpolant = changeSSAIndices(interpolant, prefixFormula);
-        // TODO: it seems this line only compares whether the objects are identical
-        if (bfmgr.isTrue(bfmgr.equivalence(currentImage, bfmgr.or(currentImage, interpolant)))) {
-          logger.log(Level.INFO, "NZ: a fixed point is reached");
+        // TODO: it seems that bfmgr does not do solving but only compares objects?
+        // The following line checks if the interpolant discovers new states; if not, a fixed
+        // point is reached
+        if (bfmgr.isTrue(bfmgr.implication(interpolant, currentImage))) {
+          logger
+              .log(Level.INFO, "NZ: the current image is a fixed point, property proved");
           return true;
         }
         currentImage = bfmgr.or(currentImage, interpolant);
