@@ -82,13 +82,13 @@ public class TarantulaRanking {
    * line 5: N2 -{[cond == 0]},[2,1]</code> means that this specific Edges has `2` failed cases and
    * only one passed case.
    *
-   * @param  path The whole path contains all error paths and passed paths.
+   * @param  paths The whole path contains all error paths and passed paths.
    * @return result as <code>Map<code/>.
    */
-  private Map<CFAEdge, TarantulaCasesStatus> coverageInformation(Set<List<CFAEdge>> path) {
+  private Map<CFAEdge, TarantulaCasesStatus> coverageInformation(Set<List<CFAEdge>> paths) {
 
     Map<CFAEdge, TarantulaCasesStatus> map = new LinkedHashMap<>();
-    for (List<CFAEdge> individualArray : path) {
+    for (List<CFAEdge> individualArray : paths) {
       for (int j = 0; j < individualArray.size(); j++) {
         TarantulaCasesStatus pair;
         if (map.containsKey(individualArray.get(j))) {
@@ -99,7 +99,7 @@ public class TarantulaRanking {
           } else {
             pair = new TarantulaCasesStatus(pair.getFailedCases(), pair.getPassedCases() + 1);
           }
-
+          map.put(individualArray.get(j), pair);
         } else {
           if (failedCase.isFailedPath(individualArray)) {
             pair = new TarantulaCasesStatus(1, 0);

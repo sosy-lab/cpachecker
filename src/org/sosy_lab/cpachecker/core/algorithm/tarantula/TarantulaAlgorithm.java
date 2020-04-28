@@ -43,6 +43,7 @@ public class TarantulaAlgorithm implements Algorithm {
 
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
+
     AlgorithmStatus result = analysis.run(reachedSet);
     FailedCase errorCase = new FailedCase(reachedSet);
     SafeCase safeCase = new SafeCase(reachedSet);
