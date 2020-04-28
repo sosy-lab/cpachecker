@@ -591,8 +591,8 @@ abstract class AbstractBMCAlgorithm
       formulaB.push(proverStack.push(pSuffixFormula));
       formulaA.push(proverStack.push(pLoopFormula));
       formulaA.push(proverStack.push(pPrefixFormula));
-      // TODO: how to clone a BooleanFormula? pPrefixFormula will be changed via currentImage!
-      BooleanFormula currentImage = bfmgr.and(pPrefixFormula, bfmgr.makeTrue());
+      BooleanFormula currentImage = bfmgr.makeFalse();
+      currentImage = bfmgr.or(currentImage, pPrefixFormula);
       BooleanFormula interpolant = null;
 
       while (proverStack.isUnsat()) {
