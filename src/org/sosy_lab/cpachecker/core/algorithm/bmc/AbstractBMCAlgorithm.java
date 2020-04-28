@@ -105,7 +105,9 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
+import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundState;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaSlicer;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -386,17 +388,21 @@ abstract class AbstractBMCAlgorithm
         stats.bmcPreparation.start();
         status = BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
         stats.bmcPreparation.stop();
-        if (from(reachedSet).skip(1) // first state of reached is always an abstraction state, so
-                                     // skip it
-            .filter(not(IS_TARGET_STATE)) // target states may be abstraction states
-            .anyMatch(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)) {
-
-          logger.log(
-              Level.WARNING,
-              "BMC algorithm does not work with abstractions. Could not check for satisfiability!");
-          return status;
-        }
+//        if (from(reachedSet).skip(1) // first state of reached is always an abstraction state, so
+//                                     // skip it
+//            .filter(not(IS_TARGET_STATE)) // target states may be abstraction states
+//            .anyMatch(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)) {
+//
+//          logger.log(
+//              Level.WARNING,
+//              "BMC algorithm does not work with abstractions. Could not check for satisfiability!");
+//          return status;
+//        }
         shutdownNotifier.shutdownIfNecessary();
+
+        // NZ: play with the reachedSet
+        playReachedSet(reachedSet);
+        // NZ
 
         if (invariantGenerator.isProgramSafe()) {
           TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
@@ -611,6 +617,40 @@ abstract class AbstractBMCAlgorithm
     return f;
   }
   // NZ: end of changeSSAIndices
+
+  // NZ: begin of playReachedSet
+  private void playReachedSet(ReachedSet reachedSet) {
+    BooleanFormula prefix = null, loop = null;
+    for (AbstractState s : reachedSet.asCollection()) {
+      if (AbstractStates.extractStateByType(s, LocationState.class)
+          .getLocationNode()
+          .isLoopStart()) {
+        if (AbstractStates.extractStateByType(s, LoopBoundState.class).getDeepestIteration()
+            - 1 == 0) {
+          prefix =
+              PredicateAbstractState.getPredicateState(s)
+                  .getAbstractionFormula()
+                  .getBlockFormula()
+                  .getFormula();
+        }
+        if (AbstractStates.extractStateByType(s, LoopBoundState.class).getDeepestIteration()
+            - 1 == 1) {
+          loop =
+              PredicateAbstractState.getPredicateState(s)
+                  .getAbstractionFormula()
+                  .getBlockFormula()
+                  .getFormula();
+        }
+      }
+    }
+    if (prefix != null) {
+      logger.log(Level.INFO, "NZ: prefix is " + prefix.toString());
+    }
+    if (loop != null) {
+      logger.log(Level.INFO, "NZ: loop is " + loop.toString());
+    }
+  }
+  // NZ: end of playReachedSet
 
   public AlgorithmStatus run(final ReachedSet reachedSet) throws CPAException,
       SolverException,
