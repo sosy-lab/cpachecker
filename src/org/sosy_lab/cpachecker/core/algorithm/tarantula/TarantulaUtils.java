@@ -54,14 +54,6 @@ public class TarantulaUtils {
     }
     return paths;
   }
-  /**
-   * Extract root state from ARG.
-   *
-   * @return Returns <code>true</code> if the path exists otherwise returns <code>false</code>
-   */
-  public static ARGState getRootState(ReachedSet reachedSet) {
-    return AbstractStates.extractStateByType(reachedSet.getFirstState(), ARGState.class);
-  }
 
   /**
    * Gets all states on the possible paths from the possible leaves (whether targetStates or
@@ -74,7 +66,7 @@ public class TarantulaUtils {
   private static List<List<ARGState>> getAllStatesReversed(
       ReachedSet reachedSet, ARGState chosenState) {
 
-    ARGState root = getRootState(reachedSet);
+    ARGState root = AbstractStates.extractStateByType(reachedSet.getFirstState(), ARGState.class);
     List<ARGState> states = new ArrayList<>();
     List<List<ARGState>> results = new ArrayList<>();
     List<List<ARGState>> paths = new ArrayList<>();
@@ -93,8 +85,6 @@ public class TarantulaUtils {
 
         continue;
       }
-      // Expand the path
-
       // Add all parents
       for (ARGState parentElement : curPath.get(curPath.size() - 1).getParents()) {
         List<ARGState> tmp = new ArrayList<>(ImmutableList.copyOf(curPath));

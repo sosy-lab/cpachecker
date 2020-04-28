@@ -34,14 +34,13 @@ import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaUtils;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class SafeCase {
   private final ReachedSet pReachedSet;
-  private final ARGState root;
 
-  public SafeCase(ReachedSet pPReachedSet, ARGState pRoot) {
+  public SafeCase(ReachedSet pPReachedSet) {
     this.pReachedSet = pPReachedSet;
-    this.root = pRoot;
   }
   /**
    * Gets safe states (safe leaves) from ARG.
@@ -49,7 +48,7 @@ public class SafeCase {
    * @return Detected safe states.
    */
   private List<ARGState> getSafeStates() {
-    return from(root.getSubgraph())
+    return from(rootState().getSubgraph())
         .filter(
             e -> {
               assert e != null;
@@ -69,7 +68,7 @@ public class SafeCase {
    */
   private List<ARGState> getSafeLoopStates() {
 
-    return from(root.getSubgraph())
+    return from(rootState().getSubgraph())
         .filter(
             e -> {
               assert e != null;
@@ -91,10 +90,9 @@ public class SafeCase {
 
     Set<List<CFAEdge>> allSafePathsTogether = new HashSet<>();
 
-    for (ARGState safePath : mergeAllSafeStates(getSafeStates(), getSafeLoopStates())) {
-
+    for (ARGState safeState : mergeAllSafeStates(getSafeStates(), getSafeLoopStates())) {
       if (existsSafePath()) {
-        allSafePathsTogether.addAll(TarantulaUtils.getAllPaths(pReachedSet, safePath));
+        allSafePathsTogether.addAll(TarantulaUtils.getAllPaths(pReachedSet, safeState));
       }
     }
     return allSafePathsTogether;
@@ -128,5 +126,13 @@ public class SafeCase {
     }
 
     return false;
+  }
+  /**
+   * Get root state from reachedSet.
+   *
+   * @return ARG root state.
+   */
+  private ARGState rootState() {
+    return AbstractStates.extractStateByType(pReachedSet.getFirstState(), ARGState.class);
   }
 }
