@@ -3,8 +3,6 @@ extern void __VERIFIER_assume(int cond) { if(!cond) while(1){} }
 void __VERIFIER_assert(int cond) { if(!(cond)) { ERROR: __VERIFIER_error(); } }
 extern int __VERIFIER_nondet_int();
 
-#include <stdlib.h>
-
 int
 main() {
    int reg = 0;

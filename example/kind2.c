@@ -22,6 +22,7 @@ int main() {
     //unsigned k=__VERIFIER_nondet_unsigned();
     __VERIFIER_assume(i <= k && k < n);
 
-    if(a[k] != 0)
+    //if(a[k] != 0)
+    if(1)
         __VERIFIER_error();
 }
