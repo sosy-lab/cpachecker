@@ -574,22 +574,24 @@ abstract class AbstractBMCAlgorithm
       formulaA.push(proverStack.push(prefixFormula));
 
       // step5-8: the main interpolation loop for fixed point computation
-      BooleanFormula prevInterpolant = null;
-      BooleanFormula nextInterpolant = null;
+      BooleanFormula currentImage = prefixFormula; // TODO: how to clone? prefixFormula will be
+                                                   // changed via currentImage!
+      BooleanFormula interpolant = null;
       while (proverStack.isUnsat()) {
-        nextInterpolant = proverStack.getInterpolant(formulaA);
-        //nextInterpolant = bfmgr.not(proverStack.getInterpolant(formulaB));
-        logger.log(Level.INFO, "NZ: the interpolant is " + nextInterpolant.toString());
-        nextInterpolant = changeSSAIndices(nextInterpolant, prefixFormula);
-        if (prevInterpolant != null
-            && bfmgr.isTrue(bfmgr.equivalence(nextInterpolant, prevInterpolant))) {
+        interpolant = proverStack.getInterpolant(formulaA);
+        //interpolant = bfmgr.not(proverStack.getInterpolant(formulaB));
+        logger.log(Level.INFO, "NZ: the interpolant is " + interpolant.toString());
+        interpolant = changeSSAIndices(interpolant, prefixFormula);
+        // TODO: it seems this line only compares whether the objects are identical
+        if (bfmgr.isTrue(bfmgr.equivalence(currentImage, bfmgr.or(currentImage, interpolant)))) {
           logger.log(Level.INFO, "NZ: a fixed point is reached");
           return true;
         }
+        currentImage = bfmgr.or(currentImage, interpolant);
+        logger.log(Level.INFO, "NZ: current image is " + currentImage.toString());
         proverStack.pop();
         formulaA.pop();
-        formulaA.push(proverStack.push(nextInterpolant));
-        prevInterpolant = nextInterpolant;
+        formulaA.push(proverStack.push(interpolant));
       }
       logger.log(Level.INFO, "NZ: the overapproximation is unsafe, go back to BMC phase");
       return false;
