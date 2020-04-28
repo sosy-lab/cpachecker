@@ -449,22 +449,20 @@ abstract class AbstractBMCAlgorithm
         }
 
         // step4: perform fixed point computation by interpolation
-        if (interpolation) {
-          if (maxLoopIterations > 1) {
-            logger.log(
-                Level.INFO,
-                "NZ: maxLoopIterations = "
-                    + maxLoopIterations
-                    + " > 1, compute fixed points by interpolation");
-            boolean safe =
-                computeFixedPointByInterpolation(
-                    prefixFormula.getFormula(),
-                    loopFormula,
-                    suffixFormula,
-                    prefixFormula.getSsa());
-            if (safe) {
-              return AlgorithmStatus.SOUND_AND_PRECISE;
-            }
+        if (interpolation && maxLoopIterations > 1) {
+          logger.log(
+              Level.INFO,
+              "NZ: compute fixed points by interpolation at maxLoopIterations = "
+                  + maxLoopIterations);
+          boolean safe =
+              computeFixedPointByInterpolation(
+                  prover,
+                  prefixFormula.getFormula(),
+                  loopFormula,
+                  suffixFormula,
+                  prefixFormula.getSsa());
+          if (safe) {
+            return AlgorithmStatus.SOUND_AND_PRECISE;
           }
         }
       } while (adjustConditions());
@@ -564,13 +562,68 @@ abstract class AbstractBMCAlgorithm
     }
   }
 
+  private boolean reachFixedPointCheck(
+      ProverEnvironmentWithFallback pProver,
+      BooleanFormula pInterpolantFormula,
+      BooleanFormula pCurrentImageFormula)
+      throws InterruptedException, SolverException {
+    try {
+      BooleanFormula pNotImplicationFormula =
+          bfmgr.not(bfmgr.implication(pInterpolantFormula, pCurrentImageFormula));
+      return !formulaCheckSat(pProver, pNotImplicationFormula);
+    } catch (InterruptedException | SolverException e) {
+      logger.log(Level.WARNING, "NZ: an exception happened during fixed point checking phase");
+      throw e;
+    }
+  }
+
   private boolean computeFixedPointByInterpolation(
+      ProverEnvironmentWithFallback pProver,
       BooleanFormula pPrefixFormula,
       BooleanFormula pLoopFormula,
       BooleanFormula pSuffixFormula,
       SSAMap prefixSsaMap) {
-    // TODO Auto-generated method stub
-    return false;
+    try (ProverEnvironmentWithFallback proverStack =
+        new ProverEnvironmentWithFallback(solver, ProverOptions.GENERATE_UNSAT_CORE)) {
+
+      Stack<Object> formulaA = new Stack<>();
+      Stack<Object> formulaB = new Stack<>();
+      formulaB.push(proverStack.push(pSuffixFormula));
+      formulaA.push(proverStack.push(pLoopFormula));
+      formulaA.push(proverStack.push(pPrefixFormula));
+      // TODO: how to clone a BooleanFormula? pPrefixFormula will be changed via currentImage!
+      BooleanFormula currentImage = bfmgr.and(pPrefixFormula, bfmgr.makeTrue());
+      BooleanFormula interpolant = null;
+
+      while (proverStack.isUnsat()) {
+        interpolant = proverStack.getInterpolant(formulaA);
+        logger.log(Level.INFO, "NZ: the prefix is " + pPrefixFormula.toString());
+        logger.log(Level.INFO, "NZ: the SSA map is " + prefixSsaMap.toString());
+        logger.log(
+            Level.INFO,
+            "NZ: the interpolant before changing index is " + interpolant.toString());
+        // interpolant = bfmgr.not(proverStack.getInterpolant(formulaB));
+        interpolant = fmgr.instantiate(interpolant, prefixSsaMap);
+        logger.log(
+            Level.INFO,
+            "NZ: the interpolant after changing index is " + interpolant.toString());
+        boolean reachFixedPoint = reachFixedPointCheck(pProver, interpolant, currentImage);
+        if (reachFixedPoint) {
+          logger.log(Level.INFO, "NZ: the current image is a fixed point, property proved");
+          return true;
+        }
+        currentImage = bfmgr.or(currentImage, interpolant);
+        logger.log(Level.INFO, "NZ: current image is " + currentImage.toString());
+        proverStack.pop();
+        formulaA.pop();
+        formulaA.push(proverStack.push(interpolant));
+      }
+      logger.log(Level.INFO, "NZ: the overapproximation is unsafe, go back to BMC phase");
+      return false;
+    } catch (InterruptedException | SolverException e) {
+      logger.log(Level.WARNING, "NZ: an exception happened during interpolation phase");
+      return false;
+    }
   }
 
   /**
