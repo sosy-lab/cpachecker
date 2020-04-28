@@ -372,18 +372,13 @@ abstract class AbstractBMCAlgorithm
       do {
         int maxLoopIterations = CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
 
-        // step1: unroll with large-block encoding
         shutdownNotifier.shutdownIfNecessary();
-        logger.log(
-            Level.INFO,
-            "NZ: unrolling the program with large-block encoding, maxLoopIterations = "
-                + maxLoopIterations);
+        logger.log(Level.INFO, "NZ: unrolling with LBE, maxLoopIterations = " + maxLoopIterations);
         stats.bmcPreparation.start();
         BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
         stats.bmcPreparation.stop();
         shutdownNotifier.shutdownIfNecessary();
 
-        // step2: collect prefix, loop, and suffix formulas
         logger.log(Level.INFO, "NZ: collecting prefix, loop, and suffix formulas");
         if (maxLoopIterations == 1) {
           if (errorIsReachableCheck(prover, getErrorFormula(reachedSet, -1))) {
@@ -403,12 +398,11 @@ abstract class AbstractBMCAlgorithm
         }
         BooleanFormula suffixFormula =
             bfmgr.and(tailFormula, getErrorFormula(reachedSet, maxLoopIterations - 1));
-        //logger.log(Level.INFO, "NZ: the prefix is " + prefixFormula.getFormula().toString());
-        //logger.log(Level.INFO, "NZ: the loop is " + loopFormula.toString());
-        //logger.log(Level.INFO, "NZ: the suffix is " + suffixFormula.toString());
+        logger.log(Level.FINEST, "NZ: the prefix is " + prefixFormula.getFormula().toString());
+        logger.log(Level.FINEST, "NZ: the loop is " + loopFormula.toString());
+        logger.log(Level.FINEST, "NZ: the suffix is " + suffixFormula.toString());
 
-        // step3: perform bounded model checking
-        logger.log(Level.INFO, "NZ: perform bounded model checking");
+        logger.log(Level.INFO, "NZ: performing bounded model checking");
         BooleanFormula reachErrorFormula =
             bfmgr.and(prefixFormula.getFormula(), loopFormula, suffixFormula);
         if (errorIsReachableCheck(prover, reachErrorFormula)) {
@@ -418,11 +412,10 @@ abstract class AbstractBMCAlgorithm
         else {
           logger.log(
               Level.INFO,
-              "NZ: the program is safe up to maxLoopIterations = " + maxLoopIterations);
+              "NZ: no error is found up to maxLoopIterations = " + maxLoopIterations);
           if (reachedSet.hasViolatedProperties()) {
             TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
           }
-          // step3.5: perform forward condition checking
           BooleanFormula forwardConditionFormula =
               bfmgr.and(
                   prefixFormula.getFormula(),
@@ -430,20 +423,13 @@ abstract class AbstractBMCAlgorithm
                   tailFormula,
                   getLoopHeadFormula(reachedSet, maxLoopIterations).getFormula());
           if (!forwardConditionCheck(prover, forwardConditionFormula)) {
-            logger.log(
-                Level.INFO,
-                "NZ: the program is safe as it cannot be unrolled forward at maxLoopIterations = "
-                    + maxLoopIterations);
+            logger.log(Level.INFO, "NZ: the program is safe as it cannot be further unrolled");
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
         }
 
-        // step4: perform fixed point computation by interpolation
         if (interpolation && maxLoopIterations > 1) {
-          logger.log(
-              Level.INFO,
-              "NZ: compute fixed points by interpolation at maxLoopIterations = "
-                  + maxLoopIterations);
+          logger.log(Level.INFO, "NZ: computing fixed points by interpolation");
           if (reachFixedPointByInterpolation(prover, prefixFormula, loopFormula, suffixFormula)) {
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
@@ -567,6 +553,7 @@ abstract class AbstractBMCAlgorithm
 
       BooleanFormula pPrefixFormula = pPrefixPathFormula.getFormula();
       SSAMap prefixSsaMap = pPrefixPathFormula.getSsa();
+      logger.log(Level.FINEST, "NZ: the SSA map is " + prefixSsaMap.toString());
       BooleanFormula currentImage = bfmgr.makeFalse();
       currentImage = bfmgr.or(currentImage, pPrefixFormula);
       BooleanFormula interpolant = null;
@@ -578,29 +565,23 @@ abstract class AbstractBMCAlgorithm
       formulaA.push(proverStack.push(pPrefixFormula));
 
       while (proverStack.isUnsat()) {
+        logger.log(Level.FINEST, "NZ: the current image is " + currentImage.toString());
         interpolant = proverStack.getInterpolant(formulaA);
-        logger.log(Level.INFO, "NZ: the prefix is " + pPrefixFormula.toString());
-        logger.log(Level.INFO, "NZ: the SSA map is " + prefixSsaMap.toString());
-        logger.log(
-            Level.INFO,
-            "NZ: the interpolant before changing index is " + interpolant.toString());
+        logger.log(Level.FINEST, "NZ: the interpolant is " + interpolant.toString());
         // interpolant = bfmgr.not(proverStack.getInterpolant(formulaB));
         interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), prefixSsaMap);
-        logger.log(
-            Level.INFO,
-            "NZ: the interpolant after changing index is " + interpolant.toString());
+        logger.log(Level.FINEST, "NZ: after changing SSA " + interpolant.toString());
         boolean reachFixedPoint = reachFixedPointCheck(pProver, interpolant, currentImage);
         if (reachFixedPoint) {
           logger.log(Level.INFO, "NZ: the current image reaches a fixed point, property proved");
           return true;
         }
         currentImage = bfmgr.or(currentImage, interpolant);
-        logger.log(Level.INFO, "NZ: current image is " + currentImage.toString());
         proverStack.pop();
         formulaA.pop();
         formulaA.push(proverStack.push(interpolant));
       }
-      logger.log(Level.INFO, "NZ: the overapproximation is unsafe, go back to BMC phase");
+      logger.log(Level.INFO, "NZ: the overapproximation is unsafe, going back to BMC phase");
       return false;
     } catch (InterruptedException | SolverException e) {
       logger.log(Level.WARNING, "NZ: an exception happened during interpolation phase");

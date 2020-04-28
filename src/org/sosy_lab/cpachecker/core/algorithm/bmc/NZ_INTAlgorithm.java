@@ -169,7 +169,7 @@ public class NZ_INTAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   @Override
   public AlgorithmStatus run(final ReachedSet reachedSet) throws CPAException, InterruptedException {
-    logger.log(Level.INFO, "NZ: interpolation-based model checking, under construction.");
+    logger.log(Level.INFO, "NZ: performing interpolation-based model checking");
     try {
       return super.runInterpolation(reachedSet);
     } catch (SolverException e) {
