@@ -373,6 +373,9 @@ abstract class AbstractBMCAlgorithm
 
     try (ProverEnvironmentWithFallback prover =
         new ProverEnvironmentWithFallback(solver, ProverOptions.GENERATE_MODELS)) {
+      PathFormula prefixFormula = pmgr.makeEmptyPathFormula();
+      BooleanFormula loopFormula = bfmgr.makeTrue();
+      BooleanFormula tailFormula = bfmgr.makeTrue();
       do {
         int maxLoopIterations = CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
 
@@ -387,18 +390,27 @@ abstract class AbstractBMCAlgorithm
         stats.bmcPreparation.stop();
         shutdownNotifier.shutdownIfNecessary();
 
-        // step1.5: handle errors BEFORE the loop head
-        if (maxLoopIterations == 1 && existErrorBeforeLoop(reachedSet, prover)) {
-          logger.log(Level.INFO, "NZ: there exist reachable errors before the loop");
-          return AlgorithmStatus.UNSOUND_AND_PRECISE;
-        }
-
         // step2: collect prefix, loop, and suffix formulas
         logger.log(Level.INFO, "NZ: collecting prefix, loop, and suffix formulas");
-        PathFormula prefixFormula = getPrefixFormula(reachedSet);
-        BooleanFormula loopFormula =
-            (maxLoopIterations == 1) ? bfmgr.makeTrue() : getLoopFormula(reachedSet);
-        BooleanFormula suffixFormula = getSuffixFormula(reachedSet, maxLoopIterations);
+        if (maxLoopIterations == 1) {
+          if (existErrorBeforeLoop(reachedSet, prover)) {
+            logger.log(Level.INFO, "NZ: there exist reachable errors before the loop");
+            return AlgorithmStatus.UNSOUND_AND_PRECISE;
+          }
+          prefixFormula = getLoopHeadFormula(reachedSet, maxLoopIterations - 1);
+        }
+        else if (maxLoopIterations == 2) {
+          loopFormula = getLoopHeadFormula(reachedSet, maxLoopIterations - 1).getFormula();
+        }
+        else {
+          tailFormula =
+              bfmgr
+                  .and(
+                      tailFormula,
+                      getLoopHeadFormula(reachedSet, maxLoopIterations - 1).getFormula());
+        }
+        BooleanFormula suffixFormula =
+            bfmgr.and(tailFormula, getErrorFormula(reachedSet, maxLoopIterations - 1));
         logger.log(Level.INFO, "NZ: the prefix is " + prefixFormula.getFormula().toString());
         logger.log(Level.INFO, "NZ: the loop is " + loopFormula.toString());
         logger.log(Level.INFO, "NZ: the suffix is " + suffixFormula.toString());
@@ -412,6 +424,7 @@ abstract class AbstractBMCAlgorithm
                 loopFormula,
                 suffixFormula);
         if (!safe) {
+          logger.log(Level.INFO, "NZ: an error is reached by BMC");
           return AlgorithmStatus.UNSOUND_AND_PRECISE;
         }
         else {
@@ -443,21 +456,41 @@ abstract class AbstractBMCAlgorithm
           }
         }
       } while (adjustConditions());
-    } catch (SolverException | InterruptedException e) {
-      throw e;
-      }
+    }
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
 
-  private boolean
-      existErrorBeforeLoop(ReachedSet pReachedSet, ProverEnvironmentWithFallback pProver)
-          throws InterruptedException, SolverException {
+  private PathFormula getLoopHeadFormula(ReachedSet pReachedSet, int numEncounterLoopHead) {
+    List<AbstractState> loopHead =
+        from(pReachedSet)
+            .filter(
+                e -> AbstractStates.extractStateByType(e, LocationState.class)
+                    .getLocationNode()
+                    .isLoopStart())
+            .filter(
+                e -> AbstractStates.extractStateByType(e, LoopBoundState.class)
+                    .getDeepestIteration()
+                    - 1 == numEncounterLoopHead)
+            .toList();
+    if (loopHead.size() != 1) {
+      logger
+          .log(
+              Level.SEVERE,
+              "NZ: no unique loop head at encounter time = " + numEncounterLoopHead);
+      assert false;
+    }
+    return PredicateAbstractState.getPredicateState(loopHead.get(0))
+        .getAbstractionFormula()
+        .getBlockFormula();
+  }
+
+  private BooleanFormula getErrorFormula(ReachedSet pReachedSet, int numEncounterLoopHead) {
     List<AbstractState> errorLocations =
         from(pReachedSet).filter(AbstractStates.IS_TARGET_STATE)
             .filter(
                 e -> AbstractStates.extractStateByType(e, LoopBoundState.class)
                     .getDeepestIteration()
-                    - 1 == -1)
+                    - 1 == numEncounterLoopHead)
             .toList();
     BooleanFormula formulaToErrorLocations = bfmgr.makeFalse();
     for (AbstractState pErrorState : errorLocations) {
@@ -469,6 +502,13 @@ abstract class AbstractBMCAlgorithm
                   .getBlockFormula()
                   .getFormula());
     }
+    return formulaToErrorLocations;
+  }
+
+  private boolean
+      existErrorBeforeLoop(ReachedSet pReachedSet, ProverEnvironmentWithFallback pProver)
+          throws InterruptedException, SolverException {
+    BooleanFormula formulaToErrorLocations = getErrorFormula(pReachedSet, -1);
     try {
       pProver.push(formulaToErrorLocations);
       return !pProver.isUnsat();
@@ -476,94 +516,6 @@ abstract class AbstractBMCAlgorithm
     catch (InterruptedException | SolverException e) {
       throw e;
     }
-  }
-
-  private PathFormula getPrefixFormula(ReachedSet pReachedSet) {
-    List<AbstractState> firstLoopHead =
-        from(pReachedSet).filter(
-        e -> AbstractStates.extractStateByType(e, LocationState.class)
-            .getLocationNode()
-                .isLoopStart())
-            .filter(
-                e -> AbstractStates.extractStateByType(e, LoopBoundState.class)
-                    .getDeepestIteration()
-                    - 1 == 0)
-            .toList();
-    if (firstLoopHead.size() != 1) {
-      logger.log(Level.SEVERE, "NZ: no unique prefix");
-      assert false;
-    }
-    return PredicateAbstractState.getPredicateState(firstLoopHead.get(0))
-        .getAbstractionFormula()
-        .getBlockFormula();
-  }
-
-  private BooleanFormula getLoopFormula(ReachedSet pReachedSet) {
-    List<AbstractState> secondLoopHead =
-        from(pReachedSet)
-            .filter(
-                e -> AbstractStates.extractStateByType(e, LocationState.class)
-                    .getLocationNode()
-                    .isLoopStart())
-            .filter(
-                e -> AbstractStates.extractStateByType(e, LoopBoundState.class)
-                    .getDeepestIteration()
-                    - 1 == 1)
-            .toList();
-    if (secondLoopHead.size() != 1) {
-      logger.log(Level.SEVERE, "NZ: no unique loop");
-      assert false;
-    }
-    return PredicateAbstractState.getPredicateState(secondLoopHead.get(0))
-        .getAbstractionFormula()
-        .getBlockFormula()
-        .getFormula();
-  }
-
-  private BooleanFormula getSuffixFormula(ReachedSet pReachedSet, int maxLoopIterations) {
-    List<AbstractState> afterSecondLoopHeads =
-        from(pReachedSet)
-            .filter(
-                e -> AbstractStates.extractStateByType(e, LocationState.class)
-                    .getLocationNode()
-                    .isLoopStart())
-            .filter(
-                e -> AbstractStates.extractStateByType(e, LoopBoundState.class)
-                    .getDeepestIteration()
-                    - 1 > 1)
-            .filter(
-                e -> AbstractStates.extractStateByType(e, LoopBoundState.class)
-                    .getDeepestIteration()
-                    - 1 < maxLoopIterations)
-            .toList();
-    BooleanFormula formulaToSecondLastLoopHead = bfmgr.makeTrue();
-    for (AbstractState pLoopHead : afterSecondLoopHeads) {
-      formulaToSecondLastLoopHead =
-          bfmgr.and(
-              formulaToSecondLastLoopHead,
-              PredicateAbstractState.getPredicateState(pLoopHead)
-                  .getAbstractionFormula()
-                  .getBlockFormula()
-                  .getFormula());
-    }
-    List<AbstractState> errorLocations =
-        from(pReachedSet).filter(AbstractStates.IS_TARGET_STATE)
-            .filter(
-                e -> AbstractStates.extractStateByType(e, LoopBoundState.class)
-                    .getDeepestIteration()
-                    - 1 == maxLoopIterations - 1)
-            .toList();
-    BooleanFormula formulaToErrorLocations = bfmgr.makeFalse();
-    for (AbstractState pErrorState : errorLocations) {
-      formulaToErrorLocations =
-          bfmgr.or(
-              formulaToErrorLocations,
-              PredicateAbstractState.getPredicateState(pErrorState)
-                  .getAbstractionFormula()
-                  .getBlockFormula()
-                  .getFormula());
-    }
-    return bfmgr.and(formulaToSecondLastLoopHead, formulaToErrorLocations);
   }
 
   private boolean boundedModelCheckWithLargeBlockEncoding(
