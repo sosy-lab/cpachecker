@@ -55,6 +55,7 @@ import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
+import java.util.Stack;
 import java.util.TreeSet;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -511,24 +512,25 @@ abstract class AbstractBMCAlgorithm
      * step8: pop the prev interpolant and push the next interpolant; go to step5
      *
      */
-    // step1: get error path
-    // Q1: multiple error locations?
+
+    // step1: get an error path (Q1: multiple error locations; Q2: errors inside the loop)
     Optional<AbstractState> optionalTargetState =
         from(reachedSet).firstMatch(AbstractStates.IS_TARGET_STATE);
     if (!optionalTargetState.isPresent()) {
       logger.log(
           Level.WARNING,
-          "No target state is found in the reached set: cannot compute fixed points");
+          "NZ: no target state is found for fixed point computation");
       return false;
     }
     AbstractState targetState = optionalTargetState.get();
-    logger.log(Level.INFO, targetState.toString());
+    logger.log(Level.INFO, "NZ: the target state is " + targetState.toString());
     ARGPath errorPath = ARGUtils.getShortestPathTo((ARGState) targetState);
-    // step2: get block formulas
+
+    // step2: slice the formula into prefix, loop, and suffix
     PathIterator pathIterator = errorPath.fullPathIterator();
     List<ARGState> slicingPoints = new ArrayList<>();
     while (pathIterator.hasNext()) {
-      if (slicingPoints.size() >= 2) {
+      if (slicingPoints.size() == 2) {
         // only the first and the second loop heads are needed
         break;
       }
@@ -537,42 +539,46 @@ abstract class AbstractBMCAlgorithm
       }
       pathIterator.advance();
     }
-    // add the target state to the list
+    Preconditions
+        .checkState(slicingPoints.size() == 2, "NZ: the error path does not have two loop heads");
+    // add the target state to the slicing points
     slicingPoints.add((ARGState) targetState);
-    assert slicingPoints.size() == 3;
-    BlockFormulaSlicer bfs = new BlockFormulaSlicer(pmgr);
+    BlockFormulaSlicer slicer = new BlockFormulaSlicer(pmgr);
     BlockFormulas blockFormulas = null;
     try {
-      blockFormulas = bfs.getFormulasForPath(errorPath.getFirstState(), slicingPoints);
-    } catch (CPATransferException e) {
-      return false;
-    } catch (InterruptedException e) {
+      blockFormulas = slicer.getFormulasForPath(errorPath.getFirstState(), slicingPoints);
+    } catch (CPATransferException | InterruptedException e) {
+      logger.log(Level.WARNING, "NZ: an exception happened during formula slicing");
       return false;
     }
-    assert blockFormulas.getSize() == 3;
+    Preconditions
+        .checkState(blockFormulas.getSize() == 3, "NZ: there are not three block formulas");
     BooleanFormula prefixFormula = blockFormulas.getFormulas().get(0);
     logger.log(Level.INFO, "NZ: the prefix formula is " + prefixFormula.toString());
     BooleanFormula loopFormula = blockFormulas.getFormulas().get(1);
     logger.log(Level.INFO, "NZ: the loop formula is " + loopFormula.toString());
     BooleanFormula suffixFormula = blockFormulas.getFormulas().get(2);
     logger.log(Level.INFO, "NZ: the suffix formula is " + suffixFormula.toString());
+
+    // step3: allocate a proof stack with interpolation
     try (ProverEnvironmentWithFallback prover =
         new ProverEnvironmentWithFallback(
             solver,
-            ProverOptions.GENERATE_MODELS,
             ProverOptions.GENERATE_UNSAT_CORE)) {
-      List<Object> A = new ArrayList<>();
-      List<Object> B = new ArrayList<>();
-      B.add(prover.push(suffixFormula));
-      A.add(prover.push(loopFormula));
-      A.add(prover.push(prefixFormula));
-      assert prover.isUnsat();
-      // BooleanFormula interpolantFormula = prover.getInterpolant(A);
-      BooleanFormula interpolantFormula = bfmgr.not(prover.getInterpolant(B));
+      // step4: label formulas
+      Stack<Object> A = new Stack<>();
+      Stack<Object> B = new Stack<>();
+      B.push(prover.push(suffixFormula));
+      A.push(prover.push(loopFormula));
+      A.push(prover.push(prefixFormula));
+      Preconditions.checkState(
+          prover.isUnsat(),
+          "NZ: the formula is NOT UNSAT, cannot compute an interpolant");
+      BooleanFormula interpolantFormula = prover.getInterpolant(A);
+      //BooleanFormula interpolantFormula = bfmgr.not(prover.getInterpolant(B));
       logger.log(Level.INFO, "NZ: the interpolant is " + interpolantFormula.toString());
-    } catch (InterruptedException e) {
-      return false;
-    } catch (SolverException e) {
+    } catch (InterruptedException | SolverException e) {
+      logger.log(Level.WARNING, "NZ: an exception happened during interpolation");
       return false;
     }
     return false;
