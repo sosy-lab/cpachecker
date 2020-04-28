@@ -125,6 +125,7 @@ import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TestTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -355,137 +356,191 @@ abstract class AbstractBMCAlgorithm
     return true;
   }
 
-  // NZ: begin of the run method for interpolation-based model checking
+  /**
+   * The run method for interpolation-based model checking
+   *
+   * @param reachedSet Abstract Reachability Graph (ARG)
+   *
+   * @return {@code AlgorithmStatus.UNSOUND_AND_PRECISE} if an error location is reached, i.e.,
+   *         unsafe; {@code AlgorithmStatus.SOUND_AND_PRECISE} if a fixed point is reached, i.e.,
+   *         safe.
+   */
   public AlgorithmStatus runInterpolation(final ReachedSet reachedSet)
       throws CPAException, SolverException, InterruptedException {
     Preconditions.checkState(
         cfa.getAllLoopHeads().isPresent() && cfa.getAllLoopHeads().get().size() <= 1,
         "NZ: programs with multiple loops are not supported yet");
-    CFANode initialLocation = extractLocation(reachedSet.getFirstState());
-    invariantGenerator.start(initialLocation);
-
-    // The set of candidate invariants that still need to be checked.
-    // Successfully proven invariants are removed from the set.
-    final CandidateGenerator candidateGenerator = getCandidateInvariants();
-
-    if (!candidateGenerator.produceMoreCandidates()) {
-      for (AbstractState state : ImmutableList.copyOf(reachedSet.getWaitlist())) {
-        reachedSet.removeOnlyFromWaitlist(state);
-      }
-      return AlgorithmStatus.SOUND_AND_PRECISE;
-    }
-
-    AlgorithmStatus status;
 
     try (ProverEnvironmentWithFallback prover =
         new ProverEnvironmentWithFallback(solver, ProverOptions.GENERATE_MODELS)) {
-      invariantGeneratorHeadStart.waitForInvariantGenerator();
-
       do {
-        shutdownNotifier.shutdownIfNecessary();
+        int maxLoopIterations = CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
 
-        logger.log(Level.INFO, "Creating formula for program");
+        // step1: unroll with large-block encoding
+        shutdownNotifier.shutdownIfNecessary();
+        logger.log(
+            Level.INFO,
+            "NZ: unrolling the program with large-block encoding, maxLoopIterations = "
+                + maxLoopIterations);
         stats.bmcPreparation.start();
-        status = BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
+        BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
         stats.bmcPreparation.stop();
-//        if (from(reachedSet).skip(1) // first state of reached is always an abstraction state, so
-//                                     // skip it
-//            .filter(not(IS_TARGET_STATE)) // target states may be abstraction states
-//            .anyMatch(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)) {
-//
-//          logger.log(
-//              Level.WARNING,
-//              "BMC algorithm does not work with abstractions. Could not check for satisfiability!");
-//          return status;
-//        }
         shutdownNotifier.shutdownIfNecessary();
 
-        // NZ: play with the reachedSet
-        playReachedSet(reachedSet);
-        // NZ
+        // step2: collect prefix, loop, and suffix formulas
+        logger.log(Level.INFO, "NZ: collecting prefix, loop, and suffix formulas");
+        PathFormula prefixFormula = getPrefixFormula(reachedSet);
+        PathFormula loopFormula = getLoopFormula(reachedSet);
+        BooleanFormula suffixFormula = getSuffixFormula(reachedSet, maxLoopIterations);
+        logger.log(Level.INFO, "NZ: the prefix is " + prefixFormula.getFormula().toString());
+        logger.log(Level.INFO, "NZ: the loop is " + loopFormula.getFormula().toString());
+        logger.log(Level.INFO, "NZ: the suffix is " + suffixFormula.toString());
 
-        if (invariantGenerator.isProgramSafe()) {
-          TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
-          return AlgorithmStatus.SOUND_AND_PRECISE;
+        // step3: perform bounded model checking
+        logger.log(Level.INFO, "NZ: perform bounded model checking");
+        boolean safe =
+            boundedModelCheckWithLargeBlockEncoding(
+                prover,
+                prefixFormula.getFormula(),
+                loopFormula.getFormula(),
+                suffixFormula);
+        if (!safe) {
+          return AlgorithmStatus.UNSOUND_AND_PRECISE;
+        }
+        else {
+//          if (reachedSet.hasViolatedProperties()) {
+//            TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
+//          }
         }
 
-        // Perform a bounded model check on each candidate invariant
-        Iterator<CandidateInvariant> candidateInvariantIterator = candidateGenerator.iterator();
-        while (candidateInvariantIterator.hasNext()) {
-          shutdownNotifier.shutdownIfNecessary();
-          CandidateInvariant candidateInvariant = candidateInvariantIterator.next();
-          // first check safety in k iterations
-
-          boolean safe =
-              boundedModelCheckNoRemoveTargetStates(reachedSet, prover, candidateInvariant);
-          if (!safe) {
-            if (candidateInvariant == TargetLocationCandidateInvariant.INSTANCE) {
-              return AlgorithmStatus.UNSOUND_AND_PRECISE;
-            }
-            candidateInvariantIterator.remove();
-          }
-
-          if (invariantGenerator.isProgramSafe()) {
-            TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
-            return AlgorithmStatus.SOUND_AND_PRECISE;
-          }
-        }
-
-        // second check soundness
-        boolean sound;
-
-        // verify soundness, but don't bother if we are unsound anyway or we have found a bug
-        if (status.isSound()) {
-
-          // check bounding assertions
-          sound =
-              candidateGenerator.hasCandidatesAvailable()
-                  ? checkBoundingAssertions(reachedSet, prover)
-                  : true;
-
-          if (invariantGenerator.isProgramSafe()) {
-            return AlgorithmStatus.SOUND_AND_PRECISE;
-          }
-
-          // NZ: try to prove program safety via interpolation
-          if (interpolation && !sound) {
-            /*
-             * try (@SuppressWarnings("resource") KInductionProver kInductionProver =
-             * createInductionProver()) { sound = checkStepCase(reachedSet, candidateGenerator,
-             * kInductionProver, ctiBlockingClauses); }
-             */
-            int maxLoopIterations =
-                CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
-            if (maxLoopIterations > 1) {
-              logger.log(
-                  Level.INFO,
-                  "NZ: maxLoopIterations = "
-                      + maxLoopIterations
-                      + " > 1, compute fixed points by interpolation");
-              sound = computeFixedPointByInterpolation(reachedSet);
-            }
-            if (reachedSet.hasViolatedProperties()) {
-              logger.log(
-                  Level.INFO,
-                  "Remove target states from reachedSet because they are unreachable");
-              TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
+        // step4: perform fixed point computation by interpolation
+        if (interpolation) {
+          if (maxLoopIterations > 1) {
+            logger.log(
+                Level.INFO,
+                "NZ: maxLoopIterations = "
+                    + maxLoopIterations
+                    + " > 1, compute fixed points by interpolation");
+            safe =
+                computeFixedPointByInterpolation(
+                    prefixFormula.getFormula(),
+                    loopFormula.getFormula(),
+                    suffixFormula,
+                    prefixFormula.getSsa());
+            if (safe) {
+              return AlgorithmStatus.SOUND_AND_PRECISE;
             }
           }
-          if (invariantGenerator.isProgramSafe()
-              || (sound && !candidateGenerator.produceMoreCandidates())) {
-            return AlgorithmStatus.SOUND_AND_PRECISE;
-          }
         }
-        if (!candidateGenerator.hasCandidatesAvailable()) {
-          // no remaining invariants to be proven
-          return status;
-        }
-      } while (status.isSound() && adjustConditions());
+      } while (adjustConditions());
     }
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
-  // NZ: end of the run method for interpolation-based model checking
-  // NZ: begin of computeFixedPointByInterpolation
+
+  private PathFormula getPrefixFormula(ReachedSet pReachedSet) {
+    List<AbstractState> firstLoopHead =
+        from(pReachedSet).filter(
+        e -> AbstractStates.extractStateByType(e, LocationState.class)
+            .getLocationNode()
+                .isLoopStart())
+            .filter(
+                e -> AbstractStates.extractStateByType(e, LoopBoundState.class)
+                    .getDeepestIteration()
+                    - 1 == 0)
+            .toList();
+    if (firstLoopHead.size() != 1) {
+      logger.log(Level.SEVERE, "NZ: no unique prefix");
+      assert false;
+    }
+    return PredicateAbstractState.getPredicateState(firstLoopHead.get(0))
+        .getAbstractionFormula()
+        .getBlockFormula();
+  }
+
+  private PathFormula getLoopFormula(ReachedSet pReachedSet) {
+    List<AbstractState> secondLoopHead =
+        from(pReachedSet)
+            .filter(
+                e -> AbstractStates.extractStateByType(e, LocationState.class)
+                    .getLocationNode()
+                    .isLoopStart())
+            .filter(
+                e -> AbstractStates.extractStateByType(e, LoopBoundState.class)
+                    .getDeepestIteration()
+                    - 1 == 1)
+            .toList();
+    if (secondLoopHead.size() != 1) {
+      logger.log(Level.SEVERE, "NZ: no unique loop");
+      assert false;
+    }
+    return PredicateAbstractState.getPredicateState(secondLoopHead.get(0))
+        .getAbstractionFormula()
+        .getBlockFormula();
+  }
+
+  private BooleanFormula getSuffixFormula(ReachedSet pReachedSet, int maxLoopIterations) {
+    List<AbstractState> afterSecondLoopHeads =
+        from(pReachedSet)
+            .filter(
+                e -> AbstractStates.extractStateByType(e, LocationState.class)
+                    .getLocationNode()
+                    .isLoopStart())
+            .filter(
+                e -> AbstractStates.extractStateByType(e, LoopBoundState.class)
+                    .getDeepestIteration()
+                    - 1 > 1)
+            .filter(
+                e -> AbstractStates.extractStateByType(e, LoopBoundState.class)
+                    .getDeepestIteration()
+                    - 1 < maxLoopIterations)
+            .toList();
+    BooleanFormula formulaToSecondLastLoopHead = bfmgr.makeTrue();
+    for (AbstractState pLoopHead : afterSecondLoopHeads) {
+      formulaToSecondLastLoopHead =
+          bfmgr.and(
+              formulaToSecondLastLoopHead,
+              PredicateAbstractState.getPredicateState(pLoopHead)
+                  .getAbstractionFormula()
+                  .getBlockFormula()
+                  .getFormula());
+    }
+    List<AbstractState> errorLocations =
+        from(pReachedSet).filter(AbstractStates.IS_TARGET_STATE)
+            .filter(
+                e -> AbstractStates.extractStateByType(e, LoopBoundState.class)
+                    .getDeepestIteration() == maxLoopIterations)
+            .toList();
+    BooleanFormula formulaToErrorLocations = bfmgr.makeFalse();
+    for (AbstractState pErrorState : errorLocations) {
+      formulaToErrorLocations =
+          bfmgr.or(
+              formulaToErrorLocations,
+              PredicateAbstractState.getPredicateState(pErrorState)
+                  .getAbstractionFormula()
+                  .getBlockFormula()
+                  .getFormula());
+    }
+    return bfmgr.and(formulaToSecondLastLoopHead, formulaToErrorLocations);
+  }
+
+  private boolean boundedModelCheckWithLargeBlockEncoding(
+      ProverEnvironmentWithFallback pProver,
+      BooleanFormula pPrefixFormula,
+      BooleanFormula pLoopFormula,
+      BooleanFormula pSuffixFormula) {
+    // TODO Auto-generated method stub
+    return true;
+  }
+
+  private boolean computeFixedPointByInterpolation(
+      BooleanFormula pPrefixFormula,
+      BooleanFormula pLoopFormula,
+      BooleanFormula pSuffixFormula,
+      SSAMap prefixSsaMap) {
+    // TODO Auto-generated method stub
+    return false;
+  }
+
   /**
    * Compute fixed points by interpolation
    *
@@ -617,40 +672,6 @@ abstract class AbstractBMCAlgorithm
     return f;
   }
   // NZ: end of changeSSAIndices
-
-  // NZ: begin of playReachedSet
-  private void playReachedSet(ReachedSet reachedSet) {
-    BooleanFormula prefix = null, loop = null;
-    for (AbstractState s : reachedSet.asCollection()) {
-      if (AbstractStates.extractStateByType(s, LocationState.class)
-          .getLocationNode()
-          .isLoopStart()) {
-        if (AbstractStates.extractStateByType(s, LoopBoundState.class).getDeepestIteration()
-            - 1 == 0) {
-          prefix =
-              PredicateAbstractState.getPredicateState(s)
-                  .getAbstractionFormula()
-                  .getBlockFormula()
-                  .getFormula();
-        }
-        if (AbstractStates.extractStateByType(s, LoopBoundState.class).getDeepestIteration()
-            - 1 == 1) {
-          loop =
-              PredicateAbstractState.getPredicateState(s)
-                  .getAbstractionFormula()
-                  .getBlockFormula()
-                  .getFormula();
-        }
-      }
-    }
-    if (prefix != null) {
-      logger.log(Level.INFO, "NZ: prefix is " + prefix.toString());
-    }
-    if (loop != null) {
-      logger.log(Level.INFO, "NZ: loop is " + loop.toString());
-    }
-  }
-  // NZ: end of playReachedSet
 
   public AlgorithmStatus run(final ReachedSet reachedSet) throws CPAException,
       SolverException,
