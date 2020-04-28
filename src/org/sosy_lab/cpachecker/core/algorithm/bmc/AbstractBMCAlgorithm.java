@@ -453,15 +453,13 @@ abstract class AbstractBMCAlgorithm
                   "NZ: maxLoopIterations = "
                       + maxLoopIterations
                       + " > 1, compute fixed points by interpolation");
-              CandidateInvariant candidateInvariant =
-                  candidateGenerator.iterator().next();
-              sound = computeFixedPointByInterpolation(reachedSet, candidateInvariant);
-              if (reachedSet.hasViolatedProperties()) {
-                logger.log(
-                    Level.INFO,
-                    "Remove target states from reachedSet because they are unreachable");
-                TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
-              }
+              sound = computeFixedPointByInterpolation(reachedSet);
+            }
+            if (reachedSet.hasViolatedProperties()) {
+              logger.log(
+                  Level.INFO,
+                  "Remove target states from reachedSet because they are unreachable");
+              TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
             }
           }
           if (invariantGenerator.isProgramSafe()
@@ -485,9 +483,7 @@ abstract class AbstractBMCAlgorithm
    * @return {@code true} if a fixed point is reached, {@code false} if the current
    *         over-approximation is unsafe.
    */
-  private boolean computeFixedPointByInterpolation(
-      final ReachedSet reachedSet,
-      final CandidateInvariant candidateInvariant) {
+  private boolean computeFixedPointByInterpolation(final ReachedSet reachedSet) {
     logger.log(Level.INFO, "NZ: Computing fixed points by interpolation, under construction");
     /*
      * Algorithmic steps (a block ends when a loop head is encountered)
@@ -515,20 +511,7 @@ abstract class AbstractBMCAlgorithm
      */
     // pseudo code implementation
     // errorPath = getErrorPath();
-//    Iterable<AbstractState> targetStates = candidateInvariant.filterApplicable(reachedSet);
-//    if (((Collection<?>) targetStates).isEmpty()) {
-//      logger.log(
-//          Level.WARNING,
-//          "No target state is found in the reached set: cannot compute fixed points");
-//      return false;
-//    }
-//    // Q1: multiple error locations?
-//    if (((Collection<?>) targetStates).size() > 1) {
-//      logger.log(
-//          Level.WARNING,
-//          "More than one target states are found in the reached set: not supported yet");
-//      return false;
-//    }
+    // Q1: multiple error locations?
     Optional<AbstractState> optionalTargetState =
         from(reachedSet).firstMatch(AbstractStates.IS_TARGET_STATE);
     if (!optionalTargetState.isPresent()) {
@@ -538,12 +521,18 @@ abstract class AbstractBMCAlgorithm
       return false;
     }
     AbstractState targetState = optionalTargetState.get();
+    logger.log(Level.INFO, targetState.toString());
+    logger.log(
+        Level.INFO,
+        "NZ: path formula to the target state "
+            + PredicateAbstractState.getPredicateState(targetState).getPathFormula().toString());
+    logger
+        .log(Level.INFO, "NZ: the path formula is true because it is reset at the error location");
     ARGPath errorPath = ARGUtils.getShortestPathTo((ARGState) targetState);
     PathIterator pathIterator = errorPath.fullPathIterator();
     while (pathIterator.hasNext()) {
       PredicateAbstractState currentState =
           PredicateAbstractState.getPredicateState(pathIterator.getAbstractState());
-      logger.log(Level.INFO, currentState.toString());
       logger.log(Level.INFO, currentState.getPathFormula().toString());
       pathIterator.advance();
     }
