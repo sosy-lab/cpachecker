@@ -169,7 +169,7 @@ public abstract class ReachDefAnalysis<V, N, E> {
     stack.push(current.iterator());
     pushNode(current.getNode());
 
-    while (!stack.isEmpty()) {
+    while (true) { // break when root gets popped from the stack (see end of 'visit parent')
 
       Iterator<DomTraversable<N>> children = stack.peek();
 
@@ -212,6 +212,7 @@ public abstract class ReachDefAnalysis<V, N, E> {
 
         } else {
           assert stack.isEmpty();
+          break;
         }
       }
     }
