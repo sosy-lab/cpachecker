@@ -759,7 +759,7 @@ class AssignmentHandler {
               : null;
       rhs =
           value.isPresent()
-              ? conv.makeFormulaTypeCast(targetType, lvalueType, rhs, ssa, constraints, edge)
+              ? conv.makeFormulaTypeCast(targetType, lvalueType, rhs, ssa, constraints)
               : null;
     }
 

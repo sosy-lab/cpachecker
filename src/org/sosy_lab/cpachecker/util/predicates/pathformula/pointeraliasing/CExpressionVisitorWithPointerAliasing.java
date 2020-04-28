@@ -328,8 +328,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
                 constraints,
                 edge),
             ssa,
-            constraints,
-            edge);
+            constraints);
 
     final Formula coeff =
         conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.getSizeof(elementType));
@@ -339,8 +338,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
               elementType,
               base.asAliasedLocation().getAddress(),
               ssa,
-              constraints,
-              edge);
+            constraints);
 
     final Formula address = conv.fmgr.makePlus(baseAddress, conv.fmgr.makeMultiply(coeff, index));
     addEqualBaseAddressConstraint(baseAddress, address);

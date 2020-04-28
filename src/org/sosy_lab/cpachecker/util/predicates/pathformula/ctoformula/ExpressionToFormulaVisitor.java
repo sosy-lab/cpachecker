@@ -224,17 +224,14 @@ public class ExpressionToFormulaVisitor
             calculationType,
             f1,
             ssa,
-            constraints,
-            edge);
+            constraints);
     final Formula f2Cast =
         conv.makeFormulaTypeCast(
             calculationFormulaType,
             calculationType,
             f2,
             ssa,
-            constraints,
-            edge);
-
+            constraints);
 
     switch (op) {
     case PLUS:
@@ -386,7 +383,7 @@ public class ExpressionToFormulaVisitor
     FormulaType<?> f1Type = mgr.getFormulaType(f1);
     FormulaType<?> f2Type = mgr.getFormulaType(f2);
     if (!f1Type.equals(f2Type)) {
-      f1 = conv.makeFormulaTypeCast(f2Type, exp.getExpressionType(), f1, ssa, constraints, edge);
+      f1 = conv.makeFormulaTypeCast(f2Type, exp.getExpressionType(), f1, ssa, constraints);
     }
     CExpression e1 = exp.getOperand1();
     CExpression e2 = exp.getOperand2();

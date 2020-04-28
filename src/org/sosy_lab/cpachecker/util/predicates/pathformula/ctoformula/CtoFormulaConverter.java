@@ -525,17 +525,6 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * Only needed for safe dereferencing, where a simplified formula type is unwanted This method
-   * does not handle scoping and the NON_DET_VARIABLE!
-   *
-   * This method does not update the index of the variable.
-   */
-  protected Formula makeVariableForSafeDereference(String name, CType type, SSAMapBuilder ssa) {
-    int useIndex = getIndex(name, type, ssa);
-    return fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, useIndex);
-  }
-
-  /**
    * Takes a variable name and its type and create the corresponding formula out of it, without
    * adding SSA indices.
    *
@@ -726,9 +715,7 @@ public class CtoFormulaConverter {
       final CType cType,
       Formula formula,
       SSAMapBuilder ssa,
-      Constraints constraints,
-      CFAEdge edge)
-      throws UnrecognizedCodeException {
+      Constraints constraints) {
     if (!options.useVariableClassification()) {
       return formula;
     }
@@ -752,9 +739,7 @@ public class CtoFormulaConverter {
       } else if (toType.isIntegerType()) {
         return efmgr.toIntegerFormula((BitvectorFormula) formula, false);
       } else {
-        throw new UnrecognizedCodeException(
-            "Formula type cast from " + toType + " to " + fromType + " not supported!",
-            edge);
+        throw new AssertionError("Cannot cast given formula types!");
       }
     }
     if (fromType.isFloatingPointType()) {
@@ -777,9 +762,7 @@ public class CtoFormulaConverter {
         int size = ((BitvectorType) toType).getSize();
         return efmgr.makeBitvector(size, (IntegerFormula) formula);
       } else {
-        throw new UnrecognizedCodeException(
-            "Formula type cast from " + toType + " to " + fromType + " not supported!",
-            edge);
+        throw new AssertionError("Cannot cast given formula types!");
       }
     }
     if (fromType.isBooleanType()) {
@@ -794,7 +777,7 @@ public class CtoFormulaConverter {
             ssa,
             constraints);
       } else {
-        return makeFormulaTypeCast(toType, cType, intFormula, ssa, constraints, edge);
+        return makeFormulaTypeCast(toType, cType, intFormula, ssa, constraints);
       }
     }
     return formula;

@@ -516,11 +516,16 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         if (newRegion == null) {
           newRegion = regionMgr.makeMemoryRegion(baseType);
         }
-
+        FormulaType<?> varFtype = getFormulaTypeFromCType(baseType);
         constraints.addConstraint(
             fmgr.makeEqual(
                 makeSafeDereference(baseType, address, ssa, newRegion),
-                makeVariableForSafeDereference(baseName, baseType, ssa)));
+                makeFormulaTypeCast(
+                    varFtype,
+                    baseType,
+                    makeVariable(baseName, baseType, ssa),
+                    ssa,
+                    constraints)));
       }
     }
   }
@@ -1209,10 +1214,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final CType cType,
       Formula formula,
       SSAMapBuilder ssa,
-      Constraints constraints,
-      CFAEdge edge)
-      throws UnrecognizedCodeException {
-    return super.makeFormulaTypeCast(toType, cType, formula, ssa, constraints, edge);
+      Constraints constraints) {
+    return super.makeFormulaTypeCast(toType, cType, formula, ssa, constraints);
   }
 
   /** {@inheritDoc} */
@@ -1233,14 +1236,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    */
   @Override
   protected Formula makeVariable(String pName, CType pType, SSAMapBuilder pSsa) {
-    return super.makeVariable(pName, pType, pSsa);
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  protected Formula makeVariableForSafeDereference(String pName, CType pType, SSAMapBuilder pSsa) {
     return super.makeVariable(pName, pType, pSsa);
   }
 

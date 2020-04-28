@@ -292,8 +292,7 @@ class DynamicMemoryHandler {
                 constraints,
                 edge),
             ssa,
-            constraints,
-            edge);
+            constraints);
     Formula address;
     if (newType != null) {
       final String newBase =
