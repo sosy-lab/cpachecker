@@ -75,8 +75,9 @@ public class CollectorTransferRelation implements TransferRelation {
       ARGState succARG = (ARGState) absElement;
       Collection<ARGState> wrappedParent = succARG.getParents();
       parents.addAll(wrappedParent);
+      CollectorCount.count++;
       ARGStateView mytransferARG =
-          new ARGStateView(succARG, wrappedState, parents, null, false, logger);
+          new ARGStateView(CollectorCount.count,succARG, parents, null, logger);
       CollectorState successorElem =
           new CollectorState(absElement, null, mytransferARG, false, null, null, null, logger);
       wrappedSuccessors.add(successorElem);

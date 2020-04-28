@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2018  Dirk Beyer
+ *  Copyright (C) 2007-2020  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,106 +22,108 @@
  *    http://cpachecker.sosy-lab.org
  */
 
-//DATA
-var data = {}; //ARG_JSON_INPUT
 
-var myVar = myData0;
+// jquery-resizable
+//http://weblog.west-wind.com/posts/2015/Dec/21/A-small-jQuery-Resizable-Plugin
+$(".sidebar-left").resizable({ handleSelector: ".splitter", resizeHeight: false });
+
+//DATA
+var data = {}; //COLLECTOR_JSON_INPUT
+
+var myVar = myData;
+
 var myVarNodes = myVar["nodes"];
+var myVarEdges = myVar["edges"];
 //sort nodes by index
-myVar["nodes"].sort(function (a, b) {
-    return parseInt(a.index) - parseInt(b.index)
-})
-var maxIndex = d3.max(myVar["nodes"], function (d) {
-    return d.index
-});
-var maxStep = myVar["nodes"].length - 1;
+myVar["nodes"].sort(function (a, b) { return parseInt(a.count)-parseInt(b.count) })
+var maxIndex = d3.max(myVar["nodes"], function(d){return d.count});
+var maxStep = myVar["nodes"].length-1;
 var step = 0;
 var startIndex = step;
+var sourceFiles = []; //SOURCE_FILES
 
-if (window.attachEvent) {
-    window.attachEvent("onload", start);
-}
-else if (window.addEventListener) {
-    window.addEventListener("load", start, false);
-}
-else {
-    document.addEventListener("load", start, false);
-}
+if(window.attachEvent){window.attachEvent("onload", start);}
+else if(window.addEventListener){window.addEventListener("load",start, false);}
+else{document.addEventListener("load",start, false);}
 
-window.addEventListener('load', slide, false);
+window.addEventListener('load',slide,false);
 
-function slide() {
+function slide(){
     slider = document.getElementById("myRange");
-    document.getElementById("myRange").max = maxStep;
+    document.getElementById("myRange").max = maxStep+1;
     var output = document.getElementById("demo");
     output.innerHTML = slider.value;
 
-    slider.oninput = function () {
+
+    slider.oninput = function() {
         output.innerHTML = this.value;
         var curVal = this.value;
         var nodeIndexStart = myVar["nodes"][startIndex].index;
-        document.getElementById("demo").innerHTML = curVal;
-        document.getElementById("myRange").value = curVal;
+        document.getElementById("demo").innerHTML = curVal ;
+        document.getElementById("myRange").value = curVal ;
 
-        for (i = 0; i <= (curVal); i++) {
-            shownode3(i);
+
+        for(i=0;i<=(curVal);i++){
+            shownode(i);
         }
-        step = curVal;
+        step=curVal;
     }
 }
 
-function start() {
+function start(){
 
-    var nodeIndexStart = myVar["nodes"][startIndex].index;
+    var nodeIndexStart = myVar["nodes"][startIndex].count;
 
-    $(document).ready(function () {
-        shownode3(nodeIndexStart);
+    $(document).ready(function(){
+        shownode(nodeIndexStart);
     });
     updateGraph();
     dagreGraphBuild(myVar);
 }
 
-function reset() {
-    $(document).ready(function () {
+function reset(){
+    $(document).ready(function(){
     });
     window.location.href = window.location;
     start();
 }
 
-function shownode() {
-    if (step > maxStep) {
+function nextStep(){
+    if(step > maxStep){
         //step = maxStep;
     }
-    else {
-        $("#step").html(step++);
-    }
-    $(document).ready(function () {
-        $("#shownode").one("click", shownode3(step));
-        document.getElementById("demo").innerHTML = step;
-        document.getElementById("myRange").value = step;
+    else{ $("#step").html(step++);}
+    $(document).ready(function(){
+        $("#shownode").one("click",shownode(step));
+        document.getElementById("demo").innerHTML = step ;
+        document.getElementById("myRange").value = step ;
     })
 }
-
-function removenode() {
-    var nodeIndexStart = myVar["nodes"][startIndex].index;
-    if (step <= 0) {
-        step = 0;
-    }
-    else {
-        $("#step").html(step--);
-    }
-    $(document).ready(function () {
+function removenode(){
+    var nodeIndexStart = myVar["nodes"][startIndex].count;
+    if(step <= 0){
+        step = 0;}
+    else{ $("#step").html(step--);}
+    $(document).ready(function(){
         $("#node" + nodeIndexStart).addClass("contentshow");
-        $("#shownode").one("click", shownode3(step));
-        document.getElementById("demo").innerHTML = step;
-        document.getElementById("myRange").value = step;
+        $("#shownode").one("click",shownode(step));
+        document.getElementById("demo").innerHTML = step ;
+        document.getElementById("myRange").value = step ;
     })
 }
 
-function getDataByNodeIndex(index) {
-    return myVarNodes.filter(
-        function (myVarNodes) {
-            return myVarNodes.index == index
+function getDataByEdgeTarget(index) {
+    return myVarEdges.filter(
+        function(myVarEdges) {
+            return myVarEdges.target == index
+        }
+    );
+}
+
+function getDataByEdgeSource(index) {
+    return myVarEdges.filter(
+        function(myVarEdges) {
+            return myVarEdges.source == index
         }
     );
 }
@@ -130,7 +132,7 @@ function getDataByNodeArray(pos) {
     return myVarNodes[pos];
 }
 
-function shownode3(step) {
+function shownode(step) {
     var step = step;
     var start = -1;
 
@@ -143,79 +145,98 @@ function shownode3(step) {
     $("g.label").removeClass("targetAlive");
     $("g.edgeLabel").removeClass("contentshow");
 
-    if (step <= maxStep) {
+
+    if(step <= maxStep){
         for (count = 0; count <= step; count++) {
 
             var nodeDataIndex = getDataByNodeArray(count);
             var nodeIndexCount = nodeDataIndex.index;
             var intervalStart = nodeDataIndex.intervalStart;
             var intervalStop = nodeDataIndex.intervalStop;
-            var source2 = "source" + (nodeIndexCount).toString();
-            var target = "target" + nodeIndexCount.toString();
-            var source3 = "source" + (nodeIndexCount) + "target";
+            var source = "source"+ (nodeIndexCount).toString();
+            var target = "target"+ nodeIndexCount.toString();
+            var sourcetarget = "source"+ (nodeIndexCount)+"target";
             var analysisStop = nodeDataIndex.analysisStop;
 
-            if (analysisStop) {
-                $("#node" + nodeIndexCount).addClass("analysisStop");
+
+            if (!d3.select(".marked-source-line").empty()) {
+                d3.select(".marked-source-line").classed("marked-source-line", false);
+            }
+
+            if(analysisStop){
+                $("#node" + nodeIndexCount).addClass("analysisStop" );
             } else {
                 //do nothing
             }
 
-            if (intervalStop) {
+            if(intervalStop){
                 stop = intervalStop;
                 $("#node" + nodeIndexCount).addClass("stop" + intervalStop);
             }
             else {
-                stop = maxIndex + 1;
+                stop = maxIndex+1;
             }
 
-            if (intervalStart > start) {
+            if (intervalStart > start){
 
                 $("#node" + nodeIndexCount).addClass("contentshow");
-                if ($("#node" + nodeIndexCount).hasClass("merged")) {
+                if ($("#node" + nodeIndexCount).hasClass("merged")){
                     $("#node" + nodeIndexCount).addClass("mergedColored");
+                    var sourceinfo = getDataByEdgeSource(nodeIndexCount);
+                    var line = sourceinfo[0].line;
+                    var selection = d3.select("#source-" + line + " td pre.prettyprint");
+                    selection.classed("marked-source-line", true);
                 }
 
-                if ($("g.edgePath").hasClass(source2)) {
-                    $("." + source2 + "").addClass("sourceAlive");
-                    $("." + source2 + "").addClass("stop" + stop);
-                    $("g.label[id^=" + source3 + "]").addClass("sourceAlive");
-                    $("g.label[id^=" + source3 + "]").addClass("stop" + stop);
-
+                if ($("g.edgePath").hasClass(source)) {
+                    $("." + source + "").addClass("sourceAlive");
+                    $("." + source + "").addClass("stop" + stop);
+                    $("g.label[id^="+sourcetarget+"]").addClass("sourceAlive");
+                    $("g.label[id^="+sourcetarget+"]").addClass("stop" + stop);
                 }
+
                 if ($("g.edgePath").hasClass(target)) {
                     $("." + target + "").addClass("targetAlive");
                     $("." + target + "").addClass("stop" + stop);
-                    $("g.label[id$=" + target + "]").addClass("targetAlive");
-                    $("g.label[id$=" + target + "]").addClass("stop" + stop);
+                    $("g.label[id$="+target+"]").addClass("targetAlive");
+                    $("g.label[id$="+target+"]").addClass("stop" + stop);
 
+                    var targetinfo = getDataByEdgeTarget(nodeIndexCount);
+                    var line = targetinfo[0].line;
+                    if (line >= 0){
+                        var selection = d3.select("#source-" + line + " td pre.prettyprint");
+                        selection.classed("marked-source-line", true);
+                        var lineprev = line;
+                    } else {
+                        var selection = d3.select("#source-" + lineprev + " td pre.prettyprint");
+                        selection.classed("marked-source-line", true);
+                    }
                 }
 
-                $(".targetAlive.sourceAlive").addClass("contentshow");
-
-                $(".stop" + nodeIndexCount).removeClass("contentshow");
-                $(".stop" + nodeIndexCount).removeClass("targetAlive");
-                $(".stop" + nodeIndexCount).removeClass("sourceAlive");
+                $(".targetAlive.sourceAlive" ).addClass("contentshow");
+                $(".stop" + nodeIndexCount ).removeClass("contentshow");
+                $(".stop" + nodeIndexCount ).removeClass("targetAlive");
+                $(".stop" + nodeIndexCount ).removeClass("sourceAlive");
 
                 if ($("#node" + nodeIndexCount).hasClass("none")) {
-                    $(".mergedColored").removeClass("mergedColored");
+                    $(".mergedColored" ).removeClass("mergedColored");
                 }
                 if ($("#node" + nodeIndexCount).hasClass("toMerge")) {
-                    $(".mergedColored").removeClass("mergedColored");
+                    $(".mergedColored" ).removeClass("mergedColored");
                 }
             }
         }
     }
     else {
-        shownode3(maxStep);
+        shownode(maxStep);
         if ($("#node" + maxStep).hasClass("mergedColored")) {
             $("#node" + maxStep).removeClass("mergedColored");
         }
     }
 }
 
-function buttonFinalGraph() {
-    $(document).ready(function () {
+function buttonFinalGraph(){
+    $(document).ready(function(){
         $("g.node").addClass("contentshow");
         $("g.edgePath").addClass("contentshow");
         $("g.edgeLabel").addClass("contentshow");
@@ -225,29 +246,28 @@ function buttonFinalGraph() {
     document.getElementById("myRange").max = maxStep;
     document.getElementById("myRange").value = maxStep;
     document.getElementById("demo").innerHTML = maxStep;
-    step = maxStep;
+    step=maxStep;
 }
 
-function buttonFinalGraph2() {
-    $(document).ready(function () {
+function buttonFinalGraph2(){
+    $(document).ready(function(){
         var i;
-        for (i = 0; i <= maxStep; i++) {
-            shownode3(i);
+        for(i =0; i <= maxStep; i++ ) {
+            shownode(i);
         }
         $(".merged").removeClass("mergedColored");
     });
     document.getElementById("myRange").max = maxStep;
     document.getElementById("myRange").value = maxStep;
     document.getElementById("demo").innerHTML = maxStep;
-    step = maxStep;
+    step=maxStep;
 }
+
 
 function dagreGraphBuild(json) {
 
     var data = json;
-    var maxIndex = d3.max(data["nodes"], function (d) {
-        return d.index;
-    });
+    var maxIndex = d3.max(data["nodes"], function(d) { return d.index; });
 
     // Create the input graph
     var g = new dagreD3.graphlib.Graph()
@@ -259,9 +279,9 @@ function dagreGraphBuild(json) {
             return {label: "missing node"};
         });
 
-// Set up nodes
+    // Set up nodes
     data["nodes"].forEach(function (v) {
-        g.setNode(v["index"], {label: v["label"], class: v["type"], id: "node" + v["index"]});
+        g.setNode(v["index"], {label: v["label"], class: v["type"], id : "node" + v["index"]});
     });
 
     g.nodes().forEach(function (v) {
@@ -269,52 +289,45 @@ function dagreGraphBuild(json) {
         // Round the corners of the nodes
         node.rx = node.ry = 5;
     });
-    if (g.nodes(maxIndex)) {
+    if(g.nodes(maxIndex)) {
         var node = g.node(maxIndex);
         node.style = "stroke: #1366eb; stroke-width: 10";
     }
 
-// Set up edges
+    // Set up edges
     data["edges"].forEach(function (v) {
-        g.setEdge(v["source"], v["target"], {
-            label: v["label"],
-            class: "source" + v["source"] + " " + "target" + v["target"],
-            id: "source" + v["source"] + "target" + v["target"],
-            labelId: "source" + v["source"] + "target" + v["target"]
-        })
+        g.setEdge(v["source"], v["target"], {label: v["label"] , class: "source" + v["source"]+ " "+ "target" + v["target"],
+            id:"source"+ v["source"] + "target" + v["target"], labelId: "source"+ v["source"]+"target"+ v["target"]})
     });
 
-// Create the renderer
+    // Create the renderer
     var render = new dagreD3.render();
 
-// Set up an SVG group so that we can translate the final graph.
-    var svg = d3.select("svg"),
+    // Set up an SVG group so that we can translate the final graph.
+    var svg = d3.select("#canvas1"),
         svgGroup = svg.append("g").attr("id", "theG");
 
     // Set up zoom support
     var zoom = d3.zoom().on('zoom', function () {
         transform = d3.event.transform;
-        svgGroup.attr("transform",
-                      "translate(" + transform.x + ", " + transform.y + ") scale(" + transform.k
-                      + ")");
-
+        svgGroup.attr("transform","translate("+ transform.x + ", " + transform.y +") scale(" + transform.k + ")");
     });
+
     svg.call(zoom);
 
-// Run the renderer. This is what draws the final graph.
+    // Run the renderer. This is what draws the final graph.
     render(svgGroup, g);
 
-    var widthQuarter = -(g.graph().width) / 4;
-
+    var widthQuarter = -(g.graph().width)/4;
     var initialScale = (typeof transform != 'undefined') ? transform.k : 0.75;
-    var initialX = (typeof transform != 'undefined') ? transform.x : widthQuarter; //850
+    var initialX = (typeof transform != 'undefined') ? transform.x :widthQuarter  ; //850
     var initialY = (typeof transform != 'undefined') ? transform.y : 20;
     var t = d3.zoomIdentity.translate(initialX, initialY).scale(initialScale);
-    svg.call(zoom.transform, t);
 
-    svg.attr("width", width = "80%");
-    svg.attr('height', g.graph().height + 40)
-        .style("border", "1px solid black");
+    svg.call(zoom.transform, t);
+    svg.attr("width", width = "100%");
+    svg.attr('height', g.graph().height + 40);
+
     addToolTip();
 }
 
@@ -322,7 +335,6 @@ function updateGraph() {
     d3.selectAll("g > *").remove();
 
 }
-
 // On mouse over display tool tip box
 function showToolTipBox(e, displayInfo) {
     var offsetX = 20;
@@ -342,23 +354,18 @@ function hideToolTipBox() {
     d3.select("#infoBox").style("visibility", "hidden");
 }
 
-function addToolTip() {
+function addToolTip(){
     d3.selectAll(".node").on("mouseover", function (d) {
         var message;
         if (parseInt(d) > 100000) {
-            //message = "<span class=\" bold \">type</span>: function call node <br>" + "<span
-            // class=\" bold \">dblclick</span>: Select function";
+            //message = "<span class=\" bold \">type</span>: function call node <br>" + "<span class=\" bold \">dblclick</span>: Select function";
             message = "Test1";
         } else {
             var node = myVar.nodes.find(function (n) {
                 return n.index === parseInt(d);
             });
-            message =
-                "<span class=\" bold \">ARG_ID: </span><span class=\"standard\">" + node.index
-                + "</span>";
-            message +=
-                "<br> <span class=\" bold \">Label: </span><span class=\"standard\">" + node.label
-                + "</span>";
+            message = "<span class=\" bold \">ARG_ID: </span><span class=\"standard\">" + node.index + "</span>";
+            message += "<br> <span class=\" bold \">Label: </span><span class=\"standard\">" + node.label + "</span>";
         }
         showToolTipBox(d3.event, message);
     }).on("mouseout", function () {
@@ -374,7 +381,7 @@ function myFunction() {
 }
 
 // Close the dropdown if the user clicks outside of it
-window.onclick = function (event) {
+window.onclick = function(event) {
     if (!event.target.matches('.dropbtn')) {
         var dropdowns = document.getElementsByClassName("dropdown-content");
         var i;

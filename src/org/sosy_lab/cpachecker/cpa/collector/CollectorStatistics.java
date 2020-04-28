@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.collector;
 
+import static com.google.common.html.HtmlEscapers.htmlEscaper;
+import static java.nio.file.Files.isReadable;
 import static java.util.logging.Level.WARNING;
 
 import com.google.common.base.Charsets;
@@ -36,10 +38,13 @@ import com.google.common.io.Resources;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.io.Writer;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
@@ -48,6 +53,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -77,7 +84,7 @@ public class CollectorStatistics implements Statistics {
 
   private static final String HTML_TEMPLATE = "collector.html";
   private static final String CSS_TEMPLATE = "collector.css";
-  private static final String JS_TEMPLATE = "collector3.js";
+  private static final String JS_TEMPLATE = "collector.js";
   private final LogManager logger;
   private final LinkedHashMap<Integer, Object> cNodes = new LinkedHashMap<>();
   private final Multimap<Integer, Object> cEdges;
@@ -89,16 +96,18 @@ public class CollectorStatistics implements Statistics {
       description = "export collector as .dot file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path argFile = Paths.get("collector.dot");
-  private int count;
+  ImmutableList<String> sourceFiles;
 
-
-  public CollectorStatistics(CollectorCPA ccpa, Configuration config, LogManager pLogger)
+  public CollectorStatistics(CollectorCPA ccpa, Configuration config, @Nullable
+                             String pathSourceFile, LogManager pLogger)
       throws InvalidConfigurationException {
     this.logger = pLogger;
 
     config.inject(this, CollectorStatistics.class);
 
     cEdges = ArrayListMultimap.create();
+
+    sourceFiles = ImmutableList.of(pathSourceFile);
   }
 
   // Similar to the getEdgeText method in DOTBuilder2
@@ -118,14 +127,13 @@ public class CollectorStatistics implements Statistics {
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
 
-
     if (!reached.isEmpty() && reached.getFirstState() instanceof CollectorState) {
       build(reached);
     }
 
     StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
     writer.put("Verification result", result);
-    writer.put("Reached States", reached.toString());
+    //writer.put("Reached States", reached.toString());
   }
 
   private void makeDotFile(Collection<ARGState> pReachedcollectionARG) {
@@ -163,14 +171,18 @@ public class CollectorStatistics implements Statistics {
       BufferedWriter bwhtml = new BufferedWriter(writerhtml);
       String line2;
       while (null != (line2 = reader.readLine())) {
-        if (line2.contains("REPORT_CSS")) {
+        if (line2.contains("COLLECTOR_CSS")) {
           bwhtml.write("<style>" + "\n");
           Resources.asCharSource(Resources.getResource(getClass(), CSS_TEMPLATE), Charsets.UTF_8)
               .copyTo(bwhtml);
           bwhtml.write("</style>");
-        } else if (line2.contains("REPORT_JS")) {
+        } else if (line2.contains("COLLECTOR_JS")) {
           insertJs(bwhtml);
-        } else {
+        } else if (line2.contains("SOURCE_CONTENT")) {
+          insertSources(bwhtml);
+        }
+
+        else {
           bwhtml.write(line2 + "\n");
         }
       }
@@ -196,6 +208,49 @@ public class CollectorStatistics implements Statistics {
     }
   }
 
+  private void insertSources(Writer report) throws IOException {
+    int index = 0;
+    for (String sourceFile : sourceFiles) {
+      insertSource(Paths.get(sourceFile), report, index);
+      index++;
+    }
+  }
+
+  //Method insertSource is similar to insertSource in ReportGenerator
+  private void insertSource(Path sourcePath, Writer writer, int sourceFileNumber)
+      throws IOException {
+    if (isReadable(sourcePath)) {
+      int lineNumber = 1;
+      try (BufferedReader source =
+               new BufferedReader(
+                   new InputStreamReader(
+                       new FileInputStream(sourcePath.toFile()),
+                       Charset.defaultCharset()))) {
+        writer.write(
+            "<div class=\"sourceContent\">\n<table>\n");
+        String line;
+        while (null != (line = source.readLine())) {
+          line = "<td><pre class=\"prettyprint\">" + htmlEscaper().escape(line) + "  </pre></td>";
+          writer.write(
+              "<tr id=\"source-"
+                  + lineNumber
+                  + "\"><td><pre>"
+                  + lineNumber
+                  + "</pre></td>"
+                  + line
+                  + "</tr>\n");
+          lineNumber++;
+        }
+        writer.write("</table></div>\n");
+      } catch (IOException e) {
+        logger
+            .logUserException(WARNING, e, "Could not create report: Inserting source code failed.");
+      }
+    } else {
+      writer.write("<p>No Source-File available</p>");
+    }
+  }
+
   private void insertJs(
       Writer writer)
       throws IOException {
@@ -204,7 +259,7 @@ public class CollectorStatistics implements Statistics {
                  .openBufferedStream()) {
       String line;
       while (null != (line = reader.readLine())) {
-        if (line.contains("ARG_JSON_INPUT")) {
+        if (line.contains("COLLECTOR_JSON_INPUT")) {
           makeArgJson(writer);
         } else {
           writer.write(line + "\n");
@@ -234,7 +289,7 @@ public class CollectorStatistics implements Statistics {
     if (!collectorlinkedNodesAndEdges.isEmpty()) {
       collectorlinkedNodesAndEdges.forEach((key, value) -> {
         try {
-          writer.write("var myData" + count + " = { ");
+          writer.write("var myData = { ");
           writer.write("\n\"nodes\":");
           JSON.writeJSONString(key.values(), writer);
           writer.write(",\n\"edges\":");
@@ -282,7 +337,7 @@ public class CollectorStatistics implements Statistics {
         if (!destroyed1) {
           for (CFANode node : AbstractStates.extractLocations(entry)) {
             cNodes
-                .put(myID1, createNEWNode(ID1, ID1, node, entryARG1, type, notDestroyed, stopped));
+                .put(myID1, createNEWNode(myA1.getCount(),ID1, myA1.getCount(), node, entryARG1, type, notDestroyed, stopped));
           }
 
           Collection<ARGState> children = entryARG1.getChildren();
@@ -294,7 +349,7 @@ public class CollectorStatistics implements Statistics {
           }
         } else {
           for (CFANode node : AbstractStates.extractLocations(entry)) {
-            cNodes.put(myID1, createNEWNode(ID1, ID3, node, entryARG1, type, destroyed, stopped));
+            cNodes.put(myID1, createNEWNode(myA1.getCount(),ID1, myAM.getCount(), node, entryARG1, type, destroyed, stopped));
           }
 
           Collection<ARGState> children = ((CollectorState) entry).getChildrenTomerge1();
@@ -305,7 +360,7 @@ public class CollectorStatistics implements Statistics {
             cEdges.put(myID1, edgeValue1);
           }
 
-          ImmutableList<ARGState> parents1 = myA1.getParentslist();
+          Collection<ARGState> parents1 = myA1.getParentslist();
           if (parents1 != null) {
             int parentID = getParentsId(parents1);
             Map<String, Object> edgeValue1 = createExtraEdge(
@@ -317,7 +372,7 @@ public class CollectorStatistics implements Statistics {
         if (!destroyed2) {
           for (CFANode node : AbstractStates.extractLocations(entry)) {
             cNodes
-                .put(myID2, createNEWNode(ID2, ID2, node, entryARG2, type, notDestroyed, stopped));
+                .put(myID2, createNEWNode(myA2.getCount(),ID2, myA2.getCount(), node, entryARG2, type, notDestroyed, stopped));
           }
           Collection<ARGState> children = entryARG2.getChildren();
           for (ARGState child : children) {
@@ -328,7 +383,7 @@ public class CollectorStatistics implements Statistics {
           }
         } else {
           for (CFANode node : AbstractStates.extractLocations(entry)) {
-            cNodes.put(myID2, createNEWNode(ID2, ID3, node, entryARG2, type, destroyed, stopped));
+            cNodes.put(myID2, createNEWNode(myA2.getCount(),ID2, myAM.getCount(), node, entryARG2, type, destroyed, stopped));
           }
 
           Collection<ARGState> children = ((CollectorState) entry).getChildrenTomerge2();
@@ -339,7 +394,7 @@ public class CollectorStatistics implements Statistics {
             cEdges.put(myID1, edgeValue2);
           }
 
-          ImmutableList<ARGState> parents2 = myA2.getParentslist();
+          Collection<ARGState> parents2 = myA2.getParentslist();
           if (parents2 != null) {
             int parentID = getParentsId(parents2);
             Map<String, Object> edgeValue2 = createExtraEdge(
@@ -349,8 +404,9 @@ public class CollectorStatistics implements Statistics {
         }
 
         for (CFANode node : AbstractStates.extractLocations(entry)) {
-          cNodes.put(myID3, createNEWNode(ID3, ID3, node, entryARG, typeM, notDestroyed, stopped));
-        }
+          cNodes.put(myID3, createNEWNode(myAM.getCount(),ID3, myAM.getCount(), node, entryARG, typeM, notDestroyed, stopped));
+          }
+
         Collection<ARGState> children = entryARG.getChildren();
         for (ARGState child : children) {
           int childID = child.getStateId();
@@ -362,14 +418,14 @@ public class CollectorStatistics implements Statistics {
         int ID = ((CollectorState) entry).getStateId();
         ARGStateView myA = ((CollectorState) entry).getMyARGTransferRelation();
         if (myA != null) {
-          int IDtr = myA.getStateId();
           int myIDtr = myA.getMyStateId();
           String type = determineType((CollectorState) entry);
           ARGState entryARG = ((CollectorState) entry).getARGState();
           for (CFANode node : AbstractStates.extractLocations(entry)) {
             cNodes
-                .put(myIDtr, createNEWNode(ID, IDtr, node, entryARG, type, notDestroyed, stopped));
+                .put(myIDtr, createNEWNode(myA.getCount(),ID, myA.getCount(), node, entryARG, type, notDestroyed, stopped));
           }
+
           Collection<ARGState> children = entryARG.getChildren();
           for (ARGState child : children) {
             int childID = child.getStateId();
@@ -389,7 +445,7 @@ public class CollectorStatistics implements Statistics {
             }
           }
           for (CFANode node : AbstractStates.extractLocations(entry)) {
-            cNodes.put(-1, createFirstNode(ID, node, entryARG, type, destroyedType));
+            cNodes.put(-1, createFirstNode(0, ID, node, entryARG, type, destroyedType));
           }
           Collection<ARGState> children = entryARG.getChildren();
           for (ARGState child : children) {
@@ -405,9 +461,9 @@ public class CollectorStatistics implements Statistics {
     makeHTMLFile();
   }
 
-  private int getParentsId(ImmutableList<ARGState> pParents2) {
+  private int getParentsId(Collection<ARGState> pParents) {
     int parentID = 0;
-    for (ARGState parent : pParents2) {
+    for (ARGState parent : pParents) {
       parentID = parent.getStateId();
     }
     return parentID;
@@ -415,6 +471,7 @@ public class CollectorStatistics implements Statistics {
 
   // Nodes and Edges
   private Map<String, Object> createNEWNode(
+      int step,
       int parentStateId,
       int interval,
       CFANode node,
@@ -427,13 +484,14 @@ public class CollectorStatistics implements Statistics {
         ? argState.toDOTLabel().substring(0, argState.toDOTLabel().length() - 2)
         : "";
     Map<String, Object> argNode = new HashMap<>();
-    argNode.put("destroyed", destroyed);
-    if (!(interval <= parentStateId)) {
+   // argNode.put("destroyed", destroyed);
+    if (!(interval <= step)) {
       argNode.put("intervalStop", interval);
     } else {
       argNode.put("intervalStop", "");
     }
-    argNode.put("intervalStart", parentStateId);
+    argNode.put("count", step);
+    argNode.put("intervalStart", step);
     argNode.put("analysisStop", stopped);
     argNode.put("index", parentStateId);//ARGState-ID
     argNode.put("func", node.getFunctionName());
@@ -452,6 +510,7 @@ public class CollectorStatistics implements Statistics {
   }
 
   private Map<String, Object> createFirstNode(
+      int step,
       int parentStateId,
       CFANode node,
       ARGState argState,
@@ -463,10 +522,11 @@ public class CollectorStatistics implements Statistics {
         : "";
     Map<String, Object> argNode = new HashMap<>();
 
-    argNode.put("destroyed", destroyed);
+   // argNode.put("destroyed", destroyed);
+    argNode.put("count", step);
     argNode.put("analysisStop", false);
     argNode.put("intervalStop", "");
-    argNode.put("intervalStart", parentStateId);
+    argNode.put("intervalStart", step);
     argNode.put("index", parentStateId);
     argNode.put("func", node.getFunctionName());
     argNode.put(
@@ -511,7 +571,7 @@ public class CollectorStatistics implements Statistics {
     argEdge.put("source", parentStateId);
     argEdge.put("target", childStateId);
     argEdge.put("mergetype", type);
-    argEdge.put("destroyed", destroyed);
+   // argEdge.put("destroyed", destroyed);
 
     argEdge.put("type", "dummy type");
     argEdge.put("label", "merge edge");
@@ -528,7 +588,7 @@ public class CollectorStatistics implements Statistics {
     argEdge.put("source", parentStateId);
     argEdge.put("target", childStateId);
     argEdge.put("mergetype", type);
-    argEdge.put("destroyed", destroyed);
+   // argEdge.put("destroyed", destroyed);
 
     argEdge.put("type", "dummy type");
     argEdge.put("label", "Child merge edge");

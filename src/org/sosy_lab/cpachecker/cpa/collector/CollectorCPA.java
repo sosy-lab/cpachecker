@@ -24,12 +24,17 @@
 package org.sosy_lab.cpachecker.cpa.collector;
 
 
+import java.nio.file.Path;
 import java.util.Collection;
+import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.log.LoggingOptions;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.Specification;
@@ -59,7 +64,7 @@ public class CollectorCPA extends AbstractSingleWrapperCPA implements Statistics
   private final MergeOperator merge;
   private final LogManager logger;
   private final ARGStatistics stats;
-  private final CollectorStatistics statistics;
+  private CollectorStatistics statistics;
   private final StateToFormulaWriter writer;
   private CollectorCPA(
       ConfigurableProgramAnalysis cpa,
@@ -72,9 +77,18 @@ public class CollectorCPA extends AbstractSingleWrapperCPA implements Statistics
     super(cpa);
     this.logger = clogger;
 
-    statistics = new CollectorStatistics(this, config, logger);
-    writer = new StateToFormulaWriter(config, logger, pShutdownNotifier, cfa);
+    // get the path of the example program
+    String mydata = config.toString();
+    Pattern pattern = Pattern.compile("analysis.programNames=(.*?),");
+    Matcher matcher = pattern.matcher(mydata);
 
+    if (matcher.find())
+    {
+      String match = matcher.group(1);
+      statistics = new CollectorStatistics(this, config, match, logger);
+    }
+
+    writer = new StateToFormulaWriter(config, logger, pShutdownNotifier, cfa);
 
     if (cpa instanceof ARGCPA) {
       ARGMergeJoin wrappedMergeOperator = (ARGMergeJoin) cpa.getMergeOperator();
@@ -94,10 +108,8 @@ public class CollectorCPA extends AbstractSingleWrapperCPA implements Statistics
     return merge;
   }
 
-
   @Override
   public TransferRelation getTransferRelation() {
-
     TransferRelation supertr = super.getWrappedCpa().getTransferRelation();
     if (!(supertr instanceof ARGTransferRelation)) {
       throw new AssertionError("Transfer relation not ARG!");
@@ -105,15 +117,12 @@ public class CollectorCPA extends AbstractSingleWrapperCPA implements Statistics
     return new CollectorTransferRelation(supertr, logger);
   }
 
-
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-
     AbstractState initialState = super.getInitialState(pNode, pPartition);
     return new CollectorState(initialState, null, null, false, null, null, null, logger);
   }
-
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
@@ -121,7 +130,6 @@ public class CollectorCPA extends AbstractSingleWrapperCPA implements Statistics
     pStatsCollection.add(statistics);
     writer.collectStatistics(pStatsCollection);
   }
-
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
@@ -140,8 +148,6 @@ public class CollectorCPA extends AbstractSingleWrapperCPA implements Statistics
     }
     return new CollectorStop(stopOperator, logger);
   }
-
-
   protected LogManager getLogger() {
     return logger;
   }

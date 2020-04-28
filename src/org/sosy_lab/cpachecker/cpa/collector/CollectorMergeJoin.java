@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.collector;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Objects;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
@@ -48,6 +49,9 @@ public class CollectorMergeJoin implements MergeOperator {
   private final ArrayList<ARGState> children2 = new ArrayList<>();
   private final ArrayList<ARGState> parentsM = new ArrayList<>();
   private CollectorState mergedElementabs;
+  private int nr1;
+  private int nr2;
+
 
 
   public CollectorMergeJoin(
@@ -65,6 +69,11 @@ public class CollectorMergeJoin implements MergeOperator {
       AbstractState pElement1,
       AbstractState pElement2, Precision pPrecision) throws CPAException, InterruptedException {
 
+    CollectorState element1 = (CollectorState) pElement1;
+    nr1 =  element1.getCountTR();
+    CollectorState element2 = (CollectorState) pElement2;
+    nr2 =  element2.getCountTR();
+
     parentsM.clear();
     ARGState wrappedState1 = (ARGState) ((CollectorState) pElement1).getWrappedState();
     ARGState wrappedState2 = (ARGState) ((CollectorState) pElement2).getWrappedState();
@@ -81,18 +90,15 @@ public class CollectorMergeJoin implements MergeOperator {
 
     ARGStateView myARG2;
     ARGStateView myARG1;
-    if (parents2.size() >= 1 && parents1.size() >= 1) {
-      ARGState firstparent = parents2.get(0);
-      ARGState firstparent1 = parents1.get(0);
 
-      myARG1 =
-          new ARGStateView(wrappedState1, firstparent1, parents1, wrappedChildren1, true, logger);
+    if (parents2.size() >= 1 && parents1.size() >= 1) {
+      myARG1 = new ARGStateView(nr1,wrappedState1, parents1, wrappedChildren1, logger);
       parents1.clear();
-      myARG2 = new ARGStateView(wrappedState2, firstparent, parents2, wrappedChildren2, true, logger);
+      myARG2 = new ARGStateView(nr2,wrappedState2, parents2, wrappedChildren2, logger);
       parents2.clear();
     } else {
-      myARG2 = new ARGStateView(wrappedState2, null, null, wrappedChildren2, true, logger);
-      myARG1 = new ARGStateView(wrappedState1, null, null, wrappedChildren1, true, logger);
+      myARG2 = new ARGStateView(nr2,wrappedState2, null, wrappedChildren2, logger);
+      myARG1 = new ARGStateView(nr1,wrappedState1, null, wrappedChildren1, logger);
     }
 
     //children of parent of mergepartner are still alive but get destroyed after next step
@@ -102,17 +108,16 @@ public class CollectorMergeJoin implements MergeOperator {
     Collection<ARGState> wrappedParentMerged = mergedElement.getParents();
     parentsM.addAll(wrappedParentMerged);
 
-
     ARGStateView myARGmerged;
-    if (!mergedElement.equals(wrappedState2)) {
-      myARGmerged = new ARGStateView(mergedElement, null, parentsM, null, false, logger);
+    CollectorCount.count++;
 
+    if (!mergedElement.equals(wrappedState2)) {
+      myARGmerged = new ARGStateView(CollectorCount.count,mergedElement, parentsM, null, logger);
       mergedElementabs = new CollectorState
           (mergedElement, null, null, true, myARG1, myARG2, myARGmerged, logger);
     }
     if (!mergedElement.equals(wrappedState1)) {
-      myARGmerged = new ARGStateView(mergedElement, null, parentsM, null, false, logger);
-
+      myARGmerged = new ARGStateView(CollectorCount.count,mergedElement, parentsM, null, logger);
       mergedElementabs = new CollectorState
           (mergedElement, null, null, true, myARG1, myARG2, myARGmerged, logger);
     }

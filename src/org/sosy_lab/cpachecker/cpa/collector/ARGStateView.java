@@ -40,25 +40,25 @@ public class ARGStateView implements Graphable {
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
   private final int currentID;
   private final AbstractState wrappedelement;
-  private final boolean toMergeID;
   private final ARGState element;
   private final int stateId;
   private ImmutableList<ARGState> childrenlist;
   private ImmutableList<ARGState> parentslist;
+  private final int count;
 
 
-  public ARGStateView(
+  public ARGStateView(@Nullable int ccount,
       ARGState cElement,
-      @Nullable ARGState pParentElement,
       @Nullable Collection<ARGState> cParents,
       @Nullable Collection<ARGState> cChildren,
-      boolean toMerge,
       LogManager clogger) {
     stateId = idGenerator.getFreshId();
     element = cElement;
-    toMergeID = toMerge;
+    count = ccount;
     wrappedelement = element.getWrappedState();
     currentID = element.getStateId();
+
+
     if (cChildren != null) {
       childrenlist = ImmutableList.copyOf(cChildren);
     }
@@ -71,18 +71,18 @@ public class ARGStateView implements Graphable {
   public String toDOTLabel() {
     StringBuilder sb = new StringBuilder();
 
-    sb.append("myARG State: (myId: ");
+    sb.append("ARGStateView: (Id: ");
     sb.append(stateId);
+    sb.append(", Count: ");
+    sb.append(count);
     sb.append(", ARGId: ");
     sb.append(currentID);
-    sb.append(", toMerge: ");
-    sb.append(toMergeID);
     if (parentslist != null) {
-      sb.append(", myParentslist: ");
+      sb.append(", Parents: ");
       sb.append(stateIdsOf(parentslist));
     }
     if (childrenlist != null) {
-      sb.append(", myChildrenlist: ");
+      sb.append(", Children: ");
       sb.append(stateIdsOf(childrenlist));
     }
     sb.append(wrappedelement);
@@ -98,10 +98,6 @@ public class ARGStateView implements Graphable {
     return from(elements).transform(ARGState::getStateId);
   }
 
-  public Collection<ARGState> getChildrenOfToMerge() {
-    return Collections.unmodifiableCollection(childrenlist);
-  }
-
   public ARGState getARGState() {
     return element;
   }
@@ -114,7 +110,14 @@ public class ARGStateView implements Graphable {
     return stateId;
   }
 
-  public ImmutableList<ARGState> getParentslist() {
-    return parentslist;
+  public int getCount() {
+    return count;
+  }
+
+  public Collection<ARGState> getParentslist() {
+    return Collections.unmodifiableCollection(parentslist);
+  }
+  public Collection<ARGState> getChildrenOfToMerge() {
+    return Collections.unmodifiableCollection(childrenlist);
   }
 }

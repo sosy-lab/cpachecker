@@ -41,14 +41,14 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 public class CollectorState extends AbstractSingleWrapperState implements Graphable, Serializable {
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
-  private static int count;
   private final Collection<ARGState> wrappedParent;
   private final int currentARGid;
   private final ImmutableList<Integer> List_wrappedParent;
   private final ImmutableList<Integer> List_wrappedChildren;
   private final Boolean ismerged;
-  private final int count2;
   private final ARGState argstate;
+  private int countM;
+  private int countTR;
   private Collection<ARGState> childrenTomerge2;
   private Collection<ARGState> childrenTomerge1;
   private ImmutableList<AbstractState> states;
@@ -71,17 +71,22 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
     ismerged = merged;
     if (myARGtransfer != null) {
       this.myARGTransferRelation = myARGtransfer;
+      countTR = this.myARGTransferRelation.getCount();
     }
+
     if (pMyARG1 != null) {
       this.myARG1 = pMyARG1;
       childrenTomerge1 = this.myARG1.getChildrenOfToMerge();
     }
+
     if (pMyARG2 != null) {
       this.myARG2 = pMyARG2;
       childrenTomerge2 = this.myARG2.getChildrenOfToMerge();
     }
+
     if (pMyARGmerged != null) {
       this.myARGmerged = pMyARGmerged;
+      countM = this.myARGmerged.getCount();
     }
 
     if (pCollectorState != null) {
@@ -97,9 +102,6 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
     List_wrappedParent = ImmutableList.copyOf(stateID_wrappedParent);
     List_wrappedChildren = ImmutableList.copyOf(stateID_wrappedChildren);
     currentARGid = ((ARGState) pWrappedState).getStateId();
-    count2 = this.getCount();
-    count++;
-
   }
 
   public boolean isStopped() {
@@ -113,18 +115,18 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append("\nCollectorCount:  ");
-    sb.append(count2).append("\n");
     sb.append("Current:  ");
     sb.append("Sucessors: ");
     sb.append(List_wrappedChildren);
     sb.append(" Ancestors: ");
     sb.append(List_wrappedParent);
     sb.append(" StateID: ").append(currentARGid);
+    sb.append("\n Current ARGStateView Infos:  ");
 
-    sb.append("\n Current myARGID Infos:  ");
     if (myARGmerged != null) {
-      sb.append("\n" + "merged myARG:  ");
+      sb.append("\nCountM:  ");
+      sb.append(countM).append("\n");
+      sb.append("\n" + "myARG merged:  ");
       sb.append("\n").append(myARGmerged.toDOTLabel());
     }
     if (myARG1 != null) {
@@ -144,7 +146,9 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
       }
     }
     if (myARGTransferRelation != null) {
-      sb.append("\n" + "MyARGTransferRelation:");
+      sb.append("\nCountTR:  ");
+      sb.append(countTR).append("\n");
+      sb.append("\n" + "ARGStateView TransferRelation:");
       sb.append("\n").append(myARGTransferRelation.toDOTLabel());
     }
 
@@ -193,8 +197,8 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
     return currentARGid;
   }
 
-  public int getCount() {
-    return count;
+  public int getCountTR() {
+    return countTR;
   }
 
   public Collection<ARGState> getChildrenTomerge1() {

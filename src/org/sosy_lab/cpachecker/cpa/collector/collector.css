@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2018  Dirk Beyer
+ *  Copyright (C) 2007-2020  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,31 +22,129 @@
  *    http://cpachecker.sosy-lab.org
  */
 
-p, input {
-    font-size: 16px;
-    font-family: sans-serif;
-    color: darkblue;
+html, body {
+    height: 100%;
+    padding: 0;
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
 }
 
-h1, input {
-    font-size: 18px;
-    font-family: sans-serif;
-    color: darkblue;
+.flex-master {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    height: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
 }
 
-h3, input {
-    font-size: 24px;
-    font-family: sans-serif;
-    color: darkblue;
+.page-header {
+    /* fixed size */
+    flex: none;
+
+    padding: 15px;
+    font-size: 1.5em;
+    font-weight: bold;
+    background: #535353;
+    color: white;
 }
+
+.page-content {
+    /* resize in container */
+    flex: 1;
+
+    /* IMPORTANT for FireFox */
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    /* new flex container for content */
+    display: flex;
+    flex-direction: row;
+}
+
+.sidebar-left {
+    flex: none;
+    background: #838383;
+    padding: 20px;
+    width: 250px;
+    min-width: 150px;
+    overflow: auto;
+    color: white;
+    white-space: nowrap;
+}
+
+.splitter {
+    flex: none;
+    width: 17px;
+    cursor: col-resize;
+    background: #535353;
+    background:url('data:image/gif;base64,R0lGODlhCAAhAPEAAPHx8eDg4AAAACZFySH5BAEAAAMALAAAAAAIACEAAAIhxGaoa+l8WpxPVQkvtJPnjj3aCG4hVZLfKqYui8JeKxsFADs=') center center no-repeat #535353;
+    }
+
+.content-container {
+    flex: 1 1 auto;
+    background: #eee;
+    padding: 20px;
+    width: 100%;
+    min-width: 400px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    /* new flex for content/ads*/
+    flex-direction: row;
+}
+
+.main-content {
+    flex: 1 1 auto;
+    width: 100%;
+    padding: 10px;
+    min-width: 300px;
+    color: #838383;
+}
+
+
+
+footer {
+    flex: none;
+    background: #535353;
+    color: white;
+    padding: 10px;
+}
+.footer img.logo {
+    float: left;
+    height: 20px;
+    margin-left:10px;
+}
+
+
+.sourceContent td:first-child {
+    background-color: #ccc;
+}
+
+.sourceContent td pre {
+    padding: 0px;
+    margin: 0px;
+    border: none;
+}
+
+.sourceContent tr:nth-child(odd) td pre.prettyprint {
+    background-color: #c6dce7;
+}
+
+.sourceContent tr:nth-child(even) td pre.prettyprint {
+    background-color: #a8cfe2;
+}
+
+
+<!-- Sonja -->
+
 
 text {
     font-weight: 300;
     font-family: sans-serif;
     font-size: 12px;
 }
-
-.node text:hover {
+.node text:hover{
     fill: darkmagenta;
     opacity: 1;
 }
@@ -54,73 +152,72 @@ text {
 .node text {
     visibility: hidden;
 }
-
 .node rect {
     visibility: hidden;
 }
-
 .edgePath {
     visibility: hidden;
 }
-
 .edgeLabel {
     visibility: hidden;
 }
-
 .edgeLabel text {
     visibility: hidden;
 }
-
 .edgePath text {
     visibility: hidden;
 }
-
 .contentshow {
     visibility: visible;
 }
-
 .contentshow text {
     font-weight: 300;
     font-family: sans-serif;
     font-size: 12px;
-    fill: black;
+    fill:black;
     visibility: visible;
 }
-
-.contentshow.node rect {
+.contentshow.node rect{
     stroke: #999;
     fill: white;
-    stroke-width: 2px;
+    stroke-width: 1.5px;
     visibility: visible;
 }
-
 .contentshow.edgePath path {
     stroke: #333;
-    stroke-width: 2px;
+    stroke-width: 1.5px;
     visibility: visible;
 }
-
 .contentshow.mergedColored > rect {
     fill: #00ffd0;
 }
-
 .contentshow.toMerge > rect {
     fill: plum;
 }
-
 .contentshow.analysisStop > rect {
     stroke-width: 10px;
     stroke-dasharray: 5;
 }
 
+.page-button-bar {
+    /* fixed size */
+    flex: none;
+
+    padding: 15px;
+    font-size: 1em;
+    font-weight: bold;
+    background: #535353;
+    color: white;
+}
+
 .button {
     width: 140px;
-    height: 45px;
+    height: 4em;
     font-family: 'Roboto', sans-serif;
-    font-size: 11px;
+    font-size: 0.6em;
     text-transform: uppercase;
-    letter-spacing: 3px;
-    font-weight: 500;
+    letter-spacing: 2px;
+    font-weight: bold;
     color: #000;
     background-color: #fff;
     border: none;
@@ -129,6 +226,8 @@ text {
     transition: all 0.3s ease 0s;
     cursor: pointer;
     outline: none;
+    padding: 0em;
+    margin: 0.1em;
 }
 
 .button:hover {
@@ -140,12 +239,12 @@ text {
 
 .dropbtn {
     width: 140px;
-    height: 45px;
+    height: 4em;
     font-family: 'Roboto', sans-serif;
-    font-size: 11px;
+    font-size: 0.6em;
     text-transform: uppercase;
-    letter-spacing: 3px;
-    font-weight: 500;
+    letter-spacing: 2px;
+    font-weight: bold;
     color: #000;
     background-color: #fff;
     border: none;
@@ -154,6 +253,8 @@ text {
     transition: all 0.3s ease 0s;
     cursor: pointer;
     outline: none;
+    padding: 0em;
+    margin: 0.1em;
 }
 
 .dropbtn:hover, .dropbtn:focus {
@@ -174,34 +275,29 @@ text {
     background-color: #f1f1f1;
     min-width: 160px;
     overflow: auto;
-    box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
     z-index: 1;
     border-radius: 5px;
 }
 
 .dropdown-content a {
     color: #2db97b;
-    padding: 10px 12px;
+    padding: 1em 1em;
     text-decoration: none;
     display: block;
-    font-size: 10px;
+    font-size: 0.6em;
     font-family: 'Roboto', sans-serif;
     text-transform: uppercase;
-    letter-spacing: 3px;
+    letter-spacing: 2px;
 }
 
-.dropdown a:hover {
-    background-color: #ddd;
-}
+.dropdown a:hover {background-color: #ddd;}
 
-.show {
-    display: block;
-}
+.show {display: block;}
 
 .slidecontainer {
     width: 100%;
 }
-
 .slider {
     -webkit-appearance: none;
     width: 100%;
@@ -222,9 +318,10 @@ text {
     appearance: none;
     width: 25px;
     height: 25px;
-    background: #2EE59D;
     cursor: pointer;
+    background: #2EE59D;
 }
+
 
 .slider::-moz-range-thumb {
     width: 25px;
@@ -251,8 +348,9 @@ text {
     top: 25%;
     right: 100%;
     margin-top: -5px;
-    border: 5px solid transparent;
-    border-right-color: #2EE59D;
+    border-width: 5px;
+    border-style: solid;
+    border-color: transparent #2EE59D transparent transparent;
 }
 
 #insideBox {
@@ -276,4 +374,27 @@ text {
 
 .standard {
     font-size: 12px;
+}
+
+.sourceContent td:first-child {
+    background-color: #ccc;
+}
+
+.sourceContent td pre {
+    padding: 0px;
+    margin: 0px;
+    border: none;
+}
+
+.sourceContent tr:nth-child(odd) td pre.prettyprint {
+    background-color: #c6dce7;
+}
+
+.sourceContent tr:nth-child(even) td pre.prettyprint {
+    background-color: #a8cfe2;
+}
+
+.marked-source-line {
+   /* background-color: #df80ff !important;*/
+    background-color: darkblue !important;
 }
