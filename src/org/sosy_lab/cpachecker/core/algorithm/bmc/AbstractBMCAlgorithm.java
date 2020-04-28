@@ -603,7 +603,7 @@ abstract class AbstractBMCAlgorithm
             Level.INFO,
             "NZ: the interpolant before changing index is " + interpolant.toString());
         // interpolant = bfmgr.not(proverStack.getInterpolant(formulaB));
-        interpolant = fmgr.instantiate(interpolant, prefixSsaMap);
+        interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), prefixSsaMap);
         logger.log(
             Level.INFO,
             "NZ: the interpolant after changing index is " + interpolant.toString());
