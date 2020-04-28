@@ -156,6 +156,10 @@ analysis.algorithm.CBMC = false
 # Currently all refiner require the use of the ARGCPA.
 analysis.algorithm.CEGAR = false
 
+# use a interpolation-based algorithm that checks for satisfiability after
+# the analysis has finished, works only with PredicateCPA
+analysis.algorithm.IMC = false
+
 # use MPV algorithm for checking multiple properties
 analysis.algorithm.MPV = false
 
