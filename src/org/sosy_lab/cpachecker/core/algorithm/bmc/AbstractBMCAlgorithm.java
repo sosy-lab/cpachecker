@@ -382,6 +382,15 @@ abstract class AbstractBMCAlgorithm
         stats.bmcPreparation.stop();
         shutdownNotifier.shutdownIfNecessary();
 
+        if (cfa.getAllLoopHeads().get().isEmpty()) {
+          logger.log(Level.INFO, "NZ: the program has no loops");
+          if (errorIsReachableCheck(prover, getErrorFormula(reachedSet, -1))) {
+            return AlgorithmStatus.UNSOUND_AND_PRECISE;
+          } else {
+            return AlgorithmStatus.SOUND_AND_PRECISE;
+          }
+        }
+
         logger.log(Level.INFO, "NZ: collecting prefix, loop, and suffix formulas");
         if (maxLoopIterations == 1) {
           if (errorIsReachableCheck(prover, getErrorFormula(reachedSet, -1))) {
