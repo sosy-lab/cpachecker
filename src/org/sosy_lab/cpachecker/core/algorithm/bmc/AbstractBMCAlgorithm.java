@@ -105,6 +105,8 @@ import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
+import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaSlicer;
+import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.targetreachability.ReachabilityState;
@@ -509,8 +511,7 @@ abstract class AbstractBMCAlgorithm
      * step8: pop the prev interpolant and push the next interpolant; go to step5
      *
      */
-    // pseudo code implementation
-    // errorPath = getErrorPath();
+    // step1: get error path
     // Q1: multiple error locations?
     Optional<AbstractState> optionalTargetState =
         from(reachedSet).firstMatch(AbstractStates.IS_TARGET_STATE);
@@ -521,21 +522,38 @@ abstract class AbstractBMCAlgorithm
       return false;
     }
     AbstractState targetState = optionalTargetState.get();
-    logger.log(Level.INFO, targetState.toString());
-    logger.log(
-        Level.INFO,
-        "NZ: path formula to the target state "
-            + PredicateAbstractState.getPredicateState(targetState).getPathFormula().toString());
-    logger
-        .log(Level.INFO, "NZ: the path formula is true because it is reset at the error location");
     ARGPath errorPath = ARGUtils.getShortestPathTo((ARGState) targetState);
+    // step2: get block formulas
     PathIterator pathIterator = errorPath.fullPathIterator();
+    List<ARGState> slicingPoints = new ArrayList<>();
     while (pathIterator.hasNext()) {
-      PredicateAbstractState currentState =
-          PredicateAbstractState.getPredicateState(pathIterator.getAbstractState());
-      logger.log(Level.INFO, currentState.getPathFormula().toString());
+      if (slicingPoints.size() >= 2) {
+        // only the first and the second loop heads are needed
+        break;
+      }
+      if (pathIterator.getLocation().isLoopStart()) {
+        slicingPoints.add(pathIterator.getAbstractState());
+      }
       pathIterator.advance();
     }
+    // add the target state to the list
+    slicingPoints.add((ARGState) targetState);
+    BlockFormulaSlicer bfs = new BlockFormulaSlicer(pmgr);
+    BlockFormulas blockFormulas = null;
+    try {
+      blockFormulas = bfs.getFormulasForPath(errorPath.getFirstState(), slicingPoints);
+    } catch (CPATransferException e) {
+      return false;
+    } catch (InterruptedException e) {
+      return false;
+    }
+    assert blockFormulas.getSize() == 3;
+    BooleanFormula prefixFormula = blockFormulas.getFormulas().get(0);
+    logger.log(Level.INFO, "NZ: the prefix formula is " + prefixFormula.toString());
+    BooleanFormula loopFormula = blockFormulas.getFormulas().get(1);
+    logger.log(Level.INFO, "NZ: the loop formula is " + loopFormula.toString());
+    BooleanFormula suffixFormula = blockFormulas.getFormulas().get(2);
+    logger.log(Level.INFO, "NZ: the suffix formula is " + suffixFormula.toString());
     return false;
 //    prefixFormula = getFirstBlock(errorPath);
 //    loopFormula = getSecondBlock(errorPath);
