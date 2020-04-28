@@ -1,1 +1,1 @@
-./scripts/cpa.sh -timelimit 5s -bmc -preprocess -setprop analysis.algorithm.BMC=false -setprop analysis.algorithm.IMC=true -setprop bmc.interpolation=true -setprop cpa.loopbound.maxLoopIterationAdjusterFactory=INCREMENT example/hand-crafted/even.c
+./scripts/cpa.sh -timelimit 5s -preprocess -bmc-interpolation example/hand-crafted/even.c
