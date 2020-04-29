@@ -44,6 +44,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -189,21 +190,25 @@ public class TestDataTools {
   }
 
   /**
-   * Returns and, if necessary, creates a new empty C or Java program
-   * in the given temporary folder.
+   * Returns and, if necessary, creates a new empty C, Java or CTA program in the given temporary
+   * folder.
    */
-  public static String getEmptyProgram(TemporaryFolder pTempFolder, boolean isJava)
+  public static String getEmptyProgram(TemporaryFolder pTempFolder, Language language)
       throws IOException {
     File tempFile;
     String fileContent;
     String program;
-    if (isJava) {
+    if (language == Language.JAVA) {
       tempFile = getTempFile(pTempFolder,"Main.java");
       fileContent = "public class Main { public static void main(String... args) {} }";
       program = "Main";
-    } else {
+    } else if (language == Language.C) {
       tempFile = getTempFile(pTempFolder, "program.i");
       fileContent = getProgram();
+      program = tempFile.toString();
+    } else {
+      tempFile = getTempFile(pTempFolder, "automaton.cta");
+      fileContent = "MODULE m1 { INITIAL A1_S1; AUTOMATON A1 { STATE A1_S1 { } } }";
       program = tempFile.toString();
     }
     if (tempFile.createNewFile()) {

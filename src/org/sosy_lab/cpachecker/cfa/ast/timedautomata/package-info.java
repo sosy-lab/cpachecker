@@ -22,8 +22,7 @@
  *    http://cpachecker.sosy-lab.org
  */
 /**
- * Represents conditions on variables for timed automata. 
- * Classes in these package are mostly used by model classes
- * and dont represent an actual timed automata AST.
+ * Represents conditions on variables for timed automata. Classes in these package are mostly used
+ * by model classes and dont represent an actual timed automata AST.
  */
 package org.sosy_lab.cpachecker.cfa.ast.timedautomata;

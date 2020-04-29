@@ -473,7 +473,6 @@ public class ConfigurationFileChecks {
       configBuilder.copyOptionFromIfPresent(config, "limits.time.cpu");
       config = configBuilder.build();
     }
-    final boolean isJava = options.language == Language.JAVA;
 
     final TestLogHandler logHandler = new TestLogHandler();
     logHandler.setLevel(Level.ALL);
@@ -491,9 +490,10 @@ public class ConfigurationFileChecks {
 
     CPAcheckerResult result;
     try {
-      result = cpachecker.run(ImmutableList.of(createEmptyProgram(isJava)), ImmutableSet.of());
+      result =
+          cpachecker.run(ImmutableList.of(createEmptyProgram(options.language)), ImmutableSet.of());
     } catch (IllegalArgumentException e) {
-      if (isJava) {
+      if (options.language == Language.JAVA) {
         assume().withMessage("Java frontend has a bug and cannot be run twice").fail();
       }
       throw e;
@@ -555,7 +555,7 @@ public class ConfigurationFileChecks {
       return parse(configFile)
           .addConverter(FileOption.class, fileTypeConverter)
           .setOption("java.sourcepath", tempFolder.getRoot().toString())
-          .setOption("differential.program", createEmptyProgram(false))
+          .setOption("differential.program", createEmptyProgram(Language.C))
           .setOption("statistics.memory", "false")
           .build();
     } catch (InvalidConfigurationException | IOException | URISyntaxException e) {
@@ -564,8 +564,8 @@ public class ConfigurationFileChecks {
     }
   }
 
-  private String createEmptyProgram(boolean pIsJava) throws IOException {
-    return TestDataTools.getEmptyProgram(tempFolder, pIsJava);
+  private String createEmptyProgram(Language language) throws IOException {
+    return TestDataTools.getEmptyProgram(tempFolder, language);
   }
 
   private Stream<String> getSevereMessages(OptionsWithSpecialHandlingInTest pOptions, final TestLogHandler pLogHandler) {

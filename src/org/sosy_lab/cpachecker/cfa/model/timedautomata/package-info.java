@@ -21,7 +21,5 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-/**
- * Classes that represent timed automata as CFA
- */
+/** Classes that represent timed automata as CFA */
 package org.sosy_lab.cpachecker.cfa.model.timedautomata;
