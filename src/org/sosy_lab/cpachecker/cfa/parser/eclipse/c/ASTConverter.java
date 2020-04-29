@@ -1718,13 +1718,13 @@ class ASTConverter {
           && cStorageClass != CStorageClass.TYPEDEF) {
         CArrayType temp = (CArrayType) type;
 
-        if (temp.getLength() == null) {
-          throw parseContext.parseError("Missing length in declarator", d);
+        if (temp.getLength() == null && !checkLength(initializer)) {
+          parseContext.parseError("Missing length in declarator", d);
         }
         // for multi-dimensional arrays
         while (temp.getType() instanceof CArrayType) {
-          if (temp.getLength() == null) {
-            throw parseContext.parseError("Missing length in declarator", d);
+          if (temp.getLength() == null && !checkLength(initializer)) {
+            parseContext.parseError("Missing length in declarator", d);
           }
           temp = (CArrayType) temp.getType();
         }
@@ -1827,6 +1827,29 @@ class ASTConverter {
           "Declaration without declarator, but type is unknown: " + type.toASTString(""));
     }
 
+  }
+
+  // Ignore missing length in arrays with binary expression in designator
+  private boolean checkLength(IASTInitializer initializer) {
+    boolean nonCalculable = false;
+    if (initializer instanceof IASTEqualsInitializer) {
+      IASTInitializerClause initClause =
+          ((IASTEqualsInitializer) initializer).getInitializerClause();
+      if (initClause instanceof IASTInitializerList) {
+        for (IASTInitializerClause x : ((IASTInitializerList) initClause).getClauses()) {
+          if (x instanceof CASTDesignatedInitializer) {
+            ICASTDesignator[] designators = ((CASTDesignatedInitializer) x).getDesignators();
+            if (designators[0] instanceof CASTArrayDesignator) {
+              IASTExpression exp = ((CASTArrayDesignator) designators[0]).getSubscriptExpression();
+              if (!(exp instanceof CASTLiteralExpression)) {
+                nonCalculable = true;
+              }
+            }
+          }
+        }
+      }
+    }
+    return nonCalculable;
   }
 
   private List<CCompositeTypeMemberDeclaration> convertDeclarationInCompositeType(final IASTDeclaration d, int nofMember) {
@@ -2119,6 +2142,7 @@ class ASTConverter {
           if (arrayType.getType() instanceof CElaboratedType) {
             if (((CElaboratedType) arrayType.getType()).getKind().equals(ComplexTypeKind.STRUCT)) {
               CExpression lengthExp = computeLengthArrayOfStructs(initClause);
+              if (lengthExp != null) {
               if (arrayType.getLength() != null) {
                 compareArrayLengths(arrayType.getLength(), lengthExp, d);
               } else {
@@ -2127,6 +2151,7 @@ class ASTConverter {
                 type =
                     new CArrayType(
                         arrayType.isConst(), arrayType.isVolatile(), nestedType, lengthExp);
+              }
               }
             }
             if (((CElaboratedType) arrayType.getType()).getKind().equals(ComplexTypeKind.ENUM)) {
@@ -2178,9 +2203,9 @@ class ASTConverter {
       } else if (initC instanceof CASTDesignatedInitializer) {
         ICASTDesignator[] designators = ((CASTDesignatedInitializer) initC).getDesignators();
         if (designators[0] instanceof CASTArrayDesignator) {
-          CAstNode subscript =
-              convertExpressionWithSideEffects(
-                  ((CASTArrayDesignator) designators[0]).getSubscriptExpression());
+          IASTExpression exp = ((CASTArrayDesignator) designators[0]).getSubscriptExpression();
+          if (exp instanceof CASTLiteralExpression) {
+            CAstNode subscript = convertExpressionWithSideEffects(exp);
           if (subscript instanceof CIntegerLiteralExpression) {
             int dIndex = ((CIntegerLiteralExpression) subscript).getValue().intValue();
             if (dIndex >= index) {
@@ -2193,6 +2218,9 @@ class ASTConverter {
             } else {
               prevhasBrackets = false;
             }
+          }
+          } else {
+            return null;
           }
         }
       }
