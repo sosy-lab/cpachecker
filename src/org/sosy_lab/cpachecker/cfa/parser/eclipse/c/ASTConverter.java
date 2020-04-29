@@ -1718,12 +1718,12 @@ class ASTConverter {
           && cStorageClass != CStorageClass.TYPEDEF) {
         CArrayType temp = (CArrayType) type;
 
-        if (temp.getLength() == null && !checkLength(initializer)) {
+        if (temp.getLength() == null && !checkIfLengthCalculable(initializer)) {
           parseContext.parseError("Missing length in declarator", d);
         }
         // for multi-dimensional arrays
         while (temp.getType() instanceof CArrayType) {
-          if (temp.getLength() == null && !checkLength(initializer)) {
+          if (temp.getLength() == null && !checkIfLengthCalculable(initializer)) {
             parseContext.parseError("Missing length in declarator", d);
           }
           temp = (CArrayType) temp.getType();
@@ -1830,7 +1830,7 @@ class ASTConverter {
   }
 
   // Ignore missing length in arrays with binary expression in designator
-  private boolean checkLength(IASTInitializer initializer) {
+  private boolean checkIfLengthCalculable(IASTInitializer initializer) {
     boolean nonCalculable = false;
     if (initializer instanceof IASTEqualsInitializer) {
       IASTInitializerClause initClause =
@@ -2055,7 +2055,8 @@ class ASTConverter {
           IASTInitializerClause initClause =
               ((IASTEqualsInitializer) initializer).getInitializerClause();
 
-          if (arrayType.getType() instanceof CSimpleType) {
+          if (arrayType.getType() instanceof CSimpleType
+              || arrayType.getType() instanceof CPointerType) {
             CExpression lengthExp = computeLengthOfArray(initClause, arrayType);
             if (arrayType.getLength() != null
                 && !(arrayType.getLength() instanceof CIdExpression)) {
