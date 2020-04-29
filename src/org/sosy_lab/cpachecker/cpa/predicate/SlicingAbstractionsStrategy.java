@@ -206,7 +206,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       for (int i = 0; i < threadNum; i++) {
         parallelSolvers.add(
             Solver.create(
-                pPredicateCpa.getConfiguration(),
+                Configuration.builder().copyFrom(config).setOption("solver.solver", "Z3").build(),
                 pPredicateCpa.getLogger(),
                 pPredicateCpa.getShutdownNotifier()));
       }
