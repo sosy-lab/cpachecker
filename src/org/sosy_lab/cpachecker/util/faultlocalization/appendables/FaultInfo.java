@@ -9,7 +9,7 @@ public abstract class FaultInfo implements Comparable<FaultInfo>{
   public enum InfoType{
     FIX(0), HINT(1), REASON(2), RANK_INFO(3);
 
-    private int reportRank;
+    private final int reportRank;
     InfoType(int pReportRank) {
       reportRank = pReportRank;
     }
@@ -41,8 +41,8 @@ public abstract class FaultInfo implements Comparable<FaultInfo>{
     return new RankInfo(InfoType.RANK_INFO, pDescription, pLikelihood);
   }
 
-  public static FaultInfo justify(String pDescription, double pLikelihood){
-    return new FaultReason(InfoType.REASON, pDescription, pLikelihood);
+  public static FaultInfo justify(String pDescription){
+    return new FaultReason(InfoType.REASON, pDescription);
   }
 
   public static FaultInfo hint(String pDescription){
