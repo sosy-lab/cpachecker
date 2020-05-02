@@ -1388,23 +1388,23 @@ class ASTConverter {
     return null;
   }
 
-  private Constructor<?> matchConstructor(String className, List<?> arguments) {
+  private Constructor<?> matchConstructor(String pClassName, List<?> pArguments) {
     Class<?> cls;
     try {
-      cls = Class.forName(className);
+      cls = Class.forName(pClassName);
     } catch (ClassNotFoundException pE) {
       return null;
     }
-    if (arguments.isEmpty()) {
+    if (pArguments.isEmpty()) { // TODO Remove
       try {
         return cls.getDeclaredConstructor();
       } catch (NoSuchMethodException pE) {
-        logger.logf(Level.FINEST, "Default Constructor for class %s not found.", className);
+        logger.logf(Level.FINEST, "Default Constructor for class %s not found.", pClassName);
         return null;
       }
     } else {
-      String parameterString = getParameterTypesAsString(arguments);
-      String constructorMethod = className + "(" + parameterString + ")";
+      String parameterString = getParameterTypesAsString(pArguments);
+      String constructorMethod = pClassName + "(" + parameterString + ")";
       for (Constructor<?> constructor : cls.getDeclaredConstructors()) {
         if (constructor.toString().endsWith(constructorMethod)) {
           return constructor;
