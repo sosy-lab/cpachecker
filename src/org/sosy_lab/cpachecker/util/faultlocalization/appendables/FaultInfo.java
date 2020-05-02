@@ -63,21 +63,13 @@ public abstract class FaultInfo implements Comparable<FaultInfo>{
 
   /**
    * Sort by InfoType then by score.
-   * If score is equal sort alphabetically instead.
    * @param info FaultInfo for comparison
    * @return Is this object smaller equal or greater than info
    */
   @Override
   public int compareTo(FaultInfo info){
     if(type.equals(info.type)){
-      double scoreDiff = score - info.score;
-      if(scoreDiff < 0){
-        return -1;
-      }
-      if(scoreDiff == 0){
-        return description.compareTo(info.description);
-      }
-      return 1;
+      return Double.compare(info.score, score);
     } else {
       return type.reportRank - info.type.reportRank;
     }

@@ -171,16 +171,7 @@ public class Fault extends ForwardingSet<FaultContribution> {
             return false;
           }
         }
-        List<FaultInfo> copy = new ArrayList<>(infos);
-        List<FaultInfo> copy2 = new ArrayList<>(comp.infos);
-        Collections.sort(copy);
-        Collections.sort(copy2);
 
-        for(int i = 0; i < copy.size(); i++){
-          if(!copy.get(i).equals(copy2.get(i))){
-            return false;
-          }
-        }
         return true;
       }
     }
@@ -192,9 +183,6 @@ public class Fault extends ForwardingSet<FaultContribution> {
     int result = 4;
     for(FaultContribution contribution: this){
       result = Objects.hash(contribution, result);
-    }
-    for(FaultInfo info: infos){
-      result = Objects.hash(info, result);
     }
     return result;
   }

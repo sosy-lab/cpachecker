@@ -187,10 +187,10 @@ input:checked+.slider:before {
 	margin-bottom: 5px;
 }
 
+/* -185px for buttons and controllers
+   -2px for the border of the change view button
+   -2.25rem for the font size and the radius of the change view button */
 #errorpath_section .fileContent {
-        // -185px for buttons and controllers
-        // -2px for the border of the change view button
-        // -2.25rem for the font size and the radius of the change view button
 	height: calc(100% - 187px - 2.25rem);
 	margin: 5px;
 	overflow: auto;

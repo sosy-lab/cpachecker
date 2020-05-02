@@ -32,7 +32,7 @@ public class FaultReportWriter {
     return description + " (" + percent + ")";
   }
 
-  public String toHtml(FaultContribution faultContribution) {
+  public String  toHtml(FaultContribution faultContribution) {
     return toHtml(faultContribution.getInfos(), Collections.singletonList(faultContribution.correspondingEdge())) + "<br><i>Score: " + (int)(faultContribution.getScore()*100)+"</i>";
   }
 
@@ -80,33 +80,34 @@ public class FaultReportWriter {
 
     if (!faultReasons.isEmpty()) {
       html.append(printList("Detected <strong>" +
-              faultInfo.size() + "</strong> possible reason(s):<br>", "",
-          faultInfo, true))
+              faultReasons.size() + "</strong> possible reason" + (faultReasons.size() == 1? ":":"s:"), "",
+          faultReasons, true))
           .append("<br>");
     }
 
     if (!faultHint.isEmpty()) {
+      String headline = faultHint.size() == 1? "hint is available:" : "hints are available:";
       html.append(
-              printList(
-                  "<strong>" + faultHint.size() + "</strong> hints are available:<br>",
-                  "hint-list",
-                  faultHint,
-                  false))
+          printList(
+              "<strong>" + faultHint.size() + "</strong>" + headline,
+              "hint-list",
+              faultHint,
+              false))
           .append("<br>");
     }
 
     if (!faultFix.isEmpty()) {
-      html.append(printList("Found " + faultFix.size() + " possible bug-fixes:<br>", "fix-list",
-          faultInfo, false))
+      html.append(printList("Found " + faultFix.size() + " possible bug-fix" + (faultFix.size() == 1?":":"es:"), "fix-list",
+          faultFix, false))
           .append("<br>");
     }
 
     if (!faultInfo.isEmpty()) {
-      html.append(printList("The score is obtained by:<br>", "", faultInfo, true))
+      html.append(printList("The score is obtained by:", "", faultInfo, true))
           .append("<br>");
     }
 
-    return header + "\n" + html;
+    return header + "<br>" + html;
   }
 
   private String printList(String headline, String htmlId, Collection<? extends FaultInfo> infos, boolean useOrderedList){

@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.InfoType;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.IdentityRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.OverallOccurrenceRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.SetSizeRanking;
@@ -42,8 +43,13 @@ import org.sosy_lab.cpachecker.util.faultlocalization.ranking.SetSizeRanking;
  */
 public class FaultRankingUtils {
 
-  private static Function<List<FaultInfo>, Double> evaluationFunction = r -> r.stream().filter(c -> c.isRankInfo()).mapToDouble(
-      FaultInfo::getScore).average().orElse(0);
+  private static Function<List<FaultInfo>, Double> evaluationFunction =
+      r ->
+          r.stream()
+              .filter(c -> c.getType().equals(InfoType.RANK_INFO))
+              .mapToDouble(FaultInfo::getScore)
+              .average()
+              .orElse(0);
 
   public enum RankingMode {
     /** Rank all elements by occurrence in iterator (arbitrary)*/
@@ -100,7 +106,7 @@ public class FaultRankingUtils {
    * @return concatenated heuristic which sorts by total score.
    */
   public static FaultRanking concatHeuristics(Function<Fault, Double> finalScoringFunction,
-      FaultRanking... pRanking) {
+                                              FaultRanking... pRanking) {
     return l -> forAll(l, finalScoringFunction, pRanking);
   }
 
