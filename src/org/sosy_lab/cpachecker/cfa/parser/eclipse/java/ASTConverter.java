@@ -1396,23 +1396,41 @@ class ASTConverter {
     } catch (ClassNotFoundException pE) {
       return null;
     }
-    if (pArguments.isEmpty()) { // TODO Remove
-      try {
-        return cls.getDeclaredConstructor();
-      } catch (NoSuchMethodException pE) {
-        logger.logf(Level.FINEST, "Default Constructor for class %s not found.", pClassName);
-        return null;
-      }
-    } else {
-      String parameterString = getParameterTypesAsString(pArguments);
-      String constructorMethod = pClassName + "(" + parameterString + ")";
-      for (Constructor<?> constructor : cls.getDeclaredConstructors()) {
-        if (constructor.toString().endsWith(constructorMethod)) {
-          return constructor;
+    Class<?>[] argumentsAsClassArray = getClassArrayOfArgumentList(pArguments);
+
+    for (Constructor<?> constructor : cls.getDeclaredConstructors()) {
+      boolean match = true;
+      Class<?>[] parameterTypes = constructor.getParameterTypes();
+      for (int i = 0; i < parameterTypes.length; i++) {
+        if (!parameterTypes[i].isAssignableFrom(argumentsAsClassArray[i])) {
+          match = false;
+          break;
         }
+      }
+      if (match) {
+        return constructor;
       }
     }
     return null;
+  }
+
+  private Class<?>[] getClassArrayOfArgumentList(List<?> pArguments) {
+    Class<?>[] result = new Class[pArguments.size()];
+
+    for (int i = 0; i < pArguments.size(); i++) {
+      Object argument = pArguments.get(i);
+      JSimpleDeclaration simpleDeclaration = scope.lookupVariable(argument.toString());
+      if (simpleDeclaration != null) {
+        result[i] = getClassOfJType(simpleDeclaration.getType()).get();
+      } else if (argument instanceof Expression) {
+        ITypeBinding binding = ((Expression) argument).resolveTypeBinding();
+        if (binding != null) {
+          result[i] = getClassOfJType(typeConverter.convert(binding)).get();
+        }
+      }
+    }
+
+    return result;
   }
 
   @VisibleForTesting
@@ -1496,37 +1514,6 @@ class ASTConverter {
       return Optional.absent();
     } else {
       return Optional.of(cls);
-    }
-  }
-
-  private String getParameterTypesAsString(List<?> arguments) {
-    List<String> argumentsAsStringList = new ArrayList<>(arguments.size());
-    for (Object argument : arguments) {
-      JSimpleDeclaration simpleDeclaration = scope.lookupVariable(argument.toString());
-      if (simpleDeclaration != null) {
-        argumentsAsStringList.add(simpleDeclaration.getType().toString().replace(" ", ""));
-      } else {
-        // TODO Add Type Tester!
-        if (argument instanceof Expression) {
-          ITypeBinding binding = ((Expression) argument).resolveTypeBinding();
-          if (binding != null && binding.getBinaryName().startsWith("java.lang")) {
-            argumentsAsStringList.add(
-                removeFromStringEverythingBeforeLastOccurrenceOf(
-                    binding.getBinaryName(), "."));
-          }
-        }
-      }
-    }
-    return String.join(",", argumentsAsStringList);
-  }
-
-  private static String removeFromStringEverythingBeforeLastOccurrenceOf(
-      String string, final String separator) {
-    int indexOfLastString = string.lastIndexOf(separator);
-    if (indexOfLastString >= 0) {
-      return string.substring(indexOfLastString + 1);
-    } else {
-      return string;
     }
   }
 
