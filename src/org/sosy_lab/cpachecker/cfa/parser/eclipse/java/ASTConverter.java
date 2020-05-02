@@ -1493,9 +1493,9 @@ class ASTConverter {
         throw new CFAGenerationRuntimeException("Unknown primitive type " + name);
     }
     if (cls == null) {
-      return java.util.Optional.empty();
+      return Optional.absent();
     } else {
-      return java.util.Optional.of(cls);
+      return Optional.of(cls);
     }
   }
 
