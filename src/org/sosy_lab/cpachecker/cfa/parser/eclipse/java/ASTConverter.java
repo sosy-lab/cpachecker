@@ -1315,27 +1315,30 @@ class ASTConverter {
     ImportDeclaration matchingImportDeclaration =
         getMatchingImportDeclaration(pCIC, importDeclarations);
 
-    Constructor<?> constructor;
+    Optional<Constructor<?>> constructorOptional;
     if (matchingImportDeclaration == null) {
-      constructor = matchConstructor("java.lang." + pCIC.getType().toString(), pCIC.arguments());
+      constructorOptional =
+          matchConstructor("java.lang." + pCIC.getType().toString(), pCIC.arguments());
     } else {
-      constructor =
+      constructorOptional =
           matchConstructor(
               matchingImportDeclaration.getName().getFullyQualifiedName(), pCIC.arguments());
     }
 
-    if (constructor != null) {
+    if (constructorOptional.isPresent()) {
       JClassOrInterfaceType declaringClass = scope.getCurrentClassType();
       JConstructorType constructorType =
           new JConstructorType(
-              declaringClass, getJTypesOfParameters(pCIC.arguments()), constructor.isVarArgs());
+              declaringClass,
+              getJTypesOfParameters(pCIC.arguments()),
+              constructorOptional.get().isVarArgs());
       return new JConstructorDeclaration(
           getFileLocation(pCIC),
           constructorType,
           fullName,
           simpleName,
           createJParameterDeclarationsForArguments(pCIC.arguments()),
-          getVisibilityModifierForConstructor(constructor),
+          getVisibilityModifierForConstructor(constructorOptional.get()),
           (declaringClass instanceof JClassType && ((JClassType) declaringClass).isStrictFp()),
           declaringClass);
     }
@@ -1387,12 +1390,12 @@ class ASTConverter {
     return null;
   }
 
-  private Constructor<?> matchConstructor(String pClassName, List<?> pArguments) {
+  private Optional<Constructor<?>> matchConstructor(String pClassName, List<?> pArguments) {
     Class<?> cls;
     try {
       cls = Class.forName(pClassName);
     } catch (ClassNotFoundException pE) {
-      return null;
+      return Optional.absent();
     }
     Class<?>[] argumentsAsClassArray = getClassArrayOfArgumentList(pArguments);
 
@@ -1406,10 +1409,10 @@ class ASTConverter {
         }
       }
       if (match) {
-        return constructor;
+        return Optional.of(constructor);
       }
     }
-    return null;
+    return Optional.absent();
   }
 
   private Class<?>[] getClassArrayOfArgumentList(List<?> pArguments) {
