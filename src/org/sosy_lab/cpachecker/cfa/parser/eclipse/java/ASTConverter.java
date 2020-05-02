@@ -33,6 +33,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -1415,7 +1416,49 @@ class ASTConverter {
   }
 
   @VisibleForTesting
-  static java.util.Optional<Class<?>> getClassOfPrimitiveType(JSimpleType pJSimpleType) {
+  static Optional<Class<?>> getClassOfJType(JType pJType) {
+    if (pJType instanceof JSimpleType) {
+      return getClassOfPrimitiveType((JSimpleType) pJType);
+    }
+    if (pJType instanceof JClassOrInterfaceType) {
+      try {
+        final String jTypeName = ((JClassOrInterfaceType) pJType).getName();
+        final Optional<Class<?>> cls = Optional.of(Class.forName(jTypeName));
+        cls.get().isInterface();
+        if ((cls.get().isInterface() && pJType instanceof JClassType)
+            || (!cls.get().isInterface() && pJType instanceof JInterfaceType)) {
+          String errorMessage =
+              "Error in getting class of "
+                  + jTypeName
+                  + ". "
+                  + jTypeName
+                  + ((pJType instanceof JInterfaceType) ? " is" : " is not")
+                  + " an interface "
+                  + "but its derived class"
+                  + (cls.get().isInterface() ? " is." : " is not.");
+          throw new AssertionError(errorMessage);
+        }
+        return cls;
+      } catch (ClassNotFoundException pE) {
+        return Optional.absent();
+      }
+    }
+    if (pJType instanceof JArrayType) {
+      final JType elementTypeOfJArrayType = ((JArrayType) pJType).getElementType();
+      Optional<Class<?>> typeOfArray = getClassOfJType(elementTypeOfJArrayType);
+      int dimensionsOfArray = ((JArrayType) pJType).getDimensions();
+      Class<?> array = Array.newInstance(typeOfArray.get(), 0).getClass();
+      for (int i = 1; i < dimensionsOfArray; i++) {
+        array = Array.newInstance(array, 0).getClass();
+      }
+      return Optional.of(array);
+    }
+
+    return Optional.absent();
+  }
+
+  @VisibleForTesting
+  static Optional<Class<?>> getClassOfPrimitiveType(JSimpleType pJSimpleType) {
     Class<?> cls;
     final String name = pJSimpleType.getType().toASTString();
     switch (name) {

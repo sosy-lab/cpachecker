@@ -23,15 +23,25 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
-import java.util.Optional;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
+import javax.annotation.Nonnull;
 import org.junit.Assert;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
+import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
+import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 
 public class ASTConverterTest {
 
   @Test
-  public void testGetClassOfJType() {}
+  public void testGetClassOfJType() {
+    Optional<Class<?>> optionalOfPrimitiveType =
+        ASTConverter.getClassOfJType(JSimpleType.getBoolean());
+    Assert.assertEquals(boolean.class, optionalOfPrimitiveType.get());
+  }
 
   @Test
   public void testGetClassOfPrimitiveType() {
@@ -43,6 +53,34 @@ public class ASTConverterTest {
     Assert.assertEquals(long.class, optionalOfPrimitiveType.get());
 
     optionalOfPrimitiveType = ASTConverter.getClassOfPrimitiveType(JSimpleType.getVoid());
-    Assert.assertEquals(Optional.empty(), optionalOfPrimitiveType);
+    Assert.assertEquals(Optional.absent(), optionalOfPrimitiveType);
+  }
+
+  @Test
+  public void testGetClassOfJTypeForNonPrimitiveType() {
+    JClassOrInterfaceType jClassOrInterfaceType = createStringJClassOrInterfaceType();
+    Optional<Class<?>> optionalOfStringClass = ASTConverter.getClassOfJType(jClassOrInterfaceType);
+    Assert.assertEquals(String.class, optionalOfStringClass.get());
+  }
+
+  @Test
+  public void testGetArrayClass() {
+    JArrayType jArrayTypeOfString = new JArrayType(createStringJClassOrInterfaceType(), 3);
+    Optional<Class<?>> optionalOfArrayClass = ASTConverter.getClassOfJType(jArrayTypeOfString);
+    Assert.assertTrue(optionalOfArrayClass.get().isArray());
+    Assert.assertEquals("java.lang.String[][][]", optionalOfArrayClass.get().toGenericString());
+  }
+
+  @Nonnull
+  private JClassOrInterfaceType createStringJClassOrInterfaceType() {
+    return JClassType.valueOf(
+        "java.lang.String",
+        "String",
+        VisibilityModifier.PUBLIC,
+        true,
+        false,
+        false,
+        JClassType.createUnresolvableType(),
+        ImmutableSet.of());
   }
 }
