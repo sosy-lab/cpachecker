@@ -115,7 +115,7 @@ public class FaultReportWriter {
   private String printList(String headline, String htmlId, Collection<? extends FaultInfo> infos, boolean useOrderedList){
     String listType = useOrderedList? "ol":"ul";
     String id = "";
-    if(!htmlId.equals("")){
+    if(!htmlId.isEmpty()){
       id = " id=\"" + htmlId + "\"";
     }
     StringBuilder out = new StringBuilder(headline + "<br><"  + listType + id + ">");
