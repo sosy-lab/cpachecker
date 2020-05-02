@@ -41,7 +41,7 @@ public class NoContextExplanation implements FaultExplanation {
    * Make a suggestion for a bug fix based on the EdgeType.
    * @param subset set of FaultLocalizationOutputs.
    * @return explanation of what might be a fix
-   * @see org.sosy_lab.cpachecker.util.faultlocalization.FaultReason#hintFor(Fault)
+   * @see org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo#possibleFixFor(Fault) 
    */
   @Override
   public String explanationFor(Fault subset) {
@@ -84,7 +84,7 @@ public class NoContextExplanation implements FaultExplanation {
       }
       case FunctionCallEdge:
       {
-        return "The function call \"" + description + "\" may have unwanted side effects.";
+        return "The function call \"" + description + "\" may have unwanted side effects or a wrong return value.";
       }
       case FunctionReturnEdge:
       {

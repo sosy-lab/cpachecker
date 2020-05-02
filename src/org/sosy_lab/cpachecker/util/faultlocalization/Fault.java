@@ -26,12 +26,12 @@ package org.sosy_lab.cpachecker.util.faultlocalization;
 import com.google.common.collect.ForwardingSet;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 
 /**
  * A Fault is a set of FaultContributions.
@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
 public class Fault extends ForwardingSet<FaultContribution> {
 
   private Set<FaultContribution> errorSet;
-  private List<FaultReason> reasons;
+  private List<FaultInfo> infos;
 
   /**
    * The recommended way is to calculate the score based on the likelihoods of the appended reasons.
@@ -55,13 +55,13 @@ public class Fault extends ForwardingSet<FaultContribution> {
    */
   public Fault(Set<FaultContribution> pErrorSet){
     errorSet = pErrorSet;
-    reasons = new ArrayList<>();
+    infos = new ArrayList<>();
     score = 0;
   }
 
   public Fault(){
     errorSet = new HashSet<>();
-    reasons = new ArrayList<>();
+    infos = new ArrayList<>();
     score = 0;
   }
 
@@ -71,7 +71,7 @@ public class Fault extends ForwardingSet<FaultContribution> {
    */
   public Fault(FaultContribution singleton){
     errorSet = new HashSet<>(Collections.singleton(singleton));
-    reasons = new ArrayList<>();
+    infos = new ArrayList<>();
     score = 0;
   }
 
@@ -87,14 +87,14 @@ public class Fault extends ForwardingSet<FaultContribution> {
   /**
    * Add a reason to explain why this set indicates an error.
    * Appending reasons in heuristics is the recommended way.
-   * @param reason Fix, Hint or Reason why this might be an error or why a heuristic did add a FaultReason to this set.
+   * @param reason Fix, Hint or Reason why this might be an error or why a ranking did add a FaultInfo to this set.
    */
-  public void addReason(FaultReason reason){
-    reasons.add(reason);
+  public void addInfo(FaultInfo reason){
+    infos.add(reason);
   }
 
-  public List<FaultReason> getReasons() {
-    return reasons;
+  public List<FaultInfo> getInfos() {
+    return infos;
   }
 
   public double getScore() {
@@ -113,32 +113,30 @@ public class Fault extends ForwardingSet<FaultContribution> {
 
   @Override
   public String toString(){
-    List<FaultReason> copy = new ArrayList<>(reasons);
-    sortReasonsByReasonTypeThenByLikelihood(copy);
-    int numberReasons = copy.stream().filter(l -> !l.isHint()).mapToInt(l -> 1).sum();
+    List<FaultInfo> copy = new ArrayList<>(infos);
+    Collections.sort(copy);
 
-    String header = "Error suspected on line(s): " + listDistinctLinesAndJoin();
-
-    String amountReasons = "Detected " + numberReasons + " possible reason(s):\n";
-    StringBuilder reasonString = new StringBuilder();
-    int lastHint = 0;
-    for (int i = 0; i < copy.size(); i++) {
-      FaultReason current = copy.get(i);
-      if (current.isHint()) {
-        reasonString.append(" Hint: ").append(current.toString()).append("\n");
-        lastHint = i+1;
-      } else {
-        reasonString.append("    ").append(i+1-lastHint).append(") ").append(current.toString()).append("\n");
+    StringBuilder out = new StringBuilder("Error suspected on line(s): "
+        + listDistinctLinesAndJoin()
+        + ". (Score: " + (int)(getScore()*100) + ")\n");
+    for (FaultInfo faultInfo : copy) {
+      switch(faultInfo.getType()){
+        case RANK_INFO:
+          out.append(" ".repeat(2));
+          break;
+        case REASON:
+          out.append(" ".repeat(5));
+          break;
+        case HINT:
+          out.append(" ".repeat(7));
+          break;
+        case FIX:
+          out.append(" ".repeat(8));
+          break;
       }
+      out.append(faultInfo).append("\n");
     }
-    return header + "\n" + amountReasons + reasonString;
-  }
-
-  private void sortReasonsByReasonTypeThenByLikelihood(List<FaultReason> pReasons){
-    Comparator<FaultReason> sortReasons =
-        Comparator.comparingInt(l -> l.isHint() ? 0 : 1);
-    sortReasons = sortReasons.thenComparingDouble(b -> 1d/b.getLikelihood());
-    pReasons.sort(sortReasons);
+    return out.toString();
   }
 
   private String listDistinctLinesAndJoin(){
@@ -167,9 +165,19 @@ public class Fault extends ForwardingSet<FaultContribution> {
   public boolean equals(Object q){
     if(q instanceof Fault){
       Fault comp = (Fault)q;
-      if(comp.size() == size()){
+      if(comp.size() == size() && comp.infos.size() == infos.size()){
         for (FaultContribution faultContribution : comp) {
           if(!contains(faultContribution)){
+            return false;
+          }
+        }
+        List<FaultInfo> copy = new ArrayList<>(infos);
+        List<FaultInfo> copy2 = new ArrayList<>(comp.infos);
+        Collections.sort(copy);
+        Collections.sort(copy2);
+
+        for(int i = 0; i < copy.size(); i++){
+          if(!copy.get(i).equals(copy2.get(i))){
             return false;
           }
         }
@@ -184,6 +192,9 @@ public class Fault extends ForwardingSet<FaultContribution> {
     int result = 4;
     for(FaultContribution contribution: this){
       result = Objects.hash(contribution, result);
+    }
+    for(FaultInfo info: infos){
+      result = Objects.hash(info, result);
     }
     return result;
   }

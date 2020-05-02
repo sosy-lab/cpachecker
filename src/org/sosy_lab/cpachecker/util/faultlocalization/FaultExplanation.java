@@ -12,7 +12,7 @@ public interface FaultExplanation {
 
   /**
    * Map a set of FaultContributions to an explanation string.
-   * This string can be used by FaultReason as a description.
+   * This string can be used by RankInfo as a description.
    * For an example see NoContextExplanation.
    * @param subset set to find a reason for
    * @return explanation as string

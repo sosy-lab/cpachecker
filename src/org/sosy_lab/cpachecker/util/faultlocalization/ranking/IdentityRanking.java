@@ -28,14 +28,14 @@ import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultReason;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 
 public class IdentityRanking implements FaultRanking {
 
   @Override
   public List<Fault> rank(
       Set<Fault> pFaults) {
-    pFaults.forEach(c -> c.addReason(FaultReason.hint("Ranked by Identity.")));
+    pFaults.forEach(c -> c.addInfo(FaultInfo.hint("Ranked by Identity.")));
     return new ArrayList<>(pFaults);
   }
 

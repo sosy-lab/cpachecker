@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultReason;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils.RankingResults;
 
 public class MinimalLineDistanceRanking implements FaultRanking {
@@ -65,7 +65,7 @@ public class MinimalLineDistanceRanking implements FaultRanking {
 
     if(ranking.getRankedList().size()==1){
       Fault current = ranking.getRankedList().get(0);
-      current.addReason(FaultReason.justify(
+      current.addInfo(FaultInfo.rankInfo(
           "Minimal distance to error location: " + (errorLocation-(int)ranking.getLikelihoodMap().get(current).doubleValue()) + " line(s)",
           1d));
       return ranking.getRankedList();
@@ -87,7 +87,7 @@ public class MinimalLineDistanceRanking implements FaultRanking {
 
     for(Map.Entry<Fault, Double> entry: ranking.getLikelihoodMap().entrySet()){
       Fault current = entry.getKey();
-      current.addReason(FaultReason.justify(
+      current.addInfo(FaultInfo.rankInfo(
               "Minimal distance to error location: " + (errorLocation-(int)ranking.getLikelihoodMap().get(current).doubleValue()) + " line(s)",
               Math.pow(2, index.get(entry.getValue()))*single));
     }

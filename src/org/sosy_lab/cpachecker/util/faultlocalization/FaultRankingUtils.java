@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.IdentityRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.OverallOccurrenceRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.SetSizeRanking;
@@ -41,8 +42,8 @@ import org.sosy_lab.cpachecker.util.faultlocalization.ranking.SetSizeRanking;
  */
 public class FaultRankingUtils {
 
-  private static Function<List<FaultReason>, Double> evaluationFunction = r -> r.stream().filter(c -> !c.isHint()).mapToDouble(
-      FaultReason::getLikelihood).average().orElse(0);
+  private static Function<List<FaultInfo>, Double> evaluationFunction = r -> r.stream().filter(c -> c.isRankInfo()).mapToDouble(
+      FaultInfo::getScore).average().orElse(0);
 
   public enum RankingMode {
     /** Rank all elements by occurrence in iterator (arbitrary)*/
@@ -94,17 +95,17 @@ public class FaultRankingUtils {
    *
    * For every applied ranking to a certain set the sum of the scores of the members of the set is exactly 1 by default.
    *
-   * @param pHeuristics all rankings to be concatenated
+   * @param pRanking all rankings to be concatenated
    * @param finalScoringFunction function for assigning the final overall score to a fault
    * @return concatenated heuristic which sorts by total score.
    */
   public static FaultRanking concatHeuristics(Function<Fault, Double> finalScoringFunction,
-      FaultRanking... pHeuristics) {
-    return l -> forAll(l, finalScoringFunction, pHeuristics);
+      FaultRanking... pRanking) {
+    return l -> forAll(l, finalScoringFunction, pRanking);
   }
 
-  public static FaultRanking concatHeuristicsDefaultFinalScoring(FaultRanking... pHeuristics) {
-    return l -> forAll(l, r -> evaluationFunction.apply(r.getReasons()), pHeuristics);
+  public static FaultRanking concatHeuristicsDefaultFinalScoring(FaultRanking... pRanking) {
+    return l -> forAll(l, r -> evaluationFunction.apply(r.getInfos()), pRanking);
   }
 
   private static List<Fault> forAll(Set<Fault> result, Function<Fault, Double> finalScoringFunction, FaultRanking... concat){
@@ -126,7 +127,7 @@ public class FaultRankingUtils {
    * @param fault Assigns a score to the Fault.
    */
   public static void assignScoreTo(Fault fault){
-    fault.setScore(evaluationFunction.apply(fault.getReasons()));
+    fault.setScore(evaluationFunction.apply(fault.getInfos()));
   }
 
   /**
@@ -135,7 +136,7 @@ public class FaultRankingUtils {
    * @param faultContribution Assigns a score to the FaultContribution.
    */
   public static void assignScoreTo(FaultContribution faultContribution){
-    faultContribution.setScore(evaluationFunction.apply(faultContribution.getReasons()));
+    faultContribution.setScore(evaluationFunction.apply(faultContribution.getInfos()));
   }
 
   public static RankingResults rankedListFor(Set<Fault> pFaults, Function<Fault, Double> scoringFunction){
