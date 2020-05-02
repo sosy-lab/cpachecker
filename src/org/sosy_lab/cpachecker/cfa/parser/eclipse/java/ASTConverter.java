@@ -1520,7 +1520,15 @@ class ASTConverter {
   private List<JType> getJTypesOfParameters(List<?> arguments) {
     List<JType> parameterList = new ArrayList<>();
     for (Object argument : arguments) {
-      parameterList.add(scope.lookupVariable(((SimpleName) argument).toString()).getType());
+      final JSimpleDeclaration jSimpleDeclaration = scope.lookupVariable(argument.toString());
+      if (jSimpleDeclaration != null) {
+        parameterList.add(jSimpleDeclaration.getType());
+      } else if (argument instanceof Expression) {
+        parameterList.add(typeConverter.convert((Expression) argument));
+      } else {
+        throw new CFAGenerationRuntimeException(
+            "Could not process argument: " + argument.toString() + " .");
+      }
     }
     return parameterList;
   }
