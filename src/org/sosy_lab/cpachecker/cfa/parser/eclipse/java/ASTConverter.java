@@ -1293,7 +1293,7 @@ class ASTConverter {
     }
 
     logger.logf(
-        Level.INFO,
+        Level.FINEST,
         "No matching class for class instance creation \"%s\" in scope, trying to resolve by imports",
         fullName);
 
@@ -1308,7 +1308,7 @@ class ASTConverter {
             .stream()
                 .filter(v -> v instanceof ImportDeclaration)
                 .map(ImportDeclaration.class::cast)
-                .collect(Collectors.toSet());
+                .collect(ImmutableSet.toImmutableSet());
 
     // Check for import declaration matching our Class Instance Creation
     ImportDeclaration matchingImportDeclaration =
@@ -1399,7 +1399,7 @@ class ASTConverter {
       try {
         return cls.getDeclaredConstructor();
       } catch (NoSuchMethodException pE) {
-        logger.logf(Level.WARNING, "Default Constructor for class %s not found.", className);
+        logger.logf(Level.FINEST, "Default Constructor for class %s not found.", className);
         return null;
       }
     } else {
