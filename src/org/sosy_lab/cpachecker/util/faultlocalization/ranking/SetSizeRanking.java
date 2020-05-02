@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultReason;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils.RankingResults;
 
 public class SetSizeRanking implements FaultRanking {
@@ -58,7 +58,7 @@ public class SetSizeRanking implements FaultRanking {
 
     if(ranking.getRankedList().size()==1){
       Fault current = ranking.getRankedList().get(0);
-      current.addReason(FaultReason.justify(
+      current.addInfo(FaultInfo.rankInfo(
               "The set has a size of " + current.size() + ".",
               1d));
       return ranking.getRankedList();
@@ -80,7 +80,7 @@ public class SetSizeRanking implements FaultRanking {
 
     for(Map.Entry<Fault, Double> entry: ranking.getLikelihoodMap().entrySet()){
       Fault current = entry.getKey();
-      current.addReason(FaultReason.justify(
+      current.addInfo(FaultInfo.rankInfo(
               "The set has a size of " + current.size() + ".",
               Math.pow(2, index.get(entry.getValue()))*single));
     }

@@ -31,8 +31,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultExplanation;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultReason;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultReason.ReasonType;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 
 public class HintRanking implements FaultRanking {
   private int maxNumberOfHints;
@@ -60,7 +59,6 @@ public class HintRanking implements FaultRanking {
     maxNumberOfHints=pMaxNumberOfHints;
     explanation = pFaultExplanation;
   }
-
   @Override
   public List<Fault> rank(
       Set<Fault> result) {
@@ -70,13 +68,14 @@ public class HintRanking implements FaultRanking {
     for (Fault faultLocalizationOutputs : result) {
       int hints = 0;
       for (FaultContribution faultContribution : faultLocalizationOutputs) {
-        FaultReason reason = FaultReason.explain(ReasonType.HINT, explanation, new Fault(faultContribution),0);
+        FaultInfo
+            potFix = FaultInfo.possibleFixFor(new Fault(faultContribution));
         if(maxNumberOfHintsNegative || hints < maxNumberOfHints){
-          faultLocalizationOutputs.addReason(reason);
+          faultLocalizationOutputs.addInfo(potFix);
         }
         //Prevent attaching the same hint twice
         if(!alreadyAttached.contains(faultContribution)) {
-          faultContribution.addReason(reason);
+          faultContribution.addInfo(potFix);
           alreadyAttached.add(faultContribution);
         }
         hints++;

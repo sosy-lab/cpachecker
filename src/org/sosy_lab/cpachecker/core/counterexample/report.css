@@ -188,7 +188,10 @@ input:checked+.slider:before {
 }
 
 #errorpath_section .fileContent {
-	height: calc(100% - 225px);
+        // -185px for buttons and controllers
+        // -2px for the border of the change view button
+        // -2.25rem for the font size and the radius of the change view button
+	height: calc(100% - 187px - 2.25rem);
 	margin: 5px;
 	overflow: auto;
 }
@@ -314,6 +317,18 @@ input:checked+.slider:before {
 #hint-list>li::before {
 	position: relative;
 	content: "Hint " counter(elementcounter) ": ";
+	counter-increment: elementcounter;
+	font-weight: 700;
+}
+
+#fix-list {
+	list-style-type: none;
+	counter-reset: elementcounter;
+  }
+
+#fix-list>li::before {
+	position: relative;
+	content: "Potential Fix " counter(elementcounter) ": ";
 	counter-increment: elementcounter;
 	font-weight: 700;
 }

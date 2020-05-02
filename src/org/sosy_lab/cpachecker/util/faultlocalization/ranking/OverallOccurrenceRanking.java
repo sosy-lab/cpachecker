@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultReason;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils.RankingResults;
 
 public class OverallOccurrenceRanking implements FaultRanking {
@@ -61,13 +61,13 @@ public class OverallOccurrenceRanking implements FaultRanking {
         c -> c.stream().mapToDouble(occurrence::get).sum());
 
     for (Entry<Fault, Double> entry : rankingResults.getLikelihoodMap().entrySet()) {
-      entry.getKey().addReason(
-          FaultReason.justify("Overall occurrence of elements in this set.", entry.getValue()/elements));
+      entry.getKey().addInfo(
+          FaultInfo.rankInfo("Overall occurrence of elements in this set.", entry.getValue()/elements));
       for (FaultContribution faultContribution : entry.getKey()) {
         if (!alreadyAttached.contains(faultContribution)) {
           double elementOverall = occurrence.get(faultContribution);
-          faultContribution.addReason(
-              FaultReason.justify(
+          faultContribution.addInfo(
+              FaultInfo.rankInfo(
                   "Overall occurrence in the sets: " + (int) elementOverall,
                   elementOverall / elements));
           alreadyAttached.add(faultContribution);

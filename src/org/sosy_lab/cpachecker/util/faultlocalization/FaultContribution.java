@@ -24,10 +24,11 @@
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 
 /**
  * Every FaultContribution represents an edge in the program that contains a fault or is
@@ -38,7 +39,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
  */
 public class FaultContribution {
 
-  protected List<FaultReason> reasons;
+  protected List<FaultInfo> infos;
   private CFAEdge correspondingEdge;
 
   /**
@@ -51,7 +52,7 @@ public class FaultContribution {
   private double score;
 
   public FaultContribution(CFAEdge pCorrespondingEdge){
-    reasons = new ArrayList<>();
+    infos = new ArrayList<>();
     correspondingEdge = pCorrespondingEdge;
     score = 0;
   }
@@ -64,45 +65,42 @@ public class FaultContribution {
     score = pScore;
   }
 
-  public void addReason(
-      FaultReason pFaultReason) {
-    reasons.add(pFaultReason);
+  public void addInfo(
+      FaultInfo pFaultInfo) {
+    infos.add(pFaultInfo);
   }
 
-  public List<FaultReason> getReasons() {
-    return reasons;
+  public List<FaultInfo> getInfos() {
+    return infos;
   }
 
   public String textRepresentation() {
-    //Sort by Hints and then by likelihood
-    Comparator<FaultReason> sortReasons =
-        Comparator.comparingInt(l -> l.isHint() ? 0 : 1);
-    sortReasons = sortReasons.thenComparingDouble(b -> 1/b.getLikelihood());
-    reasons.sort(sortReasons);
-    StringBuilder stringRepresentation =
+    Collections.sort(infos);
+    StringBuilder out =
         new StringBuilder(
             "Error suspected on line "
                 + correspondingEdge().getFileLocation().getStartingLineInOrigin()
                 + ". (Score: " + (int)(getScore()*100) + ")\n");
-    int numberReasons = reasons.stream().filter(l -> !l.isHint()).mapToInt(l -> 1).sum();
-    stringRepresentation.append("Detected ")
-        .append(numberReasons)
-        .append(" possible reason")
-        .append(numberReasons == 1 ? ":\n" : "s:\n");
-
-    //style:\"list-style-type:none;\">
-    int lastHint = 0;
-    for (int i = 0; i < reasons.size(); i++) {
-      FaultReason current = reasons.get(i);
-      if (current.isHint()) {
-        stringRepresentation.append(" Hint: ").append(current.toString()).append("\n");
-        lastHint = i+1;
-      } else {
-        stringRepresentation.append("    ").append(i+1-lastHint).append(") ").append(current.toString()).append("\n");
+    List<FaultInfo> copy = new ArrayList<>(infos);
+    for (FaultInfo faultInfo : copy) {
+      switch(faultInfo.getType()){
+        case RANK_INFO:
+          out.append(" ".repeat(2));
+          break;
+        case REASON:
+          out.append(" ".repeat(5));
+          break;
+        case HINT:
+          out.append(" ".repeat(7));
+          break;
+        case FIX:
+          out.append(" ".repeat(8));
+          break;
       }
+      out.append(faultInfo).append("\n");
     }
 
-    return stringRepresentation.toString();
+    return out.toString();
   }
 
   @Override
@@ -111,7 +109,7 @@ public class FaultContribution {
   }
 
   public boolean hasReasons() {
-    return !reasons.isEmpty();
+    return !infos.isEmpty();
   }
 
   public CFAEdge correspondingEdge(){
@@ -123,9 +121,14 @@ public class FaultContribution {
     if (q instanceof FaultContribution){
       FaultContribution casted = (FaultContribution)q;
       if (correspondingEdge.equals(casted.correspondingEdge())){
-        if(casted.getReasons().size() == getReasons().size()){
-          for(int i = 0; i < getReasons().size(); i++){
-            if(!getReasons().get(i).equals(casted.getReasons().get(i))){
+        if(casted.getInfos().size() == getInfos().size()){
+          List<FaultInfo> copy = new ArrayList<>(infos);
+          List<FaultInfo> copy2 = new ArrayList<>(casted.infos);
+          Collections.sort(copy);
+          Collections.sort(copy2);
+
+          for(int i = 0; i < copy.size(); i++){
+            if(!copy.get(i).equals(copy2.get(i))){
               return false;
             }
           }
@@ -139,7 +142,7 @@ public class FaultContribution {
   @Override
   public int hashCode() {
     int result = 5;
-    for(FaultReason reason: reasons){
+    for(FaultInfo reason: infos){
       result = Objects.hash(reason, result);
     }
     result = Objects.hash(correspondingEdge, result);
