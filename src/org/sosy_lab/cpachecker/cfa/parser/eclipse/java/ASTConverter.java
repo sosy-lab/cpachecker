@@ -1328,9 +1328,7 @@ class ASTConverter {
       JClassOrInterfaceType declaringClass = scope.getCurrentClassType();
       JConstructorType constructorType =
           new JConstructorType(
-              declaringClass,
-              getJTypesOfParameters(pCIC.arguments()),
-              constructor.toGenericString().contains("..."));
+              declaringClass, getJTypesOfParameters(pCIC.arguments()), constructor.isVarArgs());
       return new JConstructorDeclaration(
           getFileLocation(pCIC),
           constructorType,
@@ -1338,7 +1336,7 @@ class ASTConverter {
           simpleName,
           createJParameterDeclarationsForArguments(pCIC.arguments()),
           getVisibilityModifierForConstructor(constructor),
-          false,
+          (declaringClass instanceof JClassType && ((JClassType) declaringClass).isStrictFp()),
           declaringClass);
     }
 
@@ -1442,7 +1440,6 @@ class ASTConverter {
       try {
         final String jTypeName = ((JClassOrInterfaceType) pJType).getName();
         final Optional<Class<?>> cls = Optional.of(Class.forName(jTypeName));
-        cls.get().isInterface();
         if ((cls.get().isInterface() && pJType instanceof JClassType)
             || (!cls.get().isInterface() && pJType instanceof JInterfaceType)) {
           String errorMessage =
