@@ -33,7 +33,9 @@ public class FaultReportWriter {
   }
 
   public String  toHtml(FaultContribution faultContribution) {
-    return toHtml(faultContribution.getInfos(), Collections.singletonList(faultContribution.correspondingEdge())) + "<br><i>Score: " + (int)(faultContribution.getScore()*100)+"</i>";
+    return toHtml(faultContribution.getInfos(),
+        Collections.singletonList(faultContribution.correspondingEdge())) +
+          (faultContribution.getScore() > 0 ? "<br><i>Score: " + (int)(faultContribution.getScore()*100)+"</i>" : "");
   }
 
   public String toHtml(Fault fault) {

@@ -28,18 +28,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultExplanation;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 
 public class HintRanking implements FaultRanking {
   private int maxNumberOfHints;
-  /**
-   * Custom explanation for a singleton.
-   * This explanation should be restricted to explain single edges only.
-   */
-  private FaultExplanation explanation;
 
   /**
    * Create hints for the first pMaxNumberOfHints sets in the ErrorIndicatorSet
@@ -47,18 +41,8 @@ public class HintRanking implements FaultRanking {
    */
   public HintRanking(int pMaxNumberOfHints){
     maxNumberOfHints=pMaxNumberOfHints;
-    explanation = new NoContextExplanation();
   }
 
-  /**
-   * Create hints for the first pMaxNumberOfHints sets in the ErrorIndicatorSet
-   * @param pMaxNumberOfHints number of hints to be printed. Passing -1 leads to hints for all elements in the set.
-   * @param pFaultExplanation explanation for Faults containing only one FaultContribution.
-   */
-  public HintRanking(int pMaxNumberOfHints, FaultExplanation pFaultExplanation){
-    maxNumberOfHints=pMaxNumberOfHints;
-    explanation = pFaultExplanation;
-  }
   @Override
   public List<Fault> rank(
       Set<Fault> result) {
