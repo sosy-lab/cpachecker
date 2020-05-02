@@ -27,6 +27,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -43,7 +44,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
@@ -1412,6 +1412,48 @@ class ASTConverter {
       }
     }
     return null;
+  }
+
+  @VisibleForTesting
+  static java.util.Optional<Class<?>> getClassOfPrimitiveType(JSimpleType pJSimpleType) {
+    Class<?> cls;
+    final String name = pJSimpleType.getType().toASTString();
+    switch (name) {
+      case "boolean":
+        cls = boolean.class;
+        break;
+      case "char":
+        cls = char.class;
+        break;
+      case "double":
+        cls = double.class;
+        break;
+      case "float":
+        cls = float.class;
+        break;
+      case "int":
+        cls = int.class;
+        break;
+      case "void":
+        cls = null;
+        break;
+      case "long":
+        cls = long.class;
+        break;
+      case "short":
+        cls = short.class;
+        break;
+      case "byte":
+        cls = byte.class;
+        break;
+      default:
+        throw new CFAGenerationRuntimeException("Unknown primitive type " + name);
+    }
+    if (cls == null) {
+      return java.util.Optional.empty();
+    } else {
+      return java.util.Optional.of(cls);
+    }
   }
 
   private String getParameterTypesAsString(List<?> arguments) {
