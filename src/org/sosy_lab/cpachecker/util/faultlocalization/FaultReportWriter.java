@@ -22,14 +22,13 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 public class FaultReportWriter {
 
   public String toHtml(FaultInfo info) {
-    double likelihood = info.getScore();
     String description = info.getDescription();
-
-    String percent = "<strong>" + ((int) (likelihood * 10000)) / 100d + "%</strong>";
-    if(info.getType().equals(InfoType.HINT) || info.getType().equals(InfoType.FIX)){
-      return description;
+    if(info.getType().equals(InfoType.RANK_INFO)){
+      double likelihood = info.getScore();
+      String percent = "<strong>" + ((int) (likelihood * 10000)) / 100d + "%</strong>";
+      return description + " (" + percent + ")";
     }
-    return description + " (" + percent + ")";
+    return description;
   }
 
   public String  toHtml(FaultContribution faultContribution) {
