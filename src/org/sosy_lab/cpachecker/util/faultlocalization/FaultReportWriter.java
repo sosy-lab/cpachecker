@@ -1,10 +1,9 @@
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.PriorityQueue;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
@@ -34,7 +33,7 @@ public class FaultReportWriter {
   public String  toHtml(FaultContribution faultContribution) {
     return toHtml(faultContribution.getInfos(),
         Collections.singletonList(faultContribution.correspondingEdge())) +
-          (faultContribution.getScore() > 0 ? "<br><i>Score: " + (int)(faultContribution.getScore()*100)+"</i>" : "");
+        (faultContribution.getScore() > 0 ? "<br><i>Score: " + (int)(faultContribution.getScore()*100)+"</i>" : "");
   }
 
   public String toHtml(Fault fault) {
@@ -52,10 +51,10 @@ public class FaultReportWriter {
    * @return hmtl code of this instance
    */
   private String toHtml(List<FaultInfo> infos, List<CFAEdge> correspondingEdges){
-    PriorityQueue<FaultReason> faultReasons = new PriorityQueue<>();
-    PriorityQueue<RankInfo> faultInfo = new PriorityQueue<>();
-    PriorityQueue<PotentialFix> faultFix = new PriorityQueue<>();
-    PriorityQueue<Hint> faultHint = new PriorityQueue<>();
+    List<FaultReason> faultReasons = new ArrayList<>();
+    List<RankInfo> faultInfo = new ArrayList<>();
+    List<PotentialFix> faultFix = new ArrayList<>();
+    List<Hint> faultHint = new ArrayList<>();
 
     //Sorted insert
     for (FaultInfo info : infos) {
@@ -111,14 +110,16 @@ public class FaultReportWriter {
     return header + "<br>" + html;
   }
 
-  private String printList(String headline, String htmlId, Collection<? extends FaultInfo> infos, boolean useOrderedList){
+  private String printList(String headline, String htmlId, List<? extends FaultInfo> infos, boolean useOrderedList){
+    List<? extends FaultInfo> copy = new ArrayList<>(infos);
+    Collections.sort(copy);
     String listType = useOrderedList? "ol":"ul";
     String id = "";
     if(!htmlId.isEmpty()){
       id = " id=\"" + htmlId + "\"";
     }
     StringBuilder out = new StringBuilder(headline + "<br><"  + listType + id + ">");
-    for (FaultInfo info : infos) {
+    for (FaultInfo info : copy) {
       out.append("<li>").append(toHtml(info)).append("</li>");
     }
     out.append("</").append(listType).append(">");
