@@ -9,7 +9,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultReason;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 
 public class CallHierarchyRanking implements FaultRanking {
 
@@ -31,7 +31,7 @@ public class CallHierarchyRanking implements FaultRanking {
     double overallSum = results.getLikelihoodMap().values().stream().mapToDouble(Double::doubleValue).sum();
     for (Entry<Fault, Double> faultDoubleEntry : results.getLikelihoodMap().entrySet()) {
       int min = firstErrorEdge - (int)faultDoubleEntry.getValue().doubleValue();
-      faultDoubleEntry.getKey().addReason(FaultReason.justify("This fault is " + min + " execution step(s) away from the error location.",
+      faultDoubleEntry.getKey().addInfo(FaultInfo.rankInfo("This fault is " + min + " execution step(s) away from the error location.",
           faultDoubleEntry.getValue() /overallSum));
     }
     return results.getRankedList();

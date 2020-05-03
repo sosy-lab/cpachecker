@@ -64,8 +64,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
@@ -95,7 +93,6 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
 
   private final FaultLocalizationAlgorithmInterface faultAlgorithm;
   private final StatTimer totalTime = new StatTimer("Total time");
-  //private final CFA cfa;
 
   @Option(secure=true, name="type", toUppercase=true, values={"UNSAT", "MAXSAT", "ERRINV"},
       description="which algorithm to use")
@@ -108,9 +105,18 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
       final CFA pCfa,
       final ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
+
+    logger = pLogger;
+
+    //Options
     pConfig.inject(this);
-    options = new TraceFormulaOptions(pConfig);
+    options = new TraceFormulaOptions(pConfig, algorithmType);
+    validateOptions();
+
+    // Parent algorithm
     algorithm = pStoreAlgorithm;
+
+    // Create formula context
     Solver solver = Solver.create(pConfig, pLogger, pShutdownNotifier);
     manager =
         new PathFormulaManagerImpl(
@@ -120,8 +126,6 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
             pShutdownNotifier,
             pCfa,
             AnalysisDirection.FORWARD);
-    logger = pLogger;
-    //cfa = pCfa;
     bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     context = new FormulaContext(solver, manager);
 
@@ -135,6 +139,13 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
       default:
         faultAlgorithm = new SingleUnsatCoreAlgorithm();
         break;
+    }
+  }
+
+  private void validateOptions(){
+    if (!algorithmType.equals("MAXSAT") && options.isForcePre()) {
+      logger.log(Level.INFO, "Alternative pre-condition cannot be forced on Error Invariants and Single-Unsat-Core algorithm. "
+          + "Automatically deactivate this option.");
     }
   }
 
@@ -238,7 +249,6 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
           Level.INFO,
           "Running " + pAlgorithm.getClass().getSimpleName() + ":\n" + info.toString());
 
-
     } catch (SolverException sE) {
       logger.log(Level.SEVERE, "SolverException: " + sE.getMessage());
       logger.log(Level.INFO, "The solver was not able to find the UNSAT-core of the path formula.");
@@ -269,7 +279,7 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
   public void printStatistics(
       PrintStream out, Result result, UnmodifiableReachedSet reached) {
     StatisticsWriter w0  = StatisticsWriter.writingStatisticsTo(out);
-    w0.put("Total time", totalTime);
+   w0.put("Total time", totalTime);
   }
 
   @Override

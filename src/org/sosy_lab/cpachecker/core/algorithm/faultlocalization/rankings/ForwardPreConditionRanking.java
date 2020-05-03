@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaC
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultReason;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
@@ -93,7 +93,7 @@ public class ForwardPreConditionRanking implements FaultRanking {
         if(atom.toString().contains(entry.getKey())){
           atom = context.getSolver().getFormulaManager().uninstantiate(atom);
           String assignment = ExpressionConverter.convert(atom.toString().replaceAll(entry.getKey(), entry.getValue()));
-          traceFormula.getSelectors().get(i).addReason(FaultReason.hint(hint + assignment));
+          traceFormula.getSelectors().get(i).addInfo(FaultInfo.hint(hint + assignment));
           assignments.add(assignment);
         }
       }
@@ -101,7 +101,7 @@ public class ForwardPreConditionRanking implements FaultRanking {
 
     String allAssignments = String.join(",", assignments);
     for (Fault faultContributions : rankedList) {
-      faultContributions.addReason(FaultReason.hint(hint + allAssignments));
+      faultContributions.addInfo(FaultInfo.hint(hint + allAssignments));
     }
 
     return rankedList;

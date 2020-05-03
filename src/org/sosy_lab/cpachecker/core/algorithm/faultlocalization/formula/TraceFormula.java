@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import javax.annotation.Nonnull;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -90,10 +91,29 @@ public class TraceFormula {
         secure = true,
         name = "altpre",
         description = "force alternative pre condition")
-    private boolean forceAlternativePreCondition = false;
+    private boolean forcePre = false;
 
-    public TraceFormulaOptions(Configuration pConfiguration) throws InvalidConfigurationException {
+    private String algorithmType;
+
+    public TraceFormulaOptions(Configuration pConfiguration, String pAlgorithmType) throws InvalidConfigurationException {
       pConfiguration.inject(this);
+      algorithmType = pAlgorithmType;
+    }
+
+    public String getFilter() {
+      return filter;
+    }
+
+    public String getBan() {
+      return ban;
+    }
+
+    public String getIgnore() {
+      return ignore;
+    }
+
+    public boolean isForcePre() {
+      return forcePre;
     }
   }
 
@@ -162,7 +182,7 @@ public class TraceFormula {
   }
 
   //TODO prover precondition does not guarantee that corresponding edge is excluded in the report as possible resource.
-  //TODO altpre cannot be used if undet_X() are in the formula
+  //TODO altpre cannot be used if nondet_X() are in the formula
   private void createTraceFormulas()
       throws CPATransferException, InterruptedException, SolverException {
 
@@ -182,13 +202,13 @@ public class TraceFormula {
     // Create pre-condition
     precondition = calculatePreCondition(negated, altPre);
 
-    //If however the pre condition conjugated with the post-condition is UNSAT tell the main algorithm that this formula is always unsat.
+    // If however the pre condition conjugated with the post-condition is UNSAT tell the main algorithm that this formula is always unsat.
     if(context.getSolver().isUnsat(bmgr.and(precondition, postcondition))){
       isAlwaysUnsat = true;
     }
 
-    // calculate formulas
-    // No isPresent check needed, because the Selector always exists.
+    // Calculate formulas
+    // No isPresent-check needed, because the Selector always exists (see the construction process above).
     BooleanFormula implicationFormula =
         entries.atoms.stream()
             .map(a -> bmgr.implication(Selector.of(a).get().getFormula(), a))
@@ -258,7 +278,6 @@ public class TraceFormula {
     // Create pre condition as model of the actual formula.
     // If the program is has a bug the model is guaranteed to be existent.
     BooleanFormulaManager bmgr = context.getSolver().getFormulaManager().getBooleanFormulaManager();
-    List<BooleanFormula> preconditions = new ArrayList<>();
     BooleanFormula precond = bmgr.makeTrue();
     try (ProverEnvironment prover = context.getProver()) {
       prover.push(bmgr.and(bmgr.and(entries.atoms), bmgr.and(negate)));
@@ -266,8 +285,25 @@ public class TraceFormula {
         for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
           BooleanFormula formula = modelAssignment.getAssignmentAsFormula();
           if(formula.toString().contains("__VERIFIER_nondet")){
-            preconditions.add(formula);
             precond = bmgr.and(precond, formula);
+
+            //Enable selector corresponding to this formula.
+            String nondetString ="";
+            for(String symbol: Splitter.on(" ").split(formula.toString())){
+              if (symbol.contains("__VERIFIER_nondet")){
+                nondetString = symbol;
+                preconditionSymbols.add(nondetString);
+                break;
+              }
+            }
+            for (int i = 0; i < entries.size(); i++) {
+              String formulaString = entries.atoms.get(i).toString();
+              Selector selector = entries.selectors.get(i);
+              if(formulaString.contains(nondetString)){
+                selector.enable();
+              }
+            }
+
           }
         }
       } else {
@@ -276,32 +312,15 @@ public class TraceFormula {
     }
 
     // Check if alternative precondition is required and remove corresponding entries.
-    //TODO: it is possible that a forced pre condition gets denied. Tell the user that this happened
-    if((options.forceAlternativePreCondition || bmgr.isTrue(precond)) && !context.getSolver().isUnsat(bmgr.and(altPre.toFormula(), postcondition))){
+    if (options.algorithmType.equals("MAXSAT")
+        && (options.forcePre || bmgr.isTrue(precond))
+        && !context.getSolver().isUnsat(bmgr.and(altPre.toFormula(), postcondition))) {
       for (BooleanFormula booleanFormula : altPre.getPreCondition()) {
         int index = entries.atoms.indexOf(booleanFormula);
         entries.remove(index);
       }
-      return altPre.toFormula();
-    }
-
-    // If the calculated pre-condition has to be used filter only the nondet assignments
-    for (BooleanFormula booleanFormula : preconditions) {
-      String nondetString ="";
-      for(String symbol: Splitter.on(" ").split(booleanFormula.toString())){
-        if (symbol.contains("__VERIFIER_nondet")){
-          nondetString = symbol;
-          preconditionSymbols.add(nondetString);
-          break;
-        }
-      }
-      for (int i = 0; i < entries.size(); i++) {
-        String formulaString = entries.atoms.get(i).toString();
-        Selector selector = entries.selectors.get(i);
-        if(formulaString.contains(nondetString)){
-          selector.enable();
-        }
-      }
+      // The initial variable assignment is still needed if available
+      precond = bmgr.and(precond, altPre.toFormula());
     }
 
     return precond;
@@ -417,7 +436,7 @@ public class TraceFormula {
       context = pContext;
     }
 
-    void addEntry(SSAMap pMap, Selector pSelector, BooleanFormula pAtom){
+    void addEntry(@Nonnull SSAMap pMap, @Nonnull Selector pSelector, @Nonnull BooleanFormula pAtom){
       maps.add(pMap);
       selectors.add(pSelector);
       atoms.add(pAtom);
@@ -431,7 +450,7 @@ public class TraceFormula {
 
     SSAMap getSsaMap(int i){
       int size = maps.size();
-      if(size == 0 || i <= 0){
+      if(i < 0){
         return context.getManager().makeEmptyPathFormula().getSsa();
       }
       if (i >= size){

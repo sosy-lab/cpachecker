@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultReason;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 
 public class EdgeTypeRanking implements FaultRanking {
 
@@ -40,7 +40,7 @@ public class EdgeTypeRanking implements FaultRanking {
         FaultRankingUtils.rankedListFor(result, f -> f.stream().mapToDouble(fc -> getScore(fc.correspondingEdge().getEdgeType())).sum());
     double overallSum = results.getLikelihoodMap().values().stream().mapToDouble(Double::doubleValue).sum();
     for (Entry<Fault, Double> faultDoubleEntry : results.getLikelihoodMap().entrySet()) {
-      faultDoubleEntry.getKey().addReason(FaultReason.justify("Score calculated by edge type(s).", overallSum==0?1d:faultDoubleEntry.getValue()/overallSum));
+      faultDoubleEntry.getKey().addInfo(FaultInfo.rankInfo("Score calculated by edge type(s).", overallSum==0 ? 1d : faultDoubleEntry.getValue()/overallSum));
     }
     return results.getRankedList();
   }

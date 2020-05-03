@@ -24,17 +24,16 @@
 package org.sosy_lab.cpachecker.core.algorithm.faultlocalization;
 
 import com.google.common.base.VerifyException;
+import com.google.common.collect.ImmutableList;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Map.Entry;
+import java.util.Map;
 import java.util.Optional;
+import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import org.antlr.v4.runtime.misc.MultiMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -49,7 +48,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultReason;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -68,8 +67,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
   private Configuration config;
   private LogManager logger;
   private TraceFormula errorTrace;
-  private Solver solver;
-  private BooleanFormulaManager bmgr;
+  private FormulaContext formulaContext;
   //private CFA cfa;
   //private boolean useImproved;
 
@@ -91,102 +89,95 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     //useImproved = pImproved;
   }
 
-  @Override
-  public Set<Fault> run(FormulaContext context, TraceFormula tf)
-      throws CPAException, InterruptedException, SolverException, VerifyException,
-          InvalidConfigurationException {
-    solver = context.getSolver();
-    bmgr = solver.getFormulaManager().getBooleanFormulaManager();
-    errorTrace = tf;
+  private List<BooleanFormula> getInterpolants()
+      throws CPAException, InterruptedException, InvalidConfigurationException {
     InterpolationManager interpolationManager =
         new InterpolationManager(
-            context.getManager(),
-            solver,
+            formulaContext.getManager(),
+            formulaContext.getSolver(),
             Optional.empty(),
             Optional.empty(),
             config,
             shutdownNotifier,
             logger);
 
-    totalTime.start();
     List<BooleanFormula> allFormulas = new ArrayList<>();
-
-    allFormulas.add(tf.getPreCondition());
-    allFormulas.addAll(tf.getAtoms());
-    allFormulas.add(tf.getPostCondition());
+    allFormulas.add(errorTrace.getPreCondition());
+    allFormulas.addAll(errorTrace.getAtoms());
+    allFormulas.add(errorTrace.getPostCondition());
     CounterexampleTraceInfo counterexampleTraceInfo =
         interpolationManager.buildCounterexampleTrace(new BlockFormulas(allFormulas));
     List<BooleanFormula> interpolants = new ArrayList<>(counterexampleTraceInfo.getInterpolants());
-    if(interpolants.size() > 0){
+
+    if (interpolants.size() > 0 && interpolants.size() == errorTrace.traceSize() + 1) {
       interpolants.remove(0);
     }
 
-    List<Interval> sortedIntervals = new ArrayList<>();
+    return interpolants;
+  }
+
+  @Override
+  public Set<Fault> run(FormulaContext context, TraceFormula tf)
+      throws CPAException, InterruptedException, SolverException, VerifyException,
+          InvalidConfigurationException {
+    formulaContext = context;
+    errorTrace = tf;
+
+    totalTime.start();
+
+    ImmutableList<BooleanFormula> interpolants = ImmutableList.copyOf(getInterpolants());
+    PriorityQueue<Interval> sortedIntervals = new PriorityQueue<>();
     for (int i = 0; i < interpolants.size(); i++) {
-      // TODO edge for precondition is the first edge at the moment
-      // TODO actualForm can be false (c.f. SingleUnsatCore)
+      // TODO actualForm can evaluate to false (c.f. SingleUnsatCore)
       BooleanFormula interpolant = interpolants.get(i);
-      sortedIntervals.add(
+      Interval current =
           new Interval(
               search(0, i, x -> !isErrInv(interpolant, x)),
               search(i, tf.traceSize(), x -> isErrInv(interpolant, x)) - 1,
               interpolant,
-              tf.getAtom(i)));
+              tf.getSelectors().get(i));
+      sortedIntervals.add(current);
     }
 
-    sortedIntervals.sort(Comparator.comparingInt(i -> i.start));
-
-    Interval maxInterval = sortedIntervals.get(0);
+    Interval maxInterval = sortedIntervals.peek();
     int prevEnd = 0;
-    List<InterpolantToEdge> interpolantsForPosition = new ArrayList<>();
+    List<InterpolantToSelector> interpolantsForPosition = new ArrayList<>();
     for (Interval currInterval : sortedIntervals) {
       if (currInterval.start > prevEnd) {
         interpolantsForPosition.add(
-            new InterpolantToEdge(maxInterval.invariant, maxInterval.correspondingEdge));
+            new InterpolantToSelector(maxInterval.invariant, maxInterval.selector));
         if (maxInterval.end < tf.traceSize()) {
           interpolantsForPosition.add(
-              new InterpolantToEdge(tf.getAtom(maxInterval.end), tf.getAtom(maxInterval.end)));
+              new InterpolantToSelector(
+                  tf.getAtom(maxInterval.end), tf.getSelectors().get(maxInterval.end)));
         }
         prevEnd = maxInterval.end;
         maxInterval = currInterval;
       } else {
         if (currInterval.end > maxInterval.end) {
-           maxInterval = currInterval;
+          maxInterval = currInterval;
         }
       }
     }
 
-    /* All interpolants containing the post condition as interpolant must be removed.
-       The post condition cannot be a suitable explanation of why the error happened. */
+    // Create Faults, process information and append it to the created Faults
+    Map<Fault, String> descriptions = new HashMap<>();
+    for (InterpolantToSelector interpolantToSelector : interpolantsForPosition) {
+      Selector current = interpolantToSelector.selector;
+      // Don't show pre-condition statements in the result set
+      if (errorTrace.getPreconditionSymbols().isEmpty()
+          || !current.getEdge().toString().contains("__VERIFIER_nondet")) {
+        Fault f = new Fault(current);
+        descriptions.merge(
+            f, interpolantToSelector.invariant.toString(), (fault, desc) -> fault + ", " + desc);
+      }
+    }
 
-    MultiMap<Selector, BooleanFormula> allInterpolants = new MultiMap<>();
-    Set<Fault> indicators = new HashSet<>();
-    for (InterpolantToEdge interpolantToEdge : interpolantsForPosition) {
-      Selector current = Selector.of(interpolantToEdge.edge).orElse(null);
-      if(current != null){
-        //Don't show pre-condition statements in the result set
-        if(errorTrace.getPreconditionSymbols().isEmpty() || !current.getEdge().toString().contains("__VERIFIER_nondet")){
-          allInterpolants.map(current, interpolantToEdge.interpolant);
-          indicators.add(new Fault(current));
-        }
-      }
-    }
-    int sumInterpolants = allInterpolants.values().stream().mapToInt(v -> v.size()).sum();
-    for (Entry<Selector, List<BooleanFormula>> selectorListEntry : allInterpolants.entrySet()) {
-      String description = selectorListEntry.getValue()
-          .stream()
-          //ExpressionConverter is not 100% reliable but better to read
-          .map(l -> context.getSolver().getFormulaManager().uninstantiate(l).toString())//ExpressionConverter.convert(l))
-          .distinct()
-          .collect(Collectors.joining(","));
-      if (!description.isEmpty()) {
-        selectorListEntry.getKey().addReason(FaultReason
-            .justify("The error is described by the invariant(s): " + description,
-                (double)selectorListEntry.getValue().size()/sumInterpolants));
-      }
-    }
     totalTime.stop();
-    return indicators;
+    descriptions.forEach(
+        (fault, desc) ->
+            fault.addInfo(FaultInfo.justify("Described by the interpolant(s): " + desc)));
+    return descriptions.keySet();
   }
 
   private int search(int low, int high, Function<Integer, Boolean> incLow) {
@@ -194,6 +185,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     if (high < low) {
       return low;
     }
+    solverCalls.inc();
     int mid = (low + high) / 2;
     if (incLow.apply(mid)) {
       return search(mid + 1, high, incLow);
@@ -203,14 +195,15 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
   }
 
   private boolean isErrInv(BooleanFormula interpolant, int i) {
+    Solver solver = formulaContext.getSolver();
     FormulaManagerView fmgr = solver.getFormulaManager();
+    BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     int n = errorTrace.traceSize();
 
     BooleanFormula plainPostCondition = fmgr.uninstantiate(errorTrace.getPostCondition());
     BooleanFormula plainInterpolant = fmgr.uninstantiate(interpolant);
 
-    BooleanFormula interpolant_i =
-        fmgr.instantiate(plainInterpolant, errorTrace.getSsaMap(i));
+    BooleanFormula interpolant_i = fmgr.instantiate(plainInterpolant, errorTrace.getSsaMap(i));
     BooleanFormula postCondition_i =
         fmgr.instantiate(plainPostCondition, errorTrace.getSsaMap(n - i));
 
@@ -232,7 +225,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
       PrintStream out, Result result, UnmodifiableReachedSet reached) {
     StatisticsWriter w0 = StatisticsWriter.writingStatisticsTo(out);
     w0.put("Total time", totalTime)
-        .put("Search calls", searchCalls);
+        .put("Search calls", searchCalls).put("Solver calls", solverCalls);
   }
 
   @Override
@@ -240,29 +233,35 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     return "Error invariants algorithm";
   }
 
-  private static class InterpolantToEdge {
-    private BooleanFormula edge;
-    private BooleanFormula interpolant;
+  private static class InterpolantToSelector {
+    private Selector selector;
+    private BooleanFormula invariant;
 
-    public InterpolantToEdge(BooleanFormula pInterpolant, BooleanFormula pEdge) {
-      edge = pEdge;
-      interpolant = pInterpolant;
+    public InterpolantToSelector(BooleanFormula pInvariant, Selector pSelector) {
+      selector = pSelector;
+      invariant = pInvariant;
     }
   }
 
-  private static class Interval {
+  private static class Interval implements Comparable<Interval> {
 
     private int start;
     private int end;
     private BooleanFormula invariant;
-    private BooleanFormula correspondingEdge;
+    private Selector selector;
 
     public Interval(
-        int pStart, int pEnd, BooleanFormula pInvariant, BooleanFormula pCorrespondingEdge) {
+        int pStart, int pEnd, BooleanFormula pInvariant, Selector pSelector) {
       start = pStart;
       end = pEnd;
       invariant = pInvariant;
-      correspondingEdge = pCorrespondingEdge;
+      selector = pSelector;
+    }
+
+    //Enables usage of PriorityQueue
+    @Override
+    public int compareTo(Interval pInterval) {
+      return Integer.compare(start, pInterval.start);
     }
   }
 }

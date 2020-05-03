@@ -53,7 +53,7 @@ public class FaultFixingAlgorithm {
           case ReturnStatementEdge:
           case CallToReturnEdge:
           case BlankEdge:
-          default:
+          default: continue;
         }
     }
   }
