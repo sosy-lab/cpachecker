@@ -26,7 +26,7 @@
 <head>
     <title>CPAchecker Computation steps report</title>
     <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=0">
     <!--COLLECTOR_CSS-->
 </head>
 <body style="">
@@ -53,21 +53,21 @@
         </div>
     </div>
 
-    <div class="page-content">
-        <nav class="sidebar-left">
+    <div id="page-content" class="page-content">
+        <nav id="sidebar-left" class="sidebar-left">
             Source Code
             <ul>
                 <!--SOURCE_CONTENT-->
             </ul>
         </nav>
 
-        <div class="splitter"></div>
+        <div id="splitter" class="splitter"></div>
 
         <div class="content-container">
-            <div class="main-content">
+            <div id="main-content" class="main-content">
                 Computation Steps Graph
 
-                <svg id="canvas1" ></svg>
+                <svg id="svg-content" class="svg-content" ></svg>
                 <div class="tool_tip" id="infoBox" style="z-index: 1; visibility: hidden;">
                     <div id="insideBox">
                         <span id="boxContent">&nbsp;</span>
@@ -84,7 +84,7 @@
     </footer>
 
 </div>
-
+</body>
 <!-- Use newer version of jquery.min.js as from sosy-lab - use 3.4.1, needed for jquery-resizable.js -->
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 <script src="https://rawgit.com/RickStrahl/jquery-resizable/master/src/jquery-resizable.js"></script>
@@ -94,5 +94,4 @@
 <script>
     <!-- COLLECTOR_JS -->
 </script>
-</body>
 </html>

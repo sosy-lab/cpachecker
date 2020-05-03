@@ -490,7 +490,7 @@ public class CollectorStatistics implements Statistics {
     } else {
       argNode.put("intervalStop", "");
     }
-    argNode.put("count", step);
+   // argNode.put("count", step);
     argNode.put("intervalStart", step);
     argNode.put("analysisStop", stopped);
     argNode.put("index", parentStateId);//ARGState-ID
@@ -523,7 +523,7 @@ public class CollectorStatistics implements Statistics {
     Map<String, Object> argNode = new HashMap<>();
 
    // argNode.put("destroyed", destroyed);
-    argNode.put("count", step);
+   // argNode.put("count", step);
     argNode.put("analysisStop", false);
     argNode.put("intervalStop", "");
     argNode.put("intervalStart", step);

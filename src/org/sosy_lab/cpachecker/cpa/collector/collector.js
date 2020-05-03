@@ -35,8 +35,8 @@ var myVar = myData;
 var myVarNodes = myVar["nodes"];
 var myVarEdges = myVar["edges"];
 //sort nodes by index
-myVar["nodes"].sort(function (a, b) { return parseInt(a.count)-parseInt(b.count) })
-var maxIndex = d3.max(myVar["nodes"], function(d){return d.count});
+myVar["nodes"].sort(function (a, b) { return parseInt(a.intervalStart)-parseInt(b.intervalStart) });
+var maxIndex = d3.max(myVar["nodes"], function(d){return d.intervalStart});
 var maxStep = myVar["nodes"].length-1;
 var step = 0;
 var startIndex = step;
@@ -72,7 +72,7 @@ function slide(){
 
 function start(){
 
-    var nodeIndexStart = myVar["nodes"][startIndex].count;
+    var nodeIndexStart = myVar["nodes"][startIndex].intervalStart;
 
     $(document).ready(function(){
         shownode(nodeIndexStart);
@@ -100,7 +100,7 @@ function nextStep(){
     })
 }
 function removenode(){
-    var nodeIndexStart = myVar["nodes"][startIndex].count;
+    var nodeIndexStart = myVar["nodes"][startIndex].intervalStart;
     if(step <= 0){
         step = 0;}
     else{ $("#step").html(step--);}
@@ -304,8 +304,8 @@ function dagreGraphBuild(json) {
     var render = new dagreD3.render();
 
     // Set up an SVG group so that we can translate the final graph.
-    var svg = d3.select("#canvas1"),
-        svgGroup = svg.append("g").attr("id", "theG");
+    var svg = d3.select("#svg-content"),
+        svgGroup = svg.append("g").attr("id", "svgGroup");
 
     // Set up zoom support
     var zoom = d3.zoom().on('zoom', function () {
@@ -313,20 +313,21 @@ function dagreGraphBuild(json) {
         svgGroup.attr("transform","translate("+ transform.x + ", " + transform.y +") scale(" + transform.k + ")");
     });
 
-    svg.call(zoom);
-
     // Run the renderer. This is what draws the final graph.
     render(svgGroup, g);
 
-    var widthQuarter = -(g.graph().width)/4;
-    var initialScale = (typeof transform != 'undefined') ? transform.k : 0.75;
-    var initialX = (typeof transform != 'undefined') ? transform.x :widthQuarter  ; //850
-    var initialY = (typeof transform != 'undefined') ? transform.y : 20;
-    var t = d3.zoomIdentity.translate(initialX, initialY).scale(initialScale);
-
-    svg.call(zoom.transform, t);
-    svg.attr("width", width = "100%");
-    svg.attr('height', g.graph().height + 40);
+    svg.attr("height", g.graph().height);
+// Center #node0 to svg-content
+    var initialScale = 0.75;
+    var svgWidth = document.getElementById("svg-content").getBoundingClientRect().width;
+    var node0LeftOffset = document.getElementById("node0").getBoundingClientRect().left;
+    var node0Width = document.getElementById("node0").getBoundingClientRect().width;
+    var sidebarWidth = document.getElementById("sidebar-left").getBoundingClientRect().width;
+    var splitterWidth = document.getElementById("splitter").getBoundingClientRect().width;
+    var ts = d3.zoomIdentity.translate((-node0LeftOffset+sidebarWidth+splitterWidth+20-node0Width/2)
+                                       *initialScale+(svgWidth/2), 0).scale(initialScale);
+    svg.call(zoom.transform, ts);
+    svg.call(zoom);
 
     addToolTip();
 }

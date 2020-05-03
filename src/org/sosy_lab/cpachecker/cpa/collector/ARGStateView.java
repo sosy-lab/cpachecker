@@ -47,7 +47,8 @@ public class ARGStateView implements Graphable {
   private final int count;
 
 
-  public ARGStateView(@Nullable int ccount,
+  public ARGStateView(
+      int ccount,
       ARGState cElement,
       @Nullable Collection<ARGState> cParents,
       @Nullable Collection<ARGState> cChildren,
@@ -57,7 +58,6 @@ public class ARGStateView implements Graphable {
     count = ccount;
     wrappedelement = element.getWrappedState();
     currentID = element.getStateId();
-
 
     if (cChildren != null) {
       childrenlist = ImmutableList.copyOf(cChildren);
