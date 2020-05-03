@@ -1397,13 +1397,13 @@ class ASTConverter {
     } catch (ClassNotFoundException pE) {
       return Optional.absent();
     }
-    Class<?>[] argumentsAsClassArray = getClassArrayOfArgumentList(pArguments);
+    List<Class<?>> argumentsAsClassArray = convertArgumentListToClassList(pArguments);
 
     for (Constructor<?> constructor : cls.getDeclaredConstructors()) {
       boolean match = true;
       Class<?>[] parameterTypes = constructor.getParameterTypes();
       for (int i = 0; i < parameterTypes.length; i++) {
-        if (!parameterTypes[i].isAssignableFrom(argumentsAsClassArray[i])) {
+        if (!parameterTypes[i].isAssignableFrom(argumentsAsClassArray.get(i))) {
           match = false;
           break;
         }
@@ -1415,23 +1415,28 @@ class ASTConverter {
     return Optional.absent();
   }
 
-  private Class<?>[] getClassArrayOfArgumentList(List<?> pArguments) {
-    Class<?>[] result = new Class[pArguments.size()];
+  private List<Class<?>> convertArgumentListToClassList(List<?> pArguments) {
+    List<Class<?>> result = new ArrayList<>(pArguments.size());
 
-    for (int i = 0; i < pArguments.size(); i++) {
-      Object argument = pArguments.get(i);
+    for (Object argument : pArguments) {
       JSimpleDeclaration simpleDeclaration = scope.lookupVariable(argument.toString());
       if (simpleDeclaration != null) {
-        result[i] = getClassOfJType(simpleDeclaration.getType()).get();
+        result.add(getClassOfJType(simpleDeclaration.getType()).get());
       } else if (argument instanceof Expression) {
         ITypeBinding binding = ((Expression) argument).resolveTypeBinding();
         if (binding != null) {
-          result[i] = getClassOfJType(typeConverter.convert(binding)).get();
+          result.add(getClassOfJType(typeConverter.convert(binding)).get());
+        } else {
+          throw new AssertionError("Cannot find class of " + argument.toString());
         }
+      } else {
+        throw new AssertionError("Cannot find class of " + argument.toString());
       }
     }
-
-    return result;
+    if (pArguments.size() == result.size()) {
+      throw new AssertionError("Error while converting arguments into array of classes.");
+    }
+    return ImmutableList.copyOf(result);
   }
 
   @VisibleForTesting
