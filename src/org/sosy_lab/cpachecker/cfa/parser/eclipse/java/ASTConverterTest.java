@@ -40,37 +40,37 @@ public class ASTConverterTest {
   public void testGetClassOfJType() {
     Optional<Class<?>> optionalOfPrimitiveType =
         ASTConverter.getClassOfJType(JSimpleType.getBoolean());
-    assertThat(boolean.class).isEqualTo(optionalOfPrimitiveType.get());
+    assertThat(optionalOfPrimitiveType.get()).isEqualTo(boolean.class);
   }
 
   @Test
   public void testGetClassOfPrimitiveType() {
     Optional<Class<?>> optionalOfPrimitiveType =
         ASTConverter.getClassOfPrimitiveType(JSimpleType.getInt());
-    assertThat(int.class).isEqualTo(optionalOfPrimitiveType.get());
+    assertThat(optionalOfPrimitiveType.get()).isEqualTo(int.class);
 
     optionalOfPrimitiveType = ASTConverter.getClassOfPrimitiveType(JSimpleType.getLong());
-    assertThat(long.class).isEqualTo(optionalOfPrimitiveType.get());
+    assertThat(optionalOfPrimitiveType.get()).isEqualTo(long.class);
 
     optionalOfPrimitiveType = ASTConverter.getClassOfPrimitiveType(JSimpleType.getVoid());
-    assertThat(Optional.absent()).isEqualTo(optionalOfPrimitiveType);
+    assertThat(optionalOfPrimitiveType).isEqualTo(Optional.absent());
   }
 
   @Test
   public void testGetClassOfJTypeForNonPrimitiveType() {
-    JClassOrInterfaceType jClassOrInterfaceType = createStringJClassOrInterfaceType(
-        "java.lang.String", "String");
+    JClassOrInterfaceType jClassOrInterfaceType =
+        createStringJClassOrInterfaceType("java.lang.String", "String");
     Optional<Class<?>> optionalOfStringClass = ASTConverter.getClassOfJType(jClassOrInterfaceType);
-    assertThat(String.class).isEqualTo(optionalOfStringClass.get());
+    assertThat(optionalOfStringClass.get()).isEqualTo(String.class);
   }
 
   @Test
   public void testGetArrayClass() {
-    JArrayType jArrayTypeOfString = new JArrayType(createStringJClassOrInterfaceType(
-        "java.lang.Boolean", "Boolean"), 3);
+    JArrayType jArrayTypeOfString =
+        new JArrayType(createStringJClassOrInterfaceType("java.lang.Boolean", "Boolean"), 3);
     Optional<Class<?>> optionalOfArrayClass = ASTConverter.getClassOfJType(jArrayTypeOfString);
     assertThat(optionalOfArrayClass.get().isArray()).isTrue();
-    assertThat("java.lang.Boolean[][][]").isEqualTo(optionalOfArrayClass.get().toGenericString());
+    assertThat(optionalOfArrayClass.get().toGenericString()).isEqualTo("java.lang.Boolean[][][]");
   }
 
   private JClassOrInterfaceType createStringJClassOrInterfaceType(
