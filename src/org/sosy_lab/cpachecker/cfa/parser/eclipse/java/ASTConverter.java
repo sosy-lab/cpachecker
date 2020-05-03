@@ -1433,7 +1433,7 @@ class ASTConverter {
         throw new AssertionError("Cannot find class of " + argument.toString());
       }
     }
-    if (pArguments.size() == result.size()) {
+    if (pArguments.size() != result.size()) {
       throw new AssertionError("Error while converting arguments into array of classes.");
     }
     return ImmutableList.copyOf(result);
