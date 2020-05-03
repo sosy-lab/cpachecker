@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
-import javax.annotation.Nonnull;
-import org.junit.Assert;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
@@ -40,42 +40,44 @@ public class ASTConverterTest {
   public void testGetClassOfJType() {
     Optional<Class<?>> optionalOfPrimitiveType =
         ASTConverter.getClassOfJType(JSimpleType.getBoolean());
-    Assert.assertEquals(boolean.class, optionalOfPrimitiveType.get());
+    assertThat(boolean.class).isEqualTo(optionalOfPrimitiveType.get());
   }
 
   @Test
   public void testGetClassOfPrimitiveType() {
     Optional<Class<?>> optionalOfPrimitiveType =
         ASTConverter.getClassOfPrimitiveType(JSimpleType.getInt());
-    Assert.assertEquals(int.class, optionalOfPrimitiveType.get());
+    assertThat(int.class).isEqualTo(optionalOfPrimitiveType.get());
 
     optionalOfPrimitiveType = ASTConverter.getClassOfPrimitiveType(JSimpleType.getLong());
-    Assert.assertEquals(long.class, optionalOfPrimitiveType.get());
+    assertThat(long.class).isEqualTo(optionalOfPrimitiveType.get());
 
     optionalOfPrimitiveType = ASTConverter.getClassOfPrimitiveType(JSimpleType.getVoid());
-    Assert.assertEquals(Optional.absent(), optionalOfPrimitiveType);
+    assertThat(Optional.absent()).isEqualTo(optionalOfPrimitiveType);
   }
 
   @Test
   public void testGetClassOfJTypeForNonPrimitiveType() {
-    JClassOrInterfaceType jClassOrInterfaceType = createStringJClassOrInterfaceType();
+    JClassOrInterfaceType jClassOrInterfaceType = createStringJClassOrInterfaceType(
+        "java.lang.String", "String");
     Optional<Class<?>> optionalOfStringClass = ASTConverter.getClassOfJType(jClassOrInterfaceType);
-    Assert.assertEquals(String.class, optionalOfStringClass.get());
+    assertThat(String.class).isEqualTo(optionalOfStringClass.get());
   }
 
   @Test
   public void testGetArrayClass() {
-    JArrayType jArrayTypeOfString = new JArrayType(createStringJClassOrInterfaceType(), 3);
+    JArrayType jArrayTypeOfString = new JArrayType(createStringJClassOrInterfaceType(
+        "java.lang.Boolean", "Boolean"), 3);
     Optional<Class<?>> optionalOfArrayClass = ASTConverter.getClassOfJType(jArrayTypeOfString);
-    Assert.assertTrue(optionalOfArrayClass.get().isArray());
-    Assert.assertEquals("java.lang.String[][][]", optionalOfArrayClass.get().toGenericString());
+    assertThat(optionalOfArrayClass.get().isArray()).isTrue();
+    assertThat("java.lang.Boolean[][][]").isEqualTo(optionalOfArrayClass.get().toGenericString());
   }
 
-  @Nonnull
-  private JClassOrInterfaceType createStringJClassOrInterfaceType() {
+  private JClassOrInterfaceType createStringJClassOrInterfaceType(
+      String pFullyQualifiedName, String pString) {
     return JClassType.valueOf(
-        "java.lang.String",
-        "String",
+        pFullyQualifiedName,
+        pString,
         VisibilityModifier.PUBLIC,
         true,
         false,
