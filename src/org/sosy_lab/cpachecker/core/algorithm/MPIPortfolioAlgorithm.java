@@ -210,7 +210,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
               + " is required for performing the portfolio-analysis, but could not find it in PATH");
     }
 
-    return pathOpt.get().resolve(pRequiredBin);
+    return pathOpt.orElseThrow().resolve(pRequiredBin);
   }
 
   @Override
@@ -262,7 +262,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       }
 
       List<String> errorOutput = executor.getErrorOutput();
-      if (errorOutput.size() > 0) {
+      if (!errorOutput.isEmpty()) {
         logger.log(
             Level.WARNING,
             "MPI script returned successfully, but printed warnings: %s",
