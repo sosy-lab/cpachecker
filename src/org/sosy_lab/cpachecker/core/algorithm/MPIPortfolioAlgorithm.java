@@ -228,15 +228,14 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     ImmutableList.Builder<String> cmdBuilder = ImmutableList.builder();
     cmdBuilder.add(nativeLibraryPath.toString());
 
-    // defaultValues for numberProcesses in my portfolio.conf file
-    // if (numberProcesses > 1) {
-    cmdBuilder.add("-np");
-    cmdBuilder.add("4");
-    // cmdBuilder.add(String.valueOf(numberProcesses));
-    // }
+    numberProcesses = 4; // temporary; for debugging purposes
+    if (numberProcesses > 1) {
+      cmdBuilder.add("-np");
+      cmdBuilder.add(String.valueOf(numberProcesses));
+    }
 
-    // it is possible to not specify a hostfile
-    // i.e. if only one machine is to be used
+    // if no hostfile is specified, all CPAchecker instances
+    // for the sub-analyses will be executed on the local machine
     if (hostfile != null) {
       cmdBuilder.add("-hostfile");
       cmdBuilder.add(hostfile.toAbsolutePath().toString());
