@@ -6,6 +6,7 @@ import json
 import logging
 from mpi4py import MPI
 import os
+import socket
 import subprocess
 import sys
 
@@ -27,6 +28,8 @@ class MPIMain:
     input_args = {}
     analysis_param = {}
 
+    main_node_network_config = None
+
     def __init__(self, argv):
         logging.basicConfig(
             format="%(asctime)s - %(levelname)s:  %(message)s",
@@ -43,7 +46,7 @@ class MPIMain:
         self.rank = self.comm.Get_rank()
 
         try:
-            logging.debug("Input of user args:", str(argv))
+            logging.debug("Input of user args: %s", str(argv))
             opts, args = getopt.getopt(argv, "di:", ["input="])
         except getopt.GetoptError:
             logging.critical(
@@ -60,8 +63,21 @@ class MPIMain:
                 elif isinstance(arg, dict):
                     self.input_args = arg
                 else:
-                    logging.critical("Input has an invalid type: ", type(arg))
+                    logging.critical("Input has an invalid type: %s", type(arg))
                     sys.exit(2)
+
+        self.main_node_network_config = self.input_args.get(
+            "main_node_network_settings"
+        )
+        if self.main_node_network_config is not None:
+            aws_main_ip = os.environ.get("AWS_BATCH_JOB_MAIN_NODE_PRIVATE_IPV4_ADDRESS")
+            if (
+                aws_main_ip is not None
+                and self.main_node_network_config["main_node_ipv4_address"]
+                == aws_main_ip
+            ):
+                logging.critical("Inconsistent ip addresses for main node received.\n")
+                sys.exit(2)
 
         logging.debug(json.dumps(self.input_args, sort_keys=True, indent=4))
 
@@ -83,15 +99,14 @@ class MPIMain:
                 self.rank,
             )
         else:
-            logging.info("executing cmd:", cmdline)
+            logging.info("executing cmd: %s", cmdline)
             # Redirect all output from the errorstream in the child CPAchecker
             # instances, such that the output log stays consistent
             process = subprocess.run(cmdline, stderr=sys.stdout.buffer)
-            logging.debug("output: ", process.stdout)
-            logging.info("Process exited with status code ", process.returncode)
+            logging.info("Process exited with status code %d", process.returncode)
 
     def prepare_cmdline(self):
-        logging.info("Running analysis with number:", self.rank)
+        logging.info("Running analysis with number: %d", self.rank)
         if self.rank <= len(self.input_args) - 1:
             analysis_args = self.input_args.get("Analysis_{}".format(self.rank))
         if analysis_args is None:
@@ -108,10 +123,40 @@ class MPIMain:
             self.analysis_param = copy.deepcopy(analysis_args)
             replace_escape_chars(self.analysis_param)
 
-            logging.debug("Running analysis:", self.analysis_param[ANALYSIS])
-            logging.debug("Running cmd:", self.analysis_param[CMDLINE])
-            logging.debug("Writing log in file:", self.analysis_param[LOGFILE])
-            logging.debug("Storing output in dir:", self.analysis_param[OUTPUT_PATH])
+            logging.debug("Running analysis: %s", self.analysis_param[ANALYSIS])
+            logging.debug("Running cmd: %s", self.analysis_param[CMDLINE])
+            logging.debug("Writing log in file: %s", self.analysis_param[LOGFILE])
+            logging.debug("Storing output in dir: %s", self.analysis_param[OUTPUT_PATH])
+
+    def push_results_to_master(self):
+        if self.main_node_network_config is None:
+            logging.info(
+                "Already on main node. Result files are already "
+                "in the correct location."
+            )
+        else:
+            # Get the local ip adress and compare it with the address from the main node
+            # If they differ, create an ssh-connection and push all result files to the
+            # main node. Otherwise, do nothing.
+            hostname = socket.gethostname()
+            local_ip_address = socket.gethostbyname(hostname)
+            if (
+                local_ip_address
+                != self.main_node_network_config["main_node_ipv4_address"]
+            ):
+                logging.info("Copy result files via scp to the main-node")
+                scp_cmd = [
+                    "scp",
+                    "-r",
+                    self.analysis_param[OUTPUT_PATH],
+                    "{}@{}:{}/{}".format(
+                        self.main_node_network_config["user_name_main_node"],
+                        self.main_node_network_config["main_node_ipv4_address"],
+                        self.main_node_network_config["project_location_main_node"],
+                        self.analysis_param[OUTPUT_PATH],
+                    ),
+                ]
+                subprocess.run(scp_cmd)
 
 
 def main():

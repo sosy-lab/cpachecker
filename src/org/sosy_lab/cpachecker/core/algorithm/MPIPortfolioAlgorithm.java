@@ -130,7 +130,8 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
         networkSettings.put("main_node_ipv4_address", mainNodeIPAdress);
         networkSettings.put("user_name_main_node", System.getProperty("user.name"));
         networkSettings.put("project_location_main_node", System.getProperty("user.dir"));
-        analysisMap.put("main_node_network_settings", networkSettings);
+
+        analysisMap.put("network_settings", networkSettings);
       }
 
       JSON.writeJSONString(analysisMap, stringWriter);
