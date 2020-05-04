@@ -156,6 +156,11 @@ analysis.algorithm.CBMC = false
 # Currently all refiner require the use of the ARGCPA.
 analysis.algorithm.CEGAR = false
 
+# Use MPI for running analyses in new subprocesses. The resulting reachedset
+# is the one of the first analysis returning in time. All other mpi-processes
+# will get aborted.
+analysis.algorithm.MPI = false
+
 # use MPV algorithm for checking multiple properties
 analysis.algorithm.MPV = false
 
@@ -3319,6 +3324,19 @@ memorysafety.config = no default value
 # which merge operator to use for LiveVariablesCPA
 merge = "JOIN"
   allowed values: [SEP, JOIN]
+
+# List of property-files to be run by the subprocesses.
+mpiAlgorithm.configFiles = no default value
+
+# File containing the ip adresses to be used by MPI.
+mpiAlgorithm.hostfile = no default value
+
+# Ip adress of the main node. Used by the CPAchecker child instances for
+# writing their results back to the output directory of the main node.
+mpiAlgorithm.mainNodeIPAdress = no default value
+
+# Number of processes to be used by MPI.
+mpiAlgorithm.numberProcesses = no default value
 
 # Find all violations of each checked property.
 mpv.findAllViolations = false

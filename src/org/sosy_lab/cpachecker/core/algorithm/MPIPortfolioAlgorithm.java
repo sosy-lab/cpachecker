@@ -21,7 +21,6 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -42,7 +41,6 @@ import java.util.logging.Level;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.sosy_lab.common.JSON;
-import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -112,6 +110,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
     binaries = new HashMap<>();
     binaries.put(PYTHON3_BIN, checkForRequiredBinary(PYTHON3_BIN));
+    binaries.put(MPI_BIN, checkForRequiredBinary(MPI_BIN));
 
     try (StringWriter stringWriter = new StringWriter();) {
       Map<String, Object> analysisMap = new LinkedHashMap<>();
@@ -150,7 +149,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
     String subprocess_timelimit = "90s"; // arbitrary value for now
     Path subprocess_config = configFiles.get(pIndex);
-    Path subprocess_output_basedir = Path.of("output", "results_portfolio-analysis_" + pIndex);
+    Path subprocess_output_basedir = Path.of("output", "output_portfolio-analysis_" + pIndex);
     Path subprocess_logfile = Path.of("logfile_portfolio-analysis_" + pIndex + ".log");
 
     /*
@@ -234,10 +233,8 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
   public AlgorithmStatus run(ReachedSet pReachedSet)
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
 
-    Path nativeLibraryPath = NativeLibraries.getNativeLibraryPath().resolve(MPI_BIN);
-
     ImmutableList.Builder<String> cmdBuilder = ImmutableList.builder();
-    cmdBuilder.add(nativeLibraryPath.toString());
+    cmdBuilder.add(binaries.get(MPI_BIN).toString());
 
     if (numberProcesses > 1) {
       cmdBuilder.add("-np");
@@ -273,17 +270,13 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
       List<String> errorOutput = executor.getErrorOutput();
       if (!errorOutput.isEmpty()) {
-        logger.log(
-            Level.WARNING,
-            "MPI script returned successfully, but printed warnings: %s",
-            errorOutput);
-
+        logger.log(Level.WARNING, "MPI script returned successfully, but printed warnings");
       }
 
       List<String> output = executor.getOutput();
       logger.logf(Level.INFO, "MPI produced %d output lines", output.size());
-      String s = Joiner.on("\n").join(output) + "\n";
-      logger.log(Level.INFO, s);
+      // String s = Joiner.on("\n").join(output) + "\n";
+      // logger.log(Level.INFO, s);
 
     } catch (IOException e) {
       throw new CPAException("Execution of MPI failed", e);
