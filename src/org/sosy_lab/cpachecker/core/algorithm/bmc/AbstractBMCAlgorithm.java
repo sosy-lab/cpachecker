@@ -41,6 +41,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -54,7 +55,6 @@ import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
-import java.util.Stack;
 import java.util.TreeSet;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -547,8 +547,8 @@ abstract class AbstractBMCAlgorithm
 
   private BooleanFormula getInterpolantFrom(
       ProverEnvironmentWithFallback proverStack,
-      Stack<Object> formulaA,
-      Stack<Object> formulaB)
+      ArrayDeque<Object> formulaA,
+      ArrayDeque<Object> formulaB)
       throws SolverException, InterruptedException {
     if (deriveInterpolantFromSuffix) {
       logger
@@ -586,11 +586,11 @@ abstract class AbstractBMCAlgorithm
       currentImage = bfmgr.or(currentImage, pPrefixFormula);
       BooleanFormula interpolant = null;
 
-      Stack<Object> formulaA = new Stack<>();
-      Stack<Object> formulaB = new Stack<>();
-      formulaB.push(proverStack.push(pSuffixFormula));
-      formulaA.push(proverStack.push(pLoopFormula));
-      formulaA.push(proverStack.push(pPrefixFormula));
+      ArrayDeque<Object> formulaA = new ArrayDeque<>();
+      ArrayDeque<Object> formulaB = new ArrayDeque<>();
+      formulaB.addFirst(proverStack.push(pSuffixFormula));
+      formulaA.addFirst(proverStack.push(pLoopFormula));
+      formulaA.addFirst(proverStack.push(pPrefixFormula));
 
       while (proverStack.isUnsat()) {
         logger.log(Level.FINEST, "NZ: the current image is " + currentImage.toString());
@@ -605,8 +605,8 @@ abstract class AbstractBMCAlgorithm
         }
         currentImage = bfmgr.or(currentImage, interpolant);
         proverStack.pop();
-        formulaA.pop();
-        formulaA.push(proverStack.push(interpolant));
+        formulaA.removeFirst();
+        formulaA.addFirst(proverStack.push(interpolant));
       }
       logger.log(Level.INFO, "NZ: the overapproximation is unsafe, going back to BMC phase");
       return false;
