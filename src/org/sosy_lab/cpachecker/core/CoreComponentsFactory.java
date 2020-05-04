@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtra
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.InterleavedAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ProgramSplitAlgorithm;
@@ -180,6 +181,14 @@ public class CoreComponentsFactory {
             + " analysis finishing in time. All other analyses are terminated."
   )
   private boolean useParallelAlgorithm = false;
+
+  @Option(
+    secure = true,
+    name = "algorithm.MPI",
+    description = "Use MPI for running analyses in new subprocesses. The resulting reachedset "
+        + "is the one of the first analysis returning in time. All other mpi-processes will "
+        + "get aborted.")
+  private boolean useMPIProcessAlgorithm = false;
 
   @Option(
     secure = true,
@@ -410,6 +419,9 @@ public class CoreComponentsFactory {
               specification,
               cfa,
               aggregatedReachedSets);
+
+    } else if (useMPIProcessAlgorithm) {
+      algorithm = new MPIPortfolioAlgorithm(config, logger, shutdownNotifier, specification);
 
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
