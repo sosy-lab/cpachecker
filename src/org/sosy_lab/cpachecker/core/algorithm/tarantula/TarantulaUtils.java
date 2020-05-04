@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.core.algorithm.tarantula;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -45,9 +47,9 @@ public class TarantulaUtils {
    * @param chosenState whether targetStates or safeStates
    * @return Full paths
    */
-  public static List<List<CFAEdge>> getAllPaths(ReachedSet reachedSet, ARGState chosenState) {
-    List<List<ARGState>> getAllStates = getAllStatesReversed(reachedSet, chosenState);
-    List<List<CFAEdge>> paths = new ArrayList<>();
+  public static Set<List<CFAEdge>> getAllPaths(ReachedSet reachedSet, ARGState chosenState) {
+    Set<List<ARGState>> getAllStates = getAllStatesReversed(reachedSet, chosenState);
+    Set<List<CFAEdge>> paths = new HashSet<>();
 
     for (List<ARGState> pARGStates : getAllStates) {
       paths.add(new ARGPath(Lists.reverse(pARGStates)).getFullPath());
@@ -63,12 +65,12 @@ public class TarantulaUtils {
    * @param chosenState whether targetStates or safeStates.
    * @return States on the paths.
    */
-  private static List<List<ARGState>> getAllStatesReversed(
+  private static Set<List<ARGState>> getAllStatesReversed(
       ReachedSet reachedSet, ARGState chosenState) {
 
     ARGState root = AbstractStates.extractStateByType(reachedSet.getFirstState(), ARGState.class);
     List<ARGState> states = new ArrayList<>();
-    List<List<ARGState>> results = new ArrayList<>();
+    Set<List<ARGState>> results = new HashSet<>();
     List<List<ARGState>> paths = new ArrayList<>();
 
     states.add(chosenState);
@@ -78,6 +80,7 @@ public class TarantulaUtils {
     // Go on until all the paths got the start
     while (!paths.isEmpty()) {
       // Expand the last path
+
       List<ARGState> curPath = paths.remove(paths.size() - 1);
       // If there is no more to expand - add this path and continue
       if (curPath.get(curPath.size() - 1) == root) {

@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -61,57 +60,24 @@ public class SafeCase {
             })
         .toList();
   }
-  /**
-   * Gets safe states in case of loop (safe leaves) from ARG.
-   *
-   * @return Detected safe loop states.
-   */
-  private List<ARGState> getSafeLoopStates() {
 
-    return from(rootState().getSubgraph())
-        .filter(
-            e -> {
-              assert e != null;
-              return e.isCovered() && !e.isTarget();
-            })
-        .filter(
-            s -> {
-              assert s != null;
-              return s.getChildren().isEmpty();
-            })
-        .toList();
-  }
   /**
    * Gets two dimensional CFAEdge list of the safe paths.
    *
    * @return Detected safe edges.
    */
-  public Set<List<CFAEdge>> getEdgesOfSafePaths() {
+  public Set<List<CFAEdge>> getSafePaths() {
 
     Set<List<CFAEdge>> allSafePathsTogether = new HashSet<>();
 
-    for (ARGState safeState : mergeAllSafeStates(getSafeStates(), getSafeLoopStates())) {
+    for (ARGState safeState : getSafeStates()) {
       if (existsSafePath()) {
         allSafePathsTogether.addAll(TarantulaUtils.getAllPaths(pReachedSet, safeState));
       }
     }
     return allSafePathsTogether;
   }
-  /**
-   * Merges safe states and safe states in case of loop from ARG together.
-   *
-   * @return Merged all safe states.
-   */
-  public static List<ARGState> mergeAllSafeStates(
-      List<ARGState> safeStates, List<ARGState> safeLoopStates) {
 
-    List<ARGState> mergedAllSafeStates = new ArrayList<>(safeStates);
-
-    if (safeLoopStates != null) {
-      mergedAllSafeStates.addAll(safeLoopStates);
-    }
-    return mergedAllSafeStates;
-  }
   /**
    * Checks whether there is a safe paths in the ARG or not.
    *
