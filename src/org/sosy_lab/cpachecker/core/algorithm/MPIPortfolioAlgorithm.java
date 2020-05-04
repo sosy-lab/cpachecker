@@ -25,10 +25,10 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.MoreCollectors;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.net.InetAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -81,6 +81,11 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path hostfile;
 
+  @Option(
+    description = "Ip adress of the main node. Used by the CPAchecker child instances for "
+        + "writing their results back to the output directory of the main node.")
+  private String mainNodeIPAdress;
+
   private final Configuration globalConfig;
   private final LogManager logger;
   private final ShutdownManager shutdownManager;
@@ -112,6 +117,20 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       Map<String, Object> analysisMap = new LinkedHashMap<>();
       for (int i = 0; i < configFiles.size(); i++) {
         analysisMap.put("Analysis_" + i, createCommand(i));
+      }
+
+      // The following settings are required for the child CPAchecker instances. They might be
+      // executed on different machines and thus need these informations for copying the results
+      // back to the main node (using scp for now) after completing their analysis.
+      if (hostfile != null) {
+        Map<String, String> networkSettings = new HashMap<>();
+        if (mainNodeIPAdress == null) {
+          mainNodeIPAdress = InetAddress.getLocalHost().getHostAddress();
+        }
+        networkSettings.put("main_node_ipv4_address", mainNodeIPAdress);
+        networkSettings.put("user_name_main_node", System.getProperty("user.name"));
+        networkSettings.put("project_location_main_node", System.getProperty("user.dir"));
+        analysisMap.put("main_node_network_settings", networkSettings);
       }
 
       JSON.writeJSONString(analysisMap, stringWriter);
@@ -150,13 +169,8 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
             .clearOption("mpiAlgorithm.configFiles")
             .clearOption("analysis.name")
             .clearOption("mpiAlgorithm.numberProcesses")
-            .setOption(
-                "limits.time.cpu",
-                subprocess_timelimit)
-            .setOption(
-                "output.path",
-                subprocess_output_basedir
-                    .toString())
+            .setOption("limits.time.cpu", subprocess_timelimit)
+            .setOption("output.path", subprocess_output_basedir.toString())
             .setOption(
                 "log.file",
                 subprocess_logfile
@@ -189,8 +203,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     builder.put("analysis", subprocess_config.getFileName().toString());
     builder.put("cmd", cmdline);
     builder.put("logfile", subprocess_output_basedir.toString());
-    builder
-        .put("results", subprocess_output_basedir.resolve(subprocess_logfile).toString());
+    builder.put("results", subprocess_output_basedir.resolve(subprocess_logfile).toString());
 
     return builder.build();
   }
@@ -199,11 +212,8 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     Optional<Path> pathOpt =
         Stream.of(System.getenv("PATH").split(Pattern.quote(File.pathSeparator)))
             .map(Paths::get)
-            .filter(
-                path -> Files.exists(
-                    path.resolve(
-                        pRequiredBin)))
-            .collect(MoreCollectors.toOptional());
+            .filter(path -> Files.exists(path.resolve(pRequiredBin)))
+            .findFirst();
     if (pathOpt.isEmpty()) {
       throw new InvalidConfigurationException(
           pRequiredBin
@@ -228,7 +238,6 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     ImmutableList.Builder<String> cmdBuilder = ImmutableList.builder();
     cmdBuilder.add(nativeLibraryPath.toString());
 
-    numberProcesses = 4; // temporary; for debugging purposes
     if (numberProcesses > 1) {
       cmdBuilder.add("-np");
       cmdBuilder.add(String.valueOf(numberProcesses));
