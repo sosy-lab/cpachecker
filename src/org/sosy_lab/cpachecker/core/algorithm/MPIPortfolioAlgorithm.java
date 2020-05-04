@@ -24,7 +24,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.MoreCollectors;
 import java.io.File;
@@ -34,6 +33,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -81,12 +81,10 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path hostfile;
 
-  private static final String SUCCESS_MESSAGE =
-      "One of the parallel analyses has finished successfully, cancelling all other runs.";
-
   private final Configuration globalConfig;
   private final LogManager logger;
   private final ShutdownManager shutdownManager;
+  @SuppressWarnings("unused")
   private final Specification specification;
   // private final ParallelAlgorithmStatistics stats; // TODO
 
@@ -107,9 +105,8 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     shutdownManager = ShutdownManager.createWithParent(checkNotNull(pShutdownNotifier));
     specification = checkNotNull(pSpecification);
 
-    Builder<String, Path> builder = ImmutableMap.builder();
-    builder.put(PYTHON3_BIN, checkForRequiredBinary(PYTHON3_BIN));
-    binaries = builder.build();
+    binaries = new HashMap<>();
+    binaries.put(PYTHON3_BIN, checkForRequiredBinary(PYTHON3_BIN));
 
     try (StringWriter stringWriter = new StringWriter();) {
       Map<String, Object> analysisMap = new LinkedHashMap<>();
