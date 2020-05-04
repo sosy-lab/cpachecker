@@ -1715,7 +1715,8 @@ class ASTConverter {
       // Verify that length in contained in declarator of array
       if (type instanceof CArrayType
           && cStorageClass != CStorageClass.EXTERN
-          && cStorageClass != CStorageClass.TYPEDEF) {
+          && cStorageClass != CStorageClass.TYPEDEF
+          && initializer != null) {
         CArrayType temp = (CArrayType) type;
 
         if (temp.getLength() == null && !checkIfLengthCalculable(initializer)) {
@@ -2056,7 +2057,8 @@ class ASTConverter {
               ((IASTEqualsInitializer) initializer).getInitializerClause();
 
           if (arrayType.getType() instanceof CSimpleType
-              || arrayType.getType() instanceof CPointerType) {
+              || arrayType.getType() instanceof CPointerType
+              || arrayType.getType() instanceof CTypedefType) {
             CExpression lengthExp = computeLengthOfArray(initClause, arrayType);
             if (arrayType.getLength() != null
                 && !(arrayType.getLength() instanceof CIdExpression)) {
@@ -2064,7 +2066,10 @@ class ASTConverter {
             } else {
               type =
                   new CArrayType(
-                      arrayType.isConst(), arrayType.isVolatile(), arrayType.getType(), lengthExp);
+                      arrayType.isConst(),
+                      arrayType.isVolatile(),
+                      arrayType.getType().getCanonicalType(),
+                      lengthExp);
             }
           }
 
@@ -2402,13 +2407,14 @@ class ASTConverter {
 
     } else {
       // Arrays with unknown length but an string initializer
-        // have their length calculated from the initializer.
-        // Example: char a[] = "abc";
-        // will be converted as char a[4] = "abc";
-        if (initClause instanceof CASTLiteralExpression &&
-              (arrayType.getType().equals(CNumericTypes.CHAR) ||
-               arrayType.getType().equals(CNumericTypes.SIGNED_CHAR) ||
-               arrayType.getType().equals(CNumericTypes.UNSIGNED_CHAR))) {
+      // have their length calculated from the initializer.
+      // Example: char a[] = "abc";
+      // will be converted as char a[4] = "abc";
+      if (initClause instanceof CASTLiteralExpression
+          && (arrayType.getType().equals(CNumericTypes.CHAR)
+              || arrayType.getType().equals(CNumericTypes.SIGNED_CHAR)
+              || arrayType.getType().equals(CNumericTypes.UNSIGNED_CHAR)
+              || ((CSimpleType) arrayType.getType()).getType().equals(CBasicType.CHAR))) {
           CASTLiteralExpression literalExpression = (CASTLiteralExpression) initClause;
           length = literalExpression.getLength() - 1;
           CExpression lengthExp = new CIntegerLiteralExpression(

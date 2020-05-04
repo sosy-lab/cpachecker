@@ -162,6 +162,8 @@ public final class CInitializers {
       } else if (currentType instanceof CArrayType) {
         successful = handleInitializerForArray(currentObject, 0L, (CArrayType)currentType,
             currentSubobjects, nextSubobjects, loc, edge, null);
+      } else if (currentType instanceof CSimpleType) {
+        successful = true;
       } else if (currentType instanceof CElaboratedType) {
         throw new UnrecognizedCodeException(
             "Unexpected initializer for " + currentType + " that is not fully defined",
