@@ -59,7 +59,7 @@ public class TarantulaRanking {
    * @return how many passed cases are found.
    */
   private int totalPassed() {
-    int total = Sets.union(safeCase.getEdgesOfSafePaths(), failedCase.getFailedPaths()).size();
+    int total = Sets.union(safeCase.getSafePaths(), failedCase.getFailedPaths()).size();
     return total - totalFailed();
   }
   /**
@@ -130,7 +130,7 @@ public class TarantulaRanking {
   public Map<CFAEdge, Double> getRanked() {
 
     Map<CFAEdge, TarantulaCasesStatus> table =
-        getTable(safeCase.getEdgesOfSafePaths(), failedCase.getFailedPaths());
+        getTable(safeCase.getSafePaths(), failedCase.getFailedPaths());
     Map<CFAEdge, Double> resultMap = new LinkedHashMap<>();
     table.forEach(
         (key, value) ->
