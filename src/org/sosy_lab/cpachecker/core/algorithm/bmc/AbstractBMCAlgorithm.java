@@ -364,7 +364,7 @@ abstract class AbstractBMCAlgorithm
   public AlgorithmStatus runInterpolation(final ReachedSet reachedSet)
       throws CPAException, SolverException, InterruptedException {
     Preconditions.checkState(
-        cfa.getAllLoopHeads().isPresent() && cfa.getAllLoopHeads().get().size() <= 1,
+        cfa.getAllLoopHeads().isPresent() && cfa.getAllLoopHeads().orElseThrow().size() <= 1,
         "NZ: programs with multiple loops are not supported yet");
 
     try (ProverEnvironmentWithFallback prover =
@@ -382,7 +382,7 @@ abstract class AbstractBMCAlgorithm
         stats.bmcPreparation.stop();
         shutdownNotifier.shutdownIfNecessary();
 
-        if (cfa.getAllLoopHeads().get().isEmpty()) {
+        if (cfa.getAllLoopHeads().orElseThrow().isEmpty()) {
           logger.log(Level.INFO, "NZ: the program has no loops");
           if (errorIsReachableCheck(prover, getErrorFormula(reachedSet, -1))) {
             return AlgorithmStatus.UNSOUND_AND_PRECISE;
@@ -468,7 +468,7 @@ abstract class AbstractBMCAlgorithm
           .log(
               Level.SEVERE,
               "NZ: no unique loop head at encounter time = " + numEncounterLoopHead);
-      assert false;
+      throw new AssertionError();
     }
     return PredicateAbstractState.getPredicateState(loopHead.get(0))
         .getAbstractionFormula()
