@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.cta;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.math.BigInteger;
@@ -47,6 +48,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariableCondition;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -136,12 +138,13 @@ class TCFABuilder extends CTAGrammarParserBaseVisitor<Object> {
 
   @Override
   public Object visitVariableCondition(VariableConditionContext pCtx) {
-    List<AExpression> expressions = new ArrayList<>(pCtx.expressions.size());
+    List<CExpression> expressions = new ArrayList<>(pCtx.expressions.size());
     for (var expression : pCtx.expressions) {
-      expressions.add((AExpression) visit(expression));
+      expressions.add((CExpression) visit(expression));
     }
 
-    return createConjunctExpression(getFileLocation(pCtx), expressions);
+    var result = new TaVariableCondition(getFileLocation(pCtx), expressions);
+    return result;
   }
 
   @Override
@@ -156,7 +159,7 @@ class TCFABuilder extends CTAGrammarParserBaseVisitor<Object> {
 
   @Override
   public Object visitTrueExpression(TrueExpressionContext ctx) {
-    return createAlwaysTrueExpression(getFileLocation(ctx));
+    return createLiteralExpression(getFileLocation(ctx), "1");
   }
 
   @Override
@@ -218,11 +221,11 @@ class TCFABuilder extends CTAGrammarParserBaseVisitor<Object> {
   @Override
   public Object visitStateDefinition(StateDefinitionContext pCtx) {
     var stateName = pCtx.name.getText();
-    CExpression invariant = null;
+    TaVariableCondition invariant = null;
     if (pCtx.invariantDefinition() == null) {
-      invariant = createAlwaysTrueExpression(getFileLocation(pCtx));
+      invariant = createAlwaysTrueCondition(getFileLocation(pCtx));
     } else {
-      invariant = (CExpression) visit(pCtx.invariantDefinition());
+      invariant = (TaVariableCondition) visit(pCtx.invariantDefinition());
     }
 
     return new TCFANode(
@@ -236,13 +239,13 @@ class TCFABuilder extends CTAGrammarParserBaseVisitor<Object> {
 
   @Override
   public Object visitTransitionDefinition(TransitionDefinitionContext pCtx) {
-    AExpression guard = null;
+    TaVariableCondition guard = null;
     var fileLocation = getFileLocation(pCtx);
     if (pCtx.guardDefinition() == null) {
-      guard = createAlwaysTrueExpression(fileLocation);
+      guard = createAlwaysTrueCondition(fileLocation);
     } else {
       var gd = pCtx.guardDefinition();
-      guard = (AExpression) visit(gd);
+      guard = (TaVariableCondition) visit(gd);
     }
 
     Set<CAssignment> resetStatements = null;
@@ -260,7 +263,7 @@ class TCFABuilder extends CTAGrammarParserBaseVisitor<Object> {
     TCFANode source = currentSourceNode;
     TCFANode target = (TCFANode) visit(pCtx.gotoDefinition());
 
-    var edge = new TCFAEdge(fileLocation, source, target, (CExpression) guard, resetStatements);
+    var edge = new TCFAEdge(fileLocation, source, target, guard, resetStatements);
     source.addLeavingEdge(edge);
     target.addEnteringEdge(edge);
 
@@ -275,24 +278,6 @@ class TCFABuilder extends CTAGrammarParserBaseVisitor<Object> {
   @Override
   public Object visitGotoDefinition(GotoDefinitionContext pCtx) {
     return parsedNodesByName.get(pCtx.state.getText());
-  }
-
-  private static AExpression createConjunctExpression(
-      FileLocation pFileLocation, List<AExpression> expressions) {
-    if (expressions.size() == 0) {
-      return createAlwaysTrueExpression(pFileLocation);
-    }
-
-    if (expressions.size() == 1) {
-      return expressions.get(0);
-    }
-
-    AExpression result = expressions.get(0);
-    for (var expr : expressions) {
-      result = createBinaryExpression(pFileLocation, result, expr, BinaryOperator.BINARY_AND);
-    }
-
-    return result;
   }
 
   private static CBinaryExpression createBinaryExpression(
@@ -322,8 +307,9 @@ class TCFABuilder extends CTAGrammarParserBaseVisitor<Object> {
     return idExpressionsByVariableName.get(name);
   }
 
-  private static CExpression createAlwaysTrueExpression(FileLocation pFileLocation) {
-    return createLiteralExpression(pFileLocation, "1");
+  private static TaVariableCondition createAlwaysTrueCondition(FileLocation pFileLocation) {
+    var expression = createLiteralExpression(pFileLocation, "1");
+    return new TaVariableCondition(pFileLocation, ImmutableList.of(expression));
   }
 
   private static CIntegerLiteralExpression createLiteralExpression(

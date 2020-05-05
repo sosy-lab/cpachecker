@@ -23,65 +23,83 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.timedautomata;
 
-import java.util.ArrayList;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
-import org.sosy_lab.cpachecker.cfa.ast.AbstractExpression;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.java.JAstNodeVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class TaVariableCondition extends AbstractExpression {
+public class TaVariableCondition implements CExpression {
 
   private static final long serialVersionUID = -5222519373831903612L;
 
-  private final List<TaVariableExpression> expressions;
+  private final List<CExpression> expressions;
+  private final FileLocation fileLocation;
+  private final CType type;
 
-  public TaVariableCondition(FileLocation pFileLocation, List<TaVariableExpression> pExpressions) {
-    super(pFileLocation, null);
+  /**
+   * Creates a condition that represents a conjunction of expressions.
+   *
+   * @param pFileLocation
+   * @param pExpressions
+   */
+  public TaVariableCondition(FileLocation pFileLocation, List<CExpression> pExpressions) {
     expressions = pExpressions;
-  }
-
-  public TaVariableCondition(FileLocation pFileLocation, TaVariableExpression pExpression) {
-    super(pFileLocation, null);
-    expressions = new ArrayList<>(1);
-    expressions.add(pExpression);
+    fileLocation = pFileLocation;
+    type = CNumericTypes.BOOL;
   }
 
   @Override
-  public <
-          R,
-          R1 extends R,
-          R2 extends R,
-          X1 extends Exception,
-          X2 extends Exception,
-          V extends CExpressionVisitor<R1, X1> & JExpressionVisitor<R2, X2>>
-      R accept_(V pV) throws X1, X2 {
-    return null;
+  public <R, X extends Exception> R accept(CRightHandSideVisitor<R, X> pV) throws X {
+    if (pV instanceof TaVariableConditionVisitor) {
+      var taVisitor = (TaVariableConditionVisitor<R, X>) pV;
+      return taVisitor.visit(this);
+    }
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public CType getExpressionType() {
+    return type;
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(CAstNodeVisitor<R, X> pV) throws X {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public FileLocation getFileLocation() {
+    return fileLocation;
   }
 
   @Override
   public String toASTString(boolean pQualified) {
-    StringBuilder sb = new StringBuilder();
-    for (var expression : expressions) {
-      if (sb.length() != 0) {
-        sb.append(" AND ");
-      }
-      sb.append(expression.toASTString());
-    }
-    return sb.toString();
+    var expressionStrings =
+        expressions.stream().map(expr -> expr.toASTString()).collect(Collectors.toList());
+    return String.join(" AND ", expressionStrings);
   }
 
   @Override
-  public <
-          R,
-          R1 extends R,
-          R2 extends R,
-          X1 extends Exception,
-          X2 extends Exception,
-          V extends CAstNodeVisitor<R1, X1> & JAstNodeVisitor<R2, X2>>
-      R accept_(V pV) throws X1, X2 {
-    return null;
+  public String toParenthesizedASTString(boolean pQualified) {
+    return "(" + toASTString() + ")";
+  }
+
+  @Override
+  public <R, X extends Exception> R accept(CExpressionVisitor<R, X> pV) throws X {
+    if (pV instanceof TaVariableConditionVisitor) {
+      var taVisitor = (TaVariableConditionVisitor<R, X>) pV;
+      return taVisitor.visit(this);
+    }
+    throw new UnsupportedOperationException();
+  }
+
+  public List<CExpression> getExpressions() {
+    return ImmutableList.copyOf(expressions);
   }
 }

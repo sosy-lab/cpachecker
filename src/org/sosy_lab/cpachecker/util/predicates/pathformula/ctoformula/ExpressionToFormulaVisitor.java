@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 import static org.sosy_lab.cpachecker.util.BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction;
 import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeUtils.getRealFieldOwner;
 
+import com.google.common.collect.Iterables;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -53,6 +54,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariableCondition;
+import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariableConditionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -76,7 +79,8 @@ import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
 public class ExpressionToFormulaVisitor
     extends DefaultCExpressionVisitor<Formula, UnrecognizedCodeException>
-    implements CRightHandSideVisitor<Formula, UnrecognizedCodeException> {
+    implements CRightHandSideVisitor<Formula, UnrecognizedCodeException>,
+        TaVariableConditionVisitor<Formula, UnrecognizedCodeException> {
 
   private final CtoFormulaConverter conv;
   private final CFAEdge       edge;
@@ -1215,5 +1219,25 @@ public class ExpressionToFormulaVisitor
     }
 
     return null;
+  }
+
+  @Override
+  public Formula visit(TaVariableCondition pTaVariableCondition) throws UnrecognizedCodeException {
+    var numberOfExpressions = pTaVariableCondition.getExpressions().size();
+    if (numberOfExpressions == 0) {
+      return conv.bfmgr.makeTrue();
+    }
+
+    List<Formula> expressionFormulas = new ArrayList<>(numberOfExpressions);
+    for (var expression : pTaVariableCondition.getExpressions()) {
+      expressionFormulas.add(expression.accept(this));
+    }
+
+    var result = expressionFormulas.get(0);
+    for (var expressionFormula : Iterables.skip(expressionFormulas, 1)) {
+      mgr.makeAnd(result, expressionFormula);
+    }
+
+    return result;
   }
 }

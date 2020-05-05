@@ -27,6 +27,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariableCondition;
 import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -34,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 public class TCFAEdge extends AbstractCFAEdge {
 
   private final Set<CAssignment> resetStatements;
-  private final CExpression guard;
+  private final TaVariableCondition guard;
 
   private static final long serialVersionUID = 5472749446453717391L;
 
@@ -42,7 +43,7 @@ public class TCFAEdge extends AbstractCFAEdge {
       FileLocation pFileLocation,
       CFANode pPredecessor,
       CFANode pSuccessor,
-      CExpression pGuard,
+      TaVariableCondition pGuard,
       Set<CAssignment> pResetStatements) {
     super(getStatement(pGuard), pFileLocation, pPredecessor, pSuccessor);
     resetStatements = pResetStatements;
@@ -57,7 +58,7 @@ public class TCFAEdge extends AbstractCFAEdge {
     return resetStatements;
   }
 
-  public CExpression getGuard() {
+  public TaVariableCondition getGuard() {
     return guard;
   }
 

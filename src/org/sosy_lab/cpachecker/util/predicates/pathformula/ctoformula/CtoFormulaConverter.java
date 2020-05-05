@@ -1837,16 +1837,9 @@ public class CtoFormulaConverter {
       final Constraints constraints,
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
-    BooleanFormula guardFormula =
+    var edgeFormula =
         makePredicate(
             edge.getGuard(), true, edge, function, ssa, pts, constraints, errorConditions);
-
-    TCFANode successor = (TCFANode) edge.getSuccessor();
-    BooleanFormula successorInvariantFormula =
-        makePredicate(
-            successor.getInvariant(), true, edge, function, ssa, pts, constraints, errorConditions);
-
-    var edgeFormula = bfmgr.and(guardFormula, successorInvariantFormula);
 
     for (var resetStatement : edge.getResetStatements()) {
       var lhs = resetStatement.getLeftHandSide();
@@ -1856,6 +1849,11 @@ public class CtoFormulaConverter {
       edgeFormula = bfmgr.and(edgeFormula, resetFormula);
     }
 
-    return edgeFormula;
+    TCFANode successor = (TCFANode) edge.getSuccessor();
+    BooleanFormula successorInvariantFormula =
+        makePredicate(
+            successor.getInvariant(), true, edge, function, ssa, pts, constraints, errorConditions);
+
+    return bfmgr.and(edgeFormula, successorInvariantFormula);
   }
 }
