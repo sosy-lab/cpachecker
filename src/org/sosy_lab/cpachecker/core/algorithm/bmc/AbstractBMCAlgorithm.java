@@ -385,8 +385,10 @@ abstract class AbstractBMCAlgorithm
         if (cfa.getAllLoopHeads().orElseThrow().isEmpty()) {
           logger.log(Level.INFO, "NZ: the program has no loops");
           if (errorIsReachableCheck(prover, getErrorFormula(reachedSet, -1))) {
+            logger.log(Level.INFO, "NZ: an error is reached by BMC");
             return AlgorithmStatus.UNSOUND_AND_PRECISE;
           } else {
+            logger.log(Level.INFO, "NZ: no error can be reached");
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
         }
