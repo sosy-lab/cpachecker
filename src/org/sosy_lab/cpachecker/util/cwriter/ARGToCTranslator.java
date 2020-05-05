@@ -315,6 +315,11 @@ public class ARGToCTranslator {
   @Option(secure=true, name="handleTargetStates", description="How to deal with target states during code generation")
   private TargetTreatment targetStrategy = TargetTreatment.NONE;
 
+  @Option(
+    secure = true,
+    description = "Enable the integration of __VERIFIER_assume statements for non-true assumption in states. Disable if you want to create residual programs.")
+  private boolean addAssumptions = true;
+
   public ARGToCTranslator(LogManager pLogger, Configuration pConfig, MachineModel pMachineModel)
       throws InvalidConfigurationException {
     pConfig.inject(this);
@@ -812,18 +817,20 @@ public class ARGToCTranslator {
   }
 
   private void handleAssumptions(ARGState childElement, CompoundStatement currentBlock) {
-    List<AExpression> assumptions = new ArrayList<>();
-    AbstractStates.asIterable(childElement)
-        .filter(AbstractStateWithAssumptions.class)
-        .transform(x -> x.getAssumptions())
-        .forEach(x -> assumptions.addAll(x));
+    if (addAssumptions) {
+      List<AExpression> assumptions = new ArrayList<>();
+      AbstractStates.asIterable(childElement)
+          .filter(AbstractStateWithAssumptions.class)
+          .transform(x -> x.getAssumptions())
+          .forEach(x -> assumptions.addAll(x));
 
-    if (!assumptions.isEmpty()) {
-      StringJoiner joiner = new StringJoiner(" && ", "__VERIFIER_assume(", ");");
-      assumptions.stream().map(x -> x.toQualifiedASTString()).forEach(joiner::add);
-      String statement = joiner.toString();
-      currentBlock.addStatement(new SimpleStatement(statement));
-      verifierAssumeUsed = true;
+      if (!assumptions.isEmpty()) {
+        StringJoiner joiner = new StringJoiner(" && ", "__VERIFIER_assume(", ");");
+        assumptions.stream().map(x -> x.toQualifiedASTString()).forEach(joiner::add);
+        String statement = joiner.toString();
+        currentBlock.addStatement(new SimpleStatement(statement));
+        verifierAssumeUsed = true;
+      }
     }
   }
 
@@ -1101,7 +1108,6 @@ public class ARGToCTranslator {
     CFAEdge edge;
     Set<ARGState> visited = new HashSet<>();
     Deque<Pair<ARGState, DeclarationInfo>> waitlist = new ArrayDeque<>();
-    List<Pair<ARGState, DeclarationInfo>> assumeInfo = new ArrayList<>(2);
 
     Multimap<ARGState, Map<CDeclaration, String>> decProblems = HashMultimap.create();
 
@@ -1110,7 +1116,7 @@ public class ARGToCTranslator {
     while (!waitlist.isEmpty()) {
       current = waitlist.pop();
       parent = current.getFirst();
-      assumeInfo.clear();
+      final List<Pair<ARGState, DeclarationInfo>> assumeInfo = new ArrayList<>(2);
 
       if (visited.add(parent)) {
 
@@ -1143,9 +1149,7 @@ public class ARGToCTranslator {
           }
         }
 
-        for (int i = 0; i < assumeInfo.size(); i++) {
-          waitlist.push(assumeInfo.get(i));
-        }
+        waitlist.addAll(assumeInfo);
       }
     }
 

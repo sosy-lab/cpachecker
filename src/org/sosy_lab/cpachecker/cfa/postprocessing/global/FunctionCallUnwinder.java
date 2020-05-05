@@ -258,7 +258,7 @@ public class FunctionCallUnwinder {
     int i = function.indexOf(RECURSION_SEPARATOR);
     int index = 1;
     if (i != -1) {
-      index = Integer.parseInt(function.substring(i + RECURSION_SEPARATOR.length(), function.length())) + 1;
+      index = Integer.parseInt(function.substring(i + RECURSION_SEPARATOR.length())) + 1;
       function = function.substring(0, i);
     }
     return function + RECURSION_SEPARATOR + index;

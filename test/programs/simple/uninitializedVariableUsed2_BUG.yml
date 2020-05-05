@@ -1,0 +1,7 @@
+format_version: '1.0'
+
+# old file name: uninitializedVariableUsed2_BUG.c
+input_files: 'uninitializedVariableUsed2_BUG.c'
+
+properties:
+  - property_file: ../../config/properties/unreach-label.prp

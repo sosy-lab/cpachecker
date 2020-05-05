@@ -1,0 +1,6 @@
+format_version: '1.0'
+
+# old file name: parse-nested-declaration.c
+input_files: 'parse-nested-declaration.c'
+
+properties: []

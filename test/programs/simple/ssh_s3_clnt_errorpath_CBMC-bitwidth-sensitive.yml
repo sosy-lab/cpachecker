@@ -1,0 +1,7 @@
+format_version: '1.0'
+
+# old file name: ssh_s3_clnt_errorpath_CBMC-bitwidth-sensitive.c
+input_files: 'ssh_s3_clnt_errorpath_CBMC-bitwidth-sensitive.c'
+
+properties:
+  - property_file: ../../config/properties/unreach-label.prp

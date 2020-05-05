@@ -609,7 +609,7 @@ public class SlicingAbstractionsUtils {
     for (int i = -1 ; i < abstractionStatesTrace.size()-1; i++) {
        ARGState first = (i==-1) ? root : abstractionStatesTrace.get(i);
        ARGState second = abstractionStatesTrace.get(i+1);
-       if (!SlicingAbstractionsUtils.calculateOutgoingSegments(first).keySet().contains(second)) {
+      if (!SlicingAbstractionsUtils.calculateOutgoingSegments(first).containsKey(second)) {
          return true;
        }
     }

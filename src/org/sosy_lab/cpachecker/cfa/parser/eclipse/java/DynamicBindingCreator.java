@@ -38,6 +38,7 @@ import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JConstructorDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
@@ -483,7 +484,7 @@ class DynamicBindingCreator {
         (JMethodInvocationExpression) functionCall.getFunctionCallExpression();
 
     FileLocation fileloc = oldFunctionCallExpression.getFileLocation();
-    String callInFunction = prevNode.getFunctionName();
+    AFunctionDeclaration callInFunction = prevNode.getFunction();
 
     JMethodInvocationExpression newFunctionCallExpression =
         astCreator.convert(overridesThisMethod.getMethodEntryNode(), oldFunctionCallExpression);
@@ -493,12 +494,12 @@ class DynamicBindingCreator {
     // Node for successful function call
     // That is the case if runtime type equals function declaring class type.
     CFANode successfulNode = new CFANode(callInFunction);
-    cfas.put(callInFunction, successfulNode);
+    cfas.put(callInFunction.getName(), successfulNode);
     pProcessed.add(successfulNode);
 
     // unsuccessfulNode if runtime type does not equal function declaring class type
     CFANode unsuccessfulNode = new CFANode(callInFunction);
-    cfas.put(callInFunction, unsuccessfulNode);
+    cfas.put(callInFunction.getName(), unsuccessfulNode);
     pProcessed.add(unsuccessfulNode);
 
     JClassOrInterfaceType definingType = overridesThisMethod.getDefiningType();
@@ -530,7 +531,7 @@ class DynamicBindingCreator {
     }
 
     CFANode postFunctionCallNode = new CFANode(callInFunction);
-    cfaBuilder.getCFANodes().put(callInFunction, postFunctionCallNode);
+    cfaBuilder.getCFANodes().put(callInFunction.getName(), postFunctionCallNode);
     pProcessed.add(postFunctionCallNode);
 
     //AStatementEdge from successful Node to postFunctionCall location

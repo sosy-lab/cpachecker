@@ -448,7 +448,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
 
     final FileLocation fileloc = astCreator.getLocation(declaration);
-    final FunctionExitNode returnNode = new FunctionExitNode(nameOfFunction);
+    final FunctionExitNode returnNode = new FunctionExitNode(fdef);
 
     final FunctionEntryNode startNode =
         new CFunctionEntryNode(fileloc, fdef, returnNode, scope.getReturnVariable());
@@ -723,7 +723,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       labelName = localLabel.getName();
     }
 
-    CLabelNode labelNode = new CLabelNode(cfa.getFunctionName(), labelName);
+    CLabelNode labelNode = new CLabelNode(cfa.getFunction(), labelName);
     locStack.push(labelNode);
 
     if (localLabel == null) {
@@ -945,7 +945,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   private CFANode newCFANode() {
     assert cfa != null;
-    CFANode nextNode = new CFANode(cfa.getFunctionName());
+    CFANode nextNode = new CFANode(cfa.getFunction());
     return nextNode;
   }
 
@@ -1496,7 +1496,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         fileloc, prevNode, loopStartNode, "continue");
     addToCFA(blankEdge);
 
-    CFANode nextNode = new CFANode(cfa.getFunctionName());
+    CFANode nextNode = new CFANode(cfa.getFunction());
     locStack.push(nextNode);
   }
 
@@ -1691,7 +1691,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     loopNextStack.push(postSwitchNode);
     locStack.push(postSwitchNode);
 
-    locStack.push(new CFANode(cfa.getFunctionName()));
+    locStack.push(new CFANode(cfa.getFunction()));
 
     switchDefaultStack.push(null);
     switchDefaultFileLocationStack.push(null);
@@ -1905,7 +1905,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     // hack: use label node to mark node as reachable
     // (otherwise the following edges won't get added because it has
     // no incoming edges
-    CLabelNode caseNode = new CLabelNode(cfa.getFunctionName(), "__switch__default__");
+    CLabelNode caseNode = new CLabelNode(cfa.getFunction(), "__switch__default__");
 
     // Update switchDefaultStack with the new node
     final CFANode oldDefaultNode = switchDefaultStack.pop();
@@ -2035,7 +2035,17 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CStatement stmt = null;
     if (tempVar != null) {
-      stmt = createStatement(lastExpLocation, tempVar, (CRightHandSide)exp);
+      if (exp instanceof CAssignment) {
+        CFANode lastNode = newCFANode();
+        CFAEdge edge =
+            new CStatementEdge(
+                exp.toASTString(), (CStatement) exp, lastExpLocation, prevNode, lastNode);
+        addToCFA(edge);
+        prevNode = lastNode;
+        stmt = createStatement(lastExpLocation, tempVar, ((CAssignment) exp).getLeftHandSide());
+      } else {
+        stmt = createStatement(lastExpLocation, tempVar, (CRightHandSide) exp);
+      }
     } else if (exp instanceof CStatement) {
       stmt = (CStatement)exp;
     } else if (!(exp instanceof CRightHandSide)) {

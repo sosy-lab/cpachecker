@@ -652,7 +652,7 @@ public class ValueAnalysisTransferRelation
       return ((BooleanValue) value).isTrue() == bool;
 
     } else if (value.isNumericValue()) {
-      return ((NumericValue) value).equals(new NumericValue(bool ? 1L : 0L));
+      return value.equals(new NumericValue(bool ? 1L : 0L));
 
     } else {
       return false;

@@ -6,18 +6,14 @@
   <option name="-disable-java-assertions"/>
 
   <tasks name="ControlFlow">
-    <include>../programs/benchmarks/ntdrivers-simplified/*_false-unreach-call*.cil.c</include>
-    <include>../programs/benchmarks/ntdrivers-simplified/*_true-unreach-call*.cil.c</include>
-    <include>../programs/benchmarks/ssh-simplified/*_false-unreach-call*.cil.c</include>
-    <include>../programs/benchmarks/ssh-simplified/*_true-unreach-call*.cil.c</include>
-    <include>../programs/benchmarks/locks/*_false-unreach-call*.c</include>
-    <include>../programs/benchmarks/locks/*_true-unreach-call*.c</include>
+    <include>../programs/benchmarks/ntdrivers-simplified/*.cil.yml</include>
+    <include>../programs/benchmarks/ssh-simplified/*.cil.yml</include>
+    <include>../programs/benchmarks/locks/*.yml</include>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="ECA">
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-    <include>../programs/benchmarks/eca/Problem0*_false-unreach-call*.c</include>
-    <include>../programs/benchmarks/eca/Problem0*_true-unreach-call*.c</include>
+    <include>../programs/benchmarks/eca/Problem0*.yml</include>
   </tasks>
   <tasks name="DeviceDrivers64">
     <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
@@ -33,8 +29,7 @@
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks name="Sequentialized">
-    <include>../programs/benchmarks/systemc/*_false-unreach-call*.cil.c</include>
-    <include>../programs/benchmarks/systemc/*_true-unreach-call*.cil.c</include>
+    <include>../programs/benchmarks/systemc/*.cil.yml</include>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
 

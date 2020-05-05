@@ -70,6 +70,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
@@ -230,7 +231,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
         String str = annotation.orElseThrow();
         if(str.contains("_")) {
           try {
-            int limit = Integer.parseInt(str.substring(str.indexOf("_") + 1, str.length()));
+            int limit = Integer.parseInt(str.substring(str.indexOf("_") + 1));
             if (limit > 0) {
               return limit;
             }
@@ -954,7 +955,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
     predicates.addAll(pPredPrec.getLocalPredicates().values());
 
     SetMultimap<CFANode, MemoryLocation> trackedVariables = HashMultimap.create();
-    CFANode dummyNode = new CFANode("dummy");
+    CFANode dummyNode = new CFANode(CFunctionDeclaration.DUMMY);
 
     for (AbstractionPredicate pred : predicates) {
       for (String var : pFMgr.extractVariables(pred.getSymbolicVariable()).keySet()) {

@@ -24,12 +24,11 @@
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 
-import com.google.common.collect.FluentIterable;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ForwardingTable;
 import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 import java.io.IOException;
@@ -38,19 +37,15 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -65,7 +60,7 @@ import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -83,7 +78,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.dominator.DominatorState;
 import org.sosy_lab.cpachecker.cpa.flowdep.FlowDependenceState;
 import org.sosy_lab.cpachecker.cpa.flowdep.FlowDependenceState.FlowDependence;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState;
@@ -96,6 +90,8 @@ import org.sosy_lab.cpachecker.util.dependencegraph.DGNode.EdgeNode;
 import org.sosy_lab.cpachecker.util.dependencegraph.DGNode.UnknownPointerNode;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.DependenceType;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.NodeMap;
+import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomFrontiers;
+import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -143,17 +139,6 @@ public class DependenceGraphBuilder implements StatisticsProvider {
       name = "flowdeps.use",
       description = "Whether to consider (data-)flow dependencies.")
   private boolean considerFlowDeps = true;
-
-  @Option(
-      secure = true,
-      name = "controldeps.considerInverseAssumption",
-      description =
-          "Whether to take an assumption edge 'p' as control dependence if edge 'not p' "
-              + "is a control dependence. This creates a larger slice, but may reduce the size of the "
-              + "state space for deterministic programs. This behavior is also closer to the static "
-              + "program slicing based on control-flow graphs (CFGs), where branching is "
-              + "represented by a single assumption (with true- and false-edges)")
-  private boolean controlDepsTakeBothAssumptions = false;
 
   public DependenceGraphBuilder(
       final MutableCFA pCfa,
@@ -229,110 +214,107 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     }
   }
 
-  /**
-   * Adds control dependencies to dependence graph.
-   */
-  private void addControlDependences()
-      throws InterruptedException, InvalidConfigurationException, CPAException {
-    PostDominators postDoms = PostDominators.create(cfa, logger, shutdownNotifier);
-    Set<CFANode> reachableNodes = postDoms.getNodes();
-    List<CFANode> branchingNodes =
-        reachableNodes
-            .stream()
-            .filter(n -> n.getNumLeavingEdges() > 1)
-            .filter(n -> n.getLeavingEdge(0) instanceof CAssumeEdge)
-            .collect(Collectors.toList());
+  private Iterable<CFANode> createNodeIterable(
+      CFANode pNode, boolean pForward, Predicate<CFANode> pStop, Predicate<CFANode> pFilter) {
 
-    for (CFANode branch : branchingNodes) {
-      Set<CFANode> postDominatorsOfBranchingNode = postDoms.getPostDominators(branch);
-      FluentIterable<CFAEdge> assumeEdges = CFAUtils.leavingEdges(branch);
-      assert assumeEdges.size() == 2;
-      for (CFAEdge g : assumeEdges) {
-        int controlDepCount = 0;
-        List<CFANode> nodesOnPath = new ArrayList<>();
-        Queue<CFAEdge> waitlist = new ArrayDeque<>(8);
-        Set<CFAEdge> reached = new HashSet<>();
-        waitlist.offer(g);
-        while (!waitlist.isEmpty()) {
-          CFAEdge current = waitlist.poll();
-          CFANode succ = current.getSuccessor();
-          if (!reachableNodes.contains(succ)) {
-            continue;
-          }
-          if (!reached.contains(current)) {
-            reached.add(current);
-            CFANode precessorNode = current.getPredecessor();
-            if (precessorNode.equals(branch)) {
-              CFAUtils.leavingEdges(succ).forEach(waitlist::offer);
-
-            } else
-            // branch node is not post-dominated by current node (condition 2 of control dependence)
-            if (!postDominatorsOfBranchingNode.contains(precessorNode)) {
-              // all nodes on path from branch to current are post-dominated by current
-              // (condition 1 of control dependence)
-              if (isPostDomOfAll(precessorNode, nodesOnPath, postDoms)) {
-                Collection<DGNode> nodesDepending = getDGNodes(current);
-                for (DGNode nodeDepending : nodesDepending) {
-                  Iterable<CFAEdge> edgesDependingOn;
-                  if (controlDepsTakeBothAssumptions) {
-                    edgesDependingOn = assumeEdges;
-                  } else {
-                    edgesDependingOn = ImmutableList.of(g);
-                  }
-                  for (CFAEdge assumes : edgesDependingOn) {
-                    DGNode nodeDependentOn = getDGNode(assumes, Optional.empty());
-                    assert getDGNodes(assumes).size() == 1
-                        : "Only using one DG node, but multiple would exist: " + nodeDependentOn;
-                    addDependence(nodeDependentOn, nodeDepending, DependenceType.CONTROL);
-                  }
-                  controlDepCount++;
-                }
-                nodesOnPath.add(precessorNode);
-              }
-              CFAUtils.leavingEdges(current.getSuccessor()).forEach(waitlist::offer);
-            }
-          }
-        }
-        controlDependenceNumber.setNextValue(controlDepCount);
-      }
+    if (pStop.test(pNode)) {
+      return Collections::emptyIterator;
     }
 
-    Collection<FunctionEntryNode> functionEntries = cfa.getAllFunctionHeads();
-    CFATraversal traversalInsideFunction = CFATraversal.dfs().ignoreFunctionCalls();
-    for (FunctionEntryNode fctEntry : functionEntries) {
-      Collection<DGNode> functionCalls =
-          CFAUtils.enteringEdges(fctEntry).transform(x -> getDGNode(x, Optional.empty())).toList();
-      assert CFAUtils.enteringEdges(fctEntry).allMatch(x -> x instanceof CFunctionCallEdge);
-      int depCount = 0;
-      Set<CFANode> functionNodes = traversalInsideFunction.collectNodesReachableFrom(fctEntry);
-      for (CFANode n : functionNodes) {
-        for (CFAEdge e : CFAUtils.leavingEdges(n)) {
-          Collection<DGNode> candidates = getDGNodes(e);
-          for (DGNode dgN : candidates) {
-            if (!adjacencyMatrix.column(dgN).values().contains(DependenceType.CONTROL)) {
-              for (DGNode nodeDependentOn : functionCalls) {
-                addDependence(nodeDependentOn, dgN, DependenceType.CONTROL);
-                depCount++;
+    Iterator<CFANode> iterator =
+        (pForward ? CFAUtils.allSuccessorsOf(pNode) : CFAUtils.allPredecessorsOf(pNode)).iterator();
+
+    return () -> Iterators.filter(iterator, pFilter);
+  }
+
+  private Iterable<CFANode> iterateReverseSuccessors(CFANode pNode) {
+
+    return createNodeIterable(
+        pNode,
+        false,
+        node -> node instanceof FunctionEntryNode,
+        node -> !(node instanceof FunctionExitNode));
+  }
+
+  private Iterable<CFANode> iterateReversePredecessors(CFANode pNode) {
+
+    return createNodeIterable(
+        pNode,
+        true,
+        node -> node instanceof FunctionExitNode,
+        node -> !(node instanceof FunctionEntryNode));
+  }
+
+  private void addControlDependences() {
+
+    int controlDepCount = 0;
+    for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
+
+      DomTree<CFANode> domTree =
+          Dominance.createDomTree(
+              entryNode.getExitNode(),
+              this::iterateReverseSuccessors,
+              this::iterateReversePredecessors);
+
+      DomFrontiers<CFANode> frontiers = Dominance.createDomFrontiers(domTree);
+      Set<CFAEdge> dependentEdges = new HashSet<>();
+
+      for (CFANode dependentNode : domTree) {
+        for (CFANode branchNode : frontiers.getFrontier(dependentNode)) {
+          // TODO: depend only on necessary leaving-edges of branching-node
+          for (CFAEdge assumeEdge : CFAUtils.leavingEdges(branchNode)) {
+            for (CFAEdge dependentEdge : CFAUtils.allLeavingEdges(dependentNode)) {
+
+              for (DGNode dependentDGN : getDGNodes(dependentEdge)) {
+                addDependence(
+                    getDGNode(assumeEdge, Optional.empty()), dependentDGN, DependenceType.CONTROL);
+                controlDepCount++;
+              }
+
+              addDependence(
+                  getDGNode(assumeEdge, Optional.empty()),
+                  getDGNode(dependentEdge, Optional.empty()),
+                  DependenceType.CONTROL);
+              controlDepCount++;
+
+              // if not control-dependent on itself
+              if (!dependentNode.equals(branchNode)) {
+                    dependentEdges.add(dependentEdge);
               }
             }
           }
         }
       }
-      controlDependenceNumber.setNextValue(depCount);
+
+      controlDepCount += addFunctionCallControlDependences(entryNode, dependentEdges);
+
+      controlDependenceNumber.setNextValue(controlDepCount);
     }
   }
 
-  private boolean isPostDomOfAll(
-      final CFANode pNode,
-      final Collection<CFANode> pNodeSet,
-      final PostDominators pPostDominators) {
-
-    for (CFANode n : pNodeSet) {
-      if (!pPostDominators.getPostDominators(n).contains(pNode)) {
-        return false;
+  private int addFunctionCallControlDependences(
+      FunctionEntryNode pEntryNode, Set<CFAEdge> pDependentEdges) {
+    Collection<DGNode> functionCalls =
+        CFAUtils.enteringEdges(pEntryNode).transform(x -> getDGNode(x, Optional.empty())).toList();
+    assert CFAUtils.enteringEdges(pEntryNode).allMatch(x -> x instanceof CFunctionCallEdge);
+    int depCount = 0;
+    Set<CFANode> functionNodes =
+        CFATraversal.dfs().ignoreFunctionCalls().collectNodesReachableFrom(pEntryNode);
+    for (CFANode n : functionNodes) {
+      for (CFAEdge e : CFAUtils.leavingEdges(n)) {
+        Collection<DGNode> candidates = getDGNodes(e);
+        for (DGNode dgN : candidates) {
+          if (!pDependentEdges.contains(dgN.getCfaEdge())) {
+            for (DGNode nodeDependentOn : functionCalls) {
+              addDependence(nodeDependentOn, dgN, DependenceType.CONTROL);
+              depCount++;
+            }
+          }
+        }
       }
     }
-    return true;
+
+    return depCount;
   }
 
   private void addFlowDependences()
@@ -587,89 +569,6 @@ public class DependenceGraphBuilder implements StatisticsProvider {
               + pState.toString();
 
       return s;
-    }
-  }
-
-  /**
-   * Map of {@link CFANode CFANodes} to their post-dominators.
-   *
-   * <p>Node <code>I</code> is post-dominated by node <code>J</code> if every path from <code>I
-   * </code> to the program exit goes through <code>J</code>.
-   */
-  private static class PostDominators {
-
-    private Map<CFANode, Set<CFANode>> postDominatorMap;
-
-    private PostDominators(final Map<CFANode, Set<CFANode>> pPostDominatorMap) {
-      postDominatorMap = pPostDominatorMap;
-    }
-
-    /**
-     * Get all post-dominators of the given node.
-     *
-     * <p>Node <code>I</code> is post-dominated by node <code>J</code> if every path from <code>I
-     * </code> to the program exit goes through <code>J</code>.
-     *
-     * <p>That means that every program path from the given node to the program exit has to go
-     * through each node that is in the returned collection
-     */
-    private Set<CFANode> getPostDominators(final CFANode pNode) {
-      checkState(postDominatorMap.containsKey(pNode), "Node %s not in post-dominator map", pNode);
-      return postDominatorMap.get(pNode);
-    }
-
-    public static PostDominators create(
-        final CFA pCfa, final LogManager pLogger, final ShutdownNotifier pShutdownNotifier)
-        throws InvalidConfigurationException, CPAException, InterruptedException {
-      String configFile = "postDominators.properties";
-
-      Configuration config =
-          Configuration.builder().loadFromResource(PostDominators.class, configFile).build();
-      ReachedSetFactory reachedFactory = new ReachedSetFactory(config, pLogger);
-      ConfigurableProgramAnalysis cpa =
-          new CPABuilder(config, pLogger, pShutdownNotifier, reachedFactory)
-              .buildCPAs(pCfa, Specification.alwaysSatisfied(), new AggregatedReachedSets());
-      Algorithm algorithm = CPAAlgorithm.create(cpa, pLogger, config, pShutdownNotifier);
-      ReachedSet reached = reachedFactory.create();
-
-      FunctionEntryNode mainFunction = pCfa.getMainFunction();
-      Collection<CFANode> startNodes =
-          CFAUtils.getProgramSinks(pCfa, pCfa.getLoopStructure().orElseThrow(), mainFunction);
-
-      for (CFANode n : startNodes) {
-        StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
-        AbstractState initialState = cpa.getInitialState(n, partition);
-        Precision initialPrecision = cpa.getInitialPrecision(n, partition);
-        reached.add(initialState, initialPrecision);
-      }
-
-      // populate reached set
-      algorithm.run(reached);
-      assert !reached.hasWaitingState()
-          : "CPA algorithm finished, but waitlist not empty: " + reached.getWaitlist();
-
-      Map<CFANode, Set<CFANode>> dependencyMap = new HashMap<>();
-      for (AbstractState s : reached) {
-        assert s instanceof ARGState : "AbstractState of reached set not a composite state: " + s;
-        DominatorState postDomState = AbstractStates.extractStateByType(s, DominatorState.class);
-        if (postDomState == null) {
-          throw new InvalidConfigurationException("No dominator state in computed composite "
-              + "states");
-        }
-        CFANode currNode = AbstractStates.extractLocation(s);
-
-        if (dependencyMap.containsKey(currNode)) {
-          dependencyMap.get(currNode).addAll(postDomState);
-        } else {
-          dependencyMap.put(currNode, postDomState);
-        }
-      }
-
-      return new PostDominators(dependencyMap);
-    }
-
-    public Set<CFANode> getNodes() {
-      return postDominatorMap.keySet();
     }
   }
 }

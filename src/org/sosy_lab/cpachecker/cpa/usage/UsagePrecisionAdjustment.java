@@ -59,9 +59,7 @@ class UsagePrecisionAdjustment implements PrecisionAdjustment {
 
     UnmodifiableReachedSet elements =
         new UnmodifiableReachedSetView(
-            pElements,
-            AbstractSingleWrapperState.getUnwrapFunction(),
-            Functions.<Precision>identity());
+            pElements, AbstractSingleWrapperState.getUnwrapFunction(), Functions.identity());
 
     AbstractState oldElement = element.getWrappedState();
 

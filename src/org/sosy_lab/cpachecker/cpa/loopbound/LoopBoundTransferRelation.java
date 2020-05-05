@@ -27,11 +27,18 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.base.Predicates.not;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Iterators;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.stream.Stream;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -42,16 +49,26 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
+@Options(prefix = "cpa.loopbound")
 public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
 
   private final ImmutableMap<CFAEdge, Loop> loopEntryEdges;
   private final ImmutableMap<CFAEdge, Loop> loopExitEdges;
   private final ImmutableMultimap<CFANode, Loop> loopHeads;
 
-  LoopBoundTransferRelation(CFA pCFA) throws CPAException {
+  @Option(
+      secure = true,
+      description =
+          "Only checks for errror after loops were unrolled at least this amount of times.")
+  private int startAtBound = 0;
+
+  LoopBoundTransferRelation(Configuration pConfig, CFA pCFA)
+      throws CPAException, InvalidConfigurationException {
     checkNotNull(pCFA, "CFA instance needed to create LoopBoundCPA");
+    pConfig.inject(this);
     if (!pCFA.getLoopStructure().isPresent()) {
       throw new CPAException("LoopBoundCPA cannot work without loop-structure information in CFA.");
     }
@@ -135,4 +152,18 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
     return Collections.singleton(state);
   }
 
+  @Override
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState state,
+      Iterable<AbstractState> otherStates,
+      @Nullable CFAEdge cfaEdge,
+      Precision precision)
+      throws CPATransferException, InterruptedException {
+    if (((LoopBoundState) state).getDeepestIteration() < startAtBound
+        && Iterators.any(otherStates.iterator(), AbstractStates.IS_TARGET_STATE)) {
+      return ImmutableList.of();
+    } else {
+      return Collections.singleton(state);
+    }
+  }
 }

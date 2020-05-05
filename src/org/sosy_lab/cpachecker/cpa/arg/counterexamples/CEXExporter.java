@@ -37,6 +37,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.logging.Level;
@@ -62,7 +63,9 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.ErrorPathShrinker;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.util.BiPredicates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
@@ -70,6 +73,7 @@ import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
 import org.sosy_lab.cpachecker.util.cwriter.PathToCTranslator;
 import org.sosy_lab.cpachecker.util.cwriter.PathToConcreteProgramTranslator;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
+import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 
 @Options(prefix="counterexample.export", deprecatedPrefix="cpa.arg.errorPath")
 public class CEXExporter {
@@ -108,6 +112,7 @@ public class CEXExporter {
   private final WitnessExporter witnessExporter;
   private final ExtendedWitnessExporter extendedWitnessExporter;
   private final HarnessExporter harnessExporter;
+  private TestCaseExporter testExporter;
 
   public CEXExporter(
       Configuration config,
@@ -128,9 +133,11 @@ public class CEXExporter {
       cexFilter =
           CounterexampleFilter.createCounterexampleFilter(config, pLogger, cpa, cexFilterClasses);
       harnessExporter = new HarnessExporter(config, pLogger, cfa);
+      testExporter = new TestCaseExporter(cfa, logger, config);
     } else {
       cexFilter = null;
       harnessExporter = null;
+      testExporter = null;
     }
   }
 
@@ -286,30 +293,38 @@ public class CEXExporter {
       }
     }
 
+    final Witness witness =
+        witnessExporter.generateErrorWitness(
+            rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
+
     writeErrorPathFile(
         options.getWitnessFile(),
         uniqueId,
         (Appender)
-            pAppendable ->
-                witnessExporter.writeErrorWitness(
-                    pAppendable,
-                    rootState,
-                    Predicates.in(pathElements),
-                    isTargetPathEdge,
-                    counterexample),
+            pApp -> {
+              WitnessToOutputFormatsUtils.writeToGraphMl(witness, pApp);
+            },
+        compressWitness);
+
+    writeErrorPathFile(
+        options.getWitnessDotFile(),
+        uniqueId,
+        (Appender)
+            pApp -> {
+              WitnessToOutputFormatsUtils.writeToDot(witness, pApp);
+            },
         compressWitness);
 
     writeErrorPathFile(
         options.getExtendedWitnessFile(),
         uniqueId,
         (Appender)
-            pAppendable ->
-                extendedWitnessExporter.writeErrorWitness(
-                    pAppendable,
-                    rootState,
-                    Predicates.in(pathElements),
-                    isTargetPathEdge,
-                    counterexample),
+            pAppendable -> {
+              Witness extWitness =
+                  extendedWitnessExporter.generateErrorWitness(
+                      rootState, Predicates.in(pathElements), isTargetPathEdge, counterexample);
+              WitnessToOutputFormatsUtils.writeToGraphMl(extWitness, pAppendable);
+            },
         compressWitness);
 
     writeErrorPathFile(
@@ -323,6 +338,10 @@ public class CEXExporter {
                     Predicates.in(pathElements),
                     isTargetPathEdge,
                     counterexample));
+
+    if (options.exportToTest() && testExporter != null) {
+      testExporter.writeTestCaseFiles(counterexample, Optional.empty());
+    }
   }
 
   // Copied from org.sosy_lab.cpachecker.util.coverage.FileCoverageInformation.addVisitedLine(int)

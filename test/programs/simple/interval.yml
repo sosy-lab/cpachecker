@@ -1,0 +1,6 @@
+format_version: '1.0'
+
+# old file name: interval.c
+input_files: 'interval.c'
+
+properties: []

@@ -209,7 +209,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   @Override
   public Set<Property> getViolatedProperties() throws IllegalStateException {
     checkState(isTarget());
-    return ImmutableSet.<Property>of(violatedPropertyDescription);
+    return ImmutableSet.of(violatedPropertyDescription);
   }
 
   Optional<AutomatonSafetyProperty> getOptionalViolatedPropertyDescription() {
@@ -281,6 +281,9 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
                     .stream()
                     .map(AExpression::toASTString)
                     .collect(Collectors.joining("; "));
+      }
+      if (!vars.isEmpty()) {
+        prettyPrintAsmpts += "\n" + Joiner.on(' ').withKeyValueSeparator("=").join(vars);
       }
       return (automaton != null ? automaton.getName() + ": " : "")
           + internalState.getName()

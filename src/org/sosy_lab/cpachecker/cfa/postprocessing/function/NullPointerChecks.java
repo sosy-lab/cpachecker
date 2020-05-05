@@ -40,6 +40,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -100,27 +101,30 @@ public class NullPointerChecks {
 
     CBinaryExpressionBuilder binBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
 
-    for (final String function : cfa.getAllFunctionNames()) {
+    for (final String functionName : cfa.getAllFunctionNames()) {
 
       // This supplier creates the appropriate target nodes that get added
       // to the CFA for the case the dereference fails.
-      Supplier<CFANode> targetNodeSupplier = new Supplier<>() {
-        @Override
-        public CFANode get() {
+      Supplier<CFANode> targetNodeSupplier =
+          new Supplier<>() {
+            @Override
+            public CFANode get() {
+              AFunctionDeclaration function =
+                  cfa.getFunctionHead(functionName).getFunctionDefinition();
+              CFANode startNode = new CFANode(function);
+              CFANode endNode = new CFANode(function);
+              BlankEdge endEdge =
+                  new BlankEdge("null-deref", FileLocation.DUMMY, startNode, endNode, "null-deref");
+              CFACreationUtils.addEdgeUnconditionallyToCFA(endEdge);
 
-          CFANode startNode = new CFANode(function);
-          CFANode endNode = new CFANode(function);
-          BlankEdge endEdge = new BlankEdge("null-deref", FileLocation.DUMMY, startNode, endNode, "null-deref");
-          CFACreationUtils.addEdgeUnconditionallyToCFA(endEdge);
+              BlankEdge loopEdge = new BlankEdge("", FileLocation.DUMMY, endNode, endNode, "");
+              CFACreationUtils.addEdgeUnconditionallyToCFA(loopEdge);
 
-          BlankEdge loopEdge = new BlankEdge("", FileLocation.DUMMY, endNode, endNode, "");
-          CFACreationUtils.addEdgeUnconditionallyToCFA(loopEdge);
-
-          cfa.addNode(startNode);
-          cfa.addNode(endNode);
-          return startNode;
-        }
-      };
+              cfa.addNode(startNode);
+              cfa.addNode(endNode);
+              return startNode;
+            }
+          };
 
       if (singleTargetPerFunction) {
         // Only a single target node per function,
@@ -128,7 +132,7 @@ public class NullPointerChecks {
         targetNodeSupplier = Suppliers.memoize(targetNodeSupplier);
       }
 
-      for (CFANode node : ImmutableList.copyOf(cfa.getFunctionNodes(function))) {
+      for (CFANode node : ImmutableList.copyOf(cfa.getFunctionNodes(functionName))) {
         switch (node.getNumLeavingEdges()) {
         case 0:
           break;
@@ -195,7 +199,7 @@ public class NullPointerChecks {
     CFANode successor = edge.getSuccessor();
     CFACreationUtils.removeEdgeFromNodes(edge);
 
-    CFANode falseNode = new CFANode(predecessor.getFunctionName());
+    CFANode falseNode = new CFANode(predecessor.getFunction());
 
     for (CFAEdge otherEdge : leavingEdges(predecessor).toList()) {
       CFAEdge newEdge = createOldEdgeWithNewNodes(falseNode, otherEdge.getSuccessor(), otherEdge);

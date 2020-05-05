@@ -131,7 +131,7 @@ public class AssignmentsInPathCondition implements PathCondition, Statistics {
     private int maximum;
 
     private UniqueAssignmentsInPathConditionState() {
-      this(0, HashMultimap.<MemoryLocation, Value>create());
+      this(0, HashMultimap.create());
     }
 
     private UniqueAssignmentsInPathConditionState(int pMaximum, Multimap<MemoryLocation, Value> pMapping) {

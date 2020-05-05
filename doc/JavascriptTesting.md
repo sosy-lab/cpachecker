@@ -15,7 +15,7 @@ Jasmine provides a built-in expect() global function for making assertions. A ba
 
 ```js
 describe("true", function () {
-    var a;
+    let a;
     it("Should be true", function () {
         a = true;
         expect(a).toBe(true);

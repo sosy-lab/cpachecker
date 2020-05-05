@@ -91,7 +91,7 @@ public class ARGToAutomatonConverterTest extends AbstractTranslationTest {
   }
 
   private static Object[] simpleTask(String program, boolean verdict) {
-    String label = String.format("SimpleTest(%s is %s)", program, Boolean.toString(verdict));
+    String label = String.format("SimpleTest(%s is %s)", program, verdict);
     return new Object[] {label, program, verdict};
   }
 

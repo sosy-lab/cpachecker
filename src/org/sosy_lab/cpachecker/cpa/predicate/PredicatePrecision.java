@@ -127,10 +127,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
 
   private static final PredicatePrecision EMPTY =
       new PredicatePrecision(
-          ImmutableList.<Map.Entry<LocationInstance, AbstractionPredicate>>of(),
-          ImmutableList.<Map.Entry<CFANode, AbstractionPredicate>>of(),
-          ImmutableList.<Map.Entry<String, AbstractionPredicate>>of(),
-          ImmutableList.<AbstractionPredicate>of());
+          ImmutableList.of(), ImmutableList.of(), ImmutableList.of(), ImmutableList.of());
 
   public PredicatePrecision(
       Multimap<LocationInstance, AbstractionPredicate> pLocationInstancePredicates,

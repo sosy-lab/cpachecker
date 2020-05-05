@@ -119,7 +119,7 @@ public abstract class SingleLocationFormulaInvariant implements CandidateInvaria
 
       @Override
       public String toString() {
-        return Boolean.toString(value) + " at " + getLocation();
+        return value + " at " + getLocation();
       }
     }
     return new SingleLocationBooleanInvariant();

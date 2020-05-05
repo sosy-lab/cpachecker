@@ -27,15 +27,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
-
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-
-import java.util.List;
-
 
 public abstract class FunctionEntryNode extends CFANode {
 
@@ -47,11 +44,13 @@ public abstract class FunctionEntryNode extends CFANode {
   // Check if call edges are added in the second pass
   private final FunctionExitNode exitNode;
 
-  protected FunctionEntryNode(final FileLocation pFileLocation, String pFunctionName,
-      FunctionExitNode pExitNode, final AFunctionDeclaration pFunctionDefinition,
+  protected FunctionEntryNode(
+      final FileLocation pFileLocation,
+      FunctionExitNode pExitNode,
+      final AFunctionDeclaration pFunctionDefinition,
       final Optional<? extends AVariableDeclaration> pReturnVariable) {
 
-    super(pFunctionName);
+    super(pFunctionDefinition);
     location = checkNotNull(pFileLocation);
     functionDefinition = pFunctionDefinition;
     exitNode = pExitNode;

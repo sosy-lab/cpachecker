@@ -1,0 +1,7 @@
+format_version: '1.0'
+
+# old file name: goto-loop2.c
+input_files: 'goto-loop2.c'
+
+properties:
+  - property_file: ../../config/properties/unreach-label.prp

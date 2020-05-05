@@ -491,8 +491,8 @@ public class PredicateStaticRefiner extends StaticRefiner
     logger.log(Level.FINER, "Extracting finished, found", allPredicates.size(), "predicates");
 
     return new PredicatePrecision(
-        ImmutableSetMultimap.<PredicatePrecision.LocationInstance, AbstractionPredicate>of(),
-        ArrayListMultimap.<CFANode, AbstractionPredicate>create(),
+        ImmutableSetMultimap.of(),
+        ArrayListMultimap.create(),
         functionPredicates,
         globalPredicates);
   }

@@ -1,0 +1,6 @@
+format_version: '1.0'
+
+# old file name: blast_incorrect.cil.c
+input_files: 'blast_incorrect.cil.c'
+
+properties: []

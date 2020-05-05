@@ -38,7 +38,6 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -47,6 +46,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -160,15 +160,15 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
   private Path recurrentConfig;
 
   @Option(
-    secure = true,
-    required = true,
-    name = "terminatingStatements",
-    description =
-        "Path to automaton specification describing which statements let the program terminate."
-  )
+      secure = true,
+      required = true,
+      name = "terminatingStatements",
+      description =
+          "Path to automaton specification describing which statements let the program terminate.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private Path TERMINATING_STATEMENT_CONTROL =
-      Paths.get("config/specification/TerminatingStatements.spc");
+  private Path terminatingStatementsAutomaton =
+      Classes.getCodeLocation(NonTerminationWitnessValidator.class)
+          .resolveSibling("config/specification/TerminatingStatements.spc");
 
   @Option(
     secure = true,
@@ -220,7 +220,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
         cfa.getLanguage() == Language.C ? new CProgramScope(cfa, logger) : DummyScope.getInstance();
     terminationAutomaton =
         AutomatonParser.parseAutomatonFile(
-                TERMINATING_STATEMENT_CONTROL,
+                terminatingStatementsAutomaton,
                 config,
                 logger,
                 cfa.getMachineModel(),
@@ -258,7 +258,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
 
         if (stemSynState.isPresent()) {
           CFANode stemEndLoc = AbstractStates.extractLocation(stemSynState.get());
-          CFANode afterInvCheck = new CFANode(stemEndLoc.getFunctionName());
+          CFANode afterInvCheck = new CFANode(stemEndLoc.getFunction());
 
           // extract quasi invariant which describes recurrent set, use true as default
           ExpressionTree<AExpression> quasiInvariant = ExpressionTrees.getTrue();
@@ -292,7 +292,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                   "!( " + invCheck.getRawStatement() + " )",
                   FileLocation.DUMMY,
                   stemEndLoc,
-                  new CFANode(stemEndLoc.getFunctionName()),
+                  new CFANode(stemEndLoc.getFunction()),
                   invCheck.getExpression(),
                   false);
 
@@ -708,7 +708,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
                               succ,
                               reached.getPrecision(stateWithoutSucc),
                               reached,
-                              Functions.<AbstractState>identity(),
+                              Functions.identity(),
                               succ);
                   pNegInvCheck.getPredecessor().removeLeavingEdge(pNegInvCheck);
                   if (precResult.isPresent()) {
