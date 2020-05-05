@@ -3,11 +3,11 @@
 <project name="Timed automaton parser generation" default="generate-ta-grammar" basedir="./../../../../../../../">
 	<!-- basedir should be the "CPAchecker" directory -->
 
-	<property name="ta.dir" location="src/org/sosy_lab/cpachecker/cfa/parser/timedautomata/" />
-	<property name="ta.generated.dir" location="src/org/sosy_lab/cpachecker/cfa/parser/timedautomata/generated/" />
+	<property name="ta.dir" location="src/org/sosy_lab/cpachecker/cfa/parser/cta/" />
+	<property name="ta.generated.dir" location="src/org/sosy_lab/cpachecker/cfa/parser/cta/generated/" />
 
-	<property name="parser.source" value="TaGrammarParser" />
-	<property name="lexer.source" value="TaLexer" />
+	<property name="parser.source" value="CTAGrammarParser" />
+	<property name="lexer.source" value="CTALexer" />
 
 	<target name="echos">
 		<echo>${dir.src}</echo>
@@ -40,7 +40,7 @@
 			<arg value="-o" />
 			<arg value="generated" />
 			<arg value="-package" />
-			<arg value="org.sosy_lab.cpachecker.cfa.parser.timedautomata.generated" />
+			<arg value="org.sosy_lab.cpachecker.cfa.parser.cta.generated" />
 			<arg value="${lexer.source}.g4" />
 			<classpath>
 				<path refid="classpath.antlr4" />
@@ -65,7 +65,7 @@
 			<arg value="-o" />
 			<arg value="generated" />
 			<arg value="-package" />
-			<arg value="org.sosy_lab.cpachecker.cfa.parser.timedautomata.generated" />
+			<arg value="org.sosy_lab.cpachecker.cfa.parser.cta.generated" />
 			<arg value="-visitor" />
 			<arg value="-no-listener" />
 			<arg value="${parser.source}.g4" />

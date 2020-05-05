@@ -34,7 +34,7 @@
         <!-- Ignore Antlr-generated files. -->
         <Or>
           <Package name="org.sosy_lab.cpachecker.util.ltl.generated"/>
-          <Package name="org.sosy_lab.cpachecker.cfa.parser.timedautomata.generated"/>
+          <Package name="org.sosy_lab.cpachecker.cfa.parser.cta.generated"/>
         </Or>
     </Match>
 

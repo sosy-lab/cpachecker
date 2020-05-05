@@ -285,9 +285,11 @@ public class CFACreator {
   )
   private boolean addLabels = false;
 
-  @Option(secure=true,
-      description="Programming language of the input program. If not given explicitly, "
-          + "auto-detection will occur")
+  @Option(
+      secure = true,
+      description =
+          "Programming language of the input program (CTA is a markup language for timed automata). If not given explicitly, "
+              + "auto-detection will occur")
   // keep option name in sync with {@link CPAMain#language}, value might differ
   private Language language = Language.C;
 
@@ -381,10 +383,10 @@ public class CFACreator {
       break;
     case LLVM:
       parser = Parsers.getLlvmParser(logger, machineModel);
-      language = Language.C; // After parsing we will have a CFA representing C code
-      break;
-    case TA:
-      parser = Parsers.getTAParser(logger);
+        language = Language.C; // After parsing we will have a CFA representing C code
+        break;
+      case CTA:
+        parser = Parsers.getCTAParser(logger);
       break;
 
     default:
@@ -452,9 +454,9 @@ public class CFACreator {
         mainFunction = getJavaMainMethod(sourceFiles, c.getFunctions());
         break;
       case C:
-        mainFunction = getCMainFunction(sourceFiles, c.getFunctions());
+          mainFunction = getCMainFunction(sourceFiles, c.getFunctions());
         break;
-      case TA:
+        case CTA:
         // Only one automaton supported currently
         var automatonName = c.getFunctions().keySet().iterator().next();
         var cfa = new MutableCFA(

@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.parser.timedautomata;
+package org.sosy_lab.cpachecker.cfa.parser.cta;
 
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
@@ -51,21 +51,21 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFANode;
-import org.sosy_lab.cpachecker.cfa.parser.timedautomata.generated.TaGrammarParser.AutomatonDefinitionContext;
-import org.sosy_lab.cpachecker.cfa.parser.timedautomata.generated.TaGrammarParser.BinaryVariableExpressionContext;
-import org.sosy_lab.cpachecker.cfa.parser.timedautomata.generated.TaGrammarParser.GotoDefinitionContext;
-import org.sosy_lab.cpachecker.cfa.parser.timedautomata.generated.TaGrammarParser.GuardDefinitionContext;
-import org.sosy_lab.cpachecker.cfa.parser.timedautomata.generated.TaGrammarParser.InitialConfigDefinitionContext;
-import org.sosy_lab.cpachecker.cfa.parser.timedautomata.generated.TaGrammarParser.InvariantDefinitionContext;
-import org.sosy_lab.cpachecker.cfa.parser.timedautomata.generated.TaGrammarParser.ModuleSpecificationContext;
-import org.sosy_lab.cpachecker.cfa.parser.timedautomata.generated.TaGrammarParser.OperatorContext;
-import org.sosy_lab.cpachecker.cfa.parser.timedautomata.generated.TaGrammarParser.ResetDefinitionContext;
-import org.sosy_lab.cpachecker.cfa.parser.timedautomata.generated.TaGrammarParser.StateDefinitionContext;
-import org.sosy_lab.cpachecker.cfa.parser.timedautomata.generated.TaGrammarParser.TransitionDefinitionContext;
-import org.sosy_lab.cpachecker.cfa.parser.timedautomata.generated.TaGrammarParser.VariableConditionContext;
-import org.sosy_lab.cpachecker.cfa.parser.timedautomata.generated.TaGrammarParserBaseVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.AutomatonDefinitionContext;
+import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.BinaryVariableExpressionContext;
+import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.GotoDefinitionContext;
+import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.GuardDefinitionContext;
+import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.InitialConfigDefinitionContext;
+import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.InvariantDefinitionContext;
+import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.ModuleSpecificationContext;
+import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.OperatorContext;
+import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.ResetDefinitionContext;
+import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.StateDefinitionContext;
+import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.TransitionDefinitionContext;
+import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.VariableConditionContext;
+import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParserBaseVisitor;
 
-class TCFABuilder extends TaGrammarParserBaseVisitor<Object> {
+class TCFABuilder extends CTAGrammarParserBaseVisitor<Object> {
   private Set<String> initialStates;
   private Map<String, TCFANode> parsedNodesByName;
   private TCFANode currentSourceNode;

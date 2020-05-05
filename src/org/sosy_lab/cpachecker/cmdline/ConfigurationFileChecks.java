@@ -173,7 +173,7 @@ public class ConfigurationFileChecks {
   @Options
   private static class OptionsWithSpecialHandlingInTest {
 
-    @Option(secure = true, description = "C, Java, or LLVM IR?")
+    @Option(secure = true, description = "C, Java, LLVM IR or CTA for timed automata?")
     private Language language = Language.C;
 
     @Option(

@@ -30,8 +30,7 @@ public enum Language {
   C,
   JAVA,
   LLVM,
-  TA
-  ;
+  CTA;
 
   @Override
   public String toString() {
@@ -42,9 +41,9 @@ public enum Language {
       return "Java";
     case LLVM:
       return "LLVM IR";
-    case TA:
-      return "Timed Automaton";
-    default:
+      case CTA:
+        return "Cottbus Timed Automaton";
+      default:
       throw new AssertionError();
     }
   }

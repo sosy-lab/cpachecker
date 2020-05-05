@@ -21,9 +21,26 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-/**
- * Important: this package may NOT contain public types, and may not be accessed directly, because
- * we load it in a separate class loader. Use {@link org.sosy_lab.cpachecker.cfa.parser.Parsers} to
- * get an instance.
- */
-package org.sosy_lab.cpachecker.cfa.parser.timedautomata;
+package org.sosy_lab.cpachecker.cfa.parser.cta;
+
+import org.antlr.v4.runtime.BaseErrorListener;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.misc.ParseCancellationException;
+
+class ParserErrorListener extends BaseErrorListener {
+
+  static final ParserErrorListener INSTANCE = new ParserErrorListener();
+
+  @Override
+  public void syntaxError(
+      Recognizer<?, ?> recognizer,
+      Object offendingSymbol,
+      int line,
+      int charPositionInLine,
+      String msg,
+      RecognitionException e)
+      throws ParseCancellationException {
+    throw new ParseCancellationException("line " + line + ":" + charPositionInLine + " " + msg);
+  }
+}

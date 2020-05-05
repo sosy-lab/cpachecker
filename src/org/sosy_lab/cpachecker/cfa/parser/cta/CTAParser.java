@@ -21,7 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cfa.parser.timedautomata;
+package org.sosy_lab.cpachecker.cfa.parser.cta;
 
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
@@ -39,18 +39,18 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.Parser;
-import org.sosy_lab.cpachecker.cfa.parser.timedautomata.generated.TaGrammarParser;
-import org.sosy_lab.cpachecker.cfa.parser.timedautomata.generated.TaLexer;
+import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser;
+import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTALexer;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 
 /** Parser for a markup language for timed automata. */
-class TAParser implements Parser {
+class CTAParser implements Parser {
 
   private final LogManager logger;
   private final Timer parseTimer = new Timer();
   private final Timer cfaCreationTimer = new Timer();
 
-  public TAParser(final LogManager pLogger) {
+  public CTAParser(final LogManager pLogger) {
     logger = pLogger;
   }
 
@@ -61,13 +61,13 @@ class TAParser implements Parser {
     logger.log(Level.INFO, "Start parsing timed automaton...");
     try (var input = Files.newInputStream(Paths.get(pFilename))) {
       parseTimer.start();
-      TaLexer lexer = new TaLexer(CharStreams.fromStream(input));
+      CTALexer lexer = new CTALexer(CharStreams.fromStream(input));
       lexer.removeErrorListener(ConsoleErrorListener.INSTANCE);
       lexer.addErrorListener(ParserErrorListener.INSTANCE);
 
       CommonTokenStream tokens = new CommonTokenStream(lexer);
 
-      TaGrammarParser parser = new TaGrammarParser(tokens);
+      CTAGrammarParser parser = new CTAGrammarParser(tokens);
       parser.removeErrorListeners();
       parser.addErrorListener(ParserErrorListener.INSTANCE);
       ParseTree tree = parser.specification();

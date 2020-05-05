@@ -1,7 +1,7 @@
-parser grammar TaGrammarParser;
+parser grammar CTAGrammarParser;
 
 options {
-  tokenVocab = TaLexer;
+  tokenVocab = CTALexer;
   language = Java;
 }
 

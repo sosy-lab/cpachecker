@@ -3259,15 +3259,15 @@ java.typeHierarchyFile = "typeHierarchy.dot"
 # Specifies the java version of source code accepted
 java.version = JavaCore.VERSION_1_7
 
-# Programming language of the input program. If not given explicitly,
-# auto-detection will occur
-# C, Java, or LLVM IR?
+# Programming language of the input program (CTA is a markup language for
+# timed automata). If not given explicitly, auto-detection will occur
+# C, Java, LLVM IR or CTA for timed automata?
 language = C
-  enum:     [C, JAVA, LLVM, TA]
+  enum:     [C, JAVA, LLVM, CTA]
 language = no default value
-  enum:     [C, JAVA, LLVM, TA]
+  enum:     [C, JAVA, LLVM, CTA]
 language = C
-  enum:     [C, JAVA, LLVM, TA]
+  enum:     [C, JAVA, LLVM, CTA]
 
 # Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)

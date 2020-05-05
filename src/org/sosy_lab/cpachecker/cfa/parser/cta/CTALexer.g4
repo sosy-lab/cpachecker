@@ -1,4 +1,4 @@
-lexer grammar TaLexer;
+lexer grammar CTALexer;
 
 MODULE
 	: 'MODULE'
