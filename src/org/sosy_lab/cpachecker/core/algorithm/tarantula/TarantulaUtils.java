@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -41,36 +40,18 @@ public class TarantulaUtils {
   private TarantulaUtils() {}
 
   /**
-   * Gets all paths from the possible leaves (whether targetStates or safeStates)to the root.
-   *
-   * @param reachedSet input.
-   * @param chosenState whether targetStates or safeStates
-   * @return Full paths
-   */
-  public static Set<List<CFAEdge>> getAllPaths(ReachedSet reachedSet, ARGState chosenState) {
-    Set<List<ARGState>> getAllStates = getAllStatesReversed(reachedSet, chosenState);
-    Set<List<CFAEdge>> paths = new HashSet<>();
-
-    for (List<ARGState> pARGStates : getAllStates) {
-      paths.add(new ARGPath(Lists.reverse(pARGStates)).getFullPath());
-    }
-    return paths;
-  }
-
-  /**
-   * Gets all states on the possible paths from the possible leaves (whether targetStates or
-   * safeStates)to the root.
+   * Gets all possible paths from the possible leaves (whether targetStates or safeStates)to the
+   * root.
    *
    * @param reachedSet input.
    * @param chosenState whether targetStates or safeStates.
    * @return States on the paths.
    */
-  private static Set<List<ARGState>> getAllStatesReversed(
-      ReachedSet reachedSet, ARGState chosenState) {
+  public static Set<ARGPath> getAllPaths(ReachedSet reachedSet, ARGState chosenState) {
 
     ARGState root = AbstractStates.extractStateByType(reachedSet.getFirstState(), ARGState.class);
     List<ARGState> states = new ArrayList<>();
-    Set<List<ARGState>> results = new HashSet<>();
+    Set<ARGPath> results = new HashSet<>();
     List<List<ARGState>> paths = new ArrayList<>();
 
     states.add(chosenState);
@@ -84,7 +65,7 @@ public class TarantulaUtils {
       List<ARGState> curPath = paths.remove(paths.size() - 1);
       // If there is no more to expand - add this path and continue
       if (curPath.get(curPath.size() - 1) == root) {
-        results.add(curPath);
+        results.add(new ARGPath(Lists.reverse(curPath)));
 
         continue;
       }

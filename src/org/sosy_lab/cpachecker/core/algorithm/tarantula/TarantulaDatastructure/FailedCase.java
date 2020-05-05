@@ -31,13 +31,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.common.Optionals;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class FailedCase {
@@ -51,11 +50,11 @@ public class FailedCase {
    *
    * @return Detected all failed Paths.
    */
-  public Set<List<CFAEdge>> getFailedPaths() {
+  public Set<ARGPath> getFailedPaths() {
 
-    Set<List<CFAEdge>> failedPaths = new HashSet<>();
+    Set<ARGPath> failedPaths = new HashSet<>();
     for (CounterexampleInfo counterExample : getCounterExamples()) {
-      failedPaths.add(counterExample.getTargetPath().getFullPath());
+      failedPaths.add(counterExample.getTargetPath());
     }
     return failedPaths;
   }
@@ -89,14 +88,10 @@ public class FailedCase {
    * @param path The chosen path.
    * @return <code>boolean</code>
    */
-  public boolean isFailedPath(List<CFAEdge> path) {
+  public boolean isFailedPath(ARGPath path) {
     List<ARGState> targetStates = ARGUtils.getErrorStates(pReachedSet);
-
-    for (AbstractState targetState : targetStates) {
-      CFANode nodeOfTargetState = AbstractStates.extractLocation(targetState);
-      if (path.get(path.size() - 1).getSuccessor().equals(nodeOfTargetState)) {
-        return true;
-      }
+    if (path.getStateSet().containsAll(targetStates)) {
+      return true;
     }
 
     return false;

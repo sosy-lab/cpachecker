@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.tarantula;
 
 import com.google.common.collect.Sets;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -34,6 +33,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.F
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.SafeCase;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.TarantulaCasesStatus;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
 public class TarantulaRanking {
   private final SafeCase safeCase;
@@ -85,21 +85,21 @@ public class TarantulaRanking {
    * @param  paths The whole path contains all error paths and passed paths.
    * @return result as <code>Map<code/>.
    */
-  private Map<CFAEdge, TarantulaCasesStatus> coverageInformation(Set<List<CFAEdge>> paths) {
+  private Map<CFAEdge, TarantulaCasesStatus> coverageInformation(Set<ARGPath> paths) {
 
     Map<CFAEdge, TarantulaCasesStatus> map = new LinkedHashMap<>();
-    for (List<CFAEdge> individualArray : paths) {
-      for (int j = 0; j < individualArray.size(); j++) {
+    for (ARGPath individualArray : paths) {
+      for (int j = 0; j < individualArray.getFullPath().size(); j++) {
         TarantulaCasesStatus pair;
-        if (map.containsKey(individualArray.get(j))) {
-          pair = map.get(individualArray.get(j));
+        if (map.containsKey(individualArray.getFullPath().get(j))) {
+          pair = map.get(individualArray.getFullPath().get(j));
           if (failedCase.isFailedPath(individualArray)) {
             pair = new TarantulaCasesStatus(pair.getFailedCases() + 1, pair.getPassedCases());
 
           } else {
             pair = new TarantulaCasesStatus(pair.getFailedCases(), pair.getPassedCases() + 1);
           }
-          map.put(individualArray.get(j), pair);
+
         } else {
           if (failedCase.isFailedPath(individualArray)) {
             pair = new TarantulaCasesStatus(1, 0);
@@ -108,12 +108,11 @@ public class TarantulaRanking {
           }
         }
         // Skipp the "none" line numbers.
-        if (individualArray.get(j).getLineNumber() != 0) {
-          map.put(individualArray.get(j), pair);
+        if (individualArray.getFullPath().get(j).getLineNumber() != 0) {
+          map.put(individualArray.getFullPath().get(j), pair);
         }
       }
     }
-
     return map;
   }
   /**
@@ -122,7 +121,7 @@ public class TarantulaRanking {
    * @return Covered edges.
    */
   public Map<CFAEdge, TarantulaCasesStatus> getTable(
-      Set<List<CFAEdge>> safePaths, Set<List<CFAEdge>> errorPaths) {
+      Set<ARGPath> safePaths, Set<ARGPath> errorPaths) {
 
     return coverageInformation(Sets.union(safePaths, errorPaths));
   }
@@ -131,6 +130,7 @@ public class TarantulaRanking {
 
     Map<CFAEdge, TarantulaCasesStatus> table =
         getTable(safeCase.getSafePaths(), failedCase.getFailedPaths());
+
     Map<CFAEdge, Double> resultMap = new LinkedHashMap<>();
     table.forEach(
         (key, value) ->

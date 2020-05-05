@@ -28,11 +28,11 @@ import static com.google.common.collect.FluentIterable.from;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaUtils;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class SafeCase {
@@ -66,9 +66,9 @@ public class SafeCase {
    *
    * @return Detected safe edges.
    */
-  public Set<List<CFAEdge>> getSafePaths() {
+  public Set<ARGPath> getSafePaths() {
 
-    Set<List<CFAEdge>> allSafePathsTogether = new HashSet<>();
+    Set<ARGPath> allSafePathsTogether = new HashSet<>();
 
     for (ARGState safeState : getSafeStates()) {
       if (existsSafePath()) {
@@ -84,7 +84,6 @@ public class SafeCase {
    * @return Returns <code>true</code> if the path exists otherwise returns <code>false</code>
    */
   public boolean existsSafePath() {
-
     for (AbstractState state : pReachedSet) {
       if (getSafeStates().contains(state)) {
         return true;
