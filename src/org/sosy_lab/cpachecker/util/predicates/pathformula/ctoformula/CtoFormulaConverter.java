@@ -80,6 +80,8 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -1146,6 +1148,9 @@ public class CtoFormulaConverter {
       return makeExitFunction(ce, function,
           ssa, pts, constraints, errorConditions);
 
+      case TimedAutomatonEdge:
+        return makeTimedEdgeFormula(
+            (TCFAEdge) edge, function, ssa, pts, constraints, errorConditions);
     default:
       throw new UnrecognizedCFAEdgeException(edge);
     }
@@ -1819,4 +1824,38 @@ public class CtoFormulaConverter {
    * @param out - output stream
    */
   public void printStatistics(PrintStream out) {}
+
+  /**
+   * Converts a timed automaton edge into a boolean formula representing the guard, invariant in the
+   * target state and clock resets
+   */
+  protected BooleanFormula makeTimedEdgeFormula(
+      final TCFAEdge edge,
+      final String function,
+      final SSAMapBuilder ssa,
+      final PointerTargetSetBuilder pts,
+      final Constraints constraints,
+      final ErrorConditions errorConditions)
+      throws UnrecognizedCodeException, InterruptedException {
+    BooleanFormula guardFormula =
+        makePredicate(
+            edge.getGuard(), true, edge, function, ssa, pts, constraints, errorConditions);
+
+    TCFANode successor = (TCFANode) edge.getSuccessor();
+    BooleanFormula successorInvariantFormula =
+        makePredicate(
+            successor.getInvariant(), true, edge, function, ssa, pts, constraints, errorConditions);
+
+    var edgeFormula = bfmgr.and(guardFormula, successorInvariantFormula);
+
+    for (var resetStatement : edge.getResetStatements()) {
+      var lhs = resetStatement.getLeftHandSide();
+      var rhs = resetStatement.getRightHandSide();
+      var resetFormula =
+          makeAssignment(lhs, rhs, edge, function, ssa, pts, constraints, errorConditions);
+      edgeFormula = bfmgr.and(edgeFormula, resetFormula);
+    }
+
+    return edgeFormula;
+  }
 }

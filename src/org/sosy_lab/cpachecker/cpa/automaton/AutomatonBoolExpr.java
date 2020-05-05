@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
+import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonASTComparator.ASTMatcher;
@@ -570,9 +571,12 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       if (successorNode instanceof CLabelNode
           && label.equals(((CLabelNode) successorNode).getLabel())) {
           return CONST_TRUE;
-        } else {
-          return CONST_FALSE;
-        }
+      } else if (successorNode instanceof TCFANode
+          && label.equals(((TCFANode) successorNode).getName())) {
+        return CONST_TRUE;
+      } else {
+        return CONST_FALSE;
+      }
     }
 
     @Override

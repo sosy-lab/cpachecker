@@ -23,20 +23,20 @@
  */
 package org.sosy_lab.cpachecker.cfa.model.timedautomata;
 
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class TCFANode extends CFANode {
 
   private final String name;
-  private final AExpression invariant;
+  private final CExpression invariant;
   private final boolean isInitialState;
 
   private static final long serialVersionUID = -7796108813615096804L;
 
   public TCFANode(
-      String pName, AExpression pInvariant, TaDeclaration pDeclaration, boolean pIsInitialState) {
+      String pName, CExpression pInvariant, TaDeclaration pDeclaration, boolean pIsInitialState) {
     super(pDeclaration);
     name = pName;
     invariant = pInvariant;
@@ -51,7 +51,7 @@ public class TCFANode extends CFANode {
     return isInitialState;
   }
 
-  public AExpression getInvariant() {
+  public CExpression getInvariant() {
     return invariant;
   }
 }

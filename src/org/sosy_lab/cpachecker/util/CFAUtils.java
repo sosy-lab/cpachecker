@@ -113,6 +113,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFATerminationNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFANode;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFATraversal.DefaultCFAVisitor;
@@ -367,21 +368,26 @@ public class CFAUtils {
 
       if (pNode.getNumLeavingEdges() == 0) {
         return TraversalProcess.CONTINUE;
-      } else if (pNode.getNumLeavingEdges() == 1
-                 && pNode.getLeavingEdge(0).getSuccessor().getReversePostorderId() >= pNode.getReversePostorderId()) {
-
-        hasBackwardsEdges = true;
-        return TraversalProcess.ABORT;
-      } else if (pNode.getNumLeavingEdges() == 2
-                 && (pNode.getLeavingEdge(0).getSuccessor().getReversePostorderId() >= pNode.getReversePostorderId() ||
-                 pNode.getLeavingEdge(1).getSuccessor().getReversePostorderId() >= pNode.getReversePostorderId())) {
-        hasBackwardsEdges = true;
-        return TraversalProcess.ABORT;
-      } else if (pNode.getNumLeavingEdges() > 2) {
-        throw new AssertionError("forgotten case in traversing cfa with more than 2 leaving edges");
-      } else {
+      } else if (pNode.getNumLeavingEdges() <= 2 || pNode instanceof TCFANode) {
+        if (hasNodeBackwardsEdges(pNode)) {
+          hasBackwardsEdges = true;
+          return TraversalProcess.ABORT;
+        }
         return TraversalProcess.CONTINUE;
+      } else {
+        throw new AssertionError("forgotten case in traversing cfa with more than 2 leaving edges");
       }
+    }
+
+    private boolean hasNodeBackwardsEdges(CFANode pNode) {
+      for (int leavingEdgeId = 0; leavingEdgeId < pNode.getNumLeavingEdges(); leavingEdgeId++) {
+        var successor = pNode.getLeavingEdge(leavingEdgeId).getSuccessor();
+        if (successor.getReversePostorderId() >= pNode.getReversePostorderId()) {
+          return true;
+        }
+      }
+
+      return false;
     }
 
     public boolean hasBackwardsEdges() {

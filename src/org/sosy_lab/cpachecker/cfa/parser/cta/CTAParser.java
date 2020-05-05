@@ -73,6 +73,7 @@ class CTAParser implements Parser {
       ParseTree tree = parser.specification();
 
       TCFABuilder builder = new TCFABuilder();
+      builder.setFileName(pFilename);
 
       parseTimer.stop();
       cfaCreationTimer.start();

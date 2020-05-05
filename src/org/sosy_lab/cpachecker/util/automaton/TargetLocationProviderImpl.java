@@ -34,6 +34,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAEntryNode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -46,7 +47,6 @@ import org.sosy_lab.cpachecker.cpa.automaton.AutomatonTransferException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-
 
 public class TargetLocationProviderImpl implements TargetLocationProvider {
 
@@ -71,7 +71,12 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
     try {
       // Create new configuration with default set of CPAs
       ConfigurationBuilder configurationBuilder = Configuration.builder();
-      configurationBuilder.loadFromResource(getClass(), "find-target-locations.properties");
+      if (pRootNode instanceof TCFAEntryNode) {
+        configurationBuilder.loadFromResource(
+            getClass(), "find-target-locations-timed-automata.properties");
+      } else {
+        configurationBuilder.loadFromResource(getClass(), "find-target-locations.properties");
+      }
       Configuration configuration = configurationBuilder.build();
 
       ReachedSetFactory reachedSetFactory = new ReachedSetFactory(configuration, logManager);
