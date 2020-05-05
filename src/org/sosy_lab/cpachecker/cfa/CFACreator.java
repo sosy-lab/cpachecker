@@ -457,17 +457,9 @@ public class CFACreator {
           mainFunction = getCMainFunction(sourceFiles, c.getFunctions());
         break;
         case CTA:
-        // Only one automaton supported currently
-        var automatonName = c.getFunctions().keySet().iterator().next();
-        var cfa = new MutableCFA(
-          machineModel,
-          c.getFunctions(),
-          c.getCFANodes(),
-          c.getFunctions().get(automatonName),
-          c.getFileNames(),
-          language);
-        cfa.makeImmutableCFA(Optional.empty(), Optional.empty());
-        return cfa;
+          // Only one automaton supported currently
+          mainFunction = c.getFunctions().firstEntry().getValue();
+          break;
       default:
         throw new AssertionError();
       }

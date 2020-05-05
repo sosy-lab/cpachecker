@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cfa.model.timedautomata;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
@@ -44,7 +45,6 @@ public class TCFAEntryNode extends FunctionEntryNode {
 
   @Override
   public List<? extends AParameterDeclaration> getFunctionParameters() {
-
-    return null;
+    return ImmutableList.of();
   }
 }

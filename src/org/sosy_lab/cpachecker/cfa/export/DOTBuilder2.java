@@ -57,6 +57,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAExitNode;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFANode;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
@@ -366,7 +367,7 @@ public final class DOTBuilder2 {
 
     @Override
     public TraversalProcess visitNode(CFANode node) {
-      if(node instanceof TCFAEntryNode) {
+      if (node instanceof TCFAEntryNode || node instanceof TCFAExitNode) {
         return TraversalProcess.CONTINUE;
       }
 

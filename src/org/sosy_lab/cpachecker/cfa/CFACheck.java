@@ -66,6 +66,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -146,6 +148,11 @@ public class CFACheck {
           "Dead code: node %s has no incoming edges (successors are %s)",
           debugFormat(pNode),
           CFAUtils.successorsOf(pNode).transform(CFACheck::debugFormat));
+    }
+
+    if (pNode instanceof TCFANode || pNode instanceof TCFAEntryNode) {
+      // no more checks needed for timed automata
+      return;
     }
 
     // check leaving edges

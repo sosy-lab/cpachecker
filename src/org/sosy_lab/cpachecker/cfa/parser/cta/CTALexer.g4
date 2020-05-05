@@ -77,7 +77,7 @@ STATE
 	;
 
 EQUAL
-	: '='
+	: '=='
 	;
 
 LESS
