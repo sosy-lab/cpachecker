@@ -3,7 +3,9 @@ package org.sosy_lab.cpachecker.util.faultlocalization;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
@@ -17,8 +19,27 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
  * Provides useful methods for converting objects in this package to a HTML format.
  * Extend this class and override the methods to create a different HTML-representation.
  * Change the FaultReportWriter in FaultLocalizationInfo by calling the method <code>replaceHtmlWriter</code>
+ * @see FaultLocalizationInfo#replaceHtmlWriter(FaultReportWriter)
  */
 public class FaultReportWriter {
+
+  private Set<InfoType> bannedTypes;
+
+  public FaultReportWriter() {
+    bannedTypes = new HashSet<>();
+  }
+
+  public FaultReportWriter(InfoType... pBannedTypes) {
+    bannedTypes = new HashSet<>();
+    banInfoTypes(pBannedTypes);
+  }
+
+  public void banInfoTypes(InfoType... types){
+    bannedTypes.clear();
+    for (InfoType type : types) {
+      bannedTypes.add(type);
+    }
+  }
 
   public String toHtml(FaultInfo info) {
     String description = info.getDescription();
@@ -30,7 +51,7 @@ public class FaultReportWriter {
     return description;
   }
 
-  public String  toHtml(FaultContribution faultContribution) {
+  public String toHtml(FaultContribution faultContribution) {
     return toHtml(faultContribution.getInfos(),
         Collections.singletonList(faultContribution.correspondingEdge())) +
         (faultContribution.getScore() > 0 ? "<br><i>Score: " + (int)(faultContribution.getScore()*100)+"</i>" : "");
@@ -48,6 +69,8 @@ public class FaultReportWriter {
 
   /**
    * Convert this object to a HTML string for the report.
+   * @param correspondingEdges the corresponding edges to the fault
+   * @param infos the FaultInfos appended to a Fault(Contribution)
    * @return hmtl code of this instance
    */
   private String toHtml(List<FaultInfo> infos, List<CFAEdge> correspondingEdges){
@@ -78,31 +101,31 @@ public class FaultReportWriter {
         + "</strong><br>";
     StringBuilder html = new StringBuilder();
 
-    if (!faultReasons.isEmpty()) {
+    if (!faultReasons.isEmpty() && !bannedTypes.contains(InfoType.REASON)) {
       html.append(printList("Detected <strong>" +
               faultReasons.size() + "</strong> possible reason" + (faultReasons.size() == 1? ":":"s:"), "",
           faultReasons, true))
           .append("<br>");
     }
 
-    if (!faultHint.isEmpty()) {
+    if (!faultFix.isEmpty() && !bannedTypes.contains(InfoType.FIX)) {
+      html.append(printList("Found <strong>" + faultFix.size() + "</strong> possible bug-fix" + (faultFix.size() == 1?":":"es:"), "fix-list",
+          faultFix, false))
+          .append("<br>");
+    }
+
+    if (!faultHint.isEmpty() && !bannedTypes.contains(InfoType.HINT)) {
       String headline = faultHint.size() == 1? "hint is available:" : "hints are available:";
       html.append(
           printList(
-              "<strong>" + faultHint.size() + "</strong>" + headline,
+              "<strong>" + faultHint.size() + "</strong> " + headline,
               "hint-list",
               faultHint,
               false))
           .append("<br>");
     }
 
-    if (!faultFix.isEmpty()) {
-      html.append(printList("Found " + faultFix.size() + " possible bug-fix" + (faultFix.size() == 1?":":"es:"), "fix-list",
-          faultFix, false))
-          .append("<br>");
-    }
-
-    if (!faultInfo.isEmpty()) {
+    if (!faultInfo.isEmpty()  && !bannedTypes.contains(InfoType.RANK_INFO)) {
       html.append(printList("The score is obtained by:", "", faultInfo, true))
           .append("<br>");
     }
@@ -132,7 +155,7 @@ public class FaultReportWriter {
         .mapToInt(l -> l.getFileLocation().getStartingLineInOrigin())
         .sorted()
         .distinct()
-        .mapToObj(l -> (Integer)l + "")
+        .mapToObj(Integer::toString)
         .collect(Collectors.collectingAndThen(Collectors.toList(), list -> {
           int lastIndex = list.size() - 1;
           if (lastIndex < 1) {

@@ -7,7 +7,14 @@ import org.sosy_lab.cpachecker.util.faultlocalization.ranking.NoContextExplanati
 public abstract class FaultInfo implements Comparable<FaultInfo>{
 
   public enum InfoType{
-    FIX(0), HINT(1), REASON(2), RANK_INFO(3);
+    /** The reason why a fault localization algorithm created the fault */
+    REASON(0),
+    /** Provides a possible fix */
+    FIX(1),
+    /** Hints and explanations for the user */
+    HINT(2),
+    /** Information provided by the rankings */
+    RANK_INFO(3);
 
     private final int reportRank;
     InfoType(int pReportRank) {
