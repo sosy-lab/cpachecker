@@ -109,8 +109,8 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     specification = checkNotNull(pSpecification);
 
     binaries = new HashMap<>();
-    binaries.put(PYTHON3_BIN, checkForRequiredBinary(PYTHON3_BIN));
-    binaries.put(MPI_BIN, checkForRequiredBinary(MPI_BIN));
+    binaries.put(PYTHON3_BIN, getPathOrThrowError(PYTHON3_BIN));
+    binaries.put(MPI_BIN, getPathOrThrowError(MPI_BIN));
 
     try (StringWriter stringWriter = new StringWriter();) {
       Map<String, Object> analysisMap = new LinkedHashMap<>();
@@ -208,7 +208,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     return builder.build();
   }
 
-  private Path checkForRequiredBinary(String pRequiredBin) throws InvalidConfigurationException {
+  private Path getPathOrThrowError(String pRequiredBin) throws InvalidConfigurationException {
     Optional<Path> pathOpt =
         Stream.of(System.getenv("PATH").split(Pattern.quote(File.pathSeparator)))
             .map(Paths::get)
