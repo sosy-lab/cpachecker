@@ -24,15 +24,16 @@
 package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
-public class Selector extends FaultContribution {
+public class Selector extends FaultContribution implements AbstractTraceElement {
 
-  private static HashMap<String, Selector> selectors = new HashMap<>();
+  private static Map<String, Selector> selectors = new HashMap<>();
   private static int index = 0;
 
   private String name;
@@ -103,7 +104,9 @@ public class Selector extends FaultContribution {
   public static Selector makeSelector(
       FormulaContext pContext, BooleanFormula pFormula, CFAEdge pEdge) {
     Selector s = selectors.get(pFormula.toString());
-    if (s != null) return s;
+    if (s != null) {
+      return s;
+    }
 
     s = new Selector(
             index,

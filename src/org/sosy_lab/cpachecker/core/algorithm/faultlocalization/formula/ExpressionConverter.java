@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula;
 
 import java.util.ArrayDeque;
 import java.util.HashMap;
+import java.util.Map;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -41,7 +42,7 @@ public class ExpressionConverter {
   public static String convert(String input) {
     input = input.replaceAll("\\*", "p_");
     int exp = 0;
-    HashMap<String, String> expressions = new HashMap<>();
+    Map<String, String> expressions = new HashMap<>();
     String lastExpression = "";
     while (input.contains(")")) {
       // Find the deepest () in input
@@ -87,9 +88,13 @@ public class ExpressionConverter {
         throw new IllegalArgumentException("Only unary and binary operations are allowed.");
       }
 
-      if (expressions.containsKey(operands[0])) process.addFirst(operands[0]);
+      if (expressions.containsKey(operands[0])) {
+        process.addFirst(operands[0]);
+      }
       if (operands.length == 2) {
-        if (expressions.containsKey(operands[1])) process.addFirst(operands[1]);
+        if (expressions.containsKey(operands[1])) {
+          process.addFirst(operands[1]);
+        }
         if (operator.equals("∧")) {
           input = input.replaceFirst(expr, operands[0] + " " + operator + " " + operands[1]);
         } else {

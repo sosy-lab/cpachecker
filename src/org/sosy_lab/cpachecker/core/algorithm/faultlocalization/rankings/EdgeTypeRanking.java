@@ -53,14 +53,16 @@ public class EdgeTypeRanking implements FaultRanking {
         return 50d;
       case ReturnStatementEdge:
         return 25d;
-        // Fall through
       case FunctionReturnEdge:
+        // fall through
       case CallToReturnEdge:
+        // fall through
       case FunctionCallEdge:
         return 12.5;
-        // Fall through
       case DeclarationEdge:
+        // fall through
       case BlankEdge:
+        // fall through
       default:
         return 0;
     }

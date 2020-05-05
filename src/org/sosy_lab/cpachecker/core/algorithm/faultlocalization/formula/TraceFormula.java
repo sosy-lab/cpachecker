@@ -30,7 +30,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import javax.annotation.Nonnull;
+import java.util.Set;
+import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -41,6 +42,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
@@ -62,7 +64,6 @@ public class TraceFormula {
 
   private BooleanFormula postcondition;
   private BooleanFormula precondition;
-  private List<String> preconditionSymbols;
 
   /**
    * If post- and pre-condition are UNSAT set this flag to true.
@@ -93,11 +94,8 @@ public class TraceFormula {
         description = "force alternative pre condition")
     private boolean forcePre = false;
 
-    private String algorithmType;
-
-    public TraceFormulaOptions(Configuration pConfiguration, String pAlgorithmType) throws InvalidConfigurationException {
+    public TraceFormulaOptions(Configuration pConfiguration) throws InvalidConfigurationException {
       pConfiguration.inject(this);
-      algorithmType = pAlgorithmType;
     }
 
     public String getFilter() {
@@ -123,9 +121,8 @@ public class TraceFormula {
     options = pOptions;
     edges = pEdges;
     context = pContext;
-    entries = new FormulaEntries(context);
+    entries = new FormulaEntries();
     negated = new ArrayList<>();
-    preconditionSymbols = new ArrayList<>();
     createTraceFormulas();
   }
 
@@ -167,10 +164,6 @@ public class TraceFormula {
 
   public SSAMap getSsaMap(int i){
     return entries.getSsaMap(i);
-  }
-
-  public List<String> getPreconditionSymbols() {
-    return preconditionSymbols;
   }
 
   public BooleanFormula getAtom(int i) {
@@ -292,7 +285,6 @@ public class TraceFormula {
             for(String symbol: Splitter.on(" ").split(formula.toString())){
               if (symbol.contains("__VERIFIER_nondet")){
                 nondetString = symbol;
-                preconditionSymbols.add(nondetString);
                 break;
               }
             }
@@ -312,17 +304,17 @@ public class TraceFormula {
     }
 
     // Check if alternative precondition is required and remove corresponding entries.
-    if (options.algorithmType.equals("MAXSAT")
-        && (options.forcePre || bmgr.isTrue(precond))
+    if (/*options.algorithmType.equals("MAXSAT")
+        &&*/ (options.forcePre || bmgr.isTrue(precond))
         && !context.getSolver().isUnsat(bmgr.and(altPre.toFormula(), postcondition))) {
       for (BooleanFormula booleanFormula : altPre.getPreCondition()) {
         int index = entries.atoms.indexOf(booleanFormula);
-        entries.remove(index);
+        entries.removeAll(index);
       }
-      // The initial variable assignment is still needed if available
-      precond = bmgr.and(precond, altPre.toFormula());
+      entries.maps.add(0, altPre.preConditionMap);
+      return bmgr.and(precond, altPre.toFormula());
     }
-
+    entries.maps.add(SSAMap.emptySSAMap());
     return precond;
   }
 
@@ -349,10 +341,12 @@ public class TraceFormula {
     private Map<Formula, Integer> variableToIndexMap;
     private List<BooleanFormula> preCondition;
     private List<String> ignore;
+    private SSAMap preConditionMap;
 
     AlternativePrecondition(){
       variableToIndexMap = new HashMap<>();
       preCondition = new ArrayList<>();
+      preConditionMap = SSAMap.emptySSAMap();
       if(options.ignore.equals("")){
         ignore = ImmutableList.of();
       } else {
@@ -361,8 +355,20 @@ public class TraceFormula {
     }
 
     void add(BooleanFormula formula, SSAMap currentMap, CFAEdge edge){
+      FormulaManagerView fmgr = context.getSolver().getFormulaManager();
+      Map<String, Formula> formulaVariables = fmgr.extractVariables(formula);
+      Set<String> uninstantiatedVariables = fmgr.extractVariables(fmgr.uninstantiate(formula)).keySet();
+      SSAMap toMerge = currentMap;
       //First check if variable is in desired scope, then check if formula is accepted.
-      if(formula.toString().contains(options.filter + "::") && isAccepted(formula, currentMap, edge)){
+      if(formula.toString().contains(options.filter + "::") && isAccepted(formula, currentMap, edge, formulaVariables)){
+        // remove all other elements from SSAMap if formula is a declaration not using other variables (e.g. int a = 5; int[] d = {1,2,3})
+        for (String variable : toMerge.allVariables()) {
+          if (!uninstantiatedVariables.contains(variable)) {
+            toMerge = toMerge.builder().deleteVariable(variable).build();
+          }
+        }
+        // merge the maps to obtain a SSAMap that represents the inital state (pre-condition)
+        preConditionMap = SSAMap.merge(preConditionMap, toMerge, MapsDifference.collectMapsDifferenceTo(new ArrayList<>()));
         preCondition.add(formula);
       }
     }
@@ -382,7 +388,7 @@ public class TraceFormula {
      * @param pEdge The edge that can be converted to formula
      * @return is the formula accepted for the alternative precondition
      */
-    private boolean isAccepted(BooleanFormula formula, SSAMap currentMap, CFAEdge pEdge){
+    private boolean isAccepted(BooleanFormula formula, SSAMap currentMap, CFAEdge pEdge, Map<String, Formula> variables){
       if(!pEdge.getEdgeType().equals(CFAEdgeType.DeclarationEdge)){
         return false;
       }
@@ -397,29 +403,24 @@ public class TraceFormula {
           }
         }
       }
-      Map<String, Formula> variables = context.getSolver().getFormulaManager().extractVariables(formula);
       //only accept declarations like int a = 2; and not int b = a + 2;
-      //int a[] = {3,4,5} will be accepted too (thats why we filter __ADDRESS_OF_
+      //int a[] = {3,4,5} will be accepted too (that's why we filter __ADDRESS_OF_)
       if(variables.entrySet().stream().filter(v -> !v.getKey().contains("__ADDRESS_OF_")).count() != 1){
         return false;
       }
       Map<Formula, Integer> index = new HashMap<>();
       for (String s : variables.keySet()) {
         Formula uninstantiated = context.getSolver().getFormulaManager().uninstantiate(variables.get(s));
-        index.put(uninstantiated, currentMap.builder().getIndex(uninstantiated.toString()));
+        index.put(uninstantiated, currentMap.getIndex(uninstantiated.toString()));
       }
-      boolean isAccepted = true;
       for (Formula f : index.keySet()) {
-        if (variableToIndexMap.get(f) == null) {
+        if (!variableToIndexMap.containsKey(f)) {
           variableToIndexMap.put(f, index.get(f));
         } else {
-          int firstIndex = variableToIndexMap.get(f);
-          if (firstIndex != index.get(f)) {
-            isAccepted = false;
-          }
+          return false;
         }
       }
-      return isAccepted;
+      return true;
     }
   }
 
@@ -427,35 +428,26 @@ public class TraceFormula {
     private List<SSAMap> maps;
     private List<Selector> selectors;
     private List<BooleanFormula> atoms;
-    private FormulaContext context;
 
-    FormulaEntries(FormulaContext pContext){
+    FormulaEntries(){
       maps = new ArrayList<>();
       selectors = new ArrayList<>();
       atoms = new ArrayList<>();
-      context = pContext;
     }
 
-    void addEntry(@Nonnull SSAMap pMap, @Nonnull Selector pSelector, @Nonnull BooleanFormula pAtom){
+    void addEntry(SSAMap pMap, Selector pSelector, BooleanFormula pAtom){
       maps.add(pMap);
       selectors.add(pSelector);
       atoms.add(pAtom);
     }
 
-    void remove(int i){
+    void removeAll(int i){
       maps.remove(i);
       selectors.remove(i);
       atoms.remove(i);
     }
 
     SSAMap getSsaMap(int i){
-      int size = maps.size();
-      if(i < 0){
-        return context.getManager().makeEmptyPathFormula().getSsa();
-      }
-      if (i >= size){
-        return maps.get(size-1);
-      }
       return maps.get(i);
     }
 

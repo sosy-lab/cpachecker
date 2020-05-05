@@ -110,7 +110,7 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
 
     //Options
     pConfig.inject(this);
-    options = new TraceFormulaOptions(pConfig, algorithmType);
+    options = new TraceFormulaOptions(pConfig);
     validateOptions();
 
     // Parent algorithm

@@ -24,22 +24,25 @@
 package org.sosy_lab.cpachecker.core.algorithm.faultlocalization;
 
 import com.google.common.base.VerifyException;
-import com.google.common.collect.ImmutableList;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.AbstractTraceElement;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.ExpressionConverter;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula;
@@ -51,6 +54,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -107,13 +111,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     allFormulas.add(errorTrace.getPostCondition());
     CounterexampleTraceInfo counterexampleTraceInfo =
         interpolationManager.buildCounterexampleTrace(new BlockFormulas(allFormulas));
-    List<BooleanFormula> interpolants = new ArrayList<>(counterexampleTraceInfo.getInterpolants());
-
-    if (interpolants.size() > 0 && interpolants.size() == errorTrace.traceSize() + 1) {
-      interpolants.remove(0);
-    }
-
-    return interpolants;
+    return counterexampleTraceInfo.getInterpolants();
   }
 
   @Override
@@ -125,7 +123,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
 
     totalTime.start();
 
-    ImmutableList<BooleanFormula> interpolants = ImmutableList.copyOf(getInterpolants());
+    List<BooleanFormula> interpolants = getInterpolants();
     PriorityQueue<Interval> sortedIntervals = new PriorityQueue<>();
     for (int i = 0; i < interpolants.size(); i++) {
       // TODO actualForm can evaluate to false (c.f. SingleUnsatCore)
@@ -134,22 +132,19 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
           new Interval(
               search(0, i, x -> !isErrInv(interpolant, x)),
               search(i, tf.traceSize(), x -> isErrInv(interpolant, x)) - 1,
-              interpolant,
-              tf.getSelectors().get(i));
+              interpolant);
       sortedIntervals.add(current);
     }
 
     Interval maxInterval = sortedIntervals.peek();
     int prevEnd = 0;
-    List<InterpolantToSelector> interpolantsForPosition = new ArrayList<>();
-    for (Interval currInterval : sortedIntervals) {
+    List<AbstractTraceElement> abstractTrace = new ArrayList<>();
+    while (!sortedIntervals.isEmpty()) {
+      Interval currInterval = sortedIntervals.poll();
       if (currInterval.start > prevEnd) {
-        interpolantsForPosition.add(
-            new InterpolantToSelector(maxInterval.invariant, maxInterval.selector));
+        abstractTrace.add(maxInterval);
         if (maxInterval.end < tf.traceSize()) {
-          interpolantsForPosition.add(
-              new InterpolantToSelector(
-                  tf.getAtom(maxInterval.end), tf.getSelectors().get(maxInterval.end)));
+          abstractTrace.add(errorTrace.getSelectors().get(maxInterval.end));
         }
         prevEnd = maxInterval.end;
         maxInterval = currInterval;
@@ -159,25 +154,68 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
         }
       }
     }
+    return createFaults(abstractTrace);
+  }
 
-    // Create Faults, process information and append it to the created Faults
-    Map<Fault, String> descriptions = new HashMap<>();
-    for (InterpolantToSelector interpolantToSelector : interpolantsForPosition) {
-      Selector current = interpolantToSelector.selector;
-      // Don't show pre-condition statements in the result set
-      if (errorTrace.getPreconditionSymbols().isEmpty()
-          || !current.getEdge().toString().contains("__VERIFIER_nondet")) {
-        Fault f = new Fault(current);
-        descriptions.merge(
-            f, interpolantToSelector.invariant.toString(), (fault, desc) -> fault + ", " + desc);
+  /**
+   * Transforms an abstract error trace to faults.
+   * An abstract error trace looks like this:
+   * Interval[0;4] invariant1
+   * Selector 5
+   * Interval [6:10] invariant2
+   * ...
+   * @param abstractTrace Abstract trace of a traceformula
+   * @return faults for the report
+   */
+  private Set<Fault> createFaults(List<AbstractTraceElement> abstractTrace){
+    //Stores description of last interval
+    String description = "";
+
+    //Stores the last created fault (so we can add the next description)
+    Fault lastCreatedFault = null;
+    double intervalSize = 0;
+    Set<String> variablesToTrack = new HashSet<>();
+    Set<Fault> faults = new HashSet<>();
+    FormulaManagerView fmgr = formulaContext.getSolver().getFormulaManager();
+    for (AbstractTraceElement errorInvariant : abstractTrace) {
+      if (errorInvariant instanceof Selector) {
+        //Create fault and append the description of the previous and the next interval
+        Fault f = new Fault((Selector)errorInvariant);
+        f.addInfo(FaultInfo.justify("The error is caused by the following assignments: " + description));
+        f.addInfo(FaultInfo.hint("Track the variables: " + String.join(", ", variablesToTrack)));
+        f.addInfo(FaultInfo.rankInfo("Error-invariants interval size.", intervalSize/errorTrace.traceSize()));
+        lastCreatedFault = f;
+        faults.add(f);
+      }
+      if (errorInvariant instanceof Interval){
+        Interval interval = (Interval)errorInvariant;
+        BooleanFormula invariant = fmgr.uninstantiate(interval.invariant);
+        variablesToTrack.addAll(fmgr.extractVariables(invariant).keySet());
+        if (variablesToTrack.removeIf(p -> p.contains("__VERIFIER_nondet"))) {
+          variablesToTrack.add("user input");
+        }
+        description = ExpressionConverter.convert(fmgr.uninstantiate(interval.invariant));
+        description = description.replaceAll("__VERIFIER_nondet_[a-zA-Z0-9]+!", "CPA_user_input_").replaceAll("@", "");
+        intervalSize = interval.end - interval.start + 1;
+        if(lastCreatedFault != null){
+          lastCreatedFault.addInfo(FaultInfo.hint("From now on " + description + " holds."));
+        }
+      }
+      // if there is only one interpolant the algorithm failed to abstract the error trace
+      // we can only say that the post-condition holds in every location (no gain of information)
+      if (abstractTrace.size() == 1) {
+        if(abstractTrace.get(0) instanceof Interval){
+          BooleanFormulaManager bmgr = formulaContext.getSolver().getFormulaManager().getBooleanFormulaManager();
+          CFAEdge lastEdge = errorTrace.getEdges().get(errorTrace.getEdges().size()-1);
+          Fault f = new Fault(Selector.makeSelector(formulaContext, bmgr.makeTrue(), lastEdge));
+          f.addInfo(FaultInfo.justify("The whole program can be described by: " + description));
+          f.addInfo(FaultInfo.hint("NOTE: The algorithm did not find a suitable abstraction."));
+          faults.add(f);
+        }
       }
     }
 
-    totalTime.stop();
-    descriptions.forEach(
-        (fault, desc) ->
-            fault.addInfo(FaultInfo.justify("Described by the interpolant(s): " + desc)));
-    return descriptions.keySet();
+    return faults;
   }
 
   private int search(int low, int high, Function<Integer, Boolean> incLow) {
@@ -198,26 +236,43 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     Solver solver = formulaContext.getSolver();
     FormulaManagerView fmgr = solver.getFormulaManager();
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
+    SSAMap shift =
+        SSAMap.merge(
+            errorTrace.getSsaMap(i),
+            errorTrace.getSsaMap(0),
+            MapsDifference.collectMapsDifferenceTo(new ArrayList<>()));
     int n = errorTrace.traceSize();
+    // uninstatiate formulas
+    /*BooleanFormula plainPostCondition = fmgr.uninstantiate(errorTrace.getPostCondition());
+    BooleanFormula shiftedPostCond = errorTrace.getPostCondition();fmgr.instantiate(plainPostCondition, errorTrace.getSsaMap(n - i));*/
 
-    BooleanFormula plainPostCondition = fmgr.uninstantiate(errorTrace.getPostCondition());
     BooleanFormula plainInterpolant = fmgr.uninstantiate(interpolant);
-
-    BooleanFormula interpolant_i = fmgr.instantiate(plainInterpolant, errorTrace.getSsaMap(i));
-    BooleanFormula postCondition_i =
-        fmgr.instantiate(plainPostCondition, errorTrace.getSsaMap(n - i));
+    BooleanFormula shiftedInterpolant = fmgr.instantiate(plainInterpolant, shift);
 
     BooleanFormula firstFormula =
         bmgr.implication(
-            bmgr.and(errorTrace.getPreCondition(), errorTrace.slice(i)), interpolant_i);
+            bmgr.and(errorTrace.getPreCondition(), errorTrace.slice(i)), shiftedInterpolant);
     BooleanFormula secondFormula =
         bmgr.implication(
-            bmgr.and(interpolant, errorTrace.slice(i, n), postCondition_i), bmgr.makeFalse());
+            bmgr.and(interpolant, errorTrace.slice(i, n), errorTrace.getPostCondition()), bmgr.makeFalse());
+
     try {
-      return solver.isUnsat(bmgr.not(firstFormula)) && solver.isUnsat(bmgr.not(secondFormula));
+      //For second formula one should use isUnsat( bmgr.and(interpolant, errorTrace.slice(i, n), shiftedPostCond)) instead
+      return isValid(firstFormula) && isValid(secondFormula);
     } catch (SolverException | InterruptedException pE) {
       throw new AssertionError("first and second formula have to be solvable for the solver");
     }
+  }
+
+  /**
+   * Calculates if a formula is a tautology.
+   * A formula is a tautology if the negation is unsatisfiable.
+   * @param formula check if formula is a tautology
+   * @return true if formula is a tautology, false else
+   */
+  private boolean isValid(BooleanFormula formula) throws SolverException, InterruptedException {
+    BooleanFormulaManager bmgr = formulaContext.getSolver().getFormulaManager().getBooleanFormulaManager();
+    return formulaContext.getSolver().isUnsat(bmgr.not(formula));
   }
 
   @Override
@@ -233,29 +288,39 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     return "Error invariants algorithm";
   }
 
-  private static class InterpolantToSelector {
-    private Selector selector;
-    private BooleanFormula invariant;
-
-    public InterpolantToSelector(BooleanFormula pInvariant, Selector pSelector) {
-      selector = pSelector;
-      invariant = pInvariant;
-    }
-  }
-
-  private static class Interval implements Comparable<Interval> {
+  /**
+   * Stores the interpolant for a selector and its scope
+   */
+  private static class Interval implements Comparable<Interval>, AbstractTraceElement {
 
     private int start;
     private int end;
     private BooleanFormula invariant;
-    private Selector selector;
 
     public Interval(
-        int pStart, int pEnd, BooleanFormula pInvariant, Selector pSelector) {
+        int pStart, int pEnd, BooleanFormula pInvariant) {
       start = pStart;
       end = pEnd;
       invariant = pInvariant;
-      selector = pSelector;
+    }
+
+    @Override
+    public String toString() {
+      return "Interval [" + start + ";" + end + "]: " + invariant;
+    }
+
+    @Override
+    public boolean equals(Object q){
+      if(q instanceof Interval){
+        Interval compare = (Interval)q;
+        return compare.start == start && compare.end == end && invariant.equals(compare.invariant);
+      }
+      return false;
+    }
+
+    @Override
+    public int hashCode(){
+      return Objects.hash(invariant, start, end);
     }
 
     //Enables usage of PriorityQueue
