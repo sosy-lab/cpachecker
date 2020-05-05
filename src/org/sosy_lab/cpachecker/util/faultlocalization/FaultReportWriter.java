@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -23,22 +24,20 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
  */
 public class FaultReportWriter {
 
-  private Set<InfoType> bannedTypes;
+  private Set<InfoType> hideTypes;
 
   public FaultReportWriter() {
-    bannedTypes = new HashSet<>();
+    hideTypes = new HashSet<>();
   }
 
-  public FaultReportWriter(InfoType... pBannedTypes) {
-    bannedTypes = new HashSet<>();
-    banInfoTypes(pBannedTypes);
+  public FaultReportWriter(InfoType... pHideTypes) {
+    hideTypes = new HashSet<>();
+    hideTypes(pHideTypes);
   }
 
-  public void banInfoTypes(InfoType... types){
-    bannedTypes.clear();
-    for (InfoType type : types) {
-      bannedTypes.add(type);
-    }
+  public void hideTypes(InfoType... types){
+    hideTypes.clear();
+    hideTypes.addAll(Arrays.asList(types));
   }
 
   public String toHtml(FaultInfo info) {
@@ -101,20 +100,20 @@ public class FaultReportWriter {
         + "</strong><br>";
     StringBuilder html = new StringBuilder();
 
-    if (!faultReasons.isEmpty() && !bannedTypes.contains(InfoType.REASON)) {
+    if (!faultReasons.isEmpty() && !hideTypes.contains(InfoType.REASON)) {
       html.append(printList("Detected <strong>" +
               faultReasons.size() + "</strong> possible reason" + (faultReasons.size() == 1? ":":"s:"), "",
           faultReasons, true))
           .append("<br>");
     }
 
-    if (!faultFix.isEmpty() && !bannedTypes.contains(InfoType.FIX)) {
+    if (!faultFix.isEmpty() && !hideTypes.contains(InfoType.FIX)) {
       html.append(printList("Found <strong>" + faultFix.size() + "</strong> possible bug-fix" + (faultFix.size() == 1?":":"es:"), "fix-list",
           faultFix, false))
           .append("<br>");
     }
 
-    if (!faultHint.isEmpty() && !bannedTypes.contains(InfoType.HINT)) {
+    if (!faultHint.isEmpty() && !hideTypes.contains(InfoType.HINT)) {
       String headline = faultHint.size() == 1? "hint is available:" : "hints are available:";
       html.append(
           printList(
@@ -125,7 +124,7 @@ public class FaultReportWriter {
           .append("<br>");
     }
 
-    if (!faultInfo.isEmpty()  && !bannedTypes.contains(InfoType.RANK_INFO)) {
+    if (!faultInfo.isEmpty()  && !hideTypes.contains(InfoType.RANK_INFO)) {
       html.append(printList("The score is obtained by:", "", faultInfo, true))
           .append("<br>");
     }
