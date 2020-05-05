@@ -57,8 +57,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    * The class should be used to display information to the user.
    *
    * Note that there is no need to create multiple instances of this object if more than one
-   * heuristic should be applied. FaultRankingUtils provides a method that creates a new
-   * heuristic out of multiple heuristics.
+   * ranking should be applied. FaultRankingUtils provides a method that concatenates multiple rankings.
    *
    * To see the result of FaultLocalizationInfo replace the CounterexampleInfo of the target state by this
    * or simply call apply() on an instance of this class.
@@ -86,8 +85,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    * The class should be used to display information to the user.
    *
    * Note that there is no need to create multiple instances of this object if more than one
-   * heuristic should be applied. FaultRankingUtils provides a method that creates a new
-   * heuristic out of multiple heuristics.
+   * ranking should be applied. FaultRankingUtils provides a method that concatenates multiple rankings.
    *
    * To see the result of FaultLocalizationInfo replace the CounterexampleInfo of the target state by this
    * or simply call apply() on an instance of this class.
@@ -206,6 +204,9 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         .collect(Collectors.toList());
   }
 
+  public FaultReportWriter getHtmlWriter() {
+    return htmlWriter;
+  }
 
   public void replaceHtmlWriter(FaultReportWriter pFaultToHtml){
     htmlWriter = pFaultToHtml;

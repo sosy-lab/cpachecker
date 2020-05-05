@@ -45,9 +45,10 @@ public class FaultContribution {
   /**
    * The calculation of the score of FaultContribution is not implemented.
    * The score is used to rank FaultContributions.
-   * The recommended way is to calculate the score based on the likelihood of the appended reasons instead of setting it to an value manually.
+   * The recommended way is to calculate the score based on the likelihood of the appended RankInfos instead of setting it to an value manually.
    * The score will be printed to the user as an indicator of how likely this edge is to fix the error when changed.
-   * However, there exists an example method for calculating the score. For more details see the documentation of setScore() below.
+   * However, there exists an example method for calculating the score. For more details see FaultRankingUtils.
+   * @see FaultRankingUtils#assignScoreTo(FaultContribution)
    */
   private double score;
 
