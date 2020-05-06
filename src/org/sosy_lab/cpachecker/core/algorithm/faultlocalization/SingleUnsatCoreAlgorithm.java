@@ -81,7 +81,7 @@ public class SingleUnsatCoreAlgorithm implements FaultLocalizationAlgorithmInter
     List<Selector> unsatCore =
         solver.unsatCore(toVerify).stream()
             .filter(l -> Selector.of(l).isPresent())
-            .map(l -> Selector.of(l).get())
+            .map(l -> Selector.of(l).orElseThrow())
             .collect(Collectors.toList());
 
     totalTime.stop();

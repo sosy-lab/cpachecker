@@ -30,9 +30,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.MapsDifference;
@@ -124,7 +124,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     totalTime.start();
 
     List<BooleanFormula> interpolants = getInterpolants();
-    PriorityQueue<Interval> sortedIntervals = new PriorityQueue<>();
+    Set<Interval> allIntervals = new HashSet<>();
     for (int i = 0; i < interpolants.size(); i++) {
       // TODO actualForm can evaluate to false (c.f. SingleUnsatCore)
       BooleanFormula interpolant = interpolants.get(i);
@@ -133,14 +133,14 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
               search(0, i, x -> !isErrInv(interpolant, x)),
               search(i, tf.traceSize(), x -> isErrInv(interpolant, x)) - 1,
               interpolant);
-      sortedIntervals.add(current);
+      allIntervals.add(current);
     }
 
-    Interval maxInterval = sortedIntervals.peek();
+    List<Interval> sortedIntervals = allIntervals.stream().sorted().collect(Collectors.toList());
+    Interval maxInterval = sortedIntervals.get(0);
     int prevEnd = 0;
     List<AbstractTraceElement> abstractTrace = new ArrayList<>();
-    while (!sortedIntervals.isEmpty()) {
-      Interval currInterval = sortedIntervals.poll();
+    for(Interval currInterval: sortedIntervals) {
       if (currInterval.start > prevEnd) {
         abstractTrace.add(maxInterval);
         if (maxInterval.end < tf.traceSize()) {
@@ -201,17 +201,17 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
           lastCreatedFault.addInfo(FaultInfo.hint("From now on " + description + " holds."));
         }
       }
-      // if there is only one interpolant the algorithm failed to abstract the error trace
-      // we can only say that the post-condition holds in every location (no gain of information)
-      if (abstractTrace.size() == 1) {
-        if(abstractTrace.get(0) instanceof Interval){
-          BooleanFormulaManager bmgr = formulaContext.getSolver().getFormulaManager().getBooleanFormulaManager();
-          CFAEdge lastEdge = errorTrace.getEdges().get(errorTrace.getEdges().size()-1);
-          Fault f = new Fault(Selector.makeSelector(formulaContext, bmgr.makeTrue(), lastEdge));
-          f.addInfo(FaultInfo.justify("The whole program can be described by: " + description));
-          f.addInfo(FaultInfo.hint("NOTE: The algorithm did not find a suitable abstraction."));
-          faults.add(f);
-        }
+    }
+    // if there is only one interpolant the algorithm failed to abstract the error trace
+    // we can only say that the post-condition holds in every location (no gain of information)
+    if (abstractTrace.size() == 1) {
+      if(abstractTrace.get(0) instanceof Interval){
+        BooleanFormulaManager bmgr = formulaContext.getSolver().getFormulaManager().getBooleanFormulaManager();
+        CFAEdge lastEdge = errorTrace.getEdges().get(errorTrace.getEdges().size()-1);
+        Fault f = new Fault(Selector.makeSelector(formulaContext, bmgr.makeTrue(), lastEdge));
+        f.addInfo(FaultInfo.justify("The whole program can be described by: " + description));
+        f.addInfo(FaultInfo.hint("NOTE: The algorithm did not find a suitable abstraction."));
+        faults.add(f);
       }
     }
 
@@ -236,16 +236,14 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     Solver solver = formulaContext.getSolver();
     FormulaManagerView fmgr = solver.getFormulaManager();
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
+    int n = errorTrace.traceSize();
+
+    // shift the interpolant to the correct time stamp
     SSAMap shift =
         SSAMap.merge(
             errorTrace.getSsaMap(i),
             errorTrace.getSsaMap(0),
             MapsDifference.collectMapsDifferenceTo(new ArrayList<>()));
-    int n = errorTrace.traceSize();
-    // uninstatiate formulas
-    /*BooleanFormula plainPostCondition = fmgr.uninstantiate(errorTrace.getPostCondition());
-    BooleanFormula shiftedPostCond = errorTrace.getPostCondition();fmgr.instantiate(plainPostCondition, errorTrace.getSsaMap(n - i));*/
-
     BooleanFormula plainInterpolant = fmgr.uninstantiate(interpolant);
     BooleanFormula shiftedInterpolant = fmgr.instantiate(plainInterpolant, shift);
 
@@ -254,7 +252,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
             bmgr.and(errorTrace.getPreCondition(), errorTrace.slice(i)), shiftedInterpolant);
     BooleanFormula secondFormula =
         bmgr.implication(
-            bmgr.and(interpolant, errorTrace.slice(i, n), errorTrace.getPostCondition()), bmgr.makeFalse());
+            bmgr.and(shiftedInterpolant, errorTrace.slice(i, n), errorTrace.getPostCondition()), bmgr.makeFalse());
 
     try {
       //For second formula one should use isUnsat( bmgr.and(interpolant, errorTrace.slice(i, n), shiftedPostCond)) instead
@@ -323,7 +321,6 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
       return Objects.hash(invariant, start, end);
     }
 
-    //Enables usage of PriorityQueue
     @Override
     public int compareTo(Interval pInterval) {
       return Integer.compare(start, pInterval.start);

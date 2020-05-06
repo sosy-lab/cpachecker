@@ -133,7 +133,7 @@ public class Selector extends FaultContribution implements AbstractTraceElement 
   @Override
   public boolean equals(Object q) {
     if (q instanceof Selector) {
-      return name.equals(((Selector) q).getName());
+      return name.equals(((Selector) q).getName()) && super.equals(q);
     }
     return false;
   }
@@ -142,4 +142,5 @@ public class Selector extends FaultContribution implements AbstractTraceElement 
   public int hashCode() {
     return name.hashCode();
   }
+
 }

@@ -84,14 +84,17 @@ public class ExpressionConverter {
       operator = convertOperator(operator);
       String[] operands = objects[1].split(" ", 2);
 
-      if (operands.length < 1 || operands.length > 2) {
-        throw new IllegalArgumentException("Only unary and binary operations are allowed.");
-      }
-
       if (expressions.containsKey(operands[0])) {
         process.addFirst(operands[0]);
       }
-      if (operands.length == 2) {
+
+      if (operands.length == 1) {
+        if (expressions.getOrDefault(operands[0], "").contains(" ")) {
+          input = input.replaceFirst(expr, operator + " (" + operands[0] + ")");
+        } else {
+          input = input.replaceFirst(expr, operator + " " + operands[0]);
+        }
+      } else if (operands.length == 2) {
         if (expressions.containsKey(operands[1])) {
           process.addFirst(operands[1]);
         }
@@ -103,11 +106,7 @@ public class ExpressionConverter {
                   expr, "(" + operands[0] + " " + operator + " " + operands[1] + ")");
         }
       } else {
-        if (expressions.getOrDefault(operands[0], "").contains(" ")) {
-          input = input.replaceFirst(expr, operator + " (" + operands[0] + ")");
-        } else {
-          input = input.replaceFirst(expr, operator + " " + operands[0]);
-        }
+        throw new AssertionError("Only unary and binary operations are allowed.");
       }
     }
     return input;

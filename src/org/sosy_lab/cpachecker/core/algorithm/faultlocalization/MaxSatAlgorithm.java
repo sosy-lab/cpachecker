@@ -86,7 +86,7 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface, Sta
         numberSelectors = soft.size();
       } else {
         //Otherwise the whole set would always be in the result set.
-        if(minUnsatCore.size() == numberSelectors && singletons.size() == 0 && !hard.isEmpty()){
+        if(minUnsatCore.size() == numberSelectors && singletons.isEmpty() && !hard.isEmpty()){
           break;
         }
         hard.add(minUnsatCore);

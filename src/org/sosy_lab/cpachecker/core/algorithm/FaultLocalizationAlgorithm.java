@@ -31,7 +31,10 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -70,6 +73,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.InfoType;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.HintRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.MinimalLineDistanceRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.OverallOccurrenceRanking;
@@ -97,6 +101,10 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
   @Option(secure=true, name="type", toUppercase=true, values={"UNSAT", "MAXSAT", "ERRINV"},
       description="which algorithm to use")
   private String algorithmType = "UNSAT";
+
+  @Option(secure=true, name="maintainhierarchy",
+      description="sort by call order")
+  private boolean maintainCallHierarchy = false;
 
   public FaultLocalizationAlgorithm(
       final Algorithm pStoreAlgorithm,
@@ -180,7 +188,7 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
 
     // Run the algorithm and create a CFAPathWithAssumptions to the last reached state.
     CFAPathWithAssumptions assumptions = pInfo.getCFAPathWithAssignments();
-    if (assumptions.size() == 0) {
+    if (assumptions.isEmpty()) {
       logger.log(Level.INFO, "The analysis returned no assumptions.");
       logger.log(Level.INFO, "No bugs found.");
       return;
@@ -189,12 +197,16 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
     try {
       // Collect all edges that do not evaluate to true
       List<CFAEdge> edgeList = new ArrayList<>();
+      Map<CFAEdge, Integer> mapEdgeToIndex = new HashMap<>();
+      int i = 0;
       for (CFAEdgeWithAssumptions assumption : assumptions) {
         if (!bmgr.isTrue(
             manager
                 .makeFormulaForPath(Collections.singletonList(assumption.getCFAEdge()))
                 .getFormula())) {
           edgeList.add(assumption.getCFAEdge());
+          mapEdgeToIndex.put(assumption.getCFAEdge(), i);
+          i++;
         }
       }
 
@@ -243,19 +255,27 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
         }
       }
 
-      FaultLocalizationInfo info = new FaultLocalizationInfo(errorIndicators, ranking, pInfo);
+      FaultLocalizationInfo info;
+      if (maintainCallHierarchy && algorithmType.equals("ERRINV")) {
+        List<Fault> faults = ranking.rank(errorIndicators);
+        faults.forEach(FaultRankingUtils::assignScoreTo);
+        faults.sort(Comparator.comparingInt(f -> mapEdgeToIndex.get(f.iterator().next().correspondingEdge())));
+        info = new FaultLocalizationInfo(faults, pInfo);
+      } else {
+        info = new FaultLocalizationInfo(errorIndicators, ranking, pInfo);
+      }
+      info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
       info.apply();
       logger.log(
           Level.INFO,
           "Running " + pAlgorithm.getClass().getSimpleName() + ":\n" + info.toString());
 
     } catch (SolverException sE) {
-      logger.log(Level.SEVERE, "SolverException: " + sE.getMessage());
       logger.log(Level.INFO, "The solver was not able to find the UNSAT-core of the path formula.");
     } catch (VerifyException vE) {
       logger.log(Level.INFO, "No bugs found because the trace formula is satisfiable or the counterexample is spurious.");
     } catch (InvalidConfigurationException iE) {
-      logger.log(Level.INFO, "Incomplete analysis because of invalid configuration");
+      logger.log(Level.INFO, "Incomplete analysis because of invalid configuration.");
     } catch (IllegalStateException iE) {
       logger.log(
           Level.INFO, "The counterexample is spurious. Calculating interpolants is not possible.");

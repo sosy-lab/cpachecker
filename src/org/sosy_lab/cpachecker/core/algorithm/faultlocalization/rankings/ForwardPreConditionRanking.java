@@ -78,7 +78,7 @@ public class ForwardPreConditionRanking implements FaultRanking {
       if(operands.size() != 2){
         return rankedList;
       }
-      if (operands.get(0).contains("__VERIFIER_nondet_")){
+      if (operands.get(0).contains("__VERIFIER_nondet_") || (operands.get(0).contains("::") && operands.get(0).contains("@"))){
         mapFormulaToValue.put(operands.get(0), operands.get(1));
       } else {
         mapFormulaToValue.put(operands.get(1), operands.get(0));

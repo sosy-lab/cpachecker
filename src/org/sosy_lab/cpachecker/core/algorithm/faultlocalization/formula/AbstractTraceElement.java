@@ -34,4 +34,5 @@ public interface AbstractTraceElement {
 
   @Override
   boolean equals(Object q);
+
 }

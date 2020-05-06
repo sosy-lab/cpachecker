@@ -23,12 +23,14 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.common.collect.MapsDifference;
@@ -204,7 +206,7 @@ public class TraceFormula {
     // No isPresent-check needed, because the Selector always exists (see the construction process above).
     BooleanFormula implicationFormula =
         entries.atoms.stream()
-            .map(a -> bmgr.implication(Selector.of(a).get().getFormula(), a))
+            .map(a -> bmgr.implication(Selector.of(a).orElseThrow().getFormula(), a))
             .collect(bmgr.toConjunction());
     actualForm = bmgr.and(bmgr.and(entries.atoms), postcondition);
     implicationForm = bmgr.and(implicationFormula, postcondition);
@@ -221,9 +223,7 @@ public class TraceFormula {
       }
     }
 
-    if (errorStartingLine == -1) {
-      throw new AssertionError("No error condition found");
-    }
+    Preconditions.checkState(errorStartingLine != -1, "No error condition found");
 
     PathFormula current = manager.makeEmptyPathFormula();
     for (CFAEdge e : edges) {
@@ -247,7 +247,7 @@ public class TraceFormula {
     }
 
     // enable banned selectors
-    if (!options.ban.equals("")) {
+    if (!options.ban.isEmpty()) {
       List<String> banned = Splitter.on(",").splitToList(options.ban);
       for (int i = 0; i < entries.size(); i++) {
         String formulaString = entries.atoms.get(i).toString();
@@ -347,7 +347,7 @@ public class TraceFormula {
       variableToIndexMap = new HashMap<>();
       preCondition = new ArrayList<>();
       preConditionMap = SSAMap.emptySSAMap();
-      if(options.ignore.equals("")){
+      if(options.ignore.isEmpty()){
         ignore = ImmutableList.of();
       } else {
         ignore = Splitter.on(",").splitToList(options.ignore);
@@ -394,11 +394,11 @@ public class TraceFormula {
       }
       for (String s : ignore) {
         if(s.contains("::")){
-          if(formula.toString().contains(s)) {
+          if(formula.toString().contains(s + "@")) {
             return false;
           }
         } else {
-          if(formula.toString().contains("::" + s)) {
+          if(formula.toString().contains("::" + s + "@")) {
             return false;
           }
         }
@@ -413,9 +413,9 @@ public class TraceFormula {
         Formula uninstantiated = context.getSolver().getFormulaManager().uninstantiate(variables.get(s));
         index.put(uninstantiated, currentMap.getIndex(uninstantiated.toString()));
       }
-      for (Formula f : index.keySet()) {
-        if (!variableToIndexMap.containsKey(f)) {
-          variableToIndexMap.put(f, index.get(f));
+      for (Entry<Formula, Integer> entry: index.entrySet()) {
+        if (!variableToIndexMap.containsKey(entry.getKey())) {
+          variableToIndexMap.put(entry.getKey(), entry.getValue());
         } else {
           return false;
         }
