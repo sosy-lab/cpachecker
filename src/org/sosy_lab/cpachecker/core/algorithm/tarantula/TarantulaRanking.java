@@ -31,17 +31,16 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.FailedCase;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.SafeCase;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.TarantulaCasesStatus;
-import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 
 public class TarantulaRanking {
   private final SafeCase safeCase;
   private final FailedCase failedCase;
   private final CoverageInformation coverageInformation;
 
-  public TarantulaRanking(ReachedSet pPReachedSet) {
-    safeCase = new SafeCase(pPReachedSet);
-    failedCase = new FailedCase(pPReachedSet);
-    coverageInformation = new CoverageInformation(failedCase);
+  public TarantulaRanking(SafeCase pSafeCase, FailedCase pFailedCase) {
+    this.safeCase = pSafeCase;
+    this.failedCase = pFailedCase;
+    this.coverageInformation = new CoverageInformation(pFailedCase);
   }
 
   /**
