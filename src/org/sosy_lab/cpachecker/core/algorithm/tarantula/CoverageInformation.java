@@ -27,6 +27,7 @@ import com.google.common.collect.Sets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.FailedCase;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.TarantulaCasesStatus;
@@ -34,9 +35,11 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
 public class CoverageInformation {
   FailedCase failedCase;
+  private final ShutdownNotifier shutdownNotifier;
 
-  public CoverageInformation(FailedCase pFailedCase) {
+  public CoverageInformation(FailedCase pFailedCase, ShutdownNotifier pShutdownNotifier) {
     this.failedCase = pFailedCase;
+    this.shutdownNotifier = pShutdownNotifier;
   }
 
   /**
@@ -47,14 +50,16 @@ public class CoverageInformation {
    * @param  paths The whole path contains all error paths and passed paths.
    * @return result as <code>Map<code/>.
    */
-  private Map<CFAEdge, TarantulaCasesStatus> coverageInformation(Set<ARGPath> paths) {
-
+  private Map<CFAEdge, TarantulaCasesStatus> coverageInformation(Set<ARGPath> paths)
+      throws InterruptedException {
     Map<CFAEdge, TarantulaCasesStatus> coverageInfo = new LinkedHashMap<>();
+
     for (ARGPath safePath : paths) {
-      for (CFAEdge safeEdge : safePath.getFullPath()) {
+      for (CFAEdge cfaEdge : safePath.getFullPath()) {
+        shutdownNotifier.shutdownIfNecessary();
         TarantulaCasesStatus pair;
-        if (coverageInfo.containsKey(safeEdge)) {
-          pair = coverageInfo.get(safeEdge);
+        if (coverageInfo.containsKey(cfaEdge)) {
+          pair = coverageInfo.get(cfaEdge);
           if (failedCase.isFailedPath(safePath)) {
             pair = new TarantulaCasesStatus(pair.getFailedCases() + 1, pair.getPassedCases());
 
@@ -70,8 +75,8 @@ public class CoverageInformation {
           }
         }
         // Skipp the "none" line numbers.
-        if (safeEdge.getLineNumber() != 0) {
-          coverageInfo.put(safeEdge, pair);
+        if (cfaEdge.getLineNumber() != 0) {
+          coverageInfo.put(cfaEdge, pair);
         }
       }
     }
@@ -84,7 +89,7 @@ public class CoverageInformation {
    * @return Covered edges.
    */
   public Map<CFAEdge, TarantulaCasesStatus> getCoverageInformation(
-      Set<ARGPath> safePaths, Set<ARGPath> errorPaths) {
+      Set<ARGPath> safePaths, Set<ARGPath> errorPaths) throws InterruptedException {
 
     return coverageInformation(Sets.union(safePaths, errorPaths));
   }

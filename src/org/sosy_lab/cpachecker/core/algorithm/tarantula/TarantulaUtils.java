@@ -48,7 +48,6 @@ public class TarantulaUtils {
    * @return States on the paths.
    */
   public static Set<ARGPath> getAllPaths(ReachedSet reachedSet, ARGState chosenState) {
-
     ARGState root = AbstractStates.extractStateByType(reachedSet.getFirstState(), ARGState.class);
     List<ARGState> states = new ArrayList<>();
     Set<ARGPath> results = new HashSet<>();
@@ -76,7 +75,6 @@ public class TarantulaUtils {
         paths.add(tmp);
       }
     }
-
     return results;
   }
 }

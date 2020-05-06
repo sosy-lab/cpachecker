@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tarantula;
 
-import com.google.common.collect.Sets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.FailedCase;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.SafeCase;
@@ -36,11 +36,14 @@ public class TarantulaRanking {
   private final SafeCase safeCase;
   private final FailedCase failedCase;
   private final CoverageInformation coverageInformation;
+  private final ShutdownNotifier shutdownNotifier;
 
-  public TarantulaRanking(SafeCase pSafeCase, FailedCase pFailedCase) {
+  public TarantulaRanking(
+      SafeCase pSafeCase, FailedCase pFailedCase, ShutdownNotifier pShutdownNotifier) {
     this.safeCase = pSafeCase;
     this.failedCase = pFailedCase;
-    this.coverageInformation = new CoverageInformation(pFailedCase);
+    this.shutdownNotifier = pShutdownNotifier;
+    this.coverageInformation = new CoverageInformation(pFailedCase, pShutdownNotifier);
   }
 
   /**
@@ -49,8 +52,7 @@ public class TarantulaRanking {
    * @return how many failed cases are found.
    */
   private int totalFailed() {
-
-    return failedCase.totalFailed();
+    return failedCase.getFailedPaths().size();
   }
   /**
    * Calculates how many total passed cases are in ARG.
@@ -58,8 +60,7 @@ public class TarantulaRanking {
    * @return how many passed cases are found.
    */
   private int totalPassed() {
-    int total = Sets.union(safeCase.getSafePaths(), failedCase.getFailedPaths()).size();
-    return total - totalFailed();
+    return safeCase.getSafePaths().size();
   }
   /**
    * Calculates suspicious of tarantula algorithm.
@@ -77,27 +78,32 @@ public class TarantulaRanking {
     return numerator / denominator;
   }
 
-  public Map<CFAEdge, Double> getRanked() {
+  public Map<CFAEdge, Double> getRanked() throws InterruptedException {
+    shutdownNotifier.shutdownIfNecessary();
 
-    Map<CFAEdge, TarantulaCasesStatus> table =
-        coverageInformation.getCoverageInformation(
+    Map<CFAEdge, TarantulaCasesStatus> coverage =
+        this.coverageInformation.getCoverageInformation(
             safeCase.getSafePaths(), failedCase.getFailedPaths());
 
     Map<CFAEdge, Double> resultMap = new LinkedHashMap<>();
-    table.forEach(
-        (key, value) ->
-            resultMap.put(key, computeSuspicious(value.getFailedCases(), value.getPassedCases())));
+    coverage.forEach(
+        (pCFAEdge, pTarantulaCasesStatus) -> {
+          resultMap.put(
+              pCFAEdge,
+              computeSuspicious(
+                  pTarantulaCasesStatus.getFailedCases(), pTarantulaCasesStatus.getPassedCases()));
+        });
 
     // Sort the result by its value and ignore the suspicious with 0.0 ration.
-    final Map<CFAEdge, Double> sortedByCount =
+    final Map<CFAEdge, Double> result =
         resultMap.entrySet().stream()
             .filter(e -> e.getValue() != 0)
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-    return sortByValue(sortedByCount);
+    return sortBySuspicious(result);
   }
 
-  private Map<CFAEdge, Double> sortByValue(final Map<CFAEdge, Double> wordCounts) {
+  private Map<CFAEdge, Double> sortBySuspicious(final Map<CFAEdge, Double> wordCounts) {
 
     return wordCounts.entrySet().stream()
         .sorted(Map.Entry.<CFAEdge, Double>comparingByValue().reversed())

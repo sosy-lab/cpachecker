@@ -96,13 +96,4 @@ public class FailedCase {
 
     return false;
   }
-  /**
-   * Calculates how many total failed cases are in ARG.
-   *
-   * @return how many failed cases are found.
-   */
-  public int totalFailed() {
-
-    return getCounterExamples().size();
-  }
 }
