@@ -26,22 +26,22 @@ package org.sosy_lab.cpachecker.core.algorithm.tarantula;
 import com.google.common.collect.Sets;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.FailedCase;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.SafeCase;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.TarantulaCasesStatus;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
 public class TarantulaRanking {
   private final SafeCase safeCase;
   private final FailedCase failedCase;
+  private final CoverageInformation coverageInformation;
 
   public TarantulaRanking(ReachedSet pPReachedSet) {
     safeCase = new SafeCase(pPReachedSet);
     failedCase = new FailedCase(pPReachedSet);
+    coverageInformation = new CoverageInformation(failedCase);
   }
 
   /**
@@ -77,59 +77,12 @@ public class TarantulaRanking {
     }
     return numerator / denominator;
   }
-  /**
-   * Counts how many failed case / passed case has each Edges. For example <code>
-   * line 5: N2 -{[cond == 0]},[2,1]</code> means that this specific Edges has `2` failed cases and
-   * only one passed case.
-   *
-   * @param  paths The whole path contains all error paths and passed paths.
-   * @return result as <code>Map<code/>.
-   */
-  private Map<CFAEdge, TarantulaCasesStatus> coverageInformation(Set<ARGPath> paths) {
-
-    Map<CFAEdge, TarantulaCasesStatus> map = new LinkedHashMap<>();
-    for (ARGPath individualArray : paths) {
-      for (int j = 0; j < individualArray.getFullPath().size(); j++) {
-        TarantulaCasesStatus pair;
-        if (map.containsKey(individualArray.getFullPath().get(j))) {
-          pair = map.get(individualArray.getFullPath().get(j));
-          if (failedCase.isFailedPath(individualArray)) {
-            pair = new TarantulaCasesStatus(pair.getFailedCases() + 1, pair.getPassedCases());
-
-          } else {
-            pair = new TarantulaCasesStatus(pair.getFailedCases(), pair.getPassedCases() + 1);
-          }
-
-        } else {
-          if (failedCase.isFailedPath(individualArray)) {
-            pair = new TarantulaCasesStatus(1, 0);
-          } else {
-            pair = new TarantulaCasesStatus(0, 1);
-          }
-        }
-        // Skipp the "none" line numbers.
-        if (individualArray.getFullPath().get(j).getLineNumber() != 0) {
-          map.put(individualArray.getFullPath().get(j), pair);
-        }
-      }
-    }
-    return map;
-  }
-  /**
-   * Gets the <code> HashMap<CFAEdge, int[]> </code>.
-   *
-   * @return Covered edges.
-   */
-  public Map<CFAEdge, TarantulaCasesStatus> getTable(
-      Set<ARGPath> safePaths, Set<ARGPath> errorPaths) {
-
-    return coverageInformation(Sets.union(safePaths, errorPaths));
-  }
 
   public Map<CFAEdge, Double> getRanked() {
 
     Map<CFAEdge, TarantulaCasesStatus> table =
-        getTable(safeCase.getSafePaths(), failedCase.getFailedPaths());
+        coverageInformation.getCoverageInformation(
+            safeCase.getSafePaths(), failedCase.getFailedPaths());
 
     Map<CFAEdge, Double> resultMap = new LinkedHashMap<>();
     table.forEach(
