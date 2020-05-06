@@ -45,16 +45,16 @@ public class TarantulaAlgorithm implements Algorithm {
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
 
     AlgorithmStatus result = analysis.run(reachedSet);
-    FailedCase errorCase = new FailedCase(reachedSet);
     SafeCase safeCase = new SafeCase(reachedSet);
-    if (errorCase.existsErrorPath()) {
+    FailedCase failedCase = new FailedCase(reachedSet);
+    if (failedCase.existsErrorPath()) {
       if (!safeCase.existsSafePath()) {
 
         logger.log(
             Level.WARNING, "There is no safe Path, the algorithm is therefore not efficient");
       }
       logger.log(Level.INFO, "Start tarantula algorithm ... ");
-      printResult(System.out, reachedSet);
+      printResult(System.out, safeCase, failedCase);
     } else {
       logger.log(Level.INFO, "No bugs found.");
     }
@@ -66,9 +66,9 @@ public class TarantulaAlgorithm implements Algorithm {
    * Just prints result after calculating suspicious and make the ranking for all edges and then
    * store the result into <code>Map</code>.
    */
-  public void printResult(PrintStream out, ReachedSet reachedSet) {
+  public void printResult(PrintStream out, SafeCase safeCase, FailedCase failedCase) {
 
-    TarantulaRanking ranking = new TarantulaRanking(reachedSet);
+    TarantulaRanking ranking = new TarantulaRanking(safeCase, failedCase);
     ranking.getRanked().forEach((k, v) -> out.println(k + "--->" + v));
   }
 }
