@@ -29,7 +29,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaUtils;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -84,10 +83,8 @@ public class SafeCase {
    * @return Returns <code>true</code> if the path exists otherwise returns <code>false</code>
    */
   public boolean existsSafePath() {
-    for (AbstractState state : pReachedSet) {
-      if (getSafeStates().contains(state)) {
-        return true;
-      }
+    if (!getSafeStates().isEmpty()) {
+      return true;
     }
 
     return false;

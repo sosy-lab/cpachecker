@@ -54,13 +54,13 @@ public class CoverageInformation {
       throws InterruptedException {
     Map<CFAEdge, TarantulaCasesStatus> coverageInfo = new LinkedHashMap<>();
 
-    for (ARGPath safePath : paths) {
-      for (CFAEdge cfaEdge : safePath.getFullPath()) {
+    for (ARGPath path : paths) {
+      for (CFAEdge cfaEdge : path.getFullPath()) {
         shutdownNotifier.shutdownIfNecessary();
         TarantulaCasesStatus pair;
         if (coverageInfo.containsKey(cfaEdge)) {
           pair = coverageInfo.get(cfaEdge);
-          if (failedCase.isFailedPath(safePath)) {
+          if (failedCase.isFailedPath(path)) {
             pair = new TarantulaCasesStatus(pair.getFailedCases() + 1, pair.getPassedCases());
 
           } else {
@@ -68,7 +68,7 @@ public class CoverageInformation {
           }
 
         } else {
-          if (failedCase.isFailedPath(safePath)) {
+          if (failedCase.isFailedPath(path)) {
             pair = new TarantulaCasesStatus(1, 0);
           } else {
             pair = new TarantulaCasesStatus(0, 1);
