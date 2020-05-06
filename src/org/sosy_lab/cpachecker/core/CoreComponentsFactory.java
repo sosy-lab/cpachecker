@@ -111,10 +111,7 @@ public class CoreComponentsFactory {
       description = "stop CPAchecker after startup (internal option, not intended for users)")
   private boolean disableAnalysis = false;
 
-  @Option(
-      secure = true,
-      name = "algorithm.tarantula",
-      description = "use tarantula")
+  @Option(secure = true, name = "algorithm.tarantula", description = "use tarantula")
   private boolean useTarantula = false;
 
   @Option(secure=true, description="use assumption collecting algorithm")
@@ -529,8 +526,8 @@ public class CoreComponentsFactory {
             new ResultCheckAlgorithm(
                 algorithm, cpa, cfa, config, logger, shutdownNotifier, specification);
       }
-      if(useTarantula){
-        algorithm = new TarantulaAlgorithm(algorithm,logger);
+      if (useTarantula) {
+        algorithm = new TarantulaAlgorithm(algorithm, shutdownNotifier, logger);
       }
       if (useCustomInstructionRequirementExtraction) {
         algorithm = new CustomInstructionRequirementsExtractingAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa);
