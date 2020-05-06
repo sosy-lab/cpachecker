@@ -64,7 +64,9 @@ public class ForwardPreConditionRanking implements FaultRanking {
 
     BooleanFormulaManager bmgr = context.getSolver().getFormulaManager().getBooleanFormulaManager();
     Set<BooleanFormula> preconditions = bmgr.toConjunctionArgs(traceFormula.getPreCondition(), true);
+
     Map<String, String> mapFormulaToValue = new HashMap<>();
+    List<String> assignments = new ArrayList<>();
 
     for (BooleanFormula precondition : preconditions) {
       String formulaString = precondition.toString();
@@ -79,29 +81,36 @@ public class ForwardPreConditionRanking implements FaultRanking {
         return rankedList;
       }
       if (operands.get(0).contains("__VERIFIER_nondet_") || (operands.get(0).contains("::") && operands.get(0).contains("@"))){
-        mapFormulaToValue.put(operands.get(0), operands.get(1));
+        if((operands.get(0).contains("::") && operands.get(0).contains("@"))){
+          assignments.add(Splitter.on("@").splitToList(operands.get(0)).get(0) + " = " + operands.get(1));
+        } else {
+          mapFormulaToValue.put(operands.get(0), operands.get(1));
+        }
       } else {
-        mapFormulaToValue.put(operands.get(1), operands.get(0));
+        if((operands.get(1).contains("::") && operands.get(1).contains("@"))){
+          assignments.add(Splitter.on("@").splitToList(operands.get(1)).get(0) + " = " + operands.get(0));
+        } else {
+          mapFormulaToValue.put(operands.get(1), operands.get(0));
+        }
       }
     }
 
-    List<String> assignments = new ArrayList<>();
-    String hint = "The program fails for the variable assignment ";
-    for (int i = 0 ; i < traceFormula.getAtoms().size(); i++) {
-      BooleanFormula atom = traceFormula.getAtom(i);
-      for(Entry<String, String> entry: mapFormulaToValue.entrySet()){
+    String hint = "The program fails for the initial variable assignment ";
+
+    for(Entry<String, String> entry: mapFormulaToValue.entrySet()){
+      for (int i = 0 ; i < traceFormula.getAtoms().size(); i++) {
+        BooleanFormula atom = traceFormula.getAtom(i);
         if(atom.toString().contains(entry.getKey())){
           atom = context.getSolver().getFormulaManager().uninstantiate(atom);
           String assignment = ExpressionConverter.convert(atom.toString().replaceAll(entry.getKey(), entry.getValue()));
-          traceFormula.getSelectors().get(i).addInfo(FaultInfo.hint(hint + assignment));
           assignments.add(assignment);
         }
       }
     }
 
-    String allAssignments = String.join(",", assignments);
-    for (Fault faultContributions : rankedList) {
-      faultContributions.addInfo(FaultInfo.hint(hint + allAssignments));
+    String allAssignments = String.join(", ", assignments);
+    for (Fault fault : rankedList) {
+      fault.addInfo(FaultInfo.hint(hint + allAssignments));
     }
 
     return rankedList;

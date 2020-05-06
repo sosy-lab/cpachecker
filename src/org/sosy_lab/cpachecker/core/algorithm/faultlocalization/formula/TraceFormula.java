@@ -409,8 +409,8 @@ public class TraceFormula {
         return false;
       }
       Map<Formula, Integer> index = new HashMap<>();
-      for (String s : variables.keySet()) {
-        Formula uninstantiated = context.getSolver().getFormulaManager().uninstantiate(variables.get(s));
+      for (Entry<String, Formula> entry : variables.entrySet()) {
+        Formula uninstantiated = context.getSolver().getFormulaManager().uninstantiate(entry.getValue());
         index.put(uninstantiated, currentMap.getIndex(uninstantiated.toString()));
       }
       for (Entry<Formula, Integer> entry: index.entrySet()) {

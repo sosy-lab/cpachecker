@@ -173,7 +173,6 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
 
     //Stores the last created fault (so we can add the next description)
     Fault lastCreatedFault = null;
-    double intervalSize = 0;
     Set<String> variablesToTrack = new HashSet<>();
     Set<Fault> faults = new HashSet<>();
     FormulaManagerView fmgr = formulaContext.getSolver().getFormulaManager();
@@ -183,7 +182,6 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
         Fault f = new Fault((Selector)errorInvariant);
         f.addInfo(FaultInfo.justify("The error is caused by the following assignments: " + description));
         f.addInfo(FaultInfo.hint("Track the variables: " + String.join(", ", variablesToTrack)));
-        f.addInfo(FaultInfo.rankInfo("Error-invariants interval size.", intervalSize/errorTrace.traceSize()));
         lastCreatedFault = f;
         faults.add(f);
       }
@@ -196,7 +194,6 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
         }
         description = ExpressionConverter.convert(fmgr.uninstantiate(interval.invariant));
         description = description.replaceAll("__VERIFIER_nondet_[a-zA-Z0-9]+!", "CPA_user_input_").replaceAll("@", "");
-        intervalSize = interval.end - interval.start + 1;
         if(lastCreatedFault != null){
           lastCreatedFault.addInfo(FaultInfo.hint("From now on " + description + " holds."));
         }

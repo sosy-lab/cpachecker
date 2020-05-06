@@ -59,6 +59,7 @@ import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFor
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.rankings.CallHierarchyRanking;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.rankings.EdgeTypeRanking;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.rankings.ForwardPreConditionRanking;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.rankings.InformationProvider;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -255,6 +256,7 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
         }
       }
 
+      InformationProvider.searchForAdditionalInformation(errorIndicators, edgeList);
       FaultLocalizationInfo info;
       if (maintainCallHierarchy && algorithmType.equals("ERRINV")) {
         List<Fault> faults = ranking.rank(errorIndicators);
