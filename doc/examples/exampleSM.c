@@ -5,6 +5,7 @@ int main(int y) {
  if (y== 1){
  x=1;
  }else{
+ x=1;
  z=1;
  }
  return 10/ (x-y);

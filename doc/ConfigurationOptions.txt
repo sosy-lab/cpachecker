@@ -1271,6 +1271,10 @@ cpa.chc.generalizationOperator = "Widen"
 cpa.chc.merge = "SEP"
   allowed values: [SEP, JOIN]
 
+# export collector as .dot file
+cpa.collector.export = true
+cpa.collector.file = "collector.dot"
+
 # By enabling this option the CompositeTransferRelation will compute abstract
 # successors for as many edges as possible in one call. For any chain of
 # edges in the CFA which does not have more than one outgoing or leaving edge

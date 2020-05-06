@@ -62,10 +62,8 @@ function slide(){
         document.getElementById("demo").innerHTML = curVal ;
         document.getElementById("myRange").value = curVal ;
 
+        shownode(curVal);
 
-        for(i=0;i<=(curVal);i++){
-            shownode(i);
-        }
         step=curVal;
     }
 }
