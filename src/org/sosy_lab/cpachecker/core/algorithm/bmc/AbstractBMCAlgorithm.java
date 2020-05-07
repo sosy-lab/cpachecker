@@ -390,7 +390,11 @@ abstract class AbstractBMCAlgorithm
         stats.bmcPreparation.stop();
         shutdownNotifier.shutdownIfNecessary();
 
-        if (cfa.getAllLoopHeads().orElseThrow().isEmpty()) {
+        if (from(reachedSet).filter(
+            e -> AbstractStates.extractStateByType(e, LocationState.class)
+                .getLocationNode()
+                .isLoopStart())
+            .size() == 0) {
           logger.log(Level.INFO, "NZ: the program has no loops");
           if (errorIsReachableCheck(prover, getErrorFormula(reachedSet, -1))) {
             logger.log(Level.INFO, "NZ: an error is reached by BMC");
@@ -404,6 +408,23 @@ abstract class AbstractBMCAlgorithm
           }
         }
 
+//        if (cfa.getAllLoopHeads().orElseThrow().isEmpty()) {
+//          logger.log(Level.INFO, "NZ: the program has no loops");
+//          if (errorIsReachableCheck(prover, getErrorFormula(reachedSet, -1))) {
+//            logger.log(Level.INFO, "NZ: an error is reached by BMC");
+//            return AlgorithmStatus.UNSOUND_AND_PRECISE;
+//          } else {
+//            logger.log(Level.INFO, "NZ: no error can be reached");
+//            if (reachedSet.hasViolatedProperties()) {
+//              TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
+//            }
+//            return AlgorithmStatus.SOUND_AND_PRECISE;
+//          }
+//        }
+
+        logger.log(
+            Level.INFO,
+            "NZ: loop number of the input program: " + cfa.getAllLoopHeads().orElseThrow().size());
         logger.log(Level.INFO, "NZ: collecting prefix, loop, and suffix formulas");
         if (maxLoopIterations == 1) {
           if (errorIsReachableCheck(prover, getErrorFormula(reachedSet, -1))) {
@@ -481,6 +502,7 @@ abstract class AbstractBMCAlgorithm
           .log(
               Level.SEVERE,
               "NZ: no unique loop head at encounter time = " + numEncounterLoopHead);
+      logger.log(Level.SEVERE, "NZ: the number of loop head = " + loopHead.size());
       throw new AssertionError();
     }
     return PredicateAbstractState.getPredicateState(loopHead.get(0))
