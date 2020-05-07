@@ -28,14 +28,12 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.collect.FluentIterable;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -89,11 +87,10 @@ public class FailedCase {
    * @return <code>boolean</code>
    */
   public boolean isFailedPath(ARGPath path) {
-    List<ARGState> targetStates = ARGUtils.getErrorStates(pReachedSet);
-    if (path.getStateSet().containsAll(targetStates)) {
+
+    if (path.getLastState().isTarget()) {
       return true;
     }
-
     return false;
   }
 }
