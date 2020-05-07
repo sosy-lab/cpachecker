@@ -21,6 +21,8 @@ Most important changes:
 * Witness export for multi-threaded programs is improved,
   such that a following validation performs faster.
 
+* CPAchecker now supports verifying programs that make use of 128-bit types.
+
 
 Changes from CPAchecker 1.8 to CPAchecker 1.9
 ---------------------------------------------
