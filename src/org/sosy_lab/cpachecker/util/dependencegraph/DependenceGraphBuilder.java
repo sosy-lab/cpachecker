@@ -306,23 +306,28 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         flowDepCount.value++;
       }
 
-      FlowDep.execute(
-          entryNode,
-          globalEdges,
+      DomTree<CFANode> domTree =
+          Dominance.createDomTree(
+              entryNode,
+              DependenceGraphBuilder::iterateSuccessors,
+              DependenceGraphBuilder::iteratePredecessors);
+
+      FlowDepAnalysis.DependenceConsumer depConsumer =
           (edge, dependent, variable) -> {
             addDependence(
                 getDGNode(edge, Optional.empty()),
                 getDGNode(dependent, Optional.empty()),
                 DependenceType.FLOW);
             flowDepCount.value++;
-          },
-          edgeWithUnknownPointer -> {
-            addDependence(
-                getDGNodeForUnknownPointer(),
-                getDGNode(edgeWithUnknownPointer, Optional.empty()),
-                DependenceType.FLOW);
-            flowDepCount.value++;
-          });
+          };
+
+      new FlowDepAnalysis(
+              Dominance.createDomTraversable(domTree),
+              Dominance.createDomFrontiers(domTree),
+              entryNode,
+              globalEdges,
+              depConsumer)
+          .run();
 
       flowDependenceNumber.setNextValue(flowDepCount.value);
     }
