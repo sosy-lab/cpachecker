@@ -397,6 +397,9 @@ abstract class AbstractBMCAlgorithm
             return AlgorithmStatus.UNSOUND_AND_PRECISE;
           } else {
             logger.log(Level.INFO, "NZ: no error can be reached");
+            if (reachedSet.hasViolatedProperties()) {
+              TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
+            }
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
         }
