@@ -13,21 +13,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomFrontiers;
-import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTraversable;
 
-public abstract class ReachDefAnalysis<V, N, E> {
+abstract class ReachDefAnalysis<V, N, E> {
 
   private final Graph<N, E> graph;
-  private final DomTraversable<N> domTraversable;
-  private final DomFrontiers<N> domFrontiers;
+  private final Dominance.DomTraversable<N> domTraversable;
+  private final Dominance.DomFrontiers<N> domFrontiers;
 
   private final Multimap<V, E> variableDefEdges;
   private final Multimap<N, Def.Combiner<V, E>> nodeDefCombiners;
   private final Map<V, Deque<Def<V, E>>> variableDefStacks;
 
   protected ReachDefAnalysis(
-      Graph<N, E> pGraph, DomTraversable<N> pDomTraversable, DomFrontiers<N> pDomFrontiers) {
+      Graph<N, E> pGraph,
+      Dominance.DomTraversable<N> pDomTraversable,
+      Dominance.DomFrontiers<N> pDomFrontiers) {
 
     graph = pGraph;
     domTraversable = pDomTraversable;
@@ -63,7 +63,7 @@ public abstract class ReachDefAnalysis<V, N, E> {
     nodeDefCombiners.put(pNode, new Def.Combiner<V, E>(pVariable));
   }
 
-  protected void insertCombiners(DomFrontiers<N> pDomFrontiers) {
+  protected void insertCombiners(Dominance.DomFrontiers<N> pDomFrontiers) {
 
     for (V variable : variableDefEdges.keySet()) {
 
@@ -87,7 +87,7 @@ public abstract class ReachDefAnalysis<V, N, E> {
       defStack.push(new Def.Wrapper<>(edgeDefVar, pEdge));
     }
 
-    // update successor combiners
+    // update successor's combiners
     for (Def.Combiner<V, E> combiner : nodeDefCombiners.get(graph.getSuccessor(pEdge))) {
       Def<V, E> def = getReachDef(combiner.getVariable());
       if (def != null) {
@@ -96,21 +96,32 @@ public abstract class ReachDefAnalysis<V, N, E> {
     }
   }
 
-  private void popEdge(E pEdge) {
+  protected void popEdge(E pEdge) {
     for (V variable : getEdgeDefs(pEdge)) {
       getDefStack(variable).pop();
     }
   }
 
-  private void pushNode(N pNode) {
+  protected void pushNode(N pNode) {
     for (Def.Combiner<V, E> combiner : nodeDefCombiners.get(pNode)) {
       getDefStack(combiner.getVariable()).push(combiner);
     }
   }
 
-  private void popNode(N pNode) {
+  protected void popNode(N pNode) {
     for (Def.Combiner<V, E> combiner : nodeDefCombiners.get(pNode)) {
       getDefStack(combiner.getVariable()).pop();
+    }
+  }
+
+  private boolean hasMultipleEnteringEdges(N pNode) {
+
+    Iterator<E> iterator = graph.getEnteringEdges(pNode).iterator();
+    if (iterator.hasNext()) {
+      iterator.next();
+      return iterator.hasNext();
+    } else {
+      return false;
     }
   }
 
@@ -144,12 +155,12 @@ public abstract class ReachDefAnalysis<V, N, E> {
    *              b--->[3]---d--->
    * </code>
    */
-  private boolean isDanglingEdge(DomTraversable<N> pParent, E pEdge) {
+  private boolean isDanglingEdge(Dominance.DomTraversable<N> pParent, E pEdge) {
 
     N successor = graph.getSuccessor(pEdge);
 
-    if (graph.getNumEnteringEdges(successor) > 1) {
-      for (DomTraversable<N> child : pParent) {
+    if (hasMultipleEnteringEdges(successor)) {
+      for (Dominance.DomTraversable<N> child : pParent) {
         if (child.getNode().equals(successor)) {
           return false; // there is an edge in the dom-tree for pEdge
         }
@@ -161,21 +172,21 @@ public abstract class ReachDefAnalysis<V, N, E> {
     return true; // there is no edge in the dom-tree for pEdge -> dangling
   }
 
-  protected void traverseDomTree(DomTraversable<N> pDomTraversable) {
+  protected void traverseDomTree(Dominance.DomTraversable<N> pDomTraversable) {
 
-    Deque<Iterator<DomTraversable<N>>> stack = new ArrayDeque<>();
-    DomTraversable<N> current = pDomTraversable;
+    Deque<Iterator<Dominance.DomTraversable<N>>> stack = new ArrayDeque<>();
+    Dominance.DomTraversable<N> current = pDomTraversable;
 
     stack.push(current.iterator());
     pushNode(current.getNode());
 
     while (true) { // break when root gets popped from the stack (see end of 'visit parent')
 
-      Iterator<DomTraversable<N>> children = stack.peek();
+      Iterator<Dominance.DomTraversable<N>> children = stack.peek();
 
       if (children.hasNext()) { // visit child
 
-        DomTraversable<N> next = children.next();
+        Dominance.DomTraversable<N> next = children.next();
         Optional<E> optEdge = graph.getEdge(current.getNode(), next.getNode());
 
         if (optEdge.isPresent()) {
@@ -196,7 +207,7 @@ public abstract class ReachDefAnalysis<V, N, E> {
 
       } else { // visit parent
 
-        DomTraversable<N> prev = current;
+        Dominance.DomTraversable<N> prev = current;
         current = current.getParent();
 
         popNode(prev.getNode());
@@ -229,11 +240,11 @@ public abstract class ReachDefAnalysis<V, N, E> {
 
     N getSuccessor(E pEdge);
 
-    Optional<E> getEdge(N pPred, N pSucc);
+    Optional<E> getEdge(N pPredecessor, N pSuccessor);
 
     Iterable<E> getLeavingEdges(N pNode);
 
-    int getNumEnteringEdges(N pNode);
+    Iterable<E> getEnteringEdges(N pNode);
   }
 
   public abstract static class Def<V, E> {
