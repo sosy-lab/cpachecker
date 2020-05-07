@@ -390,12 +390,8 @@ abstract class AbstractBMCAlgorithm
         stats.bmcPreparation.stop();
         shutdownNotifier.shutdownIfNecessary();
 
-        if (from(reachedSet).filter(
-            e -> AbstractStates.extractStateByType(e, LocationState.class)
-                .getLocationNode()
-                .isLoopStart())
-            .size() == 0) {
-          logger.log(Level.INFO, "NZ: the program has no loops");
+        if (noLoopToUnroll(cfa)) {
+          logger.log(Level.INFO, "NZ: the program has no loop to unroll");
           if (errorIsReachableCheck(prover, getErrorFormula(reachedSet, -1))) {
             logger.log(Level.INFO, "NZ: an error is reached by BMC");
             return AlgorithmStatus.UNSOUND_AND_PRECISE;
@@ -408,23 +404,6 @@ abstract class AbstractBMCAlgorithm
           }
         }
 
-//        if (cfa.getAllLoopHeads().orElseThrow().isEmpty()) {
-//          logger.log(Level.INFO, "NZ: the program has no loops");
-//          if (errorIsReachableCheck(prover, getErrorFormula(reachedSet, -1))) {
-//            logger.log(Level.INFO, "NZ: an error is reached by BMC");
-//            return AlgorithmStatus.UNSOUND_AND_PRECISE;
-//          } else {
-//            logger.log(Level.INFO, "NZ: no error can be reached");
-//            if (reachedSet.hasViolatedProperties()) {
-//              TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
-//            }
-//            return AlgorithmStatus.SOUND_AND_PRECISE;
-//          }
-//        }
-
-        logger.log(
-            Level.INFO,
-            "NZ: loop number of the input program: " + cfa.getAllLoopHeads().orElseThrow().size());
         logger.log(Level.INFO, "NZ: collecting prefix, loop, and suffix formulas");
         if (maxLoopIterations == 1) {
           if (errorIsReachableCheck(prover, getErrorFormula(reachedSet, -1))) {
@@ -483,6 +462,17 @@ abstract class AbstractBMCAlgorithm
       } while (adjustConditions());
     }
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
+  }
+
+  private boolean noLoopToUnroll(CFA pCfa) {
+    if (pCfa.getAllLoopHeads().orElseThrow().isEmpty()) {
+      return true;
+    }
+    CFANode pNode = pCfa.getAllLoopHeads().orElseThrow().iterator().next();
+    if (pNode.hasEdgeTo(pNode)) {
+      return true;
+    }
+    return false;
   }
 
   private PathFormula getLoopHeadFormula(ReachedSet pReachedSet, int numEncounterLoopHead) {
