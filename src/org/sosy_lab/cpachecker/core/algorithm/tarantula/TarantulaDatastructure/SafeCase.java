@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class SafeCase {
   private final ReachedSet pReachedSet;
+  private int totalSafeCases = 0;
 
   public SafeCase(ReachedSet pPReachedSet) {
     this.pReachedSet = pPReachedSet;
@@ -74,6 +75,7 @@ public class SafeCase {
         allSafePathsTogether.addAll(TarantulaUtils.getAllPaths(pReachedSet, safeState));
       }
     }
+    totalSafeCases = allSafePathsTogether.size();
     return allSafePathsTogether;
   }
 
@@ -96,5 +98,9 @@ public class SafeCase {
    */
   private ARGState rootState() {
     return AbstractStates.extractStateByType(pReachedSet.getFirstState(), ARGState.class);
+  }
+
+  public int getTotalSafeCases() {
+    return totalSafeCases;
   }
 }

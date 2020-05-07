@@ -52,7 +52,7 @@ public class TarantulaRanking {
    * @return how many failed cases are found.
    */
   private int totalFailed() {
-    return failedCase.getFailedPaths().size();
+    return failedCase.getTotalFailedCases();
   }
   /**
    * Calculates how many total passed cases are in ARG.
@@ -60,7 +60,7 @@ public class TarantulaRanking {
    * @return how many passed cases are found.
    */
   private int totalPassed() {
-    return safeCase.getSafePaths().size();
+    return safeCase.getTotalSafeCases();
   }
   /**
    * Calculates suspicious of tarantula algorithm.

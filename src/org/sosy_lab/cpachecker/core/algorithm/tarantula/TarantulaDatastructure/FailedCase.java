@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class FailedCase {
   private final ReachedSet pReachedSet;
+  private int totalFailedCases = 0;
 
   public FailedCase(ReachedSet pPReachedSet) {
     this.pReachedSet = pPReachedSet;
@@ -54,10 +55,11 @@ public class FailedCase {
     for (CounterexampleInfo counterExample : getCounterExamples()) {
       failedPaths.add(counterExample.getTargetPath());
     }
+    totalFailedCases = failedPaths.size();
     return failedPaths;
   }
 
-  public FluentIterable<CounterexampleInfo> getCounterExamples() {
+  private FluentIterable<CounterexampleInfo> getCounterExamples() {
 
     return Optionals.presentInstances(
         from(pReachedSet)
@@ -92,5 +94,9 @@ public class FailedCase {
       return true;
     }
     return false;
+  }
+
+  public int getTotalFailedCases() {
+    return totalFailedCases;
   }
 }
