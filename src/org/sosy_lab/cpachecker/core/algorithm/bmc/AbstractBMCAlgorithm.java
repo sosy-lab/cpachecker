@@ -492,9 +492,7 @@ abstract class AbstractBMCAlgorithm
                     .getDeepestIteration()
                     - 1 == numEncounterLoopHead)
             .toList();
-    Preconditions.checkState(
-        loopHead.size() == 1,
-        "The number of loop heads in ARG is " + loopHead.size());
+    checkState(loopHead.size() == 1, "The number of loop heads in ARG is " + "%s", loopHead.size());
     return PredicateAbstractState.getPredicateState(loopHead.get(0))
         .getAbstractionFormula()
         .getBlockFormula();
