@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.GET_BLOCK_FORMULA;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefiner.filterAbstractionStates;
 
 import java.util.ArrayList;
@@ -96,10 +95,11 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
       throws CPAException, InterruptedException {
 
     List<ARGState> abstractionStates = filterAbstractionStates(pPath);
-    List<BooleanFormula> blockFormulas = from(abstractionStates)
-        .transform(AbstractStates.toState(PredicateAbstractState.class))
-        .transform(GET_BLOCK_FORMULA)
-        .toList();
+    List<BooleanFormula> blockFormulas =
+        from(abstractionStates)
+            .transform(AbstractStates.toState(PredicateAbstractState.class))
+            .transform(PredicateAbstractState::getBlockFormula)
+            .toList();
 
     List<RawInfeasiblePrefix> rawPrefixes;
 

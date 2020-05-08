@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
@@ -59,6 +60,11 @@ public abstract class PredicateAbstractState
 
   public static PredicateAbstractState getPredicateState(AbstractState pState) {
     return checkNotNull(extractStateByType(pState, PredicateAbstractState.class));
+  }
+
+  public static BooleanFormula getBlockFormula(PredicateAbstractState pState) {
+    checkArgument(pState.isAbstractionState());
+    return pState.getAbstractionFormula().getBlockFormula().getFormula();
   }
 
   /**
