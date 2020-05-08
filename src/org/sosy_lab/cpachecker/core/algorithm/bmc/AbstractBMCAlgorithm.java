@@ -392,7 +392,9 @@ abstract class AbstractBMCAlgorithm
 
         if (noLoopToUnroll(cfa)) {
           logger.log(Level.INFO, "NZ: the program has no loop to unroll");
-          if (errorIsReachableCheck(prover, getErrorFormula(reachedSet, -1))) {
+          if (errorIsReachableCheck(
+              prover,
+              bfmgr.or(getErrorFormula(reachedSet, -1), getErrorFormula(reachedSet, 0)))) {
             logger.log(Level.INFO, "NZ: an error is reached by BMC");
             return AlgorithmStatus.UNSOUND_AND_PRECISE;
           } else {
