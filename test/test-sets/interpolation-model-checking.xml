@@ -3,7 +3,7 @@
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="5 GB" cpuCores="1">
 
   <option name="-heap">2000M</option>
-
+  
   <rundefinition name="interpolation_from_prefix">
     <option name="-bmc-interpolation"/>
     <option name="-setprop">bmc.deriveInterpolantFromSuffix=false</option>
@@ -14,8 +14,17 @@
     <option name="-setprop">bmc.deriveInterpolantFromSuffix=true</option>
   </rundefinition>
   
+  <rundefinition name="predicate_analysis">
+    <option name="-predicateAnalysis"/>
+  </rundefinition>
+  
   <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
-    <propertyfile>../programs/simple/ALL.prp</propertyfile>
+    <propertyfile>../config/properties/unreach-label.prp</propertyfile>
+  </tasks>
+  
+  <tasks>
+	 <includesfile>../programs/interpolation_model_checking/hand-crafted.set</includesfile>
+    <propertyfile>../config/properties/unreach-label.prp</propertyfile>
   </tasks>
 </benchmark>
