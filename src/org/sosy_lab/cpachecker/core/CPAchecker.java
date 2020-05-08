@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.ShutdownNotifier.interruptCurrentThreadOnShutdown;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.StandardSystemProperty;
@@ -90,6 +89,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ResultProviderReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.LoopStructure;
@@ -551,7 +551,7 @@ public class CPAchecker {
           counterExampleCount =
               Optionals.presentInstances(
                       from(reached)
-                          .filter(IS_TARGET_STATE)
+                          .filter(AbstractStates::isTargetState)
                           .filter(ARGState.class)
                           .transform(ARGState::getCounterexampleInformation))
                   .size();

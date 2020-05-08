@@ -160,7 +160,7 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
       Precision precision)
       throws CPATransferException, InterruptedException {
     if (((LoopBoundState) state).getDeepestIteration() < startAtBound
-        && Iterators.any(otherStates.iterator(), AbstractStates.IS_TARGET_STATE)) {
+        && Iterators.any(otherStates.iterator(), AbstractStates::isTargetState)) {
       return ImmutableList.of();
     } else {
       return Collections.singleton(state);

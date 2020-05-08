@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
@@ -166,7 +165,7 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
         ignoreTargetState = false;
 
         assert ARGUtils.checkARG(pReached);
-        assert (from(pReached).filter(IS_TARGET_STATE).isEmpty());
+        assert (from(pReached).filter(AbstractStates::isTargetState).isEmpty());
 
         AlgorithmStatus status = AlgorithmStatus.UNSOUND_AND_IMPRECISE;
         try {
@@ -197,9 +196,10 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
         } finally {
 
           assert ARGUtils.checkARG(pReached);
-          assert (from(pReached).filter(IS_TARGET_STATE).size() < 2);
+          assert (from(pReached).filter(AbstractStates::isTargetState).size() < 2);
 
-          AbstractState reachedState = from(pReached).firstMatch(IS_TARGET_STATE).orNull();
+          AbstractState reachedState =
+              from(pReached).firstMatch(AbstractStates::isTargetState).orNull();
           if (reachedState != null) {
             boolean removeState = true;
 

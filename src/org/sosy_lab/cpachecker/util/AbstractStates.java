@@ -180,10 +180,8 @@ public final class AbstractStates {
   }
 
   public static FluentIterable<AbstractState> getTargetStates(final UnmodifiableReachedSet pReachedSet) {
-    return from(pReachedSet).filter(AbstractStates.IS_TARGET_STATE);
+    return from(pReachedSet).filter(AbstractStates::isTargetState);
   }
-
-  public static final Predicate<AbstractState> IS_TARGET_STATE = AbstractStates::isTargetState;
 
   public static boolean hasAssumptions(AbstractState as) {
     AssumptionStorageState assumption = extractStateByType(as, AssumptionStorageState.class);

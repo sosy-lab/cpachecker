@@ -454,7 +454,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       if (childrenOnPath.size() > 1) {
         if (childrenOnPath.size() > 2) {
           // can't create branching formula
-          if (from(childrenOnPath).anyMatch(AbstractStates.IS_TARGET_STATE)) {
+          if (from(childrenOnPath).anyMatch(AbstractStates::isTargetState)) {
             // We expect this situation of one of the children is a target state created by PredicateCPA.
             continue;
           } else {
@@ -466,7 +466,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         FluentIterable<CFAEdge> outgoingEdges =
             from(childrenOnPath).transform(pathElement::getEdgeToChild);
         if (!outgoingEdges.allMatch(Predicates.instanceOf(AssumeEdge.class))) {
-          if (from(childrenOnPath).anyMatch(AbstractStates.IS_TARGET_STATE)) {
+          if (from(childrenOnPath).anyMatch(AbstractStates::isTargetState)) {
             // We expect this situation of one of the children is a target state created by PredicateCPA.
             continue;
           } else {

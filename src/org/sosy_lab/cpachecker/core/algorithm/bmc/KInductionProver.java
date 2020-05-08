@@ -705,7 +705,7 @@ class KInductionProver implements AutoCloseable {
     FluentIterable<AbstractState> inputStates =
         filterIteration(pCandidateInvariant.filterApplicable(pReached), pK, loopHeads);
     if (pCandidateInvariant == TargetLocationCandidateInvariant.INSTANCE) {
-      inputStates = inputStates.filter(AbstractStates.IS_TARGET_STATE);
+      inputStates = inputStates.filter(AbstractStates::isTargetState);
     }
     Multimap<String, Integer> inputs = extractInputs(inputStates, types);
 

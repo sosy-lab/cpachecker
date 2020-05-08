@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -526,7 +525,7 @@ public class ARGStatistics implements Statistics {
       final UnmodifiableReachedSet pReached) {
     ImmutableMap.Builder<ARGState, CounterexampleInfo> counterexamples = ImmutableMap.builder();
 
-    for (AbstractState targetState : from(pReached).filter(IS_TARGET_STATE)) {
+    for (AbstractState targetState : from(pReached).filter(AbstractStates::isTargetState)) {
       ARGState s = (ARGState)targetState;
       CounterexampleInfo cex =
           ARGUtils.tryGetOrCreateCounterexampleInformation(s, cpa, assumptionToEdgeAllocator)

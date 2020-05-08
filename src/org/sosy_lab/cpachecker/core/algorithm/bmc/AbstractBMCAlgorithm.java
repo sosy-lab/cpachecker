@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Joiner;
@@ -381,7 +380,7 @@ abstract class AbstractBMCAlgorithm
         stats.bmcPreparation.stop();
         if (from(reachedSet)
             .skip(1) // first state of reached is always an abstraction state, so skip it
-            .filter(not(IS_TARGET_STATE)) // target states may be abstraction states
+            .filter(not(AbstractStates::isTargetState)) // target states may be abstraction states
             .anyMatch(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)) {
 
           logger.log(Level.WARNING, "BMC algorithm does not work with abstractions. Could not check for satisfiability!");

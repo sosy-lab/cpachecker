@@ -334,7 +334,8 @@ public final class BMCHelper {
      * to the previous iteration instead of the one it starts.
      */
 
-    return !AbstractStates.IS_TARGET_STATE.apply(state)
+    return !((com.google.common.base.Predicate<AbstractState>) AbstractStates::isTargetState)
+                .apply(state)
             && getLocationPredicate(pLoopHeads).test(state)
         ? pIteration + 1
         : pIteration;

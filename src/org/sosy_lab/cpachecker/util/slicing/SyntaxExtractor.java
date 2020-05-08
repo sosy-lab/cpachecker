@@ -187,7 +187,7 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
         Preconditions.checkState(!reached.hasWaitingState());
 
         return from(reached)
-            .filter(AbstractStates.IS_TARGET_STATE)
+            .filter(AbstractStates::isTargetState)
             .transform(state -> AbstractStates.extractStateByType(state, ARGState.class));
 
       } finally {

@@ -134,9 +134,8 @@ public class ARGReachedSet {
    * Warning: This might remove states that could cover other states.
    */
   public void removeSafeRegions() {
-    Collection<AbstractState> targetStates = from(mReached)
-        .filter(AbstractStates.IS_TARGET_STATE)
-        .toList();
+    Collection<AbstractState> targetStates =
+        from(mReached).filter(AbstractStates::isTargetState).toList();
     if (!targetStates.isEmpty()) {
       removeUnReachableFrom(targetStates,
           ARGState::getParents, x -> x.wasExpanded());

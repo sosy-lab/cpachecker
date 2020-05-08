@@ -77,6 +77,6 @@ public enum TargetLocationCandidateInvariant implements CandidateInvariant {
 
   @Override
   public FluentIterable<AbstractState> filterApplicable(Iterable<AbstractState> pStates) {
-    return from(pStates).filter(AbstractStates.IS_TARGET_STATE);
+    return from(pStates).filter(AbstractStates::isTargetState);
   }
 }

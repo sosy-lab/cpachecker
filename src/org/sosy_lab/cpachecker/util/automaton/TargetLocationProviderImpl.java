@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 
-
 public class TargetLocationProviderImpl implements TargetLocationProvider {
 
   private final ShutdownNotifier shutdownNotifier;
@@ -98,7 +97,7 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
       // Order of reached is the order in which states were created,
       // toSet() keeps ordering, so the result is deterministic.
       return from(reached)
-          .filter(AbstractStates.IS_TARGET_STATE)
+          .filter(AbstractStates::isTargetState)
           .transform(AbstractStates.EXTRACT_LOCATION)
           .toSet();
 

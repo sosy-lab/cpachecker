@@ -436,7 +436,7 @@ public class ARGUtils {
   @SuppressWarnings("unchecked")
   public static final Predicate<ARGState> RELEVANT_STATE =
       Predicates.or(
-          AbstractStates.IS_TARGET_STATE,
+          AbstractStates::isTargetState,
           AT_RELEVANT_LOCATION,
           pInput -> !pInput.wasExpanded(),
           ARGState::shouldBeHighlighted);
