@@ -98,7 +98,7 @@ public class TargetLocationProviderImpl implements TargetLocationProvider {
       // toSet() keeps ordering, so the result is deterministic.
       return from(reached)
           .filter(AbstractStates::isTargetState)
-          .transform(AbstractStates.EXTRACT_LOCATION)
+          .transform(AbstractStates::extractLocation)
           .toSet();
 
     } catch (InvalidConfigurationException e) {

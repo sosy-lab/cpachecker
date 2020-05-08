@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -391,8 +390,8 @@ class MainCPAStatistics implements Statistics {
 
   private void dumpLocationMappedReachedSet(final UnmodifiableReachedSet pReachedSet, Appendable sb)
       throws IOException {
-    final ListMultimap<CFANode, AbstractState> locationIndex
-        =  Multimaps.index(pReachedSet, EXTRACT_LOCATION);
+    final ListMultimap<CFANode, AbstractState> locationIndex =
+        Multimaps.index(pReachedSet, AbstractStates::extractLocation);
 
     Function<CFANode, String> nodeLabelFormatter = new Function<>() {
       @Override
@@ -464,7 +463,7 @@ class MainCPAStatistics implements Statistics {
 
     } else {
       Multiset<CFANode> allLocations =
-          from(reached).transform(EXTRACT_LOCATION).filter(notNull()).toMultiset();
+          from(reached).transform(AbstractStates::extractLocation).filter(notNull()).toMultiset();
       locations = allLocations.elementSet();
 
       for (Multiset.Entry<CFANode> location : allLocations.entrySet()) {

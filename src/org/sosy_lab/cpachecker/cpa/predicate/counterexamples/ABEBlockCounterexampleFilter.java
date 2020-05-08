@@ -54,7 +54,7 @@ public class ABEBlockCounterexampleFilter extends AbstractSetBasedCounterexample
     return Optional.of(
         from(counterexample.getTargetPath().asStatesList())
             .filter(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)
-            .transform(AbstractStates.EXTRACT_LOCATION)
+            .transform(AbstractStates::extractLocation)
             .toList());
   }
 }

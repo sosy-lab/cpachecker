@@ -152,7 +152,7 @@ public class SSCPath extends ARGPath {
   }
 
   private List<CFANode> getLocations() {
-    return Lists.transform(asStatesList(), AbstractStates.EXTRACT_LOCATION);
+    return Lists.transform(asStatesList(), AbstractStates::extractLocation);
   }
 
   @Override

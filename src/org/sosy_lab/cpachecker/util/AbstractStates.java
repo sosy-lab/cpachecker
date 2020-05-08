@@ -147,9 +147,6 @@ public final class AbstractStates {
     return extractStateByType(pState, AbstractStateWithLocations.class).getOutgoingEdges();
   }
 
-  public static final Function<AbstractState, CFANode> EXTRACT_LOCATION =
-      AbstractStates::extractLocation;
-
   public static Iterable<AbstractState> filterLocation(Iterable<AbstractState> pStates, CFANode pLoc) {
     if (pStates instanceof LocationMappedReachedSet) {
       // only do this for LocationMappedReachedSet, not for all ReachedSet,
