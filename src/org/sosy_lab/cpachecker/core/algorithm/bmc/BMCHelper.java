@@ -83,15 +83,12 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 public final class BMCHelper {
 
-  public static final Predicate<AbstractState> END_STATE_FILTER =
-      s -> {
-        ARGState argState = AbstractStates.extractStateByType(s, ARGState.class);
-        return argState != null && argState.getChildren().isEmpty();
-      };
-
-  private BMCHelper() {
-
+  public static boolean isEndState(AbstractState s) {
+    ARGState argState = AbstractStates.extractStateByType(s, ARGState.class);
+    return argState != null && argState.getChildren().isEmpty();
   }
+
+  private BMCHelper() {}
 
   public static BooleanFormula assertAt(
       Iterable<AbstractState> pStates,
@@ -275,10 +272,6 @@ public final class BMCHelper {
     }).toSet();
   }
 
-  public static FluentIterable<AbstractState> filterEndStates(Iterable<AbstractState> pStates) {
-    return FluentIterable.from(pStates).filter(END_STATE_FILTER::test);
-  }
-
   public static FluentIterable<AbstractState> filterIterationsBetween(
       Iterable<AbstractState> pStates, int pMinIt, int pMaxIt, Set<CFANode> pLoopHeads) {
     Objects.requireNonNull(pLoopHeads);
@@ -334,15 +327,13 @@ public final class BMCHelper {
      * to the previous iteration instead of the one it starts.
      */
 
-    return !((com.google.common.base.Predicate<AbstractState>) AbstractStates::isTargetState)
-                .apply(state)
-            && getLocationPredicate(pLoopHeads).test(state)
+    return !AbstractStates.isTargetState(state) && hasMatchingLocation(state, pLoopHeads)
         ? pIteration + 1
         : pIteration;
   }
 
-  public static Predicate<AbstractState> getLocationPredicate(Set<CFANode> pLocations) {
-    return state -> from(AbstractStates.extractLocations(state)).anyMatch(pLocations::contains);
+  public static boolean hasMatchingLocation(AbstractState state, Set<CFANode> pLocations) {
+    return from(AbstractStates.extractLocations(state)).anyMatch(pLocations::contains);
   }
 
   public static Set<ARGState> filterAncestors(
