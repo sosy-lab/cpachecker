@@ -125,17 +125,17 @@ import org.sosy_lab.java_smt.api.SolverException;
 abstract class AbstractBMCAlgorithm
     implements StatisticsProvider, ConditionAdjustmentEventSubscriber {
 
-  static final Predicate<AbstractState> IS_STOP_STATE =
-    Predicates.compose(new Predicate<AssumptionStorageState>() {
-                             @Override
-                             public boolean apply(AssumptionStorageState pArg0) {
-                               return (pArg0 != null) && pArg0.isStop();
-                             }
-                           },
-                       AbstractStates.toState(AssumptionStorageState.class));
+  private static final boolean isStopState(AbstractState state) {
+    AssumptionStorageState assumptionState =
+        AbstractStates.extractStateByType(state, AssumptionStorageState.class);
+    return assumptionState != null && assumptionState.isStop();
+  }
 
-  static final Predicate<AbstractState> IS_SLICED_STATE = (state) ->
-    AbstractStates.extractStateByType(state, ReachabilityState.class) == ReachabilityState.IRRELEVANT_TO_TARGET;
+  /** Filters out states that were detected as irrelevant for reachability */
+  private static final boolean isRelevantForReachability(AbstractState state) {
+    return AbstractStates.extractStateByType(state, ReachabilityState.class)
+        != ReachabilityState.IRRELEVANT_TO_TARGET;
+  }
 
   @Option(secure=true, description = "If BMC did not find a bug, check whether "
       + "the bounding did actually remove parts of the state space "
@@ -773,9 +773,10 @@ abstract class AbstractBMCAlgorithm
   private boolean checkBoundingAssertions(
       final ReachedSet pReachedSet, final ProverEnvironmentWithFallback prover)
       throws SolverException, InterruptedException {
-    FluentIterable<AbstractState> stopStates = from(pReachedSet)
-        .filter(IS_STOP_STATE)
-        .filter(Predicates.not(IS_SLICED_STATE));
+    FluentIterable<AbstractState> stopStates =
+        from(pReachedSet)
+            .filter(AbstractBMCAlgorithm::isStopState)
+            .filter(AbstractBMCAlgorithm::isRelevantForReachability);
 
     if (boundingAssertions) {
       logger.log(Level.INFO, "Starting assertions check...");
