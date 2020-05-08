@@ -500,7 +500,7 @@ abstract class AbstractBMCAlgorithm
 
   private BooleanFormula getErrorFormula(ReachedSet pReachedSet, int numEncounterLoopHead) {
     List<AbstractState> errorLocations =
-        from(pReachedSet).filter(AbstractStates.IS_TARGET_STATE)
+        AbstractStates.getTargetStates(pReachedSet)
             .filter(
                 e -> AbstractStates.extractStateByType(e, LoopBoundState.class)
                     .getDeepestIteration()
