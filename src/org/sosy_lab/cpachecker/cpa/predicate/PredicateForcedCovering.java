@@ -278,7 +278,7 @@ public class PredicateForcedCovering implements ForcedCovering, StatisticsProvid
     ARGPath pathFromRoot = ARGUtils.getOnePathTo(argState);
 
     return from(pathFromRoot.asStatesList())
-        .filter(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)
+        .filter(PredicateAbstractState::containsAbstractionState)
         .toList();
   }
 

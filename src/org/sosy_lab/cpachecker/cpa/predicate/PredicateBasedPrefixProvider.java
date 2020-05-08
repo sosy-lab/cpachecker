@@ -260,7 +260,7 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
    * @return true, if all states in the path are abstraction states, else false
    */
   private boolean isSingleBlockEncoded(final ARGPath pPath) {
-    return from(pPath.asStatesList()).allMatch(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE);
+    return from(pPath.asStatesList()).allMatch(PredicateAbstractState::containsAbstractionState);
   }
 
   private boolean isAbstractionState(ARGState pCurrentState) {

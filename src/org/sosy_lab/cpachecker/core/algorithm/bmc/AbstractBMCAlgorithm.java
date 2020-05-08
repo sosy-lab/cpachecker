@@ -381,7 +381,7 @@ abstract class AbstractBMCAlgorithm
         if (from(reachedSet)
             .skip(1) // first state of reached is always an abstraction state, so skip it
             .filter(not(AbstractStates::isTargetState)) // target states may be abstraction states
-            .anyMatch(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)) {
+            .anyMatch(PredicateAbstractState::containsAbstractionState)) {
 
           logger.log(Level.WARNING, "BMC algorithm does not work with abstractions. Could not check for satisfiability!");
           return status;

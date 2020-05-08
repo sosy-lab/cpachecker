@@ -590,7 +590,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     List<ARGState> result =
         from(pPath.asStatesList())
             .skip(1)
-            .filter(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)
+            .filter(PredicateAbstractState::containsAbstractionState)
             .toList();
 
     // This assertion does not hold anymore for slicing abstractions.

@@ -25,9 +25,8 @@ package org.sosy_lab.cpachecker.cpa.predicate.counterexamples;
 
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.Optional;
 import com.google.common.collect.ImmutableList;
-
+import java.util.Optional;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -53,7 +52,7 @@ public class ABEBlockCounterexampleFilter extends AbstractSetBasedCounterexample
   protected Optional<ImmutableList<CFANode>> getCounterexampleRepresentation(CounterexampleInfo counterexample) {
     return Optional.of(
         from(counterexample.getTargetPath().asStatesList())
-            .filter(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)
+            .filter(PredicateAbstractState::containsAbstractionState)
             .transform(AbstractStates::extractLocation)
             .toList());
   }

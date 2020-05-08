@@ -1019,7 +1019,7 @@ public class PdrAlgorithm implements Algorithm {
             .filter(
                 Predicates.not(
                     AbstractStates::isTargetState)) // target states may be abstraction states
-            .filter(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)
+            .filter(PredicateAbstractState::containsAbstractionState)
             .findAny();
     if (abstractionState.isPresent()) {
       logger.log(
