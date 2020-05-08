@@ -1,6 +1,27 @@
-Changes since CPAchecker 1.9
-----------------------------
-Java 11 or later is required now.
+Changes from CPAchecker 1.9 to CPAchecker 1.9.1
+-----------------------------------------------
+CPAchecker 1.9.1 celebrates our SVN revision 33333,
+which was recently committed. :-)
+Thank you very much to all the contributors
+who have made this possible (cf. Authors.txt for full list)!
+
+Most important changes:
+
+* Java 11 or later is required now.
+
+* There is now an official Docker image for CPAchecker,
+  cf. INSTALL.md for more details.
+
+* CPAchecker now supports the changes made to the SV-Benchmarks repository
+  in early 2020, e.g., the replacement of `__VERIFIER_error` and `__VERIFIER_assume`.
+
+* Fix termination analysis, which did not work if CPAchecker was started
+  from a different directory than its project directory.
+
+* Witness export for multi-threaded programs is improved,
+  such that a following validation performs faster.
+
+* CPAchecker now supports verifying programs that make use of 128-bit types.
 
 
 Changes from CPAchecker 1.8 to CPAchecker 1.9
@@ -11,27 +32,27 @@ Changes from CPAchecker 1.8 to CPAchecker 1.9
 * CPAchecker can now use the new BDD library ParallelJBDD
   (https://gitlab.com/sosy-lab/software/paralleljbdd)
   as replacement for JavaBDD if the option `bdd.package = PJBDD` is used.
-  
+
 * Support for Cyclic Analysis Combinations
   Next to sequential combinations and parallel combinations, CPAchecker now
   also provides an algorithms for cyclic combinations of analyses that can
   be e.g. be used to interleave analyses or iteratively execute a sequence.
-  of analyses. Different modes are supported. For example, analyses may 
+  of analyses. Different modes are supported. For example, analyses may
   resume their previous exploration, start from scratch.
-  
+
 * Cooperative Verifier-based Testing (CoVeriTest)
   CoVeriTest uses a cyclic combination of analyses to generate test cases
   for standard coverage criteria like statement or branch coverage. Also,
   the coverage properties of the international competition on software
-  testing (Test-Comp) are supported. The specialty of CoVeriTest is that 
-  it cannot only configure the analyses participating in test-generation 
-  as well as their individual time limits in each iteration, but also which 
+  testing (Test-Comp) are supported. The specialty of CoVeriTest is that
+  it cannot only configure the analyses participating in test-generation
+  as well as their individual time limits in each iteration, but also which
   information are exchanged between different analysis runs. For details,
   we refer to the main CoVeriTest publication:
-  Beyer, D.; Jakobs, M.-C.: CoVeriTest: Cooperative Verifier-Based Testing. 
+  Beyer, D.; Jakobs, M.-C.: CoVeriTest: Cooperative Verifier-Based Testing.
   In: Proc. FASE, Springer, 2019.
   CoVeriTest also participated in Test-Comp'19 and won the 3rd place.
-  
+
 
 Changes from CPAchecker 1.7 to CPAchecker 1.8
 ---------------------------------------------

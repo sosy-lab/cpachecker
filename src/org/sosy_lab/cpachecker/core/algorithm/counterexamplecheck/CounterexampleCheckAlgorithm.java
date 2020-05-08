@@ -145,11 +145,11 @@ public class CounterexampleCheckAlgorithm
       assert ARGUtils.checkARG(reached);
 
       final List<ARGState> errorStates =
-            from(reached)
-                .transform(AbstractStates.toState(ARGState.class))
-                .filter(AbstractStates.IS_TARGET_STATE)
-                .filter(Predicates.not(Predicates.in(checkedTargetStates)))
-                .toList();
+          from(reached)
+              .transform(AbstractStates.toState(ARGState.class))
+              .filter(AbstractStates::isTargetState)
+              .filter(Predicates.not(Predicates.in(checkedTargetStates)))
+              .toList();
 
       if (errorStates.isEmpty()) {
         // no errors, so no analysis necessary

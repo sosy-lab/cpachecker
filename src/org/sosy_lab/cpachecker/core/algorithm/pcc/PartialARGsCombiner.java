@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.pcc;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -148,7 +147,7 @@ public class PartialARGsCombiner implements Algorithm, StatisticsProvider {
           checkArgument(AbstractStates.extractLocation(usedReached.getFirstState()) != null,
               "Require that all restart configurations consider a location aware state");
 
-          for (AbstractState errorState : from(usedReached).filter(IS_TARGET_STATE)) {
+          for (AbstractState errorState : from(usedReached).filter(AbstractStates::isTargetState)) {
             /* logger.log(Level.INFO, "Error state found in reached set ", usedReached,
             "but not by last configuration. Error state must be infeasible.");*/
             logger.log(Level.FINE, "Remove infeasible error state", errorState);

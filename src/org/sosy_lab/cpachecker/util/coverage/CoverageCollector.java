@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.util.coverage;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
 
 import com.google.common.collect.Iterables;
 import java.util.List;
@@ -129,10 +128,8 @@ class ReachedSetCoverageCollector {
   }
 
   private void collectCoveredEdges(Iterable<AbstractState> reached, CoverageData cov) {
-    Set<CFANode> reachedNodes = from(reached)
-        .transform(EXTRACT_LOCATION)
-        .filter(notNull())
-        .toSet();
+    Set<CFANode> reachedNodes =
+        from(reached).transform(AbstractStates::extractLocation).filter(notNull()).toSet();
     //Add information about visited locations
 
     for (AbstractState state : reached) {

@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
 import com.google.common.base.Predicate;
@@ -239,7 +238,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
       CPAs.closeIfPossible(lAlgorithm, lLogger);
 
       if (provideCEXInfoFromCEXCheck || replaceCexWithCexFromCheck) {
-        AbstractState target = from(lReached).firstMatch(IS_TARGET_STATE).orNull();
+        AbstractState target = from(lReached).firstMatch(AbstractStates::isTargetState).orNull();
         if (target instanceof ARGState) {
           ARGState argTarget = (ARGState) target;
           Optional<CounterexampleInfo> counterexampleFromCheck =

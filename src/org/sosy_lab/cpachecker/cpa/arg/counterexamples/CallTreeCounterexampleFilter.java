@@ -64,11 +64,8 @@ public class CallTreeCounterexampleFilter extends AbstractSetBasedCounterexample
   protected Optional<ImmutableList<CFANode>> getCounterexampleRepresentation(CounterexampleInfo counterexample) {
     return Optional.of(
         from(counterexample.getTargetPath().asStatesList())
-            .transform(AbstractStates.EXTRACT_LOCATION)
-            .filter(or(
-                      instanceOf(FunctionEntryNode.class),
-                      instanceOf(FunctionExitNode.class)))
-            .toList()
-            );
+            .transform(AbstractStates::extractLocation)
+            .filter(or(instanceOf(FunctionEntryNode.class), instanceOf(FunctionExitNode.class)))
+            .toList());
   }
 }

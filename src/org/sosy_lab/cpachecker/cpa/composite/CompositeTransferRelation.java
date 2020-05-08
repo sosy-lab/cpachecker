@@ -28,7 +28,6 @@ import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.any;
 import static com.google.common.collect.Iterables.indexOf;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.base.Preconditions;
@@ -177,7 +176,7 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
           }
 
           // if we found a target state in the current successors immediately return
-          if (from(successorStates).anyMatch(AbstractStates.IS_TARGET_STATE)) {
+          if (from(successorStates).anyMatch(AbstractStates::isTargetState)) {
             compositeSuccessors.addAll(successorStates);
             return;
           }
@@ -375,11 +374,11 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
     // Note that this terminates because in the inner call the input state
     // is already a target state and this branch won't be taken.
     // TODO Generalize this into a full fixpoint algorithm.
-    if (!any(reachedState, IS_TARGET_STATE)) {
+    if (!any(reachedState, AbstractStates::isTargetState)) {
       Collection<List<AbstractState>> newStrengthenedStates = new ArrayList<>(resultCount);
 
       for (List<AbstractState> strengthenedState : strengthenedStates) {
-        if (any(strengthenedState, IS_TARGET_STATE)) {
+        if (any(strengthenedState, AbstractStates::isTargetState)) {
           newStrengthenedStates.addAll(callStrengthen(strengthenedState, compositePrecision, cfaEdge));
         } else {
           newStrengthenedStates.add(strengthenedState);

@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Joiner;
@@ -132,17 +131,17 @@ import org.sosy_lab.java_smt.api.SolverException;
 abstract class AbstractBMCAlgorithm
     implements StatisticsProvider, ConditionAdjustmentEventSubscriber {
 
-  static final Predicate<AbstractState> IS_STOP_STATE =
-    Predicates.compose(new Predicate<AssumptionStorageState>() {
-                             @Override
-                             public boolean apply(AssumptionStorageState pArg0) {
-                               return (pArg0 != null) && pArg0.isStop();
-                             }
-                           },
-                       AbstractStates.toState(AssumptionStorageState.class));
+  private static final boolean isStopState(AbstractState state) {
+    AssumptionStorageState assumptionState =
+        AbstractStates.extractStateByType(state, AssumptionStorageState.class);
+    return assumptionState != null && assumptionState.isStop();
+  }
 
-  static final Predicate<AbstractState> IS_SLICED_STATE = (state) ->
-    AbstractStates.extractStateByType(state, ReachabilityState.class) == ReachabilityState.IRRELEVANT_TO_TARGET;
+  /** Filters out states that were detected as irrelevant for reachability */
+  private static final boolean isRelevantForReachability(AbstractState state) {
+    return AbstractStates.extractStateByType(state, ReachabilityState.class)
+        != ReachabilityState.IRRELEVANT_TO_TARGET;
+  }
 
   @Option(secure=true, description = "If BMC did not find a bug, check whether "
       + "the bounding did actually remove parts of the state space "
@@ -673,8 +672,8 @@ abstract class AbstractBMCAlgorithm
         stats.bmcPreparation.stop();
         if (from(reachedSet)
             .skip(1) // first state of reached is always an abstraction state, so skip it
-            .filter(not(IS_TARGET_STATE)) // target states may be abstraction states
-            .anyMatch(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)) {
+            .filter(not(AbstractStates::isTargetState)) // target states may be abstraction states
+            .anyMatch(PredicateAbstractState::containsAbstractionState)) {
 
           logger.log(Level.WARNING, "BMC algorithm does not work with abstractions. Could not check for satisfiability!");
           return status;
@@ -1107,9 +1106,10 @@ abstract class AbstractBMCAlgorithm
   private boolean checkBoundingAssertions(
       final ReachedSet pReachedSet, final ProverEnvironmentWithFallback prover)
       throws SolverException, InterruptedException {
-    FluentIterable<AbstractState> stopStates = from(pReachedSet)
-        .filter(IS_STOP_STATE)
-        .filter(Predicates.not(IS_SLICED_STATE));
+    FluentIterable<AbstractState> stopStates =
+        from(pReachedSet)
+            .filter(AbstractBMCAlgorithm::isStopState)
+            .filter(AbstractBMCAlgorithm::isRelevantForReachability);
 
     if (boundingAssertions) {
       logger.log(Level.INFO, "Starting assertions check...");

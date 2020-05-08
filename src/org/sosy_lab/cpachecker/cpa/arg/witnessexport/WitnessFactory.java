@@ -1754,10 +1754,9 @@ class WitnessFactory implements EdgeAppender {
   private boolean exportInvariant(CFAEdge pEdge, Optional<Collection<ARGState>> pFromState) {
     if (pFromState.isPresent()
         && pFromState.orElseThrow().stream()
-            .anyMatch(
-                s ->
-                    AbstractStates.extractStateByType(s, PredicateAbstractState.class) != null
-                        && PredicateAbstractState.CONTAINS_ABSTRACTION_STATE.apply(s))) {
+            .map(AbstractStates.toState(PredicateAbstractState.class))
+            .filter(s -> s != null)
+            .anyMatch(PredicateAbstractState::containsAbstractionState)) {
       return true;
     }
     if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {

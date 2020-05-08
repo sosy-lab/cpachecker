@@ -151,9 +151,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
     refinementCalls++;
     try {
 
-      List<AbstractState> targets = from(pReached)
-        .filter(AbstractStates.IS_TARGET_STATE)
-        .toList();
+      List<AbstractState> targets = from(pReached).filter(AbstractStates::isTargetState).toList();
       assert !targets.isEmpty();
 
       do {
@@ -168,9 +166,7 @@ public class ImpactGlobalRefiner implements Refiner, StatisticsProvider {
         // there might be target states which were previously covered
         // and are now uncovered
 
-        targets = from(pReached)
-            .filter(AbstractStates.IS_TARGET_STATE)
-            .toList();
+        targets = from(pReached).filter(AbstractStates::isTargetState).toList();
 
       } while (!targets.isEmpty());
 

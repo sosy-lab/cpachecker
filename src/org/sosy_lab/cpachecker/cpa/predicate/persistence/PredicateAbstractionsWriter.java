@@ -87,7 +87,7 @@ public class PredicateAbstractionsWriter {
       if (rootState != null) {
         successors =
             ARGUtils.projectARG(
-                rootState, ARGState::getChildren, PredicateAbstractState.CONTAINS_ABSTRACTION_STATE);
+                rootState, ARGState::getChildren, PredicateAbstractState::containsAbstractionState);
         worklist.add(rootState);
       } else {
         successors = ImmutableSetMultimap.of();
