@@ -474,6 +474,9 @@ abstract class AbstractBMCAlgorithm
     if (pNode.hasEdgeTo(pNode)) {
       return true;
     }
+    if (pNode.getNumLeavingEdges() > 0 && pNode.getLeavingEdge(0).getSuccessor().hasEdgeTo(pNode)) {
+      return true;
+    }
     return false;
   }
 
@@ -489,14 +492,9 @@ abstract class AbstractBMCAlgorithm
                     .getDeepestIteration()
                     - 1 == numEncounterLoopHead)
             .toList();
-    if (loopHead.size() != 1) {
-      logger
-          .log(
-              Level.SEVERE,
-              "NZ: no unique loop head at encounter time = " + numEncounterLoopHead);
-      logger.log(Level.SEVERE, "NZ: the number of loop head = " + loopHead.size());
-      throw new AssertionError();
-    }
+    Preconditions.checkState(
+        loopHead.size() == 1,
+        "The number of loop heads in ARG is " + loopHead.size());
     return PredicateAbstractState.getPredicateState(loopHead.get(0))
         .getAbstractionFormula()
         .getBlockFormula();
