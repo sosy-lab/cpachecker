@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterAncestors;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
@@ -224,8 +223,9 @@ public class NZ_INTAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     try {
       logger.log(Level.INFO, "Error found, creating error path");
 
-      Set<ARGState> targetStates = from(pReachedSet).filter(IS_TARGET_STATE).filter(ARGState.class).toSet();
-      Set<ARGState> redundantStates = filterAncestors(targetStates, IS_TARGET_STATE);
+      Set<ARGState> targetStates =
+          from(pReachedSet).filter(AbstractStates::isTargetState).filter(ARGState.class).toSet();
+      Set<ARGState> redundantStates = filterAncestors(targetStates, AbstractStates::isTargetState);
       redundantStates.forEach(state -> {
         state.removeFromARG();
       });
