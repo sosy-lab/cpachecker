@@ -1,0 +1,408 @@
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2020  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
+
+html, body {
+    height: 100%;
+    padding: 0;
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.flex-master {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    height: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.page-header {
+    /* fixed size */
+    flex: none;
+
+    padding: 15px;
+    font-size: 1.5em;
+    font-weight: bold;
+    background: #535353;
+    color: white;
+}
+
+.page-content {
+    /* resize in container */
+    flex: 1;
+
+    /* IMPORTANT for FireFox */
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    /* new flex container for content */
+    display: flex;
+    flex-direction: row;
+}
+
+.sidebar-left {
+    flex: none;
+    background: #838383;
+    padding: 20px;
+    width: 250px;
+    min-width: 150px;
+    overflow: auto;
+    color: white;
+    white-space: nowrap;
+}
+
+.splitter {
+    flex: none;
+    width: 17px;
+    cursor: col-resize;
+    background: #535353;
+    background:url('data:image/gif;base64,R0lGODlhCAAhAPEAAPHx8eDg4AAAACZFySH5BAEAAAMALAAAAAAIACEAAAIhxGaoa+l8WpxPVQkvtJPnjj3aCG4hVZLfKqYui8JeKxsFADs=') center center no-repeat #535353;
+    }
+
+.content-container {
+    flex: 1 1 auto;
+    background: #eee;
+    padding: 20px;
+    width: 100%;
+    min-width: 400px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    /* new flex for content/ads*/
+    flex-direction: row;
+}
+
+.main-content {
+    flex: 1 1 auto;
+    width: 100%;
+    padding: 0px;
+    min-width: 300px;
+    color: #838383;
+}
+.svg-content{
+    flex: 1 1 auto;
+    width: 100%;
+    padding: 0px;
+    margin: 20px;
+    min-width: 300px;
+    color: #838383;
+    background-size: contain;
+}
+
+
+footer {
+    flex: none;
+    background: #535353;
+    color: white;
+    padding: 10px;
+}
+.footer img.logo {
+    float: left;
+    height: 20px;
+    margin-left:10px;
+}
+
+
+.sourceContent td:first-child {
+    background-color: #ccc;
+}
+
+.sourceContent td pre {
+    padding: 0px;
+    margin: 0px;
+    border: none;
+}
+
+.sourceContent tr:nth-child(odd) td pre.prettyprint {
+    background-color: #c6dce7;
+}
+
+.sourceContent tr:nth-child(even) td pre.prettyprint {
+    background-color: #a8cfe2;
+}
+
+
+<!-- Sonja -->
+
+
+text {
+    font-weight: 300;
+    font-family: sans-serif;
+    font-size: 12px;
+}
+.node text:hover{
+    fill: darkmagenta;
+    opacity: 1;
+}
+
+.node text {
+    visibility: hidden;
+}
+.node rect {
+    visibility: hidden;
+}
+.edgePath {
+    visibility: hidden;
+}
+.edgeLabel {
+    visibility: hidden;
+}
+.edgeLabel text {
+    visibility: hidden;
+}
+.edgePath text {
+    visibility: hidden;
+}
+.contentshow {
+    visibility: visible;
+}
+.contentshow text {
+    font-weight: 300;
+    font-family: sans-serif;
+    font-size: 12px;
+    fill:black;
+    visibility: visible;
+}
+.contentshow.node rect{
+    stroke: #999;
+    fill: white;
+    stroke-width: 1.5px;
+    visibility: visible;
+}
+.contentshow.edgePath path {
+    stroke: #333;
+    stroke-width: 1.5px;
+    visibility: visible;
+}
+.contentshow.mergedColored > rect {
+    fill: #00ffd0;
+}
+.contentshow.toMerge > rect {
+    fill: plum;
+}
+.contentshow.analysisStop > rect {
+    stroke-width: 10px;
+    stroke-dasharray: 5;
+}
+
+.page-button-bar {
+    /* fixed size */
+    flex: none;
+
+    padding: 15px;
+    font-size: 1em;
+    font-weight: bold;
+    background: #535353;
+    color: white;
+}
+
+.button {
+    width: 140px;
+    height: 4em;
+    font-family: 'Roboto', sans-serif;
+    font-size: 0.6em;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: bold;
+    color: #000;
+    background-color: #fff;
+    border: none;
+    border-radius: 5px;
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease 0s;
+    cursor: pointer;
+    outline: none;
+    padding: 0em;
+    margin: 0.1em;
+}
+
+.button:hover {
+    background-color: #2EE59D;
+    box-shadow: 0 15px 20px rgba(46, 229, 157, 0.4);
+    color: #fff;
+    transform: translateY(2px);
+}
+
+.dropbtn {
+    width: 140px;
+    height: 4em;
+    font-family: 'Roboto', sans-serif;
+    font-size: 0.6em;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: bold;
+    color: #000;
+    background-color: #fff;
+    border: none;
+    border-radius: 5px;
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease 0s;
+    cursor: pointer;
+    outline: none;
+    padding: 0em;
+    margin: 0.1em;
+}
+
+.dropbtn:hover, .dropbtn:focus {
+    background-color: #2EE59D;
+    box-shadow: 0 15px 20px rgba(46, 229, 157, 0.4);
+    color: #fff;
+    transform: translateY(2px);
+}
+
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f1f1f1;
+    min-width: 160px;
+    overflow: auto;
+    box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);
+    z-index: 1;
+    border-radius: 5px;
+}
+
+.dropdown-content a {
+    color: #2db97b;
+    padding: 1em 1em;
+    text-decoration: none;
+    display: block;
+    font-size: 0.6em;
+    font-family: 'Roboto', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.dropdown a:hover {background-color: #ddd;}
+
+.show {display: block;}
+
+.slidecontainer {
+    width: 100%;
+}
+.slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 25px;
+    background: #d3d3d3;
+    outline: none;
+    opacity: 0.7;
+    -webkit-transition: .2s;
+    transition: opacity .2s;
+}
+
+.slider:hover {
+    opacity: 1;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 25px;
+    height: 25px;
+    cursor: pointer;
+    background: #2EE59D;
+}
+
+
+.slider::-moz-range-thumb {
+    width: 25px;
+    height: 25px;
+    background: #2EE59D;
+    cursor: pointer;
+}
+
+#infoBox {
+    visibility: hidden;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 1;
+    width: 200px;
+    background-color: #2EE59D;
+    display: inline-block;
+    border-radius: 6px;
+}
+
+.tool_tip #boxContent::after {
+    content: "";
+    position: absolute;
+    top: 25%;
+    right: 100%;
+    margin-top: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: transparent #2EE59D transparent transparent;
+}
+
+#insideBox {
+    padding-top: 0;
+}
+
+#boxContent {
+    font-family: Verdana, Arial, Helvetica, sans-serif;
+    font-size: 8px;
+    line-height: 130%;
+    color: black;
+    text-align: center;
+    padding: 50px 0;
+}
+
+.bold {
+    font-weight: bold;
+    font-size: 12px;
+
+}
+
+.standard {
+    font-size: 12px;
+}
+
+.sourceContent td:first-child {
+    background-color: #ccc;
+}
+
+.sourceContent td pre {
+    padding: 0px;
+    margin: 0px;
+    border: none;
+}
+
+.sourceContent tr:nth-child(odd) td pre.prettyprint {
+    background-color: #c6dce7;
+}
+
+.sourceContent tr:nth-child(even) td pre.prettyprint {
+    background-color: #a8cfe2;
+}
+
+.marked-source-line {
+   /* background-color: #df80ff !important;*/
+    background-color: darkblue !important;
+}

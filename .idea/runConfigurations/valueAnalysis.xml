@@ -1,0 +1,13 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="valueAnalysis" type="Application" factoryName="Application">
+    <option name="ALTERNATIVE_JRE_PATH" value="corretto-11" />
+    <option name="MAIN_CLASS_NAME" value="org.sosy_lab.cpachecker.cmdline.CPAMain" />
+    <module name="CPAchecker" />
+    <option name="PROGRAM_PARAMETERS" value="-setprop solver.solver=smtinterpol -setprop cpa.predicate.encodeBitvectorAs=integer -setprop cpa.predicate.encodeFloatAs=rational -valueAnalysis doc/examples/example.c " />
+    <shortenClasspath name="NONE" />
+    <option name="VM_PARAMETERS" value="-ea" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
