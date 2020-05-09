@@ -470,7 +470,7 @@ class EclipseJavaParser implements JavaParser {
   }
 
   /**
-   * Returns the path of a class file, checks if it exists and returns an Optional of that class.
+   * Search the path of a class file, checks if it exists and returns an Optional of class path.
    * Uses using javaSourcePaths variable, thus it must be set.
    * @param nextClassToBeParsed Name of the class to be parsed, without its path and file ending
    * @return Optional<Path> to file. Empty if file does not exist
