@@ -279,26 +279,26 @@ input:checked+.slider:before {
 	border-collapse: collapse;
 }
 
-.fault-table td{
+.fault-table td {
 	cursor: pointer;
 	padding: 7px;
 	border: #000000 2px solid;
 }
 
-.fault-table tr:first-child td:first-child{
+.fault-table .fault-rank {
 	background-color: #28a745;
 	text-align: center;
 	font-weight: 700;
 	width: 10%;
 }
 
-.fault-table tr:first-child td:nth-child(2){
+.fault-table .fault-score {
 	background-color: #ffc107;
 	text-align: center;
 	width: 10%;
 }
 
-.fault-table tr:first-child td:nth-child(3){
+.fault-table .fault-details-header {
 	background-color: #ff3907aa;
 	font-weight: 700;
 }

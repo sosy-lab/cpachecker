@@ -132,17 +132,17 @@ with considerably less effort -->
         </table>
           <table ng-show="hideErrorTable" ng-click="clickedFaultLocElement($event)" class="fault-table" ng-repeat="fault in faults" id="fault-{{$index}}">
             <tr>
-              <td data-toggle="tooltip" data-placement="bottom" title="Rank">
-                <pre>{{fault.rank}}.</pre>
+              <td class="fault-rank" data-toggle="tooltip" data-placement="bottom" title="Rank">
+                {{fault.rank}}.
               </td>
-              <td data-toggle="tooltip" data-placement="bottom" title="Score">
-                <pre>{{fault.score}}</pre>
+              <td class="fault-score" data-toggle="tooltip" data-placement="bottom" title="Score">
+                {{fault.score}}
               </td>
-              <td>
-                <select><option ng-repeat="descr in fault.descriptions track by $index" value="{{descr}}">{{descr}}</option></select>
+              <td class="fault-details-header">
+                Details:
               </td>
             </tr>
-            <tr>
+            <tr class="fault-details">
               <td colspan="3" html=true>
                 <div ng-bind-html="htmlTrusted(fault.reason)"></div>
               </td>
