@@ -130,21 +130,21 @@ with considerably less effort -->
             </td>
           </tr>
         </table>
-          <table ng-show="hideErrorTable" class="fault-table" ng-repeat="edge in faults">
-            <tr id="fault-{{$index}}">
-              <td ng-click="showLines(edge.lines)" data-toggle="tooltip" data-placement="bottom" title="Rank">
-                <pre>{{edge.rank}}.</pre>
+          <table ng-show="hideErrorTable" ng-click="clickedFaultLocElement($event)" class="fault-table" ng-repeat="fault in faults" id="fault-{{$index}}">
+            <tr>
+              <td data-toggle="tooltip" data-placement="bottom" title="Rank">
+                <pre>{{fault.rank}}.</pre>
               </td>
-              <td ng-click="showLines(edge.lines)" data-toggle="tooltip" data-placement="bottom" title="Score">
-                <pre>{{edge.score}}</pre>
+              <td data-toggle="tooltip" data-placement="bottom" title="Score">
+                <pre>{{fault.score}}</pre>
               </td>
               <td>
-                <select><option ng-repeat="descr in edge.descriptions track by $index" ng-click="showRedLine($index, edge)" value="{{descr}}">{{descr}}</option></select>
+                <select><option ng-repeat="descr in fault.descriptions track by $index" value="{{descr}}">{{descr}}</option></select>
               </td>
             </tr>
             <tr>
-              <td colspan="3" ng-click="showLines(edge.lines)" html=true>
-                <div ng-bind-html="htmlTrusted(edge.reason)"></div>
+              <td colspan="3" html=true>
+                <div ng-bind-html="htmlTrusted(fault.reason)"></div>
               </td>
             </tr>
           </table>

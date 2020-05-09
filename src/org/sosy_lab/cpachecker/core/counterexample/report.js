@@ -278,11 +278,24 @@ with considerably less effort */
 		//Fault Localization
 		$scope.selectedLines = [];
 		$scope.redLine = -1;
+		// make faults visible to angular
 		$rootScope.faults = [];
-                const allFaults = cfaJson.faults;
-                if(allFaults !== undefined && allFaults.length > 0){
-                        $rootScope.faults = allFaults;
-                }
+		if (cfaJson.faults !== undefined) {
+			for (const [i, f] of cfaJson.faults.entries()) {
+				let fInfo = Object.assign({}, f);
+				// store all error-path elements related to this fault.
+				// we can't do  this in the Java backend because
+				// we can't be sure to have the full error-path elements in the FaultLocalizationInfo
+				// when the faults-code is generated.
+				fInfo["errPathIds"] = [];
+				for (const [j, e] of cfaJson.errorPath.entries()) {
+					if (e.faults.includes(i)) {
+						fInfo["errPathIds"].push(j);
+					}
+				}
+				$rootScope.faults.push(fInfo);
+			}
+		}
 
 		function getValues(val, prevValDict) {
 			var values = {};
@@ -302,7 +315,7 @@ with considerably less effort */
 		};
 
 		// initialize array that stores the important edges. Index counts only, when edges appear in the report.
-                var importantEdges = [];
+		var importantEdges = [];
 		var importantIndex = -1;
 		const faultEdges = [];
 		if (errorPath !== undefined) {
@@ -341,8 +354,8 @@ with considerably less effort */
 
 				if (errPathElem.faults !== undefined && errPathElem.faults.length > 0) {
 					errPathElem["importantindex"] = importantIndex;
-					errPathElem["bestrank"] = allFaults[errPathElem.faults[0]].rank;
-					errPathElem["bestreason"] = allFaults[errPathElem.faults[0]].reason;
+					errPathElem["bestrank"] = $rootScope.faults[errPathElem.faults[0]].rank;
+					errPathElem["bestreason"] = $rootScope.faults[errPathElem.faults[0]].reason;
 					if (errPathElem["additional"] !== undefined && errPathElem["additional"] !== "") {
 						errPathElem["bestreason"] = errPathElem["bestreason"] + errPathElem["additional"];
 					}
@@ -356,7 +369,7 @@ with considerably less effort */
 			};
 
 			function addFaultLocalizationInfo(){
-				if (allFaults !== undefined && allFaults.length !== 0) {
+				if (faultEdges !== undefined && faultEdges.length > 0) {
 					for (var j = 0; j < faultEdges.length; j++) {
 						d3.selectAll("#errpath-" + faultEdges[j].importantindex + " td pre").classed("fault", true);
 					}
@@ -379,14 +392,19 @@ with considerably less effort */
 
 		}
 
-		$scope.hideFaults = (allFaults == undefined || allFaults.length == 0);
+		$scope.hideFaults = ($rootScope.faults == undefined || $rootScope.faults.length == 0);
 
 		$scope.faultClicked = function(){
-			var toggle = !$scope.hideErrorTable;
-			if (toggle) {
-				$("#report-controller").scope().setTab(3);
-			}
-			$scope.hideErrorTable = toggle;
+			$scope.hideErrorTable = !$scope.hideErrorTable;
+		};
+
+		$scope.clickedFaultLocElement = function ($event) {
+			d3.selectAll(".clickedFaultLocElement").classed("clickedFaultLocElement", false);
+			let clickedElement = d3.select($event.currentTarget);
+			clickedElement.classed("clickedFaultLocElement", true);
+			let faultElementIdx = clickedElement.attr("id").substring("fault-".length);
+			let faultElement = $rootScope.faults[faultElementIdx];
+			markErrorPathElementInTab(faultElement.errPathIds);
 		};
 
 		$scope.errPathPrevClicked = function ($event) {
@@ -644,21 +662,7 @@ with considerably less effort */
 				element.classList.add("markedTableElement");
 			}
 		};
-		$scope.showLines = function (lines){
-			$("#source-"+$scope.redLine).removeClass("highlight-selected-line");
-			for(var i = 0; i < $scope.selectedLines.length; i++){
-				$("#source-"+$scope.selectedLines[i]).removeClass("highlight-line");
-			}
-			for(var i = 0; i < lines.length; i++){
-				$("#source-"+lines[i]).addClass("highlight-line");
-			}
-			$scope.selectedLines = lines;
-		};
-		$scope.showRedLine = function (index, edge){
-			$("#source-"+$scope.redLine).removeClass("highlight-selected-line");
-			$scope.redLine = edge.lines[index];
-			$("#source-"+$scope.redLine).addClass("highlight-selected-line");
-		};
+
 		$scope.htmlTrusted = function(html) {
 			return $sce.trustAsHtml(html);
 		};
