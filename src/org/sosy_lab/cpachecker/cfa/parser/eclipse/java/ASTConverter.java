@@ -1535,7 +1535,7 @@ class ASTConverter {
             "Could not process argument: " + argument.toString() + " .");
       }
     }
-    return parameterList;
+    return ImmutableList.copyOf(parameterList);
   }
 
   private List<JParameterDeclaration> createJParameterDeclarationsForArguments(List<?> arguments) {
@@ -1561,7 +1561,7 @@ class ASTConverter {
             "Could not process argument: " + argument.toString() + " .");
       }
     }
-    return parameterList;
+    return ImmutableList.copyOf(parameterList);
   }
 
   private JParameterDeclaration convertVariableDeclarationToParameterDeclaration(
