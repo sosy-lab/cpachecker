@@ -97,6 +97,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     private final Timer calcReached = new Timer();
     private int refinementCount = 0;
     private int solverCallCount = 0;
+    private int sliceEdgesCalls = 0;
 
     @Override
     public String getName() {
@@ -114,8 +115,10 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       out.println("    Slice edges:                      " + sliceEdges);
       out.println("      Solver calls:                       " + solverCallCount);
       out.println("    Recalculate ReachedSet:           " + calcReached);
+      out.println("    Number of Slice Edges Calls  " + sliceEdgesCalls);
       out.println();
       out.println("Number of abstractions during refinements:  " + impact.abstractionTime.getNumberOfIntervals());
+
 
       SlicingAbstractionsStrategy.this.printStatistics(out);
     }
@@ -126,6 +129,10 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
 
     public void increaseSolverCallCounter() {
       solverCallCount++;
+    }
+
+    public void increaseSliceEdgesCallsCounter() {
+      sliceEdgesCalls++;
     }
   }
 
@@ -404,6 +411,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       ARGState pInfeasiblePartOfART, List<ARGState> pAbstractionStatesTrace, ARGState rootState)
       throws InterruptedException, CPAException {
     final List<ARGState> allChangedStates;
+    stats.increaseSliceEdgesCallsCounter();
     //get the corresponding forked states:
     allChangedStates = pChangedElements.stream()
         .map(x -> forkedStateMap.get(x))
@@ -753,15 +761,17 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       }
     }
     synchronized (parallelSolvers.get(currentThreadId)) {
-      try (ProverEnvironment thmProver =
-          parallelSolvers
-              .get(currentThreadId)
-              .newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-        thmProver.push(parallelFormula);
-        stats.increaseSolverCallCounter();
-        infeasible = thmProver.isUnsat();
-      } catch (SolverException e) {
-        throw new CPAException("Solver Failure", e);
+      synchronized (stats) {
+        try (ProverEnvironment thmProver =
+            parallelSolvers
+                .get(currentThreadId)
+                .newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+          thmProver.push(parallelFormula);
+          stats.increaseSolverCallCounter();
+          infeasible = thmProver.isUnsat();
+        } catch (SolverException e) {
+          throw new CPAException("Solver Failure", e);
+        }
       }
     }
     return infeasible;
