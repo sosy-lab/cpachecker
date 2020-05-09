@@ -49,6 +49,7 @@ public class TarantulaAlgorithm implements Algorithm {
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     StatTimer totalAnalysisTime = new StatTimer("Time for fault localization");
+    totalAnalysisTime.start();
     try {
 
       AlgorithmStatus result = analysis.run(reachedSet);
@@ -61,7 +62,7 @@ public class TarantulaAlgorithm implements Algorithm {
               Level.WARNING, "There is no safe Path, the algorithm is therefore not efficient");
         }
         logger.log(Level.INFO, "Start tarantula algorithm ... ");
-        totalAnalysisTime.start();
+
         getFaultLocations(System.out, safeCase, failedCase);
       } else {
         logger.log(Level.INFO, "There is no counterexample. No bugs found.");

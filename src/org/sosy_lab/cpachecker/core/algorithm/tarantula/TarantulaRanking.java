@@ -79,7 +79,6 @@ public class TarantulaRanking {
   }
 
   public Map<CFAEdge, Double> getRanked() throws InterruptedException {
-    shutdownNotifier.shutdownIfNecessary();
 
     Map<CFAEdge, TarantulaCasesStatus> coverage =
         this.coverageInformation.getCoverageInformation(
