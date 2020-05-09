@@ -24,6 +24,8 @@
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
 import com.google.common.base.Splitter;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
@@ -34,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.antlr.v4.runtime.misc.MultiMap;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -46,7 +47,8 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   private List<Fault> rankedList;
   private FaultReportWriter htmlWriter;
 
-  private MultiMap<CFAEdge, Integer> mapEdgeToFaults;
+  /** Maps a CFA edge to the index of faults in {@link #rankedList} associated with that edge. **/
+  private Multimap<CFAEdge, Integer> mapEdgeToRankedFaultIndex;
   private Map<CFAEdge, FaultContribution> mapEdgeToFaultContribution;
 
   /**
@@ -111,18 +113,17 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     initialize(rankedFault);
   }
 
-  private void initialize(List<Fault> pFaults){
+  private void initialize(List<Fault> pRankedFaults){
     mapEdgeToFaultContribution = new HashMap<>();
-    mapEdgeToFaults = new MultiMap<>();
-
-    for(int i = 0; i < pFaults.size(); i++){
-      for (FaultContribution faultContribution : pFaults.get(i)) {
-        mapEdgeToFaults.map(faultContribution.correspondingEdge(), i);
+    mapEdgeToRankedFaultIndex = ArrayListMultimap.create();
+    for(int i = 0; i < pRankedFaults.size(); i++){
+      for (FaultContribution faultContribution : pRankedFaults.get(i)) {
+        mapEdgeToRankedFaultIndex.put(faultContribution.correspondingEdge(), i);
         mapEdgeToFaultContribution.put(faultContribution.correspondingEdge(), faultContribution);
       }
     }
 
-    rankedList = pFaults;
+    rankedList = pRankedFaults;
     htmlWriter = new FaultReportWriter();
   }
 
@@ -178,15 +179,17 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   @Override
   protected void addAdditionalInfo(Map<String, Object> elem, CFAEdge edge) {
     elem.put("additional", "");
-    elem.put("faults", new ArrayList<>());
     FaultContribution fc = mapEdgeToFaultContribution.get(edge);
     if(fc != null){
       if(fc.hasReasons()){
         elem.put("additional", "<br><br><strong>Additional information provided:</strong><br>" + htmlWriter.toHtml(fc));
       }
     }
-    if(mapEdgeToFaults.containsKey(edge)){
-      elem.put("faults", mapEdgeToFaults.get(edge));
+    if(mapEdgeToRankedFaultIndex.containsKey(edge)){
+      elem.put("faults", mapEdgeToRankedFaultIndex.get(edge));
+    }
+    if (!elem.containsKey("faults")) {
+      elem.put("faults", new ArrayList<>());
     }
   }
 
