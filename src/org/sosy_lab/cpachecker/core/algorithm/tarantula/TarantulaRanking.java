@@ -36,13 +36,11 @@ public class TarantulaRanking {
   private final SafeCase safeCase;
   private final FailedCase failedCase;
   private final CoverageInformation coverageInformation;
-  private final ShutdownNotifier shutdownNotifier;
 
   public TarantulaRanking(
       SafeCase pSafeCase, FailedCase pFailedCase, ShutdownNotifier pShutdownNotifier) {
     this.safeCase = pSafeCase;
     this.failedCase = pFailedCase;
-    this.shutdownNotifier = pShutdownNotifier;
     this.coverageInformation = new CoverageInformation(pFailedCase, pShutdownNotifier);
   }
 
