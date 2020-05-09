@@ -1313,7 +1313,7 @@ class ASTConverter {
 
     // Check for import declaration matching our Class Instance Creation
     ImportDeclaration matchingImportDeclaration =
-        getMatchingImportDeclaration(pCIC, importDeclarations);
+        getMatchingImportDeclaration(pCIC.getType().toString(), importDeclarations);
 
     Optional<Constructor<?>> constructorOptional;
     if (matchingImportDeclaration == null) {
@@ -1369,7 +1369,7 @@ class ASTConverter {
   }
 
   private ImportDeclaration getMatchingImportDeclaration(
-      ClassInstanceCreation pCIC, Set<ImportDeclaration> pImportDeclarations) {
+      String pTypeAsString, Set<ImportDeclaration> pImportDeclarations) {
     for (ImportDeclaration importDeclaration : pImportDeclarations) {
       // case non wild card import declaration
       Pattern pattern = Pattern.compile("\\.[A-Z].*;$");
@@ -1383,7 +1383,7 @@ class ASTConverter {
                 .replace(".", "")
                 .replace(";", "");
       }
-      if (importedClass.equals(pCIC.getType().toString())) {
+      if (importedClass.equals(pTypeAsString)) {
         return importDeclaration;
       }
     }
