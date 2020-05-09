@@ -43,12 +43,12 @@ public class CoverageInformation {
   }
 
   /**
-   * Counts how many failed case / passed case has each Edges. For example <code>
-   * line 5: N2 -{[cond == 0]},[2,1]</code> means that this specific Edges has `2` failed cases and
+   * Counts how many failed case / passed case has each Edge. For example <code>
+   * line 5: N2 -{[cond == 0]},[2,1]</code> means that this specific Edge has `2` failed cases and
    * only one passed case.
    *
-   * @param  paths The whole path contains all error paths and passed paths.
-   * @return result as <code>Map<code/>.
+   * @param paths The whole path contains all error paths and passed paths.
+   * @return result as edge and its case status.
    */
   private Map<CFAEdge, TarantulaCasesStatus> coverageInformation(Set<ARGPath> paths)
       throws InterruptedException {
@@ -84,7 +84,7 @@ public class CoverageInformation {
   }
 
   /**
-   * Gets the <code> HashMap<CFAEdge, int[]> </code>.
+   * Gets the all information about the edge coverage.
    *
    * @return Covered edges.
    */
