@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-@Options
+//@Options
 public class CollectorMergeJoin implements MergeOperator {
 
   private final MergeOperator wrappedMergeCol;
@@ -57,7 +57,7 @@ public class CollectorMergeJoin implements MergeOperator {
       throws InvalidConfigurationException {
 
     wrappedMergeCol = pWrappedMerge;
-    config.inject(this);
+    //config.inject(this);
     logger = mjLogger;
   }
 

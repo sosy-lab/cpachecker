@@ -39,7 +39,8 @@ import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 
-public class CollectorState extends AbstractSingleWrapperState implements Graphable {
+public class CollectorState extends AbstractSingleWrapperState implements Graphable, Serializable {
+  private static final long serialVersionUID = 2918872612263404326L;
   private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
   private final Collection<ARGState> wrappedParent;
   private final int currentARGid;
