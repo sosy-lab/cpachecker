@@ -1311,22 +1311,10 @@ class ASTConverter {
                 .map(ImportDeclaration.class::cast)
                 .collect(ImmutableSet.toImmutableSet());
 
-    // Check for import declaration matching our Class Instance Creation
-    Optional<ImportDeclaration> matchingImportDeclaration =
-        getMatchingImportDeclaration(pCIC.getType().toString(), importDeclarations);
-
     Optional<Constructor<?>> constructorOptional;
-    if (!matchingImportDeclaration.isPresent()) {
-      constructorOptional =
-          matchConstructor(
-              "java.lang." + pCIC.getType().toString(), pCIC.arguments(), importDeclarations);
-    } else {
-      constructorOptional =
-          matchConstructor(
-              matchingImportDeclaration.get().getName().getFullyQualifiedName(),
-              pCIC.arguments(),
-              importDeclarations);
-    }
+
+    constructorOptional =
+        matchConstructor(pCIC.getType().toString(), pCIC.arguments(), importDeclarations);
 
     if (constructorOptional.isPresent()) {
       JClassOrInterfaceType declaringClass = scope.getCurrentClassType();
@@ -1395,11 +1383,21 @@ class ASTConverter {
 
   private Optional<Constructor<?>> matchConstructor(
       String pClassName, List<?> pArguments, Set<ImportDeclaration> pImportDeclarations) {
+    Optional<ImportDeclaration> matchingImportDeclaration =
+        getMatchingImportDeclaration(pClassName, pImportDeclarations);
     Class<?> cls;
-    try {
-      cls = Class.forName(pClassName);
-    } catch (ClassNotFoundException pE) {
-      return Optional.absent();
+    if (!matchingImportDeclaration.isPresent()) {
+      try {
+        cls = Class.forName("java.lang." + pClassName);
+      } catch (ClassNotFoundException pE) {
+        return Optional.absent();
+      }
+    } else {
+      try {
+        cls = Class.forName(matchingImportDeclaration.get().getName().getFullyQualifiedName());
+      } catch (ClassNotFoundException pE) {
+        return Optional.absent();
+      }
     }
     List<Class<?>> argumentsAsClassArray =
         convertArgumentListToClassList(pArguments, pImportDeclarations);
