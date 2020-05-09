@@ -164,8 +164,6 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
       faultMap.put("rank", (i+1));
       faultMap.put("score", (int) (100 * fault.getScore()));
       faultMap.put("reason", htmlWriter.toHtml(fault));
-      faultMap.put("lines", fault.sortedLineNumbers());
-      faultMap.put("descriptions", descriptionsOfFault(fault));
       faults.add(faultMap);
     }
     JSON.writeJSONString(faults ,pWriter);
@@ -191,20 +189,6 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     if (!elem.containsKey("faults")) {
       elem.put("faults", new ArrayList<>());
     }
-  }
-
-  protected List<String> descriptionsOfFault(Fault fault){
-    return fault
-        .stream()
-        .sorted(Comparator.comparingInt(fc -> fc.correspondingEdge().getFileLocation().getStartingLineInOrigin()))
-        .map(fc -> {
-          CFAEdge cfaEdge = fc.correspondingEdge();
-          if(cfaEdge.getEdgeType().equals(CFAEdgeType.FunctionReturnEdge)){
-            return Splitter.on(":").split(cfaEdge.getDescription()).iterator().next();
-          }
-          return fc.correspondingEdge().getDescription();
-        })
-        .collect(Collectors.toList());
   }
 
   public FaultReportWriter getHtmlWriter() {
