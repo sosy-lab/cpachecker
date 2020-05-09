@@ -1312,17 +1312,20 @@ class ASTConverter {
                 .collect(ImmutableSet.toImmutableSet());
 
     // Check for import declaration matching our Class Instance Creation
-    ImportDeclaration matchingImportDeclaration =
+    Optional<ImportDeclaration> matchingImportDeclaration =
         getMatchingImportDeclaration(pCIC.getType().toString(), importDeclarations);
 
     Optional<Constructor<?>> constructorOptional;
-    if (matchingImportDeclaration == null) {
+    if (!matchingImportDeclaration.isPresent()) {
       constructorOptional =
-          matchConstructor("java.lang." + pCIC.getType().toString(), pCIC.arguments());
+          matchConstructor(
+              "java.lang." + pCIC.getType().toString(), pCIC.arguments(), importDeclarations);
     } else {
       constructorOptional =
           matchConstructor(
-              matchingImportDeclaration.getName().getFullyQualifiedName(), pCIC.arguments());
+              matchingImportDeclaration.get().getName().getFullyQualifiedName(),
+              pCIC.arguments(),
+              importDeclarations);
     }
 
     if (constructorOptional.isPresent()) {
@@ -1368,7 +1371,7 @@ class ASTConverter {
     return visibilityModifier;
   }
 
-  private ImportDeclaration getMatchingImportDeclaration(
+  private static Optional<ImportDeclaration> getMatchingImportDeclaration(
       String pTypeAsString, Set<ImportDeclaration> pImportDeclarations) {
     for (ImportDeclaration importDeclaration : pImportDeclarations) {
       // case non wild card import declaration
@@ -1384,24 +1387,29 @@ class ASTConverter {
                 .replace(";", "");
       }
       if (importedClass.equals(pTypeAsString)) {
-        return importDeclaration;
+        return Optional.of(importDeclaration);
       }
     }
-    return null;
+    return Optional.absent();
   }
 
-  private Optional<Constructor<?>> matchConstructor(String pClassName, List<?> pArguments) {
+  private Optional<Constructor<?>> matchConstructor(
+      String pClassName, List<?> pArguments, Set<ImportDeclaration> pImportDeclarations) {
     Class<?> cls;
     try {
       cls = Class.forName(pClassName);
     } catch (ClassNotFoundException pE) {
       return Optional.absent();
     }
-    List<Class<?>> argumentsAsClassArray = convertArgumentListToClassList(pArguments);
+    List<Class<?>> argumentsAsClassArray =
+        convertArgumentListToClassList(pArguments, pImportDeclarations);
 
     for (Constructor<?> constructor : cls.getDeclaredConstructors()) {
       boolean match = true;
       Class<?>[] parameterTypes = constructor.getParameterTypes();
+      if (parameterTypes.length != argumentsAsClassArray.size()) {
+        continue;
+      }
       for (int i = 0; i < parameterTypes.length; i++) {
         if (!parameterTypes[i].isAssignableFrom(argumentsAsClassArray.get(i))) {
           match = false;
@@ -1415,17 +1423,21 @@ class ASTConverter {
     return Optional.absent();
   }
 
-  private List<Class<?>> convertArgumentListToClassList(List<?> pArguments) {
+  private List<Class<?>> convertArgumentListToClassList(
+      List<?> pArguments, Set<ImportDeclaration> pImportDeclarations) {
     List<Class<?>> result = new ArrayList<>(pArguments.size());
 
     for (Object argument : pArguments) {
       JSimpleDeclaration simpleDeclaration = scope.lookupVariable(argument.toString());
       if (simpleDeclaration != null) {
-        result.add(getClassOfJType(simpleDeclaration.getType()).get());
+        final Optional<Class<?>> classOfJType =
+            getClassOfJType(simpleDeclaration.getType(), pImportDeclarations);
+        result.add(classOfJType.get());
       } else if (argument instanceof Expression) {
         ITypeBinding binding = ((Expression) argument).resolveTypeBinding();
         if (binding != null) {
-          result.add(getClassOfJType(typeConverter.convert(binding)).get());
+          final JType convert = typeConverter.convert(binding);
+          result.add(getClassOfJType(convert, pImportDeclarations).get());
         } else {
           throw new AssertionError("Cannot find class of " + argument.toString());
         }
@@ -1440,35 +1452,67 @@ class ASTConverter {
   }
 
   @VisibleForTesting
-  static Optional<Class<?>> getClassOfJType(JType pJType) {
+  static Optional<Class<?>> getClassOfJType(
+      JType pJType, Set<ImportDeclaration> pImportDeclarations) {
     if (pJType instanceof JSimpleType) {
       return getClassOfPrimitiveType((JSimpleType) pJType);
     }
     if (pJType instanceof JClassOrInterfaceType) {
-      try {
-        final String jTypeName = ((JClassOrInterfaceType) pJType).getName();
-        final Optional<Class<?>> cls = Optional.of(Class.forName(jTypeName));
-        if ((cls.get().isInterface() && pJType instanceof JClassType)
-            || (!cls.get().isInterface() && pJType instanceof JInterfaceType)) {
-          String errorMessage =
-              "Error in getting class of "
-                  + jTypeName
-                  + ". "
-                  + jTypeName
-                  + ((pJType instanceof JInterfaceType) ? " is" : " is not")
-                  + " an interface "
-                  + "but its derived class"
-                  + (cls.get().isInterface() ? " is." : " is not.");
-          throw new AssertionError(errorMessage);
+      final String jTypeName = ((JClassOrInterfaceType) pJType).getName();
+      Optional<ImportDeclaration> matchingImportDeclaration =
+          getMatchingImportDeclaration(jTypeName, pImportDeclarations);
+      Optional<Class<?>> cls = Optional.absent();
+      if (matchingImportDeclaration.isPresent()) {
+        try {
+          cls =
+              Optional.of(
+                  Class.forName(matchingImportDeclaration.get().getName().getFullyQualifiedName()));
+        } catch (ClassNotFoundException pE) {
+          cls = Optional.absent();
         }
-        return cls;
-      } catch (ClassNotFoundException pE) {
-        return Optional.absent();
       }
+      if (!cls.isPresent()) {
+        try {
+          cls = Optional.of(Class.forName(jTypeName));
+
+        } catch (ClassNotFoundException pE) {
+          cls = Optional.absent();
+        }
+      }
+      if (!cls.isPresent()) {
+        try {
+          final String className = "java.lang." + jTypeName;
+          cls = Optional.of(Class.forName(className));
+
+        } catch (ClassNotFoundException pE) {
+
+          cls = Optional.absent();
+        }
+      }
+
+      if (!cls.isPresent()) {
+        return cls;
+      }
+
+      if ((cls.get().isInterface() && pJType instanceof JClassType)
+          || (!cls.get().isInterface() && pJType instanceof JInterfaceType)) {
+        String errorMessage =
+            "Error in getting class of "
+                + jTypeName
+                + ". "
+                + jTypeName
+                + ((pJType instanceof JInterfaceType) ? " is" : " is not")
+                + " an interface "
+                + "but its derived class"
+                + (cls.get().isInterface() ? " is." : " is not.");
+        throw new AssertionError(errorMessage);
+      }
+      return cls;
     }
     if (pJType instanceof JArrayType) {
       final JType elementTypeOfJArrayType = ((JArrayType) pJType).getElementType();
-      Optional<Class<?>> typeOfArray = getClassOfJType(elementTypeOfJArrayType);
+      Optional<Class<?>> typeOfArray =
+          getClassOfJType(elementTypeOfJArrayType, pImportDeclarations);
       int dimensionsOfArray = ((JArrayType) pJType).getDimensions();
       Class<?> array = Array.newInstance(typeOfArray.get(), 0).getClass();
       for (int i = 1; i < dimensionsOfArray; i++) {
