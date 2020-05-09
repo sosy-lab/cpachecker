@@ -58,7 +58,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGStopSep;
 import org.sosy_lab.cpachecker.cpa.arg.ARGTransferRelation;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 
-@Options
+
 public class CollectorCPA extends AbstractSingleWrapperCPA implements StatisticsProvider {
 
   private final MergeOperator merge;

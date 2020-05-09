@@ -90,7 +90,7 @@ public class CollectorTransferRelation implements TransferRelation {
 
   // same as in ARGTransferRelation
   @Override
-  public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
+  public Collection<AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) {
 
     throw new UnsupportedOperationException(

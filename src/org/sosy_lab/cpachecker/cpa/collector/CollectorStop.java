@@ -52,7 +52,7 @@ public class CollectorStop implements StopOperator {
     CollectorState stateC = (CollectorState) state;
     ARGState wrappedState = (ARGState) ((CollectorState) state).getWrappedState();
 
-    Collection<? extends AbstractState> stopcollection;
+    Collection<AbstractState> stopcollection;
     stopcollection = reached;
 
     Collection<AbstractState> wrappedstop = new ArrayList<>();

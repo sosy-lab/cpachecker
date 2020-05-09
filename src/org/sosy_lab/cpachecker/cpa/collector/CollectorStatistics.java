@@ -52,6 +52,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -107,7 +108,7 @@ public class CollectorStatistics implements Statistics {
 
     cEdges = ArrayListMultimap.create();
 
-    sourceFiles = ImmutableList.of(pathSourceFile);
+    sourceFiles = ImmutableList.of(Objects.requireNonNull(pathSourceFile));
   }
 
   // Similar to the getEdgeText method in DOTBuilder2

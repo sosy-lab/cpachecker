@@ -82,7 +82,10 @@ function start(){
 function reset(){
     $(document).ready(function(){
     });
-    window.location.href = window.location;
+    //window.location.href = window.location;
+    step = 0;
+    document.getElementById("demo").innerHTML = step ;
+    document.getElementById("myRange").value = step ;
     start();
 }
 

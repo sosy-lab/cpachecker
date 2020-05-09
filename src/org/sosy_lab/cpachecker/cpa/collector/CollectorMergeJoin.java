@@ -49,9 +49,6 @@ public class CollectorMergeJoin implements MergeOperator {
   private final ArrayList<ARGState> children2 = new ArrayList<>();
   private final ArrayList<ARGState> parentsM = new ArrayList<>();
   private CollectorState mergedElementabs;
-  private int nr1;
-  private int nr2;
-
 
 
   public CollectorMergeJoin(
@@ -70,9 +67,9 @@ public class CollectorMergeJoin implements MergeOperator {
       AbstractState pElement2, Precision pPrecision) throws CPAException, InterruptedException {
 
     CollectorState element1 = (CollectorState) pElement1;
-    nr1 =  element1.getCountTR();
+    int nr1 = element1.getCountTR();
     CollectorState element2 = (CollectorState) pElement2;
-    nr2 =  element2.getCountTR();
+    int nr2 = element2.getCountTR();
 
     parentsM.clear();
     ARGState wrappedState1 = (ARGState) ((CollectorState) pElement1).getWrappedState();
