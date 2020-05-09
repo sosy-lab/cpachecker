@@ -31,11 +31,9 @@ import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class FailedCase {
   private final ReachedSet pReachedSet;
@@ -73,10 +71,8 @@ public class FailedCase {
    */
   public boolean existsErrorPath() {
 
-    for (AbstractState state : pReachedSet) {
-      if (AbstractStates.isTargetState(state)) {
-        return true;
-      }
+    if (!getCounterExamples().isEmpty()) {
+      return true;
     }
 
     return false;

@@ -51,12 +51,7 @@ public class SafeCase {
         .filter(
             e -> {
               assert e != null;
-              return !e.isCovered() && !e.isTarget();
-            })
-        .filter(
-            s -> {
-              assert s != null;
-              return s.getChildren().isEmpty();
+              return !e.isCovered() && !e.isTarget() && e.getChildren().isEmpty();
             })
         .toList();
   }

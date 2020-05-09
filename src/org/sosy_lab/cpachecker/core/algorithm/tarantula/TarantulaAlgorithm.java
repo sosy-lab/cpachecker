@@ -64,7 +64,7 @@ public class TarantulaAlgorithm implements Algorithm {
         totalAnalysisTime.start();
         getFaultLocations(System.out, safeCase, failedCase);
       } else {
-        logger.log(Level.INFO, "No bugs found.");
+        logger.log(Level.INFO, "There is no counterexample. No bugs found.");
       }
       logger.log(
           Level.INFO,
