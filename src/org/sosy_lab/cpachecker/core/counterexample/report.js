@@ -396,7 +396,7 @@ with considerably less effort */
 				selection.classed("clickedErrPathElement", false);
 				d3.select("#errpath-" + prevId).classed("clickedErrPathElement", true);
 				$("#value-assignment").scrollTop($("#value-assignment").scrollTop() - 18);
-				markErrorPathElementInTab("Prev", prevId);
+				markErrorPathElementInTab(prevId);
 			}
 		};
 
@@ -404,7 +404,7 @@ with considerably less effort */
 			d3.select("tr.clickedErrPathElement").classed("clickedErrPathElement", false);
 			d3.select("#errpath-0").classed("clickedErrPathElement", true);
 			$("#value-assignment").scrollTop(0);
-			markErrorPathElementInTab("Start", 0);
+			markErrorPathElementInTab(0);
 		};
 
 		$scope.errPathNextClicked = function ($event) {
@@ -414,7 +414,7 @@ with considerably less effort */
 				selection.classed("clickedErrPathElement", false);
 				d3.select("#errpath-" + nextId).classed("clickedErrPathElement", true);
 				$("#value-assignment").scrollTop($("#value-assignment").scrollTop() + 18);
-				markErrorPathElementInTab("Next", nextId);
+				markErrorPathElementInTab(nextId);
 			}
 		};
 
@@ -422,77 +422,42 @@ with considerably less effort */
 			d3.select("tr.clickedErrPathElement").classed("clickedErrPathElement", false);
 			var clickedElement = d3.select($event.currentTarget.parentNode);
 			clickedElement.classed("clickedErrPathElement", true);
-			markErrorPathElementInTab("", clickedElement.attr("id").substring("errpath-".length));
+			markErrorPathElementInTab(clickedElement.attr("id").substring("errpath-".length));
 		};
 
-		function markErrorPathElementInTab(buttonId, selectedErrPathElemId) {
-			if ($rootScope.errorPath[selectedErrPathElemId] === undefined) {
-				return;
-			}
+		function markErrorPathElementInTab(selectedErrPathElemId) {
 			var currentTab = $("#report-controller").scope().getTabSet();
-			// when the current tab is not one of CFA, ARG, source, set the tab to ARG
-			if (buttonId === "") {
-				handleErrorPathElemClick(currentTab, selectedErrPathElemId);
-			} else if (buttonId === "Start") {
-				handleStartButtonClick(currentTab);
-			} else if (buttonId === "Prev") {
-				handlePrevButtonClick(currentTab, selectedErrPathElemId);
-			} else { // "Next"
-				handleNextButtonClick(currentTab, selectedErrPathElemId);
+			if (!Array.isArray(selectedErrPathElemId)) {
+				selectedErrPathElemId = [selectedErrPathElemId];
+			}
+			unmarkEverything();
+			for (const id of selectedErrPathElemId) {
+				if ($rootScope.errorPath[id] === undefined) {
+					return;
+				}
+				handleErrorPathElemClick(currentTab, id);
 			}
 		}
 
 		function handleErrorPathElemClick(currentTab, errPathElemIndex) {
-			if (currentTab === 1) {
-				markCfaEdge($rootScope.errorPath[errPathElemIndex]);
-			} else if (currentTab === 2) {
-				markArgNode($rootScope.errorPath[errPathElemIndex]);
-			} else if (currentTab === 3) {
-				markSourceLine($rootScope.errorPath[errPathElemIndex]);
-			} else {
+			markCfaEdge($rootScope.errorPath[errPathElemIndex]);
+			markArgNode($rootScope.errorPath[errPathElemIndex]);
+			markSourceLine($rootScope.errorPath[errPathElemIndex]);
+			if (![1, 2, 3].includes(currentTab)) {
 				$("#report-controller").scope().setTab(2);
-				markArgNode($rootScope.errorPath[errPathElemIndex]);
 			}
 		}
 
-		function handleStartButtonClick(currentTab) {
-			if (currentTab === 1) {
-				markCfaEdge($rootScope.errorPath[0]);
-			} else if (currentTab === 2) {
-				markArgNode($rootScope.errorPath[0]);
-			} else if (currentTab === 3) {
-				markSourceLine($rootScope.errorPath[0]);
-			} else {
-				$("#report-controller").scope().setTab(2);
-				markArgNode($rootScope.errorPath[0]);
-			}
+		function unmarkEverything() {
+			[
+				"marked-cfa-edge",
+				"marked-cfa-node",
+				"marked-cfa-node-label",
+				"marked-arg-node",
+				"marked-source-line",
+			].forEach(c => d3.selectAll("." + c).classed(c, false));
 		}
 
-		function handlePrevButtonClick(currentTab, elementId) {
-			if (currentTab === 1) {
-				markCfaEdge($rootScope.errorPath[elementId]);
-			} else if (currentTab === 2) {
-				markArgNode($rootScope.errorPath[elementId]);
-			} else if (currentTab === 3) {
-				markSourceLine($rootScope.errorPath[elementId]);
-			} else {
-				$("#report-controller").scope().setTab(2);
-				markArgNode($rootScope.errorPath[elementId]);
-			}
-		}
-
-		function handleNextButtonClick(currentTab, elementId) {
-			if (currentTab === 1) {
-				markCfaEdge($rootScope.errorPath[elementId]);
-			} else if (currentTab === 2) {
-				markArgNode($rootScope.errorPath[elementId]);
-			} else if (currentTab === 3) {
-				markSourceLine($rootScope.errorPath[elementId]);
-			} else {
-				$("#report-controller").scope().setTab(2);
-				markArgNode($rootScope.errorPath[elementId]);
-			}
-		}
 
 		function markCfaEdge(errPathEntry) {
 			var actualSourceAndTarget = getActualSourceAndTarget(errPathEntry);
@@ -503,7 +468,6 @@ with considerably less effort */
 				var boundingRect = selection.node().getBoundingClientRect();
 				$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 300).scrollLeft(boundingRect.left - d3.select("#cfa-container").style("width").split("px")[0] - $("#cfa-container"));
 				if (actualSourceAndTarget.source in cfaJson.combinedNodes) {
-					d3.selectAll(".marked-cfa-node-label").classed("marked-cfa-node-label", false);
 					selection.selectAll("tspan").each(function (d, i) {
 						if (d3.select(this).html().includes(errPathEntry.source)) {
 							d3.select(this).classed("marked-cfa-node-label", true);
@@ -512,11 +476,6 @@ with considerably less effort */
 				}
 				return;
 			}
-			if (!d3.select(".marked-cfa-edge").empty()) {
-				d3.select(".marked-cfa-edge").classed("marked-cfa-edge", false);
-			}
-			d3.selectAll(".marked-cfa-node").classed("marked-cfa-node", false);
-			d3.selectAll(".marked-cfa-node-label").classed("marked-cfa-node-label", false);
 			var selection = d3.select("#cfa-edge_" + actualSourceAndTarget.source + "-" + actualSourceAndTarget.target);
 			selection.classed("marked-cfa-edge", true);
 			var boundingRect = selection.node().getBoundingClientRect();
@@ -570,9 +529,6 @@ with considerably less effort */
 			if (errPathEntry.argelem === undefined) {
 				return;
 			}
-			if (!d3.select(".marked-arg-node").empty()) {
-				d3.select(".marked-arg-node").classed("marked-arg-node", false);
-			}
 			var idToSelect;
 			if (d3.select("#arg-graph0").style("display") !== "none")
 				idToSelect = "#arg-node";
@@ -585,9 +541,6 @@ with considerably less effort */
 		}
 
 		function markSourceLine(errPathEntry) {
-			if (!d3.select(".marked-source-line").empty()) {
-				d3.select(".marked-source-line").classed("marked-source-line", false);
-			}
 			if (errPathEntry.line === 0) {
 				errPathEntry.line = 1;
 			}
