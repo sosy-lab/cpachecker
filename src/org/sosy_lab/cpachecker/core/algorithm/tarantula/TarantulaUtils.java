@@ -45,7 +45,7 @@ public class TarantulaUtils {
    *
    * @param reachedSet input.
    * @param chosenState whether targetStates or safeStates.
-   * @return States on the paths.
+   * @return All possible paths from root to the chosen state.
    */
   public static Set<ARGPath> getAllPaths(ReachedSet reachedSet, ARGState chosenState) {
     ARGState root = AbstractStates.extractStateByType(reachedSet.getFirstState(), ARGState.class);

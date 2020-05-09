@@ -62,7 +62,7 @@ public class SafeCase {
   }
 
   /**
-   * Gets two dimensional CFAEdge list of the safe paths.
+   * Gets all possible safe paths.
    *
    * @return Detected safe edges.
    */
@@ -75,12 +75,11 @@ public class SafeCase {
         allSafePathsTogether.addAll(TarantulaUtils.getAllPaths(pReachedSet, safeState));
       }
     }
-    totalSafeCases = allSafePathsTogether.size();
     return allSafePathsTogether;
   }
 
   /**
-   * Checks whether there is a safe paths in the ARG or not.
+   * Checks whether there is a safe path in the ARG or not.
    *
    * @return Returns <code>true</code> if the path exists otherwise returns <code>false</code>
    */
@@ -92,15 +91,20 @@ public class SafeCase {
     return false;
   }
   /**
-   * Get root state from reachedSet.
+   * Gets root state from reachedSet.
    *
    * @return ARG root state.
    */
   private ARGState rootState() {
     return AbstractStates.extractStateByType(pReachedSet.getFirstState(), ARGState.class);
   }
-
+  /**
+   * Gets the total passed cases.
+   *
+   * @return Number of total passed cases.
+   */
   public int getTotalSafeCases() {
-    return totalSafeCases;
+
+    return totalSafeCases == 0 ? totalSafeCases = getSafePaths().size() : totalSafeCases;
   }
 }

@@ -55,7 +55,6 @@ public class FailedCase {
     for (CounterexampleInfo counterExample : getCounterExamples()) {
       failedPaths.add(counterExample.getTargetPath());
     }
-    totalFailedCases = failedPaths.size();
     return failedPaths;
   }
 
@@ -95,8 +94,12 @@ public class FailedCase {
     }
     return false;
   }
-
+  /**
+   * Gets the total failed cases.
+   *
+   * @return Number of total failed cases
+   */
   public int getTotalFailedCases() {
-    return totalFailedCases;
+    return totalFailedCases == 0 ? totalFailedCases = getFailedPaths().size() : totalFailedCases;
   }
 }
