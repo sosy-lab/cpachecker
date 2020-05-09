@@ -281,15 +281,17 @@ with considerably less effort */
 		// make faults visible to angular
 		$rootScope.faults = [];
 		if (cfaJson.faults !== undefined) {
-			for (const [i, f] of cfaJson.faults.entries()) {
-				let fInfo = Object.assign({}, f);
+			for (var i = 0; i < cfaJson.faults.length - 1; i++) {
+				var fault = cfaJson.faults[i];
+				var fInfo = Object.assign({}, fault);
 				// store all error-path elements related to this fault.
 				// we can't do  this in the Java backend because
 				// we can't be sure to have the full error-path elements in the FaultLocalizationInfo
 				// when the faults-code is generated.
 				fInfo["errPathIds"] = [];
-				for (const [j, e] of cfaJson.errorPath.entries()) {
-					if (e.faults.includes(i)) {
+				for (var j = 0; j < cfaJson.errorPath.length; j++) {
+					var element = cfaJson.errorPath[j];
+					if (element.faults.includes(i)) {
 						fInfo["errPathIds"].push(j);
 					}
 				}
@@ -317,7 +319,7 @@ with considerably less effort */
 		// initialize array that stores the important edges. Index counts only, when edges appear in the report.
 		var importantEdges = [];
 		var importantIndex = -1;
-		const faultEdges = [];
+		var faultEdges = [];
 		if (errorPath !== undefined) {
 			var indentationlevel = 0;
 			for (var i = 0; i < errorPath.length; i++) {
@@ -400,10 +402,10 @@ with considerably less effort */
 
 		$scope.clickedFaultLocElement = function ($event) {
 			d3.selectAll(".clickedFaultLocElement").classed("clickedFaultLocElement", false);
-			let clickedElement = d3.select($event.currentTarget);
+			var clickedElement = d3.select($event.currentTarget);
 			clickedElement.classed("clickedFaultLocElement", true);
-			let faultElementIdx = clickedElement.attr("id").substring("fault-".length);
-			let faultElement = $rootScope.faults[faultElementIdx];
+			var faultElementIdx = clickedElement.attr("id").substring("fault-".length);
+			var faultElement = $rootScope.faults[faultElementIdx];
 			markErrorPathElementInTab(faultElement.errPathIds);
 		};
 
@@ -449,7 +451,8 @@ with considerably less effort */
 				selectedErrPathElemId = [selectedErrPathElemId];
 			}
 			unmarkEverything();
-			for (const id of selectedErrPathElemId) {
+			for (var i = 0; i < selectedErrPathElemId.length; i++) {
+				var id = selectedErrPathElemId[i];
 				if ($rootScope.errorPath[id] === undefined) {
 					return;
 				}
@@ -473,7 +476,7 @@ with considerably less effort */
 				"marked-cfa-node-label",
 				"marked-arg-node",
 				"marked-source-line",
-			].forEach(c => d3.selectAll("." + c).classed(c, false));
+			].forEach(function (c) { d3.selectAll("." + c).classed(c, false) }());
 		}
 
 
