@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2020  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -47,7 +47,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -70,7 +69,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 
 @Options(prefix = "cpa.collector")
@@ -81,21 +79,15 @@ public class CollectorStatistics implements Statistics {
   private static final String CSS_TEMPLATE = "collector.css";
   private static final String JS_TEMPLATE = "collector.js";
   private final LogManager logger;
-  private final LinkedHashMap<Integer, Object> cNodes = new LinkedHashMap<>();
+  private final HashMap<Integer, Object> cNodes = new HashMap<>();
   private final Multimap<Integer, Object> cEdges;
-  private final LinkedHashMap<Map<Integer, Object>, Multimap<Integer, Object>>
-      collectorlinkedNodesAndEdges = new LinkedHashMap<>();
+  private final HashMap<Map<Integer, Object>, Multimap<Integer, Object>>
+      collectorlinkedNodesAndEdges = new HashMap<>();
   @Option(secure = true, name = "export", description = "export collector as .dot file")
-  //private boolean exportARG = true;
-// --Commented out by Inspection START (09.05.20, 17:48):
-//  @Option(secure = true, name = "file",
-//      description = "export collector as .dot file")
-//  @FileOption(FileOption.Type.OUTPUT_FILE)
-//  private Path argFile = Paths.get("collector.dot");
-// --Commented out by Inspection STOP (09.05.20, 17:48)
+
   ImmutableList<String> sourceFiles;
 
-  public CollectorStatistics(CollectorCPA ccpa, Configuration config, @Nullable
+  public CollectorStatistics(Configuration config, @Nullable
                              String pathSourceFile, LogManager pLogger)
       throws InvalidConfigurationException {
     this.logger = pLogger;
@@ -129,36 +121,10 @@ public class CollectorStatistics implements Statistics {
       build(reached);
     }
 
-    StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
+    /*StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(out);
     writer.put("Verification result", result);
-    //writer.put("Reached States", reached.toString());
+    //writer.put("Reached States", reached.toString());**/
   }
-
-// --Commented out by Inspection START (09.05.20, 17:45):
-//  private void makeDotFile(Collection<ARGState> pReachedcollectionARG) {
-//    try {
-//      int i = 0;
-//      String filenamepart1 = "./output/CollectorDotFiles/etape_";
-//      String filenamefinal = filenamepart1 + i + ".dot";
-//      File file = new File(filenamefinal);
-//      while (file.exists()) {
-//        filenamefinal = filenamepart1 + i + ".dot";
-//        file = new File(filenamefinal);
-//        i++;
-//      }
-//      file.createNewFile();
-//      Writer writer = new FileWriter(file, false);
-//      BufferedWriter bw = new BufferedWriter(writer);
-//
-//      ARGToDotWriter.write(bw, pReachedcollectionARG, "Reconstruction of ARGstates");
-//
-//      bw.close();
-//    } catch (IOException e) {
-//      logger.logUserException(
-//          WARNING, e, "Could not create DotFiles.");
-//    }
-//  }
-// --Commented out by Inspection STOP (09.05.20, 17:45)
 
   private void makeHTMLFile() {
     try {
@@ -194,27 +160,9 @@ public class CollectorStatistics implements Statistics {
     }
   }
 
-// --Commented out by Inspection START (09.05.20, 17:46):
-//  private void makeAFileDirectory() {
-//
-//    String directoryName = "./output/CollectorDotFiles";
-//    File directory = new File(directoryName);
-//    if (!directory.exists()) {
-//      try {
-//        directory.mkdir();
-//      } catch (SecurityException se) {
-//        logger.logUserException(
-//            WARNING, se, "Could not create directory.");
-//      }
-//    }
-//  }
-// --Commented out by Inspection STOP (09.05.20, 17:46)
-
   private void insertSources(Writer report) throws IOException {
-  //  int index = 0;
     for (String sourceFile : sourceFiles) {
       insertSource(Paths.get(sourceFile), report);
-  //    index++;
     }
   }
 
@@ -445,7 +393,6 @@ public class CollectorStatistics implements Statistics {
         // Start node
         else {
           String type = determineType((CollectorState) entry);
-          //String destroyedType = "";
           ARGState entryARG = ((CollectorState) entry).getARGState();
 
 
@@ -488,13 +435,11 @@ public class CollectorStatistics implements Statistics {
         ? argState.toDOTLabel().substring(0, argState.toDOTLabel().length() - 2)
         : "";
     Map<String, Object> argNode = new HashMap<>();
-   // argNode.put("destroyed", destroyed);
     if (!(interval <= step)) {
       argNode.put("intervalStop", interval);
     } else {
       argNode.put("intervalStop", "");
     }
-   // argNode.put("count", step);
     argNode.put("intervalStart", step);
     argNode.put("analysisStop", stopped);
     argNode.put("index", parentStateId);//ARGState-ID
@@ -524,8 +469,6 @@ public class CollectorStatistics implements Statistics {
         : "";
     Map<String, Object> argNode = new HashMap<>();
 
-   // argNode.put("destroyed", destroyed);
-   // argNode.put("count", step);
     argNode.put("analysisStop", false);
     argNode.put("intervalStop", "");
     argNode.put("intervalStart", 0);
@@ -572,7 +515,6 @@ public class CollectorStatistics implements Statistics {
     argEdge.put("source", parentStateId);
     argEdge.put("target", childStateId);
     argEdge.put("mergetype", type);
-   // argEdge.put("destroyed", destroyed);
 
     argEdge.put("type", "dummy type");
     argEdge.put("label", "merge edge");
@@ -588,7 +530,6 @@ public class CollectorStatistics implements Statistics {
     argEdge.put("source", parentStateId);
     argEdge.put("target", childStateId);
     argEdge.put("mergetype", type);
-   // argEdge.put("destroyed", destroyed);
 
     argEdge.put("type", "dummy type");
     argEdge.put("label", "Child merge edge");

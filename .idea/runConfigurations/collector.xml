@@ -2,7 +2,7 @@
   <configuration default="false" name="collector" type="Application" factoryName="Application">
     <option name="MAIN_CLASS_NAME" value="org.sosy_lab.cpachecker.cmdline.CPAMain" />
     <module name="CPAchecker" />
-    <option name="PROGRAM_PARAMETERS" value="-setprop solver.solver=smtinterpol -setprop cpa.predicate.encodeBitvectorAs=integer -setprop cpa.predicate.encodeFloatAs=rational -collector doc/examples/exampleSM.c" />
+    <option name="PROGRAM_PARAMETERS" value="-setprop solver.solver=smtinterpol -setprop cpa.predicate.encodeBitvectorAs=integer -setprop cpa.predicate.encodeFloatAs=rational -collector doc/examples/example.c" />
     <option name="VM_PARAMETERS" value="-ea" />
     <method v="2">
       <option name="Make" enabled="true" />

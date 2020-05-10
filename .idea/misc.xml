@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="EntryPointsManager">
+    <pattern value="org.sosy_lab.cpachecker.cpa.collector.CollectorTransferRelation" method="CollectorTransferRelation" />
+    <pattern value="org.sosy_lab.cpachecker.cpa.collector.CollectorStop" method="CollectorStop" />
+    <pattern value="org.sosy_lab.cpachecker.cpa.collector.CollectorStatistics" method="CollectorStatistics" />
+    <pattern value="org.sosy_lab.cpachecker.cpa.collector.CollectorPrecisionAdjustment" method="CollectorPrecisionAdjustment" />
+    <pattern value="org.sosy_lab.cpachecker.cpa.collector.CollectorMergeJoin" method="CollectorMergeJoin" />
+    <pattern value="org.sosy_lab.cpachecker.cpa.collector.CollectorCPA" method="getLogger" />
+    <pattern value="org.sosy_lab.cpachecker.cpa.collector.CollectorCPA" method="factory" />
+    <pattern value="org.sosy_lab.cpachecker.cpa.collector.CollectorCPA" method="CollectorCPA" />
+  </component>
   <component name="NullableNotNullManager">
     <option name="myDefaultNullable" value="javax.annotation.Nullable" />
     <option name="myDefaultNotNull" value="javax.annotation.Nonnull" />

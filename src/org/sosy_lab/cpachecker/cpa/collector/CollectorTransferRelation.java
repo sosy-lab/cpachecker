@@ -1,8 +1,8 @@
 /*
- * CPAchecker is a tool for configurable software verification.
+ *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2018  Dirk Beyer
+ *  Copyright (C) 2007-2020  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,8 +25,9 @@ package org.sosy_lab.cpachecker.cpa.collector;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -38,13 +39,12 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class CollectorTransferRelation implements TransferRelation {
 
   private final TransferRelation transferRelation;
-  private final LogManager logger;
-  private final ArrayList<ARGState> parents = new ArrayList<>();
+  //private final ArrayList<ARGState> parents = new ArrayList<>();
+  private final List<ARGState> parents = Collections.synchronizedList(new ArrayList<>());
 
 
-  public CollectorTransferRelation(TransferRelation tr, LogManager trLogger) {
+  public CollectorTransferRelation(TransferRelation tr) {
     transferRelation = tr;
-    logger = trLogger;
   }
 
 
@@ -77,9 +77,9 @@ public class CollectorTransferRelation implements TransferRelation {
       parents.addAll(wrappedParent);
       CollectorCount.count++;
       ARGStateView mytransferARG =
-          new ARGStateView(CollectorCount.count,succARG, parents, null, logger);
+          new ARGStateView(CollectorCount.count,succARG, parents, null);
       CollectorState successorElem =
-          new CollectorState(absElement, null, mytransferARG, false, null, null, null, logger);
+          new CollectorState(absElement, mytransferARG, false, null, null, null);
       wrappedSuccessors.add(successorElem);
       parents.clear();
     }

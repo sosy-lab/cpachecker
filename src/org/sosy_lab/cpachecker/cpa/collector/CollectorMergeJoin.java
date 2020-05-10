@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2020  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,10 +25,9 @@ package org.sosy_lab.cpachecker.cpa.collector;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -39,22 +38,22 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class CollectorMergeJoin implements MergeOperator {
 
   private final MergeOperator wrappedMergeCol;
-  private final LogManager logger;
-  private final ArrayList<ARGState> parents1 = new ArrayList<>();
+
+  /**private final ArrayList<ARGState> parents1 = new ArrayList<>();
   private final ArrayList<ARGState> parents2 = new ArrayList<>();
   private final ArrayList<ARGState> children1 = new ArrayList<>();
   private final ArrayList<ARGState> children2 = new ArrayList<>();
-  private final ArrayList<ARGState> parentsM = new ArrayList<>();
+  private final ArrayList<ARGState> parentsM = new ArrayList<>();**/
+  private final List<ARGState> parentsM = Collections.synchronizedList(new ArrayList<>());
+  private final List<ARGState> parents1 = Collections.synchronizedList(new ArrayList<>());
+  private final List<ARGState> parents2 = Collections.synchronizedList(new ArrayList<>());
+
   private CollectorState mergedElementabs;
 
 
   public CollectorMergeJoin(
-      MergeOperator pWrappedMerge, AbstractDomain pWrappedDomain,
-      Configuration config, LogManager mjLogger) {
-
+      MergeOperator pWrappedMerge) {
     wrappedMergeCol = pWrappedMerge;
-    //config.inject(this);
-    logger = mjLogger;
   }
 
   @Override
@@ -78,20 +77,18 @@ public class CollectorMergeJoin implements MergeOperator {
     parents2.addAll(wrappedParent2);
     Collection<ARGState> wrappedChildren1 = wrappedState1.getChildren();
     Collection<ARGState> wrappedChildren2 = wrappedState2.getChildren();
-    children1.addAll(wrappedChildren1);
-    children2.addAll(wrappedChildren2);
 
     ARGStateView myARG2;
     ARGStateView myARG1;
 
     if (parents2.size() >= 1 && parents1.size() >= 1) {
-      myARG1 = new ARGStateView(nr1,wrappedState1, parents1, wrappedChildren1, logger);
+      myARG1 = new ARGStateView(nr1,wrappedState1, parents1, wrappedChildren1);
       parents1.clear();
-      myARG2 = new ARGStateView(nr2,wrappedState2, parents2, wrappedChildren2, logger);
+      myARG2 = new ARGStateView(nr2,wrappedState2, parents2, wrappedChildren2);
       parents2.clear();
     } else {
-      myARG2 = new ARGStateView(nr2,wrappedState2, null, wrappedChildren2, logger);
-      myARG1 = new ARGStateView(nr1,wrappedState1, null, wrappedChildren1, logger);
+      myARG2 = new ARGStateView(nr2,wrappedState2, null, wrappedChildren2);
+      myARG1 = new ARGStateView(nr1,wrappedState1, null, wrappedChildren1);
     }
 
     //children of parent of mergepartner are still alive but get destroyed after next step
@@ -105,14 +102,14 @@ public class CollectorMergeJoin implements MergeOperator {
     CollectorCount.count++;
 
     if (!mergedElement.equals(wrappedState2)) {
-      myARGmerged = new ARGStateView(CollectorCount.count,mergedElement, parentsM, null, logger);
+      myARGmerged = new ARGStateView(CollectorCount.count,mergedElement, parentsM, null);
       mergedElementabs = new CollectorState
-          (mergedElement, null, null, true, myARG1, myARG2, myARGmerged, logger);
+          (mergedElement,  null, true, myARG1, myARG2, myARGmerged);
     }
     if (!mergedElement.equals(wrappedState1)) {
-      myARGmerged = new ARGStateView(CollectorCount.count,mergedElement, parentsM, null, logger);
+      myARGmerged = new ARGStateView(CollectorCount.count,mergedElement, parentsM, null);
       mergedElementabs = new CollectorState
-          (mergedElement, null, null, true, myARG1, myARG2, myARGmerged, logger);
+          (mergedElement, null, true, myARG1, myARG2, myARGmerged);
     }
 
     return mergedElementabs;

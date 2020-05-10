@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2018  Dirk Beyer
+ *  Copyright (C) 2007-2020  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,11 +24,8 @@
 package org.sosy_lab.cpachecker.cpa.collector;
 
 import com.google.common.base.Function;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -39,17 +36,12 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class CollectorPrecisionAdjustment implements PrecisionAdjustment {
 
-
-  private final LogManager logger;
-
   private final PrecisionAdjustment delegate;
 
   public CollectorPrecisionAdjustment(
-      final PrecisionAdjustment pDelegateAdjustment,
-      LogManager clogger) {
+      final PrecisionAdjustment pDelegateAdjustment) {
 
     delegate = pDelegateAdjustment;
-    this.logger = clogger;
   }
 
   @Override
@@ -72,19 +64,12 @@ public class CollectorPrecisionAdjustment implements PrecisionAdjustment {
       AbstractState state = unwrappedResult.abstractState();
       Precision precision = unwrappedResult.precision();
 
-
-     // CollectorState preAdj =
-     //     new CollectorState(wrappedState2, null, null, false, null, null, null, logger);
-     // Collection<AbstractState> wrappedAbstract = new ArrayList<>();
-      //wrappedAbstract.add(preAdj);
-
-
       PrecisionAdjustmentResult finalResult;
       if (state != wrappedState2) {
         // something changed
         CollectorState preAdjchange =
-            new CollectorState(state, null, null, false, null, null, null, logger);
-      //  wrappedAbstract.add(preAdjchange);
+            new CollectorState(state, null, false, null, null, null);
+
 
 
         finalResult =
