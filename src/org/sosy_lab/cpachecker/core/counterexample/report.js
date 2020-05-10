@@ -281,7 +281,7 @@ with considerably less effort */
 		// make faults visible to angular
 		$rootScope.faults = [];
 		if (cfaJson.faults !== undefined) {
-			for (var i = 0; i < cfaJson.faults.length - 1; i++) {
+			for (var i = 0; i < cfaJson.faults.length; i++) {
 				var fault = cfaJson.faults[i];
 				var fInfo = Object.assign({}, fault);
 				// store all error-path elements related to this fault.
@@ -476,7 +476,7 @@ with considerably less effort */
 				"marked-cfa-node-label",
 				"marked-arg-node",
 				"marked-source-line",
-			].forEach(function (c) { d3.selectAll("." + c).classed(c, false) }());
+			].forEach(function (c) { d3.selectAll("." + c).classed(c, false) });
 		}
 
 
