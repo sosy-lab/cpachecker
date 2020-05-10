@@ -27,7 +27,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
-import java.util.Collections;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
@@ -40,7 +39,7 @@ public class ASTConverterTest {
   @Test
   public void testGetClassOfJType() {
     Optional<Class<?>> optionalOfPrimitiveType =
-        ASTConverter.getClassOfJType(JSimpleType.getBoolean(), Collections.emptySet());
+        ASTConverter.getClassOfJType(JSimpleType.getBoolean(), ImmutableSet.of());
     assertThat(optionalOfPrimitiveType.get()).isEqualTo(boolean.class);
   }
 
@@ -61,7 +60,8 @@ public class ASTConverterTest {
   public void testGetClassOfJTypeForNonPrimitiveType() {
     JClassOrInterfaceType jClassOrInterfaceType =
         createStringJClassOrInterfaceType("java.lang.String", "String");
-    Optional<Class<?>> optionalOfStringClass = ASTConverter.getClassOfJType(jClassOrInterfaceType, Collections.emptySet());
+    Optional<Class<?>> optionalOfStringClass =
+        ASTConverter.getClassOfJType(jClassOrInterfaceType, ImmutableSet.of());
     assertThat(optionalOfStringClass.get()).isEqualTo(String.class);
   }
 
@@ -69,7 +69,8 @@ public class ASTConverterTest {
   public void testGetArrayClass() {
     JArrayType jArrayTypeOfString =
         new JArrayType(createStringJClassOrInterfaceType("java.lang.Boolean", "Boolean"), 3);
-    Optional<Class<?>> optionalOfArrayClass = ASTConverter.getClassOfJType(jArrayTypeOfString, Collections.emptySet());
+    Optional<Class<?>> optionalOfArrayClass =
+        ASTConverter.getClassOfJType(jArrayTypeOfString, ImmutableSet.of());
     assertThat(optionalOfArrayClass.get().isArray()).isTrue();
     assertThat(optionalOfArrayClass.get().toGenericString()).isEqualTo("java.lang.Boolean[][][]");
   }
