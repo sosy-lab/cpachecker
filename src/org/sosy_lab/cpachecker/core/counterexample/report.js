@@ -276,8 +276,18 @@ with considerably less effort */
 		$rootScope.errorPath = [];
 
 		//Fault Localization
-		$scope.selectedLines = [];
-		$scope.redLine = -1;
+		function getLinesOfFault(fault) {
+			var lines = {};
+			for (var i = 0; i < fault["errPathIds"].length; i++) {
+				var errorPathIdx = fault["errPathIds"][i];
+				var errorPathElem = errorPath[errorPathIdx];
+				var line = {"line": errorPathElem["line"], "desc": errorPathElem["desc"]};
+				var line_key = line["line"] + line["desc"];
+				lines[line_key] = line;
+			}
+			return Object.values(lines);
+		};
+
 		// make faults visible to angular
 		$rootScope.faults = [];
 		if (cfaJson.faults !== undefined) {
@@ -295,6 +305,7 @@ with considerably less effort */
 						fInfo["errPathIds"].push(j);
 					}
 				}
+				fInfo["lines"] = getLinesOfFault(fInfo);
 				$rootScope.faults.push(fInfo);
 			}
 		}

@@ -303,6 +303,32 @@ input:checked+.slider:before {
 	font-weight: 700;
 }
 
+.fault-table .fault-lines {
+	max-height: 8em;
+	overflow: auto;
+	border: 1px solid gray;
+	border-radius: 3px;
+}
+
+.fault-lines {
+	padding: 3px;
+	list-style: none;
+}
+
+ul.fault-lines li {
+	display: grid;
+	grid-template-columns: minmax(2em, min-content) auto;
+	grid-column-gap: 5px;
+}
+
+.fault-lines .line-number {
+	text-align: right;
+}
+
+.fault-lines .line-number::after {
+	content: ':';
+}
+
 .horizontal-div {
     display: inline;
     margin-left: auto;
