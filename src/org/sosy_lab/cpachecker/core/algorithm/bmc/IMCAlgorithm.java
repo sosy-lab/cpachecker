@@ -198,19 +198,19 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   /**
-   * The run method for interpolation-based model checking
+   * The main method for interpolation-based model checking.
    *
    * @param pReachedSet Abstract Reachability Graph (ARG)
    *
    * @return {@code AlgorithmStatus.UNSOUND_AND_PRECISE} if an error location is reached, i.e.,
-   *         unsafe; {@code AlgorithmStatus.SOUND_AND_PRECISE} if a fixed point is reached, i.e.,
+   *         unsafe; {@code AlgorithmStatus.SOUND_AND_PRECISE} if a fixed point is derived, i.e.,
    *         safe.
    */
   private AlgorithmStatus interpolationModelChecking(final ReachedSet pReachedSet)
       throws CPAException, SolverException, InterruptedException {
     Preconditions.checkState(
         cfa.getAllLoopHeads().isPresent() && cfa.getAllLoopHeads().orElseThrow().size() <= 1,
-        "programs with multiple loops are not supported yet");
+        "Multi-loop programs are not supported yet");
 
     logger.log(Level.FINE, "Performing interpolation-based model checking");
     try (ProverEnvironmentWithFallback prover =
@@ -300,6 +300,15 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
 
+  /**
+   * A helper method to check if there is no loop to unroll. It avoids unnecessary unrolling of
+   * ERROR labels in self-loops.
+   *
+   * @param pCfa Control Flow Automaton
+   *
+   * @return {@code true} if there is no loop or there is a self-loop formed by ERROR labels;
+   *         {@code false} if there is a loop to unroll.
+   */
   private boolean noLoopToUnroll(CFA pCfa) {
     if (pCfa.getAllLoopHeads().orElseThrow().isEmpty()) {
       return true;
@@ -314,6 +323,17 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return false;
   }
 
+  /**
+   * A helper method to get the block formula at the specified loop head location. It uses
+   * {@code checkState} to ensure that there is a unique loop head location.
+   *
+   * @param pReachedSet Abstract Reachability Graph
+   *
+   * @param numEncounterLoopHead The encounter times of the loop head location
+   *
+   * @return The {@code PathFormula} at the specified loop head location if the loop head is unique.
+   *
+   */
   private PathFormula getLoopHeadFormula(ReachedSet pReachedSet, int numEncounterLoopHead) {
     List<AbstractState> loopHead =
         from(pReachedSet)
@@ -332,6 +352,18 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         .getBlockFormula();
   }
 
+  /**
+   * A helper method to get the block formula at the specified error locations. It uses
+   * {@code checkState} to ensure that there is a unique loop head location.
+   *
+   * @param pReachedSet Abstract Reachability Graph
+   *
+   * @param numEncounterLoopHead The encounter times of the loop head location
+   *
+   * @return A {@code BooleanFormula} of the disjunction of block formulas at every error location
+   *         if they exist; {@code False} if there is no error location.
+   *
+   */
   private BooleanFormula getErrorFormula(ReachedSet pReachedSet, int numEncounterLoopHead) {
     List<AbstractState> errorLocations =
         AbstractStates.getTargetStates(pReachedSet)
@@ -353,6 +385,18 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return formulaToErrorLocations;
   }
 
+  /**
+   * A helper method to check the satisfiability of the input Boolean formula.
+   *
+   * @param pProver SMT solver stack
+   *
+   * @param pFormula The formula to be solved
+   *
+   * @return {@code true} if the formula is SAT; {@code false} if the formula is UNSAT.
+   *
+   * @throws InterruptedException On shutdown request.
+   *
+   */
   private boolean formulaCheckSat(ProverEnvironmentWithFallback pProver, BooleanFormula pFormula)
       throws InterruptedException, SolverException {
     while (!pProver.isEmpty()) {
@@ -362,40 +406,78 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return !pProver.isUnsat();
   }
 
+  /**
+   * A helper method to check whether the current image has reached a fixed point. This is done by
+   * checking if the newly discovered states described by the interpolant are contained in the
+   * current image.
+   *
+   * @param pProver SMT solver stack
+   *
+   * @param pInterpolantFormula The derived interpolant, consisting of the newly discovered states
+   *
+   * @param pCurrentImageFormula The current image , consisting of the already explored states
+   *
+   * @return {@code true} if a fixed point is reached; {@code false} if some newly discovered state
+   *         lies outside the current image.
+   *
+   * @throws InterruptedException On shutdown request.
+   *
+   */
   private boolean reachFixedPointCheck(
       ProverEnvironmentWithFallback pProver,
       BooleanFormula pInterpolantFormula,
       BooleanFormula pCurrentImageFormula)
       throws InterruptedException, SolverException {
-    BooleanFormula pNotImplicationFormula =
+    BooleanFormula notImplicationFormula =
         bfmgr.not(bfmgr.implication(pInterpolantFormula, pCurrentImageFormula));
-    return !formulaCheckSat(pProver, pNotImplicationFormula);
+    return !formulaCheckSat(pProver, notImplicationFormula);
   }
 
+  /**
+   * A helper method to derive an interpolant. It computes C=itp(A,B) or C'=!itp(B,A).
+   *
+   * @param pProverStack SMT solver stack
+   *
+   * @param pFormulaA Formula A (prefix and loop)
+   *
+   * @param pFormulaB Formula B (suffix)
+   *
+   * @return A {@code BooleanFormula} interpolant
+   *
+   * @throws InterruptedException On shutdown request.
+   *
+   */
   private BooleanFormula getInterpolantFrom(
-      ProverEnvironmentWithFallback proverStack,
-      ArrayDeque<Object> formulaA,
-      ArrayDeque<Object> formulaB)
+      ProverEnvironmentWithFallback pProverStack,
+      ArrayDeque<Object> pFormulaA,
+      ArrayDeque<Object> pFormulaB)
       throws SolverException, InterruptedException {
     if (deriveInterpolantFromSuffix) {
       logger
-          .log(Level.FINE, "deriving the interpolant from suffix (formula B) and negate it");
-      return bfmgr.not(proverStack.getInterpolant(formulaB));
+          .log(Level.FINE, "Deriving the interpolant from suffix (formula B) and negate it");
+      return bfmgr.not(pProverStack.getInterpolant(pFormulaB));
     } else {
-      logger.log(Level.FINE, "deriving the interpolant from prefix and loop (formula A)");
-      return proverStack.getInterpolant(formulaA);
+      logger.log(Level.FINE, "Deriving the interpolant from prefix and loop (formula A)");
+      return pProverStack.getInterpolant(pFormulaA);
     }
   }
 
   /**
-   * Compute fixed points by interpolation
+   * The method to iteratively compute fixed points by interpolation.
    *
    * @param pProver SMT solver to check whether a fixed point is reached
-   * @param pPrefixPathFormula the prefix path formula with SSA map
-   * @param pLoopFormula the loop formula
-   * @param pSuffixFormula the suffix formula
+   *
+   * @param pPrefixPathFormula the prefix {@code PathFormula} with SSA map
+   *
+   * @param pLoopFormula the loop {@code BooleanFormula}
+   *
+   * @param pSuffixFormula the suffix {@code BooleanFormula}
+   *
    * @return {@code true} if a fixed point is reached, i.e., property is proved; {@code false} if
-   *         the current over-approximation is unsafe
+   *         the current over-approximation is unsafe.
+   *
+   * @throws InterruptedException On shutdown request.
+   *
    */
   private boolean reachFixedPointByInterpolation(
       ProverEnvironmentWithFallback pProver,
@@ -425,8 +507,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         logger.log(Level.ALL, "The interpolant is " + interpolant.toString());
         interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), prefixSsaMap);
         logger.log(Level.ALL, "After changing SSA " + interpolant.toString());
-        boolean reachFixedPoint = reachFixedPointCheck(pProver, interpolant, currentImage);
-        if (reachFixedPoint) {
+        if (reachFixedPointCheck(pProver, interpolant, currentImage)) {
           logger.log(Level.INFO, "The current image reaches a fixed point, property proved");
           return true;
         }
