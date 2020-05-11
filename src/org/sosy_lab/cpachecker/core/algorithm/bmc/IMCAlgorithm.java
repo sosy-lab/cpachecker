@@ -302,7 +302,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   /**
    * A helper method to check if there is no loop to unroll. It avoids unnecessary unrolling of
-   * ERROR labels in self-loops.
+   * self-loops created by ERROR labels.
    *
    * @param pCfa Control Flow Automaton
    *
@@ -313,11 +313,11 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     if (pCfa.getAllLoopHeads().orElseThrow().isEmpty()) {
       return true;
     }
-    CFANode pNode = pCfa.getAllLoopHeads().orElseThrow().iterator().next();
-    if (pNode.hasEdgeTo(pNode)) {
+    CFANode loopHead = pCfa.getAllLoopHeads().orElseThrow().iterator().next();
+    if (loopHead.hasEdgeTo(loopHead)) {
       return true;
     }
-    if (pNode.getNumLeavingEdges() > 0 && pNode.getLeavingEdge(0).getSuccessor().hasEdgeTo(pNode)) {
+    if (loopHead.getNumLeavingEdges() > 0 && loopHead.getLeavingEdge(0).getSuccessor().hasEdgeTo(loopHead)) {
       return true;
     }
     return false;
@@ -488,18 +488,18 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     try (ProverEnvironmentWithFallback proverStack =
         new ProverEnvironmentWithFallback(solver, ProverOptions.GENERATE_UNSAT_CORE)) {
 
-      BooleanFormula pPrefixFormula = pPrefixPathFormula.getFormula();
+      BooleanFormula prefixFormula = pPrefixPathFormula.getFormula();
       SSAMap prefixSsaMap = pPrefixPathFormula.getSsa();
       logger.log(Level.ALL, "The SSA map is " + prefixSsaMap.toString());
       BooleanFormula currentImage = bfmgr.makeFalse();
-      currentImage = bfmgr.or(currentImage, pPrefixFormula);
-      BooleanFormula interpolant = null;
+      currentImage = bfmgr.or(currentImage, prefixFormula);
+      BooleanFormula interpolant = bfmgr.makeFalse();
 
       ArrayDeque<Object> formulaA = new ArrayDeque<>();
       ArrayDeque<Object> formulaB = new ArrayDeque<>();
       formulaB.addFirst(proverStack.push(pSuffixFormula));
       formulaA.addFirst(proverStack.push(pLoopFormula));
-      formulaA.addFirst(proverStack.push(pPrefixFormula));
+      formulaA.addFirst(proverStack.push(prefixFormula));
 
       while (proverStack.isUnsat()) {
         logger.log(Level.ALL, "The current image is " + currentImage.toString());
