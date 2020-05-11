@@ -65,7 +65,7 @@ import org.sosy_lab.cpachecker.core.algorithm.SelectionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.TestCaseGeneratorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.NZ_INTAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
@@ -493,7 +493,7 @@ public class CoreComponentsFactory {
       if (useIMC) {
         verifyNotNull(shutdownManager);
         algorithm =
-            new NZ_INTAlgorithm(
+            new IMCAlgorithm(
                 algorithm,
                 cpa,
                 config,

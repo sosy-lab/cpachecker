@@ -30,7 +30,6 @@ import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
@@ -40,7 +39,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -100,9 +98,6 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
-import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
-import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.targetreachability.ReachabilityState;
@@ -118,7 +113,6 @@ import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TestTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -147,13 +141,6 @@ abstract class AbstractBMCAlgorithm
       + "the bounding did actually remove parts of the state space "
       + "(this is similar to CBMC's unwinding assertions).")
   private boolean boundingAssertions = true;
-
-  // NZ: options for interpolation-based model checking
-  @Option(secure = true, description = "try using interpolation to verify programs with loops")
-  private boolean interpolation = false;
-
-  @Option(secure = true, description = "toggles deriving the interpolants from suffix formulas")
-  private boolean deriveInterpolantFromSuffix = false;
 
   @Option(
       secure = true,
@@ -194,7 +181,7 @@ abstract class AbstractBMCAlgorithm
   private boolean usePropertyDirection = false;
 
   protected final BMCStatistics stats;
-  private final Algorithm algorithm;
+  protected final Algorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
 
   private final @Nullable ConfigurableProgramAnalysis stepCaseCPA;
@@ -357,285 +344,6 @@ abstract class AbstractBMCAlgorithm
     }
 
     return true;
-  }
-
-  /**
-   * The run method for interpolation-based model checking
-   *
-   * @param reachedSet Abstract Reachability Graph (ARG)
-   *
-   * @return {@code AlgorithmStatus.UNSOUND_AND_PRECISE} if an error location is reached, i.e.,
-   *         unsafe; {@code AlgorithmStatus.SOUND_AND_PRECISE} if a fixed point is reached, i.e.,
-   *         safe.
-   */
-  public AlgorithmStatus runInterpolation(final ReachedSet reachedSet)
-      throws CPAException, SolverException, InterruptedException {
-    Preconditions.checkState(
-        cfa.getAllLoopHeads().isPresent() && cfa.getAllLoopHeads().orElseThrow().size() <= 1,
-        "NZ: programs with multiple loops are not supported yet");
-
-    try (ProverEnvironmentWithFallback prover =
-        new ProverEnvironmentWithFallback(solver, ProverOptions.GENERATE_MODELS)) {
-      PathFormula prefixFormula = pmgr.makeEmptyPathFormula();
-      BooleanFormula loopFormula = bfmgr.makeTrue();
-      BooleanFormula tailFormula = bfmgr.makeTrue();
-      do {
-        int maxLoopIterations = CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
-
-        shutdownNotifier.shutdownIfNecessary();
-        logger.log(Level.INFO, "NZ: unrolling with LBE, maxLoopIterations = " + maxLoopIterations);
-        stats.bmcPreparation.start();
-        BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
-        stats.bmcPreparation.stop();
-        shutdownNotifier.shutdownIfNecessary();
-
-        if (noLoopToUnroll(cfa)) {
-          logger.log(Level.INFO, "NZ: the program has no loop to unroll");
-          if (errorIsReachableCheck(
-              prover,
-              bfmgr.or(getErrorFormula(reachedSet, -1), getErrorFormula(reachedSet, 0)))) {
-            logger.log(Level.INFO, "NZ: an error is reached by BMC");
-            return AlgorithmStatus.UNSOUND_AND_PRECISE;
-          } else {
-            logger.log(Level.INFO, "NZ: no error can be reached");
-            if (reachedSet.hasViolatedProperties()) {
-              TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
-            }
-            return AlgorithmStatus.SOUND_AND_PRECISE;
-          }
-        }
-
-        logger.log(Level.INFO, "NZ: collecting prefix, loop, and suffix formulas");
-        if (maxLoopIterations == 1) {
-          if (errorIsReachableCheck(prover, getErrorFormula(reachedSet, -1))) {
-            logger.log(Level.INFO, "NZ: there exist reachable errors before the loop");
-            return AlgorithmStatus.UNSOUND_AND_PRECISE;
-          }
-          prefixFormula = getLoopHeadFormula(reachedSet, maxLoopIterations - 1);
-        }
-        else if (maxLoopIterations == 2) {
-          loopFormula = getLoopHeadFormula(reachedSet, maxLoopIterations - 1).getFormula();
-        }
-        else {
-          tailFormula =
-              bfmgr.and(
-                  tailFormula,
-                  getLoopHeadFormula(reachedSet, maxLoopIterations - 1).getFormula());
-        }
-        BooleanFormula suffixFormula =
-            bfmgr.and(tailFormula, getErrorFormula(reachedSet, maxLoopIterations - 1));
-        logger.log(Level.FINEST, "NZ: the prefix is " + prefixFormula.getFormula().toString());
-        logger.log(Level.FINEST, "NZ: the loop is " + loopFormula.toString());
-        logger.log(Level.FINEST, "NZ: the suffix is " + suffixFormula.toString());
-
-        logger.log(Level.INFO, "NZ: performing bounded model checking");
-        BooleanFormula reachErrorFormula =
-            bfmgr.and(prefixFormula.getFormula(), loopFormula, suffixFormula);
-        if (errorIsReachableCheck(prover, reachErrorFormula)) {
-          logger.log(Level.INFO, "NZ: an error is reached by BMC");
-          return AlgorithmStatus.UNSOUND_AND_PRECISE;
-        }
-        else {
-          logger.log(
-              Level.INFO,
-              "NZ: no error is found up to maxLoopIterations = " + maxLoopIterations);
-          if (reachedSet.hasViolatedProperties()) {
-            TargetLocationCandidateInvariant.INSTANCE.assumeTruth(reachedSet);
-          }
-          BooleanFormula forwardConditionFormula =
-              bfmgr.and(
-                  prefixFormula.getFormula(),
-                  loopFormula,
-                  tailFormula,
-                  getLoopHeadFormula(reachedSet, maxLoopIterations).getFormula());
-          if (!forwardConditionCheck(prover, forwardConditionFormula)) {
-            logger.log(Level.INFO, "NZ: the program is safe as it cannot be further unrolled");
-            return AlgorithmStatus.SOUND_AND_PRECISE;
-          }
-        }
-
-        if (interpolation && maxLoopIterations > 1) {
-          logger.log(Level.INFO, "NZ: computing fixed points by interpolation");
-          if (reachFixedPointByInterpolation(prover, prefixFormula, loopFormula, suffixFormula)) {
-            return AlgorithmStatus.SOUND_AND_PRECISE;
-          }
-        }
-      } while (adjustConditions());
-    }
-    return AlgorithmStatus.UNSOUND_AND_PRECISE;
-  }
-
-  private boolean noLoopToUnroll(CFA pCfa) {
-    if (pCfa.getAllLoopHeads().orElseThrow().isEmpty()) {
-      return true;
-    }
-    CFANode pNode = pCfa.getAllLoopHeads().orElseThrow().iterator().next();
-    if (pNode.hasEdgeTo(pNode)) {
-      return true;
-    }
-    if (pNode.getNumLeavingEdges() > 0 && pNode.getLeavingEdge(0).getSuccessor().hasEdgeTo(pNode)) {
-      return true;
-    }
-    return false;
-  }
-
-  private PathFormula getLoopHeadFormula(ReachedSet pReachedSet, int numEncounterLoopHead) {
-    List<AbstractState> loopHead =
-        from(pReachedSet)
-            .filter(
-                e -> AbstractStates.extractStateByType(e, LocationState.class)
-                    .getLocationNode()
-                    .isLoopStart())
-            .filter(
-                e -> AbstractStates.extractStateByType(e, LoopBoundState.class)
-                    .getDeepestIteration()
-                    - 1 == numEncounterLoopHead)
-            .toList();
-    checkState(loopHead.size() == 1, "The number of loop heads in ARG is " + "%s", loopHead.size());
-    return PredicateAbstractState.getPredicateState(loopHead.get(0))
-        .getAbstractionFormula()
-        .getBlockFormula();
-  }
-
-  private BooleanFormula getErrorFormula(ReachedSet pReachedSet, int numEncounterLoopHead) {
-    List<AbstractState> errorLocations =
-        AbstractStates.getTargetStates(pReachedSet)
-            .filter(
-                e -> AbstractStates.extractStateByType(e, LoopBoundState.class)
-                    .getDeepestIteration()
-                    - 1 == numEncounterLoopHead)
-            .toList();
-    BooleanFormula formulaToErrorLocations = bfmgr.makeFalse();
-    for (AbstractState pErrorState : errorLocations) {
-      formulaToErrorLocations =
-          bfmgr.or(
-              formulaToErrorLocations,
-              PredicateAbstractState.getPredicateState(pErrorState)
-                  .getAbstractionFormula()
-                  .getBlockFormula()
-                  .getFormula());
-    }
-    return formulaToErrorLocations;
-  }
-
-  private boolean formulaCheckSat(ProverEnvironmentWithFallback pProver, BooleanFormula pFormula)
-      throws InterruptedException, SolverException {
-    while (!pProver.isEmpty()) {
-      pProver.pop();
-    }
-    pProver.push(pFormula);
-    return !pProver.isUnsat();
-  }
-
-  private boolean errorIsReachableCheck(
-      ProverEnvironmentWithFallback pProver,
-      BooleanFormula pReachErrorFormula)
-      throws InterruptedException, SolverException {
-    try {
-      return formulaCheckSat(pProver, pReachErrorFormula);
-    } catch (SolverException e) {
-      logger
-          .log(Level.WARNING, "NZ: an exception happened during checking if an error is reachable");
-      throw e;
-    }
-  }
-
-  private boolean forwardConditionCheck(
-      ProverEnvironmentWithFallback pProver,
-      BooleanFormula pForwardConditionFormula)
-      throws InterruptedException, SolverException {
-    try {
-      return formulaCheckSat(pProver, pForwardConditionFormula);
-    } catch (SolverException e) {
-      logger.log(Level.WARNING, "NZ: an exception happened during forward checking phase");
-      throw e;
-    }
-  }
-
-  private boolean reachFixedPointCheck(
-      ProverEnvironmentWithFallback pProver,
-      BooleanFormula pInterpolantFormula,
-      BooleanFormula pCurrentImageFormula)
-      throws InterruptedException, SolverException {
-    try {
-      BooleanFormula pNotImplicationFormula =
-          bfmgr.not(bfmgr.implication(pInterpolantFormula, pCurrentImageFormula));
-      return !formulaCheckSat(pProver, pNotImplicationFormula);
-    } catch (SolverException e) {
-      logger.log(Level.WARNING, "NZ: an exception happened during fixed point checking phase");
-      throw e;
-    }
-  }
-
-  private BooleanFormula getInterpolantFrom(
-      ProverEnvironmentWithFallback proverStack,
-      ArrayDeque<Object> formulaA,
-      ArrayDeque<Object> formulaB)
-      throws SolverException, InterruptedException {
-    if (deriveInterpolantFromSuffix) {
-      logger
-          .log(Level.FINEST, "NZ: deriving the interpolant from suffix (formula B) and negate it");
-      return bfmgr.not(proverStack.getInterpolant(formulaB));
-    } else {
-      logger.log(Level.FINEST, "NZ: deriving the interpolant from prefix and loop (formula A)");
-      return proverStack.getInterpolant(formulaA);
-    }
-  }
-
-  /**
-   * Compute fixed points by interpolation
-   *
-   * @param pProver SMT solver to check whether a fixed point is reached
-   * @param pPrefixPathFormula the prefix path formula with SSA map
-   * @param pLoopFormula the loop formula
-   * @param pSuffixFormula the suffix formula
-   * @return {@code true} if a fixed point is reached, i.e., property is proved; {@code false} if
-   *         the current over-approximation is unsafe
-   */
-  private boolean reachFixedPointByInterpolation(
-      ProverEnvironmentWithFallback pProver,
-      PathFormula pPrefixPathFormula,
-      BooleanFormula pLoopFormula,
-      BooleanFormula pSuffixFormula)
-      throws InterruptedException, SolverException {
-    try (ProverEnvironmentWithFallback proverStack =
-        new ProverEnvironmentWithFallback(solver, ProverOptions.GENERATE_UNSAT_CORE)) {
-
-      BooleanFormula pPrefixFormula = pPrefixPathFormula.getFormula();
-      SSAMap prefixSsaMap = pPrefixPathFormula.getSsa();
-      logger.log(Level.FINEST, "NZ: the SSA map is " + prefixSsaMap.toString());
-      BooleanFormula currentImage = bfmgr.makeFalse();
-      currentImage = bfmgr.or(currentImage, pPrefixFormula);
-      BooleanFormula interpolant = null;
-
-      ArrayDeque<Object> formulaA = new ArrayDeque<>();
-      ArrayDeque<Object> formulaB = new ArrayDeque<>();
-      formulaB.addFirst(proverStack.push(pSuffixFormula));
-      formulaA.addFirst(proverStack.push(pLoopFormula));
-      formulaA.addFirst(proverStack.push(pPrefixFormula));
-
-      while (proverStack.isUnsat()) {
-        logger.log(Level.FINEST, "NZ: the current image is " + currentImage.toString());
-        interpolant = getInterpolantFrom(proverStack, formulaA, formulaB);
-        logger.log(Level.FINEST, "NZ: the interpolant is " + interpolant.toString());
-        interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), prefixSsaMap);
-        logger.log(Level.FINEST, "NZ: after changing SSA " + interpolant.toString());
-        boolean reachFixedPoint = reachFixedPointCheck(pProver, interpolant, currentImage);
-        if (reachFixedPoint) {
-          logger.log(Level.INFO, "NZ: the current image reaches a fixed point, property proved");
-          return true;
-        }
-        currentImage = bfmgr.or(currentImage, interpolant);
-        proverStack.pop();
-        formulaA.removeFirst();
-        formulaA.addFirst(proverStack.push(interpolant));
-      }
-      logger.log(Level.INFO, "NZ: the overapproximation is unsafe, going back to BMC phase");
-      return false;
-    } catch (SolverException e) {
-      logger.log(Level.WARNING, "NZ: an exception happened during interpolation phase");
-      throw e;
-    }
   }
 
   public AlgorithmStatus run(final ReachedSet reachedSet) throws CPAException,
@@ -878,7 +586,7 @@ abstract class AbstractBMCAlgorithm
    * @return {@code true} if the conditions were adjusted, {@code false} if no further adjustment is
    *     possible.
    */
-  private boolean adjustConditions() {
+  protected boolean adjustConditions() {
     FluentIterable<AdjustableConditionCPA> conditionCPAs =
         CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class);
     boolean adjusted = false;
@@ -900,47 +608,6 @@ abstract class AbstractBMCAlgorithm
     }
     return !Iterables.isEmpty(conditionCPAs);
   }
-
-  // NZ: begin of the modified bounded model check, which delays the removal of target states
-  protected boolean boundedModelCheckNoRemoveTargetStates(
-      final ReachedSet pReachedSet,
-      final ProverEnvironmentWithFallback pProver,
-      CandidateInvariant pCandidateInvariant)
-      throws CPATransferException, InterruptedException, SolverException {
-    return boundedModelCheckNoRemoveTargetStates(
-        (Iterable<AbstractState>) pReachedSet,
-        pProver,
-        pCandidateInvariant);
-  }
-
-  private boolean boundedModelCheckNoRemoveTargetStates(
-      Iterable<AbstractState> pReachedSet,
-      ProverEnvironmentWithFallback pProver,
-      CandidateInvariant pCandidateInvariant)
-      throws CPATransferException, InterruptedException, SolverException {
-    BooleanFormula program = bfmgr.not(pCandidateInvariant.getAssertion(pReachedSet, fmgr, pmgr));
-    logger.log(Level.INFO, "Starting satisfiability check...");
-    stats.satCheck.start();
-    pProver.push(program);
-    boolean safe = pProver.isUnsat();
-    stats.satCheck.stop();
-    // Leave program formula on solver stack until error path is created
-
-    if (pReachedSet instanceof ReachedSet) {
-      ReachedSet reachedSet = (ReachedSet) pReachedSet;
-      if (safe) {
-        // NZ: do not remove target states now because they are used in the interpolation phase
-        // pCandidateInvariant.assumeTruth(reachedSet);
-      } else if (pCandidateInvariant == TargetLocationCandidateInvariant.INSTANCE) {
-        analyzeCounterexample(program, reachedSet, pProver);
-      }
-    }
-
-    pProver.pop();
-
-    return safe;
-  }
-  // NZ: end of the modified bounded model check, which delays the removal of target states
 
   protected boolean boundedModelCheck(
       final ReachedSet pReachedSet,
