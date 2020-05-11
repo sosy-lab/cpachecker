@@ -600,6 +600,9 @@ bmc.boundingAssertionsSlicing = false
 # discovered, which is done if cpa.predicate.targetStateSatCheck=true.
 bmc.checkTargetStates = true
 
+# toggle deriving the interpolants from suffix formulas
+bmc.deriveInterpolantFromSuffix = false
+
 # try using induction to verify programs with loops
 bmc.induction = false
 
