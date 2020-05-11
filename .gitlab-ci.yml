@@ -143,7 +143,7 @@ javascript-e2e-tests:
   image: ${CI_REGISTRY_IMAGE}/test:java-node
   before_script:
       # generate example report
-    - scripts/cpa.sh -predicateAnalysis test/programs/simple/SSAMap-bug_false-unreach-label.c
+    - scripts/cpa.sh -predicateAnalysis test/programs/simple/SSAMap-bug.c
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
     - npm install
     - "./node_modules/protractor/node_modules/webdriver-manager/bin/webdriver-manager update --versions.chrome $(dpkg-query --showformat='${Version}' --show chromium-browser)"
