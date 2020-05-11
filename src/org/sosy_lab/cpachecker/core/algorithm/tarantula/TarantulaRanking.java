@@ -45,31 +45,16 @@ public class TarantulaRanking {
   }
 
   /**
-   * Calculates how many total failed cases are in ARG.
-   *
-   * @return how many failed cases are found.
-   */
-  private int totalFailed() {
-    return failedCase.getTotalFailedCases();
-  }
-  /**
-   * Calculates how many total passed cases are in ARG.
-   *
-   * @return how many passed cases are found.
-   */
-  private int totalPassed() {
-    return safeCase.getTotalSafeCases();
-  }
-  /**
    * Calculates suspicious of tarantula algorithm.
    *
    * @param pFailed Is the number of pFailed cases in each edge.
    * @param pPassed Is the number of pPassed cases in each edge.
    * @return Calculated suspicious.
    */
-  private double computeSuspicious(double pFailed, double pPassed) {
-    double numerator = pFailed / totalFailed();
-    double denominator = (pPassed / totalPassed()) + (pFailed / totalFailed());
+  private double computeSuspicious(
+      double pFailed, double pPassed, double totalFailed, double totalPassed) {
+    double numerator = pFailed / totalFailed;
+    double denominator = (pPassed / totalPassed) + (pFailed / totalFailed);
     if (denominator == 0.0) {
       return 0.0;
     }
@@ -80,7 +65,7 @@ public class TarantulaRanking {
 
     Map<CFAEdge, TarantulaCasesStatus> coverage =
         this.coverageInformation.getCoverageInformation(
-            safeCase.getSafePaths(), failedCase.getFailedPaths());
+            safeCase.getSafePaths(), failedCase.getErrorPaths());
 
     Map<CFAEdge, Double> resultMap = new LinkedHashMap<>();
     coverage.forEach(
@@ -88,7 +73,10 @@ public class TarantulaRanking {
           resultMap.put(
               pCFAEdge,
               computeSuspicious(
-                  pTarantulaCasesStatus.getFailedCases(), pTarantulaCasesStatus.getPassedCases()));
+                  pTarantulaCasesStatus.getFailedCases(),
+                  pTarantulaCasesStatus.getPassedCases(),
+                  failedCase.getTotalErrorCases(),
+                  safeCase.getTotalSafeCases()));
         });
 
     // Sort the result by its value and ignore the suspicious with 0.0 ration.

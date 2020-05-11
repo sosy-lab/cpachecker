@@ -99,7 +99,6 @@ public class SafeCase {
    * @return Number of total passed cases.
    */
   public int getTotalSafeCases() {
-
     return totalSafeCases == 0 ? totalSafeCases = getSafePaths().size() : totalSafeCases;
   }
 }

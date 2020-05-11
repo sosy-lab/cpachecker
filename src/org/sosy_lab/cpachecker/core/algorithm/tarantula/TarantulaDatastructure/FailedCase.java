@@ -23,21 +23,17 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure;
 
-import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
-
-import com.google.common.collect.FluentIterable;
 import java.util.HashSet;
 import java.util.Set;
-import org.sosy_lab.common.Optionals;
-import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaUtils;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
 public class FailedCase {
   private final ReachedSet pReachedSet;
-  private int totalFailedCases = 0;
+  int totalErrorCases;
 
   public FailedCase(ReachedSet pPReachedSet) {
     this.pReachedSet = pPReachedSet;
@@ -47,23 +43,15 @@ public class FailedCase {
    *
    * @return Detected all failed Paths.
    */
-  public Set<ARGPath> getFailedPaths() {
+  public Set<ARGPath> getErrorPaths() {
+    Set<ARGPath> allErrorPathsTogether = new HashSet<>();
 
-    Set<ARGPath> failedPaths = new HashSet<>();
-    for (CounterexampleInfo counterExample : getCounterExamples()) {
-      failedPaths.add(counterExample.getTargetPath());
+    for (ARGState safeState : ARGUtils.getErrorStates(pReachedSet)) {
+      allErrorPathsTogether.addAll(TarantulaUtils.getAllPaths(pReachedSet, safeState));
     }
-    return failedPaths;
+    return allErrorPathsTogether;
   }
 
-  private FluentIterable<CounterexampleInfo> getCounterExamples() {
-
-    return Optionals.presentInstances(
-        from(pReachedSet)
-            .filter(IS_TARGET_STATE)
-            .filter(ARGState.class)
-            .transform(ARGState::getCounterexampleInformation));
-  }
   /**
    * Checks whether there is a false paths in the ARG or not.
    *
@@ -71,7 +59,7 @@ public class FailedCase {
    */
   public boolean existsErrorPath() {
 
-    if (!getCounterExamples().isEmpty()) {
+    if (!getErrorPaths().isEmpty()) {
       return true;
     }
 
@@ -90,12 +78,9 @@ public class FailedCase {
     }
     return false;
   }
-  /**
-   * Gets the total failed cases.
-   *
-   * @return Number of total failed cases
-   */
-  public int getTotalFailedCases() {
-    return totalFailedCases == 0 ? totalFailedCases = getFailedPaths().size() : totalFailedCases;
+
+  public int getTotalErrorCases() {
+
+    return totalErrorCases == 0 ? totalErrorCases = getErrorPaths().size() : totalErrorCases;
   }
 }
