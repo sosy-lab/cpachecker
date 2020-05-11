@@ -9,12 +9,6 @@ variables:
   REFASTER_VERSION: 2.3.4
 
 
-build:jdk-14:
-  variables:
-    # https://github.com/google/error-prone/issues/1106
-    ANT_PROPS_BUILD: "-Divy.disable=true -Derrorprone.disable=true"
-
-
 .binary_check: &binary_check
   stage: checks
 
