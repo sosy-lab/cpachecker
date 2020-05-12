@@ -589,6 +589,28 @@ public class CtoFormulaConverter {
     return result;
   }
 
+  /**
+   * Use this version of makeFreshVariable, when a particular FormulaType is required.
+   */
+  protected Formula
+      makeFreshVariable(String name, FormulaType<?> fType, CType type, SSAMapBuilder ssa) {
+    int useIndex;
+
+    if (direction == AnalysisDirection.BACKWARD) {
+      useIndex = getIndex(name, type, ssa);
+    } else {
+      useIndex = makeFreshIndex(name, type, ssa);
+    }
+
+    Formula result = fmgr.makeVariable(fType, name, useIndex);
+
+    if (direction == AnalysisDirection.BACKWARD) {
+      makeFreshIndex(name, type, ssa);
+    }
+
+    return result;
+  }
+
   protected Formula makeNondet(
       final String name, final CType type, final SSAMapBuilder ssa, final Constraints constraints) {
     Formula newVariable = makeFreshVariable(name, type, ssa);
@@ -599,12 +621,18 @@ public class CtoFormulaConverter {
   }
 
   protected IntegerFormula
-      makeIntBoolToIntNondet(int index, final CType type, final Constraints constraints) {
-    IntegerFormula newVariable = ifmgr.makeVariable(INT_BOOL_TO_INT, index);
+      makeIntBoolToIntNondet(final SSAMapBuilder ssa, final Constraints constraints) {
+    Formula newVariable =
+        makeFreshVariable(
+            INT_BOOL_TO_INT,
+            FormulaType.IntegerType,
+            CNumericTypes.INT.getCanonicalType(),
+            ssa);
     if (options.addRangeConstraintsForNondet()) {
-      addRangeConstraint(newVariable, type, constraints);
+      addRangeConstraint(newVariable, CNumericTypes.INT.getCanonicalType(), constraints);
     }
-    return newVariable;
+    assert (newVariable instanceof IntegerFormula);
+    return (IntegerFormula) newVariable;
   }
 
   Formula makeStringLiteral(String literal) {
@@ -766,7 +794,7 @@ public class CtoFormulaConverter {
       }
     }
     if (fromType.isBooleanType()) {
-      Formula intFormula = intBoolToInt((BooleanFormula) formula, cTypeNoPointer, ssa, constraints);
+      Formula intFormula = intBoolToInt((BooleanFormula) formula, ssa, constraints);
       if (toType.isIntegerType()) {
         return intFormula;
       } else if (toType.isBitvectorType()) {
@@ -790,9 +818,8 @@ public class CtoFormulaConverter {
    * @return IntegerFormula containing a placeholder variable.
    */
   private Formula
-      intBoolToInt(BooleanFormula formula, CType type, SSAMapBuilder ssa, Constraints constraints) {
-    int index = this.makeFreshIndex(INT_BOOL_TO_INT, type, ssa);
-    IntegerFormula placeh = makeIntBoolToIntNondet(index, type, constraints);
+      intBoolToInt(BooleanFormula formula, SSAMapBuilder ssa, Constraints constraints) {
+    IntegerFormula placeh = makeIntBoolToIntNondet(ssa, constraints);
     IntegerFormula zero = ifmgr.makeNumber(0);
     BooleanFormula rhs = bfmgr.not(ifmgr.equal(placeh, zero));
     BooleanFormula constraint = bfmgr.equivalence(formula, rhs);
