@@ -102,6 +102,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -228,28 +229,24 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         stats.bmcPreparation.stop();
         shutdownNotifier.shutdownIfNecessary();
 
-        if (noLoopToUnroll(cfa)) {
-          logger.log(Level.FINE, "The program has no loop to unroll");
-          if (formulaCheckSat(
-              prover,
-              bfmgr.or(getErrorFormula(pReachedSet, -1), getErrorFormula(pReachedSet, 0)))) {
-            logger.log(Level.INFO, "An error is reached by BMC");
-            return AlgorithmStatus.UNSOUND_AND_PRECISE;
-          } else {
-            logger.log(Level.INFO, "No error can be reached");
-            if (pReachedSet.hasViolatedProperties()) {
-              TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
-            }
-            return AlgorithmStatus.SOUND_AND_PRECISE;
-          }
-        }
+//        if (noLoopToUnroll(cfa)) {
+//          logger.log(Level.FINE, "The program has no loop to unroll");
+//          if (formulaCheckSat(
+//              prover,
+//              bfmgr.or(getErrorFormula(pReachedSet, -1), getErrorFormula(pReachedSet, 0)))) {
+//            logger.log(Level.INFO, "An error is reached by BMC");
+//            return AlgorithmStatus.UNSOUND_AND_PRECISE;
+//          } else {
+//            logger.log(Level.INFO, "No error can be reached");
+//            if (pReachedSet.hasViolatedProperties()) {
+//              TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
+//            }
+//            return AlgorithmStatus.SOUND_AND_PRECISE;
+//          }
+//        }
 
         logger.log(Level.FINE, "Collecting prefix, loop, and suffix formulas");
         if (maxLoopIterations == 1) {
-          if (formulaCheckSat(prover, getErrorFormula(pReachedSet, -1))) {
-            logger.log(Level.INFO, "There exist reachable errors before the loop");
-            return AlgorithmStatus.UNSOUND_AND_PRECISE;
-          }
           prefixFormula = getLoopHeadFormula(pReachedSet, maxLoopIterations - 1);
         } else if (maxLoopIterations == 2) {
           loopFormula = getLoopHeadFormula(pReachedSet, maxLoopIterations - 1).getFormula();
@@ -267,6 +264,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
         BooleanFormula reachErrorFormula =
             bfmgr.and(prefixFormula.getFormula(), loopFormula, suffixFormula);
+        if (maxLoopIterations == 1) {
+          reachErrorFormula = bfmgr.or(reachErrorFormula, getErrorFormula(pReachedSet, -1));
+        }
         if (formulaCheckSat(prover, reachErrorFormula)) {
           logger.log(Level.INFO, "An error is reached by BMC");
           return AlgorithmStatus.UNSOUND_AND_PRECISE;
@@ -346,10 +346,18 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                     .getDeepestIteration()
                     - 1 == numEncounterLoopHead)
             .toList();
-    checkState(loopHead.size() == 1, "The number of loop heads in ARG is " + "%s", loopHead.size());
-    return PredicateAbstractState.getPredicateState(loopHead.get(0))
-        .getAbstractionFormula()
-        .getBlockFormula();
+    checkState(loopHead.size() <= 1, "There are more than one (%s) loop heads!", loopHead.size());
+    if (loopHead.isEmpty()) {
+      return new PathFormula(bfmgr.makeFalse(),
+          SSAMap.emptySSAMap(),
+          PointerTargetSet.emptyPointerTargetSet(),
+          0);
+    }
+    else {
+      return PredicateAbstractState.getPredicateState(loopHead.get(0))
+          .getAbstractionFormula()
+          .getBlockFormula();
+    }
   }
 
   /**
