@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
-import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterAncestors;
 
@@ -229,22 +228,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         stats.bmcPreparation.stop();
         shutdownNotifier.shutdownIfNecessary();
 
-//        if (noLoopToUnroll(cfa)) {
-//          logger.log(Level.FINE, "The program has no loop to unroll");
-//          if (formulaCheckSat(
-//              prover,
-//              bfmgr.or(getErrorFormula(pReachedSet, -1), getErrorFormula(pReachedSet, 0)))) {
-//            logger.log(Level.INFO, "An error is reached by BMC");
-//            return AlgorithmStatus.UNSOUND_AND_PRECISE;
-//          } else {
-//            logger.log(Level.INFO, "No error can be reached");
-//            if (pReachedSet.hasViolatedProperties()) {
-//              TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
-//            }
-//            return AlgorithmStatus.SOUND_AND_PRECISE;
-//          }
-//        }
-
         logger.log(Level.FINE, "Collecting prefix, loop, and suffix formulas");
         if (maxLoopIterations == 1) {
           prefixFormula = getLoopHeadFormula(pReachedSet, maxLoopIterations - 1);
@@ -301,31 +284,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   /**
-   * A helper method to check if there is no loop to unroll. It avoids unnecessary unrolling of
-   * self-loops created by ERROR labels.
-   *
-   * @param pCfa Control Flow Automaton
-   *
-   * @return {@code true} if there is no loop or there is a self-loop formed by ERROR labels;
-   *         {@code false} if there is a loop to unroll.
-   */
-//  private boolean noLoopToUnroll(CFA pCfa) {
-//    if (pCfa.getAllLoopHeads().orElseThrow().isEmpty()) {
-//      return true;
-//    }
-//    CFANode loopHead = pCfa.getAllLoopHeads().orElseThrow().iterator().next();
-//    if (loopHead.hasEdgeTo(loopHead)) {
-//      return true;
-//    }
-//    if (loopHead.getNumLeavingEdges() > 0 && loopHead.getLeavingEdge(0).getSuccessor().hasEdgeTo(loopHead)) {
-//      return true;
-//    }
-//    return false;
-//  }
-
-  /**
-   * A helper method to get the block formula at the specified loop head location. It uses
-   * {@code checkState} to ensure that there is a unique loop head location.
+   * A helper method to get the block formula at the specified loop head location. Typically it
+   * expects zero or one loop head state in ARG, because multi-loop programs are excluded in the
+   * beginning. However, one exception is caused by the pattern "{@code ERROR: goto ERROR;}". Under
+   * this situation it returns the disjunction of the path formulas to each loop head state.
    *
    * @param pReachedSet Abstract Reachability Graph
    *
@@ -333,9 +295,12 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    *
    * @return The {@code PathFormula} at the specified loop head location if the loop head is unique.
    *
+   * @throws InterruptedException On shutdown request.
+   *
    */
-  private PathFormula getLoopHeadFormula(ReachedSet pReachedSet, int numEncounterLoopHead) {
-    List<AbstractState> loopHead =
+  private PathFormula getLoopHeadFormula(ReachedSet pReachedSet, int numEncounterLoopHead)
+      throws InterruptedException {
+    List<AbstractState> loopHeads =
         from(pReachedSet)
             .filter(
                 e -> AbstractStates.extractStateByType(e, LocationState.class)
@@ -346,18 +311,21 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                     .getDeepestIteration()
                     - 1 == numEncounterLoopHead)
             .toList();
-    checkState(loopHead.size() <= 1, "There are more than one (%s) loop heads!", loopHead.size());
-    if (loopHead.isEmpty()) {
-      return new PathFormula(bfmgr.makeFalse(),
-          SSAMap.emptySSAMap(),
-          PointerTargetSet.emptyPointerTargetSet(),
-          0);
+    PathFormula formulaToLoopHeads =
+        new PathFormula(
+            bfmgr.makeFalse(),
+            SSAMap.emptySSAMap(),
+            PointerTargetSet.emptyPointerTargetSet(),
+            0);
+    for (AbstractState loopHeadState : loopHeads) {
+      formulaToLoopHeads =
+          pmgr.makeOr(
+              formulaToLoopHeads,
+              PredicateAbstractState.getPredicateState(loopHeadState)
+                  .getAbstractionFormula()
+                  .getBlockFormula());
     }
-    else {
-      return PredicateAbstractState.getPredicateState(loopHead.get(0))
-          .getAbstractionFormula()
-          .getBlockFormula();
-    }
+    return formulaToLoopHeads;
   }
 
   /**
