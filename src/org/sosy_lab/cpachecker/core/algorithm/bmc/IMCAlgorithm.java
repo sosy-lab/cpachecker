@@ -258,9 +258,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         }
         BooleanFormula suffixFormula =
             bfmgr.and(tailFormula, getErrorFormula(pReachedSet, maxLoopIterations - 1));
-        logger.log(Level.ALL, "The prefix is " + prefixFormula.getFormula().toString());
-        logger.log(Level.ALL, "The loop is " + loopFormula.toString());
-        logger.log(Level.ALL, "The suffix is " + suffixFormula.toString());
+        logger.log(Level.ALL, "The prefix is ", prefixFormula.getFormula());
+        logger.log(Level.ALL, "The loop is ", loopFormula);
+        logger.log(Level.ALL, "The suffix is ", suffixFormula);
 
         BooleanFormula reachErrorFormula =
             bfmgr.and(prefixFormula.getFormula(), loopFormula, suffixFormula);
@@ -498,7 +498,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
       BooleanFormula prefixFormula = pPrefixPathFormula.getFormula();
       SSAMap prefixSsaMap = pPrefixPathFormula.getSsa();
-      logger.log(Level.ALL, "The SSA map is " + prefixSsaMap.toString());
+      logger.log(Level.ALL, "The SSA map is ", prefixSsaMap);
       BooleanFormula currentImage = bfmgr.makeFalse();
       currentImage = bfmgr.or(currentImage, prefixFormula);
       BooleanFormula interpolant = bfmgr.makeFalse();
@@ -510,11 +510,11 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       formulaA.addFirst(proverStack.push(prefixFormula));
 
       while (proverStack.isUnsat()) {
-        logger.log(Level.ALL, "The current image is " + currentImage.toString());
+        logger.log(Level.ALL, "The current image is ", currentImage);
         interpolant = getInterpolantFrom(proverStack, formulaA, formulaB);
-        logger.log(Level.ALL, "The interpolant is " + interpolant.toString());
+        logger.log(Level.ALL, "The interpolant is ", interpolant);
         interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), prefixSsaMap);
-        logger.log(Level.ALL, "After changing SSA " + interpolant.toString());
+        logger.log(Level.ALL, "After changing SSA ", interpolant);
         if (reachFixedPointCheck(pProver, interpolant, currentImage)) {
           logger.log(Level.INFO, "The current image reaches a fixed point, property proved");
           return true;
