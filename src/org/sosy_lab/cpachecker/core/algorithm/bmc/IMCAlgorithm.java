@@ -309,19 +309,19 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @return {@code true} if there is no loop or there is a self-loop formed by ERROR labels;
    *         {@code false} if there is a loop to unroll.
    */
-  private boolean noLoopToUnroll(CFA pCfa) {
-    if (pCfa.getAllLoopHeads().orElseThrow().isEmpty()) {
-      return true;
-    }
-    CFANode loopHead = pCfa.getAllLoopHeads().orElseThrow().iterator().next();
-    if (loopHead.hasEdgeTo(loopHead)) {
-      return true;
-    }
-    if (loopHead.getNumLeavingEdges() > 0 && loopHead.getLeavingEdge(0).getSuccessor().hasEdgeTo(loopHead)) {
-      return true;
-    }
-    return false;
-  }
+//  private boolean noLoopToUnroll(CFA pCfa) {
+//    if (pCfa.getAllLoopHeads().orElseThrow().isEmpty()) {
+//      return true;
+//    }
+//    CFANode loopHead = pCfa.getAllLoopHeads().orElseThrow().iterator().next();
+//    if (loopHead.hasEdgeTo(loopHead)) {
+//      return true;
+//    }
+//    if (loopHead.getNumLeavingEdges() > 0 && loopHead.getLeavingEdge(0).getSuccessor().hasEdgeTo(loopHead)) {
+//      return true;
+//    }
+//    return false;
+//  }
 
   /**
    * A helper method to get the block formula at the specified loop head location. It uses
