@@ -3,11 +3,12 @@
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="5 GB" cpuCores="1">
 
   <option name="-heap">2000M</option>
-  
+
+  <!--
   <rundefinition name="interpolation_from_prefix">
     <option name="-bmc-interpolation"/>
     <option name="-setprop">bmc.deriveInterpolantFromSuffix=false</option>
-  </rundefinition>
+  </rundefinition>-->
 
   <rundefinition name="interpolation_from_suffix">
     <option name="-bmc-interpolation"/>
@@ -17,6 +18,19 @@
   <rundefinition name="predicate_analysis">
     <option name="-predicateAnalysis"/>
   </rundefinition>
+
+  <!--
+  <rundefinition name="pdr">
+    <option name="-config">config/unmaintained/components/kInduction/pdr.properties</option>
+    <option name="-setprop">pdr.abstractionStrategy=ALLSAT_BASED_PREDICATE_ABSTRACTION</option>
+    <option name="-setprop">pdr.liftingStrategy=ABSTRACTION_BASED_LIFTING</option>
+	<option name="-setprop">pdr.invariantRefinementStrategy=UNSAT_CORE_BASED_STRENGTHENING</option>
+  </rundefinition>-->
+
+  <!--
+  <rundefinition name="impact">
+    <option name="-config">config/unmaintained/impactAlgorithm-SBE.properties</option>
+  </rundefinition>-->
   
   <tasks>
     <includesfile>../programs/simple/simple.set</includesfile>
