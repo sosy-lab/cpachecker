@@ -287,8 +287,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   /**
    * A helper method to get the block formula at the specified loop head location. Typically it
    * expects zero or one loop head state in ARG, because multi-loop programs are excluded in the
-   * beginning. However, one exception is caused by the pattern "{@code ERROR: goto ERROR;}". Under
-   * this situation it returns the disjunction of the path formulas to each loop head state.
+   * beginning. In this case, it returns a false path formula if there is no loop head, or the path
+   * formula at the unique loop head. However, an exception is caused by the pattern
+   * "{@code ERROR: goto ERROR;}". Under this situation, it returns the disjunction of the path
+   * formulas to each loop head state.
    *
    * @param pReachedSet Abstract Reachability Graph
    *
@@ -350,11 +352,11 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                     - 1 == numEncounterLoopHead)
             .toList();
     BooleanFormula formulaToErrorLocations = bfmgr.makeFalse();
-    for (AbstractState pErrorState : errorLocations) {
+    for (AbstractState errorState : errorLocations) {
       formulaToErrorLocations =
           bfmgr.or(
               formulaToErrorLocations,
-              PredicateAbstractState.getPredicateState(pErrorState)
+              PredicateAbstractState.getPredicateState(errorState)
                   .getAbstractionFormula()
                   .getBlockFormula()
                   .getFormula());
