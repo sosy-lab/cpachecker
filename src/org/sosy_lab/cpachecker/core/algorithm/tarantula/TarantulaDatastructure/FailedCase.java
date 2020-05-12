@@ -78,7 +78,11 @@ public class FailedCase {
     }
     return false;
   }
-
+  /**
+   * Gets the total failed cases.
+   *
+   * @return Number of total failed cases.
+   */
   public int getTotalErrorCases() {
 
     return totalErrorCases == 0 ? totalErrorCases = getErrorPaths().size() : totalErrorCases;

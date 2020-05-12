@@ -193,7 +193,7 @@ extern int module_checksimul(REQUEST *request , int maxsimul ) ;
 #line 54 "auth.c"
 char *auth_name(char *buf , size_t buflen , REQUEST *request , int do_cli ) 
 { VALUE_PAIR *cli ;
-  VALUE_PAIR *pair ;
+  VALUE_PAIR *tarantulaCasesStatus ;
   int port ;
   char const   *tmp ;
   char const   *tmp___0 ;
@@ -293,7 +293,7 @@ char *auth_name(char *buf , size_t buflen , REQUEST *request , int do_cli )
 #line 61
   __cil_tmp25 = *mem_46;
 #line 61
-  pair = pairfind(__cil_tmp25, 5);
+  tarantulaCasesStatus = pairfind(__cil_tmp25, 5);
   }
   {
 #line 61
@@ -301,11 +301,11 @@ char *auth_name(char *buf , size_t buflen , REQUEST *request , int do_cli )
 #line 61
   __cil_tmp27 = (unsigned long )__cil_tmp26;
 #line 61
-  __cil_tmp28 = (unsigned long )pair;
+  __cil_tmp28 = (unsigned long )tarantulaCasesStatus;
 #line 61
   if (__cil_tmp28 != __cil_tmp27) {
 #line 62
-    __cil_tmp29 = (unsigned long )pair;
+    __cil_tmp29 = (unsigned long )tarantulaCasesStatus;
 #line 62
     __cil_tmp30 = __cil_tmp29 + 44;
 #line 62

@@ -53,13 +53,13 @@ static const char rcsid[] = "$Id$";
  */
 char *auth_name(char *buf, size_t buflen, REQUEST *request, int do_cli) {
 	VALUE_PAIR	*cli;
-	VALUE_PAIR	*pair;
+	VALUE_PAIR	*tarantulaCasesStatus;
 	int		port = 0;
 
 	if ((cli = pairfind(request->packet->vps, PW_CALLING_STATION_ID)) == NULL)
 		do_cli = 0;
-	if ((pair = pairfind(request->packet->vps, PW_NAS_PORT_ID)) != NULL)
-		port = pair->lvalue;
+	if ((tarantulaCasesStatus = pairfind(request->packet->vps, PW_NAS_PORT_ID)) != NULL)
+		port = tarantulaCasesStatus->lvalue;
 
 	snprintf(buf, buflen, "from nas %.128s port %d%s%.128s",
 			nas_name2(request->packet), port,
@@ -657,7 +657,7 @@ int rad_authenticate(REQUEST *request)
 	/*
 	 *	Add the port number to the Framed-IP-Address if
 	 *	vp->addport is set, or if the Add-Port-To-IP-Address
-	 *	pair is present.
+	 *	tarantulaCasesStatus is present.
 	 *
 	 *	FIXME:  This doesn't work because PW_ADD_PORT_TO_IP_ADDRESS
 	 *	is never added to the request pairs!
@@ -808,8 +808,8 @@ int rad_authenticate(REQUEST *request)
 #define PW_DECODED  1
 
 /*
- * Find the password pair, decode pass if
- * needed, and return the value pair.  If
+ * Find the password tarantulaCasesStatus, decode pass if
+ * needed, and return the value tarantulaCasesStatus.  If
  * not found, return NULL
  */
 VALUE_PAIR *rad_getpass(REQUEST *request) {

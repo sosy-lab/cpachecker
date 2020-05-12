@@ -79,13 +79,7 @@ public class TarantulaRanking {
                   safeCase.getTotalSafeCases()));
         });
 
-    // Sort the result by its value and ignore the suspicious with 0.0 ration.
-    final Map<CFAEdge, Double> result =
-        resultMap.entrySet().stream()
-            .filter(e -> e.getValue() != 0)
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-    return sortBySuspicious(result);
+    return sortBySuspicious(resultMap);
   }
 
   private Map<CFAEdge, Double> sortBySuspicious(final Map<CFAEdge, Double> wordCounts) {
