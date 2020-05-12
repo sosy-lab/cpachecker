@@ -222,7 +222,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         int maxLoopIterations = CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
 
         shutdownNotifier.shutdownIfNecessary();
-        logger.log(Level.FINE, "Unrolling with LBE, maxLoopIterations = " + maxLoopIterations);
+        logger.log(Level.FINE, "Unrolling with LBE, maxLoopIterations = ", maxLoopIterations);
         stats.bmcPreparation.start();
         BMCHelper.unroll(logger, pReachedSet, algorithm, cpa);
         stats.bmcPreparation.stop();
@@ -256,7 +256,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         } else {
           logger.log(
               Level.FINE,
-              "No error is found up to maxLoopIterations = " + maxLoopIterations);
+              "No error is found up to maxLoopIterations = ",
+              maxLoopIterations);
           if (pReachedSet.hasViolatedProperties()) {
             TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
           }
