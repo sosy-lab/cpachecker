@@ -75,15 +75,6 @@ public class Fault extends ForwardingSet<FaultContribution> {
     score = 0;
   }
 
-  public List<Integer> sortedLineNumbers(){
-    List<Integer> lines = new ArrayList<>();
-    for(FaultContribution elem: errorSet){
-      lines.add(elem.correspondingEdge().getFileLocation().getStartingLineInOrigin());
-    }
-    Collections.sort(lines);
-    return lines;
-  }
-
   /**
    * Add a reason to explain why this set indicates an error.
    * Appending reasons in heuristics is the recommended way.

@@ -130,21 +130,43 @@ with considerably less effort -->
             </td>
           </tr>
         </table>
-          <table ng-show="hideErrorTable" class="fault-table" ng-repeat="edge in faults">
-            <tr id="fault-{{$index}}">
-              <td ng-click="showLines(edge.lines)" data-toggle="tooltip" data-placement="bottom" title="Rank">
-                <pre>{{edge.rank}}.</pre>
+          <table ng-show="hideErrorTable" ng-click="clickedFaultLocElement($event)" class="fault-table" ng-repeat="fault in faults" id="fault-{{$index}}">
+            <tr>
+              <td class="fault-rank" data-toggle="tooltip" data-placement="bottom" title="Rank">
+                {{fault.rank}}.
               </td>
-              <td ng-click="showLines(edge.lines)" data-toggle="tooltip" data-placement="bottom" title="Score">
-                <pre>{{edge.score}}</pre>
+              <td class="fault-score" data-toggle="tooltip" data-placement="bottom" title="Score">
+                {{fault.score}}
               </td>
-              <td>
-                <select><option ng-repeat="descr in edge.descriptions track by $index" ng-click="showRedLine($index, edge)" value="{{descr}}">{{descr}}</option></select>
+              <td class="fault-details-header">
+                Details:
               </td>
             </tr>
-            <tr>
-              <td colspan="3" ng-click="showLines(edge.lines)" html=true>
-                <div ng-bind-html="htmlTrusted(edge.reason)"></div>
+            <tr class="fault-details">
+              <td colspan="3" html=true>
+                <div ng-bind-html="htmlTrusted(fault.reason)"></div>
+
+                Relevant lines:
+                <ul class="fault-lines">
+                  <li ng-repeat="elem in fault.lines">
+                    <span class="line-number">{{elem.line}}</span>
+                    <span class="line-content">{{elem.desc}}</span>
+                  </li>
+                </ul>
+
+                <details>
+                  <summary>
+                    <strong>Current values:</strong>
+                  </summary>
+                  <table id="fault-values">
+                    <tr><td>Name</td><td>Value</td></tr>
+                    <tr ng-repeat="(variable,value) in fault.valDict">
+                      <td ng-bind-html="htmlTrusted(variable)"></td>
+                      <td ng-bind-html="htmlTrusted(value)"></td>
+                    </tr>
+                  </table>
+                </details>
+
               </td>
             </tr>
           </table>

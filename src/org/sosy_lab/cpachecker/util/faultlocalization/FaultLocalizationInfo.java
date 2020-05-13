@@ -23,21 +23,19 @@
  */
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
-import com.google.common.base.Splitter;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.antlr.v4.runtime.misc.MultiMap;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 
@@ -46,7 +44,8 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   private List<Fault> rankedList;
   private FaultReportWriter htmlWriter;
 
-  private MultiMap<CFAEdge, Integer> mapEdgeToFaults;
+  /** Maps a CFA edge to the index of faults in {@link #rankedList} associated with that edge. **/
+  private Multimap<CFAEdge, Integer> mapEdgeToRankedFaultIndex;
   private Map<CFAEdge, FaultContribution> mapEdgeToFaultContribution;
 
   /**
@@ -111,18 +110,17 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     initialize(rankedFault);
   }
 
-  private void initialize(List<Fault> pFaults){
+  private void initialize(List<Fault> pRankedFaults){
     mapEdgeToFaultContribution = new HashMap<>();
-    mapEdgeToFaults = new MultiMap<>();
-
-    for(int i = 0; i < pFaults.size(); i++){
-      for (FaultContribution faultContribution : pFaults.get(i)) {
-        mapEdgeToFaults.map(faultContribution.correspondingEdge(), i);
+    mapEdgeToRankedFaultIndex = ArrayListMultimap.create();
+    for(int i = 0; i < pRankedFaults.size(); i++){
+      for (FaultContribution faultContribution : pRankedFaults.get(i)) {
+        mapEdgeToRankedFaultIndex.put(faultContribution.correspondingEdge(), i);
         mapEdgeToFaultContribution.put(faultContribution.correspondingEdge(), faultContribution);
       }
     }
 
-    rankedList = pFaults;
+    rankedList = pRankedFaults;
     htmlWriter = new FaultReportWriter();
   }
 
@@ -163,8 +161,6 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
       faultMap.put("rank", (i+1));
       faultMap.put("score", (int) (100 * fault.getScore()));
       faultMap.put("reason", htmlWriter.toHtml(fault));
-      faultMap.put("lines", fault.sortedLineNumbers());
-      faultMap.put("descriptions", descriptionsOfFault(fault));
       faults.add(faultMap);
     }
     JSON.writeJSONString(faults ,pWriter);
@@ -178,30 +174,18 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   @Override
   protected void addAdditionalInfo(Map<String, Object> elem, CFAEdge edge) {
     elem.put("additional", "");
-    elem.put("faults", new ArrayList<>());
     FaultContribution fc = mapEdgeToFaultContribution.get(edge);
     if(fc != null){
       if(fc.hasReasons()){
         elem.put("additional", "<br><br><strong>Additional information provided:</strong><br>" + htmlWriter.toHtml(fc));
       }
     }
-    if(mapEdgeToFaults.containsKey(edge)){
-      elem.put("faults", mapEdgeToFaults.get(edge));
+    if(mapEdgeToRankedFaultIndex.containsKey(edge)){
+      elem.put("faults", mapEdgeToRankedFaultIndex.get(edge));
     }
-  }
-
-  protected List<String> descriptionsOfFault(Fault fault){
-    return fault
-        .stream()
-        .sorted(Comparator.comparingInt(fc -> fc.correspondingEdge().getFileLocation().getStartingLineInOrigin()))
-        .map(fc -> {
-          CFAEdge cfaEdge = fc.correspondingEdge();
-          if(cfaEdge.getEdgeType().equals(CFAEdgeType.FunctionReturnEdge)){
-            return Splitter.on(":").split(cfaEdge.getDescription()).iterator().next();
-          }
-          return fc.correspondingEdge().getDescription();
-        })
-        .collect(Collectors.toList());
+    if (!elem.containsKey("faults")) {
+      elem.put("faults", new ArrayList<>());
+    }
   }
 
   public FaultReportWriter getHtmlWriter() {
