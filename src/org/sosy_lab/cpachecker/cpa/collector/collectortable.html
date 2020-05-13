@@ -1,0 +1,78 @@
+<!--
+  ~  CPAchecker is a tool for configurable software verification.
+  ~  This file is part of CPAchecker.
+  ~
+  ~  Copyright (C) 2007-2018  Dirk Beyer
+  ~  All rights reserved.
+  ~
+  ~  Licensed under the Apache License, Version 2.0 (the "License");
+  ~  you may not use this file except in compliance with the License.
+  ~  You may obtain a copy of the License at
+  ~
+  ~      http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~  Unless required by applicable law or agreed to in writing, software
+  ~  distributed under the License is distributed on an "AS IS" BASIS,
+  ~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~  See the License for the specific language governing permissions and
+  ~  limitations under the License.
+  ~
+  ~
+  ~  CPAchecker web page:
+  ~    http://cpachecker.sosy-lab.org
+  -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <!--REPORT_CSS-->
+    <script>
+        <!-- REPORT_JS -->
+    </script>
+</head>
+<body>
+
+<table class="steelBlueCols">
+    <thead>
+    <tr>
+        <th>e</th>
+        <th>e ~> e'</th>
+        <th>e <sub>new</sub> = merge (e', e'')</th>
+        <th>stop</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    <tr>
+        <td>cell1_1</td>
+        <td>cell2_1</td>
+        <td>cell3_1</td>
+        <td>cell4_1</td>
+    </tr>
+    <tr>
+        <td>cell1_2</td>
+        <td>cell2_2</td>
+        <td>cell3_2</td>
+        <td>cell4_2</td>
+    </tr>
+    <tr>
+        <td>cell1_3</td>
+        <td>cell2_3</td>
+        <td>cell3_3</td>
+        <td>cell4_3</td>
+    </tr>
+    <tr>
+        <td>cell1_4</td>
+        <td>cell2_4</td>
+        <td>cell3_4</td>
+        <td>cell4_4</td>
+    </tr>
+    </tbody>
+</table>
+
+<input type="button" onclick="CreateTableFromJSON()" value="Create Table From JSON" />
+<p id="showData"></p>
+
+</body>
+</html>

@@ -1,8 +1,8 @@
 /*
- *  CPAchecker is a tool for configurable software verification.
+ * CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2020  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,28 +23,57 @@
  */
 package org.sosy_lab.cpachecker.cpa.collector;
 
+import static java.util.logging.Level.WARNING;
+
+import com.google.common.base.Charsets;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Multimap;
+import com.google.common.io.Resources;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.logging.Level;
+import org.eclipse.cdt.core.index.IPDOMASTProcessor.Abstract;
+import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
 import org.sosy_lab.cpachecker.cpa.arg.ARGTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
-public class CollectorTransferRelation implements TransferRelation {
+public class CollectorTransferRelation implements TransferRelation, Graphable {
 
   private final TransferRelation transferRelation;
-  //private final ArrayList<ARGState> parents = new ArrayList<>();
-  private final List<ARGState> parents = Collections.synchronizedList(new ArrayList<>());
+  private final LogManager logger;
+  Map<Integer, Collection<? extends AbstractState>>
+      successorsHashmap = new HashMap<Integer, Collection<? extends AbstractState>>();
+  private myARGState mytransferARG;
 
 
-  public CollectorTransferRelation(TransferRelation tr) {
+  public CollectorTransferRelation(TransferRelation tr, LogManager trLogger) {
     transferRelation = tr;
+    logger = trLogger;
   }
 
 
@@ -53,42 +82,39 @@ public class CollectorTransferRelation implements TransferRelation {
       AbstractState pElement, Precision pPrecision)
       throws CPATransferException, InterruptedException {
 
-    assert pElement instanceof CollectorState;
+  assert pElement instanceof CollectorState;
 
-    CollectorState state = (CollectorState) pElement;
-    if (state.isStopped()) {
-      return new ArrayList<>();
-    }
-
-    ARGState wrappedState = (ARGState) ((CollectorState) pElement).getWrappedState();
+    AbstractState wrappedState = pElement;
+    //logger.log(Level.INFO, "sonja pElement:\n" + pElement);
+    ARGState wrappedState2 = (ARGState) ((CollectorState) wrappedState).getWrappedState();
+    AbstractState wrappedState3 = wrappedState2;
 
     Collection<? extends AbstractState> successors;
-    assert transferRelation instanceof ARGTransferRelation : "Transfer relation no ARG transfer"
-        + " relation, but " + transferRelation.getClass().getSimpleName();
+    try {
+      assert transferRelation instanceof ARGTransferRelation : "Transfer relation no ARG transfer"
+          + " relation, but " + transferRelation.getClass().getSimpleName();
 
-    successors =
-        transferRelation.getAbstractSuccessors(Objects.requireNonNull(wrappedState), pPrecision);
+      successors = transferRelation.getAbstractSuccessors(wrappedState2, pPrecision);
+      //logger.log(Level.INFO, "sonja successors:\n" + successors);
 
+      Collection<ARGState> ARGSuccessors = new ArrayList<>();
+      Collection<AbstractState> wrappedSuccessors = new ArrayList<>();
+      for (AbstractState absElement : successors) {
+        ARGState absARG = (ARGState) absElement;
+        ARGSuccessors.add(absARG);
+        mytransferARG = new myARGState(absARG,wrappedState2,null, null,null, logger);
+        CollectorState successorElem = new CollectorState(absElement, null, mytransferARG, false,null,null,logger);
+        wrappedSuccessors.add(successorElem);
+      }
 
-    Collection<AbstractState> wrappedSuccessors = new ArrayList<>();
-    for (AbstractState absElement : successors) {
-      ARGState succARG = (ARGState) absElement;
-      Collection<ARGState> wrappedParent = succARG.getParents();
-      parents.addAll(wrappedParent);
-      CollectorCount.count++;
-      ARGStateView mytransferARG =
-          new ARGStateView(CollectorCount.count,succARG, parents, null);
-      CollectorState successorElem =
-          new CollectorState(absElement, mytransferARG, false, null, null, null);
-      wrappedSuccessors.add(successorElem);
-      parents.clear();
+      //logger.log(Level.INFO, "sonja wrappedSuccesors:\n" + wrappedSuccessors);
+      return wrappedSuccessors;
+
+    } catch (UnsupportedCodeException e) {
+      throw e;
     }
-
-    return wrappedSuccessors;
-
   }
 
-  // same as in ARGTransferRelation
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge) {
@@ -97,4 +123,19 @@ public class CollectorTransferRelation implements TransferRelation {
         "ARGCPA needs to be used as the outer-most CPA,"
             + " thus it does not support returning successors for a single edge.");
   }
+
+
+  @Override
+  public String toDOTLabel() {
+    if (successorsHashmap instanceof Graphable) {
+      return ((Graphable)successorsHashmap).toDOTLabel();
+    }
+    return "";
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return false;
+  }
+
 }
