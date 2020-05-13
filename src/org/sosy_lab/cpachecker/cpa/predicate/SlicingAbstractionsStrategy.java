@@ -777,8 +777,6 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     }
     stats.increaseSolverCallCounter();
     synchronized (parallelSolvers.get(currentThreadId)) {
-      synchronized (stats.solvingTime) {
-        stats.solvingTime.start();
         try (ProverEnvironment thmProver =
             parallelSolvers
                 .get(currentThreadId)
@@ -787,8 +785,6 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
           infeasible = thmProver.isUnsat();
         } catch (SolverException e) {
           throw new CPAException("Solver Failure", e);
-        }
-        stats.solvingTime.stop();
         }
       }
     return infeasible;
