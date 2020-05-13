@@ -95,6 +95,8 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     private final Timer copyEdges = new Timer();
     private final Timer sliceEdges = new Timer();
     private final Timer calcReached = new Timer();
+    private final Timer transformFormulasTime = new Timer();
+    private final Timer solvingTime = new Timer();
     private int refinementCount = 0;
     private int solverCallCount = 0;
     private int sliceEdgesCalls = 0;
@@ -115,7 +117,14 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       out.println("    Slice edges:                      " + sliceEdges);
       out.println("      Solver calls:                       " + solverCallCount);
       out.println("    Recalculate ReachedSet:           " + calcReached);
+      out.println();
+      out.println();
+      out.println();
       out.println("    Number of Slice Edges Calls  " + sliceEdgesCalls);
+      out.println("    Time taken when Transforming Formulas: " + transformFormulasTime);
+      out.println("    Time taken when Solving Formulas: " + solvingTime);
+      out.println();
+      out.println();
       out.println();
       out.println("Number of abstractions during refinements:  " + impact.abstractionTime.getNumberOfIntervals());
 
@@ -127,7 +136,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       refinementCount++;
     }
 
-    public void increaseSolverCallCounter() {
+    public synchronized void increaseSolverCallCounter() {
       solverCallCount++;
     }
 
@@ -719,6 +728,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     SSAMap startSSAMap = SSAMap.emptySSAMap().withDefault(1);
     PointerTargetSet startPts = PointerTargetSet.emptyPointerTargetSet();
     BooleanFormula formula = buildPathFormula(start, stop, segmentList, startSSAMap, startPts, solver, pfmgr, true).getFormula();
+    stats.solvingTime.start();
     try (ProverEnvironment thmProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       thmProver.push(formula);
       stats.increaseSolverCallCounter();
@@ -730,6 +740,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     } catch (SolverException  e){
          throw new CPAException("Solver Failure", e);
     }
+    stats.solvingTime.stop();
     return infeasible;
   }
 
@@ -753,27 +764,33 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
         parallelSolvers.get(
             currentThreadId)) { // synchronize central solver usage in parallel context.
       synchronized (solver) {
-        parallelFormula =
-            parallelSolvers
-                .get(currentThreadId)
-                .getFormulaManager()
-                .translateFrom(formula, solver.getFormulaManager());
+        synchronized (stats.transformFormulasTime) {
+          stats.transformFormulasTime.start();
+          parallelFormula =
+              parallelSolvers
+                  .get(currentThreadId)
+                  .getFormulaManager()
+                  .translateFrom(formula, solver.getFormulaManager());
+          stats.transformFormulasTime.stop();
+        }
       }
     }
+    stats.increaseSolverCallCounter();
     synchronized (parallelSolvers.get(currentThreadId)) {
-      synchronized (stats) {
+      synchronized (stats.solvingTime) {
+        stats.solvingTime.start();
         try (ProverEnvironment thmProver =
             parallelSolvers
                 .get(currentThreadId)
                 .newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
           thmProver.push(parallelFormula);
-          stats.increaseSolverCallCounter();
           infeasible = thmProver.isUnsat();
         } catch (SolverException e) {
           throw new CPAException("Solver Failure", e);
         }
+        stats.solvingTime.stop();
+        }
       }
-    }
     return infeasible;
   }
 
