@@ -298,14 +298,6 @@ with considerably less effort */
 				// we can't do  this in the Java backend because
 				// we can't be sure to have the full error-path elements in the FaultLocalizationInfo
 				// when the faults-code is generated.
-				fInfo["errPathIds"] = [];
-				for (var j = 0; j < cfaJson.errorPath.length; j++) {
-					var element = cfaJson.errorPath[j];
-					if (element.faults.includes(i)) {
-						fInfo["errPathIds"].push(j);
-					}
-				}
-				fInfo["lines"] = getLinesOfFault(fInfo);
 				$rootScope.faults.push(fInfo);
 			}
 		}
@@ -403,6 +395,30 @@ with considerably less effort */
                         });
 
 
+		}
+
+		for (var i = 0; i < $rootScope.faults.length; i++) {
+                        var fInfo = $rootScope.faults[i];
+                        fInfo["errPathIds"] = [];
+                        for (var j = 0; j < $rootScope.errorPath.length; j++) {
+                                var element = $rootScope.errorPath[j];
+                                if (element.faults.includes(i)) {
+										fInfo["errPathIds"].push(j);
+										var valDict = {};
+										var allValues = $rootScope.errorPath[j].valDict;
+										for (variable in allValues) {
+											if (fInfo.reason.search("::"+variable) != -1) {
+												var markedVariable = '<p style="color:red">' + variable + '</p>';
+												var markedValue = '<p style="color:red">' + allValues[variable] + '</p>';
+												valDict[markedVariable] = markedValue;
+											} else {
+												valDict[variable] = allValues[variable];
+											}
+										}
+										fInfo["valDict"] = valDict;
+                                }
+				fInfo["lines"] = getLinesOfFault(fInfo);
+                        }
 		}
 
 		$scope.hideFaults = ($rootScope.faults == undefined || $rootScope.faults.length == 0);

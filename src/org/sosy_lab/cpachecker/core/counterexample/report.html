@@ -153,6 +153,20 @@ with considerably less effort -->
                     <span class="line-content">{{elem.desc}}</span>
                   </li>
                 </ul>
+
+                <details>
+                  <summary>
+                    <strong>Current values:</strong>
+                  </summary>
+                  <table id="fault-values">
+                    <tr><td>Name</td><td>Value</td></tr>
+                    <tr ng-repeat="(variable,value) in fault.valDict">
+                      <td ng-bind-html="htmlTrusted(variable)"></td>
+                      <td ng-bind-html="htmlTrusted(value)"></td>
+                    </tr>
+                  </table>
+                </details>
+
               </td>
             </tr>
           </table>
