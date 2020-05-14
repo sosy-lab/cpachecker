@@ -84,14 +84,14 @@ public class InformationProvider {
       for (FaultContribution faultContribution : fault) {
         boolean containsIterVar = false;
         for (String iterationVariable : iterationVariables) {
-          if (faultContribution.correspondingEdge().getRawStatement().contains(iterationVariable)) {
+          if (faultContribution.correspondingEdge().getRawStatement().contains("::"+iterationVariable)) {
             containsIterVar = true;
             break;
           }
         }
         boolean isArrayVar = arrayEdges.contains(faultContribution.correspondingEdge());
         if (isArrayVar && containsIterVar) {
-          fault.addInfo(FaultInfo.fix("Detected a suspicious operation within the array brackets using an iteration variable. Perhaps the iteration variable is initialized incorrectly."));
+          fault.addInfo(FaultInfo.fix("Detected a suspicious operation within the array brackets using an iteration variable. Perhaps the iteration variable is initialized or used incorrectly."));
           break;
         }
         if (isArrayVar) {

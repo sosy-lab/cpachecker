@@ -130,6 +130,9 @@ public class ExpressionConverter {
     if (operator.startsWith("bvadd")) {
       return "+";
     }
+    if (operator.startsWith("bvextract")) {
+      return "";
+    }
     switch (operator) {
       case "and":
         return "∧";

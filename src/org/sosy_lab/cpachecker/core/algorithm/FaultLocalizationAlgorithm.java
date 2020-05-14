@@ -120,7 +120,6 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
     //Options
     pConfig.inject(this);
     options = new TraceFormulaOptions(pConfig);
-    validateOptions();
 
     // Parent algorithm
     algorithm = pStoreAlgorithm;
@@ -148,13 +147,6 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
       default:
         faultAlgorithm = new SingleUnsatCoreAlgorithm();
         break;
-    }
-  }
-
-  private void validateOptions(){
-    if (!algorithmType.equals("MAXSAT") && options.isForcePre()) {
-      logger.log(Level.INFO, "Alternative pre-condition cannot be forced on Error Invariants and Single-Unsat-Core algorithm. "
-          + "Automatically deactivate this option.");
     }
   }
 
@@ -242,8 +234,8 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
           ranking = FaultRankingUtils.concatHeuristicsDefaultFinalScoring(
               new ForwardPreConditionRanking(tf, context),
               new EdgeTypeRanking(),
-              new HintRanking(3),
-              new MinimalLineDistanceRanking(edgeList.get(edgeList.size()-1)),
+              // new HintRanking(3),
+              // new MinimalLineDistanceRanking(edgeList.get(edgeList.size()-1)),
               new CallHierarchyRanking(edgeList, tf.getNegated().size()));
           break;
         }

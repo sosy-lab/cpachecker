@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
@@ -140,7 +141,9 @@ public class Selector extends FaultContribution implements AbstractTraceElement 
 
   @Override
   public int hashCode() {
-    return name.hashCode();
+    // super class changes hashcode on adding reasons but Selectors shouldn't
+    // a selector stays a selector for one edge (reasons do not matter)
+    return Objects.hash(31, name.hashCode());
   }
 
 }

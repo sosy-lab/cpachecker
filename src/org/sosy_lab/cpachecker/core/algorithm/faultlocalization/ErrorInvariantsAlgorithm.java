@@ -23,11 +23,14 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.faultlocalization;
 
+import com.google.common.base.Splitter;
 import com.google.common.base.VerifyException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -74,6 +77,9 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
   private FormulaContext formulaContext;
   //private CFA cfa;
   //private boolean useImproved;
+
+  //Memorize already processed interpolants to minimize solver calls
+  private Map<MemorizeInterpolant, Boolean> memorize = new HashMap<>();
 
   private StatTimer totalTime = new StatTimer(StatKind.SUM, "Total time for ErrInv");
   private StatCounter searchCalls = new StatCounter("Search calls");
@@ -159,7 +165,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
 
   /**
    * Transforms an abstract error trace to faults.
-   * An abstract error trace looks like this:
+   * An abstract error trace looks (in the best case) like this:
    * Interval[0;4] invariant1
    * Selector 5
    * Interval [6:10] invariant2
@@ -176,12 +182,13 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     Set<String> variablesToTrack = new HashSet<>();
     Set<Fault> faults = new HashSet<>();
     FormulaManagerView fmgr = formulaContext.getSolver().getFormulaManager();
+    BooleanFormulaManager bmgr = fmgr.getBooleanFormulaManager();
     for (AbstractTraceElement errorInvariant : abstractTrace) {
       if (errorInvariant instanceof Selector) {
         //Create fault and append the description of the previous and the next interval
         Fault f = new Fault((Selector)errorInvariant);
-        f.addInfo(FaultInfo.justify("The error is caused by the following assignments: " + description));
-        f.addInfo(FaultInfo.hint("Track the variables: " + String.join(", ", variablesToTrack)));
+        f.addInfo(FaultInfo.justify("So far, the following is responsible for the error: " + description));
+        //f.addInfo(FaultInfo.hint("Track the variables: " + String.join(", ", variablesToTrack)));
         lastCreatedFault = f;
         faults.add(f);
       }
@@ -192,18 +199,18 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
         if (variablesToTrack.removeIf(p -> p.contains("__VERIFIER_nondet"))) {
           variablesToTrack.add("user input");
         }
-        description = ExpressionConverter.convert(fmgr.uninstantiate(interval.invariant));
-        description = description.replaceAll("__VERIFIER_nondet_[a-zA-Z0-9]+!", "CPA_user_input_").replaceAll("@", "");
+        //Replace long unreadable formulas with their actual meaning if possible
+        description = extractRelevantInformation(fmgr, interval);
+        //description = description/*.replaceAll("__VERIFIER_nondet_[a-zA-Z0-9]+!", "CPA_user_input_")*/.replaceAll("@", "");
         if(lastCreatedFault != null){
-          lastCreatedFault.addInfo(FaultInfo.hint("From now on " + description + " holds."));
+          lastCreatedFault.addInfo(FaultInfo.hint("From now on, the following is responsible for the error: " + description));
         }
       }
     }
     // if there is only one interpolant the algorithm failed to abstract the error trace
-    // we can only say that the post-condition holds in every location (no gain of information)
+    // we can only state that the post-condition holds in every location (no gain of information)
     if (abstractTrace.size() == 1) {
       if(abstractTrace.get(0) instanceof Interval){
-        BooleanFormulaManager bmgr = formulaContext.getSolver().getFormulaManager().getBooleanFormulaManager();
         CFAEdge lastEdge = errorTrace.getEdges().get(errorTrace.getEdges().size()-1);
         Fault f = new Fault(Selector.makeSelector(formulaContext, bmgr.makeTrue(), lastEdge));
         f.addInfo(FaultInfo.justify("The whole program can be described by: " + description));
@@ -215,12 +222,33 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     return faults;
   }
 
+  private String extractRelevantInformation(FormulaManagerView fmgr, Interval interval) {
+    BooleanFormulaManager bmgr = fmgr.getBooleanFormulaManager();
+    List<String> helpfulFormulas = new ArrayList<>();
+    Set<BooleanFormula> conjunctions = bmgr.toConjunctionArgs(interval.invariant, true);
+    for(BooleanFormula f: conjunctions){
+      if (!f.toString().contains("_ADDRESS_OF")){
+        helpfulFormulas.add(ExpressionConverter.convert(fmgr.uninstantiate(f)).trim());
+      } else {
+        List<String> findName = Splitter.on("__ADDRESS_OF_").splitToList(f.toString());
+        if (findName.size() > 1) {
+          List<String> extractName = Splitter.on("@").splitToList(findName.get(1));
+          if (!extractName.isEmpty()) {
+            helpfulFormulas.add("\"values of " + extractName.get(0) + "\"");
+            continue;
+          }
+        }
+        helpfulFormulas.add(ExpressionConverter.convert(fmgr.uninstantiate(f)));
+      }
+    }
+    return "<ul><li>"  + helpfulFormulas.stream().distinct().map(s -> s.replaceAll("@", "")).collect(Collectors.joining(" </li><li> ")) + "</li></ul>";
+  }
+
   private int search(int low, int high, Function<Integer, Boolean> incLow) {
     searchCalls.inc();
     if (high < low) {
       return low;
     }
-    solverCalls.inc();
     int mid = (low + high) / 2;
     if (incLow.apply(mid)) {
       return search(mid + 1, high, incLow);
@@ -244,16 +272,22 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     BooleanFormula plainInterpolant = fmgr.uninstantiate(interpolant);
     BooleanFormula shiftedInterpolant = fmgr.instantiate(plainInterpolant, shift);
 
+    MemorizeInterpolant currInterpolant = new MemorizeInterpolant(plainInterpolant, i);
+    if (memorize.containsKey(currInterpolant)) {
+      return memorize.get(currInterpolant);
+    }
+
+    solverCalls.inc();
     BooleanFormula firstFormula =
         bmgr.implication(
             bmgr.and(errorTrace.getPreCondition(), errorTrace.slice(i)), shiftedInterpolant);
     BooleanFormula secondFormula =
-        bmgr.implication(
-            bmgr.and(shiftedInterpolant, errorTrace.slice(i, n), errorTrace.getPostCondition()), bmgr.makeFalse());
+            bmgr.and(shiftedInterpolant, errorTrace.slice(i, n), errorTrace.getPostCondition());
 
     try {
-      //For second formula one should use isUnsat( bmgr.and(interpolant, errorTrace.slice(i, n), shiftedPostCond)) instead
-      return isValid(firstFormula) && isValid(secondFormula);
+      boolean isValid = isValid(firstFormula) && solver.isUnsat(secondFormula);
+      memorize.put(currInterpolant, isValid);
+      return isValid;
     } catch (SolverException | InterruptedException pE) {
       throw new AssertionError("first and second formula have to be solvable for the solver");
     }
@@ -321,6 +355,43 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     @Override
     public int compareTo(Interval pInterval) {
       return Integer.compare(start, pInterval.start);
+    }
+  }
+
+  /** Stores interpolants and positions that are already evaluateddd*/
+  private static class MemorizeInterpolant {
+    private BooleanFormula interpolant;
+    private int position;
+
+    private MemorizeInterpolant(BooleanFormula pInterpolant, int pPosition){
+      interpolant = pInterpolant;
+      position = pPosition;
+    }
+
+    @Override
+    public boolean equals(Object pO) {
+      if (this == pO) {
+        return true;
+      }
+      if (pO == null || getClass() != pO.getClass()) {
+        return false;
+      }
+      MemorizeInterpolant memorizeInterpolant = (MemorizeInterpolant) pO;
+      return position == memorizeInterpolant.position &&
+          Objects.equals(interpolant, memorizeInterpolant.interpolant);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(interpolant, position);
+    }
+
+    @Override
+    public String toString() {
+      return "MemorizeInterpolant{" +
+          "interpolant=" + interpolant +
+          ", position=" + position +
+          '}';
     }
   }
 }
