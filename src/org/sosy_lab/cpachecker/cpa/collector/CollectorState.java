@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2020  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,12 +27,10 @@ package org.sosy_lab.cpachecker.cpa.collector;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import java.io.Serializable;
 import java.util.Collection;
-import java.util.Collections;
-import javax.annotation.Nullable;
-import org.sosy_lab.common.UniqueIdGenerator;
-import org.sosy_lab.common.log.LogManager;
+//import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -40,9 +38,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
 
 public class CollectorState extends AbstractSingleWrapperState implements Graphable, Serializable {
-  private static final long serialVersionUID = 2918872612263404326L;
-  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
-  private final Collection<ARGState> wrappedParent;
+  private static final long serialVersionUID = -3856130030796075512L;
   private final int currentARGid;
   private final ImmutableList<Integer> List_wrappedParent;
   private final ImmutableList<Integer> List_wrappedChildren;
@@ -52,7 +48,6 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
   private int countTR;
   private Collection<ARGState> childrenTomerge2;
   private Collection<ARGState> childrenTomerge1;
-  private ImmutableList<AbstractState> states;
   private ARGStateView myARGTransferRelation;
   private ARGStateView myARG1;
   private ARGStateView myARG2;
@@ -61,13 +56,11 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
 
   public CollectorState(
       AbstractState pWrappedState,
-      @Nullable Collection<AbstractState> pCollectorState,
       @Nullable ARGStateView myARGtransfer,
       Boolean merged,
       @Nullable ARGStateView pMyARG1,
       @Nullable ARGStateView pMyARG2,
-      @Nullable ARGStateView pMyARGmerged,
-      LogManager cLogger) {
+      @Nullable ARGStateView pMyARGmerged) {
     super(pWrappedState);
     ismerged = merged;
     if (myARGtransfer != null) {
@@ -90,13 +83,9 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
       countM = this.myARGmerged.getCount();
     }
 
-    if (pCollectorState != null) {
-      this.states = ImmutableList.copyOf(pCollectorState);
-    }
-
     ARGState wrapped = (ARGState) pWrappedState;
     argstate = wrapped;
-    wrappedParent = wrapped.getParents();
+    Collection<ARGState> wrappedParent = wrapped.getParents();
     Iterable<Integer> stateID_wrappedParent = stateIdsOf(wrappedParent);
     Collection<ARGState> wrappedChildren = wrapped.getChildren();
     Iterable<Integer> stateID_wrappedChildren = stateIdsOf(wrappedChildren);
@@ -208,14 +197,6 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
 
   public Collection<ARGState> getChildrenTomerge2() {
     return childrenTomerge2;
-  }
-
-  public Collection<ARGState> getParents() {
-    return Collections.unmodifiableCollection(wrappedParent);
-  }
-
-  public ImmutableList<AbstractState> getStorage() {
-    return states;
   }
 
   public boolean ismerged() {

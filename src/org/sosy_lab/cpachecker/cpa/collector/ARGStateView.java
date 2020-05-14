@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2019  Dirk Beyer
+ *  Copyright (C) 2007-2020  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,7 +31,6 @@ import java.util.Collection;
 import java.util.Collections;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -51,8 +50,7 @@ public class ARGStateView implements Graphable {
       int ccount,
       ARGState cElement,
       @Nullable Collection<ARGState> cParents,
-      @Nullable Collection<ARGState> cChildren,
-      LogManager clogger) {
+      @Nullable Collection<ARGState> cChildren) {
     stateId = idGenerator.getFreshId();
     element = cElement;
     count = ccount;

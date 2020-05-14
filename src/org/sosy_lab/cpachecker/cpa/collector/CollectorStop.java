@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2019  Dirk Beyer
+ *  Copyright (C) 2007-2020  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.collector;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Objects;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -38,7 +37,7 @@ public class CollectorStop implements StopOperator {
   private final StopOperator delegateStop;
 
 
-  public CollectorStop(final StopOperator pDelegateStop, LogManager pLogger) {
+  public CollectorStop(final StopOperator pDelegateStop) {
     delegateStop = pDelegateStop;
   }
 
@@ -52,7 +51,7 @@ public class CollectorStop implements StopOperator {
     CollectorState stateC = (CollectorState) state;
     ARGState wrappedState = (ARGState) ((CollectorState) state).getWrappedState();
 
-    Collection<AbstractState> stopcollection;
+    Collection<? extends AbstractState> stopcollection;
     stopcollection = reached;
 
     Collection<AbstractState> wrappedstop = new ArrayList<>();
