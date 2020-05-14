@@ -100,7 +100,7 @@ public class LoopBoundCPA extends AbstractCPA
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     LoopBoundState initialState = new LoopBoundState();
     for (Loop loop : loopStructure.getLoopsForLoopHead(pNode)) {
-      initialState = initialState.visitLoopHead(new LoopEntry(pNode, loop));
+      initialState = initialState.visitLoopHead(loop);
     }
     return initialState;
   }

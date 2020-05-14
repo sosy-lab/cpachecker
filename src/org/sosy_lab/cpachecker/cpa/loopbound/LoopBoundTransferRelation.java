@@ -137,7 +137,7 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
       // Push a new loop onto the stack if we enter it
       newLoop = loopEntryEdges.get(pCfaEdge);
       if (newLoop != null) {
-        state = state.enter(new LoopEntry(loc, newLoop));
+        state = state.enter(newLoop);
       }
     }
 
@@ -145,7 +145,7 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
     Collection<Loop> visitedLoops = loopHeads.get(loc);
     assert newLoop == null || visitedLoops.contains(newLoop);
     for (Loop loop : visitedLoops) {
-      state = state.visitLoopHead(new LoopEntry(loc, loop));
+      state = state.visitLoopHead(loop);
       // Check if the bound for unrolling has been reached;
       // this check is also performed by the precision adjustment,
       // but we need to do it here, too,

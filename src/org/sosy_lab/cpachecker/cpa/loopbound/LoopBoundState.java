@@ -68,7 +68,7 @@ public class LoopBoundState
     assert !loopStack.isEmpty() : "Exiting loop without entering the loop. Explicitly use an UndeterminedLoopIterationState if you cannot determine the loop entry.";
     LoopIterationState loopIterationState = loopStack.peek();
     if (loopIterationState.isEntryKnown()) {
-      if (!pOldLoop.equals(loopIterationState.getLoopEntry().getLoop())) {
+      if (!pOldLoop.equals(loopIterationState.getLoop())) {
         throw new CPATransferException("Unexpected exit from loop " + pOldLoop + " when loop stack is " + this);
       }
       return new LoopBoundState(loopStack.pop(), stopIt);
@@ -76,19 +76,19 @@ public class LoopBoundState
     return this;
   }
 
-  public LoopBoundState enter(LoopEntry pLoopEntry) {
+  public LoopBoundState enter(Loop pLoop) {
     return new LoopBoundState(
-        loopStack.push(DeterminedLoopIterationState.newState(pLoopEntry)),
+        loopStack.push(DeterminedLoopIterationState.newState(pLoop)),
         stopIt);
   }
 
-  public LoopBoundState visitLoopHead(LoopEntry pLoopEntry) {
+  public LoopBoundState visitLoopHead(Loop pLoop) {
     assert !loopStack.isEmpty() : "Visiting loop head without entering the loop. Explicitly use an UndeterminedLoopIterationState if you cannot determine the loop entry.";
     if (isLoopCounterAbstracted()) {
       return this;
     }
     LoopIterationState loopIterationState = loopStack.peek();
-    LoopIterationState newLoopIterationState = loopIterationState.visitLoopHead(pLoopEntry);
+    LoopIterationState newLoopIterationState = loopIterationState.visitLoopHead(pLoop);
     if (newLoopIterationState != loopIterationState) {
       return new LoopBoundState(
           loopStack.pop().push(newLoopIterationState),
@@ -165,7 +165,7 @@ public class LoopBoundState
       if (!loopIterationState.isEntryKnown()) {
         return loopIterationState.getLoopIterationCount(pLoop);
       }
-      if (loopIterationState.getLoopEntry().getLoop().equals(pLoop)) {
+      if (loopIterationState.getLoop().equals(pLoop)) {
         return loopIterationState.getLoopIterationCount(pLoop);
       }
     }
