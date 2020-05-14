@@ -208,9 +208,13 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    */
   private AlgorithmStatus interpolationModelChecking(final ReachedSet pReachedSet)
       throws CPAException, SolverException, InterruptedException {
+    try {
     Preconditions.checkState(
         cfa.getAllLoopHeads().isPresent() && cfa.getAllLoopHeads().orElseThrow().size() <= 1,
         "Multi-loop programs are not supported yet");
+    } catch (IllegalStateException e) {
+      throw new CPAException(e.getMessage(), e);
+    }
 
     logger.log(Level.FINE, "Performing interpolation-based model checking");
     try (ProverEnvironmentWithFallback prover =
