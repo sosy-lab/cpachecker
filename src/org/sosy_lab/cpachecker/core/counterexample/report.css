@@ -270,30 +270,6 @@ input:checked+.slider:before {
 	outline: #df80ff solid 2px;
 }
 
-#fault-values table {
-	border-collapse: collapse;
-	table-layout: fixed ;
-	width: 100%;
-}
-  
-#fault-values td {
-	width: 50%;
-	text-align: left;
-	padding: 8px;
-}
-  
-#fault-values tr:nth-child(even){background-color: #f2f2f2}
-  
-#fault-values tr:first-child {
-	background-color: #4CAF50;
-	color: white;
-}
-
-#fault-values tr:first-child td {
-	text-align: center;
-	font-weight: 600;
-}
-
 .rank {
 	text-align: center;
 }
