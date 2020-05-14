@@ -1122,6 +1122,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     assert condition != null;
 
     return buildConditionTree(
+        condition.getRawSignature(),
         condition,
         fileLocation,
         rootNode,
@@ -1137,6 +1138,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   /** @category conditions */
   private Optional<CExpression> buildConditionTree(
+      String pRawSignature,
       IASTExpression condition,
       final FileLocation fileLocation,
       CFANode rootNode,
@@ -1153,6 +1155,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     if (condition instanceof IASTUnaryExpression
           && ((IASTUnaryExpression)condition).getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
       return buildConditionTree(
+          pRawSignature,
           ((IASTUnaryExpression) condition).getOperand(),
           fileLocation,
           rootNode,
@@ -1169,6 +1172,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     } else if (condition instanceof IASTUnaryExpression
         && ((IASTUnaryExpression) condition).getOperator() == IASTUnaryExpression.op_not) {
       buildConditionTree(
+          pRawSignature,
           ((IASTUnaryExpression) condition).getOperand(),
           fileLocation,
           rootNode,
@@ -1191,6 +1195,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       CFANode innerNode = newCFANode();
       pInnerNodes.add(innerNode);
       buildConditionTree(
+          pRawSignature,
           ((IASTBinaryExpression) condition).getOperand1(),
           fileLocation,
           rootNode,
@@ -1203,6 +1208,7 @@ class CFAFunctionBuilder extends ASTVisitor {
           flippedThenElse,
           pInnerNodes);
       buildConditionTree(
+          pRawSignature,
           ((IASTBinaryExpression) condition).getOperand2(),
           fileLocation,
           innerNode,
@@ -1225,6 +1231,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       CFANode innerNode = newCFANode();
       pInnerNodes.add(innerNode);
       buildConditionTree(
+          pRawSignature,
           ((IASTBinaryExpression) condition).getOperand1(),
           fileLocation,
           rootNode,
@@ -1237,6 +1244,7 @@ class CFAFunctionBuilder extends ASTVisitor {
           flippedThenElse,
           pInnerNodes);
       buildConditionTree(
+          pRawSignature,
           ((IASTBinaryExpression) condition).getOperand2(),
           fileLocation,
           innerNode,
@@ -1254,6 +1262,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     } else {
       return Optional.of(
           buildConditionTreeLeaf(
+              pRawSignature,
               condition,
               fileLocation,
               rootNode,
@@ -1270,6 +1279,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   /** Handle a leaf node of a condition tree, i.e. the most primitive part of a condition. */
   private CExpression buildConditionTreeLeaf(
+      String rawSignature,
       IASTExpression condition,
       final FileLocation fileLocation,
       CFANode rootNode,
@@ -1283,7 +1293,6 @@ class CFAFunctionBuilder extends ASTVisitor {
       Set<CFANode> pInnerNodes)
       throws AssertionError {
 
-    String rawSignature = condition.getRawSignature();
     final CExpression exp = astCreator.convertExpressionWithoutSideEffects(condition);
     rootNode = handleAllSideEffects(rootNode, fileLocation, rawSignature, true);
     exp.accept(checkBinding);
@@ -1382,7 +1391,11 @@ class CFAFunctionBuilder extends ASTVisitor {
     final String falseSignature;
     if (pIsSwapped) {
       falseSignature = pRawSignature;
-      trueSignature = "!(" + pRawSignature + ")";
+      if (pRawSignature.startsWith("!(")) {
+        trueSignature = pRawSignature.substring(2, pRawSignature.length()-1);
+      } else {
+        trueSignature = "!(" + pRawSignature + ")";
+      }
     } else {
       trueSignature = pRawSignature;
       falseSignature = "!(" + pRawSignature + ")";
