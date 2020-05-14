@@ -46,6 +46,8 @@ import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -202,6 +204,16 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
 
   }
 
+  /**
+   * Returns a map of {@link CFANode CFANodes} to the target edges they can reach. A target edge is
+   * an edge directly leading to a target state. If a CFANode can not reach any target, it may be
+   * omitted.
+   *
+   * @param targets target states. these are used to compute the target edges
+   * @param pShutdown {@link ShutdownNotifier} for stopping early
+   * @return map of CFANodes to target edges reachable from them
+   * @throws InterruptedException if ShutdownNotifier is triggered
+   */
   private Multimap<CFANode, CFAEdge> computeReachableTargetsPerLocation(
       final Iterable<ARGState> targets, final ShutdownNotifier pShutdown)
       throws InterruptedException {
@@ -210,14 +222,28 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
       pShutdown.shutdownIfNecessary();
       for (ARGState predTarget : target.getParents()) {
         pShutdown.shutdownIfNecessary();
-
-        final List<CFAEdge> directEdgesToTarget = predTarget.getEdgesToChild(target);
-        final CFAEdge targetEdge = directEdgesToTarget.get(directEdgesToTarget.size() - 1);
-        List<CFAEdge> allEdgesOnPathsToTarget = getAllEdgesOnPathToTarget(predTarget);
-        putAllLocationsOnPathWithTarget(allEdgesOnPathsToTarget, targetEdge, locToTargets);
+        List<CFAEdge> allEdgesOnPathsToTarget = getAllEdgesOnPathToTarget(target);
+        Collection<CFAEdge> targetEdges = getEdgesBetweenStates(predTarget, target);
+        for (CFAEdge e : targetEdges) {
+          putAllLocationsOnPathWithTarget(allEdgesOnPathsToTarget, e, locToTargets);
+        }
       }
     }
     return locToTargets;
+  }
+
+  private Collection<CFAEdge> getEdgesBetweenStates(ARGState pPredState, ARGState pSuccState) {
+    Set<CFAEdge> edgesToTarget = new HashSet<>();
+    List<CFAEdge> directEdgesBetween = pPredState.getEdgesToChild(pSuccState);
+    for (CFAEdge e : directEdgesBetween) {
+      edgesToTarget.add(e);
+      if (e instanceof FunctionReturnEdge) {
+        edgesToTarget.add(((FunctionReturnEdge) e).getSummaryEdge());
+      } else if (e instanceof FunctionCallEdge) {
+        edgesToTarget.add(((FunctionCallEdge) e).getSummaryEdge());
+      }
+    }
+    return edgesToTarget;
   }
 
   private List<CFAEdge> getAllEdgesOnPathToTarget(ARGState target) {
