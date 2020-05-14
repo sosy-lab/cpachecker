@@ -1352,6 +1352,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
 
     addConditionEdges(
+        rawSignature,
         expression,
         rootNode,
         thenNodeForLastThen,
@@ -1369,6 +1370,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    * @category conditions
    */
   private void addConditionEdges(
+      String pRawSignature,
       CExpression condition,
       CFANode rootNode,
       CFANode thenNode,
@@ -1379,7 +1381,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     // edge connecting condition with thenNode
     final CAssumeEdge trueEdge =
         new CAssumeEdge(
-            condition.toASTString(),
+            pRawSignature,
             fileLocation,
             rootNode,
             thenNode,
@@ -1392,7 +1394,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     // edge connecting condition with elseNode
     final CAssumeEdge falseEdge =
         new CAssumeEdge(
-            "!(" + condition.toASTString() + ")",
+            "!(" + pRawSignature + ")",
             fileLocation,
             rootNode,
             elseNode,
@@ -1817,7 +1819,14 @@ class CFAFunctionBuilder extends ASTVisitor {
       case NORMAL:
         assert ASTOperatorConverter.isBooleanExpression(exp);
         addConditionEdges(
-            exp, rootNode, caseNode, notCaseNode, fileLocation, false, ImmutableSet.of());
+            exp.toASTString(),
+            exp,
+            rootNode,
+            caseNode,
+            notCaseNode,
+            fileLocation,
+            false,
+            ImmutableSet.of());
         nextCaseStartsAtNode = notCaseNode;
         break;
 
@@ -1874,7 +1883,14 @@ class CFAFunctionBuilder extends ASTVisitor {
               "either both conditions can be evaluated or not, but mixed is not allowed";
 
       final CFANode intermediateNode = newCFANode();
+      // FIXME: the raw signature given to `addConditionEdges` is wrong in both cases below.
+      // In case of same variable-name declarations in multiple block scopes,
+      // the ASTString does not represent the raw signature of the switch-case,
+      // because CPAchecker adds variable suffixes to distinguish the different variables.
+      // We currently have no way to get the correct rawSignature of the switch-expression
+      // and we can't just strip the suffix because it may be part of the original variable name.
       addConditionEdges(
+          firstExp.toASTString(),
           firstExp,
           rootNode,
           intermediateNode,
@@ -1883,6 +1899,7 @@ class CFAFunctionBuilder extends ASTVisitor {
           false,
           Collections.singleton(intermediateNode));
       addConditionEdges(
+          secondExp.toASTString(),
           secondExp,
           intermediateNode,
           caseNode,
