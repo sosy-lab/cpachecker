@@ -280,7 +280,7 @@ with considerably less effort */
 			var lines = {};
 			for (var i = 0; i < fault["errPathIds"].length; i++) {
 				var errorPathIdx = fault["errPathIds"][i];
-				var errorPathElem = errorPath[errorPathIdx];
+				var errorPathElem = $rootScope.errorPath[errorPathIdx];
 				var line = {"line": errorPathElem["line"], "desc": errorPathElem["desc"]};
 				var line_key = line["line"] + line["desc"];
 				lines[line_key] = line;
