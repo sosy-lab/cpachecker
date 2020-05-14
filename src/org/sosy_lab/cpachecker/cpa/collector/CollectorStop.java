@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2019  Dirk Beyer
+ *  Copyright (C) 2007-2020  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,12 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.collector;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.logging.Level;
-import org.sosy_lab.common.log.LogManager;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
@@ -38,11 +35,10 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class CollectorStop implements StopOperator {
 
   private final StopOperator delegateStop;
-  private final LogManager logger;
 
-  public CollectorStop(final StopOperator pDelegateStop, LogManager pLogger) {
+
+  public CollectorStop(final StopOperator pDelegateStop) {
     delegateStop = pDelegateStop;
-    logger = pLogger;
   }
 
   @Override
@@ -52,26 +48,25 @@ public class CollectorStop implements StopOperator {
 
     assert state instanceof CollectorState;
 
-    ARGState wrappedState = (ARGState) ((CollectorState)state).getWrappedState();
-    //logger.log(Level.INFO, "sonja StopwrappedState:\n" + wrappedState);
-
-
-    //logger.log(Level.INFO, "sonja Stop REACHED:\n" + reached);
+    CollectorState stateC = (CollectorState) state;
+    ARGState wrappedState = (ARGState) ((CollectorState) state).getWrappedState();
 
     Collection<? extends AbstractState> stopcollection;
-      stopcollection = reached;
+    stopcollection = reached;
 
-      Collection<AbstractState> wrappedstop = new ArrayList<>();
-      for (AbstractState absElement : stopcollection) {
-        ARGState stopElem = new ARGState(absElement, null) {
-        };
-        wrappedstop.add(stopElem);
-      }
+    Collection<AbstractState> wrappedstop = new ArrayList<>();
 
-    //logger.log(Level.INFO, "sonja Stop REACHEDstoparg:\n" + wrappedstop);
+    for (AbstractState absElement : stopcollection) {
+      CollectorState c = (CollectorState) absElement;
+      ARGState stopElem = c.getARGState();
+      wrappedstop.add(stopElem);
+    }
 
-    boolean stop = delegateStop.stop(wrappedState, wrappedstop, precision);
-
-    return stop;
+    boolean isStopped =
+        delegateStop.stop(Objects.requireNonNull(wrappedState), wrappedstop, precision);
+    if (isStopped) {
+      stateC.setStopped();
+    }
+    return isStopped && wrappedState.isDestroyed();
   }
 }

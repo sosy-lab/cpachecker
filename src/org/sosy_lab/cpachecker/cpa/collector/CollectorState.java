@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2020  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,175 +27,133 @@ package org.sosy_lab.cpachecker.cpa.collector;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableList;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.logging.Level;
-import javax.annotation.Nullable;
-import org.sosy_lab.common.UniqueIdGenerator;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
+//import javax.annotation.Nullable;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.util.AbstractStates;
+
 
 public class CollectorState extends AbstractSingleWrapperState implements Graphable, Serializable {
-  private final LogManager logger;
-  private static final UniqueIdGenerator idGenerator = new UniqueIdGenerator();
-  private final int stateId;
-  private final Collection<ARGState> wrappedParent;
-  private final Collection<ARGState> wrappedChildren;
+  private static final long serialVersionUID = -3856130030796075512L;
   private final int currentARGid;
-  private final Iterable<Integer> StateID_wrappedParent;
-  private final Iterable<Integer> StateID_wrappedChildren;
-  private final ImmutableList List_wrappedParent;
-  private final ImmutableList List_wrappedChildren;
-  private final AbstractState current;
-  private final AbstractState wrappedWrapped;
+  private final ImmutableList<Integer> List_wrappedParent;
+  private final ImmutableList<Integer> List_wrappedChildren;
   private final Boolean ismerged;
-  private Object secondparent;
-  private Object firstparent;
-  private Collection<ARGState> testmalparent;
-  private AbstractState eA;
-  private ARGState entryAnew;
-  private Collection<ARGState> entryParent;
-  private ARGState entryA;
-  private ImmutableList<AbstractState> statestest;
-  private ARGState argentry;
-  private AbstractState entrywrapped;
-  private ImmutableList<AbstractState> states;
   private final ARGState argstate;
-  private final CFANode node;
-  private List <CFAEdge> edgelist;
-  private AbstractState first;
-  private int id;
-  private AbstractState second;
-  private Object firstParent;
-  private Object firstChildren;
-  private ArrayList ancestors = new ArrayList<ARGState>();
-  private Collection<ARGState> collectionARG = new ArrayList<ARGState>();
-  private ArrayList parents = new ArrayList<ARGState>();
-  private myARGState testmyARGtransfer;
-  private myARGState testmyARG;
-  private myARGState testmyARG2;
+  private int countM;
+  private int countTR;
+  private Collection<ARGState> childrenTomerge2;
+  private Collection<ARGState> childrenTomerge1;
+  private ARGStateView myARGTransferRelation;
+  private ARGStateView myARG1;
+  private ARGStateView myARG2;
+  private ARGStateView myARGmerged;
+  private boolean isStopped = false;
 
-  public CollectorState(AbstractState pWrappedState,
-                        @Nullable Collection<AbstractState> pCollectorState,
-                        @Nullable myARGState myARGtransfer,
-                        Boolean merged,
-                        @Nullable myARGState myARG1,
-                        @Nullable myARGState myARG2,
-                        LogManager clogger) {
+  public CollectorState(
+      AbstractState pWrappedState,
+      @Nullable ARGStateView myARGtransfer,
+      Boolean merged,
+      @Nullable ARGStateView pMyARG1,
+      @Nullable ARGStateView pMyARG2,
+      @Nullable ARGStateView pMyARGmerged) {
     super(pWrappedState);
-    logger = clogger;
     ismerged = merged;
     if (myARGtransfer != null) {
-      testmyARGtransfer = myARGtransfer;
-    }
-    if (myARG1 != null) {
-      testmyARG = myARG1;
-      //logger.log(Level.INFO, "sonja testmyARG:\n" + testmyARG.toDOTLabel());
-    }
-    if (myARG2 != null) {
-      testmyARG2 = myARG2;
-      //logger.log(Level.INFO, "sonja testmyARG2:\n" + testmyARG2.toDOTLabel());
+      this.myARGTransferRelation = myARGtransfer;
+      countTR = this.myARGTransferRelation.getCount();
     }
 
-    if (pCollectorState != null) {
-      this.states = ImmutableList.copyOf(pCollectorState);
-      statestest = ImmutableList.copyOf(pCollectorState);
+    if (pMyARG1 != null) {
+      this.myARG1 = pMyARG1;
+      childrenTomerge1 = this.myARG1.getChildrenOfToMerge();
+    }
+
+    if (pMyARG2 != null) {
+      this.myARG2 = pMyARG2;
+      childrenTomerge2 = this.myARG2.getChildrenOfToMerge();
+    }
+
+    if (pMyARGmerged != null) {
+      this.myARGmerged = pMyARGmerged;
+      countM = this.myARGmerged.getCount();
     }
 
     ARGState wrapped = (ARGState) pWrappedState;
     argstate = wrapped;
-    wrappedParent = wrapped.getParents();
-    StateID_wrappedParent = stateIdsOf(wrappedParent);
-    wrappedChildren = wrapped.getChildren();
-    StateID_wrappedChildren = stateIdsOf(wrappedChildren);
-    current =  getWrappedState();
-    //logger.log(Level.INFO, "sonja currentTEST:\n" + current);
-    List_wrappedParent = ImmutableList.copyOf(StateID_wrappedParent);
-    List_wrappedChildren = ImmutableList.copyOf(StateID_wrappedChildren);
+    Collection<ARGState> wrappedParent = wrapped.getParents();
+    Iterable<Integer> stateID_wrappedParent = stateIdsOf(wrappedParent);
+    Collection<ARGState> wrappedChildren = wrapped.getChildren();
+    Iterable<Integer> stateID_wrappedChildren = stateIdsOf(wrappedChildren);
+    List_wrappedParent = ImmutableList.copyOf(stateID_wrappedParent);
+    List_wrappedChildren = ImmutableList.copyOf(stateID_wrappedChildren);
     currentARGid = ((ARGState) pWrappedState).getStateId();
-    stateId = idGenerator.getFreshId();
-    wrappedWrapped = argstate.getWrappedState();
+  }
 
+  public boolean isStopped() {
+    return isStopped;
+  }
 
-    //probably needed:
-    CFANode currentLoc = AbstractStates.extractLocation(this);
-    //logger.log(Level.INFO, "sonja CFANODE:\n" + currentLoc);
-    //CFANode childLoc = AbstractStates.extractLocation(pChild);
-    for (ARGState child: wrapped.getChildren()) {
-      List<CFAEdge> edges = wrapped.getEdgesToChild(child);
-      edgelist = edges;
-     //logger.log(Level.INFO, "sonja CFAEDGE:\n" + edges);
-    }
-    node = currentLoc;
-
+  public void setStopped() {
+    isStopped = true;
   }
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    //sb.append("CollectorStateID:  ");
-    //sb.append(stateId );
-    if (states != null) {
-     sb.append("Current:  ");
-     sb.append("Sucessors: ");
-     sb.append(List_wrappedChildren);
-     sb.append(" Ancestors: ");
-     sb.append(List_wrappedParent);
-     sb.append (" StateID: " + currentARGid);
-      sb.append("\n" + "myARG 1:  ");
-      if (testmyARG != null){
-      sb.append("\n" + testmyARG.toDOTLabel());}
-      sb.append("\n" + "myARG 2:  ");
-      if (testmyARG2 != null){
-        sb.append("\n" + testmyARG2.toDOTLabel());}
+    sb.append("Current:  ");
+    sb.append("Sucessors: ");
+    sb.append(List_wrappedChildren);
+    sb.append(" Ancestors: ");
+    sb.append(List_wrappedParent);
+    sb.append(" StateID: ").append(currentARGid);
+    sb.append("\n Current ARGStateView Infos:  ");
 
-     sb.append("\n" + "Storage:  ");
-     sb.append(states);
-   }
-   else{
-     /**sb.append("NODE&EDGE ");
-     sb.append(node);
-     sb.append(edgelist);**/
-     sb.append("Current:  ");
-     sb.append("Sucessors: ");
-     sb.append(List_wrappedChildren);
-     sb.append(" Ancestors: ");
-     sb.append(List_wrappedParent);
-     sb.append (" StateID: " + currentARGid);
-      if (testmyARGtransfer != null){
-        sb.append("\n" +"MyARGTransfer:");
-        sb.append("\n" + testmyARGtransfer.toDOTLabel());}
-   }
-    sb.append ("\n");
+    if (myARGmerged != null) {
+      sb.append("\nCountM:  ");
+      sb.append(countM).append("\n");
+      sb.append("\n" + "myARG merged:  ");
+      sb.append("\n").append(myARGmerged.toDOTLabel());
+    }
+    if (myARG1 != null) {
+      sb.append("\n" + "myARG 1:  ");
+      sb.append("\n").append(myARG1.toDOTLabel());
+      sb.append("\n" + "childrenOfMergePartner 1:  ");
+      if (myARG1 != null) {
+        sb.append("\n").append(childrenTomerge1);
+      }
+    }
+    if (myARG2 != null) {
+      sb.append("\n" + "myARG 2:  ");
+      sb.append("\n").append(myARG2.toDOTLabel());
+      sb.append("\n" + "childrenOfMergePartner 2:  ");
+      if (myARG2 != null) {
+        sb.append("\n").append(childrenTomerge2);
+      }
+    }
+    if (myARGTransferRelation != null) {
+      sb.append("\nCountTR:  ");
+      sb.append(countTR).append("\n");
+      sb.append("\n" + "ARGStateView TransferRelation:");
+      sb.append("\n").append(myARGTransferRelation.toDOTLabel());
+    }
+
+    sb.append("\n");
     return sb.toString();
   }
 
   private Iterable<Integer> stateIdsOf(Iterable<ARGState> elements) {
     return from(elements).transform(ARGState::getStateId);
   }
-  private Iterable<Boolean> destroyedID(Iterable<ARGState> elements) {
-    return from(elements).transform(ARGState::isDestroyed);
-  }
-  private Iterable<ARGState> mergedID(Iterable<ARGState> elements) {
-    return from(elements).transform(ARGState::getMergedWith);
-  }
-  private Iterable<Collection<ARGState>> children(Iterable<ARGState> elements) {
-    return from(elements).transform(ARGState::getChildren);
-  }
 
   @Override
   public String toDOTLabel() {
     if (getWrappedState() instanceof Graphable) {
-      return ((Graphable)getWrappedState()).toDOTLabel();
+      return ((Graphable) getWrappedState()).toDOTLabel();
     }
     return "";
   }
@@ -204,69 +162,71 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
   public boolean shouldBeHighlighted() {
     return false;
   }
+
   public ARGState getARGState() {
-    return argstate ;
-  }
-  public myARGState getMyARGTransfer() {
-    return testmyARGtransfer;
-  }
-  public myARGState getTestmyARG() {
-    return testmyARG;
-  }
-  public myARGState getTestmyARG2() {
-    return testmyARG2;
-  }
-  public int getStateId() { return currentARGid; }
-  /**
-   * Get the child elements of this state.
-   * @return An unmodifiable collection of ARGStates without duplicates.
-   */
-  public Collection<ARGState> getChildren() {
-    return Collections.unmodifiableCollection(wrappedChildren);
+    return argstate;
   }
 
-  public ImmutableList<AbstractState> getStorage() { return states; }
-
-  public AbstractState getfirstStorage(){return states.get(0);}
-  public AbstractState getsecondStorage(){return states.get(1);}
-
-  public int getfirstID() {
-    first =states.get(0);
-    id = ((CollectorState) first).getStateId();
-    return id;
-  }
-  public int getsecondID() {
-    second =states.get(1);
-    id = ((CollectorState) second).getStateId();
-    return id;
+  public ARGStateView getMyARGTransferRelation() {
+    return myARGTransferRelation;
   }
 
-  public Object getParentsID() {
-    firstParent = List_wrappedParent.get(0);
-    return firstParent;
+  public ARGStateView getmyARG1() {
+    return myARG1;
   }
 
-  public Object getChildrenID() {
-    if (List_wrappedChildren.size() >= 1) {
-      firstChildren = List_wrappedChildren.get(0);
-      return firstChildren;
-    } else {
-      return "";
-    }
+  public ARGStateView getMyARG2() {
+    return myARG2;
   }
 
-  public AbstractState getWrappedWrappedState() {
-    return wrappedWrapped;
+  public ARGStateView getMyARGmerged() {
+    return myARGmerged;
   }
-  public AbstractState getEntrywrapped() {
-    return entrywrapped;
+
+  public int getStateId() {
+    return currentARGid;
   }
-  public ARGState getARGEntry() {
-    return argentry;
+
+  public int getCountTR() {
+    return countTR;
   }
-  public ImmutableList getAncestor(){return List_wrappedParent; }
-  public Boolean ismerged() {
+
+  public Collection<ARGState> getChildrenTomerge1() {
+    return childrenTomerge1;
+  }
+
+  public Collection<ARGState> getChildrenTomerge2() {
+    return childrenTomerge2;
+  }
+
+  public boolean ismerged() {
     return ismerged;
+  }
+
+
+  @Override
+  public final boolean equals(Object pObj) {
+
+    if (pObj instanceof CollectorState) {
+      ARGState theArg = this.getARGState();
+      CollectorState obj = (CollectorState) pObj;
+      ARGState objARG = obj.getARGState();
+
+      //compare ARGStates
+      if (theArg == objARG) {
+        return true;
+      } else {
+        return false;
+      }
+    }
+    return false;
+  }
+
+  @Override
+  public final int hashCode() {
+    // Object.hashCode() is consistent with our compareTo()
+    // because stateId is a unique identifier.
+    return super.hashCode();
   }
 
 }

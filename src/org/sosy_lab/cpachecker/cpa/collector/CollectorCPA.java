@@ -1,8 +1,8 @@
 /*
- * CPAchecker is a tool for configurable software verification.
+ *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2018  Dirk Beyer
+ *  Copyright (C) 2007-2020  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,11 +25,11 @@ package org.sosy_lab.cpachecker.cpa.collector;
 
 
 import java.util.Collection;
-import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -54,23 +54,14 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGStopSep;
 import org.sosy_lab.cpachecker.cpa.arg.ARGTransferRelation;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 
-@Options
+
 public class CollectorCPA extends AbstractSingleWrapperCPA implements StatisticsProvider {
-
-
-  public static CPAFactory factory() {
-    return AutomaticCPAFactory.forType(CollectorCPA.class);
-  }
-
 
   private final MergeOperator merge;
   private final LogManager logger;
   private final ARGStatistics stats;
-  private final CollectorStatistics statistics;
+  private CollectorStatistics statistics;
   private final StateToFormulaWriter writer;
-  private final ShutdownNotifier shutdownNotifier;
-  private StopOperator stopOperator;
-
   private CollectorCPA(
       ConfigurableProgramAnalysis cpa,
       LogManager clogger,
@@ -81,74 +72,78 @@ public class CollectorCPA extends AbstractSingleWrapperCPA implements Statistics
       throws InvalidConfigurationException {
     super(cpa);
     this.logger = clogger;
-    this.shutdownNotifier = pShutdownNotifier;
 
+    // get the path of the example program
+    String mydata = config.toString();
+    Pattern pattern = Pattern.compile("analysis.programNames=(.*?),");
+    Matcher matcher = pattern.matcher(mydata);
 
-      statistics = new CollectorStatistics(this, config, logger);
-      writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
+    if (matcher.find())
+    {
+      String match = matcher.group(1);
+      statistics = new CollectorStatistics(config, match, logger);
+    }
 
+    writer = new StateToFormulaWriter(config, logger, pShutdownNotifier, cfa);
 
-    if ( cpa instanceof ARGCPA) {
-
+    if (cpa instanceof ARGCPA) {
       ARGMergeJoin wrappedMergeOperator = (ARGMergeJoin) cpa.getMergeOperator();
-      merge = new CollectorMergeJoin(wrappedMergeOperator, cpa.getAbstractDomain(), config, logger);
+      merge = new CollectorMergeJoin(wrappedMergeOperator);
       stats = new ARGStatistics(config, logger, this, pSpecification, cfa);
     } else {
       throw new InvalidConfigurationException("This is not a valid CPA");
     }
   }
-  @Override
-  public MergeOperator getMergeOperator() { return merge; }
 
+  public static CPAFactory factory() {
+    return AutomaticCPAFactory.forType(CollectorCPA.class);
+  }
+
+  @Override
+  public MergeOperator getMergeOperator() {
+    return merge;
+  }
 
   @Override
   public TransferRelation getTransferRelation() {
-
     TransferRelation supertr = super.getWrappedCpa().getTransferRelation();
-    if (!(supertr instanceof ARGTransferRelation)){
+    if (!(supertr instanceof ARGTransferRelation)) {
       throw new AssertionError("Transfer relation not ARG!");
     }
-    return new CollectorTransferRelation(supertr, logger);
+    return new CollectorTransferRelation(supertr);
   }
-
 
   @Override
-  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) throws InterruptedException {
-
+  public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
+      throws InterruptedException {
     AbstractState initialState = super.getInitialState(pNode, pPartition);
-    CollectorState is = new CollectorState(initialState, null, null,false,null,null,logger);
-    return is;
+    return new CollectorState(initialState,  null, false, null, null, null);
   }
 
-
-@Override
-public void collectStatistics(Collection<Statistics> pStatsCollection) {
-  pStatsCollection.add(stats);
-  pStatsCollection.add(statistics);
-  writer.collectStatistics(pStatsCollection);
-
-}
-
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
+    pStatsCollection.add(statistics);
+    writer.collectStatistics(pStatsCollection);
+  }
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
     PrecisionAdjustment wrappedPrecSUPER = super.getPrecisionAdjustment();
-    if (!(wrappedPrecSUPER instanceof ARGPrecisionAdjustment)){
+    if (!(wrappedPrecSUPER instanceof ARGPrecisionAdjustment)) {
       throw new AssertionError("PrecisionAdjustment not ARG!");
     }
-     return new CollectorPrecisionAdjustment(wrappedPrecSUPER,logger);
+    return new CollectorPrecisionAdjustment(wrappedPrecSUPER);
   }
 
   @Override
   public StopOperator getStopOperator() {
-    stopOperator = super.getStopOperator();
-    if (!(stopOperator instanceof ARGStopSep)){
+    StopOperator stopOperator = super.getStopOperator();
+    if (!(stopOperator instanceof ARGStopSep)) {
       throw new AssertionError("StopOperator not ARG!");
     }
-    return new CollectorStop(stopOperator, logger);
+    return new CollectorStop(stopOperator);
   }
-
-
   protected LogManager getLogger() {
     return logger;
   }
