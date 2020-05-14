@@ -1378,10 +1378,19 @@ class CFAFunctionBuilder extends ASTVisitor {
       FileLocation fileLocation,
       boolean pIsSwapped,
       Set<CFANode> pInnerNodes) {
+    final String trueSignature;
+    final String falseSignature;
+    if (pIsSwapped) {
+      falseSignature = pRawSignature;
+      trueSignature = "!(" + pRawSignature + ")";
+    } else {
+      trueSignature = pRawSignature;
+      falseSignature = "!(" + pRawSignature + ")";
+    }
     // edge connecting condition with thenNode
     final CAssumeEdge trueEdge =
         new CAssumeEdge(
-            pRawSignature,
+            trueSignature,
             fileLocation,
             rootNode,
             thenNode,
@@ -1394,7 +1403,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     // edge connecting condition with elseNode
     final CAssumeEdge falseEdge =
         new CAssumeEdge(
-            "!(" + pRawSignature + ")",
+            falseSignature,
             fileLocation,
             rootNode,
             elseNode,
