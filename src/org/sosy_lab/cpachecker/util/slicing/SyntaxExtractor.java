@@ -113,7 +113,7 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
             getTargetStates(pCfa, pError, pShutdownNotifier, pLogger), pShutdownNotifier);
 
     Set<CFAEdge> notFoundTargets = new HashSet<>(nodesReachingTargetEdges.values());
-    List<CFAEdge> relevantTargets = new ArrayList<>(notFoundTargets.size());
+    ImmutableSet.Builder<CFAEdge> relevantTargets = ImmutableSet.builder();
     Collection<CFAEdge> allEdges = extractAllCFAEdges(pCfa);
 
     // currently we assume that
@@ -133,12 +133,12 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
         }
 
         if (notFoundTargets.isEmpty()) {
-          return new HashSet<>(relevantTargets);
+          return relevantTargets.build();
         }
       }
     }
 
-    return new HashSet<>(relevantTargets);
+    return relevantTargets.build();
   }
 
   private Collection<CFAEdge> extractAllCFAEdges(final CFA pCfa) {
