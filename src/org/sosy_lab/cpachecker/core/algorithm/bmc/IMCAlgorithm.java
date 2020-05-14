@@ -430,14 +430,18 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       ArrayDeque<Object> pFormulaA,
       ArrayDeque<Object> pFormulaB)
       throws SolverException, InterruptedException {
-    if (deriveInterpolantFromSuffix) {
-      logger
-          .log(Level.FINE, "Deriving the interpolant from suffix (formula B) and negate it");
-      return bfmgr.not(pProverStack.getInterpolant(pFormulaB));
-    } else {
-      logger.log(Level.FINE, "Deriving the interpolant from prefix and loop (formula A)");
-      return pProverStack.getInterpolant(pFormulaA);
+    try {
+      if (deriveInterpolantFromSuffix) {
+        logger.log(Level.FINE, "Deriving the interpolant from suffix (formula B) and negate it");
+        return bfmgr.not(pProverStack.getInterpolant(pFormulaB));
+      } else {
+        logger.log(Level.FINE, "Deriving the interpolant from prefix and loop (formula A)");
+        return pProverStack.getInterpolant(pFormulaA);
+      }
+    } catch (IllegalStateException e) {
+      throw new SolverException("Interpolation failed: " + e.getMessage(), e);
     }
+
   }
 
   /**
