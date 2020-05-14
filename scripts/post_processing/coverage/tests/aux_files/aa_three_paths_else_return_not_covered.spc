@@ -27,8 +27,8 @@ STATE USEFIRST ARG2_4_1 :
     TRUE -> GOTO __TRUE;
 
 STATE USEFIRST ARG2 :
-    MATCH "[i == 0]" -> GOTO ARG5;
-    MATCH "[!(i == 0)]" -> GOTO __FALSE;
+    MATCH "[!(i)]" -> GOTO ARG5;
+    MATCH "[i]" -> GOTO __FALSE;
     TRUE -> GOTO __TRUE;
 
 STATE USEFIRST ARG5 :
