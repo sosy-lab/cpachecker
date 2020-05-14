@@ -22,6 +22,7 @@ package org.sosy_lab.cpachecker.util.slicing;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -29,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -81,10 +83,11 @@ public class SyntaxExtractor implements SlicingCriteriaExtractor {
                 : DummyScope.getInstance(),
             pCfa.getLanguage(),
             pShutdownNotifier);
-    if (automata.size() != 1) {
-      throw new InvalidConfigurationException("Require exactly one condition automaton.");
+    try {
+      condition = Iterables.getOnlyElement(automata);
+    } catch (NoSuchElementException e) {
+      throw new InvalidConfigurationException("Require exactly one condition automaton.", e);
     }
-    condition = automata.get(0);
   }
 
   @Override
