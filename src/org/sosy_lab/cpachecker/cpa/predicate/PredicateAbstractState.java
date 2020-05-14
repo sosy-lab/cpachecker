@@ -23,13 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-
+import java.io.Serializable;
+import java.util.Collection;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -45,9 +45,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-import java.io.Serializable;
-import java.util.Collection;
-
 /**
  * AbstractState for Symbolic Predicate Abstraction CPA
  */
@@ -56,13 +53,18 @@ public abstract class PredicateAbstractState
 
   private static final long serialVersionUID = -265763837277453447L;
 
-  public final static Predicate<AbstractState> CONTAINS_ABSTRACTION_STATE =
-      Predicates.compose(
-          PredicateAbstractState::isAbstractionState,
-          AbstractStates.toState(PredicateAbstractState.class));
+  public static boolean containsAbstractionState(AbstractState state) {
+    return AbstractStates.extractStateByType(state, PredicateAbstractState.class)
+        .isAbstractionState();
+  }
 
   public static PredicateAbstractState getPredicateState(AbstractState pState) {
     return checkNotNull(extractStateByType(pState, PredicateAbstractState.class));
+  }
+
+  public static BooleanFormula getBlockFormula(PredicateAbstractState pState) {
+    checkArgument(pState.isAbstractionState());
+    return pState.getAbstractionFormula().getBlockFormula().getFormula();
   }
 
   /**
@@ -162,6 +164,33 @@ public abstract class PredicateAbstractState
     }
   }
 
+  public static class InfeasibleDummyState extends NonAbstractionState
+      implements NonMergeableAbstractState, Graphable {
+    private static final long serialVersionUID = 4845812617465441779L;
+
+    private InfeasibleDummyState(
+        PathFormula pF,
+        AbstractionFormula pA,
+        PersistentMap<CFANode, Integer> pAbstractionLocations) {
+      super(pF, pA, pAbstractionLocations);
+    }
+
+    @Override
+    public String toString() {
+      return "Dummy location";
+    }
+
+    @Override
+    public String toDOTLabel() {
+      return toString();
+    }
+
+    @Override
+    public boolean shouldBeHighlighted() {
+      return true;
+    }
+  }
+
   public static PredicateAbstractState mkAbstractionState(
       PathFormula pF, AbstractionFormula pA,
       PersistentMap<CFANode, Integer> pAbstractionLocations) {
@@ -179,6 +208,13 @@ public abstract class PredicateAbstractState
       AbstractionFormula pA,
       PersistentMap<CFANode, Integer> pAbstractionLocations) {
     return new NonAbstractionState(pF, pA, pAbstractionLocations);
+  }
+
+  static PredicateAbstractState mkInfeasibleDummyState(
+      PathFormula pF,
+      AbstractionFormula pA,
+      PersistentMap<CFANode, Integer> pAbstractionLocations) {
+    return new InfeasibleDummyState(pF, pA, pAbstractionLocations);
   }
 
   /** The path formula for the path from the last abstraction node to this node.
@@ -261,11 +297,11 @@ public abstract class PredicateAbstractState
         }
       }*/
 
-      return new AbstractionState(pathFormula,
-          abstractionFormula, PathCopyingPersistentTreeMap.<CFANode, Integer> of());
+      return new AbstractionState(
+          pathFormula, abstractionFormula, PathCopyingPersistentTreeMap.of());
     }
-    return new NonAbstractionState(pathFormula, abstractionFormula,
-        PathCopyingPersistentTreeMap.<CFANode, Integer>of());
+    return new NonAbstractionState(
+        pathFormula, abstractionFormula, PathCopyingPersistentTreeMap.of());
   }
 
   @Override

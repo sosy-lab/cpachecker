@@ -28,10 +28,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Joiner;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Table;
 import java.math.BigInteger;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -49,7 +49,7 @@ class Dependencies {
   final Set<Partition> partitions = new LinkedHashSet<>();
 
   /** map to get partition of a var */
-  private final Map<String, Partition> varToPartition = Maps.newHashMap();
+  private final Map<String, Partition> varToPartition = new HashMap<>();
 
   /** table to get a partition for a edge. */
   // we use subtype, because we might serialize the table, and FindBugs complains.

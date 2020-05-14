@@ -24,11 +24,10 @@
 package org.sosy_lab.cpachecker.util.refinement;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -274,13 +273,13 @@ public class GenericPathInterpolator<S extends ForgetfulState<?>, I extends Inte
         new UseDefRelation(
                 pErrorPathPrefix,
                 cfa.getVarClassification().isPresent()
-                    ? cfa.getVarClassification().get().getIntBoolVars()
-                    : Collections.emptySet(),
+                    ? cfa.getVarClassification().orElseThrow().getIntBoolVars()
+                    : ImmutableSet.of(),
                 false)
             .getUseDefStates();
 
     ArrayDeque<Pair<FunctionCallEdge, Boolean>> functionCalls = new ArrayDeque<>();
-    ArrayList<CFAEdge> abstractEdges = Lists.newArrayList(pErrorPathPrefix.getInnerEdges());
+    List<CFAEdge> abstractEdges = new ArrayList<>(pErrorPathPrefix.getInnerEdges());
 
     PathIterator iterator = pErrorPathPrefix.pathIterator();
     while (iterator.hasNext()) {

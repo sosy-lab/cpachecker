@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -46,6 +45,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 public final class CounterexampleStoreAlgorithm implements Algorithm, StatisticsProvider {
@@ -94,7 +94,7 @@ public final class CounterexampleStoreAlgorithm implements Algorithm, Statistics
       final UnmodifiableReachedSet pReached) {
     ImmutableMap.Builder<ARGState, CounterexampleInfo> counterexamples = ImmutableMap.builder();
 
-    for (AbstractState targetState : from(pReached).filter(IS_TARGET_STATE)) {
+    for (AbstractState targetState : from(pReached).filter(AbstractStates::isTargetState)) {
       ARGState s = (ARGState) targetState;
       CounterexampleInfo cex =
           ARGUtils.tryGetOrCreateCounterexampleInformation(s, argCpa, allocator)

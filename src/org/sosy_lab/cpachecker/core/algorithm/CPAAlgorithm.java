@@ -58,8 +58,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
-import org.sosy_lab.cpachecker.core.reachedset.PseudoPartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGMergeJoinCPAEnabledAnalysis;
@@ -68,6 +66,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.statistics.AbstractStatValue;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
+import org.sosy_lab.cpachecker.util.statistics.StatHist;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
@@ -94,6 +93,44 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     private int   countBreak        = 0;
 
     private Map<String, AbstractStatValue> reachedSetStatistics = new HashMap<>();
+
+    private void stopAllTimers() {
+      totalTimer.stopIfRunning();
+      chooseTimer.stopIfRunning();
+      precisionTimer.stopIfRunning();
+      transferTimer.stopIfRunning();
+      mergeTimer.stopIfRunning();
+      stopTimer.stopIfRunning();
+      addTimer.stopIfRunning();
+      forcedCoveringTimer.stopIfRunning();
+    }
+
+    private void updateReachedSetStatistics(Map<String, AbstractStatValue> newStatistics) {
+      for (Entry<String, AbstractStatValue> e : newStatistics.entrySet()) {
+        String key = e.getKey();
+        AbstractStatValue val = e.getValue();
+        if (!reachedSetStatistics.containsKey(key)) {
+          reachedSetStatistics.put(key, val);
+        } else {
+          AbstractStatValue newVal = reachedSetStatistics.get(key);
+
+          if (val == newVal) {
+            // ignore, otherwise counters would double
+          } else if (newVal instanceof StatCounter) {
+            assert val instanceof StatCounter;
+            ((StatCounter) newVal).mergeWith((StatCounter) val);
+          } else if (newVal instanceof StatInt) {
+            assert val instanceof StatInt;
+            ((StatInt) newVal).add((StatInt) val);
+          } else if (newVal instanceof StatHist) {
+            assert val instanceof StatHist;
+            ((StatHist) newVal).mergeWith((StatHist) val);
+          } else {
+            throw new AssertionError("Can't handle " + val.getClass().getSimpleName());
+          }
+        }
+      }
+    }
 
     @Override
     public String getName() {
@@ -222,48 +259,8 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     try {
       return run0(reachedSet);
     } finally {
-      stats.totalTimer.stopIfRunning();
-      stats.chooseTimer.stopIfRunning();
-      stats.precisionTimer.stopIfRunning();
-      stats.transferTimer.stopIfRunning();
-      stats.mergeTimer.stopIfRunning();
-      stats.stopTimer.stopIfRunning();
-      stats.addTimer.stopIfRunning();
-      stats.forcedCoveringTimer.stopIfRunning();
-
-      Map<String, ? extends AbstractStatValue> reachedSetStats;
-      if (reachedSet instanceof PartitionedReachedSet) {
-        reachedSetStats = ((PartitionedReachedSet) reachedSet).getStatistics();
-      } else if (reachedSet instanceof PseudoPartitionedReachedSet) {
-        reachedSetStats = ((PseudoPartitionedReachedSet) reachedSet).getStatistics();
-      } else {
-        reachedSetStats = null;
-      }
-
-      if (reachedSetStats != null) {
-        for (Entry<String, ? extends AbstractStatValue> e : reachedSetStats.entrySet()) {
-          String key = e.getKey();
-          AbstractStatValue val = e.getValue();
-          if (!stats.reachedSetStatistics.containsKey(key)) {
-            stats.reachedSetStatistics.put(key, val);
-          } else {
-            AbstractStatValue newVal = stats.reachedSetStatistics.get(key);
-
-            if (newVal instanceof StatCounter) {
-              assert val instanceof StatCounter;
-              for (int i = 0; i < ((StatCounter) val).getValue(); i++) {
-                ((StatCounter) newVal).inc();
-              }
-            } else if (newVal instanceof StatInt) {
-              assert val instanceof StatInt;
-              ((StatInt) newVal).add((StatInt) val);
-            } else {
-              assert false : "Can't handle " + val.getClass().getSimpleName();
-            }
-          }
-        }
-      }
-
+      stats.stopAllTimers();
+      stats.updateReachedSetStatistics(reachedSet.getStatistics());
     }
   }
 
@@ -360,7 +357,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         if (!precAdjustmentOptional.isPresent()) {
           continue;
         }
-        precAdjustmentResult = precAdjustmentOptional.get();
+        precAdjustmentResult = precAdjustmentOptional.orElseThrow();
       } finally {
         stats.precisionTimer.stop();
       }

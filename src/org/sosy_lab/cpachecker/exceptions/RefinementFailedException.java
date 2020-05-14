@@ -61,6 +61,7 @@ public class RefinementFailedException extends CPAException {
 
   private static final long serialVersionUID = 2353178323706458175L;
 
+  @SuppressWarnings("checkstyle:MutableException")
   private @Nullable ARGPath path;
 
   private final Reason reason;

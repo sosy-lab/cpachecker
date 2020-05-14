@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -71,7 +72,6 @@ import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 
@@ -154,27 +154,27 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
     final String activeThread = getActiveThread(cfaEdge, threadingState);
     if (null == activeThread) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     // check if atomic lock exists and is set for current thread
     if (useAtomicLocks && threadingState.hasLock(ATOMIC_LOCK)
         && !threadingState.hasLock(activeThread, ATOMIC_LOCK)) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     // check if a local-access-lock allows to avoid exploration of some threads
     if (useLocalAccessLocks) {
       threadingState = handleLocalAccessLock(cfaEdge, threadingState, activeThread);
       if (threadingState == null) {
-        return Collections.emptySet();
+        return ImmutableSet.of();
       }
     }
 
     // check, if we can abort the complete analysis of all other threads after this edge.
     if (isEndOfMainFunction(cfaEdge) || isTerminatingEdge(cfaEdge)) {
       // VERIFIER_assume not only terminates the current thread, but the whole program
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     // get all possible successors
@@ -359,7 +359,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
   /** the whole program will terminate after this edge */
   private boolean isEndOfMainFunction(CFAEdge edge) {
-    return cfa.getMainFunction().getExitNode() == edge.getSuccessor();
+    return Objects.equals(cfa.getMainFunction().getExitNode(), edge.getSuccessor());
   }
 
   private ThreadingState exitThreads(ThreadingState tmp) {
@@ -408,13 +408,6 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     // now create the thread
     CIdExpression id = (CIdExpression) expr0;
     String functionName = ((CIdExpression) expr2).getName();
-
-    if (callstackCPA
-        .getOptions()
-        .getUnsupportedFunctions()
-        .contains(CFACloner.extractFunctionName(functionName))) {
-      throw new UnsupportedCodeException(functionName, null);
-    }
 
     if (useAllPossibleClones) {
       // for witness validation we need to produce all possible successors,
@@ -512,7 +505,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       String lockId, final Collection<ThreadingState> results) {
     if (threadingState.hasLock(lockId)) {
       // some thread (including activeThread) has the lock, using it twice is not possible
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     return transform(results, ts -> ts.addLockAndCopy(activeThread, lockId));
@@ -564,7 +557,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
     if (threadingState.getThreadIds().contains(extractParamName(statement, 0))) {
       // we wait for an active thread -> nothing to do
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     return results;
@@ -639,7 +632,7 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState state,
-      List<AbstractState> otherStates,
+      Iterable<AbstractState> otherStates,
       @Nullable CFAEdge cfaEdge,
       Precision precision)
       throws CPATransferException, InterruptedException {

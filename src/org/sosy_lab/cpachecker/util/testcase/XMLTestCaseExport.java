@@ -23,6 +23,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.xml.XmlEscapers;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -82,7 +83,10 @@ public class XMLTestCaseExport {
     pWriter.append("</architecture>\n");
 
     pWriter.append("\t<creationtime>");
-    pWriter.append(ZonedDateTime.now().withNano(0).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+    pWriter.append(
+        ZonedDateTime.now(ZoneId.systemDefault())
+            .withNano(0)
+            .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
     pWriter.append("</creationtime>\n");
 
     pWriter.append("</test-metadata>");

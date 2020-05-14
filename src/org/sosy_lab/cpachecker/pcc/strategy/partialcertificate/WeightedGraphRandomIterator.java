@@ -27,11 +27,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-
+import java.util.Random;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 
 public class WeightedGraphRandomIterator implements Iterator<WeightedNode> {
+
+  private static final Random rnd = new Random(0);
 
   private final WeightedGraph wGraph;
   private final int size;
@@ -39,7 +41,6 @@ public class WeightedGraphRandomIterator implements Iterator<WeightedNode> {
   private final List<Integer> permutation;
 
   public WeightedGraphRandomIterator(WeightedGraph wGraph) {
-    super();
     this.wGraph = wGraph;
     size=wGraph.getNumNodes();
     permutation=shuffledIndices(size);
@@ -68,15 +69,16 @@ public class WeightedGraphRandomIterator implements Iterator<WeightedNode> {
   }
   /**
    * Compute permutation of 0..n-1 to randomly iterate over an array
+   *
    * @param n number of list entries
    * @return a list containing 0..n-1 in a randomized order
    */
-  private List<Integer> shuffledIndices(int n) {
+  private static List<Integer> shuffledIndices(int n) {
     List<Integer> permutation = new ArrayList<>(n);
     for (int i = 0; i < n; i++) {
       permutation.add(i);
     }
-    Collections.shuffle(permutation);
+    Collections.shuffle(permutation, rnd);
     return permutation;
   }
 }

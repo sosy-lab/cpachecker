@@ -28,9 +28,9 @@ However, you must [install the google-java-format plugin](Developing.md#develop-
 Otherwise Eclipse will produce ugly code formatting.
 
 
-Additional rules and hints:
+## Additional rules and hints
 
-Spelling:
+### Spelling
 
 - Try to avoid typos.
 - Interfaces are not named with a leading `I`.
@@ -51,7 +51,7 @@ Spelling:
   the prefix order induced by the names should
   represent the semantic relation and structure of the concepts.
 
-Compilation:
+### Compilation
 
 - Never check in with compile errors.
 - Avoid warnings:
@@ -60,11 +60,12 @@ Compilation:
 - After adding/changing an `@Option` configuration,
   run `ant` to update documentation (before committing).
 
-Design:
+### Design
 
 - Prefer immutable objects, for own classes and for collections
   (https://github.com/google/guava/wiki/ImmutableCollectionsExplained).
   Do not add setters unless really required!
+  For collections use Guava's types, cf. below.
 - Avoid null, replace it with real objects, or (at last resort) Optional:
   https://github.com/google/guava/wiki/UsingAndAvoidingNullExplained
   In fields and private context, null is acceptable if there is no nicer solution.
@@ -72,7 +73,7 @@ Design:
   and make it hard to understand for the reader what effect they have
   (cf. http://martinfowler.com/bliki/FlagArgument.html)
 
-Configuration options:
+### Configuration Options
 
 - Only use the `@Option` scheme so your options are automatically type-checked
   and documented.
@@ -87,7 +88,7 @@ Configuration options:
 - Do not forget to update the file `doc/ConfigurationOptions.txt`
   (done automatically by ant) and commit it together with your changes.
 
-Documentation / Comments:
+### Documentation / Comments
 
 - The following ranks several places by their importance of having comments:
   * packages (in `package-info.java`, EVERY package should have one!)
@@ -100,7 +101,7 @@ Documentation / Comments:
 - All `@Option` fields need to have a non-empty description
   that explains (to a user) what the option does.
 
-Coding:
+### Coding
 
 - Never have public fields,
   never have non-private non-final fields,
@@ -116,24 +117,10 @@ Coding:
   They have a much nicer API, are equally fast,
   and allow you to use `ImmutableList` and `Collections.unmodifiableList()`
   to avoid the need for defensive copying while still guaranteeing immutability.
-- Never use classes from the `sun.*` packages, they are not part of the Java API.
-  Specifically, use `UnsupportedOperationException` instead of `NotImplementedException`.
-- Do not use the following classes from the JDK, they all have better replacements:
-  `Vector` (replaced by `ArrayList`),
-  `Stack` (replaced by `Deque` interface with implementations `ArrayDeque` and `LinkedList`),
-  and `Hashtable` (replaced by `HashMap`).
-- The default list implementation is `ArrayList` (fast and memory-efficient),
-  use `LinkedList` only if you need (i.e., when adding/removing elements in the middle of the list).
-  When adding/removing elements at the start of the list, use `ArrayDeque`.
 - When declaring variables of collection types,
   use the interface as type instead of the implementation (e.g., `List` instead of `ArrayList`).
   This is especially true for fields, parameters, and return types.
   Do use the `Immutable*` types from Guava, though, to show that your collection is immutable.
-- Avoid Collectors.toList() and Collectors.toSet().
-  These guarantee neither mutability nor immutability.
-  Use a solution that returns an immutable collection instead,
-  or one that is guaranteed to return a mutable one if you need it.
-  We have utility methods for this in MoreCollectors and Collections3.
 - For Function, Predicate, and Optional,
   use the JDK types instead of the Guava types where possible.
   For Optional fields in serializable classes, make them @Nullable instead.
@@ -165,3 +152,57 @@ Coding:
   that need to be caught!
 - Always put `@Override` when implementing an overriding method
   (Eclipse does this automatically).
+
+### Use Guava's immutable data structures
+
+Java provides several immutable collections, but Guava has better replacements,
+so always use Guava's methods.
+With Guava's data structures one can see the immutability directly from the type,
+and always using the same set of data structures consistently is better than mixing them.
+Furthermore, only `ImmutableMap` and `ImmutableSet` guarantee order,
+and we want to keep CPAchecker deterministic.
+All the replacements in the following table can be used safely in all circumstances.
+
+| Java method - NEVER USE         | Guava method - USE THIS         |
+| --------------------------------|---------------------------------|
+| Collections.emptyList()         | ImmutableList.of()              |
+| Collections.emptyMap()          | ImmutableMap.of()               |
+| Collections.emptySet()          | ImmutableSet.of()               |
+| Collectors.toUnmodifiableList() | ImmutableList.toImmutableList() |
+| Collectors.toUnmodifiableMap()  | ImmutableMap.toImmutableMap()   |
+| Collectors.toUnmodifiableSet()  | ImmutableSet.toImmutableSet()   |
+| List.of()                       | ImmutableList.of()              |
+| List.copyOf()                   | ImmutableList.copyOf()          |
+| Map.of()                        | ImmutableMap.of()               |
+| Map.copyOf()                    | ImmutableMap.copyOf()           |
+| Set.of()                        | ImmutableSet.of()               |
+| Set.copyOf()                    | ImmutableSet.copyOf()           |
+
+Several other collection methods from Java have the same disadvantage as above,
+but have no direct replacement because they accept null values and Guava doesn't.
+Null values in collections are typically bad design anyway,
+so make sure null is avoided and replace them.
+
+| Java method - AVOID         | Guava method - USE AFTER REMOVING NULL VALUES |
+| ----------------------------|-----------------------------------------------|
+| Collections.singletonList() | ImmutableList.of()                            |
+| Collections.singletonMap()  | ImmutableMap.of()                             |
+| Collections.singleton()     | ImmutableSet.of()                             |
+| Collectors.toList()         | ImmutableList.toImmutableList()               |
+| Collectors.toMap()          | ImmutableMap.toImmutableMap()                 |
+| Collectors.toSet()          | ImmutableSet.toImmutableSet()                 |
+
+### List of APIs to avoid
+
+Avoid the following classes:
+
+| Avoid                          | Replacement          | Why? |
+|--------------------------------|----------------------|------|
+| com.google.common.base.Objects | java.util.Objects    | only necessary for older Java |
+| java.io.**PrintStream**        | BufferedOutputStream | Swallows IOExceptions, but use for CPAchecker's statistics is ok |
+| java.io.**PrintWriter**        | BufferedWriter       | Swallows IOExceptions |
+| java.util.Hashtable            | HashMap              | old and deprecated |
+| java.util.**LinkedList**       | ArrayList/ArrayDeque | inefficient, but note that ArrayDeque does not accept null and is slower when modifying in the middle |
+| java.util.Stack                | Deque                | old and deprecated |
+| java.util.Vector               | ArrayList            | old and deprecated |
+| org.junit.**Assert**           | Truth.assertThat     | much better failure messages |

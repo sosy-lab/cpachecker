@@ -1,0 +1,7 @@
+format_version: '1.0'
+
+# old file name: featureVarsTest.c
+input_files: 'featureVarsTest.c'
+
+properties:
+  - property_file: ../../config/properties/unreach-label.prp

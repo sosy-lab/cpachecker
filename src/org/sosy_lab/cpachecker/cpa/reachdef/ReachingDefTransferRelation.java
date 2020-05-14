@@ -35,6 +35,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -218,7 +219,7 @@ public class ReachingDefTransferRelation implements TransferRelation {
             "Start of main function. ",
             "Add undefined position for local variables of main function. ",
             "Add definition of parameters of main function.");
-        if (pCfaEdge.getPredecessor() == main
+        if (Objects.equals(pCfaEdge.getPredecessor(), main)
             && ((ReachingDefState) pState).getLocalReachingDefinitions().size() == 0) {
           result =
               ((ReachingDefState) pState)
@@ -270,8 +271,8 @@ public class ReachingDefTransferRelation implements TransferRelation {
                       Collection<CLeftHandSide> firstRes = binExp.getOperand1().accept(this);
                       Collection<CLeftHandSide> sndRes = binExp.getOperand2().accept(this);
 
-                      Set<CLeftHandSide> res = new HashSet<>();
-                      res.addAll(firstRes);
+                      Set<CLeftHandSide> res = new HashSet<>(firstRes);
+
                       res.addAll(sndRes);
 
                       return res;
@@ -474,7 +475,10 @@ public class ReachingDefTransferRelation implements TransferRelation {
 
   @Override
   public @Nullable Collection<? extends AbstractState> strengthen(
-      AbstractState state, List<AbstractState> otherStates, CFAEdge cfaEdge, Precision precision)
+      AbstractState state,
+      Iterable<AbstractState> otherStates,
+      CFAEdge cfaEdge,
+      Precision precision)
       throws CPATransferException, InterruptedException {
 
     for (AbstractState o : otherStates) {

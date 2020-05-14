@@ -25,11 +25,11 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -95,7 +95,7 @@ public class TargetFunctionsProvider {
       String variableName = ((CIdExpression) expression).getName();
       return globalsMatching.get(variableName);
     } else {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
   }
 
@@ -176,7 +176,7 @@ public class TargetFunctionsProvider {
 
   private boolean checkReturnAndParamSizes(CFunctionType func, CFunctionType functionType) {
     CType declRet = functionType.getReturnType();
-    if (machine.getSizeof(declRet) != machine.getSizeof(func.getReturnType())) {
+    if (!machine.getSizeof(declRet).equals(machine.getSizeof(func.getReturnType()))) {
       logger.log(
           Level.FINEST,
           "Function call",
@@ -195,7 +195,7 @@ public class TargetFunctionsProvider {
     for (int i = 0; i < declParams.size(); i++) {
       CType dt = declParams.get(i);
       CType et = func.getParameters().get(i);
-      if (machine.getSizeof(dt) != machine.getSizeof(et)) {
+      if (!machine.getSizeof(dt).equals(machine.getSizeof(et))) {
         logger.log(
             Level.FINEST,
             "Function call",

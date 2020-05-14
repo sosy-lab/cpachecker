@@ -34,7 +34,6 @@ import com.google.common.collect.Table.Cell;
 import java.io.Serializable;
 import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -59,7 +58,7 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
  * <p>A dependence graph G = (V, E) is a directed graph. His nodes V are CFA edges of the program.
  * Given two nodes i and j, if j is a dependence of i, a directed edge (j, i) from j to i is in E.
  */
-public class DependenceGraph implements Serializable {
+public final class DependenceGraph implements Serializable {
 
   private static final long serialVersionUID = -6721168496945584302L;
 
@@ -110,7 +109,7 @@ public class DependenceGraph implements Serializable {
 
   public Collection<CFAEdge> getReachable(CFAEdge pStart, TraversalDirection pDirection)
       throws InterruptedException {
-    return getReachable(pStart, pDirection, Collections.emptySet());
+    return getReachable(pStart, pDirection, ImmutableSet.of());
   }
 
   /**
@@ -209,7 +208,7 @@ public class DependenceGraph implements Serializable {
     return Objects.hash(nodes, adjacencyMatrix);
   }
 
-  private static class ImmutableNodeMap implements Serializable {
+  private static final class ImmutableNodeMap implements Serializable {
 
     private static final long serialVersionUID = 4311993821719514171L;
 
@@ -268,7 +267,7 @@ public class DependenceGraph implements Serializable {
     }
   }
 
-  static class NodeMap {
+  static final class NodeMap {
     private Table<CFAEdge, Optional<MemoryLocation>, DGNode> nodesForEdges =
         HashBasedTable.create();
     private Set<DGNode> specialNodes = new HashSet<>();

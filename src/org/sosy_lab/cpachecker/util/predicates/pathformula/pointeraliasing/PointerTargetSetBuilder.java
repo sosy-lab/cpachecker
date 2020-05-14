@@ -38,6 +38,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.NavigableSet;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
@@ -291,6 +292,17 @@ public interface PointerTargetSetBuilder {
         }
       }
 
+      // Add alignment constraint
+      // For incomplete types, better not add constraints (imprecise) than a wrong one (unsound).
+      if (!type.isIncomplete()) {
+        constraints.addConstraint(
+            formulaManager.makeModularCongruence(
+                newBaseFormula,
+                formulaManager.makeNumber(typeHandler.getPointerType(), 0L),
+                typeHandler.getAlignof(type),
+                false));
+      }
+
       final int typeSize =
           type.isIncomplete() ? options.defaultAllocationSize() : typeHandler.getSizeof(type);
       final Formula typeSizeF = formulaManager.makeNumber(pointerType, typeSize);
@@ -380,7 +392,7 @@ public interface PointerTargetSetBuilder {
             addTargets(
                 base,
                 memberDeclaration.getType(),
-                offset.getAsLong(),
+                offset.orElseThrow(),
                 containerOffset + properOffset,
                 field);
           }
@@ -392,7 +404,7 @@ public interface PointerTargetSetBuilder {
                     newRegion,
                     memberDeclaration.getType(),
                     compositeType,
-                    offset.getAsLong(),
+                    offset.orElseThrow(),
                     containerOffset + properOffset,
                     targets,
                     fields);
@@ -494,7 +506,7 @@ public interface PointerTargetSetBuilder {
                 break;
               }
             }
-          } while (current != currentChain.get(currentChain.size() - 1));
+          } while (!Objects.equals(current, currentChain.get(currentChain.size() - 1)));
 
           boolean useful = false;
           for (int i = currentChain.size() - 1; i >= 0; i--) {

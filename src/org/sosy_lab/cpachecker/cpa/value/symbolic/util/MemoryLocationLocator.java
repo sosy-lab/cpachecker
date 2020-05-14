@@ -23,6 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.util;
 
+import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
@@ -53,11 +58,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Optional;
-
 /**
  * Returns a <code>Collection</code> of all {@link MemoryLocation MemoryLocations} contained
  * in a {@link SymbolicValue}.
@@ -79,9 +79,9 @@ public class MemoryLocationLocator implements SymbolicValueVisitor<Collection<Me
     Optional<MemoryLocation> maybeLocation = pValue.getRepresentedLocation();
 
     if (maybeLocation.isPresent()) {
-      return Collections.singleton(maybeLocation.get());
+      return Collections.singleton(maybeLocation.orElseThrow());
     } else {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
   }
 
@@ -89,7 +89,7 @@ public class MemoryLocationLocator implements SymbolicValueVisitor<Collection<Me
     Optional<MemoryLocation> maybeLocation = pExpression.getRepresentedLocation();
 
     if (maybeLocation.isPresent()) {
-      return Collections.singleton(maybeLocation.get());
+      return Collections.singleton(maybeLocation.orElseThrow());
     } else {
       return pExpression.getOperand().accept(this);
     }
@@ -99,7 +99,7 @@ public class MemoryLocationLocator implements SymbolicValueVisitor<Collection<Me
     Optional<MemoryLocation> maybeLocation = pExpression.getRepresentedLocation();
 
     if (maybeLocation.isPresent()) {
-      return Collections.singleton(maybeLocation.get());
+      return Collections.singleton(maybeLocation.orElseThrow());
     } else {
       Collection<MemoryLocation> locations = new HashSet<>();
 
@@ -115,7 +115,7 @@ public class MemoryLocationLocator implements SymbolicValueVisitor<Collection<Me
     Optional<MemoryLocation> maybeLocation = pExpression.getRepresentedLocation();
 
     if (maybeLocation.isPresent()) {
-      return Collections.singleton(maybeLocation.get());
+      return Collections.singleton(maybeLocation.orElseThrow());
 
     } else {
       Value innerValue = pExpression.getValue();
@@ -123,7 +123,7 @@ public class MemoryLocationLocator implements SymbolicValueVisitor<Collection<Me
       if (innerValue instanceof SymbolicValue) {
         return ((SymbolicValue)innerValue).accept(this);
       } else {
-        return Collections.emptySet();
+        return ImmutableSet.of();
       }
     }
   }

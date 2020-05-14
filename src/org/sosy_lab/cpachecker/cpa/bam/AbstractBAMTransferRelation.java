@@ -25,10 +25,13 @@ package org.sosy_lab.cpachecker.cpa.bam;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -39,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
@@ -52,21 +56,20 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public abstract class AbstractBAMTransferRelation<EX extends CPAException>
-    implements TransferRelation {
+    extends AbstractSingleWrapperTransferRelation implements TransferRelation {
 
   final BAMDataManager data;
   protected final BlockPartitioning partitioning;
   protected final LogManager logger;
-  protected final TransferRelation wrappedTransfer;
   protected final Reducer wrappedReducer;
-  private final ShutdownNotifier shutdownNotifier;
+  protected final ShutdownNotifier shutdownNotifier;
 
   private final boolean useDynamicAdjustment;
 
   protected AbstractBAMTransferRelation(
       AbstractBAMCPA pBamCPA, ShutdownNotifier pShutdownNotifier) {
+    super(pBamCPA.getWrappedCpa().getTransferRelation());
     logger = pBamCPA.getLogger();
-    wrappedTransfer = pBamCPA.getWrappedCpa().getTransferRelation();
     wrappedReducer = pBamCPA.getReducer();
     data = pBamCPA.getData();
     partitioning = pBamCPA.getBlockPartitioning();
@@ -107,7 +110,7 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
     if (exitBlockAnalysis(argState, node)) {
 
       // We are leaving the block, do not perform analysis beyond the current block.
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     if (startNewBlockAnalysis(argState, node)) {
@@ -136,7 +139,7 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
   protected Collection<? extends AbstractState> getWrappedTransferSuccessor(
       final ARGState pState, final Precision pPrecision, final CFANode pNode)
       throws EX, InterruptedException, CPATransferException {
-    return wrappedTransfer.getAbstractSuccessors(pState, pPrecision);
+    return transferRelation.getAbstractSuccessors(pState, pPrecision);
   }
 
   /**
@@ -175,11 +178,33 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
   /**
    * We assume that the root of a reached-set is a initial state at block-entry-location. Searching
    * backwards from an ARGstate should end in the root-state.
+   *
+   * <p>This method traverses the reached-set and might be costly. Please call only when needed.
    */
   protected Block getBlockForState(ARGState state) {
-    while (!state.getParents().isEmpty()) {
-      state = state.getParents().iterator().next();
+
+    // search backwards for initial states, we assume there is only one
+    final Collection<ARGState> finished = new HashSet<>();
+    final Deque<ARGState> waitlist = new ArrayDeque<>();
+    waitlist.add(state);
+    while (!waitlist.isEmpty()) {
+      state = waitlist.pop();
+
+      // optimization to skip plain chains
+      while (state.getParents().size() == 1) {
+        state = state.getParents().iterator().next();
+      }
+
+      // initial states in the reached-set have no predecessor
+      if (state.getParents().isEmpty()) {
+        break;
+      }
+
+      if (finished.add(state)) {
+        waitlist.addAll(state.getParents());
+      }
     }
+
     CFANode location = extractLocation(state);
     assert partitioning.isCallNode(location)
         : "root of reached-set must be located at block entry.";
@@ -220,6 +245,13 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
 
       AbstractState expandedState =
           wrappedReducer.getVariableExpandedState(state, innerSubtree, reducedState);
+
+      if (expandedState == null) {
+        // if the expanded reducedResult is not satisfiable, ignore it.
+        // TODO If this happens, we might want to re-analyze
+        // the nested reached-set for further states from the waitlist.
+        continue;
+      }
 
       Precision expandedPrecision =
           outerSubtree == null
@@ -287,12 +319,12 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState pState,
-      List<AbstractState> pOtherStates,
+      Iterable<AbstractState> pOtherStates,
       CFAEdge pCfaEdge,
       Precision pPrecision)
       throws CPATransferException, InterruptedException {
     shutdownNotifier.shutdownIfNecessary();
-    return wrappedTransfer.strengthen(pState, pOtherStates, pCfaEdge, pPrecision);
+    return transferRelation.strengthen(pState, pOtherStates, pCfaEdge, pPrecision);
   }
 
   @Override

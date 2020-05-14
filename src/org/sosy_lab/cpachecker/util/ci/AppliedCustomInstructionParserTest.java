@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.ci;
 
+import static com.google.common.truth.Truth.assert_;
+
 import com.google.common.truth.Truth;
 import java.io.IOException;
 import java.io.Writer;
@@ -35,7 +37,6 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -109,7 +110,7 @@ public class AppliedCustomInstructionParserTest {
             LogManager.createTestLogManager(),
             cfa);
     GlobalInfo.getInstance().storeCFA(cfa);
-    cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
+    cfaInfo = GlobalInfo.getInstance().getCFAInfo().orElseThrow();
     labelNodes = getLabelNodes(cfa);
   }
 
@@ -117,7 +118,7 @@ public class AppliedCustomInstructionParserTest {
   public void testGetCFANode() throws AppliedCustomInstructionParsingFailedException {
     try {
       aciParser.getCFANode("N57", cfaInfo);
-      Assert.fail();
+      assert_().fail();
     } catch (CPAException e) {
       Truth.assertThat(e).isInstanceOf(AppliedCustomInstructionParsingFailedException.class);
     }
@@ -131,7 +132,7 @@ public class AppliedCustomInstructionParserTest {
   public void testReadCustomInstruction() throws AppliedCustomInstructionParsingFailedException, InterruptedException, SecurityException {
     try {
       aciParser.readCustomInstruction("test4");
-      Assert.fail();
+      assert_().fail();
     } catch (CPAException e) {
       Truth.assertThat(e).isInstanceOf(AppliedCustomInstructionParsingFailedException.class);
       Truth.assertThat(e.getMessage()).matches("Function unknown in program");
@@ -139,7 +140,7 @@ public class AppliedCustomInstructionParserTest {
 
     try {
       aciParser.readCustomInstruction("test");
-      Assert.fail();
+      assert_().fail();
     } catch (CPAException e) {
       Truth.assertThat(e).isInstanceOf(AppliedCustomInstructionParsingFailedException.class);
       Truth.assertThat(e.getMessage()).matches("Missing label for start of custom instruction");
@@ -147,7 +148,7 @@ public class AppliedCustomInstructionParserTest {
 
     try {
       aciParser.readCustomInstruction("test2");
-      Assert.fail();
+      assert_().fail();
     } catch (CPAException e) {
       Truth.assertThat(e).isInstanceOf(AppliedCustomInstructionParsingFailedException.class);
       Truth.assertThat(e.getMessage()).matches("Missing label for end of custom instruction");
@@ -161,9 +162,7 @@ public class AppliedCustomInstructionParserTest {
         expectedStart = n;
       }
       if(n.getLabel().startsWith("end_ci") && n.getFunctionName().equals("ci")) {
-        for(CFANode e: CFAUtils.predecessorsOf(n)) {
-          expectedEnds.add(e);
-        }
+        CFAUtils.predecessorsOf(n).copyInto(expectedEnds);
       }
     }
     Truth.assertThat(ci.getStartNode()).isEqualTo(expectedStart);
@@ -189,9 +188,7 @@ public class AppliedCustomInstructionParserTest {
         expectedStart = n;
       }
       if(n.getLabel().startsWith("end_ci") && n.getFunctionName().equals("main")) {
-        for(CFANode e: CFAUtils.predecessorsOf(n)) {
-          expectedEnds.add(e);
-        }
+        CFAUtils.predecessorsOf(n).copyInto(expectedEnds);
       }
     }
     Truth.assertThat(ci.getStartNode()).isEqualTo(expectedStart);
@@ -269,12 +266,12 @@ public class AppliedCustomInstructionParserTest {
   }
 
   private void testParse(Path p, Path signatureFile) throws Exception {
-    CFANode expectedStart = null;
-    for(CLabelNode n: getLabelNodes(cfa)){
-      if(n.getLabel().startsWith("start_ci") && n.getFunctionName().equals("main")) {
-        expectedStart = n;
-      }
-    }
+    CFANode expectedStart =
+        getLabelNodes(cfa)
+            .stream()
+            .filter(n -> n.getLabel().startsWith("start_ci") && n.getFunctionName().equals("main"))
+            .findAny()
+            .orElseThrow();
     int startNodeNr = expectedStart.getNodeNumber();
 
     CustomInstructionApplications cia = aciParser.parse(p, signatureFile);
@@ -381,7 +378,7 @@ public class AppliedCustomInstructionParserTest {
         Truth.assertThat(entry.getValue().getStartAndEndNodes()).containsExactlyElementsIn(aciNodes);
 
         } else {
-          Truth.assertThat(false).isTrue();
+        assert_().fail();
       }
     }
   }

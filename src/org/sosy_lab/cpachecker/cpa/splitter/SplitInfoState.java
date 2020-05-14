@@ -24,10 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.splitter;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
@@ -58,7 +58,7 @@ public abstract class SplitInfoState implements AbstractQueryableState {
     throw new InvalidQueryException("The Query \"" + property + "\" is invalid.");
   }
 
-  static class SequenceSplitInfoState extends SplitInfoState {
+  static final class SequenceSplitInfoState extends SplitInfoState {
 
     private final int[] inSplit;
 
@@ -99,7 +99,7 @@ public abstract class SplitInfoState implements AbstractQueryableState {
       return new SequenceSplitInfoState(
           Arrays.copyOfRange(
               inSplit,
-              splitPart * minElem + (splitPart < numAdditionalElem ? splitPart : numAdditionalElem),
+              splitPart * minElem + Math.min(splitPart, numAdditionalElem),
               (splitPart + 1) * minElem
                   + ((splitPart + 1) < numAdditionalElem ? splitPart + 1 : numAdditionalElem)));
     }
@@ -166,7 +166,7 @@ public abstract class SplitInfoState implements AbstractQueryableState {
     }
   }
 
-  static class SetSplitInfoState extends SplitInfoState {
+  static final class SetSplitInfoState extends SplitInfoState {
     private final Set<Integer> inSplit;
 
     private SetSplitInfoState(final Set<Integer> pInSplit) {
@@ -185,22 +185,18 @@ public abstract class SplitInfoState implements AbstractQueryableState {
         return this;
       }
 
-      Integer[] arr = inSplit.toArray(new Integer[inSplit.size()]);
-      Arrays.sort(arr, Comparator.<Integer>comparingInt(i -> i));
-
+      ImmutableList<Integer> arr = ImmutableList.sortedCopyOf(inSplit);
       int minElem = inSplit.size() / pNumSplitParts;
       int numAdditionalElem = inSplit.size() % pNumSplitParts;
 
       Set<Integer> newSplit = Sets.newHashSetWithExpectedSize(minElem + 1);
 
-      for (int i =
-              pSplitPart * minElem
-                  + (pSplitPart < numAdditionalElem ? pSplitPart : numAdditionalElem);
+      for (int i = pSplitPart * minElem + Math.min(pSplitPart, numAdditionalElem);
           i
               < ((pSplitPart + 1) * minElem
                   + ((pSplitPart + 1) < numAdditionalElem ? pSplitPart + 1 : numAdditionalElem));
           i++) {
-        newSplit.add(arr[i]);
+        newSplit.add(arr.get(i));
       }
 
       return new SetSplitInfoState(newSplit);
@@ -226,9 +222,7 @@ public abstract class SplitInfoState implements AbstractQueryableState {
       Preconditions.checkNotNull(pRemoveIndices);
 
       Set<Integer> newSplit = new HashSet<>(inSplit);
-      for (Integer splitIndex : pRemoveIndices) {
-        newSplit.remove(splitIndex);
-      }
+      newSplit.removeAll(pRemoveIndices);
 
       if (newSplit.size() < 1) {
         return this;

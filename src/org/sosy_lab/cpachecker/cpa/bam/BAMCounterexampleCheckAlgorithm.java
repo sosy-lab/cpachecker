@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -77,14 +78,14 @@ public class BAMCounterexampleCheckAlgorithm extends CounterexampleCheckAlgorith
 
     // compute BAM-reachedset for the reachable states,
     // it contains all error-paths and is sufficient to check counterexample.
-    BAMSubgraphComputer graphComputer = new BAMSubgraphComputer(cpa);
+    BAMSubgraphComputer graphComputer = new BAMSubgraphComputer(cpa, false);
     Pair<BackwardARGState, BackwardARGState> rootAndTargetOfSubgraph =
         graphComputer.computeCounterexampleSubgraph(errorState, mainReachedSet);
     ARGState rootState = rootAndTargetOfSubgraph.getFirst();
     ARGState target = rootAndTargetOfSubgraph.getSecond();
     Set<ARGState> statesOnErrorPath = rootState.getSubgraph();
 
-    assert ((BackwardARGState) target).getARGState() == errorState;
+    assert Objects.equals(((BackwardARGState) target).getARGState(), errorState);
 
     return checker.checkCounterexample(rootState, target, statesOnErrorPath);
   }

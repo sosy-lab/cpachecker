@@ -28,9 +28,9 @@ import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Queues;
 import java.io.IOException;
@@ -38,6 +38,7 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
@@ -205,7 +206,7 @@ public class PredicateStaticRefiner extends StaticRefiner
     // We don't need to care about creating extra predicates for branching etc.
     boolean branchingOccurred = true;
     if (elementsOnPath.size() == allStatesTrace.size()) {
-      elementsOnPath = Collections.emptySet();
+      elementsOnPath = ImmutableSet.of();
       branchingOccurred = false;
     }
 
@@ -279,7 +280,7 @@ public class PredicateStaticRefiner extends StaticRefiner
     Set<String> referenced =
         CFAUtils.getVariableNamesOfExpression((CExpression) e.getExpression()).toSet();
     Set<String> loopExitConditionVariables =
-        cfa.getLoopStructure().get().getLoopExitConditionVariables();
+        cfa.getLoopStructure().orElseThrow().getLoopExitConditionVariables();
 
     return !Collections.disjoint(referenced, loopExitConditionVariables);
   }
@@ -427,7 +428,7 @@ public class PredicateStaticRefiner extends StaticRefiner
     Multimap<String, AbstractionPredicate> functionPredicates = ArrayListMultimap.create();
 
     // Predicates that should be tracked globally
-    Collection<AbstractionPredicate> globalPredicates = Lists.newArrayList();
+    Collection<AbstractionPredicate> globalPredicates = new ArrayList<>();
 
     // Determine the ERROR location of the path (last node)
     CFANode targetLocation = AbstractStates.extractLocation(targetState);
@@ -482,16 +483,16 @@ public class PredicateStaticRefiner extends StaticRefiner
       }
     }
 
-    Set<AbstractionPredicate> allPredicates = new HashSet<>();
-    allPredicates.addAll(globalPredicates);
+    Set<AbstractionPredicate> allPredicates = new HashSet<>(globalPredicates);
+
     allPredicates.addAll(functionPredicates.values());
     foundPredicates.setNextValue(allPredicates.size());
 
     logger.log(Level.FINER, "Extracting finished, found", allPredicates.size(), "predicates");
 
     return new PredicatePrecision(
-        ImmutableSetMultimap.<PredicatePrecision.LocationInstance, AbstractionPredicate>of(),
-        ArrayListMultimap.<CFANode, AbstractionPredicate>create(),
+        ImmutableSetMultimap.of(),
+        ArrayListMultimap.create(),
         functionPredicates,
         globalPredicates);
   }

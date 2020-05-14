@@ -24,10 +24,13 @@
 package org.sosy_lab.cpachecker.util.expressions;
 
 import com.google.common.base.Preconditions;
-
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -40,14 +43,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-
 public class ToFormulaVisitor
     extends CachingVisitor<AExpression, BooleanFormula, ToFormulaException> {
-
-  private static final CFANode DUMMY_NODE = new CFANode("dummy");
 
   private final FormulaManagerView formulaManagerView;
 
@@ -88,9 +85,13 @@ public class ToFormulaVisitor
     AExpression expression = pLeafExpression.getExpression();
     final CFAEdge edge;
     if (expression instanceof CExpression) {
-      edge = new CAssumeEdge("", FileLocation.DUMMY, DUMMY_NODE, DUMMY_NODE, (CExpression) expression, pLeafExpression.assumeTruth());
+      edge = new CAssumeEdge("", FileLocation.DUMMY,
+          new CFANode(CFunctionDeclaration.DUMMY), new CFANode(CFunctionDeclaration.DUMMY),
+          (CExpression) expression, pLeafExpression.assumeTruth());
     } else if (expression instanceof JExpression) {
-      edge = new JAssumeEdge("", FileLocation.DUMMY, DUMMY_NODE, DUMMY_NODE, (JExpression) expression, pLeafExpression.assumeTruth());
+      edge = new JAssumeEdge("", FileLocation.DUMMY,
+          new CFANode(CFunctionDeclaration.DUMMY), new CFANode(CFunctionDeclaration.DUMMY),
+          (JExpression) expression, pLeafExpression.assumeTruth());
     } else {
       throw new AssertionError("Unsupported expression type.");
     }

@@ -1,0 +1,7 @@
+format_version: '1.0'
+
+# old file name: enum-large-llu.c
+input_files: 'enum-large-llu.c'
+
+properties:
+  - property_file: ../../config/properties/unreach-label.prp

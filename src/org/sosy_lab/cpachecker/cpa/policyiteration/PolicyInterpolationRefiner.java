@@ -185,7 +185,7 @@ public class PolicyInterpolationRefiner implements Refiner {
     if (generalizeInterpolants) {
       Optional<List<BooleanFormula>> weakerInterpolants = getGeneralizedInterpolants(iState, itp);
       if (weakerInterpolants.isPresent()) {
-        changed |= injectPrecisionFromInterpolants(weakerInterpolants.get(), iState);
+        changed |= injectPrecisionFromInterpolants(weakerInterpolants.orElseThrow(), iState);
       }
     }
 

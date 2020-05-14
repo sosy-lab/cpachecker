@@ -23,10 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.util;
 
-import java.util.Collections;
+import com.google.common.collect.ImmutableSet;
 import java.util.HashSet;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
@@ -55,8 +54,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
-
-import com.google.common.collect.ImmutableSet;
 
 /**
  * Locates all {@link SymbolicIdentifier}s contained in a {@link SymbolicValue}.
@@ -87,7 +84,7 @@ public class SymbolicIdentifierLocator
       return ((SymbolicValue) containedValue).accept(this);
 
     } else {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
   }
 

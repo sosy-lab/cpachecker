@@ -80,7 +80,7 @@ class ParseContext {
     StringBuilder sb = new StringBuilder();
 
     FileLocation fileLocation = getLocation(node);
-    if (fileLocation != FileLocation.DUMMY) {
+    if (!FileLocation.DUMMY.equals(fileLocation)) {
       sb.append(fileLocation);
       sb.append(": ");
     }
@@ -149,6 +149,8 @@ class ParseContext {
     }
     final String originFileName = startingInOrigin.getFileName();
 
+    final boolean offsetRelatedToOrigin = sourceOriginMapping.isMappingToIdenticalLineNumbers();
+
     return new FileLocation(
         originFileName,
         mapFileNameToNameForHumans(originFileName),
@@ -157,7 +159,8 @@ class ParseContext {
         startingLineInInput,
         endingLineInInput,
         startingLineInOrigin,
-        endingLineInOrigin);
+        endingLineInOrigin,
+        offsetRelatedToOrigin);
   }
 
   /**

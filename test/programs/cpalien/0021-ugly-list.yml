@@ -1,0 +1,9 @@
+format_version: '1.0'
+
+# old file name: 0021-ugly-list_false-valid-deref.c
+input_files: '0021-ugly-list.c'
+
+properties:
+  - property_file: ../../config/properties/valid-memsafety.prp
+    expected_verdict: false
+    subproperty: valid-deref

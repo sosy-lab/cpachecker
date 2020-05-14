@@ -21,6 +21,7 @@
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
  */
+ 
 parser grammar LtlGrammarParser;
 
 options {

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.refiner;
 
 import static org.sosy_lab.cpachecker.util.Precisions.extractPrecisionByType;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -167,7 +168,8 @@ public class SMGEdgeInterpolator {
       return Collections.singletonList(interpolantManager.createInterpolant(successors));
     }
 
-    List<SMGInterpolant> resultingInterpolants = new ArrayList<>(successors.size());
+    ImmutableList.Builder<SMGInterpolant> resultingInterpolants =
+        ImmutableList.builderWithExpectedSize(successors.size());
     ARGPath remainingErrorPath = pOffset.iterator().getSuffixExclusive();
 
     for (SMGState state : successors) {
@@ -198,7 +200,7 @@ public class SMGEdgeInterpolator {
       resultingInterpolants.add(result);
     }
 
-    return resultingInterpolants;
+    return resultingInterpolants.build();
   }
 
   private boolean isFunctionOrTypeDeclaration(CFAEdge pCurrentEdge) {
@@ -271,7 +273,7 @@ public class SMGEdgeInterpolator {
   }
 
   private Collection<SMGState> getInitialSuccessor(SMGState pState, CFAEdge pCurrentEdge)
-      throws CPAException {
+      throws CPAException, InterruptedException {
     return getInitialSuccessor(pState, pCurrentEdge, strongPrecision);
   }
 
@@ -284,7 +286,7 @@ public class SMGEdgeInterpolator {
    */
   private Collection<SMGState> getInitialSuccessor(
       final SMGState pInitialState, final CFAEdge pInitialEdge, final SMGPrecision precision)
-      throws CPAException {
+      throws CPAException, InterruptedException {
 
     SMGState oldState = pInitialState;
 
@@ -343,7 +345,6 @@ public class SMGEdgeInterpolator {
 
     public SMGHeapAbstractionInterpoaltionResult(Set<SMGAbstractionBlock> pBlocks,
         boolean pChange) {
-      super();
       blocks = pBlocks;
       change = pChange;
     }

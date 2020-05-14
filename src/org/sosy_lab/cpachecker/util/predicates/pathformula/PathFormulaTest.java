@@ -24,14 +24,13 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.testing.ClassSanityTester;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.Constructor;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -68,9 +67,6 @@ public class PathFormulaTest {
             PointerTargetSet.emptyPointerTargetSet(),
             dummyPTS);
   }
-
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
 
   private SSAMapBuilder builder;
 
@@ -156,21 +152,19 @@ public class PathFormulaTest {
   public void testSSAExceptionMonotone() {
     builder.setIndex("a", CNumericTypes.INT, 2);
 
-    thrown.expect(IllegalArgumentException.class);
-    builder.setIndex("a", CNumericTypes.INT, 1);
+    assertThrows(IllegalArgumentException.class, () -> builder.setIndex("a", CNumericTypes.INT, 1));
   }
 
   @Test
   public void testSSAExceptionNegative() {
-    thrown.expect(IllegalArgumentException.class);
-    builder.setIndex("a", CNumericTypes.INT, -5);
+    assertThrows(
+        IllegalArgumentException.class, () -> builder.setIndex("a", CNumericTypes.INT, -5));
   }
 
   @Test
   public void testSSAExceptionMonotone2() {
     builder.setIndex("a", CNumericTypes.INT, 2);
 
-    thrown.expect(IllegalArgumentException.class);
-    builder.setIndex("a", CNumericTypes.INT, 1);
+    assertThrows(IllegalArgumentException.class, () -> builder.setIndex("a", CNumericTypes.INT, 1));
   }
 }

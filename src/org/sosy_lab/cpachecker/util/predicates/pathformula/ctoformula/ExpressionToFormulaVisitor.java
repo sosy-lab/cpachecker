@@ -50,7 +50,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression.TypeIdOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
@@ -524,6 +523,9 @@ public class ExpressionToFormulaVisitor
       CType lCType = exp.getOperand().getExpressionType();
       return handleSizeof(exp, lCType);
 
+      case ALIGNOF:
+        return handleAlignOf(exp,  exp.getOperand().getExpressionType());
+
     default:
         throw new UnrecognizedCodeException("Unknown unary operator", edge, exp);
     }
@@ -531,12 +533,15 @@ public class ExpressionToFormulaVisitor
 
   @Override
   public Formula visit(CTypeIdExpression tIdExp) throws UnrecognizedCodeException {
+    CType lCType = tIdExp.getType();
 
-    if (tIdExp.getOperator() == TypeIdOperator.SIZEOF) {
-      CType lCType = tIdExp.getType();
-      return handleSizeof(tIdExp, lCType);
-    } else {
-      return visitDefault(tIdExp);
+    switch (tIdExp.getOperator()) {
+      case SIZEOF:
+        return handleSizeof(tIdExp, lCType);
+      case ALIGNOF:
+        return handleAlignOf(tIdExp, lCType);
+      default:
+        return visitDefault(tIdExp);
     }
   }
 
@@ -545,6 +550,12 @@ public class ExpressionToFormulaVisitor
         conv
           .getFormulaTypeFromCType(pExp.getExpressionType()),
         conv.getSizeof(pCType));
+  }
+
+  private Formula handleAlignOf(CExpression pExp, CType pCType) {
+    return mgr.makeNumber(
+        conv.getFormulaTypeFromCType(pExp.getExpressionType()),
+        conv.machineModel.getAlignof(pCType));
   }
 
   @Override
@@ -557,6 +568,12 @@ public class ExpressionToFormulaVisitor
     final String functionName;
     if (functionNameExpression instanceof CIdExpression) {
       functionName = ((CIdExpression)functionNameExpression).getName();
+
+      final String isUnsupported = CtoFormulaConverter.isUnsupportedFunction(functionName);
+      if (isUnsupported != null) {
+        throw new UnsupportedCodeException(isUnsupported, edge, e);
+      }
+
       if (conv.options.isNondetFunction(functionName)
           || conv.options.isMemoryAllocationFunction(functionName)
           || conv.options.isMemoryAllocationFunctionWithZeroing(functionName)) {
@@ -571,13 +588,9 @@ public class ExpressionToFormulaVisitor
         FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(e.getExpressionType());
         return conv.ifTrueThenOneElseZero(returnFormulaType, result);
 
-      } else if (CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
-        throw new UnsupportedCodeException(
-            CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.get(functionName), edge, e);
-
       } else if (BuiltinFloatFunctions.matchesInfinity(functionName)) {
 
-        if (parameters.size() == 0) {
+        if (parameters.isEmpty()) {
           CType resultType = getTypeOfBuiltinFloatFunction(functionName);
 
           FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);
@@ -589,7 +602,7 @@ public class ExpressionToFormulaVisitor
 
       } else if (BuiltinFloatFunctions.matchesHugeVal(functionName)) {
 
-        if (parameters.size() == 0) {
+        if (parameters.isEmpty()) {
           CType resultType = getTypeOfBuiltinFloatFunction(functionName);
 
           FormulaType<?> formulaType = conv.getFormulaTypeFromCType(resultType);

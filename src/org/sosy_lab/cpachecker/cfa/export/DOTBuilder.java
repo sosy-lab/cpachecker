@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cfa.export;
 
+import static com.google.common.base.Strings.nullToEmpty;
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
@@ -54,12 +56,12 @@ public final class DOTBuilder {
   // After this many characters the node shape changes to box.
   private static final int NODE_SHAPE_CHANGE_CHAR_LIMIT = 10;
 
-  private static final Function<CFANode, String> DEFAULT_NODE_FORMATTER =
-      node -> "N" + node.getNodeNumber() + "\\n" + node.getReversePostorderId();
-
+  private static final String formatNode(CFANode node) {
+    return "N" + node.getNodeNumber() + "\\n" + node.getReversePostorderId();
+  }
 
   public static void generateDOT(Appendable sb, CFA cfa) throws IOException {
-    generateDOT(sb, cfa, DEFAULT_NODE_FORMATTER);
+    generateDOT(sb, cfa, DOTBuilder::formatNode);
   }
 
   public static void generateDOT(Appendable sb, CFA cfa,
@@ -149,7 +151,7 @@ public final class DOTBuilder {
 
   static String formatNode(
       CFANode node, Optional<ImmutableSet<CFANode>> loopHeads) {
-    return formatNode(node, loopHeads, DEFAULT_NODE_FORMATTER);
+    return formatNode(node, loopHeads, DOTBuilder::formatNode);
   }
 
   static String formatNode(
@@ -157,13 +159,12 @@ public final class DOTBuilder {
       Function<CFANode, String> formatNodeLabel) {
     final String shape;
 
-    String nodeAnnotation = formatNodeLabel.apply(node);
-    nodeAnnotation = nodeAnnotation != null ? nodeAnnotation : "";
+    String nodeAnnotation = nullToEmpty(formatNodeLabel.apply(node));
 
     if (nodeAnnotation.length() > NODE_SHAPE_CHANGE_CHAR_LIMIT) {
       shape = "box";
     } else {
-      if (loopHeads.isPresent() && loopHeads.get().contains(node)) {
+      if (loopHeads.isPresent() && loopHeads.orElseThrow().contains(node)) {
         shape = "doublecircle";
       } else if (node.isLoopStart()) {
         shape = "doubleoctagon";

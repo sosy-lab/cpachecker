@@ -56,21 +56,22 @@ public final class SMGListAbstractionTestInputs {
     }
   }
 
-  private static SMGValue[][] SUBLISTS_A =
+  private static final SMGValue[][] SUBLISTS_A =
       new SMGValue[][] {{REGION_A, REGION_A}, {REGION_A, REGION_A}};
-  private static SMGValue[][] SUBLISTS_B =
+  private static final SMGValue[][] SUBLISTS_B =
       new SMGValue[][] {
         {newVal(), newVal(), newVal()},
         {newVal(), newVal()},
         {newVal(), newVal()},
         {newVal(), newVal(), newVal()}
       };
-  private static SMGValue[][] SUBLISTS_C = new SMGValue[][] {{}, {}};
-  private static SMGValue[][] SUBLISTS_D = new SMGValue[][] {{newVal()}, {newVal()}};
-  private static SMGValue[][] SUBLISTS_E = new SMGValue[][] {{newVal()}, {}};
-  private static SMGValue[][] SUBLISTS_F = new SMGValue[][] {LIST_EQ_2, LIST_DIFF_2, LIST_EQ_3};
-  private static SMGValue[][] SUBLISTS_G = new SMGValue[][] {LIST_EQ_3, LIST_EQ_3, LIST_EQ_3};
-  private static SMGValue[][] SUBLISTS_H = new SMGValue[LONG_TEST_LIST_LENGTH][1];
+  private static final SMGValue[][] SUBLISTS_C = new SMGValue[][] {{}, {}};
+  private static final SMGValue[][] SUBLISTS_D = new SMGValue[][] {{newVal()}, {newVal()}};
+  private static final SMGValue[][] SUBLISTS_E = new SMGValue[][] {{newVal()}, {}};
+  private static final SMGValue[][] SUBLISTS_F =
+      new SMGValue[][] {LIST_EQ_2, LIST_DIFF_2, LIST_EQ_3};
+  private static final SMGValue[][] SUBLISTS_G = new SMGValue[][] {LIST_EQ_3, LIST_EQ_3, LIST_EQ_3};
+  private static final SMGValue[][] SUBLISTS_H = new SMGValue[LONG_TEST_LIST_LENGTH][1];
 
   static {
     for (int i = 0; i < SUBLISTS_H.length; i++) {
@@ -112,18 +113,16 @@ public final class SMGListAbstractionTestInputs {
 
   public static List<Object[]> getValuesAsTestInputs() {
     return Arrays.asList(
-        new Object[][] {
-          new Object[] {LIST_EQ_2},
-          new Object[] {LIST_DIFF_2},
-          new Object[] {LIST_EQ_3},
-          new Object[] {LIST_DIFF_3},
-          new Object[] {LIST_EQ_4},
-          new Object[] {LIST_DIFF_4},
-          new Object[] {LIST_EQ_5},
-          new Object[] {LIST_DIFF_5},
-          new Object[] {LIST_EQ_X},
-          new Object[] {LIST_DIFF_X}
-        });
+        new Object[] {LIST_EQ_2},
+        new Object[] {LIST_DIFF_2},
+        new Object[] {LIST_EQ_3},
+        new Object[] {LIST_DIFF_3},
+        new Object[] {LIST_EQ_4},
+        new Object[] {LIST_DIFF_4},
+        new Object[] {LIST_EQ_5},
+        new Object[] {LIST_DIFF_5},
+        new Object[] {LIST_EQ_X},
+        new Object[] {LIST_DIFF_X});
   }
 
   public static List<Object[]> getAttachRegionToListTestInputs() {

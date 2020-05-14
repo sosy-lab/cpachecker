@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.composite;
 
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Optional;
@@ -251,9 +252,10 @@ public class CompositeCPA implements StatisticsProvider, WrapperCPA, Configurabl
   public Reducer getReducer() throws InvalidConfigurationException {
     ImmutableList.Builder<Reducer> wrappedReducers = ImmutableList.builder();
     for (ConfigurableProgramAnalysis cpa : cpas) {
-      Preconditions.checkState(
+      checkState(
           cpa instanceof ConfigurableProgramAnalysisWithBAM,
-          "wrapped CPA does not support BAM: " + cpa.getClass().getCanonicalName());
+          "wrapped CPA does not support BAM: %s",
+          cpa.getClass().getCanonicalName());
       wrappedReducers.add(((ConfigurableProgramAnalysisWithBAM) cpa).getReducer());
     }
     return new CompositeReducer(wrappedReducers.build());
@@ -326,10 +328,14 @@ public class CompositeCPA implements StatisticsProvider, WrapperCPA, Configurabl
 
   @Override
   public void setPartitioning(BlockPartitioning partitioning) {
-    cpas.forEach(e -> {
-      assert e instanceof ConfigurableProgramAnalysisWithBAM;
-      ((ConfigurableProgramAnalysisWithBAM) e).setPartitioning(partitioning);
-    });
+    cpas.forEach(
+        cpa -> {
+          checkState(
+              cpa instanceof ConfigurableProgramAnalysisWithBAM,
+              "wrapped CPA does not support BAM: %s",
+              cpa.getClass().getCanonicalName());
+          ((ConfigurableProgramAnalysisWithBAM) cpa).setPartitioning(partitioning);
+        });
   }
 
   @Override

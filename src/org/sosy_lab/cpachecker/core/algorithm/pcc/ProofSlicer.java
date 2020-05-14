@@ -23,16 +23,17 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.pcc;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -92,7 +93,8 @@ public class ProofSlicer {
 
   public UnmodifiableReachedSet sliceProof(final UnmodifiableReachedSet pReached) {
     AbstractState first = pReached.getFirstState();
-    if (first != null && first instanceof ARGState && AbstractStates.extractLocation(first) != null
+    if (first instanceof ARGState
+        && AbstractStates.extractLocation(first) != null
         && AbstractStates.extractStateByType(first, ValueAnalysisState.class) != null
         && AbstractStates.extractStateByType(first, CallstackState.class) != null
         && ((ARGState) first).getWrappedState() instanceof CompositeState) {
@@ -413,7 +415,7 @@ public class ProofSlicer {
       }
     }
 
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
   private void updateCoveredNodes(ARGState pCovering, Set<String> varSet,
@@ -459,7 +461,7 @@ public class ProofSlicer {
       returnReached.add(oldToSliced.get(root), pReached.getPrecision(root));
       // add remaining elements
       for (Entry<ARGState, ARGState> entry : oldToSliced.entrySet()) {
-        if (entry.getKey() != root && !entry.getKey().isCovered()) {
+        if (Objects.equals(entry.getKey(), root) && !entry.getKey().isCovered()) {
           returnReached.add(entry.getValue(), pReached.getPrecision(entry.getKey()));
         }
       }

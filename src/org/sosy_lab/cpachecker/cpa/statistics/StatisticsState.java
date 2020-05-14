@@ -23,17 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.statistics;
 
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
-import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
-import org.sosy_lab.cpachecker.util.CFAUtils;
+import static com.google.common.base.Preconditions.checkState;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
+import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 
 /**
  * Represents a state along the currently analysed path within the StatisticsCPA domain.
@@ -72,12 +74,8 @@ public class StatisticsState implements AbstractStateWithLocation, Partitionable
     }
 
     public void addProvider(StatisticsProvider provider) {
-      if (fixed) {
-        throw new IllegalStateException("providers are already fixed");
-      }
-      if (!propertyProviders.add(provider)) {
-        throw new IllegalStateException("the requested provider was already added!");
-      }
+      checkState(!fixed, "providers are already fixed");
+      checkState(propertyProviders.add(provider), "the requested provider was already added!");
     }
 
     private StatisticsData createInitialDataProvider() {
@@ -110,7 +108,8 @@ public class StatisticsState implements AbstractStateWithLocation, Partitionable
     }
 
     public StatisticsState mergedState(StatisticsState state1, StatisticsState state2) {
-      assert state1.getLocationNode() == state2.getLocationNode() : "Locations have to match!";
+      assert Objects
+          .equals(state1.getLocationNode(), state2.getLocationNode()) : "Locations have to match!";
       return
           new StatisticsState(
               state1.data.mergeState(state2.data),

@@ -106,8 +106,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
 
     int index = 0;
     for (ReachedSet partialReached : partialReachedSets) {
-      if (partialReached.getFirstState() == null
-          || !(partialReached.getFirstState() instanceof ARGState)
+      if (!(partialReached.getFirstState() instanceof ARGState)
           || (extractLocation(partialReached.getFirstState()) == null)) {
         logger.log(Level.SEVERE, "Proof cannot be generated because checked property not known to be true.");
         roots = null;
@@ -221,8 +220,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
         }
       }
 
-      return incompleteStates.size() == 0 && roots.length > 0;
-
+      return incompleteStates.isEmpty() && roots.length > 0;
 
     } catch (InvalidConfigurationException e1) {
       logger.log(Level.SEVERE, "Cannot create reached sets for partial ARG checking", e1);
@@ -325,7 +323,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
           logger.log(Level.INFO, "Checking of partial ARG ", i, " finished");
         }
 
-        return checkResult.get() && incompleteStates.size() == 0 && roots.length > 0;
+        return checkResult.get() && incompleteStates.isEmpty() && roots.length > 0;
 
       } catch (InvalidConfigurationException e) {
         logger.log(Level.SEVERE, "Could not set up a configuration for partial ARG checking");

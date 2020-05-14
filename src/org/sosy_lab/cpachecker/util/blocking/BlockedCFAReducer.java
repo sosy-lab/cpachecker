@@ -28,7 +28,22 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Queue;
+import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -43,22 +58,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.blocking.interfaces.BlockComputer;
-
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Queue;
-import java.util.Set;
-import java.util.logging.Level;
 
 @Options(prefix="blockreducer")
 public class BlockedCFAReducer implements BlockComputer {
@@ -119,7 +118,7 @@ public class BlockedCFAReducer implements BlockComputer {
     Set<ReducedEdge> traverseDone = new HashSet<>();
 
     toTraverse.add(pApplyTo.getEntryNode());
-    while (toTraverse.size() > 0) {
+    while (!toTraverse.isEmpty()) {
       ReducedNode u = toTraverse.remove();
 
       for (ReducedEdge e: pApplyTo.getLeavingEdges(u)) {
@@ -193,7 +192,7 @@ public class BlockedCFAReducer implements BlockComputer {
     Set<ReducedNode> traverseDone = new HashSet<>();
 
     toTraverse.add(pApplyTo.getEntryNode());
-    while (toTraverse.size() > 0) {
+    while (!toTraverse.isEmpty()) {
       ReducedNode u = toTraverse.removeFirst();
       if (traverseDone.contains(u)) {
         continue;
@@ -258,7 +257,7 @@ public class BlockedCFAReducer implements BlockComputer {
     public ReducedNode getWrapper(CFANode pNode) {
       ReducedNode result = nodeMapping.get(pNode);
       if (result == null) {
-        boolean isLoopHead = cfa.getAllLoopHeads().get().contains(pNode);
+        boolean isLoopHead = cfa.getAllLoopHeads().orElseThrow().contains(pNode);
         result = new ReducedNode(pNode, isLoopHead);
         result.setFunctionCallId(this.functionCallId);
         this.nodeMapping.put(pNode, result);
@@ -296,7 +295,7 @@ public class BlockedCFAReducer implements BlockComputer {
 
     // Start traversing at the entry node of the function
     openEndpoints.add(result.getEntryNode());
-    while (openEndpoints.size() > 0) {
+    while (!openEndpoints.isEmpty()) {
       ReducedNode uSn = openEndpoints.removeFirst();
 
       // Look at all leaving edges.
@@ -330,7 +329,7 @@ public class BlockedCFAReducer implements BlockComputer {
 
           openEndpoints.add(callReturnTarget);
         } else {
-          if (e.getSuccessor() == pFunctionNode.getExitNode()) {
+          if (Objects.equals(e.getSuccessor(), pFunctionNode.getExitNode())) {
             result.addEdge(uSn, exitNode);
           } else {
             ReducedNode vSn = functionNodes.getWrapper(e.getSuccessor());
@@ -394,7 +393,7 @@ public class BlockedCFAReducer implements BlockComputer {
   @Override
   public ImmutableSet<CFANode> computeAbstractionNodes(final CFA pCfa) {
     assert (pCfa != null);
-    assert (this.inliningStack.size() == 0);
+    assert (this.inliningStack.isEmpty());
     assert (this.functionCallSeq == 0);
 
     this.functionCallSeq = 0;

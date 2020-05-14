@@ -31,9 +31,9 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
-import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -70,7 +70,7 @@ public class TerminationARGPath extends ARGPath {
 
     ImmutableList.Builder<CFAEdge> fullPathBuilder = ImmutableList.builder();
     PathIterator it = pathIterator();
-    Set<CFAEdge> intermediateTermiantionEdges = Sets.newHashSet();
+    Set<CFAEdge> intermediateTermiantionEdges = new HashSet<>();
 
     while (it.hasNext()) {
       ARGState prev = it.getAbstractState();
@@ -106,11 +106,11 @@ public class TerminationARGPath extends ARGPath {
         }
 
         // we assume a linear chain of edges from 'prev' to 'succ'
-        while (curNode != nextNode) {
+        while (!Objects.equals(curNode, nextNode)) {
           FluentIterable<CFAEdge> leavingEdges =
               CFAUtils.leavingEdges(curNode).filter(not(in(intermediateTermiantionEdges)));
           if (!(leavingEdges.size() == 1 && curNode.getLeavingSummaryEdge() == null)) {
-            return Collections.emptyList();
+            return ImmutableList.of();
           }
 
           CFAEdge intermediateEdge = leavingEdges.get(0);

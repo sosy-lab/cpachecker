@@ -55,7 +55,7 @@ public final class Until extends BinaryFormula {
 
   @Override
   public Release not() {
-    return new Release(left.not(), right.not());
+    return new Release(getLeft().not(), getRight().not());
   }
 
   @Override

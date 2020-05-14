@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
@@ -96,7 +96,7 @@ class SMGJoinFields {
   @VisibleForTesting
   public static Set<SMGEdgeHasValue> mergeNonNullHasValueEdges(
       UnmodifiableSMG pSMG1, UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
-    Set<SMGEdgeHasValue> returnSet = new HashSet<>();
+    Set<SMGEdgeHasValue> returnSet = new LinkedHashSet<>();
 
     SMGEdgeHasValueFilter filterForSMG1 = SMGEdgeHasValueFilter.objectFilter(pObj1);
     SMGEdgeHasValueFilter filterForSMG2 = SMGEdgeHasValueFilter.objectFilter(pObj2);
@@ -106,7 +106,11 @@ class SMGJoinFields {
       filterForSMG2.filterAtOffset(edge.getOffset());
       if (pSMG2.getHVEdges(filterForSMG2).isEmpty()) {
         returnSet.add(
-            new SMGEdgeHasValue(edge.getType(), edge.getOffset(), pObj2, SMGKnownSymValue.of()));
+            new SMGEdgeHasValue(
+                edge.getSizeInBits(),
+                edge.getOffset(),
+                pObj2,
+                SMGKnownSymValue.of()));
       }
     }
 
@@ -180,7 +184,7 @@ class SMGJoinFields {
   @VisibleForTesting
   static Set<SMGEdgeHasValue> getHVSetOfMissingNullValues(
       UnmodifiableSMG pSMG1, UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
-    Set<SMGEdgeHasValue> retset = new HashSet<>();
+    Set<SMGEdgeHasValue> retset = new LinkedHashSet<>();
 
     SMGEdgeHasValueFilter nonNullPtrInSmg2 =
         SMGEdgeHasValueFilter.objectFilter(pObj2).filterNotHavingValue(SMGZeroValue.INSTANCE);
@@ -195,11 +199,16 @@ class SMGJoinFields {
             pSMG1.getNullEdgesMapOffsetToSizeForObject(pObj1);
 
         long min = edge.getOffset();
-        long max = edge.getOffset() + edge.getSizeInBits(pSMG1.getMachineModel());
+        long max = edge.getOffset() + edge.getSizeInBits();
 
         Entry<Long, Integer> floorEntry = newNullEdgesOffsetToSize.floorEntry(min);
         if (floorEntry != null && floorEntry.getValue() + floorEntry.getKey() >= max ) {
-          retset.add(new SMGEdgeHasValue(edge.getType(), edge.getOffset(), pObj1, SMGZeroValue.INSTANCE));
+          retset.add(
+              new SMGEdgeHasValue(
+                  edge.getSizeInBits(),
+                  edge.getOffset(),
+                  pObj1,
+                  SMGZeroValue.INSTANCE));
         }
       }
     }
@@ -218,7 +227,7 @@ class SMGJoinFields {
   @VisibleForTesting
   static Set<SMGEdgeHasValue> getHVSetOfCommonNullValues(
       UnmodifiableSMG pSMG1, UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
-    Set<SMGEdgeHasValue> retset = new HashSet<>();
+    Set<SMGEdgeHasValue> retset = new LinkedHashSet<>();
     TreeMap<Long, Integer> map1 = pSMG1.getNullEdgesMapOffsetToSizeForObject(pObj1);
     TreeMap<Long, Integer> map2 = pSMG2.getNullEdgesMapOffsetToSizeForObject(pObj2);
     for (Entry<Long, Integer> entry1 : map1.entrySet()) {
@@ -248,14 +257,15 @@ class SMGJoinFields {
       throws SMGInconsistentException {
     for (SMGEdgeHasValue edgeInSMG1 : pSMG1.getHVEdges(nullEdges1)) {
       long start = edgeInSMG1.getOffset();
-      long byte_after_end = start + edgeInSMG1.getSizeInBits(pSMG1.getMachineModel());
-      SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pObj2)
-                                                          .filterAtOffset(edgeInSMG1.getOffset())
-                                                          .filterByType(edgeInSMG1.getType());
+      long byte_after_end = start + edgeInSMG1.getSizeInBits();
+      SMGEdgeHasValueFilter filter =
+          SMGEdgeHasValueFilter.objectFilter(pObj2)
+              .filterAtOffset(edgeInSMG1.getOffset())
+              .filterBySize(edgeInSMG1.getSizeInBits());
       Set<SMGEdgeHasValue> hvInSMG2Set = pSMG2.getHVEdges(filter);
 
       SMGEdgeHasValue hvInSMG2;
-      if (hvInSMG2Set.size() > 0) {
+      if (!hvInSMG2Set.isEmpty()) {
         hvInSMG2 = Iterables.getOnlyElement(hvInSMG2Set);
       } else {
         hvInSMG2 = null;

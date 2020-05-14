@@ -24,11 +24,13 @@
 package org.sosy_lab.cpachecker.cpa.bam;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -56,7 +58,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
   private final Function<ARGState, Integer> getStateId;
 
   BAMMultipleCEXSubgraphComputer(BAMCPA bamCPA, @NonNull Function<ARGState, Integer> idExtractor) {
-    super(bamCPA);
+    super(bamCPA, true);
     getStateId = idExtractor;
   }
 
@@ -80,6 +82,11 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
     final NavigableSet<ARGState> openElements = new TreeSet<>(target.getParents());
     while (!openElements.isEmpty()) {
       currentState = openElements.pollLast();
+
+      if (elementsMap.containsKey(currentState)) {
+        continue; // state already done
+      }
+
       BackwardARGState newCurrentElement = new BackwardARGState(currentState);
       elementsMap.put(currentState, newCurrentElement);
 
@@ -99,7 +106,8 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
       inCallstackFunction = false;
       if (currentState.getParents().isEmpty()) {
         // Find correct expanded state
-        Collection<AbstractState> expandedStates = data.getNonReducedInitialStates(currentState);
+        Collection<AbstractState> expandedStates =
+            new TreeSet<>(data.getNonReducedInitialStates(currentState));
 
         if (expandedStates.isEmpty()) {
           // children are a normal successors -> create an connection from parent to children
@@ -127,7 +135,6 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
       openElements.addAll(currentState.getParents());
 
       if (data.hasInitialState(currentState) && !inCallstackFunction) {
-
         // If child-state is an expanded state, the child is at the exit-location of a block.
         // In this case, we enter the block (backwards).
         // We must use a cached reachedSet to process further, because the block has its own reachedSet.
@@ -136,14 +143,18 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
         computeCounterexampleSubgraphForBlock(newCurrentElement, childrenInSubgraph);
         assert childrenInSubgraph.size() == 1;
         BackwardARGState tmpState = childrenInSubgraph.iterator().next();
-        //Check repetition of constructed states
-        while (tmpState != newCurrentElement) {
+        // Check repetition of constructed states
+        Deque<ARGState> waitlist = new ArrayDeque<>();
+        waitlist.add(tmpState);
+        while (!waitlist.isEmpty()) {
+          tmpState = (BackwardARGState) waitlist.pop();
+          if (tmpState.equals(newCurrentElement)) {
+            break;
+          }
           if (checkRepeatitionOfState(tmpState.getARGState())) {
             return DUMMY_STATE_FOR_REPEATED_STATE;
           }
-          Collection<ARGState> parents = tmpState.getParents();
-          assert parents.size() == 1;
-          tmpState = (BackwardARGState) parents.iterator().next();
+          waitlist.addAll(tmpState.getParents());
         }
 
       } else {
@@ -193,7 +204,7 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
     try {
       ARGState rootOfSubgraph = findPath(pLastElement, pRefinedStates);
       assert (rootOfSubgraph != null);
-      if (rootOfSubgraph == BAMMultipleCEXSubgraphComputer.DUMMY_STATE_FOR_REPEATED_STATE) {
+      if (rootOfSubgraph.equals(BAMMultipleCEXSubgraphComputer.DUMMY_STATE_FOR_REPEATED_STATE)) {
         return null;
       }
       ARGPath result = ARGUtils.getRandomPath(rootOfSubgraph);
@@ -207,14 +218,15 @@ public class BAMMultipleCEXSubgraphComputer extends BAMSubgraphComputer{
   }
 
   public ARGPath computePath(ARGState pLastElement) {
-    return restorePathFrom(new BackwardARGState(pLastElement), Collections.emptySet());
+    return computePath(pLastElement, ImmutableSet.of());
   }
 
-  private boolean checkThePathHasRepeatedStates(ARGPath path, Set<List<Integer>> pRefinedStates) {
-    List<Integer> ids =
-        from(path.asStatesList())
-        .transform(getStateId)
-        .toList();
+  public ARGPath computePath(ARGState pLastElement, Set<List<Integer>> pRefinedStates) {
+    return restorePathFrom(new BackwardARGState(pLastElement), pRefinedStates);
+  }
+
+  boolean checkThePathHasRepeatedStates(ARGPath path, Set<List<Integer>> pRefinedStates) {
+    List<Integer> ids = transformedImmutableListCopy(path.asStatesList(), getStateId);
 
     return from(pRefinedStates)
         .anyMatch(ids::containsAll);

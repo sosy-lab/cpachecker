@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.overflow;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
@@ -40,7 +41,8 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 /**
  * Abstract state for tracking overflows.
  */
-class OverflowState implements AbstractStateWithAssumptions,
+final class OverflowState
+    implements AbstractStateWithAssumptions,
     Graphable,
     AbstractQueryableState {
 
@@ -145,17 +147,13 @@ class OverflowState implements AbstractStateWithAssumptions,
     return assumptions;
   }
 
-  protected void updateStatesForPreconditions(List<AbstractState> pCurrentStates) {
+  protected void updateStatesForPreconditions(Iterable<AbstractState> pCurrentStates) {
     if (!alreadyStrengthened) {
       previousStates = currentStates;
       // update current states while deliberately removing "this".
       // Other states may get hold of this set via getStatesForPreconditions().
       // We want to prevent infinite recursion and accelerate garbage collection.
-      currentStates =
-          pCurrentStates
-              .stream()
-              .filter(x -> !x.equals(this))
-              .collect(ImmutableSet.toImmutableSet());
+      currentStates = FluentIterable.from(pCurrentStates).filter(x -> !x.equals(this)).toSet();
       alreadyStrengthened = true;
     }
   }

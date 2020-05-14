@@ -32,6 +32,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.logging.Level;
 import javax.xml.parsers.ParserConfigurationException;
 import org.sosy_lab.common.Appender;
@@ -95,7 +96,7 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
       File name = new File("output/witness." + createUniqueName(pId) + ".graphml");
       String defaultSourcefileName =
           from(firstPath)
-              .filter(FILTER_EMPTY_FILE_LOCATIONS)
+              .filter(this::hasRelevantFileLocation)
               .get(0)
               .getFileLocation()
               .getFileName();
@@ -137,13 +138,13 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
     SingleIdentifier pId = usage.getId();
     List<CFAEdge> path = usage.getPath();
 
-    Iterator<CFAEdge> iterator = from(path).filter(FILTER_EMPTY_FILE_LOCATIONS).iterator();
+    Iterator<CFAEdge> iterator = from(path).filter(this::hasRelevantFileLocation).iterator();
 
     Optional<CFAEdge> warningEdge =
         from(path)
             .filter(
                 e ->
-                e.getSuccessor() == usage.getCFANode()
+                Objects.equals(e.getSuccessor(), usage.getCFANode())
                         && e.toString().contains(pId.getName()))
             .last();
 

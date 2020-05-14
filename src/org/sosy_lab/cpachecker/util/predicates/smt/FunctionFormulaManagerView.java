@@ -24,9 +24,8 @@
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Arrays;
@@ -37,7 +36,6 @@ import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
 import org.sosy_lab.java_smt.api.UFManager;
 
-
 public class FunctionFormulaManagerView extends BaseManagerView implements UFManager {
 
   private final UFManager manager;
@@ -45,7 +43,7 @@ public class FunctionFormulaManagerView extends BaseManagerView implements UFMan
   FunctionFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
       UFManager pManager) {
     super(pWrappingHandler);
-    this.manager = pManager;
+    this.manager = checkNotNull(pManager);
   }
 
   @Immutable
@@ -143,16 +141,7 @@ public class FunctionFormulaManagerView extends BaseManagerView implements UFMan
   @Override
   public <T extends Formula> T declareAndCallUF(
       String name, FormulaType<T> pReturnType, List<Formula> pArgs) {
-
-    List<FormulaType<?>> argTypes = from(pArgs).
-      transform(
-          new Function<Formula, FormulaType<?>>() {
-            @Override
-            public FormulaType<?> apply(Formula pArg0) {
-              return getFormulaType(pArg0);
-            }}).toList();
-
-
+    List<FormulaType<?>> argTypes = transformedImmutableListCopy(pArgs, this::getFormulaType);
     FunctionDeclaration<T> func = declareUF(name, pReturnType, argTypes);
     return callUF(func, pArgs);
   }

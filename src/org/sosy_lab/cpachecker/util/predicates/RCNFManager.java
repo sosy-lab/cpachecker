@@ -200,7 +200,7 @@ public class RCNFManager implements StatisticsProvider {
 
     Optional<BooleanFormula> body = fmgr.visit(input, quantifiedBodyExtractor);
     if (body.isPresent()) {
-      return fmgr.filterLiterals(body.get(), input1 -> !hasBoundVariables(input1));
+      return fmgr.filterLiterals(body.orElseThrow(), input1 -> !hasBoundVariables(input1));
     } else {
 
       // Does not have quantified variables.
@@ -226,7 +226,7 @@ public class RCNFManager implements StatisticsProvider {
       public BooleanFormula visitOr(List<BooleanFormula> processed) {
 
         Set<BooleanFormula> intersection = null;
-        ArrayList<Set<BooleanFormula>> argsAsConjunctions = new ArrayList<>();
+        List<Set<BooleanFormula>> argsAsConjunctions = new ArrayList<>();
         for (BooleanFormula op : processed) {
           Set<BooleanFormula> args = bfmgr.toConjunctionArgs(op, false);
 
@@ -361,7 +361,7 @@ public class RCNFManager implements StatisticsProvider {
 
   private final DefaultFormulaVisitor<Optional<BooleanFormula>>
       quantifiedBodyExtractor = new
-      DefaultFormulaVisitor<Optional<BooleanFormula>> () {
+      DefaultFormulaVisitor<> () {
         @Override
         protected Optional<BooleanFormula> visitDefault(Formula f) {
           return Optional.empty();

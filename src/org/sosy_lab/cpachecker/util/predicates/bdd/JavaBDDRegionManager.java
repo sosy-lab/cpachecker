@@ -28,8 +28,10 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.common.primitives.ImmutableIntArray;
 import java.io.PrintStream;
 import java.lang.ref.PhantomReference;
 import java.lang.ref.Reference;
@@ -44,6 +46,7 @@ import java.util.function.Function;
 import java.util.logging.Level;
 import net.sf.javabdd.BDD;
 import net.sf.javabdd.BDDFactory;
+import net.sf.javabdd.BDDPairing;
 import net.sf.javabdd.JFactory;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -68,6 +71,7 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.java_smt.api.visitors.BooleanFormulaVisitor;
+
 /**
  * A wrapper for the javabdd (http://javabdd.sf.net) package.
  *
@@ -281,9 +285,6 @@ class JavaBDDRegionManager implements RegionManager {
       factory.setVarNum(varcount);
     }
     BDD ret = factory.ithVar(nextvar++);
-
-    factory.printOrder();
-
     return ret;
   }
 
@@ -469,10 +470,10 @@ class JavaBDDRegionManager implements RegionManager {
   }
 
   @Override
-  public void setVarOrder(ArrayList<Integer> pVarOrder) {
+  public void setVarOrder(ImmutableIntArray pVarOrder) {
     int[] order = new int[varcount];
     for (int i = 0; i < order.length; i++) {
-      if (i < pVarOrder.size()) {
+      if (i < pVarOrder.length()) {
         order[i] = pVarOrder.get(i);
       } else {
         order[i] = i;
@@ -508,6 +509,16 @@ class JavaBDDRegionManager implements RegionManager {
       default:
         break;
     }
+  }
+
+  @Override
+  public Region replace(Region pRegion, Region[] pOldPredicates, Region[] pNewPredicates) {
+    Preconditions.checkArgument(pOldPredicates.length == pNewPredicates.length);
+    BDDPairing pairing = factory.makePair();
+    for (int i = 0; i < pOldPredicates.length; i++) {
+      pairing.set(unwrap(pOldPredicates[i]).var(), unwrap(pNewPredicates[i]).var());
+    }
+    return wrap(unwrap(pRegion).replace(pairing));
   }
 
   private class BDDRegionBuilder implements RegionBuilder {

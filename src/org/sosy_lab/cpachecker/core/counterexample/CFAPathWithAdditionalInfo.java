@@ -28,7 +28,6 @@ import com.google.common.collect.ForwardingList;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -42,12 +41,12 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
-import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessWriter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessFactory;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 /**
  * This class represents a path of cfaEdges, that contain the additional Information to be exported
- * to extended witness {@link ExtendedWitnessWriter}.
+ * to extended witness {@link ExtendedWitnessFactory}.
  */
 public class CFAPathWithAdditionalInfo extends ForwardingList<CFAEdgeWithAdditionalInfo> {
   private final ImmutableList<CFAEdgeWithAdditionalInfo> pathInfo;
@@ -77,7 +76,7 @@ public class CFAPathWithAdditionalInfo extends ForwardingList<CFAEdgeWithAdditio
       path.addConverter(wrappedCpa.exportAdditionalInfoConverter());
 
       if (result.isPresent()) {
-        result = result.get().mergePaths(path);
+        result = result.orElseThrow().mergePaths(path);
         // If there were conflicts during merging, stop
         if (!result.isPresent()) {
           break;
@@ -90,7 +89,7 @@ public class CFAPathWithAdditionalInfo extends ForwardingList<CFAEdgeWithAdditio
     if (!result.isPresent()) {
       return CFAPathWithAdditionalInfo.empty();
     } else {
-      return result.get();
+      return result.orElseThrow();
     }
   }
 
@@ -128,7 +127,7 @@ public class CFAPathWithAdditionalInfo extends ForwardingList<CFAEdgeWithAdditio
   }
 
   public Map<ARGState, CFAEdgeWithAdditionalInfo> getAdditionalInfoMapping(ARGPath pPath) {
-    Map<ARGState, CFAEdgeWithAdditionalInfo> result = new HashMap<>();
+    ImmutableMap.Builder<ARGState, CFAEdgeWithAdditionalInfo> result = ImmutableMap.builder();
 
     PathIterator pathIterator = pPath.fullPathIterator();
     int multiEdgeOffset = 0;
@@ -155,6 +154,6 @@ public class CFAPathWithAdditionalInfo extends ForwardingList<CFAEdgeWithAdditio
     }
     // last state is ignored
 
-    return result;
+    return result.build();
   }
 }

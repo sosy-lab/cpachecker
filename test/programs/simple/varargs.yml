@@ -1,0 +1,6 @@
+format_version: '1.0'
+
+# old file name: varargs.c
+input_files: 'varargs.c'
+
+properties: []

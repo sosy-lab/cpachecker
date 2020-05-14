@@ -25,12 +25,11 @@ package org.sosy_lab.cpachecker.util;
 
 import com.google.common.collect.ContiguousSet;
 import com.google.common.collect.DiscreteDomain;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 import java.util.Collections;
-import java.util.Iterator;
+import java.util.HashMap;
 import java.util.Map;
 
 /** Instances of this class map textual ids to numeric ids. */
@@ -41,7 +40,7 @@ public class NumericIdProvider {
   private final TreeRangeSet<Integer> usedIds =
       TreeRangeSet.create(Collections.singleton(Range.lessThan(0)));
 
-  private final Map<String, Integer> mappedIds = Maps.newHashMap();
+  private final Map<String, Integer> mappedIds = new HashMap<>();
 
   private NumericIdProvider(boolean pAttemptParsing) {
     attemptParsing = pAttemptParsing;
@@ -71,9 +70,7 @@ public class NumericIdProvider {
     // we need to generate an artificial numeric id:
     if (id == null || usedIds.contains(id)) {
       RangeSet<Integer> remainingIds = usedIds.complement();
-      Iterator<Range<Integer>> rangeIterator = remainingIds.asRanges().iterator();
-      while (rangeIterator.hasNext()) {
-        Range<Integer> range = rangeIterator.next();
+      for (Range<Integer> range : remainingIds.asRanges()) {
         ContiguousSet<Integer> contiguousRange =
             ContiguousSet.create(range, DiscreteDomain.integers());
         if (!contiguousRange.isEmpty()) {

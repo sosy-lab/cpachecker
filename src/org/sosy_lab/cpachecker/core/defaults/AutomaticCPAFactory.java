@@ -132,10 +132,10 @@ public class AutomaticCPAFactory implements CPAFactory {
     Constructor<?> cons = allConstructors[0];
     cons.setAccessible(true);
 
-    Class<?> formalParameters[] = cons.getParameterTypes();
-    Annotation parameterAnnotations[][] = cons.getParameterAnnotations();
+    Class<?>[] formalParameters = cons.getParameterTypes();
+    Annotation[][] parameterAnnotations = cons.getParameterAnnotations();
 
-    Object actualParameters[] = new Object[formalParameters.length];
+    Object[] actualParameters = new Object[formalParameters.length];
     boolean childCpaInjected = false;
     for (int i = 0; i < formalParameters.length; i++) {
       Class<?> formalParam = formalParameters[i];
@@ -165,7 +165,12 @@ public class AutomaticCPAFactory implements CPAFactory {
     }
 
     // verify types of declared exceptions
-    String exception = Classes.verifyDeclaredExceptions(cons, InvalidConfigurationException.class, CPAException.class);
+    String exception =
+        Classes.verifyDeclaredExceptions(
+            cons,
+            InvalidConfigurationException.class,
+            CPAException.class,
+            InterruptedException.class);
     if (exception != null) {
       throw new UnsupportedOperationException("Cannot automatically create CPAs if the constructor declares the unsupported checked exception " + exception);
     }
@@ -280,9 +285,10 @@ public class AutomaticCPAFactory implements CPAFactory {
 
     // verify types of declared exceptions
     String exception = Classes.verifyDeclaredExceptions(constructor, InvalidConfigurationException.class, CPAException.class);
-    if (exception != null) {
-      throw new IllegalArgumentException("Constructor of options holder class declares illegal checked exception: " + exception);
-    }
+    checkArgument(
+        exception == null,
+        "Constructor of options holder class declares illegal checked exception: %s",
+        exception);
 
     return new AutomaticCPAFactoryWithOptions<>(type, injects, optionsClass, constructor);
   }

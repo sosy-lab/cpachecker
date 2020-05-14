@@ -337,10 +337,11 @@ class Scope {
 
   public void registerDeclarationOfThisClass(JSimpleDeclaration declaration) {
 
-    checkArgument(declaration instanceof JVariableDeclaration
-            || declaration instanceof JParameterDeclaration,
-        "Tried to register a declaration which does not define " +
-            "a name in the standard namespace: " + declaration);
+    checkArgument(
+        declaration instanceof JVariableDeclaration || declaration instanceof JParameterDeclaration,
+        "Tried to register a declaration which does not define "
+            + "a name in the standard namespace: %s",
+        declaration);
 
     checkArgument(!(declaration instanceof JFieldDeclaration),
         "Can't register a field declaration, it has to be updated within the type Hierarchy");
@@ -403,8 +404,7 @@ class Scope {
 
       String name = subClassType.getName();
 
-      if (!registeredClasses.contains(name)) {
-        registeredClasses.add(name);
+      if (registeredClasses.add(name)) {
         classesToBeParsed.add(name);
       }
     }

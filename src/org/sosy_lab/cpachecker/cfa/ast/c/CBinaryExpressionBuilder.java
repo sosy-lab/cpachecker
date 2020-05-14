@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.DOUBLE;
 import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.FLOAT;
+import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.FLOAT128;
 import static org.sosy_lab.cpachecker.cfa.types.c.CBasicType.INT;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -181,7 +182,7 @@ public class CBinaryExpressionBuilder {
       throws UnrecognizedCodeException {
 
     if (expr instanceof CBinaryExpression) {
-      final CBinaryExpression binExpr = (CBinaryExpression)expr;
+      final CBinaryExpression binExpr = (CBinaryExpression) expr;
       BinaryOperator binOp = binExpr.getOperator();
       // some binary expressions can be directly negated: "!(a==b)" --> "a!=b"
       if (binExpr.getOperator().isLogicalOperator()) {
@@ -196,12 +197,20 @@ public class CBinaryExpressionBuilder {
           final CBinaryExpression binExpr2 = (CBinaryExpression) binExpr.getOperand2();
           if (binExpr1.getOperator().isLogicalOperator()
               && binExpr2.getOperator().isLogicalOperator()) {
-            BinaryOperator negatedOperator = binOp.equals(BinaryOperator.BINARY_AND)
-                ? BinaryOperator.BINARY_OR : BinaryOperator.BINARY_AND;
-            CBinaryExpression newOp1 = buildBinaryExpression(binExpr1.getOperand1(),
-                binExpr1.getOperand2(), binExpr1.getOperator().getOppositLogicalOperator());
-            CBinaryExpression newOp2 = buildBinaryExpression(binExpr2.getOperand1(),
-                binExpr2.getOperand2(), binExpr2.getOperator().getOppositLogicalOperator());
+            BinaryOperator negatedOperator =
+                binOp.equals(BinaryOperator.BINARY_AND)
+                    ? BinaryOperator.BINARY_OR
+                    : BinaryOperator.BINARY_AND;
+            CBinaryExpression newOp1 =
+                buildBinaryExpression(
+                    binExpr1.getOperand1(),
+                    binExpr1.getOperand2(),
+                    binExpr1.getOperator().getOppositLogicalOperator());
+            CBinaryExpression newOp2 =
+                buildBinaryExpression(
+                    binExpr2.getOperand1(),
+                    binExpr2.getOperand2(),
+                    binExpr2.getOperator().getOppositLogicalOperator());
             return buildBinaryExpression(newOp1, newOp2, negatedOperator);
           }
         }
@@ -477,6 +486,13 @@ public class CBinaryExpressionBuilder {
     if (t1.getType() == FLOAT) { return t1; }
     if (t2.getType() == FLOAT) { return t2; }
 
+    if (t1.getType() == FLOAT128) {
+      return t1;
+    }
+    if (t2.getType() == FLOAT128) {
+      return t2;
+    }
+
     /* Otherwise, the integer promotions are performed on both operands. */
 
     return getLongestIntegerPromotion(t1, t2);
@@ -555,8 +571,7 @@ public class CBinaryExpressionBuilder {
     throw new AssertionError("unhandled type: " + t1 + " or " + t2);
   }
 
-
-  /** returns an index, so that:  BOOL < CHAR < SHORT < INT < LONG < LONGLONG. */
+  /** returns an index, so that: BOOL < CHAR < SHORT < INT < LONG < LONGLONG < INT128. */
   private static int getConversionRank(CSimpleType t) {
 
     CBasicType type = t.getType();
@@ -582,6 +597,9 @@ public class CBinaryExpressionBuilder {
       if (t.isLong()) { return 50; }
       if (t.isLongLong()) { return 60; }
       return 40;
+
+      case INT128:
+        return 70;
 
     default:
       throw new AssertionError("unhandled CSimpleType: " + t);

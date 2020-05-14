@@ -23,13 +23,19 @@
  */
 package org.sosy_lab.cpachecker.cpa.ldd;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -76,12 +82,16 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
   public Collection<? extends LDDAbstractState> getAbstractSuccessorsForEdge(
       AbstractState element, Precision precision, CFAEdge edge)
           throws CPATransferException, InterruptedException {
-    if (!(element instanceof LDDAbstractState)) { return Collections.emptyList(); }
+    if (!(element instanceof LDDAbstractState)) {
+      return ImmutableList.of();
+    }
     LDDAbstractState analysisElement = (LDDAbstractState) element;
     LDDRegion region = toRegion(edge, analysisElement.getRegion());
     // If the LDD is null or false, no successor state is reachable.
-    if (region == null || region.isFalse()) { return Collections.emptyList(); }
-    return Collections.singleton(new LDDAbstractState(region));
+    if (region == null || region.isFalse()) {
+      return ImmutableList.of();
+    }
+    return ImmutableSet.of(new LDDAbstractState(region));
   }
 
   /**
@@ -262,9 +272,7 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
         region = substituteByTerm(variable, term, constant, previousRegion);
       } else {
         term.put(variable, 1);
-        for (String var : term.keySet()) {
-          this.usedVars.add(var);
-        }
+        this.usedVars.addAll(term.keySet());
         region = this.regionManager.makeAnd(previousRegion, toConstantAssignmentRegion(term, constant));
       }
       return region;
@@ -377,23 +385,24 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
   }
 
   /**
-   * Tries to reduce the expression to a rational linear term. If this is not
-   * possible, <code>null</code> is returned.
+   * Tries to reduce the expression to a rational linear term. If this is not possible, <code>null
+   * </code> is returned.
    *
    * @param expression the expression to convert.
-   * @return the rational linear term the expression was converted to or <code>null</code>
-   * if the conversion failed.
+   * @return the rational linear term the expression was converted to or <code>null</code> if the
+   *     conversion failed.
    */
-  private Map<String, Pair<Integer, Integer>> reduceToRationalTerm(CExpression expression) {
+  private @Nullable ImmutableMap<String, Pair<Integer, Integer>> reduceToRationalTerm(
+      CExpression expression) {
     expression.toASTString();
     Map<String, Pair<Integer, Integer>> variableCoeffs = new HashMap<>();
     if (expression instanceof CIntegerLiteralExpression) {
       CIntegerLiteralExpression literal = (CIntegerLiteralExpression) expression;
-      return Collections.singletonMap("const", Pair.of(literal.getValue().intValue(), 1));
+      return ImmutableMap.of("const", Pair.of(literal.getValue().intValue(), 1));
     }
     if (expression instanceof CIdExpression) {
       CIdExpression id = (CIdExpression) expression;
-      return Collections.singletonMap(id.getName(), Pair.of(1, 1));
+      return ImmutableMap.of(id.getName(), Pair.of(1, 1));
     }
     if (expression instanceof CBinaryExpression) {
       CBinaryExpression binaryExpression = (CBinaryExpression) expression;
@@ -408,7 +417,7 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
         // Not a variable, but reducible to a constant
         Integer constant = reduceToConstant(expression);
         if (constant == null) { return null; }
-        return Collections.singletonMap("const", Pair.of(constant, 1));
+        return ImmutableMap.of("const", Pair.of(constant, 1));
       }
       // If both are terms, addition and subtraction are supported
       if (firstAsTerm != null && secondAsTerm != null) {
@@ -441,8 +450,8 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
           int denom = denom1 * denom2;
           num1 = num1 * denom2;
           num2 = num2 * denom1;
-          int num = 0;
-          num = num1 + num2 * multiplier;
+
+          int num = num1 + num2 * multiplier;
           variableCoeffs.put(coeff.getKey(), normalizeRational(num, denom));
         }
         // Add all from second that were not in second
@@ -453,7 +462,7 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
             variableCoeffs.put(entry.getKey(), Pair.of(num, denom));
           }
         }
-        return variableCoeffs;
+        return ImmutableMap.copyOf(variableCoeffs);
       }
       // Constant divided by term is not supported
       if (firstAsTerm != null && secondAsTerm != null && operator == BinaryOperator.DIVIDE) { return null; }
@@ -461,7 +470,8 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
       // Adding constants to or subtracting them from terms is also supported by treating
       // the constant as a coefficient of a "const" variable
       int constant = firstAsConstant != null ? firstAsConstant : secondAsConstant;
-      Map<String, Pair<Integer, Integer>> term = firstAsTerm != null ? firstAsTerm : secondAsTerm;
+      Map<String, Pair<Integer, Integer>> term =
+          Objects.requireNonNullElse(firstAsTerm, secondAsTerm);
       switch (operator) {
       case MULTIPLY:
         for (Map.Entry<String, Pair<Integer, Integer>> coeff : term.entrySet()) {
@@ -507,7 +517,7 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
       default:
         return null;
       }
-      return variableCoeffs;
+      return ImmutableMap.copyOf(variableCoeffs);
     }
     if (expression instanceof CUnaryExpression) {
       CUnaryExpression unaryExpression = (CUnaryExpression) expression;
@@ -530,17 +540,20 @@ public class LDDAbstractionTransferRelation extends SingleEdgeTransferRelation {
 
   /**
    * Negates the given rational linear term by negating each numerator of the coefficients.
+   *
    * @param toNegate the rational linear term to negate.
    * @return the negated rational linear term.
    */
-  private Map<String, Pair<Integer, Integer>> negateRational(Map<String, Pair<Integer, Integer>> toNegate) {
-    Map<String, Pair<Integer, Integer>> result = new HashMap<>();
-    for (Map.Entry<String, Pair<Integer, Integer>> coeff : toNegate.entrySet()) {
-      int num = -coeff.getValue().getFirst();
-      int denom = coeff.getValue().getSecond();
-      result.put(coeff.getKey(), Pair.of(num, denom));
-    }
-    return result;
+  private ImmutableMap<String, Pair<Integer, Integer>> negateRational(
+      Map<String, Pair<Integer, Integer>> toNegate) {
+    return ImmutableMap.copyOf(
+        Maps.<String, Pair<Integer, Integer>, Pair<Integer, Integer>>transformValues(
+            toNegate,
+            coeff -> {
+              int num = -coeff.getFirst();
+              Integer denom = coeff.getSecond();
+              return Pair.of(num, denom);
+            }));
   }
 
   /**

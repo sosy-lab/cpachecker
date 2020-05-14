@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -95,15 +96,16 @@ public class ExpressionSimplificationVisitor
   private CExpression convertExplicitValueToExpression(final CExpression expr, Value value) {
     // TODO: handle cases other than numeric values
     NumericValue numericResult = value.asNumericValue();
-    if (numericResult != null && expr.getExpressionType() instanceof CSimpleType) {
-      CSimpleType type = (CSimpleType) expr.getExpressionType();
-      if (type.getType().isIntegerType()) {
-        return new CIntegerLiteralExpression(expr.getFileLocation(),
-                expr.getExpressionType(), BigInteger.valueOf(numericResult.longValue()));
-      } else if (type.getType().isFloatingPointType()) {
+    final CType type = expr.getExpressionType().getCanonicalType();
+    if (numericResult != null && type instanceof CSimpleType) {
+      CBasicType basicType = ((CSimpleType) type).getType();
+      if (basicType.isIntegerType()) {
+        return new CIntegerLiteralExpression(
+            expr.getFileLocation(), type, numericResult.bigInteger());
+      } else if (basicType.isFloatingPointType()) {
         try {
-          return new CFloatLiteralExpression(expr.getFileLocation(),
-              expr.getExpressionType(), numericResult.bigDecimalValue());
+          return new CFloatLiteralExpression(
+              expr.getFileLocation(), type, numericResult.bigDecimalValue());
         } catch (NumberFormatException nfe) {
           // catch NumberFormatException here, which is caused by, e.g., value being <infinity>
           logger.logf(Level.FINE, "Cannot simplify expression to numeric value %s, keeping original expression %s instead", numericResult, expr.toASTString());
@@ -142,6 +144,26 @@ public class ExpressionSimplificationVisitor
         newExpr = expr;
       } else {
         final CBinaryExpressionBuilder binExprBuilder = new CBinaryExpressionBuilder(machineModel, logger);
+        switch (binaryOperator) {
+          case BINARY_AND:
+            if (value1 != null && value1.bigInteger().equals(BigInteger.ZERO)) {
+              return op1;
+            }
+            if (value2 != null && value2.bigInteger().equals(BigInteger.ZERO)) {
+              return op2;
+            }
+            break;
+          case BINARY_OR:
+            if (value1 != null && value1.bigInteger().equals(BigInteger.ZERO)) {
+              return op2;
+            }
+            if (value2 != null && value2.bigInteger().equals(BigInteger.ZERO)) {
+              return op1;
+            }
+            break;
+          default:
+            break;
+        }
         newExpr = binExprBuilder.buildBinaryExpressionUnchecked(
             op1, op2, binaryOperator);
       }
@@ -233,7 +255,10 @@ public class ExpressionSimplificationVisitor
         case BOOL: // negation of zero is zero, other values should be irrelevant
         case CHAR:
         case INT:
-          return new CIntegerLiteralExpression(loc, exprType, BigInteger.valueOf(negatedValue.longValue()));
+            // better do not convert to long, but directly use the computed value,
+            // i.e. "-1ULL" would be converted to long -1, which is valid,
+            // but does not match its CType bounds.
+            return new CIntegerLiteralExpression(loc, exprType, negatedValue.bigInteger());
         case FLOAT:
         case DOUBLE:
           double v = negatedValue.doubleValue();
@@ -251,7 +276,7 @@ public class ExpressionSimplificationVisitor
         // cast the value, because the evaluation of "~" is done for long and maybe the target-type is integer.
         final NumericValue complementValue = (NumericValue) AbstractExpressionValueVisitor.castCValue(
             new NumericValue(~value.longValue()), exprType, machineModel, logger, loc);
-        return new CIntegerLiteralExpression(loc, exprType, BigInteger.valueOf(complementValue.longValue()));
+        return new CIntegerLiteralExpression(loc, exprType, complementValue.bigInteger());
       }
     }
 

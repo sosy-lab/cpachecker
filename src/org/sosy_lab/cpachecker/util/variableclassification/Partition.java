@@ -32,7 +32,6 @@ import com.google.common.collect.Table;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.Serializable;
 import java.math.BigInteger;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -131,7 +130,7 @@ public class Partition implements Comparable<Partition>, Serializable {
 
   @Override
   public String toString() {
-    return vars + " --> " + Arrays.toString(values.toArray());
+    return vars + " --> " + values;
   }
 
   @Override

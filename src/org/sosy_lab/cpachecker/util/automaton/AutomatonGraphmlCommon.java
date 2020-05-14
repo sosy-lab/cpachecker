@@ -23,11 +23,13 @@
  */
 package org.sosy_lab.cpachecker.util.automaton;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
@@ -37,19 +39,20 @@ import com.google.common.io.MoreFiles;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -59,6 +62,7 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.ABinaryExpression;
@@ -240,7 +244,7 @@ public class AutomatonGraphmlCommon {
       this.key = key;
     }
 
-    private final static Map<String, NodeFlag> stringToFlagMap = Maps.newHashMap();
+    private static final Map<String, NodeFlag> stringToFlagMap = new HashMap<>();
 
     static {
       for (NodeFlag f : NodeFlag.values()) {
@@ -275,19 +279,16 @@ public class AutomatonGraphmlCommon {
           return Optional.of(element);
         }
       }
-      if (pTextualRepresentation.equals("FALSE")) {
-        return Optional.of(VIOLATION_WITNESS);
+      switch (pTextualRepresentation) {
+        case "FALSE":
+        case "false_witness":
+          return Optional.of(VIOLATION_WITNESS);
+        case "TRUE":
+        case "true_witness":
+          return Optional.of(CORRECTNESS_WITNESS);
+        default:
+          return Optional.empty();
       }
-      if (pTextualRepresentation.equals("TRUE")) {
-        return Optional.of(CORRECTNESS_WITNESS);
-      }
-      if (pTextualRepresentation.equals("false_witness")) {
-        return Optional.of(VIOLATION_WITNESS);
-      }
-      if (pTextualRepresentation.equals("true_witness")) {
-        return Optional.of(CORRECTNESS_WITNESS);
-      }
-      return Optional.empty();
     }
   }
 
@@ -349,7 +350,7 @@ public class AutomatonGraphmlCommon {
     private final Document doc;
     private final Element graph;
     private final Set<KeyDef> definedKeys = EnumSet.noneOf(KeyDef.class);
-    private final Map<KeyDef, Node> keyDefsToAppend = Maps.newEnumMap(KeyDef.class);
+    private final Map<KeyDef, Node> keyDefsToAppend = new EnumMap<>(KeyDef.class);
 
     public GraphMlBuilder(
         WitnessType pGraphType,
@@ -413,7 +414,7 @@ public class AutomatonGraphmlCommon {
 
       graph.appendChild(
           createDataElement(KeyDef.ARCHITECTURE, getArchitecture(pCfa.getMachineModel())));
-      ZonedDateTime now = ZonedDateTime.now().withNano(0);
+      ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault()).withNano(0);
       graph.appendChild(
           createDataElement(
               KeyDef.CREATIONTIME, now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)));
@@ -529,14 +530,15 @@ public class AutomatonGraphmlCommon {
     return handleAsEpsilonEdge(pEdge);
   }
 
+  /**
+   * This method checks whether an edge qualifies as epsilon edge.
+   * Epsilon edges are irrelevant edges that are not required in the witness.
+   * <li>global declarations (there is no other path possible in the CFA),
+   * <li>CPAchecker-internal temporary variable declarations (irrelevant for the witness),
+   * <li>blank edges and function summary edges (not required for a path in the witness).
+   */
   public static boolean handleAsEpsilonEdge(CFAEdge edge) {
-    if (handleAsEpsilonEdge0(edge)) {
-      if (edge.getSuccessor().getNumLeavingEdges() <= 0) {
-        return false;
-      }
-      return true;
-    }
-    return false;
+    return handleAsEpsilonEdge0(edge) && edge.getSuccessor().getNumLeavingEdges() > 0;
   }
 
   private static boolean handleAsEpsilonEdge0(CFAEdge edge) {
@@ -547,7 +549,9 @@ public class AutomatonGraphmlCommon {
       if (edge.getSuccessor() instanceof FunctionExitNode) {
         return isEmptyStub(((FunctionExitNode) edge.getSuccessor()).getEntryNode());
       }
-      if (AutomatonGraphmlCommon.treatAsWhileTrue(edge)) {
+      if (AutomatonGraphmlCommon.treatAsTrivialAssume(edge)) {
+        return false;
+      } if (AutomatonGraphmlCommon.treatAsWhileTrue(edge)) {
         return false;
       }
       return true;
@@ -664,7 +668,7 @@ public class AutomatonGraphmlCommon {
   public static Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge, FunctionEntryNode
       pMainEntry, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
     if (handleAsEpsilonEdge(pEdge, pAdditionalInfo)) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
     return getFileLocationsFromCfaEdge0(pEdge, pMainEntry);
   }
@@ -672,7 +676,7 @@ public class AutomatonGraphmlCommon {
   public static Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge, FunctionEntryNode
       pMainEntry) {
     if (handleAsEpsilonEdge(pEdge)) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
     return getFileLocationsFromCfaEdge0(pEdge, pMainEntry);
   }
@@ -684,15 +688,17 @@ public class AutomatonGraphmlCommon {
         && pMainEntry.getFunctionName().equals(pEdge.getSuccessor().getFunctionName())) {
       FileLocation location = pMainEntry.getFileLocation();
       if (!FileLocation.DUMMY.equals(location)) {
-        location = new FileLocation(
-            location.getFileName(),
-            location.getNiceFileName(),
-            location.getNodeOffset(),
-            pMainEntry.getFunctionDefinition().toString().length(),
-            location.getStartingLineNumber(),
-            location.getStartingLineNumber(),
-            location.getStartingLineInOrigin(),
-            location.getStartingLineInOrigin());
+        location =
+            new FileLocation(
+                location.getFileName(),
+                location.getNiceFileName(),
+                location.getNodeOffset(),
+                pMainEntry.getFunctionDefinition().toString().length(),
+                location.getStartingLineNumber(),
+                location.getStartingLineNumber(),
+                location.getStartingLineInOrigin(),
+                location.getStartingLineInOrigin(),
+                location.isOffsetRelatedToOrigin());
       }
       Set<FileLocation> result = Sets.newHashSet(location);
       for (AParameterDeclaration param : pMainEntry.getFunctionDefinition().getParameters()) {
@@ -732,10 +738,9 @@ public class AutomatonGraphmlCommon {
         } else {
           SwitchDetector switchDetector = new SwitchDetector(assumeEdge);
           CFATraversal.dfs().backwards().traverseOnce(assumeEdge.getSuccessor(), switchDetector);
-          List<FileLocation> caseLocations = FluentIterable
-              .from(switchDetector.getEdgesBackwardToSwitchNode())
-              .transform(e -> e.getFileLocation())
-              .toList();
+          List<FileLocation> caseLocations =
+              transformedImmutableListCopy(
+                  switchDetector.getEdgesBackwardToSwitchNode(), CFAEdge::getFileLocation);
           location = FileLocation.merge(caseLocations);
         }
 
@@ -752,33 +757,6 @@ public class AutomatonGraphmlCommon {
       }
     }
     return CFAUtils.getFileLocationsFromCfaEdge(pEdge);
-  }
-
-  public static Optional<FileLocation> getMinFileLocation(CFAEdge pEdge, FunctionEntryNode
-      pMainEntry, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
-    Set<FileLocation> locations = getFileLocationsFromCfaEdge(pEdge, pMainEntry, pAdditionalInfo);
-    return getMinFileLocation(locations, (l1, l2) -> Integer.compare(l1.getNodeOffset(), l2.getNodeOffset()));
-  }
-
-  public static Optional<FileLocation> getMaxFileLocation(CFAEdge pEdge, FunctionEntryNode
-      pMainEntry, CFAEdgeWithAdditionalInfo pAdditionalInfo) {
-    Set<FileLocation> locations = getFileLocationsFromCfaEdge(pEdge, pMainEntry, pAdditionalInfo);
-    return getMinFileLocation(locations, (l1, l2) -> Integer.compare(l2.getNodeOffset(), l1.getNodeOffset()));
-  }
-
-  private static Optional<FileLocation> getMinFileLocation(Iterable<FileLocation> pLocations, Comparator<FileLocation> pComparator) {
-    Iterator<FileLocation> locationIterator = pLocations.iterator();
-    if (!locationIterator.hasNext()) {
-      return Optional.empty();
-    }
-    FileLocation min = locationIterator.next();
-    while (locationIterator.hasNext()) {
-      FileLocation l = locationIterator.next();
-      if (pComparator.compare(l, min) < 0) {
-        min = l;
-      }
-    }
-    return Optional.of(min);
   }
 
   public static boolean isPartOfSwitchStatement(AssumeEdge pAssumeEdge) {
@@ -1121,5 +1099,22 @@ public class AutomatonGraphmlCommon {
         && CFAUtils.enteringEdges(pred)
             .filter(BlankEdge.class)
             .anyMatch(e -> e.getDescription().equals("while"));
+  }
+
+  private static boolean treatAsTrivialAssume(CFAEdge pEdge) {
+    CFANode pred = pEdge.getPredecessor();
+    if (pred.getNumLeavingEdges() != 1) {
+      return false;
+    }
+    if (!(pEdge instanceof BlankEdge)) {
+      return false;
+    }
+    BlankEdge edge = (BlankEdge) pEdge;
+    if (!edge.getDescription().isEmpty()) {
+      return false;
+    }
+    return !edge.getRawStatement().isEmpty()
+        && !treatAsWhileTrue(pEdge)
+        && !isFunctionStartDummyEdge(pEdge);
   }
 }

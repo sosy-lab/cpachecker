@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.pcc.strategy.partitioning;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.core.interfaces.pcc.FiducciaMattheysesOptimizer;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph;
 import org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedNode;
@@ -44,7 +43,6 @@ public class FiducciaMattheysesWeightedKWayAlgorithm {
 
   public FiducciaMattheysesWeightedKWayAlgorithm(List<Set<Integer>> pInitPartitioning,
       double pBalanceCriterion, WeightedGraph pWGraph, int pMaxLoad, OptimizationCriteria opt) {
-    super();
     optimizer=FiducciaMattheysesOptimzerFactory.createFMOptimizer(opt);
     balanceCriterion = pBalanceCriterion;
     wGraph = pWGraph;

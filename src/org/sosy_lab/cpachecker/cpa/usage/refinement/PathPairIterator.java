@@ -23,11 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
-import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -138,7 +137,7 @@ public class PathPairIterator extends
 
   private boolean checkIsUsageUnreachable(UsageInfo pInput) {
     return !computedPathsForUsage.containsKey(pInput)
-        || computedPathsForUsage.get(pInput).size() == 0;
+        || computedPathsForUsage.get(pInput).isEmpty();
   }
 
   @Override
@@ -149,7 +148,7 @@ public class PathPairIterator extends
     secondExtendedPath = pathPair.getSecond();
 
     Object predicateInfo = wrapperResult.getInfo(PredicateRefinerAdapter.class);
-    if (predicateInfo != null && predicateInfo instanceof List) {
+    if (predicateInfo instanceof List) {
       @SuppressWarnings("unchecked")
       List<ARGState> affectedStates = (List<ARGState>)predicateInfo;
       //affectedStates may be null, if the path was refined somewhen before
@@ -246,7 +245,7 @@ public class PathPairIterator extends
     if (iterator == null && computedPathsForUsage.containsKey(info)) {
       // first call
       // Clone the set to avoid concurrent modification
-      iterator = Lists.newArrayList(computedPathsForUsage.get(info)).iterator();
+      iterator = new ArrayList<>(computedPathsForUsage.get(info)).iterator();
       currentIterators.put(info, iterator);
     }
 
@@ -276,9 +275,9 @@ public class PathPairIterator extends
   }
 
   private void handleAffectedStates(List<ARGState> affectedStates) {
-    //ARGState nextStart;
-    //if (affectedStates != null) {
-      List<Integer>changedStateNumbers = from(affectedStates).transform(idExtractor).toList();
+    // ARGState nextStart;
+    // if (affectedStates != null) {
+    List<Integer> changedStateNumbers = transformedImmutableListCopy(affectedStates, idExtractor);
       refinedStates.add(changedStateNumbers);
 
     /*  nextStart = affectedStates.get(affectedStates.size() - 1);

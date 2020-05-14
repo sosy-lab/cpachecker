@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.lock;
 
 import java.util.Objects;
 
-public class LockIdentifierWithVariable extends LockIdentifier {
+public final class LockIdentifierWithVariable extends LockIdentifier {
 
   private final String varName;
 
@@ -38,8 +38,8 @@ public class LockIdentifierWithVariable extends LockIdentifier {
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = 1;
-    result = super.hashCode();
+
+    int result = super.hashCode();
     result = prime * result + Objects.hashCode(varName);
     return result;
   }

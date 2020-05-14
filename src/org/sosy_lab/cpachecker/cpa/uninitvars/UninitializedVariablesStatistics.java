@@ -43,7 +43,6 @@ public class UninitializedVariablesStatistics implements Statistics {
   private boolean printWarnings;
 
   public UninitializedVariablesStatistics(String printWarnings) {
-    super();
     this.printWarnings = Boolean.parseBoolean(printWarnings);
   }
 
@@ -71,8 +70,7 @@ public class UninitializedVariablesStatistics implements Statistics {
         for (Triple<Integer, String, String> warning : warnings) {
           //check if a warning has already been displayed
           warningIndex = Pair.of(warning.getFirst(), warning.getSecond());
-          if (!warningsDisplayed.contains(warningIndex)) {
-            warningsDisplayed.add(warningIndex);
+          if (warningsDisplayed.add(warningIndex)) {
             pOut.println(warning.getThird());
             noOfWarnings++;
           }

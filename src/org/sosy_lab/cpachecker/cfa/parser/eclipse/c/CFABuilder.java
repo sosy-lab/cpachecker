@@ -23,17 +23,17 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
-import static com.google.common.collect.FluentIterable.from;
+import static com.google.common.base.Strings.isNullOrEmpty;
 
+import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.NavigableMap;
 import java.util.Set;
@@ -50,6 +50,7 @@ import org.eclipse.cdt.core.dom.ast.IASTProblemDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclSpecifier;
 import org.eclipse.cdt.core.dom.ast.IASTSimpleDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
@@ -89,11 +90,12 @@ class CFABuilder extends ASTVisitor {
   private final List<String> eliminateableDuplicates = new ArrayList<>();
 
   // Data structure for storing global declarations
-  private final List<Triple<ADeclaration, String, GlobalScope>> globalDeclarations = Lists.newArrayList();
-  private final List<Pair<ADeclaration, String>> globalDecls = Lists.newArrayList();
+  private final List<Triple<ADeclaration, String, GlobalScope>> globalDeclarations =
+      new ArrayList<>();
+  private final List<Pair<ADeclaration, String>> globalDecls = new ArrayList<>();
 
   // Data structure for checking amount of initializations per global variable
-  private final Set<String> globalInitializedVariables = Sets.newHashSet();
+  private final Set<String> globalInitializedVariables = new HashSet<>();
 
   private final List<Path> parsedFiles = new ArrayList<>();
 
@@ -106,6 +108,7 @@ class CFABuilder extends ASTVisitor {
   private final EclipseCParserOptions options;
   private final MachineModel machine;
   private final LogManagerWithoutDuplicates logger;
+  private final ShutdownNotifier shutdownNotifier;
   private final CheckBindingVisitor checkBinding;
 
   private boolean encounteredAsm = false;
@@ -114,10 +117,12 @@ class CFABuilder extends ASTVisitor {
   public CFABuilder(
       EclipseCParserOptions pOptions,
       LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
       ParseContext pParseContext,
       MachineModel pMachine) {
     options = pOptions;
     logger = new LogManagerWithoutDuplicates(pLogger);
+    shutdownNotifier = pShutdownNotifier;
     parseContext = pParseContext;
     machine = pMachine;
 
@@ -130,8 +135,11 @@ class CFABuilder extends ASTVisitor {
   }
 
   public void analyzeTranslationUnit(
-      IASTTranslationUnit ast, String staticVariablePrefix, Scope pFallbackScope) {
-    if (ast.getFilePath() != null && !ast.getFilePath().isEmpty()) {
+      IASTTranslationUnit ast, String staticVariablePrefix, Scope pFallbackScope)
+      throws InterruptedException {
+    shutdownNotifier.shutdownIfNecessary();
+
+    if (!isNullOrEmpty(ast.getFilePath())) {
       parsedFiles.add(Paths.get(ast.getFilePath()));
     }
     sideAssignmentStack = new Sideassignments();
@@ -159,6 +167,8 @@ class CFABuilder extends ASTVisitor {
         Triple.of(new ArrayList<IASTFunctionDefinition>(), staticVariablePrefix, fileScope));
 
     ast.accept(this);
+
+    shutdownNotifier.shutdownIfNecessary();
   }
 
   /* (non-Javadoc)
@@ -166,6 +176,10 @@ class CFABuilder extends ASTVisitor {
    */
   @Override
   public int visit(IASTDeclaration declaration) {
+    if (shutdownNotifier.shouldShutdown()) {
+      return PROCESS_ABORT;
+    }
+
     sideAssignmentStack.enterBlock();
 
     if (declaration instanceof IASTSimpleDeclaration) {
@@ -313,10 +327,14 @@ class CFABuilder extends ASTVisitor {
    */
   @Override
   public int visit(IASTProblem problem) {
+    if (shutdownNotifier.shouldShutdown()) {
+      return PROCESS_ABORT;
+    }
+
     throw parseContext.parseError(problem);
   }
 
-  public ParseResult createCFA() throws CParserException {
+  public ParseResult createCFA() throws CParserException, InterruptedException {
     // in case we
     if (functionDeclarations.size() > 1) {
       programDeclarations.completeUncompletedElaboratedTypes();
@@ -361,13 +379,15 @@ class CFABuilder extends ASTVisitor {
     return result;
   }
 
-  private void handleFunctionDefinition(final GlobalScope actScope,
-                                        String fileName,
-                                        IASTFunctionDefinition declaration,
-                                        ImmutableMap<String, CFunctionDeclaration> functions,
-                                        ImmutableMap<String, CComplexTypeDeclaration> types,
-                                        ImmutableMap<String, CTypeDefDeclaration> typedefs,
-                                        ImmutableMap<String, CSimpleDeclaration> globalVars) {
+  private void handleFunctionDefinition(
+      final GlobalScope actScope,
+      String fileName,
+      IASTFunctionDefinition declaration,
+      ImmutableMap<String, CFunctionDeclaration> functions,
+      ImmutableMap<String, CComplexTypeDeclaration> types,
+      ImmutableMap<String, CTypeDefDeclaration> typedefs,
+      ImmutableMap<String, CSimpleDeclaration> globalVars)
+      throws InterruptedException {
 
     FunctionScope localScope =
         new FunctionScope(functions, types, typedefs, globalVars, fileName, artificialScope);
@@ -375,13 +395,18 @@ class CFABuilder extends ASTVisitor {
         new CFAFunctionBuilder(
             options,
             logger,
+            shutdownNotifier,
             localScope,
             parseContext,
             machine,
             fileName,
             sideAssignmentStack,
             checkBinding);
+
     declaration.accept(functionBuilder);
+
+    // check whether an interrupt happened while parsing
+    shutdownNotifier.shutdownIfNecessary();
 
     FunctionEntryNode startNode = functionBuilder.getStartNode();
     String functionName = startNode.getFunctionName();
@@ -393,9 +418,9 @@ class CFABuilder extends ASTVisitor {
     cfas.put(functionName, startNode);
     cfaNodes.putAll(functionName, functionBuilder.getCfaNodes());
     globalDeclarations.addAll(
-        from(functionBuilder.getGlobalDeclarations())
-            .transform(pInput -> Triple.of(pInput.getFirst(), pInput.getSecond(), actScope))
-            .toList());
+        Collections2.transform(
+            functionBuilder.getGlobalDeclarations(),
+            pInput -> Triple.of(pInput.getFirst(), pInput.getSecond(), actScope)));
     globalDecls.addAll(functionBuilder.getGlobalDeclarations());
 
     encounteredAsm |= functionBuilder.didEncounterAsm();
@@ -404,6 +429,10 @@ class CFABuilder extends ASTVisitor {
 
   @Override
   public int leave(IASTTranslationUnit ast) {
+    if (shutdownNotifier.shouldShutdown()) {
+      return PROCESS_ABORT;
+    }
+
     return PROCESS_CONTINUE;
   }
 }

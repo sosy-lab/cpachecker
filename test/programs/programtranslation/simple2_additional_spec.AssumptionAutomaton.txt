@@ -1,0 +1,18 @@
+OBSERVER AUTOMATON AssumptionAutomaton
+
+INITIAL STATE init;
+
+STATE __TRUE :
+    TRUE -> GOTO __TRUE;
+
+STATE __FALSE :
+    TRUE -> GOTO __FALSE;
+
+STATE USEALL init :
+    MATCH "x++;" -> ASSUME {x==1} GOTO init;
+    MATCH "x++;" -> ASSUME {x!=1} GOTO __FALSE;
+    MATCH "x--;" -> ASSUME {x==1} GOTO init;
+    MATCH "x--;" -> ASSUME {x!=1} GOTO __FALSE;
+    TRUE -> GOTO init;
+
+END AUTOMATON

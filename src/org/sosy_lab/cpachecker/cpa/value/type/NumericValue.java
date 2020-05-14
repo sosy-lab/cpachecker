@@ -94,6 +94,9 @@ public class NumericValue implements Value, Serializable {
       //
       // cf. https://docs.oracle.com/javase/8/docs/api/java/lang/Double.html#toString-double-
       return BigDecimal.valueOf(number.doubleValue());
+    } else if (number instanceof Rational) {
+      Rational rat = (Rational) number;
+      return new BigDecimal(rat.getNum()).divide(new BigDecimal(rat.getDen()));
     } else {
       return new BigDecimal(number.toString());
     }
@@ -101,6 +104,9 @@ public class NumericValue implements Value, Serializable {
 
   /** Returns a {@link BigInteger} value representing the stored number. */
   public BigInteger bigInteger() {
+    if (number instanceof BigInteger) {
+      return (BigInteger) number;
+    }
     return new BigInteger(number.toString());
   }
 

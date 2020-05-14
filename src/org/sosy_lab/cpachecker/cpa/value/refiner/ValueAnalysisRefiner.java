@@ -36,11 +36,12 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -210,7 +211,7 @@ public class ValueAnalysisRefiner
     final UnmodifiableReachedSet reached = pReached.asReachedSet();
     final boolean predicatePrecisionIsAvailable = isPredicatePrecisionAvailable(reached);
 
-    Map<ARGState, List<Precision>> refinementInformation = new HashMap<>();
+    Map<ARGState, List<Precision>> refinementInformation = new LinkedHashMap<>();
     Collection<ARGState> refinementRoots = pInterpolationTree.obtainRefinementRoots(restartStrategy);
 
     for (ARGState root : refinementRoots) {
@@ -331,7 +332,7 @@ public class ValueAnalysisRefiner
     ARGPath path = ARGUtils.getOnePathTo(currentRoot);
     for (ARGState currentState : path.asStatesList().reverse()) {
       // skip identity, because a new root has to be found
-      if (currentState == currentRoot) {
+      if (Objects.equals(currentState, currentRoot)) {
         continue;
       }
 
@@ -404,7 +405,8 @@ public class ValueAnalysisRefiner
     // refinement root, what ever comes first
     shutdownNotifier.shutdownIfNecessary();
     ARGState newRefinementRoot = coverageTreeRoot;
-    while (successorRelation.get(newRefinementRoot).size() == 1 && newRefinementRoot != pRefinementRoot) {
+    while (successorRelation.get(newRefinementRoot).size() == 1
+        && !pRefinementRoot.equals(newRefinementRoot)) {
       newRefinementRoot = Iterables.getOnlyElement(successorRelation.get(newRefinementRoot));
     }
 

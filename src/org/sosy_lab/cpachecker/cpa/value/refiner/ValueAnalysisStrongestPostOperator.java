@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.Map.Entry;
 import java.util.Optional;
@@ -76,10 +76,8 @@ public class ValueAnalysisStrongestPostOperator implements StrongestPostOperator
 
   @Override
   public Optional<ValueAnalysisState> getStrongestPost(
-      final ValueAnalysisState pOrigin,
-      final Precision pPrecision,
-      final CFAEdge pOperation
-  ) throws CPAException {
+      final ValueAnalysisState pOrigin, final Precision pPrecision, final CFAEdge pOperation)
+      throws CPAException, InterruptedException {
 
     final Collection<ValueAnalysisState> successors =
         transfer.getAbstractSuccessorsForEdge(pOrigin, pPrecision, pOperation);
@@ -145,7 +143,7 @@ public class ValueAnalysisStrongestPostOperator implements StrongestPostOperator
             UniqueAssignmentsInPathConditionState.class);
 
     if (assignments == null) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     return assignments.getMemoryLocationsExceedingThreshold();

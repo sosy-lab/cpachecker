@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.assertAt;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.createFormulaFor;
-import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterEndStates;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterIteration;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterIterationsUpTo;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.unroll;
@@ -39,9 +38,9 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -147,7 +146,7 @@ class KInductionProver implements AutoCloseable {
 
   private BooleanFormula loopHeadInvariants;
 
-  private final Map<CandidateInvariant, BooleanFormula> violationFormulas = Maps.newHashMap();
+  private final Map<CandidateInvariant, BooleanFormula> violationFormulas = new HashMap<>();
 
   private int previousK = -1;
 
@@ -426,8 +425,9 @@ class KInductionProver implements AutoCloseable {
     shutdownNotifier.shutdownIfNecessary();
 
     // Assert that *some* successor is reached
+    Iterable<AbstractState> endStates = FluentIterable.from(reached).filter(BMCHelper::isEndState);
     BooleanFormula successorExistsAssertion =
-        createFormulaFor(filterEndStates(reached), bfmgr, Optional.of(shutdownNotifier));
+        createFormulaFor(endStates, bfmgr, Optional.of(shutdownNotifier));
 
     // Obtain the predecessor assertion created earlier
     final BooleanFormula predecessorAssertion =
@@ -488,7 +488,7 @@ class KInductionProver implements AutoCloseable {
             // We are in the last iteration and failed to prove the candidate invariant
 
             Iterable<? extends SymbolicCandiateInvariant> badStateBlockingClauses =
-                Collections.emptySet();
+                ImmutableSet.of();
             Map<CounterexampleToInductivity, BooleanFormula> detectedCtis =
                 extractCTIs(reached, modelAssignments, pCheckedKeys, pCandidateInvariant, pK + 1);
             if (pLifting.canLift()) {
@@ -594,11 +594,9 @@ class KInductionProver implements AutoCloseable {
       Iterable<AbstractState> pReached, CandidateInvariant pCandidateInvariant, int pK)
       throws CPATransferException, InterruptedException {
     FluentIterable<AbstractState> states = filterIteration(pReached, pK, loopHeads);
-    BooleanFormula assertion = bfmgr.makeTrue();
+    final List<BooleanFormula> assertions = new ArrayList<>();
     for (CandidateInvariant component :
         CandidateInvariantCombination.getConjunctiveParts(pCandidateInvariant)) {
-      final BooleanFormula candidateAssertion;
-
       if (component instanceof TargetLocationCandidateInvariant) {
         Iterable<AbstractState> candidateAssertionStates =
             states.filter(
@@ -609,20 +607,16 @@ class KInductionProver implements AutoCloseable {
                           || from(AbstractStates.extractLocations(s))
                               .anyMatch(loopHeads::contains));
                 });
-        candidateAssertion = createFormulaFor(candidateAssertionStates, bfmgr);
+        assertions.add(createFormulaFor(candidateAssertionStates, bfmgr));
       } else {
         Iterable<AbstractState> candidateAssertionStates =
             states.filter(
                 s -> from(AbstractStates.extractLocations(s)).anyMatch(component::appliesTo));
-        candidateAssertion =
-            bfmgr.and(
-                createFormulaFor(candidateAssertionStates, bfmgr),
-                component.getAssertion(candidateAssertionStates, fmgr, pfmgr));
+        assertions.add(createFormulaFor(candidateAssertionStates, bfmgr));
+        assertions.add(component.getAssertion(candidateAssertionStates, fmgr, pfmgr));
       }
-
-      assertion = bfmgr.and(assertion, candidateAssertion);
     }
-    return assertion;
+    return bfmgr.and(assertions);
   }
 
   private BooleanFormula inductiveLoopHeadInvariantAssertion(
@@ -641,10 +635,7 @@ class KInductionProver implements AutoCloseable {
       throws InterruptedException, CPAException {
     if (pReached.size() <= 1 && cfa.getLoopStructure().isPresent()) {
       Stream<CFANode> relevantLoopHeads =
-          cfa.getLoopStructure()
-              .get()
-              .getAllLoops()
-              .stream()
+          cfa.getLoopStructure().orElseThrow().getAllLoops().stream()
               .filter(loop -> !BMCHelper.isTrivialSelfLoop(loop))
               .map(Loop::getLoopHeads)
               .flatMap(Collection::stream)
@@ -709,12 +700,12 @@ class KInductionProver implements AutoCloseable {
       CandidateInvariant pCandidateInvariant,
       int pK) {
 
-    Map<String, CType> types = Maps.newHashMap();
+    Map<String, CType> types = new HashMap<>();
 
     FluentIterable<AbstractState> inputStates =
         filterIteration(pCandidateInvariant.filterApplicable(pReached), pK, loopHeads);
     if (pCandidateInvariant == TargetLocationCandidateInvariant.INSTANCE) {
-      inputStates = inputStates.filter(AbstractStates.IS_TARGET_STATE);
+      inputStates = inputStates.filter(AbstractStates::isTargetState);
     }
     Multimap<String, Integer> inputs = extractInputs(inputStates, types);
 
@@ -745,7 +736,7 @@ class KInductionProver implements AutoCloseable {
                 });
 
         ImmutableMap.Builder<String, ModelValue> modelBuilder = ImmutableMap.builder();
-        BooleanFormula input = bfmgr.makeTrue();
+        final List<BooleanFormula> input = new ArrayList<>();
 
         for (ValueAssignment valueAssignment : pModelAssignments) {
           if (!valueAssignment.isFunction()) {
@@ -756,8 +747,8 @@ class KInductionProver implements AutoCloseable {
             Object value = valueAssignment.getValue();
             if (index.isPresent()
                 && (ssaMap.containsVariable(actualName)
-                    ? ssaMap.getIndex(actualName) == index.getAsInt()
-                    : index.getAsInt() == 1)
+                    ? ssaMap.getIndex(actualName) == index.orElseThrow()
+                    : index.orElseThrow() == 1)
                 && value instanceof Number
                 && !inputs.containsKey(actualName)) {
               BooleanFormula assignment =
@@ -786,18 +777,17 @@ class KInductionProver implements AutoCloseable {
             boolean isUnconnected = false;
             if (index.isPresent()
                 && ssaMap.containsVariable(actualName)
-                && index.getAsInt() < ssaMap.getIndex(actualName)) {
+                && index.orElseThrow() < ssaMap.getIndex(actualName)) {
               isUnconnected = !variableFormulas.get().containsKey(fullName);
             }
             if ((!index.isPresent()
                 || (index.isPresent()
-                    && (isUnconnected || inputs.get(actualName).contains(index.getAsInt()))))) {
-              BooleanFormula assignment = valueAssignment.getAssignmentAsFormula();
-              input = bfmgr.and(input, assignment);
+                    && (isUnconnected || inputs.get(actualName).contains(index.orElseThrow()))))) {
+              input.add(valueAssignment.getAssignmentAsFormula());
             }
           }
 
-          ctis.put(cti, input);
+          ctis.put(cti, bfmgr.and(input));
         }
       }
     }

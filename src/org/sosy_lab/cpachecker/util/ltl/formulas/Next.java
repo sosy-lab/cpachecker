@@ -57,7 +57,7 @@ public final class Next extends UnaryFormula {
 
   @Override
   public LtlFormula not() {
-    return new Next(operand.not());
+    return new Next(getOperand().not());
   }
 
   @Override

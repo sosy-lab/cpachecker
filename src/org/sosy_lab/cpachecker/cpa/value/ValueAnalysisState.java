@@ -74,7 +74,7 @@ import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
-public class ValueAnalysisState
+public final class ValueAnalysisState
     implements AbstractQueryableState, FormulaReportingState,
         ForgetfulState<ValueAnalysisInformation>, Serializable, Graphable,
         LatticeAbstractState<ValueAnalysisState>, PseudoPartitionable {
@@ -91,6 +91,14 @@ public class ValueAnalysisState
    * the map that keeps the name of variables and their constant values (concrete and symbolic ones)
    */
   private PersistentMap<MemoryLocation, ValueAndType> constantsMap;
+
+  /**
+   * hashCode needs to be updated with every change of {@link #constantsMap}.
+   *
+   * @see java.util.Map#hashCode()
+   * @see java.util.Map.Entry#hashCode()
+   */
+  private int hashCode = 0;
 
   private final @Nullable MachineModel machineModel;
 
@@ -111,10 +119,18 @@ public class ValueAnalysisState
       PersistentMap<MemoryLocation, ValueAndType> pConstantsMap) {
     machineModel = pMachineModel;
     constantsMap = checkNotNull(pConstantsMap);
+    hashCode = constantsMap.hashCode();
+  }
+
+  private ValueAnalysisState(ValueAnalysisState state) {
+    machineModel = state.machineModel;
+    constantsMap = checkNotNull(state.constantsMap);
+    hashCode = state.hashCode;
+    assert hashCode == constantsMap.hashCode();
   }
 
   public static ValueAnalysisState copyOf(ValueAnalysisState state) {
-    return new ValueAnalysisState(state.machineModel, state.constantsMap);
+    return new ValueAnalysisState(state);
   }
 
   /**
@@ -124,23 +140,30 @@ public class ValueAnalysisState
    * @param value value to be assigned.
    */
   void assignConstant(String variableName, Value value) {
-    if (blacklist.contains(MemoryLocation.valueOf(variableName))) {
-      return;
-    }
-
     addToConstantsMap(MemoryLocation.valueOf(variableName), value, null);
   }
 
   private void addToConstantsMap(
       final MemoryLocation pMemLoc, final Value pValue, final @Nullable Type pType) {
+
+    if (blacklist.contains(pMemLoc)
+        || (pMemLoc.isReference() && blacklist.contains(pMemLoc.getReferenceStart()))) {
+      return;
+    }
+
     Value valueToAdd = pValue;
 
     if (valueToAdd instanceof SymbolicValue) {
       valueToAdd = ((SymbolicValue) valueToAdd).copyForLocation(pMemLoc);
     }
 
-    constantsMap =
-        constantsMap.putAndCopy(pMemLoc, new ValueAndType(checkNotNull(valueToAdd), pType));
+    ValueAndType valueAndType = new ValueAndType(checkNotNull(valueToAdd), pType);
+    ValueAndType oldValueAndType = constantsMap.get(pMemLoc);
+    if (oldValueAndType != null) {
+      hashCode -= (pMemLoc.hashCode() ^ oldValueAndType.hashCode());
+    }
+    constantsMap = constantsMap.putAndCopy(pMemLoc, valueAndType);
+    hashCode += (pMemLoc.hashCode() ^ valueAndType.hashCode());
   }
 
   /**
@@ -151,10 +174,6 @@ public class ValueAnalysisState
    * @param pType the type of <code>value</code>.
    */
   public void assignConstant(MemoryLocation pMemoryLocation, Value value, Type pType) {
-    if (blacklist.contains(pMemoryLocation)) {
-      return;
-    }
-
     addToConstantsMap(pMemoryLocation, value, pType);
   }
 
@@ -213,6 +232,7 @@ public class ValueAnalysisState
 
     ValueAndType value = constantsMap.get(pMemoryLocation);
     constantsMap = constantsMap.removeAndCopy(pMemoryLocation);
+    hashCode -= (pMemoryLocation.hashCode() ^ value.hashCode());
 
     PersistentMap<MemoryLocation, ValueAndType> valueAssignment = PathCopyingPersistentTreeMap.of();
     valueAssignment = valueAssignment.putAndCopy(pMemoryLocation, value);
@@ -407,12 +427,14 @@ public class ValueAnalysisState
     }
 
     ValueAnalysisState otherElement = (ValueAnalysisState) other;
-    return otherElement.constantsMap.equals(constantsMap);
+    // hashCode is used as optimization: about 20% speedup when using many SingletonSets
+    return otherElement.hashCode == hashCode && otherElement.constantsMap.equals(constantsMap);
   }
 
   @Override
   public int hashCode() {
-    return constantsMap.hashCode();
+    assert hashCode == constantsMap.hashCode();
+    return hashCode;
   }
 
   @Override
@@ -657,23 +679,6 @@ public class ValueAnalysisState
     return difference;
   }
 
-  /**
-   * This method returns the set of tracked variables by this state.
-   *
-   * @return the set of tracked variables by this state
-   */
-  @Deprecated
-  public Set<String> getTrackedVariableNames() {
-    Set<String> result = new HashSet<>();
-
-    for (MemoryLocation loc : constantsMap.keySet()) {
-      result.add(loc.getAsSimpleString());
-    }
-
-    // no copy necessary, fresh instance of set
-    return Collections.unmodifiableSet(result);
-  }
-
   @Override
   public Set<MemoryLocation> getTrackedMemoryLocations() {
     // no copy necessary, set is immutable
@@ -695,43 +700,6 @@ public class ValueAnalysisState
 
   public ValueAnalysisInformation getInformation() {
     return new ValueAnalysisInformation(constantsMap);
-  }
-
-  @Deprecated
-  public Set<MemoryLocation> getMemoryLocationsOnStack(String pFunctionName) {
-    Set<MemoryLocation> result = new HashSet<>();
-
-    for (MemoryLocation memoryLocation : constantsMap.keySet()) {
-      if (memoryLocation.isOnFunctionStack() && memoryLocation.getFunctionName().equals(pFunctionName)) {
-        result.add(memoryLocation);
-      }
-    }
-
-    // Doesn't need a copy, Memory Location is Immutable
-    return Collections.unmodifiableSet(result);
-  }
-
-  @Deprecated
-  public Set<MemoryLocation> getGlobalMemoryLocations() {
-    Set<MemoryLocation> result = new HashSet<>();
-
-    for (MemoryLocation memoryLocation : constantsMap.keySet()) {
-      if (!memoryLocation.isOnFunctionStack()) {
-        result.add(memoryLocation);
-      }
-    }
-
-    // Doesn't need a copy, Memory Location is Immutable
-    return Collections.unmodifiableSet(result);
-  }
-
-  @Deprecated
-  public void forgetValuesWithIdentifier(String pIdentifier) {
-    for (MemoryLocation memoryLocation : constantsMap.keySet()) {
-      if (memoryLocation.getIdentifier().equals(pIdentifier)) {
-        constantsMap = constantsMap.removeAndCopy(memoryLocation);
-      }
-    }
   }
 
   /** If there was a recursive function, we have wrong values for scoped variables in the returnState.
@@ -804,6 +772,9 @@ public class ValueAnalysisState
 
     @Override
     public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
       if (!(o instanceof ValueAndType)) {
         return false;
       }

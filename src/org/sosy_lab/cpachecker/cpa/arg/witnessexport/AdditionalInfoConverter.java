@@ -34,7 +34,7 @@ public interface AdditionalInfoConverter {
    * @param originalTransition transition to enrich by additional information
    * @param pTag additional tag
    * @param pValue corresponding value
-   * @return extended transition for dumping by {@link ExtendedWitnessWriter}
+   * @return extended transition for dumping by {@link ExtendedWitnessFactory}
    */
   TransitionCondition convert(
       TransitionCondition originalTransition, ConvertingTags pTag, Object pValue);

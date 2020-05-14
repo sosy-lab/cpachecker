@@ -160,7 +160,7 @@ class FunctionCloner implements CFAVisitor {
 
     final CFAEdge newEdge = cloneEdge(edge, start, end);
 
-    assert newEdge.getPredecessor() == start && newEdge.getSuccessor() == end;
+    assert newEdge.getPredecessor().equals(start) && newEdge.getSuccessor().equals(end);
 
     CFACreationUtils.addEdgeUnconditionallyToCFA(newEdge);
 
@@ -233,7 +233,8 @@ class FunctionCloner implements CFAVisitor {
       }
 
       case ReturnStatementEdge: {
-        assert end instanceof FunctionExitNode;
+        assert end instanceof FunctionExitNode
+            : "Expected FunctionExitNode: " + end + ", " + end.getClass();
         if (edge instanceof CReturnStatementEdge) {
           newEdge = new CReturnStatementEdge(rawStatement, cloneAst(((CReturnStatementEdge) edge).getRawAST().get()),
                   loc, start, (FunctionExitNode) end);
@@ -299,13 +300,13 @@ class FunctionCloner implements CFAVisitor {
     // clone correct type of node
     final CFANode newNode;
     if (node instanceof CLabelNode) {
-      newNode = new CLabelNode(newFunctionName, ((CLabelNode) node).getLabel());
+      newNode = new CLabelNode(cloneAst(node.getFunction()), ((CLabelNode) node).getLabel());
 
     } else if (node instanceof CFATerminationNode) {
-      newNode = new CFATerminationNode(newFunctionName);
+      newNode = new CFATerminationNode(cloneAst(node.getFunction()));
 
     } else if (node instanceof FunctionExitNode) {
-      newNode = new FunctionExitNode(newFunctionName);
+      newNode = new FunctionExitNode(cloneAst(node.getFunction()));
 
     } else if (node instanceof CFunctionEntryNode) {
       final CFunctionEntryNode n = (CFunctionEntryNode) node;
@@ -330,7 +331,7 @@ class FunctionCloner implements CFAVisitor {
 
     } else {
       assert node.getClass() == CFANode.class : "unhandled subclass for CFANode: " + node.getClass();
-      newNode = new CFANode(newFunctionName);
+      newNode = new CFANode(cloneAst(node.getFunction()));
     }
 
     // copy information from original node
@@ -422,7 +423,8 @@ class FunctionCloner implements CFAVisitor {
         for (CParameterDeclaration param : decl.getParameters()) {
           l.add(cloneAst(param));
         }
-        return new CFunctionDeclaration(loc, cloneType(decl.getType()), changeName(decl.getName()), l);
+        return new CFunctionDeclaration(
+            loc, cloneType(decl.getType()), changeName(decl.getName()), decl.getOrigName(), l);
 
       } else if (ast instanceof CComplexTypeDeclaration) {
         CComplexTypeDeclaration decl = (CComplexTypeDeclaration) ast;
@@ -444,7 +446,12 @@ class FunctionCloner implements CFAVisitor {
 
       } else if (ast instanceof CEnumType.CEnumerator) {
         CEnumType.CEnumerator decl = (CEnumType.CEnumerator) ast;
-        return new CEnumType.CEnumerator(loc, decl.getName(), changeQualifiedName(decl.getQualifiedName()), decl.getValue());
+        return new CEnumType.CEnumerator(
+            loc,
+            decl.getName(),
+            changeQualifiedName(decl.getQualifiedName()),
+            decl.getType(),
+            decl.getValue());
       }
 
     } else if (ast instanceof CStatement) {
@@ -623,8 +630,13 @@ class FunctionCloner implements CFAVisitor {
     public CType visit(CEnumType type) {
       List<CEnumType.CEnumerator> l = new ArrayList<>(type.getEnumerators().size());
       for (CEnumType.CEnumerator e : type.getEnumerators()) {
-        CEnumType.CEnumerator enumType = new CEnumType.CEnumerator(e.getFileLocation(), e.getName(),
-                changeQualifiedName(e.getQualifiedName()), (e.hasValue() ? e.getValue() : null));
+        CEnumType.CEnumerator enumType =
+            new CEnumType.CEnumerator(
+                e.getFileLocation(),
+                e.getName(),
+                changeQualifiedName(e.getQualifiedName()),
+                e.getType(),
+                (e.hasValue() ? e.getValue() : null));
         enumType.setEnum(e.getEnum());
         l.add(enumType);
       }

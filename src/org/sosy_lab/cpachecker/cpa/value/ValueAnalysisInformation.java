@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import com.google.common.base.Objects;
+import java.util.Objects;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 /**
  * Information about value assignments needed for symbolic interpolation.
  */
-public class ValueAnalysisInformation {
+public final class ValueAnalysisInformation {
 
   public static final ValueAnalysisInformation EMPTY = new ValueAnalysisInformation();
 
@@ -66,7 +66,7 @@ public class ValueAnalysisInformation {
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(assignments);
+    return Objects.hash(assignments);
   }
 
   @Override

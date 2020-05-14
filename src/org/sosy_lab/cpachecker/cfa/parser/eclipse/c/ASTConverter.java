@@ -23,13 +23,14 @@
  */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutConst;
 import static org.sosy_lab.cpachecker.cfa.types.c.CTypes.withoutVolatile;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -38,6 +39,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
+import java.util.LongSummaryStatistics;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.cdt.core.dom.ast.IASTArrayDeclarator;
@@ -185,6 +187,7 @@ class ASTConverter {
 
   // Calls to this functions are handled by this class and replaced with regular C code.
   private static final String FUNC_CONSTANT = "__builtin_constant_p";
+  private static final String FUNC_OFFSETOF = "__builtin_offsetof";
   private static final String FUNC_EXPECT = "__builtin_expect";
   private static final String FUNC_TYPES_COMPATIBLE = "__builtin_types_compatible_p";
 
@@ -250,9 +253,10 @@ class ASTConverter {
 
     } else if (e instanceof IASTUnaryExpression && (((IASTUnaryExpression)e).getOperator() == IASTUnaryExpression.op_postFixDecr
                                                    || ((IASTUnaryExpression)e).getOperator() == IASTUnaryExpression.op_postFixIncr)) {
-      return addSideAssignmentsForUnaryExpressions(((CAssignment)node).getLeftHandSide(),
-          node.getFileLocation(), typeConverter.convert(e.getExpressionType()),
-          ((CBinaryExpression)((CAssignment)node).getRightHandSide()).getOperator());
+      return addSideAssignmentsForUnaryExpressions(
+          ((CAssignment) node).getLeftHandSide(),
+          node.getFileLocation(),
+          ((CBinaryExpression) ((CAssignment) node).getRightHandSide()).getOperator());
 
     } else if (node instanceof CAssignment) {
       sideAssignmentStack.addPreSideAssignment(node);
@@ -304,11 +308,9 @@ class ASTConverter {
    *
    * @param exp the "x" of x=x+1
    * @param fileLoc location of the expression
-   * @param type result-typeof the operation
    * @param op binary operator, should be PLUS or MINUS */
   private CIdExpression addSideAssignmentsForUnaryExpressions(
-      final CLeftHandSide exp, final FileLocation fileLoc,
-      final CType type, final BinaryOperator op) {
+      final CLeftHandSide exp, final FileLocation fileLoc, final BinaryOperator op) {
     final CIdExpression tmp = createInitializedTemporaryVariable(fileLoc, exp.getExpressionType(), exp);
     final CBinaryExpression postExp = buildBinaryExpression(exp, CIntegerLiteralExpression.ONE, op);
     sideAssignmentStack.addPreSideAssignment(new CExpressionAssignmentStatement(fileLoc, exp, postExp));
@@ -537,6 +539,7 @@ class ASTConverter {
   private CAstNode convert(IGNUASTCompoundStatementExpression e) {
     CIdExpression tmp = createTemporaryVariable(e);
     sideAssignmentStack.addConditionalExpression(e, tmp);
+
     return tmp;
   }
 
@@ -599,9 +602,28 @@ class ASTConverter {
       }
 
       // workaround for strange CDT behaviour
-    } else if (type instanceof CProblemType && e instanceof IASTConditionalExpression) {
-      return typeConverter.convert(
-          ((IASTConditionalExpression)e).getNegativeResultExpression() .getExpressionType());
+    } else if (type instanceof CProblemType) {
+      if (e instanceof IASTConditionalExpression) {
+        return typeConverter.convert(
+            ((IASTConditionalExpression) e).getNegativeResultExpression().getExpressionType());
+      } else if (e instanceof IGNUASTCompoundStatementExpression) {
+        // manually ceck whether type of compundStatementExpression is void
+        IGNUASTCompoundStatementExpression statementExpression =
+            (IGNUASTCompoundStatementExpression) e;
+        IASTStatement[] statements = statementExpression.getCompoundStatement().getStatements();
+
+        if (statements.length > 0) {
+          IASTStatement lastStatement = statements[statements.length - 1];
+
+          if (lastStatement instanceof IASTExpressionStatement) {
+            IASTExpression lastExpression =
+                ((IASTExpressionStatement) lastStatement).getExpression();
+            return convertType(lastExpression);
+          } else {
+            return CVoidType.create(false, false);
+          }
+        }
+      }
     }
     return type;
   }
@@ -986,7 +1008,7 @@ class ASTConverter {
     for (CCompositeTypeMemberDeclaration member : owner.getMembers()) {
       if (member.getName().equals(fieldName)) {
         allReferences.add(Pair.of(member.getName(), member.getType()));
-        return allReferences;
+        return ImmutableList.copyOf(allReferences);
       }
     }
 
@@ -999,18 +1021,19 @@ class ASTConverter {
         tmp.add(Pair.of(member.getName(), member.getType()));
         tmp = getWayToInnerField((CCompositeType)memberType, fieldName, loc, tmp);
         if (!tmp.isEmpty()) {
-          return tmp;
+          return ImmutableList.copyOf(tmp);
         }
       }
     }
 
-    return Collections.emptyList();
+    return ImmutableList.of();
   }
 
   private CRightHandSide convert(IASTFunctionCallExpression e) {
 
     CExpression functionName = convertExpressionWithoutSideEffects(e.getFunctionNameExpression());
     CFunctionDeclaration declaration = null;
+    final FileLocation loc = getLocation(e);
 
     if (functionName instanceof CIdExpression) {
       if (FUNC_TYPES_COMPATIBLE.equals(((CIdExpression) functionName).getName())) {
@@ -1052,6 +1075,20 @@ class ASTConverter {
           return CIntegerLiteralExpression.ZERO;
         }
       }
+      if (((CIdExpression) functionName).getName().equals(FUNC_OFFSETOF)
+          && params.size() == 1
+          && params.get(0) instanceof CFieldReference) {
+        CFieldReference exp = (CFieldReference) params.get(0);
+        BigInteger offset = handleBuiltinOffsetOfFunction(exp, e);
+        BigInteger byteInBit = new BigInteger("8");
+        if (offset.remainder(byteInBit).equals(BigInteger.ZERO)) {
+          return new CIntegerLiteralExpression(loc, CNumericTypes.INT, offset.divide(byteInBit));
+        } else {
+          throw parseContext.parseError("__builtin_offset is not applicable to bitfields ", exp);
+        }
+
+      }
+
       CSimpleDeclaration d = ((CIdExpression)functionName).getDeclaration();
       if (d instanceof CFunctionDeclaration) {
         // it may also be a variable declaration, when a function pointer is called
@@ -1086,7 +1123,6 @@ class ASTConverter {
           ((CPointerType)functionNameType).getType(), functionName);
     }
 
-    final FileLocation loc = getLocation(e);
     CType returnType = typeConverter.convert(e.getExpressionType());
     if (containsProblemType(returnType)) {
       // workaround for Eclipse CDT problems
@@ -1116,6 +1152,60 @@ class ASTConverter {
     }
 
     return new CFunctionCallExpression(loc, returnType, functionName, params, declaration);
+  }
+
+  private BigInteger
+      handleBuiltinOffsetOfFunction(CFieldReference exp, IASTFunctionCallExpression e) {
+    List<CFieldReference> fields = new ArrayList<>();
+    fields.add(exp);
+    while (exp.getFieldOwner() instanceof CFieldReference) {
+      CFieldReference tmp = (CFieldReference) exp.getFieldOwner();
+      exp = tmp;
+      fields.add(exp);
+    }
+
+    if (!(exp.getFieldOwner() instanceof CIdExpression)) {
+      throw parseContext.parseError(
+          "unexpected type " + exp.getFieldOwner() + " in __builtin_offsetof argument: ",
+          e);
+
+    }
+    CIdExpression owner = (CIdExpression) exp.getFieldOwner();
+
+    if (!(owner.getExpressionType() instanceof CElaboratedType)) {
+      throw parseContext.parseError(
+          "unexpected type " + owner.getExpressionType() + " in __builtin_offsetof argument",
+          e);
+    }
+    CElaboratedType structType = (CElaboratedType) owner.getExpressionType();
+
+    BigInteger sumOffset = BigInteger.ZERO;
+    Collections.reverse(fields);
+
+    if (!(structType.getRealType() instanceof CCompositeType)) {
+      throw parseContext.parseError(
+          "unexpected type " + structType.getRealType() + " in __builtin_offsetof argument: ",
+          e);
+    }
+    for (CFieldReference field : fields) {
+      BigInteger offset =
+          machinemodel.getFieldOffsetInBits(
+              (CCompositeType) structType.getRealType(),
+              field.getFieldName());
+      sumOffset = sumOffset.add(offset);
+      CFieldReference lastField = fields.get(fields.size() - 1);
+      if (!field.equals(lastField)) {
+        if (!(field.getExpressionType() instanceof CElaboratedType)) {
+          throw parseContext.parseError(
+              "unexpected type " + field.getExpressionType() + " in __builtin_offsetof argument",
+              e);
+        }
+        structType = (CElaboratedType) field.getExpressionType();
+      }
+    }
+
+    return sumOffset;
+
   }
 
   private boolean areCompatibleTypes(CType a, CType b) {
@@ -1592,7 +1682,8 @@ class ASTConverter {
                   fileLoc.getStartingLineNumber(),
                   declaratorLocation.getEndingLineNumber(),
                   fileLoc.getStartingLineInOrigin(),
-                  fileLoc.getEndingLineInOrigin());
+                  fileLoc.getEndingLineInOrigin(),
+                  fileLoc.isOffsetRelatedToOrigin());
         }
         result.add(createDeclaration(declaratorLocation, cStorageClass, type, c));
       }
@@ -1781,7 +1872,7 @@ class ASTConverter {
       name = declarator.getThird();
     }
 
-    if (name == null || name.equals("")) {
+    if (isNullOrEmpty(name)) {
       name = "__anon_type_member_" + nofMember;
     }
 
@@ -1818,8 +1909,7 @@ class ASTConverter {
       // and apply them after we have reached the inner-most declarator.
 
       // Collection of all modifiers (outermost modifier is first).
-      List<IASTNode> modifiers = Lists.newArrayListWithExpectedSize(1);
-
+      List<IASTNode> modifiers = new ArrayList<>(1);
 
       IASTInitializer initializer = null;
       String name = null;
@@ -1879,9 +1969,9 @@ class ASTConverter {
 
       // Add the modifiers to the type.
       CType type = specifier;
-      //array modifiers have to be added backwards, otherwise the arraysize is wrong
+      // array modifiers have to be added backwards, otherwise the arraysize is wrong
       // with multidimensional arrays
-      List<IASTArrayModifier> tmpArrMod = Lists.newArrayListWithExpectedSize(1);
+      List<IASTArrayModifier> tmpArrMod = new ArrayList<>();
       for (IASTNode modifier : modifiers) {
         if (modifier instanceof IASTArrayModifier) {
           tmpArrMod.add((IASTArrayModifier) modifier);
@@ -2176,10 +2266,46 @@ class ASTConverter {
     }
 
     CEnumType enumType = new CEnumType(d.isConst(), d.isVolatile(), list, name, origName);
+    CSimpleType integerType = getEnumerationType(enumType);
     for (CEnumerator enumValue : enumType.getEnumerators()) {
       enumValue.setEnum(enumType);
+      enumValue.setType(integerType);
     }
     return enumType;
+  }
+
+  private static final ImmutableList<CSimpleType> ENUM_REPRESENTATION_CANDIDATE_TYPES =
+      ImmutableList.of( // list of types with incrementing size
+          CNumericTypes.SIGNED_INT, CNumericTypes.UNSIGNED_INT, CNumericTypes.SIGNED_LONG_LONG_INT);
+
+  /**
+   * Compute a matching integer type for an enumeration. We use SIGNED_INT and switch to larger type
+   * if needed.
+   *
+   * <p>§6.7.2.2 (4) Each enumerated type shall be compatible with char, a signed integer type, or
+   * an unsigned integer type. The choice of type is implementation-defined, but shall be capable of
+   * representing the values of all the members of the enumeration.
+   */
+  private CSimpleType getEnumerationType(final CEnumType enumType) {
+    LongSummaryStatistics enumStatistics =
+        enumType.getEnumerators().stream()
+            .filter(CEnumerator::hasValue) // some values might not have been simplified
+            .mapToLong(CEnumerator::getValue)
+            .summaryStatistics();
+
+    Preconditions.checkState(
+        enumStatistics.getCount() > 0, "enumeration does not provide any values: %s", enumType);
+    final BigInteger minValue = BigInteger.valueOf(enumStatistics.getMin());
+    final BigInteger maxValue = BigInteger.valueOf(enumStatistics.getMax());
+    for (CSimpleType integerType : ENUM_REPRESENTATION_CANDIDATE_TYPES) {
+      if (minValue.compareTo(machinemodel.getMinimalIntegerValue(integerType)) >= 0
+          && maxValue.compareTo(machinemodel.getMaximalIntegerValue(integerType)) <= 0) {
+        // if all enumeration values are matching into the range, we use it
+        return integerType;
+      }
+    }
+    // if nothing works, use the largest type we have: ULL
+    return CNumericTypes.UNSIGNED_LONG_LONG_INT;
   }
 
   private CEnumerator convert(IASTEnumerationSpecifier.IASTEnumerator e, Long lastValue) {
@@ -2189,6 +2315,12 @@ class ASTConverter {
       value = lastValue + 1;
     } else {
       CExpression v = convertExpressionWithoutSideEffects(e.getValue());
+
+      // for enums we always expect constants and simplify them,
+      // even if 'cfa.simplifyConstExpressions is disabled.
+      // Lets assume that there is never a signed integer overflow or another property violation.
+      v = simplifyExpressionRecursively(v);
+
       boolean negate = false;
       boolean complement = false;
 
@@ -2205,19 +2337,36 @@ class ASTConverter {
 
       if (v instanceof CIntegerLiteralExpression) {
         value = ((CIntegerLiteralExpression)v).asLong();
+      } else if (v instanceof CCharLiteralExpression) {
+        value = (long) ((CCharLiteralExpression) v).getCharacter();
+      } else {
+        // ignore unsupported enum value and set it to NULL.
+        // TODO bug? constant enums are ignored, if 'cfa.simplifyConstExpressions' is disabled.
+        logger.logf(
+            Level.WARNING,
+            "enum constant '%s = %s' was not simplified and will be ignored in the following.",
+            e.getName(),
+            v.toQualifiedASTString());
+      }
+
+      if (value != null) {
         if (negate) {
           value = -value;
-        } else if(complement) {
+        } else if (complement) {
           value = ~value;
         }
-      } else {
-        // ignoring unsupported enum value
-        // TODO Warning
       }
     }
 
     String name = convert(e.getName());
-    CEnumerator result = new CEnumerator(getLocation(e), name, scope.createScopedNameOf(name), value);
+    CEnumerator result =
+        new CEnumerator(
+            getLocation(e),
+            name,
+            scope.createScopedNameOf(name),
+            /* dummy integer type, the correct one will be set directly afterwards */
+            CNumericTypes.SIGNED_INT,
+            value);
     scope.registerDeclaration(result);
     return result;
   }

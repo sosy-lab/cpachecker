@@ -149,7 +149,7 @@ public class SeparateInterpolatingProverEnvironment<T>
     Optional<List<BooleanFormula>> opt =
         itpEnv.unsatCoreOverAssumptions(Collections2.transform(pAssumptions, this::convertToItp));
     if (opt.isPresent()) {
-      return Optional.of(Lists.transform(opt.get(), this::convertToMain));
+      return Optional.of(Lists.transform(opt.orElseThrow(), this::convertToMain));
     } else {
       return opt;
     }

@@ -1,0 +1,7 @@
+format_version: '1.0'
+
+# old file name: pointerTest.c
+input_files: 'pointerTest.c'
+
+properties:
+  - property_file: ../../config/properties/unreach-label.prp

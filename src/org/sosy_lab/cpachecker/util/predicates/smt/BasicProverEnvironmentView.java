@@ -87,7 +87,7 @@ public class BasicProverEnvironmentView<E> implements BasicProverEnvironment<E> 
       return m; // fast path for common case
     }
 
-    return from(m).filter(ModelView.FILTER_MODEL_TERM).toList();
+    return from(m).filter(ModelView::isRelevantModelTerm).toList();
   }
 
   @Override

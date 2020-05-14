@@ -3,7 +3,7 @@
 <benchmark tool="cpachecker" timelimit="10 s" memlimit="100 MB" cpuCores="1">
 
   <option name="-noout"/>
-  <option name="-heap">10M</option>
+  <option name="-heap">50M</option>
 
   <rundefinition>
     <option name="-config">test/config/alwaysTopAnalysis.properties</option>
@@ -12,9 +12,9 @@
   <requiredfiles>../config/alwaysTopAnalysis.properties</requiredfiles>
 
   <tasks>
-    <include>../programs/simple/functionCall.c</include>
-    <include>../programs/simple/loop1.c</include>
-    <include>../programs/simple/uninitVars.cil.c</include>
+    <include>../programs/simple/functionCall.yml</include>
+    <include>../programs/simple/loop1.yml</include>
+    <include>../programs/simple/uninitVars.cil.yml</include>
   </tasks>
 
   <columns>

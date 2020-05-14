@@ -25,9 +25,12 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import java.util.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -37,9 +40,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-import java.util.HashSet;
-import java.util.Set;
 
 public class ARGPrecisionAdjustment implements PrecisionAdjustment {
 
@@ -109,7 +109,7 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
       return Optional.empty();
     }
 
-    PrecisionAdjustmentResult unwrappedResult = optionalUnwrappedResult.get();
+    PrecisionAdjustmentResult unwrappedResult = optionalUnwrappedResult.orElseThrow();
 
     // ensure that ARG and reached set are consistent if BREAK is signaled for a state with multiple children
     if (unwrappedResult.action() == Action.BREAK && elementHasSiblings(element)) {
@@ -147,7 +147,7 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
     Set<ARGState> scheduledForDeletion = new HashSet<>();
 
     for (ARGState sibling : Iterables.getOnlyElement(element.getParents()).getChildren()) {
-      if (sibling != element && !pReachedSet.contains(sibling)) {
+      if (!Objects.equals(sibling, element) && !pReachedSet.contains(sibling)) {
         scheduledForDeletion.add(sibling);
       }
     }

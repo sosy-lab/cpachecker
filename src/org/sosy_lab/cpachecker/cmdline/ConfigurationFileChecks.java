@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cmdline;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.truth.StreamSubject.streams;
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 import static com.google.common.truth.Truth.assert_;
 import static com.google.common.truth.TruthJUnit.assume;
 import static java.lang.Boolean.parseBoolean;
@@ -54,6 +54,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -95,9 +96,10 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 @RunWith(Parameterized.class)
 public class ConfigurationFileChecks {
 
-  private static final Pattern INDICATES_MISSING_INPUT_FILE =
+  private static final Pattern INDICATES_MISSING_FILES =
       Pattern.compile(
-          ".*File .* does not exist.*|.*Witness file is missing in specification.*|.*Could not read precision from file.*",
+          ".*File .* does not exist.*|.*Witness file is missing in specification.*|.*Could not read precision from file.*"
+              + "|.*The SMT solver MATHSAT5 is not available on this machine because of missing libraries \\(no optimathsat5j in java\\.library\\.path.*",
           Pattern.DOTALL);
 
   private static final Pattern ALLOWED_WARNINGS =
@@ -115,6 +117,15 @@ public class ConfigurationFileChecks {
           ".*Skipping one analysis because the configuration file .* could not be read.*",
           Pattern.DOTALL);
 
+  private static final Pattern MPI_PORTFOLIO_ALGORITHM_ALLOWED_WARNINGS_FOR_MISSING_LIBS =
+      Pattern.compile(
+          "Invalid configuration (mpiexec is required for performing the portfolio-analysis, but could not find it in PATH)",
+          Pattern.DOTALL);
+
+  private static final Pattern UNMAINTAINED_CPA_WARNING =
+      Pattern.compile(
+          "Using ConfigurableProgramAnalysis .*, which is unmaintained and may not work correctly\\.");
+
   private static final ImmutableSet<String> UNUSED_OPTIONS =
       ImmutableSet.of(
           // always set by this test
@@ -122,6 +133,7 @@ public class ConfigurationFileChecks {
           "differential.program",
           // handled by code outside of CPAchecker class
           "output.disable",
+          "report.export",
           "statistics.print",
           "limits.time.cpu",
           "limits.time.cpu::required",
@@ -142,6 +154,7 @@ public class ConfigurationFileChecks {
           "cpa.automaton.breakOnTargetState",
           "WitnessAutomaton.cpa.automaton.treatErrorsAsTargets",
           "witness.stopNotBreakAtSinkStates",
+          "witness.invariantsSpecificationAutomaton",
           // handled by component that is loaded lazily on demand
           "invariantGeneration.config",
           "invariantGeneration.kInduction.async",
@@ -191,6 +204,14 @@ public class ConfigurationFileChecks {
     )
     private boolean useInterleavedAlgorithm = false;
 
+    @Option(
+      secure = true,
+      name = "analysis.algorithm.MPI",
+      description = "Use MPI for running analyses in new subprocesses. The resulting reachedset "
+          + "is the one of the first analysis returning in time. All other mpi-processes will "
+          + "get aborted.")
+    private boolean useMPIProcessAlgorithm = false;
+
     @Option(secure=true, name="limits.time.cpu::required",
         description="Enforce that the given CPU time limit is set as the value of limits.time.cpu.")
     @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
@@ -228,8 +249,9 @@ public class ConfigurationFileChecks {
     try {
       parse(configFile).build();
     } catch (InvalidConfigurationException | IOException e) {
-      assert_()
-          .fail("Error during parsing of configuration file %s : %s", configFile, e.getMessage());
+      assertWithMessage(
+              "Error during parsing of configuration file %s : %s", configFile, e.getMessage())
+          .fail();
     }
   }
 
@@ -309,10 +331,20 @@ public class ConfigurationFileChecks {
   @SuppressWarnings("deprecation") // for tests this usage is ok
   private void checkOption(Configuration config, String option) {
     if (config.hasProperty(option)) {
-      expect.fail(
-          "Configuration has value for option %s with value '%s', which should usually not be present in config files",
-          option, config.getProperty(option));
+      expect
+          .withMessage(
+              "Configuration has value for option %s with value '%s', which should usually not be present in config files",
+              option, config.getProperty(option))
+          .fail();
     }
+  }
+
+  private boolean isUnmaintainedConfig() {
+    if (!(configFile instanceof Path)) {
+      return false;
+    }
+    Path basePath = CONFIG_DIR.relativize((Path) configFile);
+    return basePath.getName(0).equals(Paths.get("unmaintained"));
   }
 
   @Rule public TemporaryFolder tempFolder = new TemporaryFolder();
@@ -320,72 +352,44 @@ public class ConfigurationFileChecks {
   @BeforeClass
   public static void createDummyInputFiles() throws IOException {
     // Create files that some analyses expect as input files.
-    try (Reader r =
-            Files.newBufferedReader(Paths.get("test/config/automata/AssumptionAutomaton.spc"));
-        Writer w =
-            IO.openOutputFile(
-                Paths.get("output/AssumptionAutomaton.txt"), StandardCharsets.UTF_8)) {
-      CharStreams.copy(r, w);
-    }
+    copyFile("test/config/automata/AssumptionAutomaton.spc", "output/AssumptionAutomaton.txt");
   }
 
   @Before
   public void createDummyInputAutomatonFiles() throws IOException {
     // Create files that some analyses expect as input files.
 
-    try (Reader r =
-            Files.newBufferedReader(Paths.get("config/specification/AssumptionGuidingAutomaton.spc"));
-        Writer w =
-            IO.openOutputFile(
-                Paths.get(tempFolder.newFolder("config").getAbsolutePath()+"/specification/AssumptionGuidingAutomaton.spc"), StandardCharsets.UTF_8)) {
-      CharStreams.copy(r, w);
-    }
-    try (Reader r =
-        Files.newBufferedReader(Paths.get("test/config/automata/AssumptionAutomaton.spc"));
-        Writer w =
-            IO.openOutputFile(
-                Paths.get(tempFolder.newFolder("output").getAbsolutePath()+"/AssumptionAutomaton.txt"), StandardCharsets.UTF_8)) {
-      CharStreams.copy(r, w);
-    }
-    try (Reader r =
-            Files.newBufferedReader(Paths.get("config/specification/modifications-present.spc"));
-        Writer w =
-            IO.openOutputFile(
-                Paths.get(
-                    tempFolder.getRoot().getAbsolutePath()
-                        + "/config/specification/modifications-present.spc"),
-                StandardCharsets.UTF_8)) {
-      CharStreams.copy(r, w);
-    }
-    try (Reader r =
-            Files.newBufferedReader(Paths.get("config/specification/sv-comp-reachability.spc"));
-        Writer w =
-            IO.openOutputFile(
-                Paths.get(
-                    tempFolder.getRoot().getAbsolutePath()
-                        + "/config/specification/sv-comp-reachability.spc"),
-                StandardCharsets.UTF_8)) {
-      CharStreams.copy(r, w);
-    }
-    try (Reader r = Files.newBufferedReader(Paths.get("config/specification/TargetState.spc"));
-        Writer w =
-            IO.openOutputFile(
-                Paths.get(
-                    tempFolder.getRoot().getAbsolutePath()
-                        + "/config/specification/TargetState.spc"),
-                StandardCharsets.UTF_8)) {
-      CharStreams.copy(r, w);
-    }
+    copyFile(
+        "config/specification/AssumptionGuidingAutomaton.spc",
+        tempFolder.newFolder("config").getAbsolutePath(),
+        "specification/AssumptionGuidingAutomaton.spc");
+    copyFile(
+        "test/config/automata/AssumptionAutomaton.spc",
+        tempFolder.newFolder("output").getAbsolutePath(),
+        "AssumptionAutomaton.txt");
+    copyFile(
+        "config/specification/modifications-present.spc",
+        tempFolder.getRoot().getAbsolutePath(),
+        "config/specification/modifications-present.spc");
+    copyFile(
+        "config/specification/TargetState.spc",
+        tempFolder.getRoot().getAbsolutePath(),
+        "config/specification/TargetState.spc");
+    copyFile(
+        "config/specification/test-comp-terminatingfunctions.spc",
+        tempFolder.getRoot().getAbsolutePath(),
+        "config/specification/test-comp-terminatingfunctions.spc");
+  }
 
-    try (Reader r =
-            Files.newBufferedReader(
-                Paths.get("config/specification/test-comp-terminatingfunctions.spc"));
-        Writer w =
-            IO.openOutputFile(
-                Paths.get(
-                    tempFolder.getRoot().getAbsolutePath()
-                        + "/config/specification/test-comp-terminatingfunctions.spc"),
-                StandardCharsets.UTF_8)) {
+  /**
+   * @param from name of the input file
+   * @param to name of the output file
+   * @param toMore optional further names for the output file, will be concatenated to the name of
+   *     the output file.
+   */
+  private static void copyFile(String from, String to, String... toMore) throws IOException {
+    try (Reader r = Files.newBufferedReader(Paths.get(from));
+        Writer w = IO.openOutputFile(Paths.get(to, toMore), StandardCharsets.UTF_8)) {
       CharStreams.copy(r, w);
     }
   }
@@ -394,7 +398,7 @@ public class ConfigurationFileChecks {
   public void checkDefaultSpecification() throws InvalidConfigurationException {
     assume().that(configFile).isInstanceOf(Path.class);
     Iterable<Path> basePath = CONFIG_DIR.relativize((Path) configFile);
-    if (basePath.iterator().next().equals(Paths.get("unmaintained"))) {
+    if (isUnmaintainedConfig()) {
       basePath = Iterables.skip(basePath, 1);
     }
     assume().that(basePath).hasSize(1);
@@ -405,7 +409,9 @@ public class ConfigurationFileChecks {
     @SuppressWarnings("deprecation")
     final String spec = config.getProperty("specification");
     @SuppressWarnings("deprecation")
-    final String cpas = firstNonNull(config.getProperty("CompositeCPA.cpas"), "");
+    final String cpas = Objects.requireNonNullElse(config.getProperty("CompositeCPA.cpas"), "");
+    @SuppressWarnings("deprecation")
+    final String cpaBelowArgCpa = Objects.requireNonNullElse(config.getProperty("ARGCPA.cpa"), "");
     final boolean isSvcompConfig = basePath.toString().contains("svcomp");
     final boolean isTestGenerationConfig = basePath.toString().contains("testCaseGeneration");
     final boolean isDifferentialConfig = basePath.toString().contains("differentialAutomaton");
@@ -429,6 +435,10 @@ public class ConfigurationFileChecks {
 
     } else if (cpas.contains("cpa.uninitvars.UninitializedVariablesCPA")) {
       assertThat(spec).endsWith("specification/UninitializedVariables.spc");
+    } else if (cpaBelowArgCpa.contains(
+        "cpa.singleSuccessorCompactor.SingleSuccessorCompactorCPA")) {
+      assertThat(spec)
+          .isAnyOf("specification/multiPropertyCex.spc", "../specification/default.spc");
     } else if (cpas.contains("cpa.smg.SMGCPA")) {
       if (isSvcompConfig) {
         assertThat(spec).matches(".*specification/sv-comp-memory(cleanup|safety).spc$");
@@ -463,7 +473,8 @@ public class ConfigurationFileChecks {
     if (configFile instanceof Path) {
       assume()
           .that((Iterable<?>) configFile)
-          .containsNoneOf(Paths.get("includes"), Paths.get("pcc"));
+          .containsNoneOf(
+              Paths.get("includes"), Paths.get("pcc"), Paths.get("witnessValidation.properties"));
     }
 
     final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();
@@ -485,8 +496,9 @@ public class ConfigurationFileChecks {
     try {
       cpachecker = new CPAchecker(config, logger, ShutdownManager.create());
     } catch (InvalidConfigurationException e) {
-      assert_()
-          .fail("Invalid configuration in configuration file %s : %s", configFile, e.getMessage());
+      assertWithMessage(
+              "Invalid configuration in configuration file %s : %s", configFile, e.getMessage())
+          .fail();
       return;
     }
 
@@ -495,7 +507,7 @@ public class ConfigurationFileChecks {
       result = cpachecker.run(ImmutableList.of(createEmptyProgram(isJava)), ImmutableSet.of());
     } catch (IllegalArgumentException e) {
       if (isJava) {
-        assume().fail("Java frontend has a bug and cannot be run twice");
+        assume().withMessage("Java frontend has a bug and cannot be run twice").fail();
       }
       throw e;
     } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
@@ -505,25 +517,28 @@ public class ConfigurationFileChecks {
 
     assert_()
         .withMessage(
-            "Failure in CPAchecker run with following log\n%s\n",
+            "Failure in CPAchecker run with following log\n%s\n\nlog with level WARNING or higher",
             formatLogRecords(logHandler.getStoredLogRecords()))
         .about(streams())
         .that(getSevereMessages(options, logHandler))
-        .named("log with level WARNING or higher")
         .isEmpty();
 
     assume()
+        .withMessage("messages indicating missing input files")
         .about(streams())
         .that(
             logHandler
                 .getStoredLogRecords()
                 .stream()
                 .map(LogRecord::getMessage)
-                .filter(s -> INDICATES_MISSING_INPUT_FILE.matcher(s).matches()))
-        .named("messages indicating missing input files")
+                .filter(s -> INDICATES_MISSING_FILES.matcher(s).matches()))
         .isEmpty();
 
-    if (!isOptionEnabled(config, "analysis.disable")) {
+    if (!(isOptionEnabled(config, "analysis.disable") || options.useMPIProcessAlgorithm)) {
+      // The MPI algorithm requires a mpiexec-bin on PATH and intentionally throws an exception
+      // if it cannot be found. As this is the usual case, the algorithm will not pass the initial
+      // setup and hence leaves the result object in its 'NOT_YET_STARTED' state.
+
       assert_()
           .withMessage(
               "Failure in CPAchecker run with following log\n%s\n",
@@ -538,10 +553,9 @@ public class ConfigurationFileChecks {
       // RestartAlgorithm
       assert_()
           .withMessage(
-              "Failure in CPAchecker run with following log\n%s\n",
+              "Failure in CPAchecker run with following log\n%s\n\nlist of unused options",
               formatLogRecords(logHandler.getStoredLogRecords()))
           .that(Sets.difference(config.getUnusedProperties(), UNUSED_OPTIONS))
-          .named("list of unused options")
           .isEmpty();
     }
   }
@@ -559,6 +573,7 @@ public class ConfigurationFileChecks {
           .addConverter(FileOption.class, fileTypeConverter)
           .setOption("java.sourcepath", tempFolder.getRoot().toString())
           .setOption("differential.program", createEmptyProgram(false))
+          .setOption("statistics.memory", "false")
           .build();
     } catch (InvalidConfigurationException | IOException | URISyntaxException e) {
       assumeNoException(e);
@@ -570,14 +585,14 @@ public class ConfigurationFileChecks {
     return TestDataTools.getEmptyProgram(tempFolder, pIsJava);
   }
 
-  private static Stream<String> getSevereMessages(OptionsWithSpecialHandlingInTest pOptions, final TestLogHandler pLogHandler) {
+  private Stream<String> getSevereMessages(OptionsWithSpecialHandlingInTest pOptions, final TestLogHandler pLogHandler) {
     // After one component of a parallel algorithm finishes successfully,
     // other components are interrupted, potentially causing warnings that can be ignored.
     // One such example is if another component uses a RestartAlgorithm that is interrupted
     // during the parsing of configuration files
     Stream<LogRecord> logRecords = pLogHandler.getStoredLogRecords().stream();
     if (pOptions.useParallelAlgorithm) {
-      Iterator<LogRecord> logRecordIterator = new Iterator<LogRecord>() {
+      Iterator<LogRecord> logRecordIterator = new Iterator<>() {
 
         private Iterator<LogRecord> underlyingIterator = pLogHandler.getStoredLogRecords().iterator();
 
@@ -591,12 +606,12 @@ public class ConfigurationFileChecks {
         @Override
         public LogRecord next() {
           LogRecord result = underlyingIterator.next();
-          if (!oneComponentSuccessful && result.getLevel() == Level.INFO ) {
+          if (!oneComponentSuccessful && Level.INFO.equals(result.getLevel())) {
             if (result.getMessage().endsWith("finished successfully.")) {
               oneComponentSuccessful = true;
               underlyingIterator = Iterators.filter(
                   underlyingIterator,
-                  r -> r.getLevel() != Level.WARNING
+                      r -> !Level.WARNING.equals(r.getLevel())
                     || !PARALLEL_ALGORITHM_ALLOWED_WARNINGS_AFTER_SUCCESS.matcher(r.getMessage()).matches());
             }
           }
@@ -606,11 +621,18 @@ public class ConfigurationFileChecks {
       };
       logRecords = Streams.stream(logRecordIterator);
     }
-    return logRecords
-            .filter(record -> record.getLevel().intValue() >= Level.WARNING.intValue())
-            .map(LogRecord::getMessage)
-            .filter(s -> !INDICATES_MISSING_INPUT_FILE.matcher(s).matches())
-            .filter(s -> !ALLOWED_WARNINGS.matcher(s).matches());
+    Stream<String> result = logRecords
+        .filter(record -> record.getLevel().intValue() >= Level.WARNING.intValue())
+        .map(LogRecord::getMessage)
+        .filter(s -> !INDICATES_MISSING_FILES.matcher(s).matches())
+        .filter(s -> !ALLOWED_WARNINGS.matcher(s).matches())
+        .filter(
+            s -> MPI_PORTFOLIO_ALGORITHM_ALLOWED_WARNINGS_FOR_MISSING_LIBS.matcher(s).matches());
+
+    if (isUnmaintainedConfig()) {
+      result = result.filter(s -> !UNMAINTAINED_CPA_WARNING.matcher(s).matches());
+    }
+    return result;
   }
 
   private static String formatLogRecords(Collection<? extends LogRecord> log) {
@@ -625,6 +647,6 @@ public class ConfigurationFileChecks {
   private static boolean isOptionEnabled(Configuration config, String key) {
     @SuppressWarnings("deprecation")
     String value = config.getProperty(key);
-    return parseBoolean(firstNonNull(value, "false"));
+    return parseBoolean(Objects.requireNonNullElse(value, "false"));
   }
 }

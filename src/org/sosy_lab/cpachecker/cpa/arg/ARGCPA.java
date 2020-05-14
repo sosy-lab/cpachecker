@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg;
 
+import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.util.AbstractStates.getOutgoingEdges;
 
 import com.google.common.base.Preconditions;
@@ -98,6 +99,12 @@ public class ARGCPA extends AbstractSingleWrapperCPA
               + "is subsumed by the second wrapped state (and the parents are not yet subsumed).")
   private boolean mergeOnWrappedSubsumption = false;
 
+  @Option(
+      secure = true,
+      description =
+    "prevent the stop-operator from aborting the stop-check early when it crosses a target state")
+  private boolean coverTargetStates = false;
+
   private final LogManager logger;
 
   private final ARGStatistics stats;
@@ -144,7 +151,8 @@ public class ARGCPA extends AbstractSingleWrapperCPA
         getWrappedCpa().getStopOperator(),
         logger,
         inCPAEnabledAnalysis,
-        keepCoveredStatesInReached);
+        keepCoveredStatesInReached,
+        coverTargetStates);
   }
 
   @Override
@@ -160,9 +168,10 @@ public class ARGCPA extends AbstractSingleWrapperCPA
   @Override
   public Reducer getReducer() throws InvalidConfigurationException {
     ConfigurableProgramAnalysis cpa = getWrappedCpa();
-    Preconditions.checkState(
+    checkState(
         cpa instanceof ConfigurableProgramAnalysisWithBAM,
-        "wrapped CPA does not support BAM: " + cpa.getClass().getCanonicalName());
+        "wrapped CPA does not support BAM: %s",
+        cpa.getClass().getCanonicalName());
     return new ARGReducer(((ConfigurableProgramAnalysisWithBAM) cpa).getReducer());
   }
 
@@ -172,7 +181,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA
     return new ARGState(getWrappedCpa().getInitialState(pNode, pPartition), null);
   }
 
-  protected LogManager getLogger() {
+  public LogManager getLogger() {
     return logger;
   }
 

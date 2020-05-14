@@ -119,9 +119,7 @@ public class CExpressionInvariantExporter {
       while ((line = reader.readLine()) != null) {
         Optional<String> invariant = getInvariantForLine(lineNo, reporting);
         if (invariant.isPresent()) {
-          out.append("__VERIFIER_assume(")
-              .append(invariant.get())
-              .append(");\n");
+          out.append("__VERIFIER_assume(").append(invariant.orElseThrow()).append(");\n");
         }
         out.append(line)
             .append('\n');

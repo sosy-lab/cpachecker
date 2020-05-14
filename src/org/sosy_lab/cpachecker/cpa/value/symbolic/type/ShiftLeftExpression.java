@@ -26,10 +26,8 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-/**
- * {@link BinarySymbolicExpression} representing the 'shift left' operation.
- */
-public class ShiftLeftExpression extends BinarySymbolicExpression {
+/** {@link BinarySymbolicExpression} representing the 'shift left' operation. */
+public final class ShiftLeftExpression extends BinarySymbolicExpression {
 
   private static final long serialVersionUID = 3368892481479334943L;
 

@@ -79,6 +79,14 @@ public class CSourceOriginMapping {
     return CodePosition.of(pAnalysisFileName, pAnalysisCodeLine);
   }
 
+  /**
+   * If true, there exists no mapping from an analysis file to an origin file and hence each line
+   * number will be mapped to its identical value.
+   */
+  public boolean isMappingToIdenticalLineNumbers() {
+    return mapping.isEmpty();
+  }
+
   /** Code position in terms of file name and absolute or relative line number. */
   public static class CodePosition {
 

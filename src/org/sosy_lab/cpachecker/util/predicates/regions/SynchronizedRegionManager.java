@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.regions;
 
+import com.google.common.primitives.ImmutableIntArray;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.function.Function;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.util.Triple;
@@ -159,7 +159,7 @@ public class SynchronizedRegionManager implements RegionManager {
   }
 
   @Override
-  public void setVarOrder(ArrayList<Integer> pOrder) {
+  public void setVarOrder(ImmutableIntArray pOrder) {
     synchronized (delegate) {
       delegate.setVarOrder(pOrder);
     }
@@ -169,6 +169,13 @@ public class SynchronizedRegionManager implements RegionManager {
   public void reorder(PredicateOrderingStrategy pStrategy) {
     synchronized (delegate) {
       delegate.reorder(pStrategy);
+    }
+  }
+
+  @Override
+  public Region replace(Region pRegion, Region[] pOldPredicates, Region[] pNewPredicates) {
+    synchronized (delegate) {
+      return delegate.replace(pRegion, pOldPredicates, pNewPredicates);
     }
   }
 }

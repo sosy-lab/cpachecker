@@ -57,21 +57,14 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 public class SMGJoinSubSMGsIntoGenericAbstraction {
 
   private final MachineModel machineModel;
-
   private final GenericAbstractionCandidateTemplate template;
   private final UnmodifiableSMG inputSMG1;
-
   private final UnmodifiableSMG inputSMG2;
-
   private final SMGObject rootObject1;
-
   private final SMGObject rootObject2;
-
-  private SMGNodeMapping mapping1;
-
-  private SMGNodeMapping mapping2;
-
-  private Map<SMGValue, List<GenericAbstractionCandidate>> previouslyMatched;
+  private final SMGNodeMapping mapping1;
+  private final SMGNodeMapping mapping2;
+  private final Map<SMGValue, List<GenericAbstractionCandidate>> previouslyMatched;
 
   public SMGJoinSubSMGsIntoGenericAbstraction(
       MachineModel pMachineModel,
@@ -149,7 +142,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       }
     }
 
-    int score = pMatchResult.getScore() > pMatchResult2.getScore() ? pMatchResult.getScore() : pMatchResult2.getScore();
+    int score = Math.max(pMatchResult.getScore(), pMatchResult2.getScore());
 
     MatchResult destres = builder.build();
 
@@ -535,7 +528,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
         return false;
       }
 
-      SMGEdgePointsToTemplate pointerEdgeTemplate = pointerEdgeTemplateOpt.get();
+      SMGEdgePointsToTemplate pointerEdgeTemplate = pointerEdgeTemplateOpt.orElseThrow();
 
       if(pointerEdgeTemplate.getOffset() != pointerEdge.getOffset()) {
         return false;

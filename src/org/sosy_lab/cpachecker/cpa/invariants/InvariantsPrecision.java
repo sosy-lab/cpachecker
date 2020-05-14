@@ -24,23 +24,17 @@
 package org.sosy_lab.cpachecker.cpa.invariants;
 
 import com.google.common.collect.ImmutableSet;
-import java.util.Collections;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
 
 public class InvariantsPrecision implements Precision {
 
   public static InvariantsPrecision getEmptyPrecision(
       AbstractionStrategy pAbstractionStrategy) {
     return new InvariantsPrecision(
-        Collections.<CFAEdge>emptySet(),
-        Collections.<MemoryLocation>emptySet(),
-        0,
-        pAbstractionStrategy,
-        false) {
+        ImmutableSet.of(), ImmutableSet.of(), 0, pAbstractionStrategy, false) {
 
       @Override
       public boolean isRelevant(CFAEdge pEdge) {

@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.evaluator;
 
 import static java.util.Collections.singletonList;
 
+import com.google.common.collect.ImmutableList;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,6 +58,7 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAd
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
@@ -64,7 +66,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGField;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
@@ -183,7 +184,7 @@ public class SMGExpressionEvaluator {
         if (fieldReference.isPointerDereference()) {
           newState = handleUnknownDereference(newState, cfaEdge).getSmgState();
         }
-        result.add(SMGAddressAndState.of(newState));
+        result.add(SMGAddressAndState.withUnknownAddress(newState));
       } else {
         SMGAddress addressOfFieldOwner = fieldOwnerAddress.getAddress();
         SMGExplicitValue fieldOffset = addressOfFieldOwner.add(field.getOffset()).getOffset();
@@ -201,7 +202,7 @@ public class SMGExpressionEvaluator {
       throws SMGInconsistentException, UnrecognizedCodeException {
 
     if (pOffset.isUnknown() || pObject == null) {
-      return SMGValueAndState.of(pSmgState);
+      return SMGValueAndState.withUnknownValue(pSmgState);
     }
 
     long fieldOffset = pOffset.getAsLong();
@@ -216,11 +217,14 @@ public class SMGExpressionEvaluator {
           + fieldOffset + ", " + pType.toASTString("") + ")"
           + " does not fit object " + pObject + ".");
 
-      return SMGValueAndState.of(pSmgState);
+      return SMGValueAndState.withUnknownValue(pSmgState);
     }
 
     // We don't want to modify the state while reading
-    SMGSymbolicValue value = pSmgState.readValue(pObject, fieldOffset, pType).getObject();
+    SMGSymbolicValue value =
+        pSmgState
+            .readValue(pObject, fieldOffset, machineModel.getSizeofInBits(pType).longValueExact())
+            .getObject();
 
     return SMGValueAndState.of(pSmgState, value);
   }
@@ -310,7 +314,7 @@ public class SMGExpressionEvaluator {
     ExplicitValueVisitor visitor = new ExplicitValueVisitor(this, smgState, null, machineModel, logger, cfaEdge);
 
     Value value = rValue.accept(visitor);
-    SMGState newState = visitor.getNewState();
+    SMGState newState = visitor.getState();
 
     if (!value.isExplicitlyKnown() || !value.isNumericValue()) {
 
@@ -351,7 +355,7 @@ public class SMGExpressionEvaluator {
       }
     }
 
-    return SMGExplicitValueAndState.of(newState);
+    return SMGExplicitValueAndState.of(newState, SMGUnknownValue.INSTANCE);
 
   }
 
@@ -444,19 +448,6 @@ public class SMGExpressionEvaluator {
     }
   }
 
-  @Deprecated // unused
-  public SMGAddressValue evaluateAddressV2(
-      SMGState newState, CFAEdge cfaEdge, CRightHandSide rValue) throws CPATransferException {
-
-    List<SMGAddressValueAndState> result = evaluateAddress(newState, cfaEdge, rValue);
-
-    if (result.size() == 1) {
-      return result.get(0).getObject();
-    } else {
-      return SMGUnknownValue.INSTANCE;
-    }
-  }
-
   List<SMGAddressValueAndState> handlePointerArithmetic(
       SMGState initialSmgState,
       CFAEdge cfaEdge,
@@ -473,7 +464,8 @@ public class SMGExpressionEvaluator {
       case PLUS:
       case MINUS: {
 
-        List<SMGAddressValueAndState> result = new ArrayList<>(4);
+        ImmutableList.Builder<SMGAddressValueAndState> result =
+            ImmutableList.builderWithExpectedSize(4);
 
           for (SMGAddressValueAndState addressValueAndState :
               evaluateAddress(initialSmgState, cfaEdge, address)) {
@@ -516,7 +508,7 @@ public class SMGExpressionEvaluator {
               result.addAll(createAddress(newState, target, newAddressOffset));
           }
         }
-          return result;
+        return result.build();
       }
 
       case EQUALS:
@@ -588,7 +580,7 @@ public class SMGExpressionEvaluator {
             newState = handleUnknownDereference(newState, cfaEdge).getSmgState();
           }
 
-          result.add(SMGAddressAndState.of(newState));
+          result.add(SMGAddressAndState.withUnknownAddress(newState));
           continue;
         }
 
@@ -685,11 +677,11 @@ public class SMGExpressionEvaluator {
       SMGState pSmgState, SMGObject pTarget, SMGExplicitValue pOffset)
       throws SMGInconsistentException {
     if (pTarget == null || pOffset.isUnknown()) {
+      // TODO how does this even work?
+      // This code looks like it causes NullPointer and IllegalStateException.
       return singletonList(
           SMGAddressValueAndState.of(
-              pSmgState,
-              SMGKnownAddressValue.valueOf(
-                  SMGKnownSymValue.of(), pTarget, (SMGKnownExpValue) pOffset)));
+              pSmgState, new SMGEdgePointsTo(SMGKnownSymValue.of(), pTarget, pOffset.getAsLong())));
     }
     if (pTarget instanceof SMGRegion) {
       SMGValue address = pSmgState.getAddress((SMGRegion) pTarget, pOffset.getAsLong());
@@ -697,8 +689,7 @@ public class SMGExpressionEvaluator {
         return singletonList(
             SMGAddressValueAndState.of(
                 pSmgState,
-                SMGKnownAddressValue.valueOf(
-                    SMGKnownSymValue.of(), pTarget, (SMGKnownExpValue) pOffset)));
+                new SMGEdgePointsTo(SMGKnownSymValue.of(), pTarget, pOffset.getAsLong())));
       }
       return pSmgState.getPointerFromValue(address);
     }
@@ -706,9 +697,7 @@ public class SMGExpressionEvaluator {
       // TODO return NULL_POINTER instead of new object?
       return singletonList(
           SMGAddressValueAndState.of(
-              pSmgState,
-              SMGKnownAddressValue.valueOf(
-                  SMGZeroValue.INSTANCE, pTarget, SMGKnownExpValue.valueOf(pOffset.getAsLong()))));
+              pSmgState, new SMGEdgePointsTo(SMGZeroValue.INSTANCE, pTarget, pOffset.getAsLong())));
     }
     throw new AssertionError("Abstraction " + pTarget + " was not materialised.");
   }
@@ -722,7 +711,7 @@ public class SMGExpressionEvaluator {
 
   /** @param edge the edge to handle */
   SMGValueAndState handleUnknownDereference(SMGState smgState, CFAEdge edge) {
-    return SMGValueAndState.of(smgState);
+    return SMGValueAndState.withUnknownValue(smgState);
   }
 
   private StructAndUnionVisitor getStructAndUnionVisitor(CFAEdge pCfaEdge, SMGState pNewState) {

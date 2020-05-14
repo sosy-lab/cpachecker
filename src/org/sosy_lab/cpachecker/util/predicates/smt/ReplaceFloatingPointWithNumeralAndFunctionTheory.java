@@ -52,6 +52,8 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   private final NumeralFormulaManager<? super T, T> numericFormulaManager;
 
   private final FunctionDeclaration<BooleanFormula> isSubnormalUfDecl;
+  private final FunctionDeclaration<BooleanFormula> isNormalUfDecl;
+  private final FunctionDeclaration<T> sqrtUfDecl;
   private final T zero;
   private final T nanVariable;
   private final T plusInfinityVariable;
@@ -68,8 +70,11 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
     functionManager = rawFunctionManager;
 
     FormulaType<T> formulaType = numericFormulaManager.getFormulaType();
-    isSubnormalUfDecl = functionManager.declareUF("__isSubnormal__", FormulaType.BooleanType,
-        formulaType);
+    isSubnormalUfDecl =
+        functionManager.declareUF("__isSubnormal__", FormulaType.BooleanType, formulaType);
+    isNormalUfDecl =
+        functionManager.declareUF("__isNormal__", FormulaType.BooleanType, formulaType);
+    sqrtUfDecl = functionManager.declareUF("sqrt", formulaType, formulaType);
 
     zero = numericFormulaManager.makeNumber(0);
     nanVariable = numericFormulaManager.makeVariable("__NaN__");
@@ -122,6 +127,11 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
       // both theories are represented with same type, so we can use the exact same formula
       @SuppressWarnings("unchecked")
       T2 result = (T2)pNumber;
+      return result;
+    } else if (type.isIntegerType() && pTargetType.isRationalType()) {
+      // integers can directly be used as rationals
+      @SuppressWarnings("unchecked")
+      T2 result = (T2) pNumber;
       return result;
     } else {
       FunctionDeclaration<T2> castFunction = functionManager.declareUF(
@@ -263,6 +273,7 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
   public BooleanFormula isNaN(FloatingPointFormula pNumber) {
     return numericFormulaManager.equal(unwrap(pNumber), nanVariable);
   }
+
   @Override
   public BooleanFormula isInfinity(FloatingPointFormula pNumber) {
     T number = unwrap(pNumber);
@@ -270,14 +281,25 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
         numericFormulaManager.equal(number, plusInfinityVariable),
         numericFormulaManager.equal(number, minusInfinityVariable));
   }
+
   @Override
   public BooleanFormula isZero(FloatingPointFormula pNumber) {
     return numericFormulaManager.equal(unwrap(pNumber), numericFormulaManager.makeNumber(0));
   }
+
+  @Override
+  public BooleanFormula isNegative(FloatingPointFormula pNumber) {
+    return numericFormulaManager.lessThan(unwrap(pNumber), numericFormulaManager.makeNumber(0));
+  }
+
   @Override
   public BooleanFormula isSubnormal(FloatingPointFormula pNumber) {
-    return functionManager.callUF(isSubnormalUfDecl,
-        ImmutableList.of(unwrap(pNumber)));
+    return functionManager.callUF(isSubnormalUfDecl, ImmutableList.of(unwrap(pNumber)));
+  }
+
+  @Override
+  public BooleanFormula isNormal(FloatingPointFormula pNumber) {
+    return functionManager.callUF(isNormalUfDecl, ImmutableList.of(unwrap(pNumber)));
   }
 
   @Override
@@ -351,5 +373,49 @@ class ReplaceFloatingPointWithNumeralAndFunctionTheory<T extends NumeralFormula>
     FunctionDeclaration<T> roundFunction =
         functionManager.declareUF("__round_" + pRoundingMode, type, type);
     return wrap(getFormulaType(pNumber), functionManager.callUF(roundFunction, unwrap(pNumber)));
+  }
+
+  @Override
+  public FloatingPointFormula abs(FloatingPointFormula pNumber) {
+    T number = unwrap(pNumber);
+    return wrap(
+        getFormulaType(pNumber),
+        booleanManager.ifThenElse(
+            numericFormulaManager.greaterOrEquals(numericFormulaManager.makeNumber(0), number),
+            number,
+            numericFormulaManager.negate(number)));
+  }
+
+  @Override
+  public FloatingPointFormula max(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
+    T number1 = unwrap(pNumber1);
+    T number2 = unwrap(pNumber2);
+    return wrap(
+        getFormulaType(pNumber1),
+        booleanManager.ifThenElse(
+            numericFormulaManager.greaterOrEquals(number1, number2), number1, number2));
+  }
+
+  @Override
+  public FloatingPointFormula min(FloatingPointFormula pNumber1, FloatingPointFormula pNumber2) {
+    T number1 = unwrap(pNumber1);
+    T number2 = unwrap(pNumber2);
+    return wrap(
+        getFormulaType(pNumber1),
+        booleanManager.ifThenElse(
+            numericFormulaManager.greaterOrEquals(number1, number2), number2, number1));
+  }
+
+  @Override
+  public FloatingPointFormula sqrt(FloatingPointFormula pNumber) {
+    return wrap(
+        getFormulaType(pNumber),
+        functionManager.callUF(sqrtUfDecl, ImmutableList.of(unwrap(pNumber))));
+  }
+
+  @Override
+  public FloatingPointFormula sqrt(
+      FloatingPointFormula pNumber, FloatingPointRoundingMode pRoundingMode) {
+    return sqrt(pNumber);
   }
 }

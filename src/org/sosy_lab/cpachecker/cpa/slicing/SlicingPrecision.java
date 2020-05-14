@@ -24,6 +24,7 @@
 package org.sosy_lab.cpachecker.cpa.slicing;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
@@ -118,7 +119,9 @@ public class SlicingPrecision implements WrapperPrecision  {
   }
 
   @Override
-  public boolean equals(Object pO) {
+  // refactoring would be better, but currently safe for the existing subclass
+  @SuppressWarnings("EqualsGetClass")
+  public final boolean equals(Object pO) {
     if (this == pO) {
       return true;
     }
@@ -131,7 +134,7 @@ public class SlicingPrecision implements WrapperPrecision  {
   }
 
   @Override
-  public int hashCode() {
+  public final int hashCode() {
     return Objects.hash(wrappedPrec, relevantEdges);
   }
 
@@ -149,7 +152,7 @@ public class SlicingPrecision implements WrapperPrecision  {
   public static class FullPrecision extends SlicingPrecision {
 
     public FullPrecision(final Precision pWrappedPrec) {
-      super(pWrappedPrec, Collections.emptySet());
+      super(pWrappedPrec, ImmutableSet.of());
     }
 
     @Override

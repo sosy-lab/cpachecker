@@ -41,6 +41,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
@@ -165,7 +166,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
   // This boolean is for keeping track of when this shortcut is allowed:
   private Boolean mayShortcutSlicing = null;
 
-  private HashMap<ARGState,ARGState> forkedStateMap;
+  private Map<ARGState, ARGState> forkedStateMap;
 
   public SlicingAbstractionsStrategy(final PredicateCPA pPredicateCpa, final Configuration config)
       throws InvalidConfigurationException {
@@ -271,7 +272,9 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       // TODO: refactor so that the caller provides the full abstractionStatesTrace including the
       // root state. Then handling more than one root state would be no problem.
       rootState =
-          rootStates.stream().reduce((x, y) -> x.getStateId() < y.getStateId() ? x : y).get();
+          rootStates.stream()
+              .reduce((x, y) -> x.getStateId() < y.getStateId() ? x : y)
+              .orElseThrow();
       logger.log(
           Level.INFO,
           String.format(
@@ -414,7 +417,6 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       Map<ARGState, List<ARGState>> segmentMap =
           SlicingAbstractionsUtils.calculateOutgoingSegments(currentState);
       Map<ARGState, Boolean> infeasibleMap = new HashMap<>();
-      Set<ARGState> segmentStateSet = new HashSet<>();
       for (Map.Entry<ARGState,List<ARGState>> entry : segmentMap.entrySet()) {
         ARGState key = entry.getKey();
         List<ARGState> segment = entry.getValue();
@@ -434,45 +436,55 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
         }
 
         infeasibleMap.put(key, infeasible);
-        segmentStateSet.addAll(segment);
       }
-      for (Map.Entry<ARGState, Boolean> entry : infeasibleMap.entrySet()) {
-        ARGState key = entry.getKey();
-        boolean isInfeasible = entry.getValue();
-        List<ARGState> segment = segmentMap.get(key);
-        if (!isInfeasible) {
-          segmentStateSet.removeAll(segment);
-        } else {
-          if (key.getParents().contains(currentState)) {
-            // checking for segement.size()==0 would not be enough, because we could also
-            // have this:
-            // 1-->A-->2
-            // |       ^
-            // \-------|
-            key.removeParent(currentState); // this removes 1->2 in the above example
-          }
-          if (!Collections.disjoint(key.getParents(), segment)) {
-            // Consider the following case, where abstraction states have numbers and
-            // non-abstractions
-            // states are shown as letters:
-            // 1-->A-->2
-            //     \-->3
-            // if 1~>3 is infeasible, but 1~>2 is not, we cannot remove A, so we need to cut A->3:
-            for (ARGState s :
-                Sets.intersection(Sets.newHashSet(key.getParents()), Sets.newHashSet(segment))) {
-              key.removeParent(s); // this is the cut of A->3 in the example of the comment above
-            }
-          }
-        }
-      }
-
-      for (ARGState toRemove : segmentStateSet) {
-        detachFromParentsInARG(toRemove);
-      }
+      slice0(currentState, segmentMap, infeasibleMap);
     }
   }
 
-  private void detachFromParentsInARG(final ARGState toRemove) {
+  private static void slice0(
+      ARGState currentState,
+      Map<ARGState, List<ARGState>> segmentMap,
+      Map<ARGState, Boolean> infeasibleMap) {
+    Set<ARGState> segmentStateSet = new HashSet<>();
+    for (List<ARGState> segment : segmentMap.values()) {
+      segmentStateSet.addAll(segment);
+    }
+    for (Map.Entry<ARGState, Boolean> entry : infeasibleMap.entrySet()) {
+      ARGState key = entry.getKey();
+      boolean isInfeasible = entry.getValue();
+      List<ARGState> segment = segmentMap.get(key);
+      if (!isInfeasible) {
+        segmentStateSet.removeAll(segment);
+      } else {
+        if (key.getParents().contains(currentState)) {
+          // checking for segement.size()==0 would not be enough, because we could also
+          // have this:
+          // 1-->A-->2
+          // |       ^
+          // \-------|
+          key.removeParent(currentState); // this removes 1->2 in the above example
+        }
+        if (!Collections.disjoint(key.getParents(), segment)) {
+          // Consider the following case, where abstraction states have numbers and
+          // non-abstractions
+          // states are shown as letters:
+          // 1-->A-->2
+          //     \-->3
+          // if 1~>3 is infeasible, but 1~>2 is not, we cannot remove A, so we need to cut A->3:
+          for (ARGState s :
+              Sets.intersection(new HashSet<>(key.getParents()), new HashSet<>(segment))) {
+            key.removeParent(s); // this is the cut of A->3 in the example of the comment above
+          }
+        }
+      }
+    }
+
+    for (ARGState toRemove : segmentStateSet) {
+      detachFromParentsInARG(toRemove);
+    }
+  }
+
+  private static void detachFromParentsInARG(final ARGState toRemove) {
     // avoid concurrent modification by making a copy:
     for (ARGState parent : ImmutableList.copyOf(toRemove.getParents())) {
       toRemove.removeParent(parent);
@@ -584,32 +596,32 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     for (int i = 0; i< abstractionStatesTrace.size()-1; i++) {
       ARGState currentState = abstractionStatesTrace.get(i);
       ARGState nextState = abstractionStatesTrace.get(i+1);
-      if (currentState == parent) {
+      if (currentState.equals(parent)) {
         ARGState s = forkedStateMap.get(nextState);
-        if (s == child && pChangedElements.contains(nextState)) {
+        if (Objects.equals(s, child) && pChangedElements.contains(nextState)) {
           return true;
         }
       }
     }
 
     // root state needs special treatment:
-    if (parent == rootState) {
+    if (Objects.equals(parent, rootState)) {
       ARGState firstAfterRoot = abstractionStatesTrace.get(0);
       ARGState s = forkedStateMap.get(firstAfterRoot);
-      if (s == child &&  pChangedElements.contains(firstAfterRoot)) {
+      if (Objects.equals(s, child) && pChangedElements.contains(firstAfterRoot)) {
         return true;
       }
     }
 
     // beginning of infeasible part at end of trace needs special treatment:
-    if (infeasiblePartOfART == child) {
+    if (Objects.equals(infeasiblePartOfART, child)) {
       int i = abstractionStatesTrace.indexOf(infeasiblePartOfART);
       if (i>0) {
-        if (abstractionStatesTrace.get(i-1) == parent) {
+        if (Objects.equals(abstractionStatesTrace.get(i - 1), parent)) {
           return true;
         }
       } else {
-        if (parent == rootState) {
+        if (Objects.equals(parent, rootState)) {
           return true;
         }
       }

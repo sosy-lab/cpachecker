@@ -34,7 +34,6 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Queues;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.graph.Traverser;
 import java.util.ArrayDeque;
@@ -128,11 +127,11 @@ public class CFAUtils {
    */
   public static FluentIterable<CFAEdge> allEnteringEdges(final CFANode node) {
     checkNotNull(node);
-    return new FluentIterable<CFAEdge>() {
+    return new FluentIterable<>() {
 
       @Override
       public Iterator<CFAEdge> iterator() {
-        return new UnmodifiableIterator<CFAEdge>() {
+        return new UnmodifiableIterator<>() {
 
           // the index of the next edge (-1 means the summary edge)
           private int i = (node.getEnteringSummaryEdge() != null) ? -1 : 0;
@@ -161,11 +160,11 @@ public class CFAUtils {
    */
   public static FluentIterable<CFAEdge> enteringEdges(final CFANode node) {
     checkNotNull(node);
-    return new FluentIterable<CFAEdge>() {
+    return new FluentIterable<>() {
 
       @Override
       public Iterator<CFAEdge> iterator() {
-        return new UnmodifiableIterator<CFAEdge>() {
+        return new UnmodifiableIterator<>() {
 
           // the index of the next edge
           private int i = 0;
@@ -190,11 +189,11 @@ public class CFAUtils {
    */
   public static FluentIterable<CFAEdge> allLeavingEdges(final CFANode node) {
     checkNotNull(node);
-    return new FluentIterable<CFAEdge>() {
+    return new FluentIterable<>() {
 
       @Override
       public Iterator<CFAEdge> iterator() {
-        return new UnmodifiableIterator<CFAEdge>() {
+        return new UnmodifiableIterator<>() {
 
           // the index of the next edge (-1 means the summary edge)
           private int i = (node.getLeavingSummaryEdge() != null) ? -1 : 0;
@@ -223,11 +222,11 @@ public class CFAUtils {
    */
   public static FluentIterable<CFAEdge> leavingEdges(final CFANode node) {
     checkNotNull(node);
-    return new FluentIterable<CFAEdge>() {
+    return new FluentIterable<>() {
 
       @Override
       public Iterator<CFAEdge> iterator() {
-        return new UnmodifiableIterator<CFAEdge>() {
+        return new UnmodifiableIterator<>() {
 
           // the index of the next edge
           private int i = 0;
@@ -433,7 +432,7 @@ public class CFAUtils {
    */
   public static Iterable<List<CFANode>> getBlankPaths(CFANode pNode) {
     List<List<CFANode>> blankPaths = new ArrayList<>();
-    Queue<List<CFANode>> waitlist = Queues.newArrayDeque();
+    Queue<List<CFANode>> waitlist = new ArrayDeque<>();
     waitlist.offer(ImmutableList.of(pNode));
     while (!waitlist.isEmpty()) {
       List<CFANode> currentPath = waitlist.poll();
@@ -485,8 +484,8 @@ public class CFAUtils {
   public static Set<FileLocation> getFileLocationsFromCfaEdge(CFAEdge pEdge) {
     Set<FileLocation> result =
         from(getAstNodesFromCfaEdge(pEdge))
-            .transformAndConcat(node -> traverseRecursively((CAstNode) node))
-            .transform(CAstNode::getFileLocation)
+            .transformAndConcat(node -> traverseRecursively(node))
+            .transform(AAstNode::getFileLocation)
             .copyInto(new HashSet<>());
 
     result.add(pEdge.getFileLocation());

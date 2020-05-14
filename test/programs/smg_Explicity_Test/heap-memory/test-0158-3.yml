@@ -1,0 +1,9 @@
+format_version: '1.0'
+
+# old file name: test-0158_false-valid-memtrack.c
+input_files: 'test-0158-3.c'
+
+properties:
+  - property_file: ../../../config/properties/valid-memsafety.prp
+    expected_verdict: false
+    subproperty: valid-memtrack

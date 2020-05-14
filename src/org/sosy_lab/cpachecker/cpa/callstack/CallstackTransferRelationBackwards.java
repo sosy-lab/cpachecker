@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.callstack;
 
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.logging.Level;
@@ -87,7 +88,7 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
       if (pEdge instanceof CFunctionSummaryStatementEdge) {
         if (!shouldGoByFunctionSummaryStatement(e, (CFunctionSummaryStatementEdge) pEdge)) {
           // should go by function call and skip the current edge
-          return Collections.emptySet();
+          return ImmutableSet.of();
         }
         // otherwise use this edge just like a normal edge
       }
@@ -103,17 +104,16 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
                 Level.WARNING, "Skipping recursive function call from",
                 prevAnalysisFunction, "to", nextAnalysisFunction);
 
-            return Collections.emptySet();
+            return ImmutableSet.of();
           } else {
             logger.log(Level.INFO, "Recursion detected, aborting. To ignore recursion, add -skipRecursion to the command line.");
               throw new UnsupportedCodeException("recursion", pEdge);
           }
 
         } else {
-          // BACKWARDS: Build the stack on the function-return edge (add element to the stack)
-          return Collections.singleton(new CallstackState(e,
-              nextAnalysisFunction,
-              correspondingCallNode));
+            // BACKWARDS: Build the stack on the function-return edge (add element to the stack)
+            return ImmutableSet.of(
+                new CallstackState(e, nextAnalysisFunction, correspondingCallNode));
         }
       }
 
@@ -144,7 +144,7 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
         } else if (e.getCallNode().equals(nextAnalysisLoc)) {
           result = Collections.singleton(nextStackState);
         } else {
-          result = Collections.emptySet();
+          result = ImmutableSet.of();
         }
 
         return result;

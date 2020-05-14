@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -61,7 +60,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
-
 
 public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
   ARGBasedRefiner refiner;
@@ -101,12 +99,12 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
 
     BlockFormulaStrategy blockFormulaStrategy = new BAMBlockFormulaStrategy(pfmgr);
 
-    strategy = new UsageStatisticsRefinementStrategy(
-                                          predicateCpa.getConfiguration(),
-                                          logger,
-                                          predicateCpa,
-                                          predicateCpa.getSolver(),
-                                          predicateCpa.getPredicateManager());
+    strategy =
+        new UsageStatisticsRefinementStrategy(
+            predicateCpa.getConfiguration(),
+            logger,
+            predicateCpa.getSolver(),
+            predicateCpa.getPredicateManager());
 
     refiner = new PredicateCPARefinerFactory(pCpa)
         .setBlockFormulaStrategy(blockFormulaStrategy)
@@ -117,13 +115,13 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
   public RefinementResult call(ExtendedARGPath pInput) throws CPAException, InterruptedException {
     RefinementResult result;
 
-    Set<CFAEdge> currentPath = Sets.newHashSet(pInput.getInnerEdges());
+    Set<CFAEdge> currentPath = new HashSet<>(pInput.getInnerEdges());
 
     if (trueCache.contains(currentPath)) {
       //Somewhen we have already refined this path as true
       result = RefinementResult.createTrue();
     } else {
-      Set<CFAEdge> edgeSet = Sets.newHashSet(currentPath);
+      Set<CFAEdge> edgeSet = new HashSet<>(currentPath);
       if (falseCache.containsKey(edgeSet)) {
         PredicatePrecision previousPreds = falseCache.get(edgeSet);
         Precision currentPrecision = getCurrentPrecision();
@@ -177,7 +175,7 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
     try {
       numberOfrefinedPaths.inc();
       CounterexampleInfo cex = refiner.performRefinementForPath(ARGReached, path);
-      Set<CFAEdge> edgeSet = Sets.newHashSet(path.getInnerEdges());
+      Set<CFAEdge> edgeSet = new HashSet<>(path.getInnerEdges());
 
       if (!cex.isSpurious()) {
         trueCache.add(edgeSet);
@@ -263,10 +261,9 @@ public class PredicateRefinerAdapter extends GenericSinglePathRefiner {
     private PredicatePrecision lastAddedPrecision;
 
     public UsageStatisticsRefinementStrategy(final Configuration config, final LogManager logger,
-        final BAMPredicateCPA predicateCpa,
         final Solver pSolver,
         final PredicateAbstractionManager pPredAbsMgr) throws InvalidConfigurationException {
-      super(config, logger, predicateCpa, pSolver, pPredAbsMgr);
+      super(config, logger, pSolver, pPredAbsMgr);
     }
 
     @Override

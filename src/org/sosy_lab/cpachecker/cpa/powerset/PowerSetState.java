@@ -76,13 +76,13 @@ public class PowerSetState implements AbstractWrapperState, Targetable {
 
   @Override
   public boolean isTarget() {
-    return Iterables.any(setOfStates, AbstractStates.IS_TARGET_STATE);
+    return Iterables.any(setOfStates, AbstractStates::isTargetState);
   }
 
   @Override
   public @NonNull Set<Property> getViolatedProperties() throws IllegalStateException {
     return FluentIterable.from(setOfStates)
-        .filter(AbstractStates.IS_TARGET_STATE)
+        .filter(AbstractStates::isTargetState)
         .transformAndConcat(s -> ((Targetable) s).getViolatedProperties())
         .toSet();
   }

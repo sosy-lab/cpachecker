@@ -29,6 +29,7 @@ import static org.sosy_lab.java_smt.api.FunctionDeclarationKind.UF;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -41,6 +42,7 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaManager;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
+import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
 import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 
@@ -84,7 +86,7 @@ class NonLinearMultiplicationElimination extends BooleanFormulaTransformationVis
         FormulaManagerView pFmgrView, FormulaManager pFmgr) {
       fmgrView = pFmgrView;
       fmgr = pFmgr;
-      additionalAxioms = Lists.newArrayList();
+      additionalAxioms = new ArrayList<>();
     }
 
     public Collection<BooleanFormula> getAdditionalAxioms() {
@@ -129,6 +131,17 @@ class NonLinearMultiplicationElimination extends BooleanFormulaTransformationVis
             }
 
             @Override
+            public TraversalProcess visitFunction(
+                Formula pFormula,
+                List<Formula> pArgs,
+                FunctionDeclaration<?> pFunctionDeclaration) {
+              if (pFunctionDeclaration.getKind().equals(FunctionDeclarationKind.UMINUS)) {
+                return TraversalProcess.CONTINUE;
+              }
+              return TraversalProcess.ABORT;
+            }
+
+            @Override
             public TraversalProcess visitConstant(Formula pFormula, Object pValue) {
               return TraversalProcess.CONTINUE;
             }
@@ -154,7 +167,7 @@ class NonLinearMultiplicationElimination extends BooleanFormulaTransformationVis
               formulaType,
               TERMINATION_AUX_VARS_PREFIX + "MULT_AUX_VAR_" + ID_GENERATOR.getFreshId());
 
-      List<BooleanFormula> cases = Lists.newArrayList();
+      List<BooleanFormula> cases = new ArrayList<>();
       Formula one = fmgrView.makeNumber(formulaType, 1);
       Formula minusOne = fmgrView.makeNumber(formulaType, -1);
       Formula zero = fmgrView.makeNumber(formulaType, 0);

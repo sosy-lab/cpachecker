@@ -24,10 +24,9 @@
 package org.sosy_lab.cpachecker.util.blocking;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.junit.Assert.assertEquals;
+import static org.sosy_lab.cpachecker.cfa.model.CFANode.newDummyCFANode;
 
 import org.junit.Test;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 @SuppressWarnings("unused")
 public class ReducedFunctionTest {
@@ -65,21 +64,21 @@ public class ReducedFunctionTest {
 
   @Test
   public void testUltimate() {
-    ReducedNode entryNode = new ReducedNode(new CFANode("test"), false);
-    ReducedNode exitNode = new ReducedNode(new CFANode( "test"), false);
+    ReducedNode entryNode = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode exitNode = new ReducedNode(newDummyCFANode("test"), false);
 
-    ReducedNode n4 = new ReducedNode(new CFANode("loophead"), false);
-    ReducedNode n5 = new ReducedNode(new CFANode("test"), false);
-    ReducedNode n6 = new ReducedNode(new CFANode("test"), false);
-    ReducedNode n7 = new ReducedNode(new CFANode("test"), false);
-    ReducedNode n8 = new ReducedNode(new CFANode("test"), false);
-    ReducedNode n9 = new ReducedNode(new CFANode("test"), false);
-    ReducedNode n20 = new ReducedNode(new CFANode("test"), false);
-    ReducedNode n21 = new ReducedNode(new CFANode("test"), false);
-    ReducedNode n22 = new ReducedNode(new CFANode("test"), false);
-    ReducedNode n23 = new ReducedNode(new CFANode("test"), false);
-    ReducedNode n24 = new ReducedNode(new CFANode("test"), false);
-    ReducedNode n25 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n4 = new ReducedNode(newDummyCFANode("loophead"), false);
+    ReducedNode n5 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n6 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n7 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n8 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n9 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n20 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n21 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n22 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n23 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n24 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n25 = new ReducedNode(newDummyCFANode("test"), false);
 
     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 
@@ -141,8 +140,8 @@ public class ReducedFunctionTest {
     funct.addEdge(entryNode, exitNode);
     funct.addEdge(entryNode, exitNode);
 
-    assertEquals(2, funct.getNumLeavingEdges(entryNode));
-    assertEquals(2, funct.getNumEnteringEdges(exitNode));
+    assertThat(funct.getNumLeavingEdges(entryNode)).isEqualTo(2);
+    assertThat(funct.getNumEnteringEdges(exitNode)).isEqualTo(2);
   }
 
 }

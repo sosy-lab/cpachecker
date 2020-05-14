@@ -24,14 +24,15 @@
 package org.sosy_lab.cpachecker.util.refinement;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -43,8 +44,10 @@ import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.io.IO;
@@ -75,15 +78,11 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
    */
   private int interpolationCounter = 0;
 
-  /**
-   * the predecessor relation of the states contained in this tree
-   */
-  private final Map<ARGState, ARGState> predecessorRelation = Maps.newLinkedHashMap();
+  /** the predecessor relation of the states contained in this tree */
+  private final Map<ARGState, ARGState> predecessorRelation = new LinkedHashMap<>();
 
-  /**
-   * the successor relation of the states contained in this tree
-   */
-  private final ListMultimap<ARGState, ARGState> successorRelation = ArrayListMultimap.create();
+  /** the successor relation of the states contained in this tree */
+  private final ListMultimap<ARGState, ARGState> successorRelation = LinkedListMultimap.create();
 
   /**
    * the mapping from state to the identified interpolants
@@ -201,7 +200,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
    * This method extracts all targets states from the target paths.
    */
   private Set<ARGState> extractTargets(final Collection<ARGPath> targetsPaths) {
-    return FluentIterable.from(targetsPaths).transform(ARGPath::getLastState).toSet();
+    return transformedImmutableSetCopy(targetsPaths, ARGPath::getLastState);
   }
 
   public ARGState getRoot() {
@@ -224,35 +223,22 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
    * @param file file the file to write to
    */
   public void exportToDot(PathTemplate file, long refinementCounter) {
-    StringBuilder result = new StringBuilder().append("digraph tree {" + "\n");
+    StringBuilder result = new StringBuilder("digraph tree {" + "\n");
     for (Map.Entry<ARGState, ARGState> current : successorRelation.entries()) {
-      if (interpolants.containsKey(current.getKey())) {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append("itp is " + interpolants.get(current.getKey()));
-
-        result.append(
-            current.getKey().getStateId()
-                + " [label=\""
-                + (current.getKey().getStateId()
-                    + " / "
-                    + AbstractStates.extractLocation(current.getKey()))
-                + " has itp "
-                + sb.toString()
-                + "\"]"
-                + "\n");
-        result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");// + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
-
-      } else {
-        result.append(current.getKey().getStateId() + " [label=\"" + current.getKey().getStateId() + " has itp NA\"]" + "\n");
-        result.append(current.getKey().getStateId() + " -> " + current.getValue().getStateId() + "\n");// + " [label=\"" + current.getKey().getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
-      }
-
+      final ARGState parent = current.getKey();
+      String interpolant =
+          interpolants.containsKey(parent) ? interpolants.get(parent).toString() : "NA";
+      result.append(
+          parent.getStateId()
+              + String.format(
+                  " [label=\"%d / %s has itp %s\"]%n",
+                  parent.getStateId(), AbstractStates.extractLocation(parent), interpolant));
+      result.append(parent.getStateId() + " -> " + current.getValue().getStateId() + "\n");
+      // + " [label=\"" + parent.getEdgeToChild(current.getValue()).getRawStatement().replace("\n", "") + "\"]\n");
       if (current.getValue().isTarget()) {
         result.append(current.getValue().getStateId() + " [style=filled, fillcolor=\"red\"]" + "\n");
       }
-
-      assert (!current.getKey().isTarget());
+      assert (!parent.isTarget());
     }
     result.append("}");
 
@@ -308,11 +294,10 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
    * @return the precision increment for the given refinement root
    */
   public Multimap<CFANode, MemoryLocation> extractPrecisionIncrement(ARGState pRefinementRoot) {
-    Multimap<CFANode, MemoryLocation> increment = HashMultimap.create();
+    Multimap<CFANode, MemoryLocation> increment = LinkedHashMultimap.create();
 
-    Deque<ARGState> todo =
-        new ArrayDeque<>(Collections.singleton(predecessorRelation.get(pRefinementRoot)));
-
+    Deque<ARGState> todo = new ArrayDeque<>();
+    todo.add(predecessorRelation.get(pRefinementRoot));
     while (!todo.isEmpty()) {
       final ARGState currentState = todo.removeFirst();
 
@@ -332,24 +317,25 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
   }
 
   /**
-   * This method obtains the refinement roots, i.e., for each disjunct path from target states
-   * to the root, it collects the highest state that has a non-trivial interpolant associated.
-   * With non-lazy abstraction, the root of the interpolation tree is used as refinement root.
+   * This method obtains the refinement roots, i.e., for each disjunct path from target states to
+   * the root, it collects the highest state that has a non-trivial interpolant associated. With
+   * non-lazy abstraction, the root of the interpolation tree is used as refinement root.
    *
    * @param pStrategy whether to perform lazy abstraction or not
    * @return the set of refinement roots
    */
-  public Collection<ARGState> obtainRefinementRoots(GenericRefiner.RestartStrategy pStrategy) {
+  public ImmutableSet<ARGState> obtainRefinementRoots(GenericRefiner.RestartStrategy pStrategy) {
     if (pStrategy == GenericRefiner.RestartStrategy.ROOT) {
       assert successorRelation.get(root).size() == 1 : "ARG root has more than one successor";
-      return new HashSet<>(Collections.singleton(successorRelation.get(root).iterator().next()));
+      return ImmutableSet.of(successorRelation.get(root).iterator().next());
     }
 
     ARGState commonRoot = null;
 
-    Collection<ARGState> refinementRoots = new HashSet<>();
+    Collection<ARGState> refinementRoots = new LinkedHashSet<>();
 
-    Deque<ARGState> todo = new ArrayDeque<>(Collections.singleton(root));
+    Deque<ARGState> todo = new ArrayDeque<>();
+    todo.add(root);
     while (!todo.isEmpty()) {
       final ARGState currentState = todo.removeFirst();
 
@@ -363,16 +349,15 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
 
         if (pStrategy == GenericRefiner.RestartStrategy.COMMON && refinementRoots.size() > 2) {
           assert commonRoot != null: "common root not yet set";
-          return new HashSet<>(Collections.singleton(commonRoot));
+          return ImmutableSet.of(commonRoot);
         }
         continue;
       }
 
-      Collection<ARGState> successors = successorRelation.get(currentState);
-      todo.addAll(successors);
+      todo.addAll(successorRelation.get(currentState));
     }
 
-    return refinementRoots;
+    return ImmutableSet.copyOf(refinementRoots);
   }
 
   /**
@@ -385,7 +370,8 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
   public Collection<ARGState> obtainCutOffRoots() {
     Collection<ARGState> refinementRoots = new HashSet<>();
 
-    Deque<ARGState> todo = new ArrayDeque<>(Collections.singleton(root));
+    Deque<ARGState> todo = new ArrayDeque<>();
+    todo.add(root);
     while (!todo.isEmpty()) {
       final ARGState currentState = todo.removeFirst();
 
@@ -395,8 +381,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
 
       }
 
-      Collection<ARGState> successors = successorRelation.get(currentState);
-      todo.addAll(successors);
+      todo.addAll(successorRelation.get(currentState));
     }
 
     return refinementRoots;
@@ -411,7 +396,8 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
   public Collection<ARGState> getTargetsInSubtree(ARGState state) {
     Collection<ARGState> targetStates = new HashSet<>();
 
-    Deque<ARGState> todo = new ArrayDeque<>(Collections.singleton(state));
+    Deque<ARGState> todo = new ArrayDeque<>();
+    todo.add(state);
     while (!todo.isEmpty()) {
       final ARGState currentState = todo.removeFirst();
 
@@ -420,8 +406,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
         continue;
       }
 
-      Collection<ARGState> successors = successorRelation.get(currentState);
-      todo.addAll(successors);
+      todo.addAll(successorRelation.get(currentState));
     }
 
     return targetStates;
@@ -521,7 +506,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
 
       // if the current state is not the root, it is a child of a branch , however, the path should not start with the
       // child, but with the branching node (children are stored on the stack because this needs less book-keeping)
-      if (current != root) {
+      if (!Objects.equals(current, root)) {
         errorPathBuilder.add(predecessorRelation.get(current), predecessorRelation.get(current).getEdgeToChild(current));
       }
 

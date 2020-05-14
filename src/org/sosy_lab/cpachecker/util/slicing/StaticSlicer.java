@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.slicing;
 
+import com.google.common.collect.ImmutableList;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -57,10 +57,11 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
  *
  * <p>For a given slicing criterion CFA edge g and a dependence graph, the slice consists of all CFA
  * edges reachable in the dependence graph through backwards-traversal from g.
+ *
+ * @see SlicerFactory
  */
-@Options(prefix = "programSlice")
+@Options(prefix = "slicing")
 public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
-
 
   @Option(secure = true, name = "preserveTargetPaths",
       description = "Whether to create slices that are behaviorally equivalent not only to "
@@ -74,34 +75,38 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
   private StatInt sliceCount = new StatInt(StatKind.SUM, "Number of slicing procedures");
   private StatTimer slicingTime = new StatTimer(StatKind.SUM, "Time needed for slicing");
 
-  public StaticSlicer(
-      LogManager pLogger, ShutdownNotifier pShutdownNotifier, Configuration pConfig,
-      DependenceGraph pDependenceGraph) throws InvalidConfigurationException {
-    super(pLogger, pShutdownNotifier);
+  StaticSlicer(
+      SlicingCriteriaExtractor pExtractor,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      Configuration pConfig,
+      CFA pCfa)
+      throws InvalidConfigurationException {
+    super(pExtractor, pLogger, pShutdownNotifier, pConfig);
 
     pConfig.inject(this);
 
-    depGraph = pDependenceGraph;
+    depGraph =
+        pCfa.getDependenceGraph()
+            .orElseThrow(
+                () -> new InvalidConfigurationException("Dependence graph required, but missing"));
+
   }
 
   @Override
-  public Set<CFAEdge> getRelevantEdges(CFA pCfa, Collection<CFAEdge> pSlicingCriteria)
+  public Slice getSlice0(CFA pCfa, Collection<CFAEdge> pSlicingCriteria)
       throws InterruptedException {
     candidateSliceCount.setNextValue(pSlicingCriteria.size());
     int realSlices = 0;
     slicingTime.start();
     Set<CFAEdge> relevantEdges = new HashSet<>();
     try {
-
-      List<CFAEdge> criteriaEdges = new ArrayList<>(pSlicingCriteria);
-
       // Heuristic: Reverse to make states that are deeper in the path first - these
       // have a higher chance of including earlier states in their dependences
-      criteriaEdges.sort(
-          (f, s) ->
-              Integer.compare(
-                  f.getPredecessor().getReversePostorderId(),
-                  s.getPredecessor().getReversePostorderId()));
+      ImmutableList<CFAEdge> criteriaEdges =
+          ImmutableList.sortedCopyOf(
+              Comparator.comparingInt(edge -> edge.getPredecessor().getReversePostorderId()),
+              pSlicingCriteria);
 
       for (CFAEdge g : criteriaEdges) {
         if (relevantEdges.contains(g)) {
@@ -133,12 +138,13 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
         }
       }
 
+      final Slice slice = new Slice(pCfa, relevantEdges, pSlicingCriteria);
+      slicingTime.stop();
+      return slice;
 
     } finally {
       sliceCount.setNextValue(realSlices);
     }
-    slicingTime.stop();
-    return relevantEdges;
   }
 
   @Override

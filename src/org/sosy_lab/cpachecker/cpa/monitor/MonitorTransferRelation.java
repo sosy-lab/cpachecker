@@ -24,8 +24,18 @@
 package org.sosy_lab.cpachecker.cpa.monitor;
 
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-
+import java.util.Collection;
+import java.util.Collections;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -43,18 +53,6 @@ import org.sosy_lab.cpachecker.cpa.monitor.MonitorState.TimeoutState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.assumptions.PreventingHeuristic;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 @Options(prefix="cpa.monitor")
 public class MonitorTransferRelation extends SingleEdgeTransferRelation {
@@ -101,7 +99,7 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
 
     if (element.getWrappedState() == TimeoutState.INSTANCE) {
       // cannot compute a successor
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     totalTimeOfTransfer.start();
@@ -158,7 +156,7 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
 
     //     return if there are no successors
     if (successors.isEmpty()) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     // check for violation of limits
@@ -167,19 +165,23 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // wrap elements
-    List<MonitorState> wrappedSuccessors = new ArrayList<>(successors.size());
+    ImmutableList.Builder<MonitorState> wrappedSuccessors =
+        ImmutableList.builderWithExpectedSize(successors.size());
     for (AbstractState absElement : successors) {
       MonitorState successorElem = new MonitorState(absElement, totalTimeOnPath, preventingCondition);
 
       wrappedSuccessors.add(successorElem);
     }
-    return wrappedSuccessors;
+    return wrappedSuccessors.build();
   }
 
   @Override
-  public Collection<? extends AbstractState> strengthen(AbstractState pElement,
-      final List<AbstractState> otherElements, final CFAEdge cfaEdge,
-      final Precision precision) throws CPATransferException, InterruptedException {
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState pElement,
+      final Iterable<AbstractState> otherElements,
+      final CFAEdge cfaEdge,
+      final Precision precision)
+      throws CPATransferException, InterruptedException {
     final MonitorState element = (MonitorState)pElement;
 
     if (element.getWrappedState() == TimeoutState.INSTANCE) {
@@ -245,7 +247,7 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
 
     // return if there are no successors
     if (successors.isEmpty()) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     // no need to update path length information here
@@ -258,14 +260,15 @@ public class MonitorTransferRelation extends SingleEdgeTransferRelation {
     }
 
     // wrap elements
-    List<MonitorState> wrappedSuccessors = new ArrayList<>(successors.size());
+    ImmutableList.Builder<MonitorState> wrappedSuccessors =
+        ImmutableList.builderWithExpectedSize(successors.size());
     for (AbstractState absElement : successors) {
       MonitorState successorElem = new MonitorState(
           absElement, totalTimeOnPath, preventingCondition);
 
       wrappedSuccessors.add(successorElem);
     }
-    return wrappedSuccessors;
+    return wrappedSuccessors.build();
   }
 
   private static interface TransferCallable extends Callable<Collection<? extends AbstractState>> {

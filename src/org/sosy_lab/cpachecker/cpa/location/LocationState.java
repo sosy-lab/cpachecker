@@ -23,15 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
-import static com.google.common.base.Predicates.instanceOf;
-import static com.google.common.base.Predicates.not;
-import static com.google.common.base.Predicates.or;
 import static org.sosy_lab.cpachecker.util.CFAUtils.allEnteringEdges;
 import static org.sosy_lab.cpachecker.util.CFAUtils.allLeavingEdges;
 import static org.sosy_lab.cpachecker.util.CFAUtils.enteringEdges;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
-import com.google.common.base.Predicate;
 import com.google.common.base.Splitter;
 import java.io.IOException;
 import java.io.InvalidObjectException;
@@ -39,7 +35,9 @@ import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
@@ -56,8 +54,9 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
 
   private static final long serialVersionUID = -801176497691618779L;
 
-  private final static Predicate<CFAEdge> NOT_FUNCTIONCALL =
-      not(or(instanceOf(FunctionReturnEdge.class), instanceOf(FunctionCallEdge.class)));
+  private static boolean isNoFunctionCall(CFAEdge e) {
+    return !(e instanceof FunctionCallEdge || e instanceof FunctionReturnEdge);
+  }
 
   static class BackwardsLocationState extends LocationState {
 
@@ -103,7 +102,7 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
       return leavingEdges(locationNode);
 
     } else {
-      return allLeavingEdges(locationNode).filter(NOT_FUNCTIONCALL);
+      return allLeavingEdges(locationNode).filter(LocationState::isNoFunctionCall);
     }
   }
 
@@ -113,7 +112,7 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
       return enteringEdges(locationNode);
 
     } else {
-      return allEnteringEdges(locationNode).filter(NOT_FUNCTIONCALL);
+      return allEnteringEdges(locationNode).filter(LocationState::isNoFunctionCall);
     }
   }
 
@@ -131,11 +130,12 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
       throw new InvalidQueryException("The Query \"" + pProperty
           + "\" is invalid. Could not split the property string correctly.");
     } else {
-      if (parts.get(0).toLowerCase().equals("line")) {
+      switch (parts.get(0).toLowerCase()) {
+      case "line":
         try {
           int queryLine = Integer.parseInt(parts.get(1));
           for (CFAEdge edge : CFAUtils.enteringEdges(this.locationNode)) {
-            if (edge.getLineNumber()  == queryLine) {
+            if (edge.getLineNumber() == queryLine) {
               return true;
             }
           }
@@ -148,13 +148,13 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
                   + parts.get(1)
                   + "\"");
         }
-      } else if (parts.get(0).toLowerCase().equals("functionname")) {
+      case "functionname":
         return this.locationNode.getFunctionName().equals(parts.get(1));
-      } else if (parts.get(0).toLowerCase().equals("label")) {
+      case "label":
         return this.locationNode instanceof CLabelNode
             ? ((CLabelNode) this.locationNode).getLabel().equals(parts.get(1))
             : false;
-      } else if (parts.get(0).toLowerCase().equals("nodenumber")) {
+      case "nodenumber":
         try {
           int queryNumber = Integer.parseInt(parts.get(1));
           return this.locationNode.getNodeNumber() == queryNumber;
@@ -166,7 +166,18 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
                   + parts.get(1)
                   + "\"");
         }
-      } else {
+      case "mainentry":
+        if (locationNode.getNumEnteringEdges() == 1
+            && locationNode.getFunctionName().equals(parts.get(1))) {
+          CFAEdge enteringEdge = locationNode.getEnteringEdge(0);
+          if (enteringEdge.getDescription().equals("Function start dummy edge")
+              && enteringEdge.getEdgeType() == CFAEdgeType.BlankEdge
+              && FileLocation.DUMMY.equals(enteringEdge.getFileLocation())) {
+            return true;
+          }
+        }
+        return false;
+      default:
         throw new InvalidQueryException(
             "The Query \""
                 + pProperty
@@ -208,8 +219,10 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
 
   /**
    * javadoc to remove unused parameter warning
+   *
    * @param in the input stream
    */
+  @SuppressWarnings("UnusedVariable") // parameter is required by API
   private void readObject(ObjectInputStream in) throws IOException {
     throw new InvalidObjectException("Proxy required");
   }
@@ -223,7 +236,7 @@ public class LocationState implements AbstractStateWithLocation, AbstractQueryab
     }
 
     private Object readResolve() {
-      CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
+      CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().orElseThrow();
       return cfaInfo.getLocationStateFactory().getState(cfaInfo.getNodeByNodeNumber(nodeNumber));
     }
   }

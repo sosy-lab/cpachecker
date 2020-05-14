@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
@@ -71,9 +73,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
 
   public TransitionCondition putAllAndCopy(TransitionCondition tc) {
     Optional<Scope> newScope = scope.mergeWith(tc.scope);
-    if (!newScope.isPresent()) {
-      throw new IllegalArgumentException("Cannot merge transitions due to conflicting scopes.");
-    }
+    checkArgument(newScope.isPresent(), "Cannot merge transitions due to conflicting scopes.");
     EnumMap<KeyDef, String> newMap = null;
     for (Entry<KeyDef, String> e : keyValues.entrySet()) {
       if (!tc.keyValues.containsKey(e.getKey())) {
@@ -83,7 +83,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
         newMap.put(e.getKey(), e.getValue());
       }
     }
-    return newMap == null ? tc : new TransitionCondition(newMap, newScope.get());
+    return newMap == null ? tc : new TransitionCondition(newMap, newScope.orElseThrow());
   }
 
   public TransitionCondition removeAndCopy(final KeyDef pKey) {
@@ -142,11 +142,10 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
       return true;
     }
     boolean ignoreAssumptionScope =
-        !keyValues.keySet().contains(KeyDef.ASSUMPTION)
-            || !pLabel.keyValues.keySet().contains(KeyDef.ASSUMPTION);
+        !keyValues.containsKey(KeyDef.ASSUMPTION)
+            || !pLabel.keyValues.containsKey(KeyDef.ASSUMPTION);
     boolean ignoreInvariantScope =
-        !keyValues.keySet().contains(KeyDef.INVARIANT)
-        || !pLabel.keyValues.keySet().contains(KeyDef.INVARIANT);
+        !keyValues.containsKey(KeyDef.INVARIANT) || !pLabel.keyValues.containsKey(KeyDef.INVARIANT);
 
     final EnumSet<KeyDef> keyDefs;
     if (!keyValues.isEmpty()) {
@@ -210,7 +209,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
     return EMPTY;
   }
 
-  class Scope implements Comparable<Scope> {
+  static class Scope implements Comparable<Scope> {
 
     private final Optional<String> functionName;
 
@@ -223,9 +222,9 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
       for (ASimpleDeclaration decl : pUsedDeclarations.values()) {
         if (decl instanceof AVariableDeclaration) {
           AVariableDeclaration varDecl = (AVariableDeclaration) decl;
-          if (!varDecl.isGlobal() && !functionName.isPresent()) {
-            throw new IllegalArgumentException("Cannot create a global scope with non-global variable declarations.");
-          }
+          checkArgument(
+              varDecl.isGlobal() || functionName.isPresent(),
+              "Cannot create a global scope with non-global variable declarations.");
         }
       }
     }
@@ -235,7 +234,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
     }
 
     public String getFunctionName() {
-      return functionName.get();
+      return functionName.orElseThrow();
     }
 
     public Collection<ASimpleDeclaration> getUsedDeclarations() {
@@ -275,7 +274,7 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
     public int compareTo(Scope pOther) {
       return ComparisonChain.start()
           .compareTrueFirst(isGlobal(), pOther.isGlobal())
-          .compare(functionName.get(), pOther.functionName.get())
+          .compare(functionName.orElseThrow(), pOther.functionName.orElseThrow())
           .compare(
               usedDeclarations,
               pOther.usedDeclarations,
@@ -311,7 +310,8 @@ public class TransitionCondition implements Comparable<TransitionCondition> {
         Optional<String> pNewFunctionName, Collection<ASimpleDeclaration> pUsedDeclarations) {
       final Optional<String> newFunctionName;
       if (pNewFunctionName.isPresent()) {
-        if (functionName.isPresent() && !functionName.get().equals(pNewFunctionName.get())) {
+        if (functionName.isPresent()
+            && !functionName.orElseThrow().equals(pNewFunctionName.orElseThrow())) {
           return Optional.empty();
         }
         if (!functionName.isPresent() && !usedDeclarations.isEmpty()) {

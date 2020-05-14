@@ -28,19 +28,21 @@ import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Iterables.any;
 import static com.google.common.collect.Iterables.indexOf;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -55,18 +57,20 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-final class CompositeTransferRelation implements TransferRelation {
+final class CompositeTransferRelation implements WrapperTransferRelation {
 
   private final ImmutableList<TransferRelation> transferRelations;
   private final CFA cfa;
   private final int size;
-  private final int predicatesIndex;
+  private final boolean predicatesPresent;
   private final boolean aggregateBasicBlocks;
 
   CompositeTransferRelation(
@@ -77,8 +81,8 @@ final class CompositeTransferRelation implements TransferRelation {
     aggregateBasicBlocks = pAggregateBasicBlocks;
 
     // prepare special case handling if both predicates and assumptions are used
-    this.predicatesIndex =
-        indexOf(pTransferRelations, Predicates.instanceOf(PredicateTransferRelation.class));
+    predicatesPresent =
+        (indexOf(pTransferRelations, Predicates.instanceOf(PredicateTransferRelation.class)) != -1);
   }
 
   @Override
@@ -172,7 +176,7 @@ final class CompositeTransferRelation implements TransferRelation {
           }
 
           // if we found a target state in the current successors immediately return
-          if (from(successorStates).anyMatch(AbstractStates.IS_TARGET_STATE)) {
+          if (from(successorStates).anyMatch(AbstractStates::isTargetState)) {
             compositeSuccessors.addAll(successorStates);
             return;
           }
@@ -330,44 +334,51 @@ final class CompositeTransferRelation implements TransferRelation {
       lStrengthenResults.add(lResultsList);
     }
 
-    // special case handling if we have predicate and assumption cpas
-    // TODO remove as soon as we call strengthen in a fixpoint loop
-    List<AbstractState> assumptionElements =
-        lStrengthenResults.stream()
-            .flatMap(Collection::stream)
-            .filter(x -> !reachedState.contains(x))
-            .filter(
-                x ->
-                    (x instanceof AbstractStateWithAssumptions
-                        || x instanceof AssumptionStorageState
-                        || x instanceof FormulaReportingState))
-            .collect(ImmutableList.toImmutableList());
-    if (predicatesIndex >= 0 && assumptionElements.size() > 0 && resultCount > 0) {
-      AbstractState predElement = Iterables.getOnlyElement(lStrengthenResults.get(predicatesIndex));
-      Precision predPrecision = compositePrecision.get(predicatesIndex);
-      TransferRelation predTransfer = transferRelations.get(predicatesIndex);
-
-      Collection<? extends AbstractState> predResult =
-          predTransfer.strengthen(predElement, assumptionElements, cfaEdge, predPrecision);
-      resultCount *= predResult.size();
-
-      lStrengthenResults.set(predicatesIndex, predResult);
-    }
-
     // create cartesian product
     Collection<List<AbstractState>> strengthenedStates =
         createCartesianProduct(lStrengthenResults, resultCount);
+
+    // special case handling if we have predicate and assumption cpas
+    // TODO remove as soon as we call strengthen in a fixpoint loop
+    if (predicatesPresent && resultCount > 0) {
+      Iterator<List<AbstractState>> it = strengthenedStates.iterator();
+      while (it.hasNext()) {
+        final List<AbstractState> strengthenedState = it.next();
+        ImmutableList<AbstractState> assumptionElements =
+            from(strengthenedState).filter(CompositeTransferRelation::hasAssumptions).toList();
+        if (assumptionElements.isEmpty()) {
+          continue;
+        }
+
+        final int predIndex =
+            Iterables.indexOf(strengthenedState, x -> x instanceof PredicateAbstractState);
+        Preconditions.checkState(
+            predIndex >= 0, "cartesian product should ensure that predicates do not vanish!");
+        AbstractState predElement = strengthenedState.get(predIndex);
+        Precision predPrecision = compositePrecision.get(predIndex);
+        TransferRelation predTransfer = transferRelations.get(predIndex);
+        Collection<? extends AbstractState> predResult =
+            predTransfer.strengthen(predElement, assumptionElements, cfaEdge, predPrecision);
+        if (predResult.isEmpty()) {
+          it.remove();
+          resultCount--;
+        } else {
+          assert predResult.size() == 1;
+          strengthenedState.set(predIndex, predResult.iterator().next());
+        }
+      }
+    }
 
     // If state was not a target state before but a target state was found during strengthening,
     // we call strengthen again such that the other CPAs can act on this information.
     // Note that this terminates because in the inner call the input state
     // is already a target state and this branch won't be taken.
     // TODO Generalize this into a full fixpoint algorithm.
-    if (!any(reachedState, IS_TARGET_STATE)) {
+    if (!any(reachedState, AbstractStates::isTargetState)) {
       Collection<List<AbstractState>> newStrengthenedStates = new ArrayList<>(resultCount);
 
       for (List<AbstractState> strengthenedState : strengthenedStates) {
-        if (any(strengthenedState, IS_TARGET_STATE)) {
+        if (any(strengthenedState, AbstractStates::isTargetState)) {
           newStrengthenedStates.addAll(callStrengthen(strengthenedState, compositePrecision, cfaEdge));
         } else {
           newStrengthenedStates.add(strengthenedState);
@@ -380,13 +391,19 @@ final class CompositeTransferRelation implements TransferRelation {
     }
   }
 
+  private static boolean hasAssumptions(AbstractState x) {
+    return x instanceof AbstractStateWithAssumptions
+        || x instanceof AssumptionStorageState
+        || x instanceof FormulaReportingState;
+  }
+
   protected static Collection<List<AbstractState>> createCartesianProduct(
       List<Collection<? extends AbstractState>> allComponentsSuccessors, int resultCount) {
     Collection<List<AbstractState>> allResultingElements;
     switch (resultCount) {
     case 0:
-      // at least one CPA decided that there is no successor
-      allResultingElements = Collections.emptySet();
+        // at least one CPA decided that there is no successor
+        allResultingElements = ImmutableSet.of();
       break;
 
     case 1:
@@ -394,12 +411,13 @@ final class CompositeTransferRelation implements TransferRelation {
       for (Collection<? extends AbstractState> componentSuccessors : allComponentsSuccessors) {
         resultingElements.add(Iterables.getOnlyElement(componentSuccessors));
       }
-      allResultingElements = Collections.singleton(resultingElements);
+        allResultingElements = Collections.singleton(resultingElements);
       break;
 
     default:
-      // create cartesian product of all componentSuccessors and store the result in allResultingElements
-      List<AbstractState> initialPrefix = Collections.emptyList();
+        // create cartesian product of all componentSuccessors and store the result in
+        // allResultingElements
+        List<AbstractState> initialPrefix = ImmutableList.of();
       allResultingElements = new ArrayList<>(resultCount);
       createCartesianProduct0(allComponentsSuccessors, initialPrefix, allResultingElements);
     }
@@ -430,9 +448,10 @@ final class CompositeTransferRelation implements TransferRelation {
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState element,
-      List<AbstractState> otherElements,
+      Iterable<AbstractState> otherElements,
       CFAEdge cfaEdge,
-      Precision precision) throws CPATransferException, InterruptedException {
+      Precision precision)
+      throws CPATransferException, InterruptedException {
 
     CompositeState compositeState = (CompositeState) element;
     CompositePrecision compositePrecision = (CompositePrecision) precision;
@@ -500,5 +519,29 @@ final class CompositeTransferRelation implements TransferRelation {
     if (resultCount != states.size()) { return false; }
 
     return result;
+  }
+
+  @Override
+  @Nullable
+  public <T extends TransferRelation> T retrieveWrappedTransferRelation(Class<T> pType) {
+    if (pType.isAssignableFrom(getClass())) {
+      return pType.cast(this);
+    }
+    for (TransferRelation tr : transferRelations) {
+      if (pType.isAssignableFrom(tr.getClass())) {
+        return pType.cast(tr);
+      } else if (tr instanceof WrapperTransferRelation) {
+        T result = ((WrapperTransferRelation) tr).retrieveWrappedTransferRelation(pType);
+        if (result != null) {
+          return result;
+        }
+      }
+    }
+    return null;
+  }
+
+  @Override
+  public Iterable<TransferRelation> getWrappedTransferRelations() {
+    return transferRelations;
   }
 }

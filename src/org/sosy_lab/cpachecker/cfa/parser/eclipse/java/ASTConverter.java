@@ -31,13 +31,11 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 import java.util.Set;
@@ -87,7 +85,6 @@ import org.eclipse.jdt.core.dom.SuperFieldAccess;
 import org.eclipse.jdt.core.dom.SuperMethodInvocation;
 import org.eclipse.jdt.core.dom.ThisExpression;
 import org.eclipse.jdt.core.dom.Type;
-import org.eclipse.jdt.core.dom.TypeLiteral;
 import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
@@ -427,7 +424,7 @@ class ASTConverter {
     JFieldDeclaration fieldDecl = scope.lookupField(fieldName);
 
     // update initializer (can't be constructed while generating the Declaration)
-    if (preSideAssignments.size() != 0 || postSideAssignments.size() != 0) {
+    if (!preSideAssignments.isEmpty() || !postSideAssignments.isEmpty()) {
       logger.log(
           Level.WARNING, "Sideeffects of initializer of field " + fieldName + " will be ignored");
       preSideAssignments.clear();
@@ -707,11 +704,9 @@ class ASTConverter {
    */
   public JStatement convert(final SuperConstructorInvocation sCI) {
 
-    IMethodBinding binding = sCI.resolveConstructorBinding();
+    final IMethodBinding binding = sCI.resolveConstructorBinding();
 
-    boolean canBeResolved = binding != null;
-
-    if (canBeResolved) {
+    if (binding != null) {
       scope.registerClass(binding.getDeclaringClass());
     }
 
@@ -722,7 +717,7 @@ class ASTConverter {
     String name;
     String simpleName;
 
-    if (canBeResolved) {
+    if (binding != null) {
       name = NameConverter.convertName(binding);
       simpleName = binding.getName();
     } else {
@@ -735,7 +730,7 @@ class ASTConverter {
 
     if (declaration == null) {
 
-      if (canBeResolved) {
+      if (binding != null) {
 
         ModifierBean mb = ModifierBean.getModifiers(binding);
 
@@ -751,7 +746,7 @@ class ASTConverter {
 
     JExpression functionName;
 
-    if (canBeResolved) {
+    if (binding != null) {
       functionName =
           new JIdExpression(getFileLocation(sCI), convert(binding.getReturnType()), name,
               declaration);
@@ -879,7 +874,7 @@ class ASTConverter {
     case ASTNode.SUPER_FIELD_ACCESS :
       return convert(((SuperFieldAccess) e));
     case ASTNode.TYPE_LITERAL :
-      return convert((TypeLiteral)e);
+      return convert();
     case ASTNode.SUPER_METHOD_INVOCATION :
       return convert((SuperMethodInvocation) e);
     default:
@@ -888,37 +883,29 @@ class ASTConverter {
     }
   }
 
-  private JAstNode convert(SuperMethodInvocation e) {
+  private JAstNode convert(final SuperMethodInvocation e) {
 
-    boolean canBeResolved = e.resolveMethodBinding() != null;
-
+    final IMethodBinding methodBinding = e.resolveMethodBinding();
     JClassOrInterfaceType declaringClassType = null;
 
-    if (canBeResolved) {
-      declaringClassType = (JClassOrInterfaceType) convert(e.resolveMethodBinding().getDeclaringClass());
-      scope.registerClass(e.resolveMethodBinding().getDeclaringClass());
+    if (methodBinding != null) {
+      declaringClassType = (JClassOrInterfaceType) convert(methodBinding.getDeclaringClass());
+      scope.registerClass(methodBinding.getDeclaringClass());
     }
 
     @SuppressWarnings("unchecked")
     List<Expression> p = e.arguments();
 
     List<JExpression> params;
-    if (p.size() > 0) {
+    if (!p.isEmpty()) {
       params = convert(p);
     } else {
-      params = Collections.emptyList();
+      params = ImmutableList.of();
     }
 
     JExpression methodName = convertExpressionWithoutSideEffects(e.getName());
 
     JMethodDeclaration declaration = null;
-
-    ModifierBean mb = null;
-
-    if (canBeResolved) {
-      mb = ModifierBean.getModifiers(e.resolveMethodBinding());
-    }
-
 
     if (methodName instanceof JIdExpression) {
       JIdExpression idExpression = (JIdExpression) methodName;
@@ -936,14 +923,21 @@ class ASTConverter {
 
     if (declaration == null) {
 
-      if (canBeResolved) {
-        declaration = scope.createExternMethodDeclaration(
-            convertMethodType(e.resolveMethodBinding()),
-            methodName.toASTString(),
-            e.resolveMethodBinding().getName(),
-            VisibilityModifier.PUBLIC, mb.isFinal(), mb.isAbstract(),
-            mb.isStatic(), mb.isNative(),
-            mb.isSynchronized(), mb.isStrictFp(), declaringClassType);
+      if (methodBinding != null) {
+        ModifierBean mb = ModifierBean.getModifiers(methodBinding);
+        declaration =
+            scope.createExternMethodDeclaration(
+                convertMethodType(methodBinding),
+                methodName.toASTString(),
+                methodBinding.getName(),
+                VisibilityModifier.PUBLIC,
+                mb.isFinal(),
+                mb.isAbstract(),
+                mb.isStatic(),
+                mb.isNative(),
+                mb.isSynchronized(),
+                mb.isStrictFp(),
+                declaringClassType);
 
       } else {
         declaration = JMethodDeclaration.createUnresolvedMethodDeclaration();
@@ -953,7 +947,7 @@ class ASTConverter {
       JMethodInvocationExpression miv =
           new JMethodInvocationExpression(getFileLocation(e), convert(e.resolveTypeBinding()), methodName, params, declaration);
 
-      if (canBeResolved) {
+    if (methodBinding != null) {
 
         JType type = miv.getDeclaringType();
 
@@ -965,10 +959,7 @@ class ASTConverter {
       return miv;
   }
 
-  /**
-   * @param pE the node to convert
-   */
-  private JAstNode convert(TypeLiteral pE) {
+  private JAstNode convert() {
     throw new CFAGenerationRuntimeException("Standard Library support not yet implemented.\n"
       +  "Cannot use Type Literals which would return a class Object.");
   }
@@ -1117,7 +1108,7 @@ class ASTConverter {
       subClassTypeSet.add(classType);
     }
 
-    return Lists.newArrayList(subClassTypeSet);
+    return new ArrayList<>(subClassTypeSet);
   }
 
   private JExpression createInstanceOfDisjunction(JIdExpression pLeftOperand,
@@ -1160,12 +1151,10 @@ class ASTConverter {
       return createJArrayLengthExpression(e);
     }
 
-    IVariableBinding fieldBinding = e.resolveFieldBinding();
-
-    boolean canBeResolved = fieldBinding != null;
+    boolean canBeResolved = e.resolveFieldBinding() != null;
 
     if (canBeResolved) {
-      scope.registerClass(fieldBinding.getDeclaringClass());
+      scope.registerClass(e.resolveFieldBinding().getDeclaringClass());
     }
 
     JAstNode identifier = convertExpressionWithoutSideEffects(e.getName());
@@ -1217,16 +1206,15 @@ class ASTConverter {
 
   private JAstNode convert(ClassInstanceCreation cIC) {
 
-    IMethodBinding binding = cIC.resolveConstructorBinding();
+    final IMethodBinding binding = cIC.resolveConstructorBinding();
 
-    boolean canBeResolved = binding != null;
     final AnonymousClassDeclaration anonymousDeclaration = cIC.getAnonymousClassDeclaration();
 
     if (anonymousDeclaration != null) {
       scope.addAnonymousClassDeclaration(anonymousDeclaration);
     }
 
-    if (canBeResolved) {
+    if (binding != null) {
       scope.registerClass(binding.getDeclaringClass());
     }
 
@@ -1290,7 +1278,7 @@ class ASTConverter {
           convertConstructorType(constructorBinding),
           fullName,
           simpleName,
-          Collections.emptyList(),
+          ImmutableList.of(),
           mb.getVisibility(),
           mb.isStrictFp(),
           getDeclaringClassType(constructorBinding));
@@ -1301,7 +1289,7 @@ class ASTConverter {
           JConstructorType.createUnresolvableConstructorType(),
           fullName,
           simpleName,
-          Collections.emptyList(),
+          ImmutableList.of(),
           VisibilityModifier.NONE,
           false,
           JClassType.createUnresolvableType());
@@ -1332,8 +1320,8 @@ class ASTConverter {
         parameterTypes = new ArrayList<>(parameterDeclarations.size());
 
       } else {
-        parameterDeclarations = Collections.emptyList();
-        parameterTypes = Collections.emptyList();
+        parameterDeclarations = ImmutableList.of();
+        parameterTypes = ImmutableList.of();
       }
 
       for (JParameterDeclaration d : parameterDeclarations) {
@@ -1663,12 +1651,11 @@ class ASTConverter {
 
   private JAstNode convert(MethodInvocation mi) {
 
-    IMethodBinding methodBinding = mi.resolveMethodBinding();
-    boolean canBeResolved = methodBinding != null;
-
+    final IMethodBinding methodBinding = mi.resolveMethodBinding();
+    final ModifierBean mb = methodBinding != null ? ModifierBean.getModifiers(methodBinding) : null;
     JClassOrInterfaceType declaringClassType = null;
 
-    if (canBeResolved) {
+    if (methodBinding != null) {
       ITypeBinding declaringClass = methodBinding.getDeclaringClass();
       declaringClassType = (JClassOrInterfaceType) convert(declaringClass);
       scope.registerClass(declaringClass);
@@ -1678,10 +1665,10 @@ class ASTConverter {
     List<Expression> p = mi.arguments();
 
     List<JExpression> params;
-    if (p.size() > 0) {
+    if (!p.isEmpty()) {
       params = convert(p);
     } else {
-      params = Collections.emptyList();
+      params = ImmutableList.of();
     }
 
     JExpression methodName = convertExpressionWithoutSideEffects(mi.getName());
@@ -1689,14 +1676,8 @@ class ASTConverter {
     JMethodDeclaration declaration = null;
     JExpression referencedVariableName = null;
 
-    ModifierBean mb = null;
-
-    if (canBeResolved) {
-      mb = ModifierBean.getModifiers(methodBinding);
-
-      if (!mb.isStatic) {
-        referencedVariableName = convertExpressionWithoutSideEffects(mi.getExpression());
-      }
+    if (mb != null && !mb.isStatic) {
+      referencedVariableName = convertExpressionWithoutSideEffects(mi.getExpression());
     }
 
 
@@ -1715,7 +1696,8 @@ class ASTConverter {
 
     if (declaration == null) {
 
-      if (canBeResolved) {
+      if (methodBinding != null) {
+        assert mb != null;
         declaration = scope.createExternMethodDeclaration(
             convertMethodType(methodBinding),
             methodName.toASTString(),

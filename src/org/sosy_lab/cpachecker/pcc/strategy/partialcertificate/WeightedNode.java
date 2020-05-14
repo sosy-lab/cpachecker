@@ -37,7 +37,6 @@ public class WeightedNode {
   }
 
   public WeightedNode(int pNode, int pWeight) {
-    super();
     nodeNumber = pNode;
     weight = pWeight;
   }

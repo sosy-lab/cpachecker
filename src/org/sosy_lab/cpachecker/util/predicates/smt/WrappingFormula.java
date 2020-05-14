@@ -31,6 +31,7 @@ import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.NumeralFormula.IntegerFormula;
 
 @Immutable
 abstract class WrappingFormula<TWrap extends Formula, TOut extends Formula> {
@@ -63,6 +64,7 @@ abstract class WrappingFormula<TWrap extends Formula, TOut extends Formula> {
   }
 
   @Override
+  @SuppressWarnings("EqualsGetClass") // on purpose, case-class structure with single equals()
   public final boolean equals(Object pObj) {
     if ((pObj == null)
         || !getClass().equals(pObj.getClass())) {
@@ -73,6 +75,15 @@ abstract class WrappingFormula<TWrap extends Formula, TOut extends Formula> {
 
     return wrapped.equals(other.wrapped)
         && type.equals(other.type);
+  }
+
+  @Immutable
+  static final class WrappingIntegerFormula<TWrap extends Formula>
+      extends WrappingFormula<TWrap, IntegerFormula> implements IntegerFormula {
+
+    WrappingIntegerFormula(FormulaType<IntegerFormula> type, TWrap pToWrap) {
+      super(type, pToWrap);
+    }
   }
 
   @Immutable

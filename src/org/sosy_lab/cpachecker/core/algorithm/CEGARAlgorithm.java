@@ -37,6 +37,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import org.sosy_lab.common.AbstractMBean;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -84,7 +85,7 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
     @Override
     public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
 
-      out.println("Number of refinements:                " + countRefinements);
+      out.println("Number of CEGAR refinements:          " + countRefinements);
 
       if (countRefinements > 0) {
         out.println("Number of successful refinements:     " + countSuccessfulRefinements);
@@ -175,22 +176,24 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
         Algorithm pAlgorithm,
         ConfigurableProgramAnalysis pCpa,
         LogManager pLogger,
-        Configuration pConfig)
+        Configuration pConfig,
+        ShutdownNotifier pShutdownNotifier)
         throws InvalidConfigurationException {
-      this(() -> pAlgorithm, pCpa, pLogger, pConfig);
+      this(() -> pAlgorithm, pCpa, pLogger, pConfig, pShutdownNotifier);
     }
 
     public CEGARAlgorithmFactory(
         AlgorithmFactory pAlgorithmFactory,
         ConfigurableProgramAnalysis pCpa,
         LogManager pLogger,
-        Configuration pConfig)
+        Configuration pConfig,
+        ShutdownNotifier pShutdownNotifier)
         throws InvalidConfigurationException {
       pConfig.inject(this);
       algorithmFactory = pAlgorithmFactory;
       logger = pLogger;
       verifyNotNull(refinerFactory);
-      refiner = refinerFactory.create(pCpa);
+      refiner = refinerFactory.create(pCpa, pLogger, pShutdownNotifier);
     }
 
     @Override
@@ -290,6 +293,9 @@ public class CEGARAlgorithm implements Algorithm, StatisticsProvider, ReachedSet
   }
 
   @SuppressWarnings("NonAtomicVolatileUpdate") // statistics written only by one thread
+  @SuppressFBWarnings(
+      value = "VO_VOLATILE_INCREMENT",
+      justification = "only one thread writes countRefinements, others read")
   private boolean refine(ReachedSet reached) throws CPAException, InterruptedException {
     logger.log(Level.FINE, "Error found, performing CEGAR");
     stats.countRefinements++;

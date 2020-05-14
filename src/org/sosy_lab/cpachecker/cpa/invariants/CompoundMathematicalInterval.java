@@ -87,7 +87,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
    * {@code null}.
    */
   private CompoundMathematicalInterval(SimpleInterval pInterval) {
-    this.intervals = new SimpleInterval[] { pInterval };
+    this.intervals = new SimpleInterval[] {pInterval};
   }
 
   /**
@@ -207,7 +207,7 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
   public CompoundMathematicalInterval unionWith(SimpleInterval pOther) {
     if (contains(pOther)) { return this; }
     if (isBottom() || pOther.isTop()) { return getInternal(pOther); }
-    ArrayList<SimpleInterval> resultIntervals = new ArrayList<>();
+    List<SimpleInterval> resultIntervals = new ArrayList<>();
     int start = 0;
     SimpleInterval lastInterval = null;
     if (pOther.hasLowerBound() && hasUpperBound()) {

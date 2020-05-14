@@ -31,6 +31,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Cto
 import com.google.common.base.CharMatcher;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.FormatMethod;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -101,6 +102,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
+import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -114,7 +116,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FunctionFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.IntegerFormulaManagerView;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
@@ -142,6 +143,7 @@ public class CtoFormulaConverter {
           "free",
           "kfree",
           "fprintf",
+          "memcmp",
           "printf",
           "puts",
           "printk",
@@ -157,8 +159,13 @@ public class CtoFormulaConverter {
 
   // set of functions that may not appear in the source code
   // the value of the map entry is the explanation for the user
-  static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS =
-      ImmutableMap.of("fesetround", "floating-point rounding modes");
+  private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS =
+      ImmutableMap.of(
+          "fesetround", "floating-point rounding modes",
+          // cf. https://gitlab.com/sosy-lab/software/cpachecker/-/issues/664
+          "memcpy", "memcpy",
+          "memmove", "memmove",
+          "memset", "memset");
 
   //names for special variables needed to deal with functions
   @Deprecated
@@ -182,7 +189,6 @@ public class CtoFormulaConverter {
 
   protected final FormulaManagerView fmgr;
   protected final BooleanFormulaManagerView bfmgr;
-  private final IntegerFormulaManagerView nfmgr;
   private final BitvectorFormulaManagerView efmgr;
   final FunctionFormulaManagerView ffmgr;
   protected final LogManagerWithoutDuplicates logger;
@@ -212,7 +218,6 @@ public class CtoFormulaConverter {
     this.typeHandler = pTypeHandler;
 
     this.bfmgr = fmgr.getBooleanFormulaManager();
-    this.nfmgr = fmgr.getIntegerFormulaManager(); // NumeralMgr is only used for String-Literals, so Int or Real does not matter, however Princess only supports Int.
     this.efmgr = fmgr.getBitvectorFormulaManager();
     this.ffmgr = fmgr.getFunctionFormulaManager();
     this.logger = new LogManagerWithoutDuplicates(logger);
@@ -224,6 +229,7 @@ public class CtoFormulaConverter {
             "__string__", typeHandler.getPointerType(), FormulaType.IntegerType);
   }
 
+  @FormatMethod
   void logfOnce(Level level, CFAEdge edge, String msg, Object... args) {
     if (logger.wouldBeLogged(level)) {
       logger.logfOnce(level, "%s: %s: %s",
@@ -262,7 +268,10 @@ public class CtoFormulaConverter {
       return true;
     }
     CCompositeType compositeType = CTypes.withoutVolatile(CTypes.withoutConst(pCompositeType));
-    return variableClassification.get().getRelevantFields().containsEntry(compositeType, fieldName);
+    return variableClassification
+        .orElseThrow()
+        .getRelevantFields()
+        .containsEntry(compositeType, fieldName);
   }
 
   protected boolean isRelevantLeftHandSide(final CLeftHandSide lhs) {
@@ -295,11 +304,18 @@ public class CtoFormulaConverter {
       }
     }
     if (options.ignoreIrrelevantVariables() && variableClassification.isPresent()) {
-      boolean isRelevantVariable = var.getName().equals(RETURN_VARIABLE_NAME) ||
-          variableClassification.get().getRelevantVariables().contains(var.getQualifiedName());
+      boolean isRelevantVariable =
+          var.getName().equals(RETURN_VARIABLE_NAME)
+              || variableClassification
+                  .orElseThrow()
+                  .getRelevantVariables()
+                  .contains(var.getQualifiedName());
       if (options.overflowVariablesAreRelevant()) {
         isRelevantVariable |=
-            variableClassification.get().getIntOverflowVars().contains(var.getQualifiedName());
+            variableClassification
+                .orElseThrow()
+                .getIntOverflowVars()
+                .contains(var.getQualifiedName());
       }
       return isRelevantVariable;
     }
@@ -315,6 +331,8 @@ public class CtoFormulaConverter {
           return FormulaType.getSinglePrecisionFloatingPointType();
         case DOUBLE:
           return FormulaType.getDoublePrecisionFloatingPointType();
+        case FLOAT128:
+          return FormulaType.getFloatingPointType(15, 112);
         default:
           break;
       }
@@ -502,12 +520,11 @@ public class CtoFormulaConverter {
     SSAMapBuilder ssa = pContextSSA.builder();
     Formula formula = makeVariable(pVarName, pType, ssa);
 
-    if (!ssa.build().equals(pContextSSA)) {
-      throw new IllegalArgumentException(
-          "we cannot apply the SSAMap changes to the point where the"
-              + " information would be needed possible problems: uninitialized variables could be"
-              + " in more formulas which get conjuncted and then we get unsatisfiable formulas as a result");
-    }
+    checkArgument(
+        ssa.build().equals(pContextSSA),
+        "we cannot apply the SSAMap changes to the point where the"
+            + " information would be needed possible problems: uninitialized variables could be"
+            + " in more formulas which get conjuncted and then we get unsatisfiable formulas as a result");
 
     return formula;
   }
@@ -537,7 +554,10 @@ public class CtoFormulaConverter {
 
   protected Formula makeNondet(
       final String name, final CType type, final SSAMapBuilder ssa, final Constraints constraints) {
-    Formula newVariable = makeFreshVariable(name, type, ssa);
+    final int index = makeFreshIndex(name, type, ssa);
+    Formula newVariable =
+        fmgr.makeVariableWithoutSSAIndex(getFormulaTypeFromCType(type), name + "!" + index);
+
     if (options.addRangeConstraintsForNondet()) {
       addRangeConstraint(newVariable, type, constraints);
     }
@@ -550,8 +570,7 @@ public class CtoFormulaConverter {
     if (result == null) {
       // generate a new string literal. We generate a new UIf
       int n = nextStringLitIndex++;
-      result = ffmgr.callUF(
-          stringUfDecl, nfmgr.makeNumber(n));
+      result = ffmgr.callUF(stringUfDecl, fmgr.getIntegerFormulaManager().makeNumber(n));
       stringLitToFormula.put(literal, result);
     }
 
@@ -601,6 +620,7 @@ public class CtoFormulaConverter {
         formula =
             fmgr.getBitvectorFormulaManager()
                 .extract((BitvectorFormula) formula, targetSize - 1, 0, false);
+
       } else if (sourceSize < targetSize) {
         return null; // TODO extend with nondet bits
       }
@@ -769,8 +789,11 @@ public class CtoFormulaConverter {
     if (pType instanceof CPointerType) {
       return machineModel.getPointerEquivalentSimpleType();
     }
-    if (pType instanceof CEnumType
-        || (pType instanceof CElaboratedType && ((CElaboratedType) pType).getKind() == ComplexTypeKind.ENUM)) {
+    if (pType instanceof CEnumType) {
+      return ((CEnumType) pType).getEnumerators().get(0).getType();
+    }
+    if (pType instanceof CElaboratedType
+        && ((CElaboratedType) pType).getKind() == ComplexTypeKind.ENUM) {
       return CNumericTypes.INT;
     }
     return pType;
@@ -824,23 +847,23 @@ public class CtoFormulaConverter {
       ret = pFormula;
 
     } else if (fromType.isBitvectorType() && toType.isBitvectorType()) {
+
       int toSize = ((FormulaType.BitvectorType)toType).getSize();
       int fromSize = ((FormulaType.BitvectorType) fromType).getSize();
 
       // Cf. C-Standard 6.3.1.2 (1)
-      if (pToCType.getCanonicalType().equals(CNumericTypes.BOOL)) {
-        Formula zeroFromSize = efmgr.makeBitvector(fromSize, 0l);
-        Formula zeroToSize = efmgr.makeBitvector(toSize, 0l);
-        Formula oneToSize = efmgr.makeBitvector(toSize, 1l);
-
+      if (pToCType.getCanonicalType().equals(CNumericTypes.BOOL)
+          || (pToCType instanceof CBitFieldType
+              && ((CBitFieldType) pToCType).getType().equals(CNumericTypes.BOOL))) {
+        Formula zeroFromSize = efmgr.makeBitvector(fromSize, 0L);
+        Formula zeroToSize = efmgr.makeBitvector(toSize, 0L);
+        Formula oneToSize = efmgr.makeBitvector(toSize, 1L);
         ret = bfmgr.ifThenElse(fmgr.makeEqual(zeroFromSize, pFormula), zeroToSize, oneToSize);
       } else {
         if (fromSize > toSize) {
           ret = fmgr.makeExtract(pFormula, toSize - 1, 0, isSigned.test(pFromCType));
-
         } else if (fromSize < toSize) {
           ret = fmgr.makeExtend(pFormula, (toSize - fromSize), isSigned.test(pFromCType));
-
         } else {
           ret = pFormula;
         }
@@ -870,9 +893,7 @@ public class CtoFormulaConverter {
   }
 
   private void checkSimpleCastArgument(CType pType) {
-    if (!isSimple(pType)) {
-      throw new IllegalArgumentException("Cannot make a simple cast from or to " + pType);
-    }
+    checkArgument(isSimple(pType), "Cannot make a simple cast from or to %s", pType);
   }
 
   private boolean isSimple(CType pType) {
@@ -1534,9 +1555,15 @@ public class CtoFormulaConverter {
 
     T zero = fmgr.makeNumber(fmgr.getFormulaType(pF), 0);
 
-    Optional<Triple<BooleanFormula, T, T>> split = fmgr.splitIfThenElse(pF);
+    Optional<Triple<BooleanFormula, T, T>> split;
+    try {
+      split = fmgr.splitIfThenElse(pF);
+    } catch (UnsupportedOperationException e) {
+      logger.logOnce(Level.INFO, "Solver does not support ITE splitting: " + e.getMessage());
+      split = Optional.empty();
+    }
     if (split.isPresent()) {
-      Triple<BooleanFormula, T, T> parts = split.get();
+      Triple<BooleanFormula, T, T> parts = split.orElseThrow();
 
       T one = fmgr.makeNumber(fmgr.getFormulaType(pF), 1);
       if (parts.getSecond().equals(one) && parts.getThird().equals(zero)) {
@@ -1545,7 +1572,6 @@ public class CtoFormulaConverter {
         return bfmgr.not(parts.getFirst());
       }
     }
-
     return bfmgr.not(fmgr.makeEqual(pF, zero));
   }
 
@@ -1666,8 +1692,10 @@ public class CtoFormulaConverter {
     }
 
     if (pRightVariable.isPresent()) {
-      assert efmgr.getLength((BitvectorFormula) pRightVariable.get()) == msb_Lsb.getFirst() + 1 - msb_Lsb.getSecond() : "The new formula has not the right size";
-      parts.add(pRightVariable.get());
+      assert efmgr.getLength((BitvectorFormula) pRightVariable.orElseThrow())
+              == msb_Lsb.getFirst() + 1 - msb_Lsb.getSecond()
+          : "The new formula has not the right size";
+      parts.add(pRightVariable.orElseThrow());
     }
 
     if (msb_Lsb.getSecond() > 0) {
@@ -1759,6 +1787,17 @@ public class CtoFormulaConverter {
     } else {
       return makeVariable(var, exp.getExpressionType(), ssa);
     }
+  }
+
+  static String isUnsupportedFunction(String functionName) {
+    if (UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
+      return UNSUPPORTED_FUNCTIONS.get(functionName);
+    } else if (functionName.startsWith("__atomic_")) {
+      return "atomic operations";
+    } else if (BuiltinOverflowFunctions.isUnsupportedBuiltinOverflowFunction(functionName)) {
+      return "builtin functions for arithmetic with overflow handling";
+    }
+    return null;
   }
 
   /**

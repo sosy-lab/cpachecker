@@ -29,14 +29,16 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.Serializable;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
@@ -63,16 +65,17 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   static class TOP extends AutomatonState {
     private static final long serialVersionUID = -7848577870312049023L;
 
-    public TOP(ControlAutomatonCPA pAutomatonCPA) {
+    public TOP(Automaton pAutomaton, boolean pTreatErrorsAsTarget) {
       super(
-          Collections.emptyMap(),
-          new AutomatonInternalState("_predefinedState_TOP", Collections.emptyList()),
-          pAutomatonCPA,
+          ImmutableMap.of(),
+          new AutomatonInternalState("_predefinedState_TOP", ImmutableList.of()),
+          pAutomaton,
           ImmutableList.of(),
           ExpressionTrees.getTrue(),
           0,
           0,
-          null);
+          null,
+          pTreatErrorsAsTarget);
     }
 
     @Override
@@ -89,16 +92,17 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   static class BOTTOM extends AutomatonState {
     private static final long serialVersionUID = -401794748742705212L;
 
-    public BOTTOM(ControlAutomatonCPA pAutomatonCPA) {
+    public BOTTOM(Automaton pAutomaton, boolean pTreatErrorsAsTarget) {
       super(
-          Collections.emptyMap(),
+          ImmutableMap.of(),
           AutomatonInternalState.BOTTOM,
-          pAutomatonCPA,
+          pAutomaton,
           ImmutableList.of(),
           ExpressionTrees.getTrue(),
           0,
           0,
-          null);
+          null,
+          pTreatErrorsAsTarget);
     }
 
     @Override
@@ -112,7 +116,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     }
   }
 
-  private transient ControlAutomatonCPA automatonCPA;
+  private transient Automaton automaton;
   private final Map<String, AutomatonVariable> vars;
   private transient AutomatonInternalState internalState;
   private final ImmutableList<AExpression> assumptions;
@@ -120,63 +124,74 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   private int matches = 0;
   private int failedMatches = 0;
   private transient final AutomatonSafetyProperty violatedPropertyDescription;
+  private final boolean treatErrorAsTarget;
 
   static AutomatonState automatonStateFactory(
       Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState,
-      ControlAutomatonCPA pAutomatonCPA,
+      Automaton pAutomaton,
       ImmutableList<AExpression> pAssumptions,
       ExpressionTree<AExpression> pCandidateInvariants,
       int successfulMatches,
       int failedMatches,
-      AutomatonSafetyProperty violatedPropertyDescription) {
+      AutomatonSafetyProperty violatedPropertyDescription,
+      boolean pTreatErrorAsTarget) {
 
     if (pInternalState == AutomatonInternalState.BOTTOM) {
-      return pAutomatonCPA.getBottomState();
+      return new AutomatonState.BOTTOM(pAutomaton, pTreatErrorAsTarget);
     } else {
       return new AutomatonState(
           pVars,
           pInternalState,
-          pAutomatonCPA,
+          pAutomaton,
           pAssumptions,
           pCandidateInvariants,
           successfulMatches,
           failedMatches,
-          violatedPropertyDescription);
+          violatedPropertyDescription,
+          pTreatErrorAsTarget);
     }
   }
 
-  static AutomatonState automatonStateFactory(Map<String, AutomatonVariable> pVars,
-      AutomatonInternalState pInternalState, ControlAutomatonCPA pAutomatonCPA,
-      int successfulMatches, int failedMatches, AutomatonSafetyProperty violatedPropertyDescription) {
+  static AutomatonState automatonStateFactory(
+      Map<String, AutomatonVariable> pVars,
+      AutomatonInternalState pInternalState,
+      Automaton pAutomaton,
+      int successfulMatches,
+      int failedMatches,
+      AutomatonSafetyProperty violatedPropertyDescription,
+      boolean pTreatErrorAsTarget) {
     return automatonStateFactory(
         pVars,
         pInternalState,
-        pAutomatonCPA,
+        pAutomaton,
         ImmutableList.of(),
         ExpressionTrees.getTrue(),
         successfulMatches,
         failedMatches,
-        violatedPropertyDescription);
+        violatedPropertyDescription,
+        pTreatErrorAsTarget);
   }
 
   private AutomatonState(
       Map<String, AutomatonVariable> pVars,
       AutomatonInternalState pInternalState,
-      ControlAutomatonCPA pAutomatonCPA,
+      Automaton pAutomaton,
       ImmutableList<AExpression> pAssumptions,
       ExpressionTree<AExpression> pCandidateInvariants,
       int successfulMatches,
       int failedMatches,
-      AutomatonSafetyProperty pViolatedPropertyDescription) {
+      AutomatonSafetyProperty pViolatedPropertyDescription,
+      boolean pTreatErrorAsTarget) {
 
     this.vars = checkNotNull(pVars);
     this.internalState = checkNotNull(pInternalState);
-    this.automatonCPA = checkNotNull(pAutomatonCPA);
+    this.automaton = checkNotNull(pAutomaton);
     this.matches = successfulMatches;
     this.failedMatches = failedMatches;
     this.assumptions = pAssumptions;
     this.candidateInvariants = pCandidateInvariants;
+    this.treatErrorAsTarget = pTreatErrorAsTarget;
 
     if (internalState.isTarget()) {
       checkNotNull(pViolatedPropertyDescription);
@@ -188,13 +203,13 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
 
   @Override
   public boolean isTarget() {
-    return this.automatonCPA.isTreatingErrorsAsTargets() && internalState.isTarget();
+    return treatErrorAsTarget && internalState.isTarget();
   }
 
   @Override
   public Set<Property> getViolatedProperties() throws IllegalStateException {
     checkState(isTarget());
-    return ImmutableSet.<Property>of(violatedPropertyDescription);
+    return ImmutableSet.of(violatedPropertyDescription);
   }
 
   Optional<AutomatonSafetyProperty> getOptionalViolatedPropertyDescription() {
@@ -202,6 +217,8 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   }
 
   @Override
+  // refactoring would be better, but currently safe for the existing set of subclasses
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object pObj) {
     if (this == pObj) {
       return true;
@@ -212,40 +229,18 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
     if (!pObj.getClass().equals(this.getClass())) {
       return false;
     }
+
     AutomatonState otherState = (AutomatonState) pObj;
-    if (assumptions == null) {
-      if (otherState.assumptions != null) {
-        return false;
-      }
-    } else if (!assumptions.equals(otherState.assumptions)) {
-      return false;
-    }
-    if (vars == null) {
-      if (otherState.vars != null) {
-        return false;
-      }
-    } else if (!vars.equals(otherState.vars)) {
-      return false;
-    }
-    if (internalState == null) {
-      if (otherState.internalState != null) {
-        return false;
-      }
-    } else if (!internalState.equals(otherState.internalState)) {
-      return false;
-    }
-    return true;
+    return Objects.equals(assumptions, otherState.assumptions)
+        && Objects.equals(vars, otherState.vars)
+        && Objects.equals(internalState, otherState.internalState);
   }
 
   @Override
   public int hashCode() {
     // Important: we cannot use vars.hashCode(), because the hash code of a map
     // depends on the hash code of its values, and those may change.
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((assumptions == null) ? 0 : assumptions.hashCode());
-    result = prime * result + ((internalState == null) ? 0 : internalState.hashCode());
-    return result;
+    return Objects.hash(assumptions, internalState);
   }
 
 
@@ -260,22 +255,39 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
    * @return name of automaton
    */
   public String getOwningAutomatonName() {
-    return automatonCPA.getAutomaton().getName();
+    return automaton.getName();
   }
 
   public Automaton getOwningAutomaton() {
-    return automatonCPA.getAutomaton();
+    return automaton;
   }
 
   @Override
   public String toString() {
-    return (automatonCPA!=null?automatonCPA.getAutomaton().getName() + ": ": "") + internalState.getName() + ' ' + Joiner.on(' ').withKeyValueSeparator("=").join(vars);
+    return (automaton != null ? automaton.getName() + ": " : "")
+        + internalState.getName()
+        + ' '
+        + Joiner.on(' ').withKeyValueSeparator("=").join(vars);
   }
 
   @Override
   public String toDOTLabel() {
     if (!internalState.getName().equals("Init")) {
-      return (automatonCPA!=null?automatonCPA.getAutomaton().getName() + ": ": "") + internalState.getName();
+      String prettyPrintAsmpts = "";
+      if (!assumptions.isEmpty()) {
+        prettyPrintAsmpts =
+            "\nAssumptions: "
+                + assumptions
+                    .stream()
+                    .map(AExpression::toASTString)
+                    .collect(Collectors.joining("; "));
+      }
+      if (!vars.isEmpty()) {
+        prettyPrintAsmpts += "\n" + Joiner.on(' ').withKeyValueSeparator("=").join(vars);
+      }
+      return (automaton != null ? automaton.getName() + ": " : "")
+          + internalState.getName()
+          + prettyPrintAsmpts;
     }
     return "";
   }
@@ -286,12 +298,13 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   }
 
   /**
-   * The UnknownState represents one of the States following a normal State of the Automaton.
-   * Which State is the correct following state could not be determined so far.
-   * This Class is used if during a "getAbstractSuccessor" call the abstract successor could not be determined.
-   * During the subsequent "strengthen" call enough information should be available to determine a normal AutomatonState as following State.
+   * The UnknownState represents one of the States following a normal State of the Automaton. Which
+   * State is the correct following state could not be determined so far. This Class is used if
+   * during a "getAbstractSuccessor" call the abstract successor could not be determined. During the
+   * subsequent "strengthen" call enough information should be available to determine a normal
+   * AutomatonState as following State.
    */
-  static class AutomatonUnknownState extends AutomatonState {
+  static final class AutomatonUnknownState extends AutomatonState {
     private static final long serialVersionUID = -2010032222354565037L;
     private final AutomatonState previousState;
 
@@ -299,12 +312,13 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
       super(
           pPreviousState.getVars(),
           pPreviousState.getInternalState(),
-          pPreviousState.automatonCPA,
+          pPreviousState.automaton,
           ImmutableList.of(),
           ExpressionTrees.getTrue(),
           -1,
           -1,
-          null);
+          pPreviousState.violatedPropertyDescription,
+          pPreviousState.isTreatingErrorsAsTarget());
       previousState = pPreviousState;
     }
 
@@ -417,7 +431,11 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
 
   @Override
   public String getCPAName() {
-    return AutomatonState.AutomatonAnalysisNamePrefix + automatonCPA.getAutomaton().getName();
+    return AutomatonState.AutomatonAnalysisNamePrefix + automaton.getName();
+  }
+
+  boolean isTreatingErrorsAsTarget() {
+    return treatErrorAsTarget;
   }
 
   public ExpressionTree<AExpression> getCandidateInvariants() {
@@ -436,16 +454,13 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
    return vars;
   }
 
-  ControlAutomatonCPA getAutomatonCPA() {
-    return automatonCPA;
-  }
-
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
     out.defaultWriteObject();
     out.writeInt(internalState.getStateId());
-    out.writeObject(automatonCPA.getAutomaton().getName());
+    out.writeObject(automaton.getName());
   }
 
+  @SuppressWarnings("UnusedVariable") // parameter is required by API
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
     int stateId = in.readInt();
@@ -460,7 +475,11 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
       }
     }
 
-    automatonCPA = GlobalInfo.getInstance().getAutomatonInfo().getCPAForAutomaton((String)in.readObject());
+    automaton =
+        GlobalInfo.getInstance()
+            .getAutomatonInfo()
+            .getCPAForAutomaton((String) in.readObject())
+            .getAutomaton();
   }
 
   public int getMatches() {

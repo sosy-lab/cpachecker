@@ -36,6 +36,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.graph.Traverser;
 import java.util.Optional;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
@@ -76,7 +77,9 @@ public final class AbstractStates {
    * @param pType The class object of the type of the wrapped state.
    * @return An instance of an state with type T or null if there is none.
    */
-  public static <T extends AbstractState> T extractStateByType(AbstractState pState, Class<T> pType) {
+  @Nullable
+  public static <T extends AbstractState> T extractStateByType(
+      AbstractState pState, Class<T> pType) {
     if (pType.isInstance(pState)) {
       return pType.cast(pState);
 
@@ -121,7 +124,7 @@ public final class AbstractStates {
                         .filter(notNull());
   }
 
-  public static CFANode extractLocation(AbstractState pState) {
+  public static @Nullable CFANode extractLocation(AbstractState pState) {
     AbstractStateWithLocation e = extractStateByType(pState, AbstractStateWithLocation.class);
     return e == null ? null : e.getLocationNode();
   }
@@ -143,9 +146,6 @@ public final class AbstractStates {
   public static Iterable<CFAEdge> getOutgoingEdges(AbstractState pState) {
     return extractStateByType(pState, AbstractStateWithLocations.class).getOutgoingEdges();
   }
-
-  public static final Function<AbstractState, CFANode> EXTRACT_LOCATION =
-      AbstractStates::extractLocation;
 
   public static Iterable<AbstractState> filterLocation(Iterable<AbstractState> pStates, CFANode pLoc) {
     if (pStates instanceof LocationMappedReachedSet) {
@@ -177,10 +177,8 @@ public final class AbstractStates {
   }
 
   public static FluentIterable<AbstractState> getTargetStates(final UnmodifiableReachedSet pReachedSet) {
-    return from(pReachedSet).filter(AbstractStates.IS_TARGET_STATE);
+    return from(pReachedSet).filter(AbstractStates::isTargetState);
   }
-
-  public static final Predicate<AbstractState> IS_TARGET_STATE = AbstractStates::isTargetState;
 
   public static boolean hasAssumptions(AbstractState as) {
     AssumptionStorageState assumption = extractStateByType(as, AssumptionStorageState.class);

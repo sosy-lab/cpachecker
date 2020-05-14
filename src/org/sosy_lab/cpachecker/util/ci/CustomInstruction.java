@@ -24,15 +24,16 @@
 package org.sosy_lab.cpachecker.util.ci;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -85,17 +86,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 
 // Note that this class is not complete yet. Most of the comments are just for me and my advisor, they will disappear later!
-public class CustomInstruction{
+public class CustomInstruction {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((ciEndNodes == null) ? 0 : ciEndNodes.hashCode());
-    result = prime * result + ((ciStartNode == null) ? 0 : ciStartNode.hashCode());
-    result = prime * result + ((inputVariables == null) ? 0 : inputVariables.hashCode());
-    result = prime * result + ((outputVariables == null) ? 0 : outputVariables.hashCode());
-    return result;
+    return Objects.hash(ciEndNodes, ciStartNode, inputVariables, outputVariables);
   }
 
   @Override
@@ -103,42 +98,14 @@ public class CustomInstruction{
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof CustomInstruction)) {
       return false;
     }
     CustomInstruction other = (CustomInstruction) obj;
-    if (ciEndNodes == null) {
-      if (other.ciEndNodes != null) {
-        return false;
-      }
-    } else if (!ciEndNodes.equals(other.ciEndNodes)) {
-      return false;
-    }
-    if (ciStartNode == null) {
-      if (other.ciStartNode != null) {
-        return false;
-      }
-    } else if (!ciStartNode.equals(other.ciStartNode)) {
-      return false;
-    }
-    if (inputVariables == null) {
-      if (other.inputVariables != null) {
-        return false;
-      }
-    } else if (!inputVariables.equals(other.inputVariables)) {
-      return false;
-    }
-    if (outputVariables == null) {
-      if (other.outputVariables != null) {
-        return false;
-      }
-    } else if (!outputVariables.equals(other.outputVariables)) {
-      return false;
-    }
-    return true;
+    return Objects.equals(ciEndNodes, other.ciEndNodes)
+        && Objects.equals(ciStartNode, other.ciStartNode)
+        && Objects.equals(inputVariables, other.inputVariables)
+        && Objects.equals(outputVariables, other.outputVariables);
   }
 
   private final CFANode ciStartNode;
@@ -180,13 +147,13 @@ public class CustomInstruction{
     StringBuilder sb = new StringBuilder();
 
     sb.append("(");
-    if (inputVariables.size() > 0) {
+    if (!inputVariables.isEmpty()) {
       Joiner.on(", ").appendTo(sb, Iterables.transform(inputVariables, CIUtils.GET_SMTNAME));
     }
 
     sb.append(") -> (");
 
-    if (outputVariables.size() > 0) {
+    if (!outputVariables.isEmpty()) {
       Joiner.on(", ").appendTo(sb, Iterables.transform(outputVariables, CIUtils.GET_SMTNAME_WITH_INDEX));
     }
     sb.append(")");
@@ -201,18 +168,17 @@ public class CustomInstruction{
    * @return (define-fun ci Bool((and (= IV1 0) (and (= IV2 0) (and OV1 OV2))))
    */
   public Pair<List<String>, String> getFakeSMTDescription() {
-    if (inputVariables.size() == 0 && outputVariables.size() == 0) {
-      return Pair.of(Collections.emptyList(), "(define-fun ci() Bool true)");
+    if (inputVariables.isEmpty() && outputVariables.isEmpty()) {
+      return Pair.of(ImmutableList.of(), "(define-fun ci() Bool true)");
     }
     StringBuilder sb = new StringBuilder();
     sb.append("(define-fun ci() Bool");
     int BracketCounter = 0;
 
-    if (inputVariables.size() != 0) {
+    if (!inputVariables.isEmpty()) {
       String last = inputVariables.get(inputVariables.size()-1);
-      for (int i=0; i<inputVariables.size(); i++) {
-        String variable = inputVariables.get(i);
-        if (outputVariables.size()==0 && variable.equals(last)) {
+      for (String variable : inputVariables) {
+        if (outputVariables.isEmpty() && variable.equals(last)) {
           sb.append(getAssignmentOfVariableToZero(variable, false));
 //          sb.append("= ");
 //          sb.append(variable);
@@ -225,10 +191,9 @@ public class CustomInstruction{
       }
     }
 
-    if (outputVariables.size() != 0) {
+    if (!outputVariables.isEmpty()) {
       String last = outputVariables.get(outputVariables.size()-1);
-      for (int i=0; i<outputVariables.size(); i++) {
-        String variable = outputVariables.get(i);
+      for (String variable : outputVariables) {
         if (variable.equals(last)) {
           sb.append(" ");
           sb.append(getAssignmentOfVariableToZero(variable, true));
@@ -325,7 +290,12 @@ public class CustomInstruction{
         continue;
       }
 
+      if (aciPred.getNumLeavingEdges() != ciPred.getNumLeavingEdges()) {
+        throw new AppliedCustomInstructionParsingFailedException("Structure mismatch");
+      }
+
       for (int i=0; i<ciPred.getNumLeavingEdges(); i++) {
+        shutdownNotifier.shutdownIfNecessary();
         // Custom Instruction
         CFAEdge ciEdge = ciPred.getLeavingEdge(i);
         CFANode ciSucc = ciEdge.getSuccessor();
@@ -399,19 +369,18 @@ public class CustomInstruction{
    * @return (define-fun aci Bool((and (= IV1 0) (and (= IV2 0) (and OV1 OV2))))
    */
   private Pair<List<String>, String> getFakeSMTDescriptionForACI(final Map<String,String> map) {
-    if (inputVariables.size() == 0 && outputVariables.size() == 0) {
-      return Pair.of(Collections.emptyList(), "(define-fun ci() Bool true)");
+    if (inputVariables.isEmpty() && outputVariables.isEmpty()) {
+      return Pair.of(ImmutableList.of(), "(define-fun ci() Bool true)");
     }
 
     StringBuilder sb = new StringBuilder();
     sb.append("(define-fun ci() Bool");
     int BracketCounter = 0;
 
-    if (inputVariables.size() != 0) {
+    if (!inputVariables.isEmpty()) {
       String last = inputVariables.get(inputVariables.size()-1);
-      for (int i=0; i<inputVariables.size(); i++) {
-        String variable = inputVariables.get(i);
-        if (outputVariables.size()==0 && variable.equals(last)) {
+      for (String variable : inputVariables) {
+        if (outputVariables.isEmpty() && variable.equals(last)) {
           sb.append(getAssignmentOfVariableToZero(map.get(variable), false));
         } else {
           sb.append("(and ");
@@ -421,10 +390,9 @@ public class CustomInstruction{
       }
     }
 
-    if (outputVariables.size() != 0) {
+    if (!outputVariables.isEmpty()) {
       String last = outputVariables.get(outputVariables.size()-1);
-      for (int i=0; i<outputVariables.size(); i++) {
-        String variable = outputVariables.get(i);
+      for (String variable : outputVariables) {
         if (variable.equals(last)) {
           sb.append(" ");
           sb.append(getAssignmentOfVariableToZero(map.get(variable), true));
@@ -698,7 +666,7 @@ public class CustomInstruction{
   private void compareFunctionCallEdge(final CFunctionCallEdge ciEdge, final CFunctionCallEdge aciEdge,
       final Map<String,String> ciVarToAciVar) throws AppliedCustomInstructionParsingFailedException {
 
-    if(ciEdge.getSuccessor() != aciEdge.getSuccessor()) {
+    if (!Objects.equals(ciEdge.getSuccessor(), aciEdge.getSuccessor())) {
       throw new AppliedCustomInstructionParsingFailedException("Applied custom instruction calls different method than custom instruction.");
     }
 
@@ -807,7 +775,8 @@ public class CustomInstruction{
       else if (aciExp instanceof CFloatLiteralExpression) {
         compareSimpleTypes(ciExp, ((CFloatLiteralExpression) aciExp).getValue(), (CSimpleType) aciExp.getExpressionType());
       } else {
-        throw new AppliedCustomInstructionParsingFailedException("The aci expression " + ciExp + " is not a CSimpleType.");
+        throw new AppliedCustomInstructionParsingFailedException(
+            "The aci expression " + aciExp + " is not a CSimpleType.");
       }
       return null;
     }

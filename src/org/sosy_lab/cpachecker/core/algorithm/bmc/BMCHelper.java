@@ -30,11 +30,13 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -81,15 +83,12 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 public final class BMCHelper {
 
-  public static final Predicate<AbstractState> END_STATE_FILTER =
-      s -> {
-        ARGState argState = AbstractStates.extractStateByType(s, ARGState.class);
-        return argState != null && argState.getChildren().isEmpty();
-      };
-
-  private BMCHelper() {
-
+  public static boolean isEndState(AbstractState s) {
+    ARGState argState = AbstractStates.extractStateByType(s, ARGState.class);
+    return argState != null && argState.getChildren().isEmpty();
   }
+
+  private BMCHelper() {}
 
   public static BooleanFormula assertAt(
       Iterable<AbstractState> pStates,
@@ -185,7 +184,7 @@ public final class BMCHelper {
     for (PredicateAbstractState e :
         AbstractStates.projectToType(states, PredicateAbstractState.class)) {
       if (pShutdownNotifier.isPresent()) {
-        pShutdownNotifier.get().shutdownIfNecessary();
+        pShutdownNotifier.orElseThrow().shutdownIfNecessary();
       }
       // Conjuncting block formula of last abstraction and current path formula
       // works regardless of state is an abstraction state or not.
@@ -214,24 +213,20 @@ public final class BMCHelper {
       Algorithm pAlgorithm,
       ConfigurableProgramAnalysis pCPA)
       throws CPAException, InterruptedException {
-    return unroll(pLogger, pReachedSet, (rs) -> {}, pAlgorithm, pCPA);
-  }
-
-  public static AlgorithmStatus unroll(LogManager pLogger, ReachedSet pReachedSet, ReachedSetInitializer pInitializer, Algorithm pAlgorithm, ConfigurableProgramAnalysis pCPA) throws CPAException, InterruptedException {
-    adjustReachedSet(pLogger, pReachedSet, pInitializer, pCPA);
+    adjustReachedSet(pLogger, pReachedSet, pCPA);
     return pAlgorithm.run(pReachedSet);
   }
 
   /**
-   * Adjusts the given reached set so that the involved adjustable condition
-   * CPAs are able to operate properly without being negatively influenced by
-   * states generated earlier under different conditions while trying to
-   * retain as many states as possible.
+   * Adjusts the given reached set so that the involved adjustable condition CPAs are able to
+   * operate properly without being negatively influenced by states generated earlier under
+   * different conditions while trying to retain as many states as possible.
    *
    * @param pReachedSet the reached set to be adjusted.
-   * @param pInitializer initializes the reached set.
    */
-  public static void adjustReachedSet(LogManager pLogger, ReachedSet pReachedSet, ReachedSetInitializer pInitializer, ConfigurableProgramAnalysis pCPA) throws CPAException, InterruptedException {
+  public static void adjustReachedSet(
+      LogManager pLogger, ReachedSet pReachedSet, ConfigurableProgramAnalysis pCPA)
+      throws InterruptedException {
     Preconditions.checkArgument(!pReachedSet.isEmpty());
     CFANode initialLocation = extractLocation(pReachedSet.getFirstState());
     for (AdjustableConditionCPA conditionCPA : CPAs.asIterable(pCPA).filter(AdjustableConditionCPA.class)) {
@@ -245,7 +240,6 @@ public final class BMCHelper {
       }
     }
     if (pReachedSet.isEmpty()) {
-      pInitializer.initialize(pReachedSet);
       pReachedSet.add(
           pCPA.getInitialState(initialLocation, StateSpacePartition.getDefaultPartition()),
           pCPA.getInitialPrecision(initialLocation, StateSpacePartition.getDefaultPartition()));
@@ -254,8 +248,8 @@ public final class BMCHelper {
 
   public static Set<CFANode> getLoopHeads(CFA pCFA, TargetLocationProvider pTargetLocationProvider) {
     if (pCFA.getLoopStructure().isPresent()
-        && pCFA.getLoopStructure().get().getAllLoops().isEmpty()) {
-      return Collections.emptySet();
+        && pCFA.getLoopStructure().orElseThrow().getAllLoops().isEmpty()) {
+      return ImmutableSet.of();
     }
     final Set<CFANode> loopHeads =
         pTargetLocationProvider.tryGetAutomatonTargetLocations(
@@ -264,22 +258,18 @@ public final class BMCHelper {
     if (!pCFA.getLoopStructure().isPresent()) {
       return loopHeads;
     }
-    LoopStructure loopStructure = pCFA.getLoopStructure().get();
+    LoopStructure loopStructure = pCFA.getLoopStructure().orElseThrow();
     return from(loopStructure.getAllLoops()).transformAndConcat(new Function<Loop, Iterable<CFANode>>() {
 
       @Override
       public Iterable<CFANode> apply(Loop pLoop) {
         if (Sets.intersection(pLoop.getLoopNodes(), loopHeads).isEmpty()) {
-          return Collections.emptySet();
+          return ImmutableSet.of();
         }
         return pLoop.getLoopHeads();
       }
 
     }).toSet();
-  }
-
-  public static FluentIterable<AbstractState> filterEndStates(Iterable<AbstractState> pStates) {
-    return FluentIterable.from(pStates).filter(END_STATE_FILTER::test);
   }
 
   public static FluentIterable<AbstractState> filterIterationsBetween(
@@ -337,14 +327,13 @@ public final class BMCHelper {
      * to the previous iteration instead of the one it starts.
      */
 
-    return !AbstractStates.IS_TARGET_STATE.apply(state)
-            && getLocationPredicate(pLoopHeads).test(state)
+    return !AbstractStates.isTargetState(state) && hasMatchingLocation(state, pLoopHeads)
         ? pIteration + 1
         : pIteration;
   }
 
-  public static Predicate<AbstractState> getLocationPredicate(Set<CFANode> pLocations) {
-    return state -> from(AbstractStates.extractLocations(state)).anyMatch(pLocations::contains);
+  public static boolean hasMatchingLocation(AbstractState state, Set<CFANode> pLocations) {
+    return from(AbstractStates.extractLocations(state)).anyMatch(pLocations::contains);
   }
 
   public static Set<ARGState> filterAncestors(
@@ -358,7 +347,7 @@ public final class BMCHelper {
         }
       }
     }
-    Set<ARGState> redundantStates = Sets.newHashSet();
+    Set<ARGState> redundantStates = new HashSet<>();
     for (Map.Entry<ARGState, Collection<ARGState>> family : parentToTarget.asMap().entrySet()) {
       ARGState parent = family.getKey();
       Collection<ARGState> children = family.getValue();
@@ -405,7 +394,7 @@ public final class BMCHelper {
     return visitor.valid;
   }
 
-  static BooleanFormula disjoinStateViolationAssertions(
+  public static BooleanFormula disjoinStateViolationAssertions(
       BooleanFormulaManager pBfmgr,
       Multimap<BooleanFormula, BooleanFormula> pSuccessorViolationAssertions) {
     BooleanFormula disjunction = pBfmgr.makeFalse();

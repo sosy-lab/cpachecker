@@ -43,28 +43,28 @@
 
   <tasks name="predicate_tree">
     <include>../programs/benchmarks/recursive/*.yml</include>
-    <exclude>../programs/benchmarks/recursive/*1_*.yml</exclude>
-    <exclude>../programs/benchmarks/recursive/*2_*.yml</exclude>
-    <exclude>../programs/benchmarks/recursive/*3_*.yml</exclude>
+    <exclude>../programs/benchmarks/recursive/*01*.yml</exclude>
+    <exclude>../programs/benchmarks/recursive/*02*.yml</exclude>
+    <exclude>../programs/benchmarks/recursive/*03*.yml</exclude>
     <option name="-predicateAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="predicate_tree_nested">
-    <include>../programs/benchmarks/recursive/*3_*.c</include>
+    <include>../programs/benchmarks/recursive/*03*.yml</include>
     <option name="-setprop">cpa.predicate.refinement.strategy=tree_nested</option>
     <option name="-setprop">solver.solver=mathsat5</option>
     <option name="-predicateAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="predicate_tree_cpachecker">
-    <include>../programs/benchmarks/recursive/*2_*.c</include>
+    <include>../programs/benchmarks/recursive/*02*.yml</include>
     <option name="-setprop">cpa.predicate.refinement.strategy=tree_cpachecker</option>
     <option name="-setprop">solver.solver=mathsat5</option>
     <option name="-predicateAnalysis-bam-rec"/>
   </tasks>
 
   <tasks name="predicate_tree_wellscoped">
-    <include>../programs/benchmarks/recursive/*1_*.yml</include>
+    <include>../programs/benchmarks/recursive/*01*.yml</include>
     <option name="-setprop">cpa.predicate.refinement.strategy=tree_wellscoped</option>
     <option name="-setprop">solver.solver=mathsat5</option>
     <option name="-predicateAnalysis-bam-rec"/>
@@ -92,7 +92,13 @@
   <tasks>
     <option name="-predicateAnalysis-bam"/>
     <includesfile>../programs/simple/simple.set</includesfile>
-    <propertyfile>../programs/simple/ALL.prp</propertyfile>
+    <propertyfile>../config/properties/unreach-label.prp</propertyfile>
+    <exclude>../programs/benchmarks/forester-heap/*</exclude>
+  </tasks>
+  <tasks>
+    <option name="-predicateAnalysis-bam"/>
+    <includesfile>../programs/simple/simple.set</includesfile>
+    <propertyfile>../config/properties/unreach-call.prp</propertyfile>
     <exclude>../programs/benchmarks/forester-heap/*</exclude>
   </tasks>
   <tasks>
@@ -126,16 +132,15 @@
   <tasks>
     <option name="-predicateAnalysis-bam"/>
     <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
-    <exclude>../programs/benchmarks/seq-mthreaded/*</exclude>
+    <exclude>../programs/benchmarks/seq-mthreaded/*</exclude> <!-- mostly timeout -->
+    <exclude>../programs/benchmarks/seq-mthreaded-reduced/*lcr-var*</exclude> <!-- mostly timeout -->
+    <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_floodmax.5.2.ufo.UNBOUNDED.pals.c.v+nlh-reducer.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_opt-floodmax.3.4.ufo.BOUNDED-6.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_opt-floodmax.4.3.ufo.BOUNDED-8.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-pthread/*</exclude>
-    <exclude>../programs/benchmarks/ssh-simplified/s3_clnt_2_true-unreach-call_true-termination.cil.c</exclude>
-    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_8_true-unreach-call_false-termination.cil.c</exclude>
-    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_11_false-unreach-call_false-termination.cil.c</exclude>
-    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_13_false-unreach-call_false-termination.cil.c</exclude>
-    <exclude>../programs/benchmarks/systemc/mem_slave_tlm.1_true-unreach-call_false-termination.cil.c</exclude>
-    <exclude>../programs/benchmarks/systemc/token_ring.*_false*</exclude>
-    <exclude>../programs/benchmarks/systemc/toy1_false-unreach-call_false-termination.cil.c</exclude>
-    <exclude>../programs/benchmarks/systemc/transmitter.1*_false*</exclude>
+    <exclude>../programs/benchmarks/systemc/token_ring.*</exclude>
+    <exclude>../programs/benchmarks/systemc/toy1.cil.c</exclude>
+    <exclude>../programs/benchmarks/systemc/transmitter.1*</exclude>
   </tasks>
   <tasks>
     <option name="-predicateAnalysis-bam"/>
@@ -144,16 +149,15 @@
     <option name="-64"/>
     <option name="-setprop">analysis.checkCounterexamples=true</option>
     <option name="-setprop">counterexample.checker=CBMC</option>
-    <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
     <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
-    <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-scsi-dc395x.ko_true-unreach-call.cil.out.i.pp.i</exclude>
-    <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-net-wan-farsync.ko_false-unreach-call.cil.out.i.pp.i</exclude>
-    <exclude>../programs/benchmarks/ldv-linux-3.0/usb_urb-drivers-input-misc-keyspan_remote.ko_false-unreach-call.cil.out.i.pp.i</exclude>
     <!-- exclude some files that are nearly identical in complexity and runtime, some of them are timeout -->
     <exclude>../programs/benchmarks/ldv-linux-3.0/module_get_put-drivers-*</exclude>
-    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--input--*</exclude>
-    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--media--*</exclude>
-    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_true-unreach-call_ok_nondet_linux-43_1a-drivers--usb--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--input--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--media--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--usb--*</exclude>
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--net--wireless--mwifiex--mwifiex_pcie.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--power--max8903_charger.ko-ldv_main0_sequence_infinite_withcheck_stateful.cil.out.yml</exclude> <!-- flapping timeout/OOM -->
   </tasks>
 
 </benchmark>

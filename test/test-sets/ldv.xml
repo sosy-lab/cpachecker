@@ -27,7 +27,7 @@
   </tasks>
   <tasks name="DeviceDrivers64">
     <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
-    <propertyfile>${sourcefile_path}/ALL.prp</propertyfile>
+    <propertyfile>${inputfile_path}/ALL.prp</propertyfile>
   </tasks>
 
   <rundefinition>

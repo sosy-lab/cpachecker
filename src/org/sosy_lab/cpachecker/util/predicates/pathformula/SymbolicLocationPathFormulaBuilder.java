@@ -34,7 +34,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -152,8 +151,8 @@ public class SymbolicLocationPathFormulaBuilder extends DefaultPathFormulaBuilde
 
   public CFAEdge makeProgramCounterAssumption(CFAEdge cfaEdge) throws UnrecognizedCodeException {
 
-    CFANode predecessorNode = ((AbstractCFAEdge) cfaEdge).getPredecessor();
-    CFANode successorNode = ((AbstractCFAEdge) cfaEdge).getSuccessor();
+    CFANode predecessorNode = cfaEdge.getPredecessor();
+    CFANode successorNode = cfaEdge.getSuccessor();
 
     // Build assertion %pc == rightHandSide:
     CExpression rightHandSide =
@@ -175,13 +174,13 @@ public class SymbolicLocationPathFormulaBuilder extends DefaultPathFormulaBuilde
 
   public CFAEdge makeProgramCounterAssignment(CFAEdge cfaEdge) {
 
-    CFANode predecessorNode = ((AbstractCFAEdge) cfaEdge).getPredecessor();
-    CFANode successorNode = ((AbstractCFAEdge) cfaEdge).getSuccessor();
+    CFANode predecessorNode = cfaEdge.getPredecessor();
+    CFANode successorNode = cfaEdge.getSuccessor();
 
     // Build assignment %pc = rightHandSide:
     CExpression rightHandSide =
         CIntegerLiteralExpression.createDummyLiteral(
-            ((AbstractCFAEdge) cfaEdge).getSuccessor().getNodeNumber(), CNumericTypes.SIGNED_INT);
+            cfaEdge.getSuccessor().getNodeNumber(), CNumericTypes.SIGNED_INT);
     CAssignment pcTransfer =
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY, getPcAsLeftHandSide(), rightHandSide);

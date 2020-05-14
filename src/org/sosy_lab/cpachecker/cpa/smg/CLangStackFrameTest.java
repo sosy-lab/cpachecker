@@ -26,32 +26,26 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assert_;
 
-import com.google.common.collect.ImmutableList;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMGTest;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 
 public class CLangStackFrameTest {
-  static private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
-  private static final CFunctionDeclaration functionDeclaration =
-      new CFunctionDeclaration(FileLocation.DUMMY, functionType, "foo", ImmutableList.of());
   static private final MachineModel usedMachineModel = MachineModel.LINUX64;
   private CLangStackFrame sf;
 
   @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
-
-    sf = new CLangStackFrame(functionDeclaration, usedMachineModel);
+    sf = new CLangStackFrame(CLangSMGTest.DUMMY_FUNCTION, usedMachineModel);
   }
 
   @Test
@@ -64,15 +58,6 @@ public class CLangStackFrameTest {
         .that(variables)
         .isEmpty();
     assertThat(sf.containsVariable("foo")).isFalse();
-
-    // Copy constructor
-    CLangStackFrame sf_copy = new CLangStackFrame(sf);
-    variables = sf_copy.getVariables();
-    assert_()
-        .withMessage("Empty CLangStackFrame contains no variables after copying")
-        .that(variables)
-        .isEmpty();
-    assertThat(sf_copy.containsVariable("foo")).isFalse();
   }
 
   @Test

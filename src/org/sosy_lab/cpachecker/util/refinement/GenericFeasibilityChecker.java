@@ -101,7 +101,7 @@ public class GenericFeasibilityChecker<S extends ForgetfulState<?>>
               " did not yield a successor");
           return false;
         } else {
-          next = maybeNext.get();
+          next = maybeNext.orElseThrow();
         }
 
         iterator.advance();

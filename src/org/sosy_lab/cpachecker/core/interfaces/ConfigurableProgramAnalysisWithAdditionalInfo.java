@@ -26,11 +26,11 @@ package org.sosy_lab.cpachecker.core.interfaces;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.AdditionalInfoConverter;
-import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessWriter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessFactory;
 
 /**
  * Provides interface for CPA with additional info to be written to extended witness {@link
- * ExtendedWitnessWriter}
+ * ExtendedWitnessFactory}
  */
 public interface ConfigurableProgramAnalysisWithAdditionalInfo {
 

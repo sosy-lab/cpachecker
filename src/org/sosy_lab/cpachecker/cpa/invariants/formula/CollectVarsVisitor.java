@@ -23,10 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
@@ -67,7 +67,7 @@ public class CollectVarsVisitor<T> implements NumeralFormulaVisitor<T, Set<Memor
 
   @Override
   public Set<MemoryLocation> visit(Constant<T> pConstant) {
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
   @Override
@@ -132,12 +132,12 @@ public class CollectVarsVisitor<T> implements NumeralFormulaVisitor<T, Set<Memor
 
   @Override
   public Set<MemoryLocation> visitFalse() {
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
   @Override
   public Set<MemoryLocation> visitTrue() {
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
   @Override

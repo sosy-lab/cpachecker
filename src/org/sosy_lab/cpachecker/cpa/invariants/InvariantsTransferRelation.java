@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
 import java.util.Collections;
@@ -37,6 +38,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -169,7 +171,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     }
 
     if (state == null) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     state = state.updateAbstractionState(precision, pEdge);
@@ -276,7 +278,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     }
 
     NumeralFormula<CompoundInterval> value;
-    if (decl.getInitializer() != null && decl.getInitializer() instanceof CInitializerExpression) {
+    if (decl.getInitializer() instanceof CInitializerExpression) {
       CExpression init = ((CInitializerExpression)decl.getInitializer()).getExpression();
       value = init.accept(getExpressionToFormulaVisitor(pEdge, pElement));
       if (containsArrayWildcard(value)) {
@@ -529,13 +531,16 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
   @Override
   public Collection<? extends AbstractState> strengthen(
-      AbstractState pElement, List<AbstractState> pOtherElements,
-      CFAEdge pCfaEdge, Precision pPrecision) throws UnrecognizedCodeException {
+      AbstractState pElement,
+      Iterable<AbstractState> pOtherElements,
+      CFAEdge pCfaEdge,
+      Precision pPrecision)
+      throws UnrecognizedCodeException {
 
     InvariantsState state = (InvariantsState) pElement;
 
     for (AbstractStateWithAssumptions assumptionState : FluentIterable.from(pOtherElements).filter(AbstractStateWithAssumptions.class)) {
-      String function = pCfaEdge.getSuccessor().getFunctionName();
+      AFunctionDeclaration function = pCfaEdge.getSuccessor().getFunction();
       for (AExpression assumption : assumptionState.getAssumptions()) {
         AssumeEdge fakeEdge;
         if (assumption instanceof CExpression) {
@@ -561,7 +566,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
         }
         state = handleAssume(state, fakeEdge, getExpressionToFormulaVisitor(pCfaEdge, state));
         if (state == null) {
-          return Collections.emptySet();
+          return ImmutableSet.of();
         }
       }
     }
@@ -574,7 +579,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
 
   private Collection<? extends AbstractState> pointerAliasStrengthening(
       AbstractState pElement,
-      List<AbstractState> pOtherElements,
+      Iterable<AbstractState> pOtherElements,
       CFAEdge pCfaEdge,
       InvariantsState state)
       throws UnrecognizedCodeException {
@@ -650,7 +655,7 @@ class InvariantsTransferRelation extends SingleEdgeTransferRelation {
     if (!variableClassification.isPresent()) {
       return pState.clear();
     }
-    VariableClassification varClassification = variableClassification.get();
+    VariableClassification varClassification = variableClassification.orElseThrow();
     InvariantsState result = pState;
     for (String variable : varClassification.getAddressedVariables()) {
       MemoryLocation location = MemoryLocation.valueOf(variable);

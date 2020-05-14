@@ -23,15 +23,13 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -43,6 +41,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -90,7 +89,6 @@ public abstract class ErrorTracePrinter {
   protected UnsafeDetector detector;
   protected final CFA cfa;
 
-  protected Predicate<CFAEdge> FILTER_EMPTY_FILE_LOCATIONS;
   private BAMMultipleCEXSubgraphComputer subgraphComputer;
 
   public ErrorTracePrinter(
@@ -104,21 +102,22 @@ public abstract class ErrorTracePrinter {
     config = c;
     lockTransfer = lT;
     config.inject(this, ErrorTracePrinter.class);
-    FILTER_EMPTY_FILE_LOCATIONS =
-        Predicates.and(
-            e -> e != null,
-            e ->
-                (e.getFileLocation() != null
-                    && !e.getFileLocation().getFileName().equals("<none>")));
-
-    if (filterMissedFiles) {
-      FILTER_EMPTY_FILE_LOCATIONS =
-          Predicates.and(
-              FILTER_EMPTY_FILE_LOCATIONS,
-              e -> Files.exists(Paths.get(e.getFileLocation().getFileName())));
-    }
     subgraphComputer = t;
     cfa = pCfa;
+  }
+
+  protected boolean hasRelevantFileLocation(CFAEdge e) {
+    if (e == null) {
+      return false;
+    }
+    FileLocation loc = e.getFileLocation();
+    if (loc == null || loc.equals(FileLocation.DUMMY)) {
+      return false;
+    }
+    if (filterMissedFiles && !Files.exists(Paths.get(loc.getFileName()))) {
+      return false;
+    }
+    return true;
   }
 
   private List<CFAEdge> createPath(UsageInfo usage) {
@@ -134,7 +133,7 @@ public abstract class ErrorTracePrinter {
     }
     if (path == null) {
       logger.log(Level.SEVERE, "Cannot compute path for: " + usage);
-      return Collections.emptyList();
+      return ImmutableList.of();
     }
     return path.getInnerEdges();
   }

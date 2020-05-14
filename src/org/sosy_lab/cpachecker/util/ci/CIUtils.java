@@ -25,7 +25,6 @@ package org.sosy_lab.cpachecker.util.ci;
 
 import com.google.common.base.Function;
 
-
 public class CIUtils {
 
   private CIUtils(){}
@@ -37,14 +36,14 @@ public class CIUtils {
     return varName;
   }
 
-  public static final Function<String, String> GET_SMTNAME = new Function<String, String>() {
+  public static final Function<String, String> GET_SMTNAME = new Function<>() {
     @Override
     public String apply(final String varName) {
       return getSMTName(varName);
     }
   };
 
-  public static final Function<String, String> GET_SMTNAME_WITH_INDEX = new Function<String, String>() {
+  public static final Function<String, String> GET_SMTNAME_WITH_INDEX = new Function<>() {
     @Override
     public String apply(final String varName) {
       return getSMTName(varName+"@1");

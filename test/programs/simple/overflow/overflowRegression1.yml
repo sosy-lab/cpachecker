@@ -1,0 +1,8 @@
+format_version: '1.0'
+
+# old file name: overflowRegression1_true-no-overflow.c
+input_files: 'overflowRegression1.c'
+
+properties:
+  - property_file: ../../benchmarks/properties/no-overflow.prp
+    expected_verdict: true

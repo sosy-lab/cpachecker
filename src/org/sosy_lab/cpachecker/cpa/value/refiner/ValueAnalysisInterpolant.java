@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cpa.value.refiner;
 
 import static com.google.common.base.Verify.verify;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -43,7 +44,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * This class represents a Value-Analysis interpolant, itself, just a mere wrapper around a map from
  * memory locations to values, representing a variable assignment.
  */
-public class ValueAnalysisInterpolant
+public final class ValueAnalysisInterpolant
     implements Interpolant<ValueAnalysisState, ValueAnalysisInterpolant> {
 
   /** the variable assignment of the interpolant */
@@ -82,7 +83,7 @@ public class ValueAnalysisInterpolant
 
   @Override
   public Set<MemoryLocation> getMemoryLocations() {
-    return isFalse() ? Collections.emptySet() : Collections.unmodifiableSet(assignment.keySet());
+    return isFalse() ? ImmutableSet.of() : Collections.unmodifiableSet(assignment.keySet());
   }
 
   /**

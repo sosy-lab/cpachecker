@@ -43,11 +43,11 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
-import com.google.common.collect.Ordering;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -107,7 +107,7 @@ public class LiveVariables {
    * then has storageType auto: for live variables we need to consider them
    * as one).
    */
-  public static final Equivalence<ASimpleDeclaration> LIVE_DECL_EQUIVALENCE = new Equivalence<ASimpleDeclaration>() {
+  public static final Equivalence<ASimpleDeclaration> LIVE_DECL_EQUIVALENCE = new Equivalence<>() {
 
     @Override
     protected boolean doEquivalent(ASimpleDeclaration pA, ASimpleDeclaration pB) {
@@ -167,7 +167,6 @@ public class LiveVariables {
     private final ImmutableSet<ASimpleDeclaration> allVariables;
 
     private AllVariablesAsLiveVariables(CFA cfa, List<Pair<ADeclaration, String>> globalsList) {
-      super();
       checkNotNull(cfa);
       checkNotNull(globalsList);
 
@@ -250,12 +249,13 @@ public class LiveVariables {
                         EvaluationStrategy pEvaluationStrategy,
                         Language pLanguage) {
 
-    Ordering<Equivalence.Wrapper<ASimpleDeclaration>> declarationOrdering = Ordering.natural().onResultOf(FROM_EQUIV_WRAPPER_TO_STRING);
+    Comparator<Equivalence.Wrapper<ASimpleDeclaration>> declarationOrdering =
+        Comparator.comparing(FROM_EQUIV_WRAPPER_TO_STRING);
 
     // ImmutableSortedSetMultimap does not exist, in order to create a sorted immutable Multimap
     // we sort it and create an immutable copy (Guava's Immutable* classes guarantee to keep the order).
     SortedSetMultimap<CFANode, Equivalence.Wrapper<ASimpleDeclaration>> sortedLiveVariables =
-        TreeMultimap.create(Ordering.natural(), declarationOrdering);
+        TreeMultimap.create(Comparator.naturalOrder(), declarationOrdering);
     sortedLiveVariables.putAll(pLiveVariables);
     liveVariables = ImmutableSetMultimap.copyOf(sortedLiveVariables);
     assert pLiveVariables.size() == liveVariables.size() : "ASimpleDeclarations with identical qualified names";
@@ -410,7 +410,9 @@ public class LiveVariables {
                 .transform(TO_EQUIV_WRAPPER)
                 .toSet();
         break;
-    case GLOBAL: globalVariables = Collections.emptySet(); break;
+      case GLOBAL:
+        globalVariables = ImmutableSet.of();
+        break;
     default:
       throw new AssertionError("Unhandled case statement: " + config.evaluationStrategy);
     }
@@ -434,7 +436,8 @@ public class LiveVariables {
 
     // create live variables
     if (parts.isPresent()) {
-      liveVariables = addLiveVariablesFromCFA(cfa, logger, parts.get(), config.evaluationStrategy);
+      liveVariables =
+          addLiveVariablesFromCFA(cfa, logger, parts.orElseThrow(), config.evaluationStrategy);
     }
 
     if (limitChecker != null) {
@@ -489,9 +492,11 @@ public class LiveVariables {
     final Collection<FunctionEntryNode> functionHeads;
     switch (evaluationStrategy) {
       case FUNCTION_WISE:
-        functionHeads = pCfa.getAllFunctionHeads(); break;
+        functionHeads = pCfa.getAllFunctionHeads();
+        break;
       case GLOBAL:
-        functionHeads = Collections.singleton(pCfa.getMainFunction()); break;
+        functionHeads = Collections.singleton(pCfa.getMainFunction());
+        break;
       default:
         throw new AssertionError("Unhandled case statement: " +
             evaluationStrategy);
@@ -511,7 +516,7 @@ public class LiveVariables {
     }
 
     if(loopStructure.isPresent()){
-      LoopStructure structure = loopStructure.get();
+      LoopStructure structure = loopStructure.orElseThrow();
       ImmutableCollection<Loop> loops = structure.getAllLoops();
 
       for (Loop l : loops) {

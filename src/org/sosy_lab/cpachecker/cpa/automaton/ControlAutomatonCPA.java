@@ -23,14 +23,18 @@
  */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
+import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.MoreCollectors;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -43,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
@@ -102,19 +107,35 @@ public class ControlAutomatonCPA
     return AutomaticCPAFactory.forType(ControlAutomatonCPA.class);
   }
 
-  @Option(secure=true, required=false,
-      description="file with automaton specification for ObserverAutomatonCPA and ControlAutomatonCPA")
+  @Option(
+      secure = true,
+      required = false,
+      description =
+          "file with automaton specification for ObserverAutomatonCPA and ControlAutomatonCPA")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path inputFile = null;
 
-  @Option(secure=true, description="signal the analysis to break in case the given number of error state is reached ")
+  @Option(
+      secure = true,
+      description =
+          "signal the analysis to break in case the given number of "
+              + "error state is reached. Use -1 to disable this limit.")
   private int breakOnTargetState = 1;
 
-  @Option(secure=true, description="the maximum number of iterations performed after the initial error is found, despite the limit"
-      + "given as cpa.automaton.breakOnTargetState is not yet reached")
+  @Option(
+      secure = true,
+      description =
+          "the maximum number of iterations performed after the "
+              + "initial error is found, despite the limit given as "
+              + "cpa.automaton.breakOnTargetState is not yet reached. "
+              + "Use -1 to disable this limit.")
   private int extraIterationsLimit = -1;
 
-  @Option(secure=true, description="Whether to treat automaton states with an internal error state as targets. This should be the standard use case.")
+  @Option(
+      secure = true,
+      description =
+          "Whether to treat automaton states with an internal error "
+              + "state as targets. This should be the standard use case.")
   private boolean treatErrorsAsTargets = true;
 
   @Option(secure=true, description="Merge two automata states if one of them is TOP.")
@@ -129,22 +150,28 @@ public class ControlAutomatonCPA
   private boolean topOnFinalSelfLoopingState = false;
 
   private final Automaton automaton;
-  private final AutomatonState topState = new AutomatonState.TOP(this);
-  private final AutomatonState bottomState = new AutomatonState.BOTTOM(this);
+  private final AutomatonState topState;
+  private final AutomatonState bottomState;
 
-  private final AbstractDomain automatonDomain = new FlatLatticeDomain(topState);
-  final AutomatonStatistics stats = new AutomatonStatistics(this);
+  private final AbstractDomain automatonDomain;
+  private final AutomatonStatistics stats;
   private final CFA cfa;
   private final LogManager logger;
+  private final ShutdownNotifier shutdownNotifier;
 
-  protected ControlAutomatonCPA(@OptionalAnnotation Automaton pAutomaton,
-      Configuration pConfig, LogManager pLogger, CFA pCFA)
-    throws InvalidConfigurationException {
+  protected ControlAutomatonCPA(
+      @OptionalAnnotation Automaton pAutomaton,
+      Configuration pConfig,
+      LogManager pLogger,
+      CFA pCFA,
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException {
 
     pConfig.inject(this, ControlAutomatonCPA.class);
 
     cfa = pCFA;
     logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
     if (pAutomaton != null) {
       this.automaton = pAutomaton;
 
@@ -156,6 +183,12 @@ public class ControlAutomatonCPA
     }
 
     pLogger.log(Level.FINEST, "Automaton", automaton.getName(), "loaded.");
+
+    topState = new AutomatonState.TOP(getAutomaton(), isTreatingErrorsAsTargets());
+    bottomState = new AutomatonState.BOTTOM(getAutomaton(), isTreatingErrorsAsTargets());
+
+    automatonDomain = new FlatLatticeDomain(topState);
+    stats = new AutomatonStatistics(automaton);
 
     if (export) {
       if (dotExportFile != null) {
@@ -185,7 +218,15 @@ public class ControlAutomatonCPA
         ? new CProgramScope(cfa, logger)
         : DummyScope.getInstance();
 
-    List<Automaton> lst = AutomatonParser.parseAutomatonFile(pFile, pConfig, logger, cfa.getMachineModel(), scope, cfa.getLanguage());
+    List<Automaton> lst =
+        AutomatonParser.parseAutomatonFile(
+            pFile,
+            pConfig,
+            logger,
+            cfa.getMachineModel(),
+            scope,
+            cfa.getLanguage(),
+            shutdownNotifier);
 
     if (lst.isEmpty()) {
       throw new InvalidConfigurationException("Could not find automata in the file " + inputFile.toAbsolutePath());
@@ -213,7 +254,37 @@ public class ControlAutomatonCPA
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return AutomatonState.automatonStateFactory(automaton.getInitialVariables(), automaton.getInitialState(), this, 0, 0, null);
+    return buildInitStateForAutomaton(automaton);
+  }
+
+  public AutomatonState buildInitStateForAutomaton(Automaton pAutomaton) {
+    AutomatonInternalState initState = pAutomaton.getInitialState();
+    AutomatonSafetyProperty safetyProp = null;
+    if (initState.isTarget()) {
+      for (AutomatonTransition t : initState.getTransitions()) {
+        if (t.getFollowState().isTarget()) {
+          Optional<AExpression> assumptionOpt =
+              t.getAssumptions(null, logger, cfa.getMachineModel())
+                  .stream()
+                  .collect(MoreCollectors.toOptional());
+          safetyProp =
+              assumptionOpt.isPresent()
+                  ? new AutomatonSafetyProperty(
+                      pAutomaton, t, assumptionOpt.orElseThrow().toASTString())
+                  : new AutomatonSafetyProperty(pAutomaton, t);
+          break;
+        }
+      }
+      Verify.verifyNotNull(safetyProp);
+    }
+    return AutomatonState.automatonStateFactory(
+        pAutomaton.getInitialVariables(),
+        pAutomaton.getInitialState(),
+        pAutomaton,
+        0,
+        0,
+        safetyProp,
+        isTreatingErrorsAsTargets());
   }
 
   @Override
@@ -247,7 +318,7 @@ public class ControlAutomatonCPA
 
   @Override
   public AutomatonTransferRelation getTransferRelation() {
-    return new AutomatonTransferRelation(this, logger, cfa.getMachineModel());
+    return new AutomatonTransferRelation(this, logger, cfa.getMachineModel(), stats);
   }
 
   public AutomatonState getBottomState() {

@@ -24,10 +24,10 @@
 package org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck;
 
 import static com.google.common.collect.FluentIterable.from;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
 
 import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableList;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -144,22 +144,12 @@ public class CounterexampleCheckAlgorithm
       status = status.update(algorithm.run(reached));
       assert ARGUtils.checkARG(reached);
 
-      ARGState lastState = (ARGState)reached.getLastState();
-
-      final List<ARGState> errorStates;
-      if (lastState != null && lastState.isTarget()) {
-        errorStates =
-            checkedTargetStates.contains(lastState)
-                ? ImmutableList.of()
-                : ImmutableList.of(lastState);
-      } else {
-        errorStates =
-            from(reached)
-                .transform(AbstractStates.toState(ARGState.class))
-                .filter(AbstractStates.IS_TARGET_STATE)
-                .filter(Predicates.not(Predicates.in(checkedTargetStates)))
-                .toList();
-      }
+      final List<ARGState> errorStates =
+          from(reached)
+              .transform(AbstractStates.toState(ARGState.class))
+              .filter(AbstractStates::isTargetState)
+              .filter(Predicates.not(Predicates.in(checkedTargetStates)))
+              .toList();
 
       if (errorStates.isEmpty()) {
         // no errors, so no analysis necessary
@@ -192,7 +182,7 @@ public class CounterexampleCheckAlgorithm
               "Error path found, but identified as infeasible by counterexample check with "
                   + checkerType
                   + ".",
-              from(infeasibleErrorPaths).transform(ARGUtils::getOnePathTo).toList());
+              transformedImmutableListCopy(infeasibleErrorPaths, ARGUtils::getOnePathTo));
         }
       } finally {
         checkTime.stop();

@@ -70,7 +70,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
    */
   private CompoundBitVectorInterval(BitVectorInterval pInterval) {
     this.info = pInterval.getTypeInfo();
-    this.intervals = new BitVectorInterval[] { pInterval };
+    this.intervals = new BitVectorInterval[] {pInterval};
   }
 
   /**
@@ -195,7 +195,7 @@ public class CompoundBitVectorInterval implements CompoundIntegralInterval, BitV
     checkBitVectorCompatibilityWith(pOther.getTypeInfo());
     if (contains(pOther)) { return this; }
     if (isBottom() || pOther.isTop()) { return getInternal(pOther); }
-    ArrayList<BitVectorInterval> resultIntervals = new ArrayList<>();
+    List<BitVectorInterval> resultIntervals = new ArrayList<>();
     int start = 0;
     BitVectorInterval lastInterval = null;
     if (pOther.hasLowerBound() && hasUpperBound()) {

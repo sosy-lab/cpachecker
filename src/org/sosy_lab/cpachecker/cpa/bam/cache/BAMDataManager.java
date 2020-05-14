@@ -97,7 +97,7 @@ public interface BAMDataManager {
    */
   ReachedSet getReachedSetForInitialState(AbstractState state, AbstractState exitState);
 
-  /** CHech whether the given abstract state is the non-reduced initial state of a reached-set. */
+  /** Check whether the given abstract state is the non-reduced initial state of a reached-set. */
   boolean hasInitialState(AbstractState state);
 
   /** Returns all non-reduced intiial states for a reduced initial state. */

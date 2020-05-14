@@ -24,12 +24,12 @@
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 /**
- * Instances of this class represent binary or operations over invariants
- * formulae.
+ * Instances of this class represent binary or operations over invariants formulae.
  *
  * @param <ConstantType> the type of the constants used in the formula.
  */
-public class BinaryOr<ConstantType> extends AbstractBinaryFormula<ConstantType> implements NumeralFormula<ConstantType> {
+public final class BinaryOr<ConstantType> extends AbstractBinaryFormula<ConstantType>
+    implements NumeralFormula<ConstantType> {
 
   /**
    * Creates a new binary or operation over the given operands.

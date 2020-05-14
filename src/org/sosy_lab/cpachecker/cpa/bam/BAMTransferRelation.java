@@ -28,15 +28,15 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -46,17 +46,16 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmFactory;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.WrapperTransferRelation;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
-import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackTransferRelation;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 
@@ -72,19 +71,23 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
 
   private final BAMCPAStatistics stats;
 
+  private final boolean searchTargetStatesOnExit;
+
   public BAMTransferRelation(
       BAMCPA bamCpa,
       ShutdownNotifier pShutdownNotifier,
       AlgorithmFactory pFactory,
-      BAMPCCManager pBamPccManager)
-      throws InvalidConfigurationException {
+      BAMPCCManager pBamPccManager,
+      boolean pSearchTargetStatesOnExit) {
     super(bamCpa, pShutdownNotifier);
     algorithmFactory = pFactory;
     callstackTransfer =
-        CPAs.retrieveCPAOrFail(bamCpa, CallstackCPA.class, BAMTransferRelation.class)
-            .getTransferRelation();
+        Preconditions.checkNotNull(
+            ((WrapperTransferRelation) transferRelation)
+                .retrieveWrappedTransferRelation(CallstackTransferRelation.class));
     bamPccManager = pBamPccManager;
     stats = bamCpa.getStatistics();
+    searchTargetStatesOnExit = pSearchTargetStatesOnExit;
   }
 
   @Override
@@ -96,6 +99,13 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     if (bamPccManager.isPCCEnabled()) {
       return bamPccManager.attachAdditionalInfoToCallNodes(successors);
     }
+
+    if (Iterables.any(successors, AbstractStates::isTargetState)) {
+      stats.depthsOfTargetStates.insertValue(stack.size());
+      stats.depthsOfFoundTargetStates.insertValue(
+          stack.size() + data.getExpandedStatesList(successors.iterator().next()).size());
+    }
+
     return successors;
   }
 
@@ -111,7 +121,8 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     if (foundRecursion) {
       callstackTransfer.enableRecursiveContext();
     }
-    final Collection<? extends AbstractState> result = wrappedTransfer.getAbstractSuccessors(pState, pPrecision);
+    final Collection<? extends AbstractState> result =
+        transferRelation.getAbstractSuccessors(pState, pPrecision);
     if (foundRecursion) {
       callstackTransfer.disableRecursiveContext();
     }
@@ -241,20 +252,29 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
       final Precision reducedInitialPrecision)
       throws CPAException, InterruptedException {
 
+    shutdownNotifier.shutdownIfNecessary();
+
     final Pair<Collection<AbstractState>, ReachedSet> reducedResult =
         getReducedResult(entryState, reducedInitialState, reducedInitialPrecision, innerSubtree);
+
+    shutdownNotifier.shutdownIfNecessary();
 
     if (bamPccManager.isPCCEnabled()) {
       bamPccManager.addBlockAnalysisInfo(reducedInitialState);
     }
 
-    return expandResultStates(
-        reducedResult.getFirst(),
-        reducedResult.getSecond(),
-        innerSubtree,
-        outerSubtree,
-        entryState,
-        precision);
+    final List<AbstractState> expandedStates =
+        expandResultStates(
+            reducedResult.getFirst(),
+            reducedResult.getSecond(),
+            innerSubtree,
+            outerSubtree,
+            entryState,
+            precision);
+
+    shutdownNotifier.shutdownIfNecessary();
+
+    return expandedStates;
   }
 
   /**
@@ -286,7 +306,7 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
         data.getCache().get(reducedInitialState, reducedInitialPrecision, innerSubtree);
 
     final ReachedSet reached;
-    final List<AbstractState> reducedResult;
+    final Set<AbstractState> reducedResult;
 
     if (entry == null) { // MISS
       entry =
@@ -303,7 +323,8 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     } else {
       final ReachedSet cachedReached = entry.getReachedSet();
       Preconditions.checkNotNull(cachedReached);
-      @Nullable final List<AbstractState> cachedReturnStates = entry.getExitStates();
+      @Nullable
+      final Set<AbstractState> cachedReturnStates = entry.getExitStates();
       if (isCacheHit(cachedReached, cachedReturnStates)) { // FULL HIT
         // cache hit, return element from cache
         logger.log(
@@ -371,36 +392,47 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
    *     <p>NB: return states will be either {@link
    *     org.sosy_lab.cpachecker.core.interfaces.Targetable}, or associated with the block end.
    */
-  private List<AbstractState> performCompositeAnalysisWithCPAAlgorithm(
+  private Set<AbstractState> performCompositeAnalysisWithCPAAlgorithm(
       final ReachedSet reached, final Block innerSubtree)
       throws InterruptedException, CPAException {
 
     // CPAAlgorithm is not re-entrant due to statistics
+    stats.algorithmInstances.inc();
     final Algorithm algorithm = algorithmFactory.newInstance();
     algorithm.run(reached);
 
+    return extractExitStates(reached, innerSubtree, searchTargetStatesOnExit);
+  }
+
+  public static Set<AbstractState> extractExitStates(
+      final ReachedSet reached, final Block innerSubtree, boolean pSearchTargetStatesOnExit) {
     // if the element is an error element
-    final List<AbstractState> returnStates;
+    final Set<AbstractState> returnStates;
     final AbstractState lastState = reached.getLastState();
-    if (isTargetState(lastState)) {
-      //found a target state inside a recursive subgraph call
-      //this needs to be propagated to outer subgraph (till main is reached)
-      returnStates = Collections.singletonList(lastState);
+    if (!pSearchTargetStatesOnExit && isTargetState(lastState)) {
+      // found a target state inside a recursive subgraph call
+      // this needs to be propagated to outer subgraph (till main is reached)
+      returnStates = Collections.singleton(lastState);
 
     } else {
       assert !reached.hasWaitingState();
       // get only those states, that are at block-exit.
       // in case of recursion, the block-exit-nodes might also appear in the middle of the block,
       // but the middle states have children, the exit-states have not.
-      returnStates = new ArrayList<>();
+      returnStates = new LinkedHashSet<>();
       for (AbstractState returnState :
           AbstractStates.filterLocations(reached, innerSubtree.getReturnNodes())) {
-        if (((ARGState)returnState).getChildren().isEmpty()) {
+        if (((ARGState) returnState).getChildren().isEmpty()) {
           returnStates.add(returnState);
         }
       }
+      if (pSearchTargetStatesOnExit) {
+        for (AbstractState targetState : Iterables.filter(reached, AbstractStates::isTargetState)) {
+          assert ((ARGState) targetState).getChildren().isEmpty();
+          returnStates.add(targetState);
+        }
+      }
     }
-
     return returnStates;
   }
 
@@ -410,9 +442,11 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
 
   @Override
   public Collection<? extends AbstractState> strengthen(
-      AbstractState pElement, List<AbstractState> pOtherElements,
-      CFAEdge pCfaEdge, Precision pPrecision) throws CPATransferException,
-      InterruptedException {
+      AbstractState pElement,
+      Iterable<AbstractState> pOtherElements,
+      CFAEdge pCfaEdge,
+      Precision pPrecision)
+      throws CPATransferException, InterruptedException {
     Collection<? extends AbstractState> out =
         super.strengthen(pElement, pOtherElements, pCfaEdge, pPrecision);
     if (bamPccManager.isPCCEnabled()) {

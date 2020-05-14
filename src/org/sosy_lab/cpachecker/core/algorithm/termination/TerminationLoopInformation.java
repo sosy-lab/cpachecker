@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.termination;
 
-import static com.google.common.collect.ImmutableSet.toImmutableSet;
 import static java.util.logging.Level.FINEST;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.cpachecker.cfa.ast.FileLocation.DUMMY;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator.EQUALS;
 import static org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression.ONE;
@@ -34,9 +34,9 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
-import java.util.Collections;
+import com.google.common.collect.ImmutableSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -48,6 +48,7 @@ import org.sosy_lab.common.MoreStrings;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFACreationUtils;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AbstractSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -93,36 +94,33 @@ public class TerminationLoopInformation {
   private Optional<Loop> loop = Optional.empty();
 
   /**
-   * All locations after an outgoing edge of the loop currently processed or an empty set.
-   * Needs to be set before modifying the {@link CFA}!
+   * All locations after an outgoing edge of the loop currently processed or an empty set. Needs to
+   * be set before modifying the {@link CFA}!
    *
    * @see Loop#getOutgoingEdges()
    */
-  private Set<CFANode> loopLeavingLocations = Collections.emptySet();
+  private Set<CFANode> loopLeavingLocations = ImmutableSet.of();
 
   /**
-   * All outgoing edges of the loop currently processed or an empty set.
-   * Needs to be set before modifying the {@link CFA}!
+   * All outgoing edges of the loop currently processed or an empty set. Needs to be set before
+   * modifying the {@link CFA}!
    *
    * @see Loop#getOutgoingEdges()
    */
-  private Set<CFAEdge> loopLeavingEdges = Collections.emptySet();
+  private Set<CFAEdge> loopLeavingEdges = ImmutableSet.of();
 
   /**
    * The current ranking relation.
    */
   private Optional<RankingRelation> rankingRelation = Optional.empty();
 
-  /**
-   * Mapping of relevant variables to the corresponding primed variable.
-   */
-  private Map<CExpression, CVariableDeclaration> relevantVariables = Collections.emptyMap();
+  /** Mapping of relevant variables to the corresponding primed variable. */
+  private Map<CExpression, CVariableDeclaration> relevantVariables = ImmutableMap.of();
 
   // reusing of intermediate location is required to build counter examples
-  private List<CFANode> relevantVariablesInitializationIntermediateLocations =
-      Collections.emptyList();
+  private List<CFANode> relevantVariablesInitializationIntermediateLocations = ImmutableList.of();
 
-  private Set<CFAEdge> createdCfaEdges = Sets.newLinkedHashSet();
+  private Set<CFAEdge> createdCfaEdges = new LinkedHashSet<>();
 
   private Optional<CFANode> targetNode = Optional.empty();
 
@@ -144,9 +142,10 @@ public class TerminationLoopInformation {
     return loop.map(Loop::getLoopHeads).map(lh -> lh.contains(pLocation)).orElse(false);
   }
 
-  public boolean isPredecessorOfIncommingEdge(CFANode pLocation) {
+  public boolean isPredecessorOfIncomingEdge(CFANode pLocation) {
     return loop.isPresent()
-        && leavingEdges(pLocation).anyMatch(edge -> loop.get().getIncomingEdges().contains(edge));
+        && leavingEdges(pLocation)
+            .anyMatch(edge -> loop.orElseThrow().getIncomingEdges().contains(edge));
   }
 
   public CExpression getRankingRelationAsCExpression() {
@@ -189,11 +188,11 @@ public class TerminationLoopInformation {
   void setProcessedLoop(Loop pLoop, Set<CVariableDeclaration> pRelevantVariables) {
     loop = Optional.of(pLoop);
     loopLeavingLocations =
-        pLoop.getOutgoingEdges().stream().map(CFAEdge::getSuccessor).collect(toImmutableSet());
-    loopLeavingEdges = pLoop.getOutgoingEdges().stream().collect(toImmutableSet());
+        transformedImmutableSetCopy(pLoop.getOutgoingEdges(), CFAEdge::getSuccessor);
+    loopLeavingEdges = ImmutableSet.copyOf(pLoop.getOutgoingEdges());
     resetRankingRelation();
 
-    String functionName = pLoop.getLoopHeads().iterator().next().getFunctionName();
+    AFunctionDeclaration functionName = pLoop.getLoopHeads().iterator().next().getFunction();
     ImmutableList.Builder<CFANode> intermediateStates = ImmutableList.builder();
     ImmutableMap.Builder<CExpression, CVariableDeclaration> builder = ImmutableMap.builder();
 
@@ -226,16 +225,13 @@ public class TerminationLoopInformation {
     relevantVariables = builder.build();
   }
 
-  /**
-   * The {@link TerminationLoopInformation} is reseted.
-   * No loop will be checked for non-termination.
-   */
+  /** Reset the {@link TerminationLoopInformation}. No loop will be checked for non-termination. */
   void reset() {
     loop = Optional.empty();
-    loopLeavingLocations = Collections.emptySet();
-    loopLeavingEdges = Collections.emptySet();
-    relevantVariables = Collections.emptyMap();
-    relevantVariablesInitializationIntermediateLocations = Collections.emptyList();
+    loopLeavingLocations = ImmutableSet.of();
+    loopLeavingEdges = ImmutableSet.of();
+    relevantVariables = ImmutableMap.of();
+    relevantVariablesInitializationIntermediateLocations = ImmutableList.of();
     targetNode = Optional.empty();
     resetCfa();
   }
@@ -282,7 +278,7 @@ public class TerminationLoopInformation {
   }
 
   public List<CFAEdge> createPrimedVariableDeclarations(CFANode startLocation) {
-    String function = startLocation.getFunctionName();
+    AFunctionDeclaration function = startLocation.getFunction();
     logger.logf(
         FINEST,
         "Adding declarations of primed variables %s after %s in function %s.",
@@ -300,7 +296,7 @@ public class TerminationLoopInformation {
     CFANode currentNode = startLocation;
 
     for (CVariableDeclaration primedVariable : relevantVariables.values()) {
-      CFANode nextNode = creatCfaNode(function);
+      CFANode nextNode = createCfaNode(function);
       CFAEdge edge = createDeclarationEdge(primedVariable, currentNode, nextNode);
       builder.add(edge);
       currentNode = nextNode;
@@ -315,16 +311,16 @@ public class TerminationLoopInformation {
 
   public CFAEdge createEdgeToNonTerminationLabel(CFANode pLocation) {
     Preconditions.checkState(targetNode.isPresent());
-    return createBlankEdge(pLocation, targetNode.get(), "Label: " + NON_TERMINATION_LABEL);
+    return createBlankEdge(pLocation, targetNode.orElseThrow(), "Label: " + NON_TERMINATION_LABEL);
   }
 
   public CFAEdge createNegatedRankingRelationAssumeEdgeToTargetNode(CFANode pLoopHead) {
     Preconditions.checkState(targetNode.isPresent());
-    return createRankingRelationAssumeEdge(pLoopHead, targetNode.get(), false);
+    return createRankingRelationAssumeEdge(pLoopHead, targetNode.orElseThrow(), false);
   }
 
-  private CFANode creatCfaNode(String functionName) {
-    return new CFANode(functionName);
+  private CFANode createCfaNode(AFunctionDeclaration pFunction) {
+    return new CFANode(pFunction);
   }
 
   private CExpressionAssignmentStatement createAssignmentStatement(

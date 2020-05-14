@@ -8,75 +8,79 @@
   -->
 
   <option name="-heap">6000M</option>
+
+  <resultfiles>**.graphml*</resultfiles>
+  <option name="-setprop">cpa.arg.compressWitness=true</option>
   <option name="-setprop">counterexample.export.compressWitness=true</option>
 
   <rundefinition>
-    <option name="-svcomp18"/>
+    <option name="-svcomp20"/>
   </rundefinition>
 
-  <resultfiles>**.graphml.gz</resultfiles>
-
-  <tasks name="BitVectorsReach">
-    <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
+  <tasks name="ConcurrencySafety-Main">
+    <includesfile>../programs/benchmarks/ConcurrencySafety-Main.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <!-- exclude some files to keep the integration set smaller.
+         We actually want to use only a whitelist of files matching
+         'pthread-wmm/*008*opt*' and 'pthread-wmm/*009*opt*',
+         but need to use a blacklist, thus we exclude several pattern.
+    -->
+    <exclude>../programs/benchmarks/pthread*/*000*</exclude>
+    <exclude>../programs/benchmarks/pthread*/*01*</exclude>
+    <exclude>../programs/benchmarks/pthread*/*02*</exclude>
+    <exclude>../programs/benchmarks/pthread*/*03*</exclude>
+    <exclude>../programs/benchmarks/pthread*/*04*</exclude>
+    <exclude>../programs/benchmarks/pthread*/*05*</exclude>
+    <exclude>../programs/benchmarks/pthread*/*06*</exclude>
+    <exclude>../programs/benchmarks/pthread*/*07*</exclude>
+    <exclude>../programs/benchmarks/pthread/*</exclude>
+    <exclude>../programs/benchmarks/pthread-wmm/*oepc*</exclude>
+    <exclude>../programs/benchmarks/pthread-atomic/*</exclude>
+    <exclude>../programs/benchmarks/pthread-C-DAC/*</exclude>
+    <exclude>../programs/benchmarks/pthread-complex/*</exclude>
+    <exclude>../programs/benchmarks/pthread-divine/*</exclude>
+    <exclude>../programs/benchmarks/pthread-driver-races/*</exclude>
+    <exclude>../programs/benchmarks/pthread-ext/*</exclude>
+    <exclude>../programs/benchmarks/pthread-nondet/*</exclude>
+    <exclude>../programs/benchmarks/ldv*/*</exclude>
+    <option name="-32"/>
   </tasks>
   <tasks name="BitVectorsOverflows">
     <includesfile>../programs/benchmarks/NoOverflows-BitVectors.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-no-overflow*</exclude>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
+    <exclude>../programs/benchmarks/termination-crafted-lit/*</exclude> <!-- only timeout -->
     <option name="-64"/>
   </tasks>
     <tasks name="HeapReach">
     <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <exclude>../programs/benchmarks/forester-heap/*</exclude> <!-- only timeout -->
   </tasks>
   <tasks name="HeapMemSafety">
     <includesfile>../programs/benchmarks/MemSafety-Heap.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-valid-memsafety*</exclude>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+    <!-- exclude files where several properties are available -->
+    <exclude>../programs/benchmarks/list-ext-properties/list-ext.yml</exclude>
+    <exclude>../programs/benchmarks/list-ext-properties/list-ext_flag.yml</exclude>
+    <exclude>../programs/benchmarks/memsafety*/*</exclude> <!-- only timeout -->
   </tasks>
   <tasks name="Floats">
     <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <exclude>../programs/benchmarks/floats-cdfpl/newton*</exclude> <!-- mostly timeout -->
+    <exclude>../programs/benchmarks/floats-cdfpl/square*</exclude> <!-- mostly timeout -->
+    <exclude>../programs/benchmarks/float-benchs/filter*</exclude> <!-- mostly timeout -->
+    <exclude>../programs/benchmarks/float-newlib/float_req_bl_*b.yml</exclude> <!-- *a.yml is sufficient -->
+    <exclude>../programs/benchmarks/float-newlib/float_req_bl_*c.yml</exclude> <!-- *a.yml is sufficient -->
   </tasks>
   <tasks name="ControlFlow">
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="ECA">
-    <includesfile>../programs/benchmarks/ReachSafety-ECA.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="Loops">
-    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <exclude>../programs/benchmarks/ssh/s3_srvr.blast.1*.yml</exclude> <!-- large runtime -->
   </tasks>
   <tasks name="Recursive">
     <includesfile>../programs/benchmarks/ReachSafety-Recursive.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="-setprop">cpa.callstack.skipVoidRecursion=false</option>
-  </tasks>
-  <tasks name="ProductLines">
-    <includesfile>../programs/benchmarks/ReachSafety-ProductLines.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="Sequentialized">
-    <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-  </tasks>
-  <tasks name="DeviceDriversLinux64">
-    <includesfile>../programs/benchmarks/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
-    <exclude>../programs/benchmarks/*/*true-unreach-call*</exclude>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-    <option name="-64"/>
   </tasks>
 </benchmark>

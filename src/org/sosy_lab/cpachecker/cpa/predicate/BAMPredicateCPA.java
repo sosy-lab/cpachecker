@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2014  Dirk Beyer
+ *  Copyright (C) 2007-2019  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -36,14 +35,7 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
-import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.AllRelevantPredicatesComputer;
-import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.AuxiliaryComputer;
-import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.CachingRelevantPredicatesComputer;
-import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RefineableOccurrenceComputer;
-import org.sosy_lab.cpachecker.cpa.predicate.relevantpredicates.RelevantPredicatesComputer;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-
 
 /**
  * Implements an BAM-based predicate CPA.
@@ -56,19 +48,6 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
   }
 
   private final BAMBlockOperator blk;
-  private RelevantPredicatesComputer relevantPredicatesComputer;
-
-  @Option(
-    description =
-        "which strategy/heuristic should be used to compute relevant predicates for a block-reduction?"
-            + "\nAUXILIARY: dependencies between variables."
-            + "\nOCCURENCE: occurence of variables in the block."
-            + "\nALL: all variables are relevant.",
-    secure = true,
-    values = {"AUXILIARY", "OCCURRENCE", "ALL"},
-    toUppercase = true
-  )
-  private String predicateComputer = "AUXILIARY";
 
   private BAMPredicateCPA(
       Configuration config,
@@ -78,41 +57,10 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
       AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     super(config, logger, pBlk, pCfa, pShutdownNotifier, pSpecification, pAggregatedReachedSets);
-
     config.inject(this, BAMPredicateCPA.class);
-
-    FormulaManagerView fmgr = getSolver().getFormulaManager();
-    switch (predicateComputer) {
-      case "AUXILIARY":
-        relevantPredicatesComputer =
-            new CachingRelevantPredicatesComputer(new AuxiliaryComputer(fmgr));
-        break;
-      case "OCCURRENCE":
-        relevantPredicatesComputer =
-            new CachingRelevantPredicatesComputer(new RefineableOccurrenceComputer(fmgr));
-        break;
-      case "ALL":
-        relevantPredicatesComputer = AllRelevantPredicatesComputer.INSTANCE;
-        break;
-      default:
-        throw new AssertionError("unhandled case");
-    }
-
-    blk = pBlk;
-  }
-
-  RelevantPredicatesComputer getRelevantPredicatesComputer() {
-    return relevantPredicatesComputer;
-  }
-
-  void setRelevantPredicatesComputer(RelevantPredicatesComputer pRelevantPredicatesComputer) {
-    relevantPredicatesComputer = pRelevantPredicatesComputer;
-  }
-
-  BlockPartitioning getPartitioning() {
-    return blk.getPartitioning();
+    blk = pBlk; // keep reference to later inject the BlockPartitioning
   }
 
   @Override
@@ -127,7 +75,6 @@ public class BAMPredicateCPA extends PredicateCPA implements ConfigurableProgram
 
   public void clearAllCaches() {
     getPredicateManager().clear();
-    relevantPredicatesComputer.clear();
     getPathFormulaManager().clearCaches();
   }
 }

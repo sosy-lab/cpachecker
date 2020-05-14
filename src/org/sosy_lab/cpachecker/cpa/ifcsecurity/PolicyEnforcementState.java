@@ -99,7 +99,7 @@ LatticeAbstractState<PolicyEnforcementState<E>>, Graphable, AbstractQueryableSta
 //          if(this.isglobal.containsKey(var)){
 //            if(this.isglobal.get(var).equals(true)){
               E sink=this.allowedsecurityclassmapping.get(var);
-              SortedSet<E> source=this.contentsecurityclasslevels.get(var);
+              SortedSet<E> source = entry.getValue();
               Edge<E> edge=new Edge<>(sink,source);
               if(!this.policy.getEdges().contains(edge)){
                 return true;
@@ -246,9 +246,7 @@ LatticeAbstractState<PolicyEnforcementState<E>>, Graphable, AbstractQueryableSta
           ndeps = merge.contentsecurityclasslevels.get(var);
           initialmap = merge.allowedsecurityclassmapping.get(var);
         }
-        for(E sc: deps){
-          ndeps.add(sc);
-        }
+        ndeps.addAll(deps);
         merge.contentsecurityclasslevels.put(var,ndeps);
         merge.allowedsecurityclassmapping.put(var,initialmap);
       }

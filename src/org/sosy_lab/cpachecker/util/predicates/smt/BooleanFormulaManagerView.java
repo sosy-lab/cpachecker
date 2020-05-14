@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collector;
@@ -40,7 +42,7 @@ public class BooleanFormulaManagerView extends BaseManagerView implements Boolea
   BooleanFormulaManagerView(FormulaWrappingHandler pWrappingHandler,
       BooleanFormulaManager pManager) {
     super(pWrappingHandler);
-    this.manager = pManager;
+    this.manager = checkNotNull(pManager);
   }
 
   public BooleanFormula makeVariable(String pVar, int pI) {

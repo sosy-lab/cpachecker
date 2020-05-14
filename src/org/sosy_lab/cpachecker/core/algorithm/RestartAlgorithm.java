@@ -25,13 +25,11 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteStreams;
@@ -196,7 +194,8 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
   private final List<ReachedSetUpdateListener> reachedSetUpdateListeners =
       new CopyOnWriteArrayList<>();
 
-  private final Collection<ReachedSetUpdateListener> reachedSetUpdateListenersAdded = Lists.newArrayList();
+  private final Collection<ReachedSetUpdateListener> reachedSetUpdateListenersAdded =
+      new ArrayList<>();
 
   private RestartAlgorithm(
       Configuration config,
@@ -353,7 +352,8 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
                 "Analysis %d terminated but did not finish: There are still states to be processed.",
                 stats.noOfAlgorithmsUsed);
 
-          } else if (!(from(currentReached).anyMatch(IS_TARGET_STATE) && !status.isPrecise())) {
+          } else if (!(from(currentReached).anyMatch(AbstractStates::isTargetState)
+              && !status.isPrecise())) {
 
             if (!(alwaysRestart && configFilesIterator.hasNext())) {
               // sound analysis and completely finished, terminate
@@ -410,7 +410,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
           foundConfig = true;
           Optional<String> condition = configFilesIterator.peek().annotation();
           if (condition.isPresent()) {
-            switch (condition.get()) {
+            switch (condition.orElseThrow()) {
             case "if-interrupted":
               foundConfig = lastAnalysisInterrupted;
               break;
@@ -434,7 +434,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
                 logger.logf(
                     Level.WARNING,
                     "Ignoring invalid restart condition '%s' for file %s.",
-                    condition.get(),
+                    condition.orElseThrow(),
                     configFilesIterator.peek().value());
               foundConfig = true;
             }
@@ -443,7 +443,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
                   Level.INFO,
                   "Ignoring restart configuration '%s' because condition %s did not match.",
                   configFilesIterator.peek().value(),
-                  condition.get());
+                  condition.orElseThrow());
               configFilesIterator.next();
               stats.noOfAlgorithmsUsed++;
             }
@@ -455,7 +455,9 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
         if (printIntermediateStatistics) {
           stats.printIntermediateStatistics(System.out, Result.UNKNOWN, currentReached);
         } else {
-          stats.printIntermediateStatistics(new PrintStream(ByteStreams.nullOutputStream()), Result.UNKNOWN, currentReached);
+          @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
+          final PrintStream dummyStream = new PrintStream(ByteStreams.nullOutputStream());
+          stats.printIntermediateStatistics(dummyStream, Result.UNKNOWN, currentReached);
         }
         if (writeIntermediateOutputFiles) {
           stats.writeOutputFiles(Result.UNKNOWN, pReached);

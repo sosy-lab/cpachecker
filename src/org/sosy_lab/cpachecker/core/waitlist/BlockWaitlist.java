@@ -138,7 +138,7 @@ public class BlockWaitlist implements Waitlist {
     }
   }
 
-  private static class BKey implements Comparable<BKey> {
+  private static final class BKey implements Comparable<BKey> {
     private final String name;
     private final int callStackDepth;
 
@@ -251,7 +251,7 @@ public class BlockWaitlist implements Waitlist {
     logger.log(Level.INFO, "Make inactive " + key + ", resources=" + b.countResources);
   }
 
-  private Pattern ldvPattern[];
+  private Pattern[] ldvPattern;
 
   /**
    * checks whether function name is a block
@@ -414,12 +414,10 @@ public class BlockWaitlist implements Waitlist {
     }
 
     //slow path
-    Iterator<BKey> i = activeBlocksMap.descendingKeySet().iterator();
 
-    while(i.hasNext()) {
-      BKey key = i.next();
+    for (BKey key : activeBlocksMap.descendingKeySet()) {
       Block b = activeBlocksMap.get(key);
-      if(!b.isEmpty()) {
+      if (!b.isEmpty()) {
         return false;
       }
     }

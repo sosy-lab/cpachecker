@@ -31,6 +31,7 @@ import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import javax.xml.parsers.ParserConfigurationException;
@@ -154,7 +155,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     try {
       String defaultSourcefileName =
           from(firstPath)
-              .filter(FILTER_EMPTY_FILE_LOCATIONS)
+              .filter(this::hasRelevantFileLocation)
               .get(0)
               .getFileLocation()
               .getFileName();
@@ -188,7 +189,6 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
 
       CFAEdge firstEdge = firstIterator.next();
       CFAEdge secondEdge = secondIterator.next();
-      int forkThread = 0;
 
       while (firstEdge.equals(secondEdge)) {
         if (isThreadCreateNFunction(firstEdge)) {
@@ -209,7 +209,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
         secondEdge = secondIterator.next();
       }
 
-      forkThread = threadIterator.getCurrentThread();
+      int forkThread = threadIterator.getCurrentThread();
       printEdge(builder, firstEdge);
       printPath(firstUsage, firstIterator, builder);
 
@@ -243,7 +243,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
       Element edge = printEdge(builder, pEdge);
 
       if (!warningIsPrinted
-          && pEdge.getSuccessor() == usage.getCFANode()
+          && Objects.equals(pEdge.getSuccessor(), usage.getCFANode())
           && containsId(pEdge, pIdName)) {
         warningIsPrinted = true;
         builder.addDataElementChild(edge, KeyDef.WARNING, usage.toString());
@@ -309,7 +309,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
   }
 
   private Iterator<CFAEdge> getIterator(List<CFAEdge> path) {
-    return from(path).filter(FILTER_EMPTY_FILE_LOCATIONS).iterator();
+    return from(path).filter(this::hasRelevantFileLocation).iterator();
   }
 
   private boolean isThreadCreateFunction(CFAEdge pEdge) {

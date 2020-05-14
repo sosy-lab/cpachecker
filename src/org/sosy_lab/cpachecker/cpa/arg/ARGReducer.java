@@ -27,9 +27,9 @@ import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.defaults.GenericReducer;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Reducer;
-
 
 class ARGReducer extends GenericReducer<ARGState, Precision> {
 
@@ -53,11 +53,10 @@ class ARGReducer extends GenericReducer<ARGState, Precision> {
   protected ARGState getVariableExpandedState0(
       ARGState pRootState, Block pReducedContext, ARGState pReducedState)
       throws InterruptedException {
-
-    return new ARGState(
+    AbstractState nestedState =
         wrappedReducer.getVariableExpandedState(
-            pRootState.getWrappedState(), pReducedContext, pReducedState.getWrappedState()),
-        null);
+            pRootState.getWrappedState(), pReducedContext, pReducedState.getWrappedState());
+    return nestedState == null ? null : new ARGState(nestedState, null);
   }
 
   @Override
@@ -95,10 +94,10 @@ class ARGReducer extends GenericReducer<ARGState, Precision> {
   protected ARGState getVariableExpandedStateForProofChecking0(
       ARGState pRootState, Block pReducedContext, ARGState pReducedState)
       throws InterruptedException {
-    return new ARGState(
+    AbstractState nestedState =
         wrappedReducer.getVariableExpandedStateForProofChecking(
-            pRootState.getWrappedState(), pReducedContext, pReducedState.getWrappedState()),
-        null);
+            pRootState.getWrappedState(), pReducedContext, pReducedState.getWrappedState());
+    return nestedState == null ? null : new ARGState(nestedState, null);
   }
 
   @Override

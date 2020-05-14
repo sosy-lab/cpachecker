@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
 
-import com.google.common.collect.Lists;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -192,7 +191,7 @@ class ASTTypeConverter {
       IFunctionType ft = (IFunctionType) t;
 
       IType[] parameters = ft.getParameterTypes();
-      List<CType> newParameters = Lists.newArrayListWithExpectedSize(parameters.length);
+      List<CType> newParameters = new ArrayList<>(parameters.length);
       for (IType p : parameters) {
         if (p instanceof IBasicType && ((IBasicType)p).getKind() == IBasicType.Kind.eVoid) {
           // there may be a function declaration f(void), which is equal to f()
@@ -264,8 +263,14 @@ class ASTTypeConverter {
         case eFloat:
           type = CBasicType.FLOAT;
           break;
+        case eFloat128:
+          type = CBasicType.FLOAT128;
+          break;
         case eInt:
           type = CBasicType.INT;
+          break;
+        case eInt128:
+          type = CBasicType.INT128;
           break;
         case eUnspecified:
           type = CBasicType.UNSPECIFIED;
@@ -388,8 +393,14 @@ class ASTTypeConverter {
     case IASTSimpleDeclSpecifier.t_float:
       type = CBasicType.FLOAT;
       break;
+    case IASTSimpleDeclSpecifier.t_float128:
+      type = CBasicType.FLOAT128;
+      break;
     case IASTSimpleDeclSpecifier.t_int:
       type = CBasicType.INT;
+      break;
+    case IASTSimpleDeclSpecifier.t_int128:
+      type = CBasicType.INT128;
       break;
     case IASTSimpleDeclSpecifier.t_unspecified:
       type = CBasicType.UNSPECIFIED;

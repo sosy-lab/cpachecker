@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
-import com.google.common.base.Predicate;
+import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import java.math.BigInteger;
 import java.util.Iterator;
@@ -43,9 +45,10 @@ import org.sosy_lab.java_smt.api.NumeralFormula.RationalFormula;
 class ModelView implements Model {
 
   private static final Pattern Z3_IRRELEVANT_MODEL_TERM_PATTERN = Pattern.compile(".*![0-9]+");
-  static final Predicate<ValueAssignment> FILTER_MODEL_TERM =
-      valueAssignment ->
-          !Z3_IRRELEVANT_MODEL_TERM_PATTERN.matcher(valueAssignment.getName()).matches();
+
+  static boolean isRelevantModelTerm(ValueAssignment valueAssignment) {
+    return !Z3_IRRELEVANT_MODEL_TERM_PATTERN.matcher(valueAssignment.getName()).matches();
+  }
 
   private final Model delegate;
   private final FormulaWrappingHandler wrappingHandler;
@@ -101,7 +104,12 @@ class ModelView implements Model {
 
   @Override
   public Iterator<ValueAssignment> iterator() {
-    return Iterators.filter(delegate.iterator(), FILTER_MODEL_TERM);
+    return Iterators.filter(delegate.iterator(), ModelView::isRelevantModelTerm);
+  }
+
+  @Override
+  public ImmutableList<ValueAssignment> asList() {
+    return from(delegate.asList()).filter(ModelView::isRelevantModelTerm).toList();
   }
 
   @Override

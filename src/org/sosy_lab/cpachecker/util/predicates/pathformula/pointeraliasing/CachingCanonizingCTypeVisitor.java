@@ -146,15 +146,9 @@ class CachingCanonizingCTypeVisitor extends DefaultCTypeVisitor<CType, NoExcepti
     }
 
     @Override
-    public CEnumType visit(final CEnumType t) {
-      return (!ignoreConst || !t.isConst()) && (!ignoreVolatile || !t.isVolatile())
-          ? t
-          : new CEnumType(
-              !ignoreConst && t.isConst(),
-              !ignoreVolatile && t.isVolatile(),
-              t.getEnumerators(),
-              t.getName(),
-              t.getOrigName());
+    public CType visit(final CEnumType t) {
+      // refactor once #348 was improved
+      return t.getEnumerators().get(0).getType().accept(CachingCanonizingCTypeVisitor.this);
     }
 
     @Override

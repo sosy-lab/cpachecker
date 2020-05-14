@@ -27,10 +27,9 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cpa.constraints.constraint.BinaryConstraint;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-/**
- * {@link BinarySymbolicExpression} representing the 'less than/equal' operation.
- */
-public class LessThanOrEqualExpression extends BinarySymbolicExpression implements BinaryConstraint {
+/** {@link BinarySymbolicExpression} representing the 'less than/equal' operation. */
+public final class LessThanOrEqualExpression extends BinarySymbolicExpression
+    implements BinaryConstraint {
 
   private static final long serialVersionUID = -805938567569160336L;
 

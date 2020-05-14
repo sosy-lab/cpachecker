@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -37,6 +38,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
  * int foo(int x);
  */
 public final class CFunctionDeclaration extends AFunctionDeclaration implements CDeclaration {
+
+  public static final CFunctionDeclaration DUMMY =
+      new CFunctionDeclaration(
+          FileLocation.DUMMY, CFunctionType.NO_ARGS_VOID_FUNCTION, "dummy", ImmutableList.of());
 
   private static final long serialVersionUID = 5485363555708455537L;
 

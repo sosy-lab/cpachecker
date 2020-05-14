@@ -1,0 +1,8 @@
+format_version: '1.0'
+
+# old file name: increment_in_guard_false-unreach-label.c
+input_files: 'increment_in_guard.c'
+
+properties:
+  - property_file: ../properties/unreach-label.prp
+    expected_verdict: false

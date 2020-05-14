@@ -47,7 +47,6 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAd
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -73,11 +72,11 @@ abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressA
 
   @Override
   protected List<SMGAddressAndState> visitDefault(CExpression pExp) {
-    return Collections.singletonList(SMGAddressAndState.of(getInitialSmgState()));
+    return Collections.singletonList(SMGAddressAndState.withUnknownAddress(getInitialSmgState()));
   }
 
   List<SMGAddressAndState> visitDefault(@SuppressWarnings("unused") CRightHandSide rhs) {
-    return Collections.singletonList(SMGAddressAndState.of(getInitialSmgState()));
+    return Collections.singletonList(SMGAddressAndState.withUnknownAddress(getInitialSmgState()));
   }
 
   @Override
@@ -103,7 +102,7 @@ abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressA
                   smgExpressionEvaluator.getBitSizeof(getCfaEdge(), varDcl.getType(), state),
                   varDcl.getName());
           if (addedLocalVariable.isPresent()) {
-            object = addedLocalVariable.get();
+            object = addedLocalVariable.orElseThrow();
           } else {
             return Collections.singletonList(SMGAddressAndState.of(state, SMGAddress.UNKNOWN));
           }
@@ -154,13 +153,9 @@ abstract class AddressVisitor extends DefaultCExpressionVisitor<List<SMGAddressA
   static List<SMGAddressAndState> asAddressAndStateList(List<SMGAddressValueAndState> lst) {
     List<SMGAddressAndState> result = new ArrayList<>();
     for (SMGAddressValueAndState addressValueAndState : lst) {
-      SMGAddressValue addressValue = addressValueAndState.getObject();
       result.add(
           SMGAddressAndState.of(
-              addressValueAndState.getSmgState(),
-              addressValue.isUnknown()
-                  ? SMGAddress.getUnknownInstance()
-                  : addressValue.getAddress()));
+              addressValueAndState.getSmgState(), addressValueAndState.getObject().getAddress()));
     }
     return result;
   }

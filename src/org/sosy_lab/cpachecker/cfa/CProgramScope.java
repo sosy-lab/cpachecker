@@ -23,26 +23,28 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -99,27 +101,25 @@ public class CProgramScope implements Scope {
 
   public static final String ARTIFICIAL_RETVAL_NAME = "__artificial_result__";
 
-  private static final Function<CFANode, Iterable<? extends CSimpleDeclaration>>
-      TO_C_SIMPLE_DECLARATIONS =
-      pNode -> CFAUtils.leavingEdges(pNode)
-          .transformAndConcat(
-              pEdge -> {
+  private static final Iterable<CSimpleDeclaration> toCSimpleDeclarations(CFANode pNode) {
+    return CFAUtils.leavingEdges(pNode)
+        .transformAndConcat(
+            pEdge -> {
+              if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
+                CDeclaration dcl = ((CDeclarationEdge) pEdge).getDeclaration();
+                return Collections.singleton(dcl);
+              }
 
-                if (pEdge.getEdgeType() == CFAEdgeType.DeclarationEdge) {
-                  CDeclaration dcl = ((CDeclarationEdge) pEdge).getDeclaration();
-                  return Collections.singleton(dcl);
-                }
+              if (pNode instanceof FunctionEntryNode) {
+                FunctionEntryNode entryNode = (FunctionEntryNode) pNode;
+                return from(entryNode.getFunctionParameters()).filter(CSimpleDeclaration.class);
+              }
 
-                if (pNode instanceof FunctionEntryNode) {
-                  FunctionEntryNode entryNode = (FunctionEntryNode) pNode;
-                  return from(entryNode.getFunctionParameters())
-                      .filter(CSimpleDeclaration.class);
-                }
+              return ImmutableSet.of();
+            });
+  }
 
-                return Collections.emptySet();
-              });
-
-  private static final Predicate<CSimpleDeclaration> HAS_NAME = pDeclaration -> {
+  private static final boolean hasName(CSimpleDeclaration pDeclaration) {
     if (pDeclaration.getName() != null && pDeclaration.getQualifiedName() != null) {
       return true;
     }
@@ -131,9 +131,9 @@ public class CProgramScope implements Scope {
       return complexType != null && complexType.getName() != null && complexType.getQualifiedName() != null;
     }
     return false;
-  };
+  }
 
-  private static final Function<CSimpleDeclaration, String> GET_NAME = pDeclaration -> {
+  private static final String getName(CSimpleDeclaration pDeclaration) {
     String result = pDeclaration.getName();
     if (result != null) {
       return result;
@@ -146,12 +146,9 @@ public class CProgramScope implements Scope {
       }
     }
     throw new AssertionError("Cannot extract a name.");
-  };
+  }
 
-  private static final Function<CSimpleDeclaration, String> GET_ORIGINAL_QUALIFIED_NAME = new Function<CSimpleDeclaration, String>() {
-
-    @Override
-    public String apply(CSimpleDeclaration pDeclaration) {
+  private static final String getOriginalQualifiedName(CSimpleDeclaration pDeclaration) {
       String name = pDeclaration.getName();
       if (name == null) {
         return getComplexDeclarationName(pDeclaration);
@@ -162,28 +159,26 @@ public class CProgramScope implements Scope {
         return qualifiedName;
       }
       assert qualifiedName.endsWith(name);
-
       return qualifiedName.substring(0, qualifiedName.length() - name.length()) + originalName;
-    }
+  }
 
-    private String getComplexDeclarationName(CSimpleDeclaration pDeclaration) {
-      if (pDeclaration instanceof CComplexTypeDeclaration) {
-        CComplexType complexType = ((CComplexTypeDeclaration) pDeclaration).getType();
-        if (complexType != null) {
-          String name = complexType.getName();
-          String originalName = complexType.getOrigName();
-          String qualifiedName = complexType.getQualifiedName();
-          if (name.equals(originalName)) {
-            return qualifiedName;
-          }
-          assert qualifiedName.endsWith(name);
-
-          return qualifiedName.substring(0, qualifiedName.length() - name.length()) + originalName;
+  private static String getComplexDeclarationName(CSimpleDeclaration pDeclaration) {
+    if (pDeclaration instanceof CComplexTypeDeclaration) {
+      CComplexType complexType = ((CComplexTypeDeclaration) pDeclaration).getType();
+      if (complexType != null) {
+        String name = complexType.getName();
+        String originalName = complexType.getOrigName();
+        String qualifiedName = complexType.getQualifiedName();
+        if (name.equals(originalName)) {
+          return qualifiedName;
         }
+        assert qualifiedName.endsWith(name);
+
+        return qualifiedName.substring(0, qualifiedName.length() - name.length()) + originalName;
       }
-      throw new AssertionError("Cannot extract a name.");
     }
-  };
+    throw new AssertionError("Cannot extract a name.");
+  }
 
   private final String currentFile = "";
 
@@ -212,13 +207,13 @@ public class CProgramScope implements Scope {
    * Returns an empty program scope.
    */
   private CProgramScope() {
-    variableNames = Collections.emptySet();
+    variableNames = ImmutableSet.of();
     qualifiedDeclarations = ImmutableListMultimap.of();
     simpleDeclarations = ImmutableListMultimap.of();
     functionDeclarations = ImmutableListMultimap.of();
-    qualifiedTypes = Collections.emptyMap();
-    qualifiedTypeDefs = Collections.emptyMap();
-    retValDeclarations = Collections.emptyMap();
+    qualifiedTypes = ImmutableMap.of();
+    qualifiedTypeDefs = ImmutableMap.of();
+    retValDeclarations = ImmutableMap.of();
     uses = ImmutableMultimap.of();
     functionName = null;
     locationDescriptor = Predicates.alwaysTrue();
@@ -266,9 +261,10 @@ public class CProgramScope implements Scope {
      */
     Collection<CFANode> nodes = pCFA.getAllNodes();
 
-    FluentIterable<CSimpleDeclaration> allDcls = FluentIterable.from(nodes).transformAndConcat(TO_C_SIMPLE_DECLARATIONS);
+    FluentIterable<CSimpleDeclaration> allDcls =
+        FluentIterable.from(nodes).transformAndConcat(CProgramScope::toCSimpleDeclarations);
 
-    FluentIterable<CSimpleDeclaration> dcls = allDcls.filter(d -> HAS_NAME.test(d));
+    FluentIterable<CSimpleDeclaration> dcls = allDcls.filter(CProgramScope::hasName);
 
     FluentIterable<CFunctionDeclaration> functionDcls = dcls.filter(CFunctionDeclaration.class);
     FluentIterable<CSimpleDeclaration> nonFunctionDcls = dcls.filter(not(instanceOf(CFunctionDeclaration.class)));
@@ -278,9 +274,9 @@ public class CProgramScope implements Scope {
 
     qualifiedTypeDefs = extractTypeDefs(typeDcls, pLogger);
 
-    functionDeclarations = functionDcls.index(GET_ORIGINAL_QUALIFIED_NAME);
+    functionDeclarations = functionDcls.index(CProgramScope::getOriginalQualifiedName);
 
-    Map<String, CSimpleDeclaration> artificialRetValDeclarations = Maps.newHashMap();
+    Map<String, CSimpleDeclaration> artificialRetValDeclarations = new HashMap<>();
     for (CFunctionDeclaration functionDeclaration : functionDeclarations.values()) {
       if (!(functionDeclaration.getType().getReturnType().getCanonicalType()
           instanceof CVoidType)) {
@@ -296,7 +292,7 @@ public class CProgramScope implements Scope {
         FluentIterable.from(
             Iterables.concat(nonFunctionDcls, artificialRetValDeclarations.values()));
 
-    variableNames = nonFunctionDcls.transform(GET_NAME).toSet();
+    variableNames = nonFunctionDcls.transform(CProgramScope::getName).toSet();
 
     qualifiedDeclarations = extractQualifiedDeclarations(nonFunctionDcls);
 
@@ -329,18 +325,21 @@ public class CProgramScope implements Scope {
     lookups.add(() -> qualifiedDeclarations.get(pName));
     lookups.add(() -> simpleDeclarations.get(pName));
 
-    Set<CSimpleDeclaration> results = Collections.emptySet();
+    Set<CSimpleDeclaration> results = ImmutableSet.of();
 
     Iterable<Supplier<Iterable<CSimpleDeclaration>>> filteredAndUnfiltered =
         Iterables.concat(
             Iterables.transform(
                 lookups,
-                s -> () -> FluentIterable.from(s.get()).filter(d -> getLocationFilter().test(d))),
+                s ->
+                    () ->
+                        FluentIterable.from(s.get())
+                            .filter(d -> uses.get(d).stream().anyMatch(locationDescriptor))),
             lookups);
 
     Iterator<Supplier<Iterable<CSimpleDeclaration>>> lookupSupplierIterator = filteredAndUnfiltered.iterator();
     while (results.size() != 1 && lookupSupplierIterator.hasNext()) {
-      results = FluentIterable.from(lookupSupplierIterator.next().get()).toSet();
+      results = ImmutableSet.copyOf(lookupSupplierIterator.next().get());
     }
 
     CSimpleDeclaration result = null;
@@ -352,10 +351,6 @@ public class CProgramScope implements Scope {
       }
     }
     return result;
-  }
-
-  private Predicate<CSimpleDeclaration> getLocationFilter() {
-    return r -> uses.get(r).stream().anyMatch(locationDescriptor);
   }
 
   @Override
@@ -487,7 +482,7 @@ public class CProgramScope implements Scope {
   }
 
   private static boolean equals(CType pA, CType pB) {
-    return equals(pA, pB, Sets.newHashSet());
+    return equals(pA, pB, new HashSet<>());
   }
 
   private static boolean equals(@Nullable CType pA, @Nullable CType pB, Set<Pair<CType, CType>> pResolved) {
@@ -544,8 +539,8 @@ public class CProgramScope implements Scope {
 
   private static Multimap<String, CSimpleDeclaration> extractQualifiedDeclarations(
       FluentIterable<CSimpleDeclaration> pNonFunctionDcls) {
-    Multimap<String, CSimpleDeclaration> qualifiedDeclarationsMultiMap = pNonFunctionDcls
-        .index(GET_ORIGINAL_QUALIFIED_NAME);
+    Multimap<String, CSimpleDeclaration> qualifiedDeclarationsMultiMap =
+        pNonFunctionDcls.index(CProgramScope::getOriginalQualifiedName);
     return Multimaps.transformValues(qualifiedDeclarationsMultiMap, v -> {
       if (v instanceof CVariableDeclaration) {
         CVariableDeclaration original = (CVariableDeclaration) v;
@@ -581,7 +576,7 @@ public class CProgramScope implements Scope {
             .index(CComplexType::getQualifiedName);
 
     // Get unique types
-    Map<String, CComplexType> uniqueTypes = Maps.newHashMap();
+    Map<String, CComplexType> uniqueTypes = new HashMap<>();
 
     for (Map.Entry<String, Collection<CComplexType>> typeEntry : typesMap.asMap().entrySet()) {
       String qualifiedName = typeEntry.getKey();
@@ -600,7 +595,7 @@ public class CProgramScope implements Scope {
         plainTypeDefs.index(CTypeDefDeclaration::getQualifiedName);
 
     // Get unique type defs
-    Map<String, CType> uniqueTypeDefs = Maps.newHashMap();
+    Map<String, CType> uniqueTypeDefs = new HashMap<>();
 
     for (Map.Entry<String, Collection<CTypeDefDeclaration>> typeDefEntry : typeDefDeclarationsMap.asMap().entrySet()) {
       String qualifiedName = typeDefEntry.getKey();
@@ -614,7 +609,7 @@ public class CProgramScope implements Scope {
 
   private static Multimap<String, CSimpleDeclaration> extractSimpleDeclarations(
       Multimap<String, CSimpleDeclaration> pQualifiedDeclarations) {
-    return Multimaps.index(pQualifiedDeclarations.values(), GET_NAME);
+    return Multimaps.index(pQualifiedDeclarations.values(), CProgramScope::getName);
   }
 
   private static Iterable<? extends AAstNode> getAstNodesFromCfaEdge(CFAEdge pEdge) {
@@ -709,7 +704,7 @@ public class CProgramScope implements Scope {
   }
 
   private static <T> T lookupQualifiedComplexType(String pName, Map<String, T> pStorage) {
-    Set<T> potentialResults = Sets.newHashSet();
+    Set<T> potentialResults = new HashSet<>();
     for (ComplexTypeKind kind : ComplexTypeKind.values()) {
       T potentialResult = pStorage.get(kind.toASTString() + " " + pName);
       if (potentialResult != null) {
@@ -727,7 +722,7 @@ public class CProgramScope implements Scope {
     private final Set<CType> collectedTypes;
 
     public TypeCollector() {
-      this(Sets.newHashSet());
+      this(new HashSet<>());
     }
 
     public TypeCollector(Set<CType> pCollectedTypes) {
@@ -816,10 +811,8 @@ public class CProgramScope implements Scope {
 
   public CSimpleDeclaration getFunctionReturnVariable(String pFunctionName) {
     CSimpleDeclaration result = retValDeclarations.get(pFunctionName);
-    if (result == null) {
-      throw new IllegalArgumentException(
-          "Function unknown or does not have a return value: " + pFunctionName);
-    }
+    checkArgument(
+        result != null, "Function unknown or does not have a return value: %s", pFunctionName);
     return result;
   }
 
@@ -854,9 +847,9 @@ public class CProgramScope implements Scope {
   }
 
   public static String getFunctionNameOfArtificialReturnVar(CIdExpression pCIdExpression) {
-    if (!isArtificialFunctionReturnVariable(pCIdExpression)) {
-      throw new IllegalArgumentException("Variable is not an artificial return variable.");
-    }
+    checkArgument(
+        isArtificialFunctionReturnVariable(pCIdExpression),
+        "Variable is not an artificial return variable.");
     String qualifiedName = pCIdExpression.getDeclaration().getQualifiedName();
     return qualifiedName.substring(0, qualifiedName.indexOf("::"));
   }

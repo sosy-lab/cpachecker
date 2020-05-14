@@ -52,7 +52,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /** Represents one abstract state of the Usage CPA. */
-public class UsageState extends AbstractSingleWrapperState
+public final class UsageState extends AbstractSingleWrapperState
     implements LatticeAbstractState<UsageState> {
 
   private static final long serialVersionUID = -898577877284268426L;
@@ -165,7 +165,7 @@ public class UsageState extends AbstractSingleWrapperState
     int result = 1;
     result = prime * result + Objects.hashCode(variableBindingRelation);
     result = prime * result + Objects.hashCode(recentUsages);
-    result = prime * super.hashCode();
+    result = prime * result + super.hashCode();
     return result;
   }
 

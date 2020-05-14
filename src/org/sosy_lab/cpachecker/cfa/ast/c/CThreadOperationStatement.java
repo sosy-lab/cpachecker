@@ -26,7 +26,9 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
-
+@SuppressWarnings("EqualsGetClass")
+// FIXME: This class is broken, because comparing a CThreadOperationStatement with an
+// CFunctionCallStatement is not symmetric
 public class CThreadOperationStatement extends CFunctionCallStatement {
 
   private static final long serialVersionUID = -7543988390816591658L;

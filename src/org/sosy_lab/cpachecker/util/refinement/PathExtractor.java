@@ -29,8 +29,8 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -56,10 +56,10 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
- * Class that provides means to extract target states and paths to these from an
- * {@link ARGReachedSet}.
+ * Class that provides means to extract target states and paths to these from an {@link
+ * ARGReachedSet}.
  */
-@Options()
+@Options
 public class PathExtractor implements Statistics {
 
   @Option(secure = true,
@@ -131,7 +131,7 @@ public class PathExtractor implements Statistics {
    * @return the list of paths to the target states
    */
   public List<ARGPath> getTargetPaths(final Collection<ARGState> targetStates) {
-    return Lists.newArrayList(Collections2.transform(targetStates, ARGUtils::getOnePathTo));
+    return new ArrayList<>(Collections2.transform(targetStates, ARGUtils::getOnePathTo));
   }
 
   public void addFeasibleTarget(ARGState pLastState) {

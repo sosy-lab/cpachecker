@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclarationVisitor;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 
 public final class CEnumType implements CComplexType {
 
@@ -140,8 +141,9 @@ public final class CEnumType implements CComplexType {
         final FileLocation pFileLocation,
         final String pName,
         final String pQualifiedName,
+        final @Nullable CType pType,
         final @Nullable Long pValue) {
-      super(pFileLocation, CNumericTypes.SIGNED_INT, pName);
+      super(pFileLocation, pType, pName);
 
       checkNotNull(pName);
       value = pValue;
@@ -189,6 +191,11 @@ public final class CEnumType implements CComplexType {
     }
 
     @Override
+    public void setType(Type pType) {
+      super.setType(checkNotNull(pType));
+    }
+
+    @Override
     public String getQualifiedName() {
       return qualifiedName;
     }
@@ -209,8 +216,7 @@ public final class CEnumType implements CComplexType {
 
     @Override
     public String toASTString() {
-      return getQualifiedName().replace("::", "__")
-          + (hasValue() ? " = " + String.valueOf(value) : "");
+      return getQualifiedName().replace("::", "__") + (hasValue() ? " = " + value : "");
     }
 
     @Override

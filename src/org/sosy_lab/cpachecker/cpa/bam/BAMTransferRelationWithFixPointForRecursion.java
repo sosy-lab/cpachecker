@@ -23,15 +23,15 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -70,16 +70,17 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
   private boolean recursionSeen = false;
   private boolean resultStatesChanged = false;
   private boolean targetFound = false;
-  private final Collection<AbstractState> potentialRecursionUpdateStates = new HashSet<>();
+  private final Collection<AbstractState> potentialRecursionUpdateStates = new LinkedHashSet<>();
 
   public BAMTransferRelationWithFixPointForRecursion(
       Configuration pConfig,
       BAMCPA pBamCpa,
       ShutdownNotifier pShutdownNotifier,
       AlgorithmFactory pAlgorithmFactory,
-      BAMPCCManager pBamPccManager)
+      BAMPCCManager pBamPccManager,
+      boolean pSearchTargetStatesOnExit)
       throws InvalidConfigurationException {
-    super(pBamCpa, pShutdownNotifier, pAlgorithmFactory, pBamPccManager);
+    super(pBamCpa, pShutdownNotifier, pAlgorithmFactory, pBamPccManager, pSearchTargetStatesOnExit);
     pConfig.inject(this);
     bamCpa = pBamCpa;
   }
@@ -97,7 +98,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
     }
 
     if (maximalDepthForExplicitRecursion != -1 && stack.size() > maximalDepthForExplicitRecursion) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     return super.getAbstractSuccessorsWithoutWrapping(pState, pPrecision);
@@ -157,7 +158,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       // OR:     we have completely analyzed the main-block and have not found an target-state.
       //         now we check, if we need to unwind recursive calls further until a fixpoint is reached.
 
-      targetFound = Iterables.any(resultStates, IS_TARGET_STATE);
+      targetFound = Iterables.any(resultStates, AbstractStates::isTargetState);
       if (targetFound) {
         // not really a fixpoint, but we return and let CEGAR check the target-state
         logger.log(Level.INFO, "fixpoint-iteration aborted, because there was a target state.");
@@ -167,9 +168,12 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       if (!resultStatesChanged) {
         logger.log(Level.INFO, "fixpoint-iteration aborted, because we did not get new states (fixpoint reached).");
 
-        // the fixpoint algorithm should have coverage for all states and thus return zero new states.
-        // the initially computed successors from pHeadOfMainFunctionState are the successors for the CPA-algorithm.
-        ArrayList<AbstractState> exitStates = new ArrayList<>(((ARGState)pHeadOfMainFunctionState).getChildren());
+        // the fixpoint algorithm should have coverage for all states and thus return zero new
+        // states.
+        // the initially computed successors from pHeadOfMainFunctionState are the successors for
+        // the CPA-algorithm.
+        List<AbstractState> exitStates =
+            new ArrayList<>(((ARGState) pHeadOfMainFunctionState).getChildren());
         assert getStatesNotCoveredBy(resultStates, exitStates).isEmpty() : "there should not be any new state.";
         resultStates = exitStates;
 
@@ -395,7 +399,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
     assert reached != null : "cached entry has no reached set";
     if (previousResult == null) {
       // outer block was not finished, abort recursion
-      reducedResult = Collections.emptySet();
+      reducedResult = ImmutableSet.of();
       logger.logf(Level.FINEST, "skipping recursive call with new empty result (root is %s)", reached.getFirstState());
     } else {
       // use previously computed outer block as inner block,

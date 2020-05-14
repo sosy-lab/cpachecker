@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
-import static org.junit.Assert.assertEquals;
+import static com.google.common.truth.Truth.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
@@ -62,7 +62,7 @@ public class AssignmentToPathAllocatorTest {
   public void testFindFirstOccurrenceOfVariable() {
 
     SSAMapBuilder ssaMapBuilder = SSAMap.emptySSAMap().builder();
-    List<SSAMap> ssaMaps = Lists.newArrayList();
+    List<SSAMap> ssaMaps = new ArrayList<>();
 
     ssaMaps.add(SSAMap.emptySSAMap());
 
@@ -102,9 +102,9 @@ public class AssignmentToPathAllocatorTest {
             1,
             ImmutableList.of());
 
-    assertEquals(1, allocator.findFirstOccurrenceOf(varX, ssaMaps));
-    assertEquals(2, allocator.findFirstOccurrenceOf(varY, ssaMaps));
-    assertEquals(2, allocator.findFirstOccurrenceOf(varZ, ssaMaps));
+    assertThat(allocator.findFirstOccurrenceOf(varX, ssaMaps)).isEqualTo(1);
+    assertThat(allocator.findFirstOccurrenceOf(varY, ssaMaps)).isEqualTo(2);
+    assertThat(allocator.findFirstOccurrenceOf(varZ, ssaMaps)).isEqualTo(2);
   }
 
 }

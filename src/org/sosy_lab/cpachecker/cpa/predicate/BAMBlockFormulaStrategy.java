@@ -27,14 +27,15 @@ import static com.google.common.collect.Iterables.getOnlyElement;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -116,8 +117,10 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
           assert callStacks.containsKey(parentElement);
           final ARGState callState = callStacks.get(parentElement);
 
-          assert extractLocation(callState).getLeavingSummaryEdge().getSuccessor()
-                  == extractLocation(currentState)
+          assert Objects.equals(
+              extractLocation(callState).getLeavingSummaryEdge().getSuccessor(),
+              extractLocation(
+                  currentState))
               : "callstack does not match entry of current function-exit.";
           assert callState != null || currentState.getChildren().isEmpty()
               : "returning from empty callstack is only possible at program-exit";
@@ -156,7 +159,7 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
       // merging after functioncall with different callstates is ugly.
       // this is also guaranteed by the abstraction-locations at function-entries
       // (--> no merge of states with different latest abstractions).
-      assert Sets.newHashSet(currentStacks).size() <= 1
+      assert new HashSet<>(currentStacks).size() <= 1
           : "function with multiple entry-states not supported";
 
       callStacks.put(currentState, currentStacks.get(0));

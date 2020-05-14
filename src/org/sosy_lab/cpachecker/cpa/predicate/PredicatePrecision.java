@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
@@ -68,10 +69,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
 
     LocationInstance(CFANode pLocation, int pInstance) {
       location = checkNotNull(pLocation);
-      if (pInstance < 0) {
-        throw new IllegalArgumentException(
-            "Invalid LocationInstance with negative count " + pInstance);
-      }
+      checkArgument(pInstance >= 0, "Invalid LocationInstance with negative count %s", pInstance);
       instance = pInstance;
     }
 
@@ -129,10 +127,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
 
   private static final PredicatePrecision EMPTY =
       new PredicatePrecision(
-          ImmutableList.<Map.Entry<LocationInstance, AbstractionPredicate>>of(),
-          ImmutableList.<Map.Entry<CFANode, AbstractionPredicate>>of(),
-          ImmutableList.<Map.Entry<String, AbstractionPredicate>>of(),
-          ImmutableList.<AbstractionPredicate>of());
+          ImmutableList.of(), ImmutableList.of(), ImmutableList.of(), ImmutableList.of());
 
   public PredicatePrecision(
       Multimap<LocationInstance, AbstractionPredicate> pLocationInstancePredicates,
@@ -373,7 +368,7 @@ public final class PredicatePrecision implements AdjustablePrecision {
    * and a second one.
    */
   public PredicatePrecision mergeWith(PredicatePrecision prec) {
-    if (this.isEmpty()) {
+    if (this == prec || this.isEmpty()) {
       return prec;
     }
     if (prec.isEmpty()) {

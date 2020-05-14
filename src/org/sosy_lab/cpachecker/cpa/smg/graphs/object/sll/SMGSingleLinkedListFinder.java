@@ -23,12 +23,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.sll;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Predicate;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionBlock;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionCandidate;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionFinder;
@@ -36,7 +36,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -47,8 +47,8 @@ import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
 
 public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
 
+  @VisibleForTesting
   public SMGSingleLinkedListFinder() {
-    super();
   }
 
   public SMGSingleLinkedListFinder(int pSeqLengthEqualityThreshold,
@@ -58,7 +58,9 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
 
   @Override
   public Set<SMGAbstractionCandidate> traverse(
-      CLangSMG pSmg, UnmodifiableSMGState pSMGState, Set<SMGAbstractionBlock> pAbstractionBlocks)
+      UnmodifiableCLangSMG pSmg,
+      UnmodifiableSMGState pSMGState,
+      Set<SMGAbstractionBlock> pAbstractionBlocks)
       throws SMGInconsistentException {
     SMGJoinSllProgress pProgress = new SMGJoinSllProgress();
 
@@ -81,7 +83,7 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
 
   private void startTraversal(
       SMGObject pObject,
-      CLangSMG pSmg,
+      UnmodifiableCLangSMG pSmg,
       UnmodifiableSMGState pSmgState,
       SMGJoinSllProgress pProgress)
       throws SMGInconsistentException {
@@ -95,7 +97,7 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
 
   private void createCandidatesOfObject(
       SMGObject pObject,
-      CLangSMG pSmg,
+      UnmodifiableCLangSMG pSmg,
       UnmodifiableSMGState pSMGState,
       SMGJoinSllProgress pProgress)
       throws SMGInconsistentException {
@@ -145,25 +147,24 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
         continue;
       }
 
-      Set<CType> typesOfThisObject = new HashSet<>();
+      Set<Long> typeSizesOfThisObject = new HashSet<>();
 
       for (SMGEdgePointsTo edge : SMGUtils.getPointerToThisObject(pObject, pSmg)) {
         Set<SMGEdgeHasValue> hves =
             pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(edge.getValue()));
         for (SMGEdgeHasValue hve : hves) {
-          typesOfThisObject.add(hve.getType());
+          typeSizesOfThisObject.add(hve.getSizeInBits());
         }
       }
 
-      CType nextType = hveNext.getType();
+      long nextSize = hveNext.getSizeInBits();
 
-      if (!typesOfThisObject.contains(nextType)) {
+      if (!typeSizesOfThisObject.contains(nextSize)) {
         continue;
       }
 
       SMGSingleLinkedListCandidate candidate =
-          new SMGSingleLinkedListCandidate(pObject, nfo, hfo, nextType,
-              pSmg.getMachineModel());
+          new SMGSingleLinkedListCandidate(pObject, nfo, hfo, nextSize, pSmg.getMachineModel());
       pProgress.initializeCandidiate(candidate);
       continueTraversal(nextPointer, candidate, pSmg, pSMGState, pProgress);
     }
@@ -172,7 +173,7 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
   private void continueTraversal(
       SMGValue pValue,
       SMGSingleLinkedListCandidate pPrevCandidate,
-      CLangSMG pSmg,
+      UnmodifiableCLangSMG pSmg,
       UnmodifiableSMGState pSmgState,
       SMGJoinSllProgress pProgress)
       throws SMGInconsistentException {
@@ -223,8 +224,9 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
         return;
       }
 
-      candidate = new SMGSingleLinkedListCandidate(nextObject, nfo, hfo, nextEdge.getType(),
-          pSmg.getMachineModel());
+      candidate =
+          new SMGSingleLinkedListCandidate(
+              nextObject, nfo, hfo, nextEdge.getSizeInBits(), pSmg.getMachineModel());
       pProgress.initializeLastInSequenceCandidate(candidate);
 
     } else {

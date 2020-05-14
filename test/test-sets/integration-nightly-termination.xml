@@ -12,6 +12,25 @@
   <!-- SV-Comp files assume that malloc always succeeds -->
   <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
 
+  <!--
+    We collect error- and proof-witness files for further steps in our BuildBot.
+    Currently we expect the following compressed witness files from a complete benchmark set:
+    - induction:    170M
+    - predicate:    600M
+    - value:        600M
+    - smg:           10M
+    - termination:  170M
+    - sv-comp18/19: 230M
+    CPAchecker can compress and handle compressed witnesses automatically.
+    Please disable compression for real SVComp benchmarks!
+  -->
+  <resultfiles>**.graphml*</resultfiles>
+  <option name="-setprop">cpa.arg.compressWitness=true</option>
+  <option name="-setprop">counterexample.export.compressWitness=true</option>
+  <option name="-setprop">counterexample.export.graphml=witness.graphml</option>
+  <option name="-setprop">cpa.arg.proofWitness=witness.graphml</option>
+  <option name="-setprop">termination.violation.witness=witness.graphml</option>
+
   <tasks name="Termination-MainControlFlow">
     <includesfile>../programs/benchmarks/Termination-MainControlFlow.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
@@ -25,5 +44,6 @@
   <tasks name="Termination-Other">
     <includesfile>../programs/benchmarks/Termination-Other.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/termination.prp</propertyfile>
+    <option name="-32" />
   </tasks>
 </benchmark>

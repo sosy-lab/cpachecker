@@ -42,7 +42,6 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
-import org.sosy_lab.cpachecker.core.interfaces.MergeOperator;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
@@ -74,13 +73,14 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
   private boolean handleRecursiveProcedures = false;
 
   @Option(
-    secure = true,
-    description =
-        "If enabled, cache queries also consider blocks with " + "non-matching precision for reuse."
-  )
+      secure = true,
+      description =
+          "If enabled, cache queries also consider blocks with non-matching precision for reuse.")
   private boolean aggressiveCaching = true;
 
-  @Option(description = "Should the nested CPA-algorithm be wrapped with CEGAR within BAM?")
+  @Option(
+      secure = true,
+      description = "Should the nested CPA-algorithm be wrapped with CEGAR within BAM?")
   private boolean useCEGAR = false;
 
   private BAMCPA(
@@ -119,21 +119,26 @@ public class BAMCPA extends AbstractBAMCPA implements StatisticsProvider, ProofC
 
     AlgorithmFactory factory = new CPAAlgorithmFactory(this, logger, config, pShutdownNotifier);
     if (useCEGAR) {
-      factory = new CEGARAlgorithmFactory(factory, this, logger, config);
+      // We will use this single instance of CEGARAlgFactory for the whole analysis.
+      // There will be exactly one Refiner within all nestings of BAM (and one from the surrounding
+      // CEGAR loop), because it is part of the factory.
+      factory = new CEGARAlgorithmFactory(factory, this, logger, config, pShutdownNotifier);
     }
 
     if (handleRecursiveProcedures) {
       transfer =
           new BAMTransferRelationWithFixPointForRecursion(
-              config, this, pShutdownNotifier, factory, bamPccManager);
+              config, this, pShutdownNotifier, factory, bamPccManager, searchTargetStatesOnExit());
     } else {
-      transfer = new BAMTransferRelation(this, pShutdownNotifier, factory, bamPccManager);
+      transfer =
+          new BAMTransferRelation(
+              this, pShutdownNotifier, factory, bamPccManager, searchTargetStatesOnExit());
     }
   }
 
   @Override
-  public MergeOperator getMergeOperator() {
-    return new BAMMergeOperator(getWrappedCpa().getMergeOperator(), bamPccManager);
+  public BAMMergeOperator getMergeOperator() {
+    return super.getMergeOperator().withBAMPCCManager(bamPccManager);
   }
 
   @Override

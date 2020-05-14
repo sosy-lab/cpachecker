@@ -24,12 +24,12 @@
 package org.sosy_lab.cpachecker.util.refinement;
 
 import static com.google.common.base.Preconditions.checkState;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
@@ -147,7 +147,7 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
 
             holeIt.advance();
             if (successor.isPresent()) {
-              intermediateState = successor.get();
+              intermediateState = successor.orElseThrow();
             }
 
           } while (!holeIt.isPositionWithState() && successor.isPresent());
@@ -185,7 +185,7 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
         }
 
         // extract singleton successor state
-        next = successor.get();
+        next = successor.orElseThrow();
 
         // some variables might be blacklisted or tracked by BDDs
         // so perform abstraction computation here
@@ -224,8 +224,8 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
         new UseDefRelation(
             infeasiblePrefix,
             cfa.getVarClassification().isPresent()
-                ? cfa.getVarClassification().get().getIntBoolVars()
-                : Collections.emptySet(),
+                ? cfa.getVarClassification().orElseThrow().getIntBoolVars()
+                : ImmutableSet.of(),
             false);
 
     List<Pair<ARGState, ValueAnalysisInterpolant>> interpolants = new UseDefBasedInterpolator(
@@ -234,6 +234,6 @@ public class GenericPrefixProvider<S extends ForgetfulState<?>> implements Prefi
         cfa.getMachineModel()).obtainInterpolants();
 
     return InfeasiblePrefix.buildForValueDomain(
-        infeasiblePrefix, FluentIterable.from(interpolants).transform(Pair::getSecond).toList());
+        infeasiblePrefix, transformedImmutableListCopy(interpolants, Pair::getSecond));
   }
 }

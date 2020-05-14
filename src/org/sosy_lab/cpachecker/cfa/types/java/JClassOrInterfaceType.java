@@ -134,8 +134,8 @@ public abstract class JClassOrInterfaceType implements JReferenceType {
 
     while (!nextEnclosingType.isTopLevel()) {
       nextEnclosingType = nextEnclosingType.getEnclosingType();
-      checkArgument(!found.contains(this),
-          "Class " + getName() + " may not be a nested type of itself.");
+      checkArgument(
+          !found.contains(this), "Class % may not be a nested type of itself.", getName());
       found.add(nextEnclosingType);
     }
   }

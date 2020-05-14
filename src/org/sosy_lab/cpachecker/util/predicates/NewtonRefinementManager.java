@@ -246,7 +246,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     }
 
     // Calculate Strongest Post Condition of all pathLocations
-    return calculateStrongestPostCondition(pathLocations, unsatCore, pPath);
+    return calculateStrongestPostCondition(pathLocations, unsatCore);
   }
 
   /**
@@ -298,14 +298,13 @@ public class NewtonRefinementManager implements StatisticsProvider {
    * @param pPathLocations A list with the necessary information to all path locations
    * @param pUnsatCore An optional holding the unsatisfiable core in the form of a list of Formulas.
    *     If no list of formulas is applied it computes the regular postCondition
-   * @param pPath The path to the Error(Needed for RefinementFailedException)
    * @return A list of Formulas, each Formula represents an assertion at the corresponding
    *     abstraction state, the last formula should be unsatisfiable(representing Error state)
    * @throws InterruptedException In case of interruption
    * @throws RefinementFailedException In case an exception in the solver.
    */
   private List<BooleanFormula> calculateStrongestPostCondition(
-      List<PathLocation> pPathLocations, Optional<List<BooleanFormula>> pUnsatCore, ARGPath pPath)
+      List<PathLocation> pPathLocations, Optional<List<BooleanFormula>> pUnsatCore)
       throws InterruptedException, RefinementFailedException {
     logger.log(Level.FINE, "Calculate Strongest Postcondition for the error trace.");
     stats.postConditionTimer.start();
@@ -330,7 +329,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
           Set<BooleanFormula> pathFormulaElements =
               bfmgr.toConjunctionArgs(pathFormula.getFormula(), true);
           for (BooleanFormula pathFormulaElement : pathFormulaElements) {
-            if (pUnsatCore.get().contains(pathFormulaElement)) {
+            if (pUnsatCore.orElseThrow().contains(pathFormulaElement)) {
               requiredPart.add(pathFormulaElement);
               break;
             }
@@ -461,7 +460,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
     // Try to eliminate the intermediate Variables
     Optional<BooleanFormula> result = qeManager.eliminateQuantifiers(intermediateVars, toExist);
     if (result.isPresent()) {
-      return result.get();
+      return result.orElseThrow();
     } else {
       logger.log(
           Level.FINE, "Quantifier elimination failed, keeping old assignments in predicate.");
@@ -590,7 +589,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
           Optional<BooleanFormula> quantifiedPred =
               qeManager.eliminateQuantifiers(toQuantify, pred);
           if (quantifiedPred.isPresent()) {
-            newPredicates.add(quantifiedPred.get());
+            newPredicates.add(quantifiedPred.orElseThrow());
             stats.noOfQuantifiedFutureLives += toQuantify.size();
           } else {
             // Keep the old predicate as QE is not possible
@@ -715,7 +714,7 @@ public class NewtonRefinementManager implements StatisticsProvider {
      */
     boolean hasAbstractionState() {
       if (hasCorrespondingARGState()) {
-        return PredicateAbstractState.getPredicateState(state.get()).isAbstractionState();
+        return PredicateAbstractState.getPredicateState(state.orElseThrow()).isAbstractionState();
       } else {
         return false;
       }
@@ -723,7 +722,9 @@ public class NewtonRefinementManager implements StatisticsProvider {
 
     @Override
     public String toString() {
-      return (lastEdge != null ? lastEdge.toString() : ("First State: " + state.get().toDOTLabel()))
+      return (lastEdge != null
+              ? lastEdge.toString()
+              : ("First State: " + state.orElseThrow().toDOTLabel()))
           + ", PathFormula: "
           + pathFormula.toString();
     }

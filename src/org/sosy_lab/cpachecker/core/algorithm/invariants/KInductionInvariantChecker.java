@@ -27,7 +27,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -46,12 +46,13 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class KInductionInvariantChecker {
 
   @Option(
-    secure = true,
-    description =
-        "Configuration file for the K-Induction algorithm for checking candidates on invariance."
-  )
+      secure = true,
+      description =
+          "Configuration file for the K-Induction algorithm for checking candidates on invariance.")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private Path kInductionConfig = Paths.get("config/bmc-invgen.properties");
+  private Path kInductionConfig =
+      Classes.getCodeLocation(KInductionInvariantChecker.class)
+          .resolveSibling("config/bmc-invgen.properties");
 
   private final CFA cfa;
   private final KInductionInvariantGenerator invGen;
@@ -59,19 +60,19 @@ public class KInductionInvariantChecker {
   private boolean isComputationFinished = false;
 
   /**
-   * Create a new k-induction based invariant checker. Actual computation is started
-   * with {@link #checkCandidates()}, it is blocking and runs synchronously. The
-   * created instance of this class should be only used once.
+   * Create a new k-induction based invariant checker. Actual computation is started with {@link
+   * #checkCandidates()}, it is blocking and runs synchronously. The created instance of this class
+   * should be only used once.
    *
    * @param pConfig the Configuration for this check
    * @param pShutdownNotifier the parent shutdown notifier
    * @param pLogger the logger which should be used
    * @param pCfa the whole CFA
-   * @param pCandidateGenerator the Candidate Generator (it's CandidateInvariants have
-   * to work with different solvers, as in most cases this check will use another solver
-   * than the caller of this method does.)
-   * @throws InvalidConfigurationException is thrown if the configuration file for k-induction
-   * is not available
+   * @param pCandidateGenerator the Candidate Generator (it's CandidateInvariants have to work with
+   *     different solvers, as in most cases this check will use another solver than the caller of
+   *     this method does.)
+   * @throws InvalidConfigurationException is thrown if the configuration file for k-induction is
+   *     not available
    * @throws CPAException may be thrown while building the CPAs used for this check
    */
   public KInductionInvariantChecker(
@@ -81,7 +82,7 @@ public class KInductionInvariantChecker {
       CFA pCfa,
       Specification specification,
       CandidateGenerator pCandidateGenerator)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     pConfig.inject(this);
     cfa = pCfa;
 

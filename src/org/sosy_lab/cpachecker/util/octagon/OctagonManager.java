@@ -23,13 +23,54 @@
  */
 package org.sosy_lab.cpachecker.util.octagon;
 
-import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.*;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_addBinConstraints;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_addConstraint;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_addDimenensionAndEmbed;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_addDimenensionAndProject;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_assingVar;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_copy;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_dimension;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_empty;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_forget;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_free;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_full_copy;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_init;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_init_n;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_intersection;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_intervAddConstraint;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_intervAssingVar;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_intervSubstituteVar;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_isEmpty;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_isEmptyLazy;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_isEqual;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_isEqualLazy;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_isIn;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_isIncludedIn;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_isIncludedInLazy;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_isUniverse;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_narrowing;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_nbconstraints;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_num_clear_n;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_num_get_float;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_num_get_int;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_num_infty;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_num_set;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_num_set_float;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_num_set_inf;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_num_set_int;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_print;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_printNum;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_removeDimension;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_set_bounds;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_substituteVar;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_union;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_universe;
+import static org.sosy_lab.cpachecker.util.octagon.OctWrapper.J_widening;
 
+import com.google.common.collect.BiMap;
 import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonInterval;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
-import com.google.common.collect.BiMap;
 
 
 public abstract class OctagonManager {

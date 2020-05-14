@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.andersen.util;
 
+import java.util.Objects;
 
 /**
  * This class models an abstract Constraint in pointer analysis. All constraints have a similar
@@ -68,27 +69,18 @@ public abstract class Constraint {
 
   @Override
   public boolean equals(Object other) {
-
     if (this == other) {
       return true;
     }
-
-    if (other == null || !this.getClass().equals(other.getClass())) {
+    if (!(other instanceof Constraint)) {
       return false;
     }
-
     Constraint o = (Constraint) other;
-
     return this.subVar.equals(o.subVar) && this.superVar.equals(o.superVar);
   }
 
   @Override
   public int hashCode() {
-
-    int hash = 18;
-    hash = 31 * hash + (subVar == null ? 0 : subVar.hashCode());
-    hash = 31 * hash + (superVar == null ? 0 : superVar.hashCode());
-
-    return hash;
+    return Objects.hash(subVar, superVar);
   }
 }

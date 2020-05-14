@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.util.predicates.regions;
 
+import com.google.common.primitives.ImmutableIntArray;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.function.Function;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.PredicateOrderingStrategy;
@@ -89,7 +89,7 @@ public interface RegionManager extends RegionCreator {
    *
    * @param pOrder the new order of the variables.
    */
-  void setVarOrder(ArrayList<Integer> pOrder);
+  void setVarOrder(ImmutableIntArray pOrder);
 
   /**
    * Reorders the bdd variables with the provided strategy.
@@ -97,4 +97,15 @@ public interface RegionManager extends RegionCreator {
    * @param strategy the reorder strategy that should be applied.
    */
   void reorder(PredicateOrderingStrategy strategy);
+
+  /**
+   * Replace predicates in the region with a new predicates.
+   *
+   * Corresponds to '\exists old : (region && old==new)'.
+   *
+   * We assume that the predicates only consist of plain predicates,
+   * nothing more complex. We will only use the root variable of the predicate.
+   * We also assume identical lengths of the old and new predicates.
+   */
+  Region replace(Region region, Region[] oldPredicates, Region[] newPredicates);
 }

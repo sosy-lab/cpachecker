@@ -32,6 +32,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -135,7 +136,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
 
     VariableClassification variableClassification;
     if (pLang == Language.C) {
-      variableClassification = pVarClass.get();
+      variableClassification = pVarClass.orElseThrow();
     } else {
       variableClassification = null;
     }
@@ -250,7 +251,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   @Override
   protected Collection<LiveVariablesState> postProcessing(@Nullable LiveVariablesState successor, CFAEdge edge) {
     if (successor == null) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     // live variables of multiedges were handled separately.
@@ -428,7 +429,7 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   }
 
   Collection<Wrapper<ASimpleDeclaration>> dataToVars(BitSet data) {
-    ArrayList<Wrapper<ASimpleDeclaration>> out = new ArrayList<>();
+    List<Wrapper<ASimpleDeclaration>> out = new ArrayList<>();
     for (int i = data.nextSetBit(0); i >= 0; i = data.nextSetBit(i + 1)) {
       out.add(allDeclarations.get(i));
       assert (i != Integer.MAX_VALUE);

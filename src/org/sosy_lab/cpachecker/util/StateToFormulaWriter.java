@@ -35,13 +35,13 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -136,7 +136,10 @@ public class StateToFormulaWriter implements StatisticsProvider {
 
             @Override
             public void printStatistics(
-                PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+                PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {}
+
+            @Override
+            public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
               verify(fmgr != null);
               try (Writer w = IO.openOutputFile(exportFile, Charset.defaultCharset())) {
                 write(pReached, w);
@@ -176,7 +179,8 @@ public class StateToFormulaWriter implements StatisticsProvider {
    */
   private boolean isImportantNode(CFANode location) {
     if (exportOnlyImporantLocations) {
-      return (cfa.getAllLoopHeads().isPresent() && cfa.getAllLoopHeads().get().contains(location))
+      return (cfa.getAllLoopHeads().isPresent()
+              && cfa.getAllLoopHeads().orElseThrow().contains(location))
           || location instanceof FunctionEntryNode
           || location instanceof FunctionExitNode
           || location.getLeavingSummaryEdge() != null
@@ -200,7 +204,7 @@ public class StateToFormulaWriter implements StatisticsProvider {
   private void write(SetMultimap<CFANode, FormulaReportingState> pStates, Appendable pAppendable) throws IOException {
 
     // (global) definitions used for predicates
-    final Set<String> definitions = Sets.newLinkedHashSet();
+    final Set<String> definitions = new LinkedHashSet<>();
 
     // in this set, we collect the string representing each predicate
     // (potentially making use of the above definitions)

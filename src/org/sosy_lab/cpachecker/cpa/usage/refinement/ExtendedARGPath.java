@@ -65,28 +65,17 @@ public class ExtendedARGPath extends ARGPath {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + (isUnreachable ? 1231 : 1237);
-    result = prime * result + Objects.hashCode(refinedAsTrueBy);
-    result = prime * result + Objects.hashCode(usage);
-    return result;
+    return super.hashCode() * 31 + Objects.hash(isUnreachable, refinedAsTrueBy, usage);
   }
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
+    if (super.equals(obj) && obj instanceof ExtendedARGPath) {
+      ExtendedARGPath other = (ExtendedARGPath) obj;
+      return isUnreachable == other.isUnreachable
+          && Objects.equals(refinedAsTrueBy, other.refinedAsTrueBy)
+          && Objects.equals(usage, other.usage);
     }
-    if (!super.equals(obj)) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
-      return false;
-    }
-    ExtendedARGPath other = (ExtendedARGPath) obj;
-    return isUnreachable == other.isUnreachable
-        && Objects.equals(refinedAsTrueBy, other.refinedAsTrueBy)
-        && Objects.equals(usage, other.usage);
+    return false;
   }
 }

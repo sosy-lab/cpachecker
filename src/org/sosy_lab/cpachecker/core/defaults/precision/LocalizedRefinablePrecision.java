@@ -148,9 +148,10 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
     }
   }
 
+  @SuppressWarnings("UnusedVariable") // parameter is required by API
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
-    CFAInfo cfa = GlobalInfo.getInstance().getCFAInfo().get();
+    CFAInfo cfa = GlobalInfo.getInstance().getCFAInfo().orElseThrow();
     ImmutableMultimap.Builder<CFANode, MemoryLocation> precisionBuilder =
         ImmutableMultimap.builder();
     for (int i = 0; i < in.readInt(); i++) {

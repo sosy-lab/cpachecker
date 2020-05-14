@@ -30,11 +30,9 @@ import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigInteger;
-import java.util.Collections;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.TreeMap;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -142,13 +140,20 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
 
     String fName = "main";
     NavigableMap<String, FunctionEntryNode> functions = new TreeMap<>();
-
-    FunctionEntryNode entryNode = dummyFunction(fName);
+    CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.BOOL);
+    CFunctionDeclaration fdef =
+        new CFunctionDeclaration(FileLocation.DUMMY, functionType, fName, ImmutableList.of());
+    FunctionEntryNode entryNode =
+        new CFunctionEntryNode(
+            FileLocation.DUMMY,
+            fdef,
+            new FunctionExitNode(fdef),
+            com.google.common.base.Optional.absent());
 
     // Edge 1: "x' = x + 1".
     // Edge 2: "x <= 10"
-    CFANode a = new CFANode(fName);
-    CFANode b = new CFANode(fName);
+    CFANode a = new CFANode(fdef);
+    CFANode b = new CFANode(fdef);
 
     CFAEdge init = new BlankEdge("", FileLocation.DUMMY, entryNode, a, "init");
     entryNode.addLeavingEdge(init);
@@ -248,20 +253,6 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
     );
   }
 
-  private FunctionEntryNode dummyFunction(String name) {
-    CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.BOOL);
-
-    FunctionEntryNode main =
-        new CFunctionEntryNode(
-            FileLocation.DUMMY,
-            new CFunctionDeclaration(
-                FileLocation.DUMMY, functionType, name, Collections.emptyList()),
-            new FunctionExitNode(name),
-            com.google.common.base.Optional.absent());
-
-    return main;
-  }
-
   @Test
   public void testCustomSSAIdx() throws Exception {
     Triple<CFAEdge, CFAEdge, MutableCFA> data = createCFA();
@@ -275,7 +266,8 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
     PathFormula p = pfmgrFwd.makeAnd(emptyWithCustomSSA, a_to_b);
 
     // The SSA index should be incremented by one (= DEFAULT_INCREMENT) by the edge "x := x + 1".
-    Assert.assertEquals(customIdx + FreshValueProvider.DEFAULT_INCREMENT, p.getSsa().getIndex("x"));
+    assertThat(p.getSsa().getIndex("x"))
+        .isEqualTo(customIdx + FreshValueProvider.DEFAULT_INCREMENT);
   }
 
   @Test
@@ -304,7 +296,7 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
     pf = pfmgrBwd.makeAnd(pf, x_decl);
 
     // The SSA index must be computed without gaps!!
-    Assert.assertEquals(11, pf.getSsa().getIndex("x"));
+    assertThat(pf.getSsa().getIndex("x")).isEqualTo(11);
   }
 
   @Test
@@ -315,7 +307,7 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
 
     pf = pfmgrFwd.makeAnd(pf, x_decl);
 
-    Assert.assertEquals(11, pf.getSsa().getIndex("x"));
+    assertThat(pf.getSsa().getIndex("x")).isEqualTo(11);
   }
 
   @Test

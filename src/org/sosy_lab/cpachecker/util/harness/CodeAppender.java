@@ -24,9 +24,9 @@
 package org.sosy_lab.cpachecker.util.harness;
 
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -52,6 +52,10 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cfa.types.java.JMethodType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
+import org.sosy_lab.cpachecker.util.testcase.ExpressionTestValue;
+import org.sosy_lab.cpachecker.util.testcase.InitializerTestValue;
+import org.sosy_lab.cpachecker.util.testcase.TestValue;
+import org.sosy_lab.cpachecker.util.testcase.TestVector;
 
 class CodeAppender implements Appendable {
 
@@ -96,7 +100,7 @@ class CodeAppender implements Appendable {
 
   private CodeAppender appendAssignment(String pRetvalName, TestValue pValue, boolean pEnclose)
       throws IOException {
-    boolean hasAuxiliaryStatmenets = pValue.getAuxiliaryStatements().size() > 0;
+    boolean hasAuxiliaryStatmenets = !pValue.getAuxiliaryStatements().isEmpty();
     if (hasAuxiliaryStatmenets) {
       if (pEnclose) {
         appendable.append("{ ");
@@ -267,7 +271,7 @@ class CodeAppender implements Appendable {
       List<? extends AParameterDeclaration> pParameters) {
     Set<String> usedNames = Sets.newHashSetWithExpectedSize(pParameters.size());
     int i = 0;
-    List<AParameterDeclaration> result = Lists.newArrayListWithCapacity(pParameters.size());
+    List<AParameterDeclaration> result = new ArrayList<>(pParameters.size());
     for (AParameterDeclaration parameter : pParameters) {
       AParameterDeclaration declaration = parameter;
       if (!declaration.getName().isEmpty()) {

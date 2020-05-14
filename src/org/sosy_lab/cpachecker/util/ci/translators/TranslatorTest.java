@@ -23,11 +23,11 @@
  */
 package org.sosy_lab.cpachecker.util.ci.translators;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.truth.Truth;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.junit.Before;
@@ -100,8 +100,7 @@ public class TranslatorTest {
     Truth.assertThat(listOfIndependentRequirements).containsExactly("(= var1@1 3)", "(= |fun::varC| -5)");
 
     listOfIndependentRequirements =
-        vReqTransTest.getListOfIndependentRequirements(
-            vStateTest, ssaTest, Collections.emptyList());
+        vReqTransTest.getListOfIndependentRequirements(vStateTest, ssaTest, ImmutableList.of());
     Truth.assertThat(listOfIndependentRequirements).isEmpty();
 
     Collection<String> requiredVars = new ArrayList<>();
@@ -130,8 +129,7 @@ public class TranslatorTest {
 
     // Test method getListOfIndependentRequirements()
     List<String> listOfIndepententReq =
-        sReqTransTest.getListOfIndependentRequirements(
-            sStateTest, ssaTest, Collections.emptyList());
+        sReqTransTest.getListOfIndependentRequirements(sStateTest, ssaTest, ImmutableList.of());
     Truth.assertThat(listOfIndepententReq).isEmpty();
 
     listOfIndepententReq = sReqTransTest.getListOfIndependentRequirements(sStateTest, ssaTest, null);
@@ -189,8 +187,7 @@ public class TranslatorTest {
     Truth.assertThat(listOfIndependentRequirements).containsExactlyElementsIn(content);
 
     listOfIndependentRequirements =
-        iReqTransTest.getListOfIndependentRequirements(
-            iStateTest, ssaTest, Collections.emptyList());
+        iReqTransTest.getListOfIndependentRequirements(iStateTest, ssaTest, ImmutableList.of());
     Truth.assertThat(listOfIndependentRequirements).isEmpty();
 
     Collection<String> requiredVars = new ArrayList<>();
@@ -206,12 +203,7 @@ public class TranslatorTest {
 
     // Test method writeVarDefinition()
     List<String> varDefinition =
-        CartesianRequirementsTranslator.writeVarDefinition(
-            Arrays.asList(varNames), ssaTest, Collections.emptyList());
-    Truth.assertThat(varDefinition).isEmpty();
-
-    varDefinition =
-        CartesianRequirementsTranslator.writeVarDefinition(Arrays.asList(varNames), ssaTest, null);
+        CartesianRequirementsTranslator.writeVarDefinition(Arrays.asList(varNames), ssaTest);
     content = new ArrayList<>();
     content.add("(declare-fun var1@1 () Int)");
     content.add("(declare-fun var2 () Int)");
@@ -221,18 +213,9 @@ public class TranslatorTest {
     content.add("(declare-fun |fun::varC| () Int)");
     Truth.assertThat(varDefinition).containsExactlyElementsIn(content);
 
-    varDefinition =
-        CartesianRequirementsTranslator.writeVarDefinition(
-            Arrays.asList(varNames), ssaTest, requiredVars);
-    List<String> content2 = new ArrayList<>();
-    content2.add("(declare-fun var1@1 () Int)");
-    content2.add("(declare-fun var3@1 () Int)");
-    content2.add("(declare-fun |fun::varB@1| () Int)");
-    Truth.assertThat(varDefinition).containsExactlyElementsIn(content2);
-
     // Test method convertToFormula()
     Pair<List<String>, String> convertedToFormula =
-        iReqTransTest.convertToFormula(iStateTest, ssaTest, Collections.emptyList());
+        iReqTransTest.convertToFormula(iStateTest, ssaTest, ImmutableList.of());
     Truth.assertThat(convertedToFormula.getFirst()).isEmpty();
     String s = "(define-fun req () Bool true)";
     Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
@@ -243,6 +226,11 @@ public class TranslatorTest {
     Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
 
     convertedToFormula = iReqTransTest.convertToFormula(iStateTest, ssaTest, requiredVars);
+    List<String> content2 = new ArrayList<>();
+    content2.add("(declare-fun var1@1 () Int)");
+    content2.add("(declare-fun var3@1 () Int)");
+    content2.add("(declare-fun |fun::varB@1| () Int)");
+
     Truth.assertThat(convertedToFormula.getFirst()).containsExactlyElementsIn(content2);
     s = "(define-fun req () Bool (and (>= |fun::varB@1| 8)(and (<= var1@1 5)(<= var3@1 -2))))";
     Truth.assertThat(convertedToFormula.getSecond()).isEqualTo(s);
