@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterators;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.stream.Stream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -62,8 +63,15 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
   @Option(
       secure = true,
       description =
-          "Only checks for errror after loops were unrolled at least this amount of times.")
+          "Only checks for error after loops were unrolled at least this amount of times.")
   private int startAtBound = 0;
+
+  @Option(
+      secure = true,
+      description =
+          "Only checks for targets after loops were unrolled exactly a number of times that is contained in this list."
+              + " The default is an empty list, which means targets are checked in every iteration")
+  private List<Integer> checkOnlyAtBounds = ImmutableList.of();
 
   LoopBoundTransferRelation(Configuration pConfig, CFA pCFA)
       throws CPAException, InvalidConfigurationException {
@@ -159,7 +167,8 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
       @Nullable CFAEdge cfaEdge,
       Precision precision)
       throws CPATransferException, InterruptedException {
-    if (((LoopBoundState) state).getDeepestIteration() < startAtBound
+    int k = ((LoopBoundState) state).getDeepestIteration();
+    if ((k < startAtBound || (!checkOnlyAtBounds.isEmpty() && !checkOnlyAtBounds.contains(k)))
         && Iterators.any(otherStates.iterator(), AbstractStates::isTargetState)) {
       return ImmutableList.of();
     } else {

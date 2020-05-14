@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -64,6 +65,13 @@ public class LoopBoundCPA extends AbstractCPA
   @Option(secure=true, description="enable stack-based tracking of loops")
   private boolean trackStack = false;
 
+  @Option(
+      secure = true,
+      description =
+          "Use a stop operator that will identify loop states who's depth is congruent regarding the modulus of this number. "
+              + "Values smaller or equal to zero will deactivate this feature.")
+  private int cyclicStopModulus = -1;
+
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(LoopBoundCPA.class);
   }
@@ -77,6 +85,15 @@ public class LoopBoundCPA extends AbstractCPA
     pConfig.inject(this);
     loopStructure = pCFA.getLoopStructure().orElseThrow();
     precisionAdjustment = new LoopBoundPrecisionAdjustment(pConfig, pLogger);
+  }
+
+  @Override
+  public StopOperator getStopOperator() {
+    if (cyclicStopModulus <= 0) {
+      return super.getStopOperator();
+    } else {
+      return new ModularStopOperator(cyclicStopModulus);
+    }
   }
 
   @Override

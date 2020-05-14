@@ -1681,6 +1681,16 @@ cpa.lock.stopAfterLockLimit = false
 cpa.lock.stopMode = DEFAULT
   enum:     [DEFAULT, EMPTYLOCKSET]
 
+# Only checks for targets after loops were unrolled exactly a number of times
+# that is contained in this list. The default is an empty list, which means
+# targets are checked in every iteration
+cpa.loopbound.checkOnlyAtBounds = []
+
+# Use a stop operator that will identify loop states who's depth is congruent
+# regarding the modulus of this number. Values smaller or equal to zero will
+# deactivate this feature.
+cpa.loopbound.cyclicStopModulus = -1
+
 # Number of loop iterations before the loop counter is abstracted. Zero is
 # equivalent to no limit.
 cpa.loopbound.loopIterationsBeforeAbstraction = 0
@@ -1701,7 +1711,7 @@ cpa.loopbound.maxLoopIterations = 0
 # adjuster.
 cpa.loopbound.maxLoopIterationsUpperBound = 0
 
-# Only checks for errror after loops were unrolled at least this amount of
+# Only checks for error after loops were unrolled at least this amount of
 # times.
 cpa.loopbound.startAtBound = 0
 
