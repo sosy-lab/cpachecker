@@ -30,18 +30,17 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-
+/** Class represents the error case for tarantula algorithm */
 public class FailedCase {
   private final ReachedSet pReachedSet;
-  int totalErrorCases;
 
   public FailedCase(ReachedSet pPReachedSet) {
     this.pReachedSet = pPReachedSet;
   }
   /**
-   * Gets all CFAEdges from generated counter Examples and consider this as failed paths.
+   * Gets all possible error paths.
    *
-   * @return Detected all failed Paths.
+   * @return Detected all error Paths.
    */
   public Set<ARGPath> getErrorPaths() {
     Set<ARGPath> allErrorPathsTogether = new HashSet<>();
@@ -58,12 +57,7 @@ public class FailedCase {
    * @return Returns <code>true</code> if the path exists otherwise returns <code>false</code>
    */
   public boolean existsErrorPath() {
-
-    if (!getErrorPaths().isEmpty()) {
-      return true;
-    }
-
-    return false;
+    return !getErrorPaths().isEmpty();
   }
   /**
    * Checks whether the path is a failed path or not.
@@ -72,19 +66,6 @@ public class FailedCase {
    * @return <code>boolean</code>
    */
   public boolean isFailedPath(ARGPath path) {
-
-    if (path.getLastState().isTarget()) {
-      return true;
-    }
-    return false;
-  }
-  /**
-   * Gets the total failed cases.
-   *
-   * @return Number of total failed cases.
-   */
-  public int getTotalErrorCases() {
-
-    return totalErrorCases == 0 ? totalErrorCases = getErrorPaths().size() : totalErrorCases;
+    return path.getLastState().isTarget();
   }
 }

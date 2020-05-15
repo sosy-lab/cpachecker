@@ -25,12 +25,14 @@ package org.sosy_lab.cpachecker.core.algorithm.tarantula;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.FailedCase;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.SafeCase;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.TarantulaCasesStatus;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
 public class TarantulaRanking {
   private final SafeCase safeCase;
@@ -49,6 +51,8 @@ public class TarantulaRanking {
    *
    * @param pFailed Is the number of pFailed cases in each edge.
    * @param pPassed Is the number of pPassed cases in each edge.
+   * @param totalFailed Is the total number of all possible error paths.
+   * @param totalPassed Is the total number of all possible safe paths.
    * @return Calculated suspicious.
    */
   private double computeSuspicious(
@@ -62,10 +66,12 @@ public class TarantulaRanking {
   }
 
   public Map<CFAEdge, Double> getRanked() throws InterruptedException {
-
+    Set<ARGPath> safePaths = safeCase.getSafePaths();
+    Set<ARGPath> errorPaths = failedCase.getErrorPaths();
+    int totalSafePaths = safePaths.size();
+    int totalErrorPaths = errorPaths.size();
     Map<CFAEdge, TarantulaCasesStatus> coverage =
-        this.coverageInformation.getCoverageInformation(
-            safeCase.getSafePaths(), failedCase.getErrorPaths());
+        coverageInformation.getCoverageInformation(safePaths, errorPaths);
 
     Map<CFAEdge, Double> resultMap = new LinkedHashMap<>();
     coverage.forEach(
@@ -75,8 +81,8 @@ public class TarantulaRanking {
               computeSuspicious(
                   pTarantulaCasesStatus.getFailedCases(),
                   pTarantulaCasesStatus.getPassedCases(),
-                  failedCase.getTotalErrorCases(),
-                  safeCase.getTotalSafeCases()));
+                  totalErrorPaths,
+                  totalSafePaths));
         });
 
     return sortBySuspicious(resultMap);

@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.FailedCase;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.SafeCase;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.constraints.ConstraintsStatistics;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
@@ -38,6 +39,7 @@ public class TarantulaAlgorithm implements Algorithm {
   private final Algorithm analysis;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
+  private final ConstraintsStatistics stats = new ConstraintsStatistics();
 
   public TarantulaAlgorithm(
       Algorithm analysisAlgorithm, ShutdownNotifier pShutdownNotifier, final LogManager pLogger) {
@@ -50,6 +52,7 @@ public class TarantulaAlgorithm implements Algorithm {
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     StatTimer totalAnalysisTime = new StatTimer("Time for fault localization");
     totalAnalysisTime.start();
+
     try {
 
       AlgorithmStatus result = analysis.run(reachedSet);
@@ -70,6 +73,7 @@ public class TarantulaAlgorithm implements Algorithm {
       logger.log(
           Level.INFO,
           "Consumed time for analysis is: ( " + totalAnalysisTime.getConsumedTime() + " )");
+
       return result;
     } finally {
       totalAnalysisTime.stop();

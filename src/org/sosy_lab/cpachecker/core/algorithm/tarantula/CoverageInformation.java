@@ -34,12 +34,12 @@ import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.T
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
 public class CoverageInformation {
-  FailedCase failedCase;
+  private final FailedCase failedCase;
   private final ShutdownNotifier shutdownNotifier;
 
   public CoverageInformation(FailedCase pFailedCase, ShutdownNotifier pShutdownNotifier) {
-    this.failedCase = pFailedCase;
-    this.shutdownNotifier = pShutdownNotifier;
+    failedCase = pFailedCase;
+    shutdownNotifier = pShutdownNotifier;
   }
 
   /**
@@ -50,33 +50,32 @@ public class CoverageInformation {
    * @param paths The whole path contains all error paths and passed paths.
    * @return result as edge and its case status.
    */
-  private Map<CFAEdge, TarantulaCasesStatus> coverageInformation(Set<ARGPath> paths)
+  private Map<CFAEdge, TarantulaCasesStatus> calculateCoverageInformation(Set<ARGPath> paths)
       throws InterruptedException {
     Map<CFAEdge, TarantulaCasesStatus> coverageInfo = new LinkedHashMap<>();
 
     for (ARGPath path : paths) {
       for (CFAEdge cfaEdge : path.getFullPath()) {
         shutdownNotifier.shutdownIfNecessary();
-        TarantulaCasesStatus pair;
-        if (coverageInfo.containsKey(cfaEdge)) {
-          pair = coverageInfo.get(cfaEdge);
-          if (failedCase.isFailedPath(path)) {
-            pair = new TarantulaCasesStatus(pair.getFailedCases() + 1, pair.getPassedCases());
-
-          } else {
-            pair = new TarantulaCasesStatus(pair.getFailedCases(), pair.getPassedCases() + 1);
-          }
+        TarantulaCasesStatus caseStatus;
+        if (!coverageInfo.containsKey(cfaEdge)) {
+          coverageInfo.put(cfaEdge, new TarantulaCasesStatus(0, 0));
+        }
+        caseStatus = coverageInfo.get(cfaEdge);
+        if (failedCase.isFailedPath(path)) {
+          caseStatus =
+              new TarantulaCasesStatus(
+                  caseStatus.getFailedCases() + 1, caseStatus.getPassedCases());
 
         } else {
-          if (failedCase.isFailedPath(path)) {
-            pair = new TarantulaCasesStatus(1, 0);
-          } else {
-            pair = new TarantulaCasesStatus(0, 1);
-          }
+          caseStatus =
+              new TarantulaCasesStatus(
+                  caseStatus.getFailedCases(), caseStatus.getPassedCases() + 1);
         }
+
         // Skipp the "none" line numbers.
         if (cfaEdge.getLineNumber() != 0) {
-          coverageInfo.put(cfaEdge, pair);
+          coverageInfo.put(cfaEdge, caseStatus);
         }
       }
     }
@@ -91,6 +90,6 @@ public class CoverageInformation {
   public Map<CFAEdge, TarantulaCasesStatus> getCoverageInformation(
       Set<ARGPath> safePaths, Set<ARGPath> errorPaths) throws InterruptedException {
 
-    return coverageInformation(Sets.union(safePaths, errorPaths));
+    return calculateCoverageInformation(Sets.union(safePaths, errorPaths));
   }
 }

@@ -20,6 +20,7 @@
  *
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
- * Fault localization algorithms based on Tarantula algorithm
+ *
  */
+/** Fault localization algorithms based on Tarantula algorithm */
 package org.sosy_lab.cpachecker.core.algorithm.tarantula;

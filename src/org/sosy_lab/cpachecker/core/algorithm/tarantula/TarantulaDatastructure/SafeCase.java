@@ -33,10 +33,9 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-
+/** Class represents the safe case for tarantula algorithm */
 public class SafeCase {
   private final ReachedSet pReachedSet;
-  private int totalSafeCases = 0;
 
   public SafeCase(ReachedSet pPReachedSet) {
     this.pReachedSet = pPReachedSet;
@@ -62,13 +61,10 @@ public class SafeCase {
    * @return Detected safe edges.
    */
   public Set<ARGPath> getSafePaths() {
-
     Set<ARGPath> allSafePathsTogether = new HashSet<>();
 
     for (ARGState safeState : getSafeStates()) {
-      if (existsSafePath()) {
-        allSafePathsTogether.addAll(TarantulaUtils.getAllPaths(pReachedSet, safeState));
-      }
+      allSafePathsTogether.addAll(TarantulaUtils.getAllPaths(pReachedSet, safeState));
     }
     return allSafePathsTogether;
   }
@@ -79,11 +75,7 @@ public class SafeCase {
    * @return Returns <code>true</code> if the path exists otherwise returns <code>false</code>
    */
   public boolean existsSafePath() {
-    if (!getSafeStates().isEmpty()) {
-      return true;
-    }
-
-    return false;
+    return !getSafeStates().isEmpty();
   }
   /**
    * Gets root state from reachedSet.
@@ -92,13 +84,5 @@ public class SafeCase {
    */
   private ARGState rootState() {
     return AbstractStates.extractStateByType(pReachedSet.getFirstState(), ARGState.class);
-  }
-  /**
-   * Gets the total passed cases.
-   *
-   * @return Number of total passed cases.
-   */
-  public int getTotalSafeCases() {
-    return totalSafeCases == 0 ? totalSafeCases = getSafePaths().size() : totalSafeCases;
   }
 }

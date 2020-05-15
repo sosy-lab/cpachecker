@@ -20,6 +20,7 @@
  *
  *  CPAchecker web page:
  *    http://cpachecker.sosy-lab.org
- * All Relevant Data structures for Fault localization technique with Tarantula Algorithm.
+ *
  */
+/** All Relevant Data structures for Fault localization technique with Tarantula Algorithm. */
 package org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure;
