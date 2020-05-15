@@ -116,8 +116,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -367,8 +369,7 @@ abstract class AbstractBMCAlgorithm
 
     AlgorithmStatus status;
 
-    try (ProverEnvironmentWithFallback prover =
-        new ProverEnvironmentWithFallback(solver, ProverOptions.GENERATE_MODELS)) {
+    try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       invariantGeneratorHeadStart.waitForInvariantGenerator();
 
       do {
@@ -611,7 +612,7 @@ abstract class AbstractBMCAlgorithm
 
   protected boolean boundedModelCheck(
       final ReachedSet pReachedSet,
-      final ProverEnvironmentWithFallback pProver,
+      final BasicProverEnvironment<?> pProver,
       CandidateInvariant pCandidateInvariant)
       throws CPATransferException, InterruptedException, SolverException {
     return boundedModelCheck((Iterable<AbstractState>) pReachedSet, pProver, pCandidateInvariant);
@@ -619,7 +620,7 @@ abstract class AbstractBMCAlgorithm
 
   private boolean boundedModelCheck(
       Iterable<AbstractState> pReachedSet,
-      ProverEnvironmentWithFallback pProver,
+      BasicProverEnvironment<?> pProver,
       CandidateInvariant pCandidateInvariant)
       throws CPATransferException, InterruptedException, SolverException {
     BooleanFormula program = bfmgr.not(pCandidateInvariant.getAssertion(pReachedSet, fmgr, pmgr));
@@ -646,7 +647,7 @@ abstract class AbstractBMCAlgorithm
 
   private boolean refineCtiBlockingClauses(
       ReachedSet pReachedSet,
-      ProverEnvironmentWithFallback pProver,
+      BasicProverEnvironment<?> pProver,
       Set<Obligation> pCtiBlockingClauses,
       Map<SymbolicCandiateInvariant, BmcResult> pCheckedClauses)
       throws CPATransferException, InterruptedException, SolverException {
@@ -751,7 +752,7 @@ abstract class AbstractBMCAlgorithm
   protected void analyzeCounterexample(
       final BooleanFormula pCounterexample,
       final ReachedSet pReachedSet,
-      final ProverEnvironmentWithFallback pProver)
+      final BasicProverEnvironment<?> pProver)
       throws CPATransferException, InterruptedException {
     // by default, do nothing (just a hook for subclasses)
   }
@@ -771,7 +772,7 @@ abstract class AbstractBMCAlgorithm
    * @throws InterruptedException if the satisfiability check is interrupted.
    */
   private boolean checkBoundingAssertions(
-      final ReachedSet pReachedSet, final ProverEnvironmentWithFallback prover)
+      final ReachedSet pReachedSet, final BasicProverEnvironment<?> prover)
       throws SolverException, InterruptedException {
     FluentIterable<AbstractState> stopStates =
         from(pReachedSet)
