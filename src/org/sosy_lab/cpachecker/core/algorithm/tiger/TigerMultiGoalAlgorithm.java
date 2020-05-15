@@ -335,6 +335,12 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
       Region testCasePresenceCondition,
       Set<CFAGoal> partition) {
     multiGoalCPA.addCoveredGoal(goal.getCFAEdgesGoal());
+    if (cex.isSpurious() || !cex.isPreciseCounterExample()) {
+      logger
+          .log(Level.SEVERE, "Counterexample is " + (cex.isSpurious() ? "spurious" : "inprecise"));
+      logger.log(Level.SEVERE, "No testcase created for cex");
+      return;
+    }
     TestCase testcase = createTestcase(cex, testCasePresenceCondition);
     long elapsedTime = 0;
     try {

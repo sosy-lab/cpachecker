@@ -473,7 +473,7 @@ public class InputOutputValues {
                     ((ALiteralExpression) ((CInitializerExpression) CDefaults
                         .forType((CType) returnType, FileLocation.DUMMY)).getExpression());
                 Object exprValue = expression.getValue();
-                String value = "";
+                String value = "0";
                 // only use default, if its not a character, otherwise string breaks
                 if (!(exprValue instanceof Character)) {
                   value = String.valueOf(exprValue.toString());
