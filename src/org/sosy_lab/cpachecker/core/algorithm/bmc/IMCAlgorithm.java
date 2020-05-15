@@ -62,7 +62,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
-import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
@@ -75,7 +74,6 @@ import org.sosy_lab.java_smt.api.SolverException;
  * interpolants grows to an inductive set of states, the property is proved. Otherwise, it returns
  * back to the BMC phase and keeps unrolling the CFA.
  */
-
 @Options(prefix="imc")
 public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
@@ -161,74 +159,68 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
 
     logger.log(Level.FINE, "Performing interpolation-based model checking");
-    try (ProverEnvironmentWithFallback prover =
-        new ProverEnvironmentWithFallback(solver, ProverOptions.GENERATE_MODELS)) {
-      PathFormula prefixFormula = pmgr.makeEmptyPathFormula();
-      BooleanFormula loopFormula = bfmgr.makeTrue();
-      BooleanFormula tailFormula = bfmgr.makeTrue();
-      do {
-        int maxLoopIterations = CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
+    PathFormula prefixFormula = pmgr.makeEmptyPathFormula();
+    BooleanFormula loopFormula = bfmgr.makeTrue();
+    BooleanFormula tailFormula = bfmgr.makeTrue();
+    do {
+      int maxLoopIterations = CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
 
-        shutdownNotifier.shutdownIfNecessary();
-        logger.log(Level.FINE, "Unrolling with LBE, maxLoopIterations =", maxLoopIterations);
-        stats.bmcPreparation.start();
-        BMCHelper.unroll(logger, pReachedSet, algorithm, cpa);
-        stats.bmcPreparation.stop();
-        shutdownNotifier.shutdownIfNecessary();
+      shutdownNotifier.shutdownIfNecessary();
+      logger.log(Level.FINE, "Unrolling with LBE, maxLoopIterations =", maxLoopIterations);
+      stats.bmcPreparation.start();
+      BMCHelper.unroll(logger, pReachedSet, algorithm, cpa);
+      stats.bmcPreparation.stop();
+      shutdownNotifier.shutdownIfNecessary();
 
-        logger.log(Level.FINE, "Collecting prefix, loop, and suffix formulas");
-        if (maxLoopIterations == 1) {
-          prefixFormula = getLoopHeadFormula(pReachedSet, maxLoopIterations - 1);
-        } else if (maxLoopIterations == 2) {
-          loopFormula = getLoopHeadFormula(pReachedSet, maxLoopIterations - 1).getFormula();
-        } else {
-          tailFormula =
-              bfmgr.and(
-                  tailFormula,
-                  getLoopHeadFormula(pReachedSet, maxLoopIterations - 1).getFormula());
-        }
-        BooleanFormula suffixFormula =
-            bfmgr.and(tailFormula, getErrorFormula(pReachedSet, maxLoopIterations - 1));
-        logger.log(Level.ALL, "The prefix is", prefixFormula.getFormula());
-        logger.log(Level.ALL, "The loop is", loopFormula);
-        logger.log(Level.ALL, "The suffix is", suffixFormula);
+      logger.log(Level.FINE, "Collecting prefix, loop, and suffix formulas");
+      if (maxLoopIterations == 1) {
+        prefixFormula = getLoopHeadFormula(pReachedSet, maxLoopIterations - 1);
+      } else if (maxLoopIterations == 2) {
+        loopFormula = getLoopHeadFormula(pReachedSet, maxLoopIterations - 1).getFormula();
+      } else {
+        tailFormula =
+            bfmgr.and(
+                tailFormula,
+                getLoopHeadFormula(pReachedSet, maxLoopIterations - 1).getFormula());
+      }
+      BooleanFormula suffixFormula =
+          bfmgr.and(tailFormula, getErrorFormula(pReachedSet, maxLoopIterations - 1));
+      logger.log(Level.ALL, "The prefix is", prefixFormula.getFormula());
+      logger.log(Level.ALL, "The loop is", loopFormula);
+      logger.log(Level.ALL, "The suffix is", suffixFormula);
 
-        BooleanFormula reachErrorFormula =
-            bfmgr.and(prefixFormula.getFormula(), loopFormula, suffixFormula);
-        if (maxLoopIterations == 1) {
-          reachErrorFormula = bfmgr.or(reachErrorFormula, getErrorFormula(pReachedSet, -1));
+      BooleanFormula reachErrorFormula =
+          bfmgr.and(prefixFormula.getFormula(), loopFormula, suffixFormula);
+      if (maxLoopIterations == 1) {
+        reachErrorFormula = bfmgr.or(reachErrorFormula, getErrorFormula(pReachedSet, -1));
+      }
+      if (!solver.isUnsat(reachErrorFormula)) {
+        logger.log(Level.FINE, "A target state is reached by BMC");
+        return AlgorithmStatus.UNSOUND_AND_PRECISE;
+      } else {
+        logger.log(Level.FINE, "No error is found up to maxLoopIterations = ", maxLoopIterations);
+        if (pReachedSet.hasViolatedProperties()) {
+          TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
         }
-        if (formulaCheckSat(prover, reachErrorFormula)) {
-          logger.log(Level.FINE, "A target state is reached by BMC");
-          return AlgorithmStatus.UNSOUND_AND_PRECISE;
-        } else {
-          logger.log(
-              Level.FINE,
-              "No error is found up to maxLoopIterations = ",
-              maxLoopIterations);
-          if (pReachedSet.hasViolatedProperties()) {
-            TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
-          }
-          BooleanFormula forwardConditionFormula =
-              bfmgr.and(
-                  prefixFormula.getFormula(),
-                  loopFormula,
-                  tailFormula,
-                  getLoopHeadFormula(pReachedSet, maxLoopIterations).getFormula());
-          if (!formulaCheckSat(prover, forwardConditionFormula)) {
-            logger.log(Level.FINE, "The program is safe as it cannot be further unrolled");
-            return AlgorithmStatus.SOUND_AND_PRECISE;
-          }
+        BooleanFormula forwardConditionFormula =
+            bfmgr.and(
+                prefixFormula.getFormula(),
+                loopFormula,
+                tailFormula,
+                getLoopHeadFormula(pReachedSet, maxLoopIterations).getFormula());
+        if (solver.isUnsat(forwardConditionFormula)) {
+          logger.log(Level.INFO, "The program cannot be further unrolled");
+          return AlgorithmStatus.SOUND_AND_PRECISE;
         }
+      }
 
-        if (interpolation && maxLoopIterations > 1) {
-          logger.log(Level.FINE, "Computing fixed points by interpolation");
-          if (reachFixedPointByInterpolation(prover, prefixFormula, loopFormula, suffixFormula)) {
-            return AlgorithmStatus.SOUND_AND_PRECISE;
-          }
+      if (interpolation && maxLoopIterations > 1) {
+        logger.log(Level.FINE, "Computing fixed points by interpolation");
+        if (reachFixedPointByInterpolation(prefixFormula, loopFormula, suffixFormula)) {
+          return AlgorithmStatus.SOUND_AND_PRECISE;
         }
-      } while (adjustConditions());
-    }
+      }
+    } while (adjustConditions());
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
 
@@ -318,32 +310,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   /**
-   * A helper method to check the satisfiability of the input Boolean formula.
-   *
-   * @param pProver SMT solver stack
-   *
-   * @param pFormula The formula to be solved
-   *
-   * @return {@code true} if the formula is SAT; {@code false} if the formula is UNSAT.
-   *
-   * @throws InterruptedException On shutdown request.
-   *
-   */
-  private boolean formulaCheckSat(ProverEnvironmentWithFallback pProver, BooleanFormula pFormula)
-      throws InterruptedException, SolverException {
-    while (!pProver.isEmpty()) {
-      pProver.pop();
-    }
-    pProver.push(pFormula);
-    return !pProver.isUnsat();
-  }
-
-  /**
    * A helper method to check whether the current image has reached a fixed point. This is done by
    * checking if the newly discovered states described by the interpolant are contained in the
    * current image.
-   *
-   * @param pProver SMT solver stack
    *
    * @param pInterpolantFormula The derived interpolant, consisting of the newly discovered states
    *
@@ -356,13 +325,12 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    *
    */
   private boolean reachFixedPointCheck(
-      ProverEnvironmentWithFallback pProver,
       BooleanFormula pInterpolantFormula,
       BooleanFormula pCurrentImageFormula)
       throws InterruptedException, SolverException {
     BooleanFormula notImplicationFormula =
         bfmgr.not(bfmgr.implication(pInterpolantFormula, pCurrentImageFormula));
-    return !formulaCheckSat(pProver, notImplicationFormula);
+    return solver.isUnsat(notImplicationFormula);
   }
 
   /**
@@ -396,8 +364,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   /**
    * The method to iteratively compute fixed points by interpolation.
    *
-   * @param pProver SMT solver to check whether a fixed point is reached
-   *
    * @param pPrefixPathFormula the prefix {@code PathFormula} with SSA map
    *
    * @param pLoopFormula the loop {@code BooleanFormula}
@@ -411,7 +377,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    *
    */
   private boolean reachFixedPointByInterpolation(
-      ProverEnvironmentWithFallback pProver,
       PathFormula pPrefixPathFormula,
       BooleanFormula pLoopFormula,
       BooleanFormula pSuffixFormula)
@@ -439,8 +404,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         logger.log(Level.ALL, "The interpolant is", interpolant);
         interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), prefixSsaMap);
         logger.log(Level.ALL, "After changing SSA", interpolant);
-        if (reachFixedPointCheck(pProver, interpolant, currentImage)) {
-          logger.log(Level.FINE, "The current image reaches a fixed point, property proved");
+        if (reachFixedPointCheck(interpolant, currentImage)) {
+          logger.log(Level.INFO, "The current image reaches a fixed point");
           return true;
         }
         currentImage = bfmgr.or(currentImage, interpolant);
