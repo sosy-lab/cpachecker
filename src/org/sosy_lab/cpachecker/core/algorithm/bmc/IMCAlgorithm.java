@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.collect.FluentIterable;
 import java.util.ArrayDeque;
 import java.util.List;
 import java.util.logging.Level;
@@ -43,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundState;
@@ -229,6 +231,24 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
 
+  private static boolean isLoopStart(AbstractState as) {
+    return AbstractStates.extractStateByType(as, LocationState.class)
+        .getLocationNode()
+        .isLoopStart();
+  }
+
+  private static FluentIterable<AbstractState> getLoopStart(final UnmodifiableReachedSet pReachedSet) {
+    return from(pReachedSet).filter(IMCAlgorithm::isLoopStart);
+  }
+
+  private static FluentIterable<AbstractState> getLoopHeadEncounterState(
+      final FluentIterable<AbstractState> pFluentIterable,
+      final int numEncounterLoopHead) {
+    return pFluentIterable.filter(
+        e -> AbstractStates.extractStateByType(e, LoopBoundState.class).getDeepestIteration()
+            - 1 == numEncounterLoopHead);
+  }
+
   /**
    * A helper method to get the block formula at the specified loop head location. Typically it
    * expects zero or one loop head state in ARG, because multi-loop programs are excluded in the
@@ -249,16 +269,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private PathFormula getLoopHeadFormula(ReachedSet pReachedSet, int numEncounterLoopHead)
       throws InterruptedException {
     List<AbstractState> loopHeads =
-        from(pReachedSet)
-            .filter(
-                e -> AbstractStates.extractStateByType(e, LocationState.class)
-                    .getLocationNode()
-                    .isLoopStart())
-            .filter(
-                e -> AbstractStates.extractStateByType(e, LoopBoundState.class)
-                    .getDeepestIteration()
-                    - 1 == numEncounterLoopHead)
-            .toList();
+        getLoopHeadEncounterState(getLoopStart(pReachedSet), numEncounterLoopHead).toList();
     PathFormula formulaToLoopHeads =
         new PathFormula(
             bfmgr.makeFalse(),
@@ -290,11 +301,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    */
   private BooleanFormula getErrorFormula(ReachedSet pReachedSet, int numEncounterLoopHead) {
     List<AbstractState> errorLocations =
-        AbstractStates.getTargetStates(pReachedSet)
-            .filter(
-                e -> AbstractStates.extractStateByType(e, LoopBoundState.class)
-                    .getDeepestIteration()
-                    - 1 == numEncounterLoopHead)
+        getLoopHeadEncounterState(AbstractStates.getTargetStates(pReachedSet), numEncounterLoopHead)
             .toList();
     BooleanFormula formulaToErrorLocations = bfmgr.makeFalse();
     for (AbstractState errorState : errorLocations) {
