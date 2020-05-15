@@ -381,17 +381,16 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       BooleanFormula pLoopFormula,
       BooleanFormula pSuffixFormula)
       throws InterruptedException, SolverException {
+    BooleanFormula prefixFormula = pPrefixPathFormula.getFormula();
+    SSAMap prefixSsaMap = pPrefixPathFormula.getSsa();
+    logger.log(Level.ALL, "The SSA map is", prefixSsaMap);
+    BooleanFormula currentImage = bfmgr.makeFalse();
+    currentImage = bfmgr.or(currentImage, prefixFormula);
+    BooleanFormula interpolant = bfmgr.makeFalse();
+
     try (@SuppressWarnings("unchecked")
     InterpolatingProverEnvironment<Object> itpProver =
         (InterpolatingProverEnvironment<Object>) solver.newProverEnvironmentWithInterpolation()) {
-
-      BooleanFormula prefixFormula = pPrefixPathFormula.getFormula();
-      SSAMap prefixSsaMap = pPrefixPathFormula.getSsa();
-      logger.log(Level.ALL, "The SSA map is", prefixSsaMap);
-      BooleanFormula currentImage = bfmgr.makeFalse();
-      currentImage = bfmgr.or(currentImage, prefixFormula);
-      BooleanFormula interpolant = bfmgr.makeFalse();
-
       ArrayDeque<Object> formulaA = new ArrayDeque<>();
       ArrayDeque<Object> formulaB = new ArrayDeque<>();
       formulaB.addFirst(itpProver.push(pSuffixFormula));
