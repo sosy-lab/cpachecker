@@ -109,6 +109,17 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
+/**
+ * This class provides an implementation of interpolation-based model checking algorithm, adapted
+ * for program verification. The original algorithm was proposed in the paper "Interpolation and
+ * SAT-based Model Checking" from K. L. McMillan. The algorithm consists of two phases: BMC phase
+ * and interpolation phase. In the BMC phase, it unrolls the CFA and collect the path formula to
+ * target states. If the path formula is UNSAT, it enters the interpolation phase, and computes
+ * interpolants which are overapproximations of k-step reachable states. If the union of
+ * interpolants grows to an inductive set of states, the property is proved. Otherwise, it returns
+ * back to the BMC phase and keeps unrolling the CFA.
+ */
+
 @Options(prefix="imc")
 public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
