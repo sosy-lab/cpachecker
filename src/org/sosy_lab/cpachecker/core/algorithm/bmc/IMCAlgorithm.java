@@ -109,7 +109,7 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@Options(prefix="bmc")
+@Options(prefix="imc")
 public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   @Option(secure = true, description = "try using interpolation to verify programs with loops")
