@@ -181,7 +181,7 @@ abstract class AbstractBMCAlgorithm
   private boolean usePropertyDirection = false;
 
   protected final BMCStatistics stats;
-  protected final Algorithm algorithm;
+  private final Algorithm algorithm;
   private final ConfigurableProgramAnalysis cpa;
 
   private final @Nullable ConfigurableProgramAnalysis stepCaseCPA;

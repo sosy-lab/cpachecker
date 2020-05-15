@@ -84,6 +84,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private final ConfigurableProgramAnalysis cpa;
 
+  private final Algorithm algorithm;
+
   private final FormulaManagerView fmgr;
   private final PathFormulaManager pmgr;
   private final BooleanFormulaManagerView bfmgr;
@@ -118,6 +120,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     cpa = pCPA;
     cfa = pCFA;
+    algorithm = pAlgorithm;
 
     @SuppressWarnings("resource")
     PredicateCPA predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, IMCAlgorithm.class);
