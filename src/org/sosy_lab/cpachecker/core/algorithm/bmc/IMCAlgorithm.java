@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -367,7 +368,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   /**
    * A helper method to derive an interpolant. It computes C=itp(A,B) or C'=!itp(B,A).
    *
-   * @param pProverStack SMT solver stack
+   * @param itpProver SMT solver stack
    *
    * @param pFormulaA Formula A (prefix and loop)
    *
@@ -379,16 +380,16 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    *
    */
   private BooleanFormula getInterpolantFrom(
-      ProverEnvironmentWithFallback pProverStack,
+      InterpolatingProverEnvironment<Object> itpProver,
       ArrayDeque<Object> pFormulaA,
       ArrayDeque<Object> pFormulaB)
       throws SolverException, InterruptedException {
     if (deriveInterpolantFromSuffix) {
       logger.log(Level.FINE, "Deriving the interpolant from suffix (formula B) and negate it");
-      return bfmgr.not(pProverStack.getInterpolant(pFormulaB));
+      return bfmgr.not(itpProver.getInterpolant(pFormulaB));
     } else {
       logger.log(Level.FINE, "Deriving the interpolant from prefix and loop (formula A)");
-      return pProverStack.getInterpolant(pFormulaA);
+      return itpProver.getInterpolant(pFormulaA);
     }
   }
 
@@ -415,8 +416,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       BooleanFormula pLoopFormula,
       BooleanFormula pSuffixFormula)
       throws InterruptedException, SolverException {
-    try (ProverEnvironmentWithFallback proverStack =
-        new ProverEnvironmentWithFallback(solver, ProverOptions.GENERATE_UNSAT_CORE)) {
+    try (@SuppressWarnings("unchecked")
+    InterpolatingProverEnvironment<Object> itpProver =
+        (InterpolatingProverEnvironment<Object>) solver.newProverEnvironmentWithInterpolation()) {
 
       BooleanFormula prefixFormula = pPrefixPathFormula.getFormula();
       SSAMap prefixSsaMap = pPrefixPathFormula.getSsa();
@@ -427,13 +429,13 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
       ArrayDeque<Object> formulaA = new ArrayDeque<>();
       ArrayDeque<Object> formulaB = new ArrayDeque<>();
-      formulaB.addFirst(proverStack.push(pSuffixFormula));
-      formulaA.addFirst(proverStack.push(pLoopFormula));
-      formulaA.addFirst(proverStack.push(prefixFormula));
+      formulaB.addFirst(itpProver.push(pSuffixFormula));
+      formulaA.addFirst(itpProver.push(pLoopFormula));
+      formulaA.addFirst(itpProver.push(prefixFormula));
 
-      while (proverStack.isUnsat()) {
+      while (itpProver.isUnsat()) {
         logger.log(Level.ALL, "The current image is", currentImage);
-        interpolant = getInterpolantFrom(proverStack, formulaA, formulaB);
+        interpolant = getInterpolantFrom(itpProver, formulaA, formulaB);
         logger.log(Level.ALL, "The interpolant is", interpolant);
         interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), prefixSsaMap);
         logger.log(Level.ALL, "After changing SSA", interpolant);
@@ -442,9 +444,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           return true;
         }
         currentImage = bfmgr.or(currentImage, interpolant);
-        proverStack.pop();
+        itpProver.pop();
         formulaA.removeFirst();
-        formulaA.addFirst(proverStack.push(interpolant));
+        formulaA.addFirst(itpProver.push(interpolant));
       }
       logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
       return false;
