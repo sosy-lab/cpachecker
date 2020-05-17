@@ -342,16 +342,19 @@ class EclipseJavaParser implements JavaParser {
 
   private List<JavaFileAST> getASTsOfProgram() throws IOException {
     List<JavaFileAST> astsOfFoundFiles = new ArrayList<>();
-
+    List<Path> alreadyWalkedPaths = new ArrayList<>();
     for (Path directory : javaSourcePaths) {
       try (Stream<Path> files = getJavaFilesInPath(directory)) {
-        for (Path file : files.collect(Collectors.toList())) {
-          CompilationUnit ast = parse(file, IGNORE_METHOD_BODY);
-          astsOfFoundFiles.add(new JavaFileAST(file, ast));
+        for (Path filePath : files.collect(Collectors.toList())) {
+          if (alreadyWalkedPaths.contains(filePath)) {
+            continue;
+          }
+          CompilationUnit ast = parse(filePath, IGNORE_METHOD_BODY);
+          astsOfFoundFiles.add(new JavaFileAST(filePath, ast));
+          alreadyWalkedPaths.add(filePath);
         }
       }
     }
-
     return astsOfFoundFiles;
   }
 
