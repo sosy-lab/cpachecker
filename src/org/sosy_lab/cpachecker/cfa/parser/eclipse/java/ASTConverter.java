@@ -1441,8 +1441,8 @@ class ASTConverter {
       } else if (argument instanceof Expression) {
         ITypeBinding binding = ((Expression) argument).resolveTypeBinding();
         if (binding != null) {
-          final JType convert = typeConverter.convert(binding);
-          result.add(getClassOfJType(convert, pImportDeclarations).get());
+          final JType jType = typeConverter.convert(binding);
+          result.add(getClassOfJType(jType, pImportDeclarations).get());
         } else {
           throw new AssertionError("Cannot find class of " + argument.toString());
         }
@@ -1522,7 +1522,8 @@ class ASTConverter {
                 + jTypeName
                 + ((pJType instanceof JInterfaceType) ? " is" : " is not")
                 + " an interface "
-                + "but its derived class"
+                + "but its derived class "
+                + cls.get().getName()
                 + (cls.get().isInterface() ? " is." : " is not.");
         throw new AssertionError(errorMessage);
       }
