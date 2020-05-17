@@ -1438,7 +1438,7 @@ class ASTConverter {
         final Optional<Class<?>> classOfJType =
             getClassOfJType(simpleDeclarationType, pImportDeclarations);
         result.add(classOfJType.get());
-      } else if (argument instanceof Expression) {
+      } else if (argument instanceof Expression && !(argument instanceof InfixExpression)) {
         ITypeBinding binding = ((Expression) argument).resolveTypeBinding();
         if (binding != null) {
           final JType jType = typeConverter.convert(binding);
@@ -1446,7 +1446,12 @@ class ASTConverter {
         } else {
           throw new AssertionError("Cannot find class of " + argument.toString());
         }
-      } else {
+      }
+      else if (argument instanceof InfixExpression){
+        JBinaryExpression expression = (JBinaryExpression) convert((InfixExpression) argument);
+        result.add(getClassOfJType(expression.getExpressionType(), pImportDeclarations).get());
+      }
+      else {
         throw new AssertionError("Cannot find class of " + argument.toString());
       }
     }
@@ -1460,7 +1465,12 @@ class ASTConverter {
     String argumentName;
     if (pArgument instanceof ArrayAccess) {
       argumentName = ((ArrayAccess) pArgument).getArray().toString();
-    } else {
+    }
+    else if (pArgument instanceof InfixExpression){
+      JExpression jExpression = convert((InfixExpression) pArgument);
+      argumentName = jExpression.getExpressionType().toString();
+    }
+    else {
       argumentName = pArgument.toString();
     }
     JSimpleDeclaration simpleDeclaration = scope.lookupVariable(argumentName);
@@ -1593,7 +1603,12 @@ class ASTConverter {
       if (jSimpleDeclaration != null) {
         parameterList.add(jSimpleDeclaration.getType());
       } else if (argument instanceof Expression) {
-        parameterList.add(typeConverter.convert((Expression) argument));
+        if (argument instanceof InfixExpression) {
+          parameterList.add(convert((InfixExpression) argument).getExpressionType());
+        } else {
+          parameterList.add(typeConverter.convert((Expression) argument));
+        }
+
       } else {
         throw new CFAGenerationRuntimeException(
             "Could not process argument: " + argument.toString() + " .");
@@ -1611,15 +1626,25 @@ class ASTConverter {
         parameterList.add(
             convertSimpleDeclarationToParameterDeclaration(simpleDeclarationOptional.get()).get());
       } else if (argument instanceof Expression) {
-        ITypeBinding binding = ((Expression) argument).resolveTypeBinding();
-
-        JType jType = typeConverter.convert(binding);
+        final String name;
+        final String qualifiedName;
+        JType jType;
+        if (argument instanceof InfixExpression) {
+          jType = convert((InfixExpression) argument).getExpressionType();
+          name = ((JClassType) jType).getSimpleName();
+          qualifiedName = ((JClassType) jType).getName();
+        } else {
+          ITypeBinding binding = ((Expression) argument).resolveTypeBinding();
+          jType = typeConverter.convert(binding);
+          name = binding.getName();
+          qualifiedName = binding.getQualifiedName();
+        }
         parameterList.add(
             new JParameterDeclaration(
                 getFileLocation((ASTNode) argument),
                 jType,
-                binding.getName(),
-                binding.getQualifiedName(),
+                name,
+                qualifiedName,
                 jType instanceof JClassType && ((JClassType) jType).isFinal()));
       } else {
         throw new CFAGenerationRuntimeException(
@@ -2395,6 +2420,17 @@ class ASTConverter {
     final JType leftHandType = leftHandSide.getExpressionType();
     final JType rightHandType = rightHandSide.getExpressionType();
     BinaryOperator op = convert(e.getOperator(), leftHandType, rightHandType);
+
+    if (type.equals(JSimpleType.getUnspecified())) {
+      switch (op) {
+        case STRING_CONCATENATION:
+          if (scope.containsClassType("java.lang.String")) {
+            type = scope.getClassType("java.lang.String");
+          }
+          // TODO Create java.lang.String JType
+      }
+      // TODO add more cases
+    }
 
     JExpression binaryExpression = new JBinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
 
