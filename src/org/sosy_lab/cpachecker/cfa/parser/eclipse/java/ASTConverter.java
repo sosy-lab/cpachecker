@@ -2521,7 +2521,6 @@ class ASTConverter {
     }
   }
 
-
   private JExpression convert(NumberLiteral e) {
     FileLocation fileLoc = getFileLocation(e);
     JType type = convert(e.resolveTypeBinding());
@@ -2530,16 +2529,18 @@ class ASTConverter {
     JBasicType t = ((JSimpleType) type).getType();
 
     switch (t) {
-    case INT:
-      return new JIntegerLiteralExpression(fileLoc, parseIntegerLiteral(valueStr, e));
-    case FLOAT:
-      return new JFloatLiteralExpression(fileLoc, parseFloatLiteral(valueStr));
-
-    case DOUBLE:
-      return new JFloatLiteralExpression(fileLoc, parseFloatLiteral(valueStr));
-
-    default:
-      return new JIntegerLiteralExpression(getFileLocation(e), BigInteger.valueOf(Long.parseLong(e.getToken())));
+      case INT:
+        return new JIntegerLiteralExpression(fileLoc, parseIntegerLiteral(valueStr, e));
+      case FLOAT:
+        return new JFloatLiteralExpression(fileLoc, parseFloatLiteral(valueStr));
+      case DOUBLE:
+        return new JFloatLiteralExpression(fileLoc, parseFloatLiteral(valueStr));
+      default:
+        if (valueStr.endsWith("L") || valueStr.endsWith("l")) {
+          valueStr = valueStr.substring(0, valueStr.length() - 1);
+        }
+        return new JIntegerLiteralExpression(
+            getFileLocation(e), BigInteger.valueOf(Long.parseLong(valueStr)));
     }
   }
 
