@@ -1424,12 +1424,19 @@ class ASTConverter {
   private List<Class<?>> convertArgumentListToClassList(
       List<?> pArguments, Set<ImportDeclaration> pImportDeclarations) {
     List<Class<?>> result = new ArrayList<>(pArguments.size());
-
     for (Object argument : pArguments) {
-      JSimpleDeclaration simpleDeclaration = scope.lookupVariable(argument.toString());
-      if (simpleDeclaration != null) {
+      Optional<JSimpleDeclaration> optionalOfSimpleDeclaration =
+          getJSimpleDeclarationOfArgument(argument);
+      if (optionalOfSimpleDeclaration.isPresent()) {
+        final JType simpleDeclarationType;
+        if (argument instanceof ArrayAccess) {
+          simpleDeclarationType =
+              ((JArrayType) optionalOfSimpleDeclaration.get().getType()).getElementType();
+        } else {
+          simpleDeclarationType = optionalOfSimpleDeclaration.get().getType();
+        }
         final Optional<Class<?>> classOfJType =
-            getClassOfJType(simpleDeclaration.getType(), pImportDeclarations);
+            getClassOfJType(simpleDeclarationType, pImportDeclarations);
         result.add(classOfJType.get());
       } else if (argument instanceof Expression) {
         ITypeBinding binding = ((Expression) argument).resolveTypeBinding();
@@ -1447,6 +1454,20 @@ class ASTConverter {
       throw new AssertionError("Error while converting arguments into array of classes.");
     }
     return ImmutableList.copyOf(result);
+  }
+
+  private Optional<JSimpleDeclaration> getJSimpleDeclarationOfArgument(final Object pArgument) {
+    String argumentName;
+    if (pArgument instanceof ArrayAccess) {
+      argumentName = ((ArrayAccess) pArgument).getArray().toString();
+    } else {
+      argumentName = pArgument.toString();
+    }
+    JSimpleDeclaration simpleDeclaration = scope.lookupVariable(argumentName);
+    if (simpleDeclaration != null) {
+      return Optional.of(simpleDeclaration);
+    }
+    return Optional.absent();
   }
 
   @VisibleForTesting
@@ -1583,11 +1604,11 @@ class ASTConverter {
   private List<JParameterDeclaration> createJParameterDeclarationsForArguments(List<?> arguments) {
     List<JParameterDeclaration> parameterList = new ArrayList<>();
     for (Object argument : arguments) {
-      JSimpleDeclaration jSimpleDeclaration = scope.lookupVariable(argument.toString());
-      if (jSimpleDeclaration != null) {
+      Optional<JSimpleDeclaration> simpleDeclarationOptional =
+          getJSimpleDeclarationOfArgument(argument);
+      if (simpleDeclarationOptional.isPresent()) {
         parameterList.add(
-            convertVariableDeclarationToParameterDeclaration(
-                (JVariableDeclaration) jSimpleDeclaration));
+            convertSimpleDeclarationToParameterDeclaration(simpleDeclarationOptional.get()).get());
       } else if (argument instanceof Expression) {
         ITypeBinding binding = ((Expression) argument).resolveTypeBinding();
         JClassType jClassType = typeConverter.convertClassType(binding);
@@ -1606,10 +1627,21 @@ class ASTConverter {
     return ImmutableList.copyOf(parameterList);
   }
 
-  private JParameterDeclaration convertVariableDeclarationToParameterDeclaration(
-      JVariableDeclaration jd) {
-    return new JParameterDeclaration(
-        jd.getFileLocation(), jd.getType(), jd.getName(), jd.getQualifiedName(), jd.isFinal());
+  private Optional<JParameterDeclaration> convertSimpleDeclarationToParameterDeclaration(
+      JSimpleDeclaration js) {
+    if (js instanceof JVariableDeclaration) {
+      return Optional.of(
+          new JParameterDeclaration(
+              js.getFileLocation(),
+              js.getType(),
+              js.getName(),
+              js.getQualifiedName(),
+              ((JVariableDeclaration) js).isFinal()));
+    } else if (js instanceof JParameterDeclaration) {
+      return Optional.of((JParameterDeclaration) js);
+    }
+    throw new CFAGenerationRuntimeException(
+        "Could not convert " + js.getName() + " to ParameterDeclaration");
   }
 
   private JConstructorDeclaration getConstructorOfAnonymousClass(
