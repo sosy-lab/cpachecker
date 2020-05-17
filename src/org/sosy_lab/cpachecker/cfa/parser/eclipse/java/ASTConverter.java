@@ -1611,14 +1611,15 @@ class ASTConverter {
             convertSimpleDeclarationToParameterDeclaration(simpleDeclarationOptional.get()).get());
       } else if (argument instanceof Expression) {
         ITypeBinding binding = ((Expression) argument).resolveTypeBinding();
-        JClassType jClassType = typeConverter.convertClassType(binding);
+
+        JType jType = typeConverter.convert(binding);
         parameterList.add(
             new JParameterDeclaration(
                 getFileLocation((ASTNode) argument),
-                jClassType,
-                jClassType.getName(),
+                jType,
+                binding.getName(),
                 binding.getQualifiedName(),
-                jClassType.isFinal()));
+                jType instanceof JClassType && ((JClassType) jType).isFinal()));
       } else {
         throw new CFAGenerationRuntimeException(
             "Could not process argument: " + argument.toString() + " .");
