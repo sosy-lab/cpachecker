@@ -1910,7 +1910,9 @@ class ASTConverter {
 
       // check that no binding exists (special case for main argument array) and that
       // the given qualifier is an array and a parameter
-      return lengthBinding == null && isArrayType(qualifierDecl.getType()) && qualifierDecl instanceof JParameterDeclaration;
+      return lengthBinding == null
+          && qualifierDecl instanceof JParameterDeclaration
+          && isArrayType(qualifierDecl.getType());
 
     } else {
       return false;
