@@ -2542,8 +2542,14 @@ class ASTConverter {
         if (valueStr.endsWith("L") || valueStr.endsWith("l")) {
           valueStr = valueStr.substring(0, valueStr.length() - 1);
         }
-        return new JIntegerLiteralExpression(
-            getFileLocation(e), BigInteger.valueOf(Long.parseLong(valueStr)));
+        if (valueStr.startsWith("0x")) {
+          valueStr = valueStr.substring(2);
+          return new JIntegerLiteralExpression(
+              getFileLocation(e), BigInteger.valueOf(Long.parseLong(valueStr, 16)));
+        } else {
+          return new JIntegerLiteralExpression(
+              getFileLocation(e), BigInteger.valueOf(Long.parseLong(valueStr)));
+        }
     }
   }
 
