@@ -2422,14 +2422,14 @@ class ASTConverter {
     BinaryOperator op = convert(e.getOperator(), leftHandType, rightHandType);
 
     if (type.equals(JSimpleType.getUnspecified())) {
-      switch (op) {
-        case STRING_CONCATENATION:
-          if (scope.containsClassType("java.lang.String")) {
-            type = scope.getClassType("java.lang.String");
-          }
-          // TODO Create java.lang.String JType
+      if (op == BinaryOperator.STRING_CONCATENATION) {
+        if (scope.containsClassType("java.lang.String")) {
+          type = scope.getClassType("java.lang.String");
+        }
+        // TODO Create java.lang.String JType
+        // TODO Replace with switch when adding more cases
       }
-      // TODO add more cases
+
     }
 
     JExpression binaryExpression = new JBinaryExpression(fileLoc, type, leftHandSide, rightHandSide, op);
