@@ -312,30 +312,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   /**
-   * A helper method to check whether the current image has reached a fixed point. This is done by
-   * checking if the newly discovered states described by the interpolant are contained in the
-   * current image.
-   *
-   * @param pInterpolantFormula The derived interpolant, consisting of the newly discovered states
-   *
-   * @param pCurrentImageFormula The current image , consisting of the already explored states
-   *
-   * @return {@code true} if a fixed point is reached; {@code false} if some newly discovered state
-   *         lies outside the current image.
-   *
-   * @throws InterruptedException On shutdown request.
-   *
-   */
-  private boolean reachFixedPointCheck(
-      BooleanFormula pInterpolantFormula,
-      BooleanFormula pCurrentImageFormula)
-      throws InterruptedException, SolverException {
-    BooleanFormula notImplicationFormula =
-        bfmgr.not(bfmgr.implication(pInterpolantFormula, pCurrentImageFormula));
-    return solver.isUnsat(notImplicationFormula);
-  }
-
-  /**
    * A helper method to derive an interpolant. It computes C=itp(A,B) or C'=!itp(B,A).
    *
    * @param itpProver SMT solver stack
@@ -402,7 +378,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       logger.log(Level.ALL, "The interpolant is", interpolant);
       interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), prefixSsaMap);
       logger.log(Level.ALL, "After changing SSA", interpolant);
-      if (reachFixedPointCheck(interpolant, currentImage)) {
+      if (solver.implies(interpolant, currentImage)) {
         logger.log(Level.INFO, "The current image reaches a fixed point");
         return true;
       }
