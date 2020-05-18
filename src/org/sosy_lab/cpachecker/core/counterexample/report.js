@@ -12,9 +12,14 @@ with considerably less effort */
 		$(document).on('hover', '[data-toggle=tooltip]', function () {
 			$(this).tooltip('show');
 		});
+
 		// hide tooltip after 5 seconds
+		let timeout;
 		$(document).on('shown.bs.tooltip', function (e) {
-			setTimeout(function () {
+			if (timeout) {
+				clearTimeout(timeout)
+			}
+			timeout = setTimeout(function () {
 				$(e.target).tooltip('hide');
 			}, 5000);
 		});
@@ -29,21 +34,21 @@ with considerably less effort */
 				],
 				iDisplayLength: -1, //Default display all entries
 				"columnDefs": [{
-						"orderable": false, //No ordering 
+						"orderable": false, //No ordering
 						"targets": 0,
 					}, {
 						"orderable": false, //No Ordering
 						"targets": 1,
 					},
 					{
-						"orderable": false, //No ordering 
+						"orderable": false, //No ordering
 						"targets": 2,
 					},
 				]
 			});
 		});
 
-		// Initialize Google pretiffy code 
+		// Initialize Google pretiffy code
 		$(document).ready(function () {
 			PR.prettyPrint();
 		});
@@ -978,7 +983,7 @@ function init() {
 	// Display modal window containing current rendering state
 	$("#renderStateModal").modal("show");
 
-	// Setup section widths accordingly 
+	// Setup section widths accordingly
 	if (errorPath === undefined) {
 		d3.select("#errorpath_section").style("display", "none");
 		$("#toggle_button_error_path").hide();
@@ -1550,7 +1555,7 @@ function init() {
 				}
 			}
 
-			// After the initial ARG graph has been send to the master script, prepare ARG containing only error path		
+			// After the initial ARG graph has been send to the master script, prepare ARG containing only error path
 			function prepareErrorGraph() {
 				var errorNodes = [],
 					errorEdges = [];
@@ -1821,7 +1826,7 @@ function init() {
 					return "arg-error-node" + node.index;
 			}
 
-			// Set the graph edges 
+			// Set the graph edges
 			function setGraphEdges(graph, edgesToSet, multigraph) {
 				edgesToSet.forEach(function (e) {
 					if (!multigraph || (graph.nodes().includes("" + e.source) && graph.nodes().includes("" + e.target))) {
@@ -1856,7 +1861,7 @@ function init() {
 
 	// ======================= Create CFA and ARG Worker Listeners =======================
 	/**
-	 * Create workers using blobs due to Chrome's default security policy and 
+	 * Create workers using blobs due to Chrome's default security policy and
 	 * the need of having a single file at the end that can be send i.e. via e-mail
 	 */
 	cfaWorker = new Worker(URL.createObjectURL(new Blob(["(" + cfaWorker_function + ")()"], {
@@ -2008,10 +2013,10 @@ function init() {
 		});
 	}
 
-	// Function to get transfromation thorugh translate as in new version of D3.js d3.transfrom is removed 
+	// Function to get transfromation thorugh translate as in new version of D3.js d3.transfrom is removed
 	function getTransformation(transform) {
 		// Create a dummy g for calculation purposes only. This will never
-		// be appended to the DOM and will be discarded once this function 
+		// be appended to the DOM and will be discarded once this function
 		// returns.
 		var g = document.createElementNS("http://www.w3.org/2000/svg", "g");
 
@@ -2020,7 +2025,7 @@ function init() {
 
 		// consolidate the SVGTransformList containing all transformations
 		// to a single SVGTransform of type SVG_TRANSFORM_MATRIX and get
-		// its SVGMatrix. 
+		// its SVGMatrix.
 		var matrix = g.transform.baseVal.consolidate().matrix;
 
 		// Below calculations are taken and adapted from the private function
