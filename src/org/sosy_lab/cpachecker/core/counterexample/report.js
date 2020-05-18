@@ -14,7 +14,7 @@ with considerably less effort */
 		});
 
 		// hide tooltip after 5 seconds
-		let timeout;
+		var timeout;
 		$(document).on('shown.bs.tooltip', function (e) {
 			if (timeout) {
 				clearTimeout(timeout)
