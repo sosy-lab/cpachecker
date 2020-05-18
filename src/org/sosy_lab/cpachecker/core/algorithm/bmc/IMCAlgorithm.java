@@ -300,20 +300,15 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    *
    */
   private BooleanFormula getErrorFormula(ReachedSet pReachedSet, int numEncounterLoopHead) {
-    List<AbstractState> errorLocations =
-        getLoopHeadEncounterState(AbstractStates.getTargetStates(pReachedSet), numEncounterLoopHead)
-            .toList();
-    BooleanFormula formulaToErrorLocations = bfmgr.makeFalse();
-    for (AbstractState errorState : errorLocations) {
-      formulaToErrorLocations =
-          bfmgr.or(
-              formulaToErrorLocations,
-              PredicateAbstractState.getPredicateState(errorState)
-                  .getAbstractionFormula()
-                  .getBlockFormula()
-                  .getFormula());
-    }
-    return formulaToErrorLocations;
+    return getLoopHeadEncounterState(
+        AbstractStates.getTargetStates(pReachedSet),
+        numEncounterLoopHead).transform(
+            es -> PredicateAbstractState.getPredicateState(es)
+                .getAbstractionFormula()
+                .getBlockFormula()
+                .getFormula())
+            .stream()
+            .collect(bfmgr.toDisjunction());
   }
 
   /**
