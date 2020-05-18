@@ -23,12 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.toState;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -85,12 +83,6 @@ public class BlockFormulaStrategy {
     }
   }
 
-  static final Function<PredicateAbstractState, BooleanFormula> GET_BLOCK_FORMULA =
-      e -> {
-        checkArgument(e.isAbstractionState());
-        return e.getAbstractionFormula().getBlockFormula().getFormula();
-      };
-
   /**
    * Get the block formulas from a path.
    * @param argRoot The initial element of the analysis (= the root element of the ARG)
@@ -102,9 +94,10 @@ public class BlockFormulaStrategy {
    */
   BlockFormulas getFormulasForPath(ARGState argRoot, List<ARGState> abstractionStates)
       throws CPATransferException, InterruptedException {
-    return new BlockFormulas(from(abstractionStates)
-        .transform(toState(PredicateAbstractState.class))
-        .transform(GET_BLOCK_FORMULA)
-        .toList());
+    return new BlockFormulas(
+        from(abstractionStates)
+            .transform(toState(PredicateAbstractState.class))
+            .transform(PredicateAbstractState::getBlockFormula)
+            .toList());
   }
 }

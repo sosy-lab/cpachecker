@@ -123,7 +123,7 @@ public class PredicateCPAGlobalRefiner implements Refiner, StatisticsProvider {
     try {
 
       List<AbstractState> targets =
-          FluentIterable.from(pReached).filter(AbstractStates.IS_TARGET_STATE).toList();
+          FluentIterable.from(pReached).filter(AbstractStates::isTargetState).toList();
       assert !targets.isEmpty();
 
       ARGReachedSet argReachedSet = new ARGReachedSet(pReached, argCPA);

@@ -28,8 +28,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterAncestors;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.isTrivialSelfLoop;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
+import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -1014,11 +1014,12 @@ public class PdrAlgorithm implements Algorithm {
 
   private boolean checkAbstractionFree(ReachedSet pBmcReachedSet) {
     Optional<AbstractState> abstractionState =
-        from(pBmcReachedSet)
-            .stream()
+        from(pBmcReachedSet).stream()
             .skip(1) // first state of reached is always an abstraction state, so skip it
-            .filter(IS_TARGET_STATE.negate()) // target states may be abstraction states
-            .filter(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)
+            .filter(
+                Predicates.not(
+                    AbstractStates::isTargetState)) // target states may be abstraction states
+            .filter(PredicateAbstractState::containsAbstractionState)
             .findAny();
     if (abstractionState.isPresent()) {
       logger.log(
@@ -1146,8 +1147,8 @@ public class PdrAlgorithm implements Algorithm {
       logger.log(Level.INFO, "Error found, creating error path");
 
       Set<ARGState> targetStates =
-          from(pReachedSet).filter(IS_TARGET_STATE).filter(ARGState.class).toSet();
-      Set<ARGState> redundantStates = filterAncestors(targetStates, IS_TARGET_STATE);
+          from(pReachedSet).filter(AbstractStates::isTargetState).filter(ARGState.class).toSet();
+      Set<ARGState> redundantStates = filterAncestors(targetStates, AbstractStates::isTargetState);
       redundantStates.forEach(
           state -> {
             state.removeFromARG();

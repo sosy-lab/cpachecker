@@ -172,7 +172,7 @@ public class BAMARGStatistics extends ARGStatistics {
 
     } catch (MissingBlockException e) {
       final Collection<ARGState> targetStates =
-          Collections2.filter(frontierStates, AbstractStates.IS_TARGET_STATE);
+          Collections2.filter(frontierStates, AbstractStates::isTargetState);
 
       if (pResult.equals(Result.FALSE) && !targetStates.isEmpty()) {
         // fallback: if there is a missing block and we have a target state,

@@ -10,8 +10,8 @@ int main() {
   int i = 0;
   int x = 0;
   i++;
-  while (x<10) {
-    if (i>0) {
+  while (x < 10) {
+    if (i > 0) {
       i--;
     } else {
       i++;

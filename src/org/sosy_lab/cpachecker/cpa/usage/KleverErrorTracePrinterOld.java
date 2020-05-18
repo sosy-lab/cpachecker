@@ -96,7 +96,7 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
       File name = new File("output/witness." + createUniqueName(pId) + ".graphml");
       String defaultSourcefileName =
           from(firstPath)
-              .filter(FILTER_EMPTY_FILE_LOCATIONS)
+              .filter(this::hasRelevantFileLocation)
               .get(0)
               .getFileLocation()
               .getFileName();
@@ -138,7 +138,7 @@ public class KleverErrorTracePrinterOld extends ErrorTracePrinter {
     SingleIdentifier pId = usage.getId();
     List<CFAEdge> path = usage.getPath();
 
-    Iterator<CFAEdge> iterator = from(path).filter(FILTER_EMPTY_FILE_LOCATIONS).iterator();
+    Iterator<CFAEdge> iterator = from(path).filter(this::hasRelevantFileLocation).iterator();
 
     Optional<CFAEdge> warningEdge =
         from(path)

@@ -28,7 +28,6 @@ import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.html.HtmlEscapers.htmlEscaper;
 import static java.nio.file.Files.isReadable;
 import static java.util.logging.Level.WARNING;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
@@ -174,7 +173,8 @@ public class ReportGenerator {
 
     FluentIterable<CounterexampleInfo> counterExamples =
         Optionals.presentInstances(
-            from(pReached).filter(IS_TARGET_STATE)
+            from(pReached)
+                .filter(AbstractStates::isTargetState)
                 .filter(ARGState.class)
                 .transform(ARGState::getCounterexampleInformation));
 

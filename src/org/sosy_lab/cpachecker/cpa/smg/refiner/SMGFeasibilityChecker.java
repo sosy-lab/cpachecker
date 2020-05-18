@@ -183,7 +183,7 @@ public class SMGFeasibilityChecker implements FeasibilityChecker<UnmodifiableSMG
               successor, lastStateSingelton, pLastEdge, automatonPrecision));
     }
 
-    return Iterables.any(strengthenResult, AbstractStates.IS_TARGET_STATE);
+    return Iterables.any(strengthenResult, AbstractStates::isTargetState);
   }
 
   @Override

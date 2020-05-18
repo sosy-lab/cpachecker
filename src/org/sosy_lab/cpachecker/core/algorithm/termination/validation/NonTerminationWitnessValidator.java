@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Functions;
 import com.google.common.base.Optional;
@@ -383,7 +382,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
           "Search for program location at which infinite path(s) split into stem and looping part");
       algorithm.run(reached);
 
-      Optional<AbstractState> stemState = from(reached).firstMatch(IS_TARGET_STATE);
+      Optional<AbstractState> stemState = from(reached).firstMatch(AbstractStates::isTargetState);
 
       return stemState;
 

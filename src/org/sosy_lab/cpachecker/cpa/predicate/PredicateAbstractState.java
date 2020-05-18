@@ -23,12 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import java.io.Serializable;
 import java.util.Collection;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -54,13 +53,18 @@ public abstract class PredicateAbstractState
 
   private static final long serialVersionUID = -265763837277453447L;
 
-  public final static Predicate<AbstractState> CONTAINS_ABSTRACTION_STATE =
-      Predicates.compose(
-          PredicateAbstractState::isAbstractionState,
-          AbstractStates.toState(PredicateAbstractState.class));
+  public static boolean containsAbstractionState(AbstractState state) {
+    return AbstractStates.extractStateByType(state, PredicateAbstractState.class)
+        .isAbstractionState();
+  }
 
   public static PredicateAbstractState getPredicateState(AbstractState pState) {
     return checkNotNull(extractStateByType(pState, PredicateAbstractState.class));
+  }
+
+  public static BooleanFormula getBlockFormula(PredicateAbstractState pState) {
+    checkArgument(pState.isAbstractionState());
+    return pState.getAbstractionFormula().getBlockFormula().getFormula();
   }
 
   /**

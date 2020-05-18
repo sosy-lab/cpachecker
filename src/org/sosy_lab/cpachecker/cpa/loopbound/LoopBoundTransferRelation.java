@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterators;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.stream.Stream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -62,8 +63,15 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
   @Option(
       secure = true,
       description =
-          "Only checks for errror after loops were unrolled at least this amount of times.")
+          "Only checks for error after loops were unrolled at least this amount of times.")
   private int startAtBound = 0;
+
+  @Option(
+      secure = true,
+      description =
+          "Only checks for targets after loops were unrolled exactly a number of times that is contained in this list."
+              + " The default is an empty list, which means targets are checked in every iteration")
+  private List<Integer> checkOnlyAtBounds = ImmutableList.of();
 
   LoopBoundTransferRelation(Configuration pConfig, CFA pCFA)
       throws CPAException, InvalidConfigurationException {
@@ -129,7 +137,7 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
       // Push a new loop onto the stack if we enter it
       newLoop = loopEntryEdges.get(pCfaEdge);
       if (newLoop != null) {
-        state = state.enter(new LoopEntry(loc, newLoop));
+        state = state.enter(newLoop);
       }
     }
 
@@ -137,7 +145,7 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
     Collection<Loop> visitedLoops = loopHeads.get(loc);
     assert newLoop == null || visitedLoops.contains(newLoop);
     for (Loop loop : visitedLoops) {
-      state = state.visitLoopHead(new LoopEntry(loc, loop));
+      state = state.visitLoopHead(loop);
       // Check if the bound for unrolling has been reached;
       // this check is also performed by the precision adjustment,
       // but we need to do it here, too,
@@ -159,8 +167,9 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
       @Nullable CFAEdge cfaEdge,
       Precision precision)
       throws CPATransferException, InterruptedException {
-    if (((LoopBoundState) state).getDeepestIteration() < startAtBound
-        && Iterators.any(otherStates.iterator(), AbstractStates.IS_TARGET_STATE)) {
+    int k = ((LoopBoundState) state).getDeepestIteration();
+    if ((k < startAtBound || (!checkOnlyAtBounds.isEmpty() && !checkOnlyAtBounds.contains(k)))
+        && Iterators.any(otherStates.iterator(), AbstractStates::isTargetState)) {
       return ImmutableList.of();
     } else {
       return Collections.singleton(state);

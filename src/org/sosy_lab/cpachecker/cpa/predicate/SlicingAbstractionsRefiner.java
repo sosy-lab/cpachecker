@@ -84,7 +84,7 @@ public class SlicingAbstractionsRefiner implements Refiner, StatisticsProvider {
     CounterexampleInfo counterexample = null;
     Optional<AbstractState> optionalTargetState;
     while (true) {
-      optionalTargetState =  from(pReached).firstMatch(AbstractStates.IS_TARGET_STATE);
+      optionalTargetState = from(pReached).firstMatch(AbstractStates::isTargetState);
       if (optionalTargetState.isPresent()) {
         AbstractState targetState = optionalTargetState.get();
         ARGPath errorPath = ARGUtils.getShortestPathTo((ARGState) targetState);

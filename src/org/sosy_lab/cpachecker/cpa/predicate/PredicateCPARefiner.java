@@ -259,12 +259,10 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
 
     try {
       final ImmutableList<CFANode> errorPath =
-              allStatesTrace
-                  .asStatesList()
-                  .stream()
-                  .map(AbstractStates.EXTRACT_LOCATION)
-                  .filter(x -> x != null)
-                  .collect(ImmutableList.toImmutableList());
+          allStatesTrace.asStatesList().stream()
+              .map(AbstractStates::extractLocation)
+              .filter(x -> x != null)
+              .collect(ImmutableList.toImmutableList());
       final boolean repeatedCounterexample = lastErrorPaths.contains(errorPath);
       lastErrorPaths.add(errorPath);
 
@@ -592,7 +590,7 @@ public class PredicateCPARefiner implements ARGBasedRefiner, StatisticsProvider 
     List<ARGState> result =
         from(pPath.asStatesList())
             .skip(1)
-            .filter(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)
+            .filter(PredicateAbstractState::containsAbstractionState)
             .toList();
 
     // This assertion does not hold anymore for slicing abstractions.

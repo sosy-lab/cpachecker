@@ -3,7 +3,7 @@
 # registry.gitlab.com/sosy-lab/software/cpachecker:dev.
 #
 # Commands for building the image manually:
-# ant clean dist-unix -Dnamet=cpachecker
+# ant clean dist-unix-tar -Dnamet=cpachecker
 # mkdir tmp
 # mv cpachecker.tar.bz2 tmp/
 # cp build/Dockerfile.dev tmp/Dockerfile

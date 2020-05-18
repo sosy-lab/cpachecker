@@ -156,6 +156,11 @@ analysis.algorithm.CBMC = false
 # Currently all refiner require the use of the ARGCPA.
 analysis.algorithm.CEGAR = false
 
+# Use MPI for running analyses in new subprocesses. The resulting reachedset
+# is the one of the first analysis returning in time. All other mpi-processes
+# will get aborted.
+analysis.algorithm.MPI = false
+
 # use MPV algorithm for checking multiple properties
 analysis.algorithm.MPV = false
 
@@ -1676,6 +1681,16 @@ cpa.lock.stopAfterLockLimit = false
 cpa.lock.stopMode = DEFAULT
   enum:     [DEFAULT, EMPTYLOCKSET]
 
+# Only checks for targets after loops were unrolled exactly a number of times
+# that is contained in this list. The default is an empty list, which means
+# targets are checked in every iteration
+cpa.loopbound.checkOnlyAtBounds = []
+
+# Use a stop operator that will identify loop states who's depth is congruent
+# regarding the modulus of this number. Values smaller or equal to zero will
+# deactivate this feature.
+cpa.loopbound.cyclicStopModulus = -1
+
 # Number of loop iterations before the loop counter is abstracted. Zero is
 # equivalent to no limit.
 cpa.loopbound.loopIterationsBeforeAbstraction = 0
@@ -1696,7 +1711,7 @@ cpa.loopbound.maxLoopIterations = 0
 # adjuster.
 cpa.loopbound.maxLoopIterationsUpperBound = 0
 
-# Only checks for errror after loops were unrolled at least this amount of
+# Only checks for error after loops were unrolled at least this amount of
 # times.
 cpa.loopbound.startAtBound = 0
 
@@ -3319,6 +3334,19 @@ memorysafety.config = no default value
 # which merge operator to use for LiveVariablesCPA
 merge = "JOIN"
   allowed values: [SEP, JOIN]
+
+# List of property-files to be run by the subprocesses.
+mpiAlgorithm.configFiles = no default value
+
+# File containing the ip adresses to be used by MPI.
+mpiAlgorithm.hostfile = no default value
+
+# Ip adress of the main node. Used by the CPAchecker child instances for
+# writing their results back to the output directory of the main node.
+mpiAlgorithm.mainNodeIPAdress = no default value
+
+# Number of processes to be used by MPI.
+mpiAlgorithm.numberProcesses = no default value
 
 # Find all violations of each checked property.
 mpv.findAllViolations = false

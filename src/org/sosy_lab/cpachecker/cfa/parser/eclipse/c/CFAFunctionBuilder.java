@@ -1122,6 +1122,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     assert condition != null;
 
     return buildConditionTree(
+        condition.getRawSignature(),
         condition,
         fileLocation,
         rootNode,
@@ -1137,6 +1138,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   /** @category conditions */
   private Optional<CExpression> buildConditionTree(
+      String pRawSignature,
       IASTExpression condition,
       final FileLocation fileLocation,
       CFANode rootNode,
@@ -1153,6 +1155,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     if (condition instanceof IASTUnaryExpression
           && ((IASTUnaryExpression)condition).getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
       return buildConditionTree(
+          pRawSignature,
           ((IASTUnaryExpression) condition).getOperand(),
           fileLocation,
           rootNode,
@@ -1169,6 +1172,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     } else if (condition instanceof IASTUnaryExpression
         && ((IASTUnaryExpression) condition).getOperator() == IASTUnaryExpression.op_not) {
       buildConditionTree(
+          pRawSignature,
           ((IASTUnaryExpression) condition).getOperand(),
           fileLocation,
           rootNode,
@@ -1191,6 +1195,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       CFANode innerNode = newCFANode();
       pInnerNodes.add(innerNode);
       buildConditionTree(
+          pRawSignature,
           ((IASTBinaryExpression) condition).getOperand1(),
           fileLocation,
           rootNode,
@@ -1203,6 +1208,7 @@ class CFAFunctionBuilder extends ASTVisitor {
           flippedThenElse,
           pInnerNodes);
       buildConditionTree(
+          pRawSignature,
           ((IASTBinaryExpression) condition).getOperand2(),
           fileLocation,
           innerNode,
@@ -1225,6 +1231,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       CFANode innerNode = newCFANode();
       pInnerNodes.add(innerNode);
       buildConditionTree(
+          pRawSignature,
           ((IASTBinaryExpression) condition).getOperand1(),
           fileLocation,
           rootNode,
@@ -1237,6 +1244,7 @@ class CFAFunctionBuilder extends ASTVisitor {
           flippedThenElse,
           pInnerNodes);
       buildConditionTree(
+          pRawSignature,
           ((IASTBinaryExpression) condition).getOperand2(),
           fileLocation,
           innerNode,
@@ -1254,6 +1262,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     } else {
       return Optional.of(
           buildConditionTreeLeaf(
+              pRawSignature,
               condition,
               fileLocation,
               rootNode,
@@ -1270,6 +1279,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   /** Handle a leaf node of a condition tree, i.e. the most primitive part of a condition. */
   private CExpression buildConditionTreeLeaf(
+      String rawSignature,
       IASTExpression condition,
       final FileLocation fileLocation,
       CFANode rootNode,
@@ -1283,7 +1293,6 @@ class CFAFunctionBuilder extends ASTVisitor {
       Set<CFANode> pInnerNodes)
       throws AssertionError {
 
-    String rawSignature = condition.getRawSignature();
     final CExpression exp = astCreator.convertExpressionWithoutSideEffects(condition);
     rootNode = handleAllSideEffects(rootNode, fileLocation, rawSignature, true);
     exp.accept(checkBinding);
@@ -1352,6 +1361,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
 
     addConditionEdges(
+        rawSignature,
         expression,
         rootNode,
         thenNodeForLastThen,
@@ -1369,6 +1379,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    * @category conditions
    */
   private void addConditionEdges(
+      String pRawSignature,
       CExpression condition,
       CFANode rootNode,
       CFANode thenNode,
@@ -1376,10 +1387,23 @@ class CFAFunctionBuilder extends ASTVisitor {
       FileLocation fileLocation,
       boolean pIsSwapped,
       Set<CFANode> pInnerNodes) {
+    final String trueSignature;
+    final String falseSignature;
+    if (pIsSwapped) {
+      falseSignature = pRawSignature;
+      if (pRawSignature.startsWith("!(")) {
+        trueSignature = pRawSignature.substring(2, pRawSignature.length()-1);
+      } else {
+        trueSignature = "!(" + pRawSignature + ")";
+      }
+    } else {
+      trueSignature = pRawSignature;
+      falseSignature = "!(" + pRawSignature + ")";
+    }
     // edge connecting condition with thenNode
     final CAssumeEdge trueEdge =
         new CAssumeEdge(
-            condition.toASTString(),
+            trueSignature,
             fileLocation,
             rootNode,
             thenNode,
@@ -1392,7 +1416,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     // edge connecting condition with elseNode
     final CAssumeEdge falseEdge =
         new CAssumeEdge(
-            "!(" + condition.toASTString() + ")",
+            falseSignature,
             fileLocation,
             rootNode,
             elseNode,
@@ -1817,7 +1841,14 @@ class CFAFunctionBuilder extends ASTVisitor {
       case NORMAL:
         assert ASTOperatorConverter.isBooleanExpression(exp);
         addConditionEdges(
-            exp, rootNode, caseNode, notCaseNode, fileLocation, false, ImmutableSet.of());
+            exp.toASTString(),
+            exp,
+            rootNode,
+            caseNode,
+            notCaseNode,
+            fileLocation,
+            false,
+            ImmutableSet.of());
         nextCaseStartsAtNode = notCaseNode;
         break;
 
@@ -1874,7 +1905,14 @@ class CFAFunctionBuilder extends ASTVisitor {
               "either both conditions can be evaluated or not, but mixed is not allowed";
 
       final CFANode intermediateNode = newCFANode();
+      // FIXME: the raw signature given to `addConditionEdges` is wrong in both cases below.
+      // In case of same variable-name declarations in multiple block scopes,
+      // the ASTString does not represent the raw signature of the switch-case,
+      // because CPAchecker adds variable suffixes to distinguish the different variables.
+      // We currently have no way to get the correct rawSignature of the switch-expression
+      // and we can't just strip the suffix because it may be part of the original variable name.
       addConditionEdges(
+          firstExp.toASTString(),
           firstExp,
           rootNode,
           intermediateNode,
@@ -1883,6 +1921,7 @@ class CFAFunctionBuilder extends ASTVisitor {
           false,
           Collections.singleton(intermediateNode));
       addConditionEdges(
+          secondExp.toASTString(),
           secondExp,
           intermediateNode,
           caseNode,

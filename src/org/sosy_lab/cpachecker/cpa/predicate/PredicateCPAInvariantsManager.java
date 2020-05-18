@@ -28,7 +28,6 @@ import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Lists.newArrayList;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SingleLocationFormulaInvariant.makeLocationInvariant;
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
-import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractOptionalCallstackWraper;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
@@ -102,6 +101,7 @@ import org.sosy_lab.cpachecker.cpa.formulaslicing.LoopTransitionFinder;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.RCNFManager;
@@ -855,7 +855,8 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     private InvCandidateGenerator(ARGPath pPath, List<ARGState> pAbstractionStatesTrace)
         throws CPAException, InterruptedException, InvalidConfigurationException {
       argPath = pPath;
-      abstractionNodes = from(pAbstractionStatesTrace).transform(EXTRACT_LOCATION).toList();
+      abstractionNodes =
+          from(pAbstractionStatesTrace).transform(AbstractStates::extractLocation).toList();
       elementsOnPath = getAllStatesOnPathsTo(argPath.getLastState());
       abstractionStatesTrace = pAbstractionStatesTrace;
       imgr =

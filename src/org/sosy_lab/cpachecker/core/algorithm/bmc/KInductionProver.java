@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.assertAt;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.createFormulaFor;
-import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterEndStates;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterIteration;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterIterationsUpTo;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.unroll;
@@ -426,8 +425,9 @@ class KInductionProver implements AutoCloseable {
     shutdownNotifier.shutdownIfNecessary();
 
     // Assert that *some* successor is reached
+    Iterable<AbstractState> endStates = FluentIterable.from(reached).filter(BMCHelper::isEndState);
     BooleanFormula successorExistsAssertion =
-        createFormulaFor(filterEndStates(reached), bfmgr, Optional.of(shutdownNotifier));
+        createFormulaFor(endStates, bfmgr, Optional.of(shutdownNotifier));
 
     // Obtain the predecessor assertion created earlier
     final BooleanFormula predecessorAssertion =
@@ -705,7 +705,7 @@ class KInductionProver implements AutoCloseable {
     FluentIterable<AbstractState> inputStates =
         filterIteration(pCandidateInvariant.filterApplicable(pReached), pK, loopHeads);
     if (pCandidateInvariant == TargetLocationCandidateInvariant.INSTANCE) {
-      inputStates = inputStates.filter(AbstractStates.IS_TARGET_STATE);
+      inputStates = inputStates.filter(AbstractStates::isTargetState);
     }
     Multimap<String, Integer> inputs = extractInputs(inputStates, types);
 

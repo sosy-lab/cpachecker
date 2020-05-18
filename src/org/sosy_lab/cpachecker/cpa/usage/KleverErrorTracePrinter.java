@@ -155,7 +155,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     try {
       String defaultSourcefileName =
           from(firstPath)
-              .filter(FILTER_EMPTY_FILE_LOCATIONS)
+              .filter(this::hasRelevantFileLocation)
               .get(0)
               .getFileLocation()
               .getFileName();
@@ -309,7 +309,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
   }
 
   private Iterator<CFAEdge> getIterator(List<CFAEdge> path) {
-    return from(path).filter(FILTER_EMPTY_FILE_LOCATIONS).iterator();
+    return from(path).filter(this::hasRelevantFileLocation).iterator();
   }
 
   private boolean isThreadCreateFunction(CFAEdge pEdge) {

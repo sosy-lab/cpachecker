@@ -27,7 +27,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
 import com.google.common.base.Joiner;
@@ -117,8 +116,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -126,17 +127,17 @@ import org.sosy_lab.java_smt.api.SolverException;
 abstract class AbstractBMCAlgorithm
     implements StatisticsProvider, ConditionAdjustmentEventSubscriber {
 
-  static final Predicate<AbstractState> IS_STOP_STATE =
-    Predicates.compose(new Predicate<AssumptionStorageState>() {
-                             @Override
-                             public boolean apply(AssumptionStorageState pArg0) {
-                               return (pArg0 != null) && pArg0.isStop();
-                             }
-                           },
-                       AbstractStates.toState(AssumptionStorageState.class));
+  private static final boolean isStopState(AbstractState state) {
+    AssumptionStorageState assumptionState =
+        AbstractStates.extractStateByType(state, AssumptionStorageState.class);
+    return assumptionState != null && assumptionState.isStop();
+  }
 
-  static final Predicate<AbstractState> IS_SLICED_STATE = (state) ->
-    AbstractStates.extractStateByType(state, ReachabilityState.class) == ReachabilityState.IRRELEVANT_TO_TARGET;
+  /** Filters out states that were detected as irrelevant for reachability */
+  private static final boolean isRelevantForReachability(AbstractState state) {
+    return AbstractStates.extractStateByType(state, ReachabilityState.class)
+        != ReachabilityState.IRRELEVANT_TO_TARGET;
+  }
 
   @Option(secure=true, description = "If BMC did not find a bug, check whether "
       + "the bounding did actually remove parts of the state space "
@@ -368,8 +369,7 @@ abstract class AbstractBMCAlgorithm
 
     AlgorithmStatus status;
 
-    try (ProverEnvironmentWithFallback prover =
-        new ProverEnvironmentWithFallback(solver, ProverOptions.GENERATE_MODELS)) {
+    try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       invariantGeneratorHeadStart.waitForInvariantGenerator();
 
       do {
@@ -381,8 +381,8 @@ abstract class AbstractBMCAlgorithm
         stats.bmcPreparation.stop();
         if (from(reachedSet)
             .skip(1) // first state of reached is always an abstraction state, so skip it
-            .filter(not(IS_TARGET_STATE)) // target states may be abstraction states
-            .anyMatch(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)) {
+            .filter(not(AbstractStates::isTargetState)) // target states may be abstraction states
+            .anyMatch(PredicateAbstractState::containsAbstractionState)) {
 
           logger.log(Level.WARNING, "BMC algorithm does not work with abstractions. Could not check for satisfiability!");
           return status;
@@ -612,7 +612,7 @@ abstract class AbstractBMCAlgorithm
 
   protected boolean boundedModelCheck(
       final ReachedSet pReachedSet,
-      final ProverEnvironmentWithFallback pProver,
+      final BasicProverEnvironment<?> pProver,
       CandidateInvariant pCandidateInvariant)
       throws CPATransferException, InterruptedException, SolverException {
     return boundedModelCheck((Iterable<AbstractState>) pReachedSet, pProver, pCandidateInvariant);
@@ -620,7 +620,7 @@ abstract class AbstractBMCAlgorithm
 
   private boolean boundedModelCheck(
       Iterable<AbstractState> pReachedSet,
-      ProverEnvironmentWithFallback pProver,
+      BasicProverEnvironment<?> pProver,
       CandidateInvariant pCandidateInvariant)
       throws CPATransferException, InterruptedException, SolverException {
     BooleanFormula program = bfmgr.not(pCandidateInvariant.getAssertion(pReachedSet, fmgr, pmgr));
@@ -647,7 +647,7 @@ abstract class AbstractBMCAlgorithm
 
   private boolean refineCtiBlockingClauses(
       ReachedSet pReachedSet,
-      ProverEnvironmentWithFallback pProver,
+      BasicProverEnvironment<?> pProver,
       Set<Obligation> pCtiBlockingClauses,
       Map<SymbolicCandiateInvariant, BmcResult> pCheckedClauses)
       throws CPATransferException, InterruptedException, SolverException {
@@ -752,7 +752,7 @@ abstract class AbstractBMCAlgorithm
   protected void analyzeCounterexample(
       final BooleanFormula pCounterexample,
       final ReachedSet pReachedSet,
-      final ProverEnvironmentWithFallback pProver)
+      final BasicProverEnvironment<?> pProver)
       throws CPATransferException, InterruptedException {
     // by default, do nothing (just a hook for subclasses)
   }
@@ -772,11 +772,12 @@ abstract class AbstractBMCAlgorithm
    * @throws InterruptedException if the satisfiability check is interrupted.
    */
   private boolean checkBoundingAssertions(
-      final ReachedSet pReachedSet, final ProverEnvironmentWithFallback prover)
+      final ReachedSet pReachedSet, final BasicProverEnvironment<?> prover)
       throws SolverException, InterruptedException {
-    FluentIterable<AbstractState> stopStates = from(pReachedSet)
-        .filter(IS_STOP_STATE)
-        .filter(Predicates.not(IS_SLICED_STATE));
+    FluentIterable<AbstractState> stopStates =
+        from(pReachedSet)
+            .filter(AbstractBMCAlgorithm::isStopState)
+            .filter(AbstractBMCAlgorithm::isRelevantForReachability);
 
     if (boundingAssertions) {
       logger.log(Level.INFO, "Starting assertions check...");
