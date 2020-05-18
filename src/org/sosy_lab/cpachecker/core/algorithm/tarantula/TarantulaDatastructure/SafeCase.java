@@ -47,11 +47,7 @@ public class SafeCase {
    */
   private List<ARGState> getSafeStates() {
     return from(rootState().getSubgraph())
-        .filter(
-            e -> {
-              assert e != null;
-              return !e.isCovered() && !e.isTarget() && e.getChildren().isEmpty();
-            })
+        .filter(e -> !e.isCovered() && !e.isTarget() && e.getChildren().isEmpty())
         .toList();
   }
 

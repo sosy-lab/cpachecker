@@ -24,36 +24,44 @@
 package org.sosy_lab.cpachecker.core.algorithm.tarantula;
 
 import java.io.PrintStream;
+import java.util.Collection;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.FailedCase;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.SafeCase;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-public class TarantulaAlgorithm implements Algorithm {
-  private final Algorithm analysis;
+public class TarantulaAlgorithm implements Algorithm, StatisticsProvider, Statistics {
+  private final Algorithm algorithm;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
+  StatTimer totalAnalysisTime = new StatTimer("Time for fault localization");
 
   public TarantulaAlgorithm(
       Algorithm analysisAlgorithm, ShutdownNotifier pShutdownNotifier, final LogManager pLogger) {
-    analysis = analysisAlgorithm;
+    algorithm = analysisAlgorithm;
     this.shutdownNotifier = pShutdownNotifier;
+
     this.logger = pLogger;
   }
 
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
-    StatTimer totalAnalysisTime = new StatTimer("Time for fault localization");
     totalAnalysisTime.start();
 
     try {
 
-      AlgorithmStatus result = analysis.run(reachedSet);
+      AlgorithmStatus result = algorithm.run(reachedSet);
       SafeCase safeCase = new SafeCase(reachedSet);
       FailedCase failedCase = new FailedCase(reachedSet);
       if (failedCase.existsErrorPath()) {
@@ -68,9 +76,6 @@ public class TarantulaAlgorithm implements Algorithm {
       } else {
         logger.log(Level.INFO, "There is no counterexample. No bugs found.");
       }
-      logger.log(
-          Level.INFO,
-          "Consumed time for analysis is: ( " + totalAnalysisTime.getConsumedTime() + " )");
 
       return result;
     } finally {
@@ -79,13 +84,32 @@ public class TarantulaAlgorithm implements Algorithm {
   }
 
   /**
-   * Just prints result after calculating suspicious and make the ranking for all edges and then
-   * store the result into <code>Map</code>.
+   * Prints result after calculating suspicious and make the ranking for all edges and then store
+   * the result into <code>Map</code>.
    */
   public void getFaultLocations(PrintStream out, SafeCase safeCase, FailedCase failedCase)
       throws InterruptedException {
 
     TarantulaRanking ranking = new TarantulaRanking(safeCase, failedCase, shutdownNotifier);
     ranking.getRanked().forEach((k, v) -> out.println(k + "--->" + v));
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    statsCollection.add(this);
+    if (algorithm instanceof Statistics) {
+      statsCollection.add((Statistics) algorithm);
+    }
+  }
+
+  @Override
+  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
+    StatisticsWriter w0 = StatisticsWriter.writingStatisticsTo(out);
+    w0.put("Tarantula total time", totalAnalysisTime);
+  }
+
+  @Override
+  public @Nullable String getName() {
+    return "Fault Localization With Tarantula";
   }
 }

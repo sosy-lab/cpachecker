@@ -53,13 +53,13 @@ static const char rcsid[] = "$Id$";
  */
 char *auth_name(char *buf, size_t buflen, REQUEST *request, int do_cli) {
 	VALUE_PAIR	*cli;
-	VALUE_PAIR	*tarantulaCasesStatus;
+	VALUE_PAIR	*pair;
 	int		port = 0;
 
 	if ((cli = pairfind(request->packet->vps, PW_CALLING_STATION_ID)) == NULL)
 		do_cli = 0;
-	if ((tarantulaCasesStatus = pairfind(request->packet->vps, PW_NAS_PORT_ID)) != NULL)
-		port = tarantulaCasesStatus->lvalue;
+	if ((pair = pairfind(request->packet->vps, PW_NAS_PORT_ID)) != NULL)
+		port = pair->lvalue;
 
 	snprintf(buf, buflen, "from nas %.128s port %d%s%.128s",
 			nas_name2(request->packet), port,
@@ -122,7 +122,7 @@ static int rad_authlog(const char *msg, REQUEST *request, int goodpass) {
 	if (!mainconfig.log_auth)
 		return 0;
 
-	/* 
+	/*
 	 *	Clean up the username
 	 */
 	if (request->username == NULL) {
@@ -138,7 +138,7 @@ static int rad_authlog(const char *msg, REQUEST *request, int goodpass) {
 		strcpy(clean_username, "<No Username>");
 	}
 
-	/* 
+	/*
 	 *	Clean up the password
 	 */
 	if (mainconfig.log_auth_badpass || mainconfig.log_auth_goodpass) {
@@ -162,20 +162,20 @@ static int rad_authlog(const char *msg, REQUEST *request, int goodpass) {
 
 	if (goodpass) {
 		radlog(L_AUTH, "%s: [%s%s%s] (%s)",
-				msg,	
+				msg,
 				clean_username,
 				mainconfig.log_auth_goodpass ? "/" : "",
 				mainconfig.log_auth_goodpass ? clean_password : "",
 				auth_name(buf, sizeof(buf), request, 1));
 	} else {
 		radlog(L_AUTH, "%s: [%s%s%s] (%s)",
-				msg,	
+				msg,
 				clean_username,
 				mainconfig.log_auth_badpass ? "/" : "",
 				mainconfig.log_auth_badpass ? clean_password : "",
 				auth_name(buf, sizeof(buf), request, 1));
 	}
-	
+
 	return 0;
 }
 
@@ -222,14 +222,14 @@ int rad_check_password(REQUEST *request)
 	}
 
 	if((auth_type_count>1) && (debug_flag)) {
-		radlog(L_ERR, "Warning:  Found %d auth-types on request for user '%s'", 
+		radlog(L_ERR, "Warning:  Found %d auth-types on request for user '%s'",
 			auth_type_count, request->username->strvalue);
 	}
 
 	/*
-	 *	This means we have a proxy reply or an accept  
-	 *  and it wasn't rejected in the above loop.  So 
-	 *  that means it is accepted and we do no further 
+	 *	This means we have a proxy reply or an accept
+	 *  and it wasn't rejected in the above loop.  So
+	 *  that means it is accepted and we do no further
 	 *  authentication
 	 */
 	if ((auth_type == PW_AUTHTYPE_ACCEPT) || (request->proxy)) {
@@ -457,10 +457,10 @@ int rad_authenticate(REQUEST *request)
 	 *	Maybe there's a CHAP-Password?
 	 */
 	if (auth_item == NULL) {
-		if ((auth_item = pairfind(request->packet->vps, 
+		if ((auth_item = pairfind(request->packet->vps,
 					  PW_CHAP_PASSWORD)) != NULL) {
 			password = "<CHAP-PASSWORD>";
-		
+
 		} else {
 			/*
 			 *	No password we recognize.
@@ -469,7 +469,7 @@ int rad_authenticate(REQUEST *request)
 		}
 	}
 	request->password = auth_item;
-	
+
 	/*
 	 *	Get the user's authorization information from the database
 	 */
@@ -517,7 +517,7 @@ int rad_authenticate(REQUEST *request)
 			return RLM_MODULE_HANDLED;
 		}
 	} while(0);
-	
+
 	/*
 	 *	Failed to validate the user.
 	 *
@@ -529,7 +529,7 @@ int rad_authenticate(REQUEST *request)
 
 		DEBUG2("  auth: Failed to validate the user.");
 		request->reply->code = PW_AUTHENTICATION_REJECT;
-		
+
 		rad_authlog("Login incorrect", request, 0);
 
 		/* double check: maybe the secret is wrong? */
@@ -558,7 +558,7 @@ int rad_authenticate(REQUEST *request)
 				(r = module_checksimul(request, check_item->lvalue)) != 0) {
 
 			if (check_item->lvalue > 1) {
-			  snprintf(umsg, sizeof(umsg), 
+			  snprintf(umsg, sizeof(umsg),
 						"\r\nYou are already logged in %d times  - access denied\r\n\n",
 						(int)check_item->lvalue);
 				user_msg = umsg;
@@ -612,7 +612,7 @@ int rad_authenticate(REQUEST *request)
 			tmp = pairmake("Reply-Message", user_msg, T_OP_SET);
 			request->reply->vps = tmp;
 
-			snprintf(logstr, sizeof(logstr), "Outside allowed timespan (time allowed %s)", 
+			snprintf(logstr, sizeof(logstr), "Outside allowed timespan (time allowed %s)",
 				 check_item->strvalue);
 			rad_authlog(logstr, request, 1);
 
@@ -657,12 +657,12 @@ int rad_authenticate(REQUEST *request)
 	/*
 	 *	Add the port number to the Framed-IP-Address if
 	 *	vp->addport is set, or if the Add-Port-To-IP-Address
-	 *	tarantulaCasesStatus is present.
+	 *	pair is present.
 	 *
 	 *	FIXME:  This doesn't work because PW_ADD_PORT_TO_IP_ADDRESS
 	 *	is never added to the request pairs!
 	 */
-	if ((tmp = pairfind(request->reply->vps, 
+	if ((tmp = pairfind(request->reply->vps,
 			PW_FRAMED_IP_ADDRESS)) != NULL) {
 		VALUE_PAIR *vpPortId;
 		VALUE_PAIR *vpAddPort;
@@ -738,8 +738,8 @@ int rad_authenticate(REQUEST *request)
 			pairfree(&request->reply->vps);
 			tmp = pairmake("Reply-Message", user_msg, T_OP_SET);
 			request->reply->vps = tmp;
-			
-			rad_authlog("Login incorrect (external check failed)", 
+
+			rad_authlog("Login incorrect (external check failed)",
 					request, 0);
 
 			return RLM_MODULE_OK;
@@ -795,7 +795,7 @@ int rad_authenticate(REQUEST *request)
 		radius_exec_program(exec_program, request, exec_wait, NULL);
 	}
 
-	if (exec_program) 
+	if (exec_program)
 		free(exec_program);
 	return RLM_MODULE_OK;
 }
@@ -808,8 +808,8 @@ int rad_authenticate(REQUEST *request)
 #define PW_DECODED  1
 
 /*
- * Find the password tarantulaCasesStatus, decode pass if
- * needed, and return the value tarantulaCasesStatus.  If
+ * Find the password pair, decode pass if
+ * needed, and return the value pair.  If
  * not found, return NULL
  */
 VALUE_PAIR *rad_getpass(REQUEST *request) {

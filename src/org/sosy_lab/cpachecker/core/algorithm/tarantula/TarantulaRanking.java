@@ -23,10 +23,11 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tarantula;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Ordering;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.FailedCase;
@@ -90,10 +91,9 @@ public class TarantulaRanking {
 
   private Map<CFAEdge, Double> sortBySuspicious(final Map<CFAEdge, Double> wordCounts) {
 
-    return wordCounts.entrySet().stream()
-        .sorted(Map.Entry.<CFAEdge, Double>comparingByValue().reversed())
-        .collect(
-            Collectors.toMap(
-                Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
+    return ImmutableMap.<CFAEdge, Double>builderWithExpectedSize(wordCounts.size())
+        .orderEntriesByValue(Ordering.natural().reverse())
+        .putAll(wordCounts)
+        .build();
   }
 }

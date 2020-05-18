@@ -47,7 +47,7 @@ public class CoverageInformation {
    * line 5: N2 -{[cond == 0]},[2,1]</code> means that this specific Edge has `2` failed cases and
    * only one passed case.
    *
-   * @param paths The whole path contains all error paths and passed paths.
+   * @param paths All paths contains all error paths and passed paths.
    * @return result as edge and its case status.
    */
   private Map<CFAEdge, TarantulaCasesStatus> calculateCoverageInformation(Set<ARGPath> paths)

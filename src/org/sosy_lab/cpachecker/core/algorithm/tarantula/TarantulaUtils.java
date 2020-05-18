@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tarantula;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -71,9 +72,12 @@ public class TarantulaUtils {
 
       // Add all parents
       for (ARGState parentElement : curPath.get(curPath.size() - 1).getParents()) {
-        List<ARGState> tmp = new ArrayList<>(curPath);
+        ImmutableList.Builder<ARGState> tmp =
+            ImmutableList.builderWithExpectedSize(curPath.size() + 1);
+        tmp.addAll(curPath);
+
         tmp.add(parentElement);
-        paths.add(tmp);
+        paths.add(tmp.build());
       }
     }
     return results;

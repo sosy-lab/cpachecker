@@ -111,7 +111,10 @@ public class CoreComponentsFactory {
       description = "stop CPAchecker after startup (internal option, not intended for users)")
   private boolean disableAnalysis = false;
 
-  @Option(secure = true, name = "algorithm.tarantula", description = "use tarantula")
+  @Option(
+      secure = true,
+      name = "algorithm.tarantula",
+      description = "use fault localization with tarantula")
   private boolean useTarantula = false;
 
   @Option(secure=true, description="use assumption collecting algorithm")
