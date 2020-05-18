@@ -216,8 +216,15 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
       if (interpolation && maxLoopIterations > 1) {
         logger.log(Level.FINE, "Computing fixed points by interpolation");
-        if (reachFixedPointByInterpolation(prefixFormula, loopFormula, suffixFormula)) {
-          return AlgorithmStatus.SOUND_AND_PRECISE;
+        try (InterpolatingProverEnvironment<?> itpProver =
+            solver.newProverEnvironmentWithInterpolation()) {
+          if (reachFixedPointByInterpolation(
+              prefixFormula,
+              loopFormula,
+              suffixFormula,
+              itpProver)) {
+            return AlgorithmStatus.SOUND_AND_PRECISE;
+          }
         }
       }
     } while (adjustConditions());
@@ -347,10 +354,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @throws InterruptedException On shutdown request.
    *
    */
-  private BooleanFormula getInterpolantFrom(
-      InterpolatingProverEnvironment<Object> itpProver,
-      List<Object> pFormulaA,
-      List<Object> pFormulaB)
+  private <T> BooleanFormula getInterpolantFrom(
+      InterpolatingProverEnvironment<T> itpProver,
+      List<T> pFormulaA,
+      List<T> pFormulaB)
       throws SolverException, InterruptedException {
     if (deriveInterpolantFromSuffix) {
       logger.log(Level.FINE, "Deriving the interpolant from suffix (formula B) and negate it");
@@ -376,10 +383,11 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @throws InterruptedException On shutdown request.
    *
    */
-  private boolean reachFixedPointByInterpolation(
+  private <T> boolean reachFixedPointByInterpolation(
       PathFormula pPrefixPathFormula,
       BooleanFormula pLoopFormula,
-      BooleanFormula pSuffixFormula)
+      BooleanFormula pSuffixFormula,
+      InterpolatingProverEnvironment<T> itpProver)
       throws InterruptedException, SolverException {
     BooleanFormula prefixFormula = pPrefixPathFormula.getFormula();
     SSAMap prefixSsaMap = pPrefixPathFormula.getSsa();
@@ -387,33 +395,29 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     BooleanFormula currentImage = bfmgr.makeFalse();
     currentImage = bfmgr.or(currentImage, prefixFormula);
 
-    try (@SuppressWarnings("unchecked")
-    InterpolatingProverEnvironment<Object> itpProver =
-        (InterpolatingProverEnvironment<Object>) solver.newProverEnvironmentWithInterpolation()) {
-      List<Object> formulaA = new ArrayList<>();
-      List<Object> formulaB = new ArrayList<>();
-      formulaB.add(itpProver.push(pSuffixFormula));
-      formulaA.add(itpProver.push(pLoopFormula));
-      formulaA.add(itpProver.push(prefixFormula));
+    List<T> formulaA = new ArrayList<>();
+    List<T> formulaB = new ArrayList<>();
+    formulaB.add(itpProver.push(pSuffixFormula));
+    formulaA.add(itpProver.push(pLoopFormula));
+    formulaA.add(itpProver.push(prefixFormula));
 
-      while (itpProver.isUnsat()) {
-        logger.log(Level.ALL, "The current image is", currentImage);
-        BooleanFormula interpolant = getInterpolantFrom(itpProver, formulaA, formulaB);
-        logger.log(Level.ALL, "The interpolant is", interpolant);
-        interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), prefixSsaMap);
-        logger.log(Level.ALL, "After changing SSA", interpolant);
-        if (reachFixedPointCheck(interpolant, currentImage)) {
-          logger.log(Level.INFO, "The current image reaches a fixed point");
-          return true;
-        }
-        currentImage = bfmgr.or(currentImage, interpolant);
-        itpProver.pop();
-        formulaA.remove(formulaA.size() - 1);
-        formulaA.add(itpProver.push(interpolant));
+    while (itpProver.isUnsat()) {
+      logger.log(Level.ALL, "The current image is", currentImage);
+      BooleanFormula interpolant = getInterpolantFrom(itpProver, formulaA, formulaB);
+      logger.log(Level.ALL, "The interpolant is", interpolant);
+      interpolant = fmgr.instantiate(fmgr.uninstantiate(interpolant), prefixSsaMap);
+      logger.log(Level.ALL, "After changing SSA", interpolant);
+      if (reachFixedPointCheck(interpolant, currentImage)) {
+        logger.log(Level.INFO, "The current image reaches a fixed point");
+        return true;
       }
-      logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
-      return false;
+      currentImage = bfmgr.or(currentImage, interpolant);
+      itpProver.pop();
+      formulaA.remove(formulaA.size() - 1);
+      formulaA.add(itpProver.push(interpolant));
     }
+    logger.log(Level.FINE, "The overapproximation is unsafe, going back to BMC phase");
+    return false;
   }
 
   @Override
