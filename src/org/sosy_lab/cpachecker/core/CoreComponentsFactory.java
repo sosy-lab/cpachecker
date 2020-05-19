@@ -154,8 +154,8 @@ public class CoreComponentsFactory {
   @Option(
     secure = true,
     name = "algorithm.IMC",
-    description = "use an interpolation-based algorithm that checks for satisfiability "
-        + "after the analysis has finished, works only with PredicateCPA")
+    description = "use McMillan's interpolation-based model checking algorithm, "
+        + "works only with PredicateCPA and large-block encoding")
   private boolean useIMC = false;
 
   @Option(secure=true, name="algorithm.impact",
