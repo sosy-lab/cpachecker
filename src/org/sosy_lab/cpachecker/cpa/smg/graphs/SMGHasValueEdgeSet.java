@@ -23,8 +23,10 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.NoSuchElementException;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
@@ -154,6 +156,30 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
     }
     return pHv.equals(sortedByOffsets.get(pHv.getOffset()));
   }
+
+  @Override
+  public Iterable<SMGEdgeHasValue> getOverlapping(
+      SMGEdgeHasValue pNew_edge) {
+    PersistentSortedMap<Long, SMGEdgeHasValue> sortedByOffsets =
+        map.get(pNew_edge.getObject());
+    if (sortedByOffsets == null) {
+      return ImmutableSet.of();
+    }
+    long startOffset = pNew_edge.getOffset();
+    long endOffset = startOffset + pNew_edge.getSizeInBits();
+    Entry<Long, SMGEdgeHasValue> floorEntryCandidate = sortedByOffsets.floorEntry(startOffset);
+    if (floorEntryCandidate != null) {
+      SMGEdgeHasValue edgeCandidate = floorEntryCandidate.getValue();
+      long edgeCandidateOffset = edgeCandidate.getOffset();
+      long edgeCandidateEndOffset = edgeCandidateOffset + edgeCandidate.getSizeInBits();
+      if (edgeCandidateEndOffset > startOffset) {
+        startOffset = edgeCandidateOffset;
+      }
+    }
+    NavigableMap<Long, SMGEdgeHasValue> filteredMap = sortedByOffsets.subMap(startOffset, endOffset);
+    return filteredMap.values();
+  }
+
 
   @Override
   public int hashCode() {
