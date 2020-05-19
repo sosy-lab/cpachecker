@@ -707,10 +707,12 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       sizeOfPointerToSll = fieldsContainingOldPointerToSll.iterator().next().getSizeInBits();
     }
 
-    writeValue(newConcreteRegion, nfo, sizeOfPointerToSll, newPointerToSll);
-
     SMGEdgePointsTo newPtEToSll =
         new SMGEdgePointsTo(newPointerToSll, newSll, hfo, SMGTargetSpecifier.FIRST);
+
+    newPointerToSll = SMGKnownAddressValue.valueOf(newPtEToSll);
+
+    writeValue(newConcreteRegion, nfo, sizeOfPointerToSll, newPointerToSll);
 
     for (SMGEdgeHasValue hve : oldFieldsEdges) {
       heap.addHasValueEdge(
