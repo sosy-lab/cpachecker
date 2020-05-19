@@ -149,7 +149,10 @@ public class CLangSMGConsistencyVerifier {
       return false;
     }
 
-    if (!pSmg.getValidObjects().addAndCopy(SMGNullObject.INSTANCE).containsAll(object_union)) {
+    // TODO: Require workaround for free heap objects
+    if (!pSmg.getValidObjects()
+        .addAndCopy(SMGNullObject.INSTANCE)
+        .containsAll(pSmg.getGlobalObjects().values())) {
       pLogger.log(
           Level.SEVERE,
           "CLangSMG inconsistent: union of stack, heap and global object "
