@@ -492,7 +492,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     SMGHasValueEdges fields = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pOptionalObject));
 
-    heap.removeHeapObjectAndEdges(pOptionalObject);
+    heap.markHeapObjectDeletedAndRemoveEdges(pOptionalObject);
 
     SMGValue pointerValue = SMGZeroValue.INSTANCE;
 
@@ -528,7 +528,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     heap.addHeapObject(newObject);
     heap.setValidity(newObject, heap.isObjectValid(pOptionalObject));
 
-    heap.removeHeapObjectAndEdges(pOptionalObject);
+    heap.markHeapObjectDeletedAndRemoveEdges(pOptionalObject);
 
     for (SMGEdgeHasValue edge : fields) {
       heap.addHasValueEdge(
@@ -566,7 +566,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     SMGValue firstPointer = getAddress(pListSeg, hfo, SMGTargetSpecifier.FIRST);
 
-    heap.removeHeapObjectAndEdges(pListSeg);
+    heap.markHeapObjectDeletedAndRemoveEdges(pListSeg);
 
     heap.replaceValue(nextPointer, firstPointer);
 
@@ -603,16 +603,18 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     SMGSymbolicValue firstPointer = getAddress(pListSeg, hfo, SMGTargetSpecifier.FIRST);
     SMGSymbolicValue lastPointer = getAddress(pListSeg, hfo, SMGTargetSpecifier.LAST);
 
-    heap.removeHeapObjectAndEdges(pListSeg);
+    heap.markHeapObjectDeletedAndRemoveEdges(pListSeg);
 
     /* We may not have pointers to the beginning/end to this list.
      *  */
 
     if (firstPointer != null) {
+      heap.removePointsToEdge(firstPointer);
       heap.replaceValue(nextPointer, firstPointer);
     }
 
     if (lastPointer != null) {
+      heap.removePointsToEdge(lastPointer);
       heap.replaceValue(prevPointer, lastPointer);
     }
 
@@ -671,7 +673,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     heap.removePointsToEdge(oldPointerToSll);
 
-    heap.removeHeapObjectAndEdges(pListSeg);
+    heap.markHeapObjectDeletedAndRemoveEdges(pListSeg);
 
     SMGSingleLinkedList newSll = new SMGSingleLinkedList(pListSeg.getSize(), pListSeg.getHfo(),
         pListSeg.getNfo(), pListSeg.getMinimumLength() > 0 ? pListSeg.getMinimumLength() - 1 : 0,
@@ -797,7 +799,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pListSeg));
     Set<SMGEdgePointsTo> oldPtEdges = SMGUtils.getPointerToThisObject(pListSeg, heap);
 
-    heap.removeHeapObjectAndEdges(pListSeg);
+    heap.markHeapObjectDeletedAndRemoveEdges(pListSeg);
 
     SMGDoublyLinkedList newDll = new SMGDoublyLinkedList(pListSeg.getSize(), pListSeg.getHfo(),
         pListSeg.getNfo(), pListSeg.getPfo(),
@@ -1072,7 +1074,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     for (SMGObject toBeRemoved : reached) {
       if (toBeRemoved != pRoot) {
-        heap.removeHeapObjectAndEdges(toBeRemoved);
+        heap.markHeapObjectDeletedAndRemoveEdges(toBeRemoved);
       }
     }
   }

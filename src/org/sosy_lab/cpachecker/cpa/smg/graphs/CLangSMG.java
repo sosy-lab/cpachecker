@@ -231,7 +231,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     CLangStackFrame frame = stack_objects.peek();
     stack_objects = stack_objects.popAndCopy();
     for (SMGObject object : frame.getAllObjects()) {
-      removeObjectAndEdges(object);
+      markObjectDeletedAndRemoveEdges(object);
     }
 
     if (CLangSMG.performChecks()) {
@@ -286,7 +286,8 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
         if (isObjectValid(object) && !isObjectExternallyAllocated(object)) {
           unreachableObjects.add(object);
         }
-        removeHeapObjectAndEdges(object);
+        markHeapObjectDeletedAndRemoveEdges(object);
+        removeObject(object);
       }
     }
     return unreachableObjects;
@@ -335,12 +336,15 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     while (!workqueue.isEmpty()) {
       SMGObject obj = workqueue.pop();
       if (seenObjects.add(obj)) {
-        for (SMGEdgeHasValue outbound : getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj))) {
-          SMGObject pointedObject = getObjectPointedBy(outbound.getValue());
-          if (pointedObject != null) {
-            workqueue.add(pointedObject);
+        // traverse on valid objects only
+        if (isObjectValid(obj)) {
+          for (SMGEdgeHasValue outbound : getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj))) {
+            SMGObject pointedObject = getObjectPointedBy(outbound.getValue());
+            if (pointedObject != null) {
+              workqueue.add(pointedObject);
+            }
+            seenValues.add(outbound.getValue());
           }
-          seenValues.add(outbound.getValue());
         }
       }
     }
@@ -467,9 +471,9 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     }
   }
 
-  final public void removeHeapObjectAndEdges(SMGObject pObject) {
+  final public void markHeapObjectDeletedAndRemoveEdges(SMGObject pObject) {
     heap_objects = heap_objects.removeAndCopy(pObject);
-    removeObjectAndEdges(pObject);
+    markObjectDeletedAndRemoveEdges(pObject);
   }
 
   private SMGHasValueEdges getHVEdgeFromMemoryLocation(MemoryLocation pLocation) {
@@ -637,7 +641,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     SMGObject obj = global_objects.get(pVariable);
     if (obj != null) {
       global_objects = global_objects.removeAndCopy(pVariable);
-      removeObjectAndEdges(obj);
+      markObjectDeletedAndRemoveEdges(obj);
     }
   }
 
@@ -704,7 +708,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     SMGObject reg = frame.getVariable(variableName);
     SMGStateInformation info = createInfo ? createStateInfo(reg) : null; // lazy
     stack_objects = stack_objects.replace(f -> f == frame, frame.removeVariable(variableName));
-    removeObjectAndEdges(reg);
+    markObjectDeletedAndRemoveEdges(reg);
     return info;
   }
 
