@@ -128,7 +128,8 @@ public class AdditionalInfoExtractor {
       SMGEdgeHasValueFilter filter =
           SMGEdgeHasValueFilter.objectFilter(edgeHasValue.getObject())
               .filterAtOffset(edgeHasValue.getOffset())
-              .filterHavingValue(edgeHasValue.getValue());
+              .filterHavingValue(edgeHasValue.getValue())
+              .filterBySize(edgeHasValue.getSizeInBits());
       SMGHasValueEdges edges = smg.getHVEdges(filter);
       return edges.size() != 0;
     } else if (elem instanceof SMGEdgePointsTo) {
