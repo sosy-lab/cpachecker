@@ -39,14 +39,19 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 public class SMGHasValueEdgeSet implements SMGHasValueEdges {
 
   private final PersistentSortedMap<SMGObject, PersistentSortedMap<Long, SMGEdgeHasValue>> map;
+  private final PersistentSortedMap<SMGObject, Integer> sizesMap;
   private int size = 0;
 
   public SMGHasValueEdgeSet() {
     map = PathCopyingPersistentTreeMap.of();
+    sizesMap = PathCopyingPersistentTreeMap.of();
   }
 
-  private SMGHasValueEdgeSet(PersistentSortedMap<SMGObject, PersistentSortedMap<Long, SMGEdgeHasValue>> pMap, int pSize) {
+  private SMGHasValueEdgeSet(PersistentSortedMap<SMGObject, PersistentSortedMap<Long, SMGEdgeHasValue>> pMap,
+                             PersistentSortedMap<SMGObject, Integer> pSizesMap,
+                             int pSize) {
     map = pMap;
+    sizesMap = pSizesMap;
     size = pSize;
   }
 
@@ -56,39 +61,54 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
     if (edgesForObject == null) {
       return this;
     }
-    int pSize = size - edgesForObject.size();
-    return new SMGHasValueEdgeSet(map.removeAndCopy(obj), pSize);
+    PersistentSortedMap<SMGObject, Integer> newSizesMap = sizesMap.removeAndCopy(obj);
+    int pSize = size - sizesMap.get(obj);
+    return new SMGHasValueEdgeSet(map.removeAndCopy(obj), newSizesMap, pSize);
   }
 
   @Override
   public SMGHasValueEdgeSet addEdgeAndCopy(SMGEdgeHasValue pEdge) {
-    PersistentSortedMap<Long, SMGEdgeHasValue> sortedByOffsets = map.get(pEdge.getObject());
-    if (sortedByOffsets == null) {
+    Integer sizeForObject = sizesMap.get(pEdge.getObject());
+    PersistentSortedMap<Long, SMGEdgeHasValue> sortedByOffsets;
+
+    if (sizeForObject == null || sizeForObject == 0) {
       sortedByOffsets = PathCopyingPersistentTreeMap.of();
+      sizeForObject = 0;
+    } else {
+      sortedByOffsets = map.get(pEdge.getObject());
     }
-    int pSize = size - sortedByOffsets.size();
+
+// Check on overlapping edges
+    Entry<Long, SMGEdgeHasValue> ceilingEntry = sortedByOffsets.ceilingEntry(pEdge.getOffset());
+    long endOffset = pEdge.getSizeInBits() + pEdge.getOffset();
+    assert (ceilingEntry == null || endOffset <= ceilingEntry.getKey());
+    Entry<Long, SMGEdgeHasValue> floorEntry = sortedByOffsets.lowerEntry(endOffset);
+    assert (floorEntry == null || pEdge.getOffset() >= floorEntry.getValue().getSizeInBits()
+        + floorEntry.getValue().getOffset());
+
     sortedByOffsets = sortedByOffsets.putAndCopy(pEdge.getOffset(), pEdge);
-    pSize += sortedByOffsets.size();
-    assert (size != pSize);
-    return new SMGHasValueEdgeSet(map.putAndCopy(pEdge.getObject(), sortedByOffsets), pSize);
+    PersistentSortedMap<SMGObject, Integer> newSizesMap = sizesMap.putAndCopy(pEdge.getObject(), sizeForObject + 1);
+    return new SMGHasValueEdgeSet(map.putAndCopy(pEdge.getObject(), sortedByOffsets), newSizesMap, size + 1);
   }
 
   @Override
   public SMGHasValueEdgeSet removeEdgeAndCopy(SMGEdgeHasValue pEdge) {
 
-    PersistentSortedMap<Long, SMGEdgeHasValue> sortedByOffsets = map.get(pEdge.getObject());
-    if (sortedByOffsets == null) {
+    Integer sizeForObject = sizesMap.get(pEdge.getObject());
+
+    if (sizeForObject == null || sizeForObject == 0) {
       return this;
     } else {
+      PersistentSortedMap<Long, SMGEdgeHasValue> sortedByOffsets = map.get(pEdge.getObject());
       PersistentSortedMap<Long, SMGEdgeHasValue> updated = sortedByOffsets.removeAndCopy(pEdge.getOffset());
       if (updated == sortedByOffsets) {
         return this;
       } else {
         int pSize = size - 1;
-        if (updated.size() > 0) {
-          return new SMGHasValueEdgeSet(map.putAndCopy(pEdge.getObject(), updated), pSize);
+        if (updated.isEmpty()) {
+          return new SMGHasValueEdgeSet(map.removeAndCopy(pEdge.getObject()), sizesMap.removeAndCopy(pEdge.getObject()), pSize);
         } else {
-          return new SMGHasValueEdgeSet(map.removeAndCopy(pEdge.getObject()), pSize);
+          return new SMGHasValueEdgeSet(map.putAndCopy(pEdge.getObject(), updated), sizesMap.putAndCopy(pEdge.getObject(), sizeForObject - 1), pSize);
         }
       }
     }
@@ -136,12 +156,14 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
   public SMGHasValueEdgeSet getEdgesForObject(SMGObject pObject) {
     PersistentSortedMap<Long, SMGEdgeHasValue> edges = map.get(pObject);
     PersistentSortedMap<SMGObject, PersistentSortedMap<Long, SMGEdgeHasValue>> newMap = PathCopyingPersistentTreeMap.of();
+    PersistentSortedMap<SMGObject, Integer> newSizesMap = PathCopyingPersistentTreeMap.of();
     int newSize = 0;
-    if (edges != null && edges.size() > 0) {
-      newSize = edges.size();
+    if (edges != null && !edges.isEmpty()) {
+      newSize = sizesMap.get(pObject);
+      newSizesMap = newSizesMap.putAndCopy(pObject, newSize);
       newMap = newMap.putAndCopy(pObject, edges);
     }
-    return new SMGHasValueEdgeSet(newMap, newSize);
+    return new SMGHasValueEdgeSet(newMap, newSizesMap, newSize);
   }
 
   @Override
