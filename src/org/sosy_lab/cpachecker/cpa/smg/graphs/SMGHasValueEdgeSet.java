@@ -119,7 +119,8 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
         Entry<Long, SMGEdgeHasValue> floorEntry = sortedByOffsets.floorEntry(pEdge.getOffset());
         if (floorEntry != null) {
           SMGEdgeHasValue removingEdge = floorEntry.getValue();
-          if (removingEdge.getOffset() + removingEdge.getSizeInBits() <= pEdge.getOffset()) {
+          if (removingEdge.getOffset() + removingEdge.getSizeInBits() <= pEdge.getOffset()
+              && (removingEdge.getOffset() != pEdge.getOffset())) {
             throw new AssertionError();
           } else {
             updated = sortedByOffsets.removeAndCopy(removingEdge.getOffset());
