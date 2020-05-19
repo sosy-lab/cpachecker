@@ -91,6 +91,7 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 
 @Options
 public class ReportGenerator {
@@ -348,6 +349,10 @@ public class ReportGenerator {
     if (counterExample != null) {
       writer.write(",\n\"errorPath\":");
       counterExample.toJSON(writer);
+      if(counterExample instanceof FaultLocalizationInfo){
+        writer.write(",\n\"faults\":");
+        ((FaultLocalizationInfo)counterExample).faultsToJSON(writer);
+      }
     }
 
     writer.write(",\n");
