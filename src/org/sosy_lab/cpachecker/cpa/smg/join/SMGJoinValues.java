@@ -1500,15 +1500,17 @@ final class SMGJoinValues {
           }
         }
 
-        if (pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(listCopy).filterAtOffset(hve.getOffset())).size() == 0) {
+        SMGEdgeHasValue newEdge =
+            new SMGEdgeHasValue(hve.getSizeInBits(), hve.getOffset(),
+                listCopy, newVal);
+        if (!pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(listCopy)).getOverlapping(newEdge).iterator().hasNext()) {
           if (!pDestSMG.getValues().contains(newVal)) {
             pDestSMG.addValue(newVal);
           }
           if (!pMapping.containsKey(subDlsValue)) {
             pMapping.map(subDlsValue, newVal);
           }
-          pDestSMG.addHasValueEdge(
-              new SMGEdgeHasValue(hve.getSizeInBits(), hve.getOffset(), listCopy, newVal));
+          pDestSMG.addHasValueEdge(newEdge);
         }
       }
     }
