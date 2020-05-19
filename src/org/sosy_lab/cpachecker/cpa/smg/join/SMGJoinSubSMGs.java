@@ -44,9 +44,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 final class SMGJoinSubSMGs {
   static private boolean performChecks = false;
-  static public void performChecks(boolean pValue) {
-    performChecks = pValue;
-  }
 
   private SMGJoinStatus status;
   private boolean defined = false;
