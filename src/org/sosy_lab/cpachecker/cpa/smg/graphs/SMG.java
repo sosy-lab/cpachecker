@@ -574,7 +574,7 @@ public class SMG implements UnmodifiableSMG {
       SMGEdgePointsTo pt_edge = pt_edges.getEdgeWithValue(old);
       pt_edges = pt_edges.removeAndCopy(pt_edge);
       // Workaround for removed object
-      if (pt_edges.containsEdgeWithValue(fresh)) {
+      if (pt_edges.containsEdgeWithValue(fresh) && !fresh.isZero()) {
         assert getHVEdges(SMGEdgeHasValueFilter.valueFilter(fresh)).isEmpty();
         pt_edges = pt_edges.removeEdgeWithValueAndCopy(fresh);
       }
