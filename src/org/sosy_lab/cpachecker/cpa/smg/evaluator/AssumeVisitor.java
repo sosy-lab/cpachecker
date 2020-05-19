@@ -124,10 +124,6 @@ public class AssumeVisitor extends ExpressionValueVisitor {
       boolean isPointerOp2) {
 
     if (isPointerOp1 && isPointerOp2) {
-      if (!pNewState.getHeap().isObjectValid(((SMGKnownAddressValue) pValue1).getObject())
-          || !pNewState.getHeap().isObjectValid(((SMGKnownAddressValue) pValue2).getObject())) {
-        return false;
-      }
       return !pValue1.equals(pValue2);
     } else if ((isPointerOp1 && pValue2.isZero()) || (isPointerOp2 && pValue1.isZero())) {
       return !pValue1.equals(pValue2);

@@ -1819,6 +1819,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     assert !isInNeq(pKnownVal1, pKnownVal2);
     assert !(explicitValues.get(pKnownVal1) != null &&
         explicitValues.get(pKnownVal1).equals(explicitValues.get(pKnownVal2)));
+    assert !(heap.isPointer(pKnownVal1) && heap.isPointer(pKnownVal2));
 
     // Avoid remove NULL value on merge
     if (pKnownVal2.isZero()) {
