@@ -34,7 +34,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdge;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -370,6 +369,16 @@ public class SMG implements UnmodifiableSMG {
   }
 
   /**
+   * Getter for obtaining unmodifiable view on valid objects set. Constant.
+   *
+   * @return Unmodifiable view on valid objects set.
+   */
+  @Override
+  public final PersistentSet<SMGObject> getValidObjects() {
+    return validObjects;
+  }
+
+  /**
    * Getter for obtaining unmodifiable view on Has-Value edges set. Constant.
    * @return Unmodifiable view on Has-Value edges set.
    */
@@ -519,12 +528,6 @@ public class SMG implements UnmodifiableSMG {
   @Override
   public boolean isCoveredByNullifiedBlocks(SMGEdgeHasValue pEdge) {
     return isCoveredByNullifiedBlocks(pEdge.getObject(), pEdge.getOffset(), pEdge.getSizeInBits());
-  }
-
-  @Override
-  public boolean isCoveredByNullifiedBlocks(SMGObject pObject, long pOffset, CType pType ) {
-    return isCoveredByNullifiedBlocks(
-        pObject, pOffset, machine_model.getSizeofInBits(pType).longValueExact());
   }
 
   private boolean isCoveredByNullifiedBlocks(SMGObject pObject, long pOffset, long size) {

@@ -124,7 +124,7 @@ public class CLangSMGConsistencyVerifier {
   }
 
   /**
-   * Verifies that heap, global and stack union is equal to the set of all objects
+   * Verifies that heap, global and stack union is equal to the set of all valid objects
    *
    * @param pLogger Logger to log the message
    * @param pSmg SMG to check
@@ -140,16 +140,16 @@ public class CLangSMGConsistencyVerifier {
       object_union.addAll(frame.getAllObjects());
     }
 
-    if (!object_union.containsAll(pSmg.getObjects().asSet())) {
+    if (!object_union.containsAll(pSmg.getValidObjects())) {
       pLogger.log(
           Level.SEVERE,
           "CLangSMG inconsistent: union of stack, heap and global object "
               + "contains less objects than the set of SMG objects. Missing object:",
-          Sets.difference(pSmg.getObjects().asSet(), object_union));
+          Sets.difference(pSmg.getValidObjects(), object_union));
       return false;
     }
 
-    if (!pSmg.getObjects().asSet().containsAll(object_union)) {
+    if (!pSmg.getValidObjects().addAndCopy(SMGNullObject.INSTANCE).containsAll(object_union)) {
       pLogger.log(
           Level.SEVERE,
           "CLangSMG inconsistent: union of stack, heap and global object "
