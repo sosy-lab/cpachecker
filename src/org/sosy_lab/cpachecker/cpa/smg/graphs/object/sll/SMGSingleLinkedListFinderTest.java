@@ -118,7 +118,7 @@ public class SMGSingleLinkedListFinderTest {
       SMGEdgeHasValueFilter filter =
           SMGEdgeHasValueFilter.objectFilter(lastFromHead)
               .filterAtOffset(64)
-              .filterBySize(smg.getMachineModel().getSizeofPtrInBits());
+              .filterBySize(smg.getSizeofPtrInBits());
       SMGHasValueEdges connections = smg.getHVEdges(filter);
       connection = null;
       if (connections.size() != 0) {

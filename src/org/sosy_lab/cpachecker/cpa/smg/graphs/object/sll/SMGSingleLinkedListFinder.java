@@ -154,7 +154,7 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
         SMGHasValueEdges hves =
             pSmg.getHVEdges(
                 SMGEdgeHasValueFilter.valueFilter(edge.getValue())
-                    .filterBySize(pSmg.getMachineModel().getSizeofPtrInBits()));
+                    .filterBySize(pSmg.getSizeofPtrInBits()));
         for (SMGEdgeHasValue hve : hves) {
           typeSizesOfThisObject.add(hve.getSizeInBits());
         }
@@ -218,7 +218,7 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
           pSmg.getHVEdges(
               SMGEdgeHasValueFilter.objectFilter(nextObject)
                   .filterAtOffset(nfo)
-                  .filterBySize(pSmg.getMachineModel().getSizeofPtrInBits()));
+                  .filterBySize(pSmg.getSizeofPtrInBits()));
 
       if (nextObjectNextPointer.size() != 1) {
         return;

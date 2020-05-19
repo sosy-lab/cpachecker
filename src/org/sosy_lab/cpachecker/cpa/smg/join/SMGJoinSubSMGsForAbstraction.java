@@ -92,10 +92,30 @@ final public class SMGJoinSubSMGsForAbstraction {
       smg.addHeapObject(dll);
       newAbstractObject = dll;
 
-      prevObj1hve = Iterables.getOnlyElement(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj1).filterAtOffset(pfo).filterBySize(smg.getMachineModel().getSizeofPtrInBits())));
-      nextObj1hve = Iterables.getOnlyElement(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj1).filterAtOffset(nfo).filterBySize(smg.getMachineModel().getSizeofPtrInBits())));
-      prevObj2hve = Iterables.getOnlyElement(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2).filterAtOffset(pfo).filterBySize(smg.getMachineModel().getSizeofPtrInBits())));
-      nextObj2hve = Iterables.getOnlyElement(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2).filterAtOffset(nfo).filterBySize(smg.getMachineModel().getSizeofPtrInBits())));
+      prevObj1hve =
+          Iterables.getOnlyElement(
+              smg.getHVEdges(
+                  SMGEdgeHasValueFilter.objectFilter(obj1)
+                      .filterAtOffset(pfo)
+                      .filterBySize(smg.getSizeofPtrInBits())));
+      nextObj1hve =
+          Iterables.getOnlyElement(
+              smg.getHVEdges(
+                  SMGEdgeHasValueFilter.objectFilter(obj1)
+                      .filterAtOffset(nfo)
+                      .filterBySize(smg.getSizeofPtrInBits())));
+      prevObj2hve =
+          Iterables.getOnlyElement(
+              smg.getHVEdges(
+                  SMGEdgeHasValueFilter.objectFilter(obj2)
+                      .filterAtOffset(pfo)
+                      .filterBySize(smg.getSizeofPtrInBits())));
+      nextObj2hve =
+          Iterables.getOnlyElement(
+              smg.getHVEdges(
+                  SMGEdgeHasValueFilter.objectFilter(obj2)
+                      .filterAtOffset(nfo)
+                      .filterBySize(smg.getSizeofPtrInBits())));
 
       //FIXME: remove only one pointer size
       smg.removeHasValueEdge(prevObj1hve);
@@ -116,8 +136,18 @@ final public class SMGJoinSubSMGsForAbstraction {
       smg.addHeapObject(sll);
       newAbstractObject = sll;
 
-      nextObj1hve = Iterables.getOnlyElement(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj1).filterAtOffset(nfo).filterBySize(smg.getMachineModel().getSizeofPtrInBits())));
-      nextObj2hve = Iterables.getOnlyElement(smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2).filterAtOffset(nfo).filterBySize(smg.getMachineModel().getSizeofPtrInBits())));
+      nextObj1hve =
+          Iterables.getOnlyElement(
+              smg.getHVEdges(
+                  SMGEdgeHasValueFilter.objectFilter(obj1)
+                      .filterAtOffset(nfo)
+                      .filterBySize(smg.getSizeofPtrInBits())));
+      nextObj2hve =
+          Iterables.getOnlyElement(
+              smg.getHVEdges(
+                  SMGEdgeHasValueFilter.objectFilter(obj2)
+                      .filterAtOffset(nfo)
+                      .filterBySize(smg.getSizeofPtrInBits())));
 
       smg.removeHasValueEdge(nextObj1hve);
       smg.removeHasValueEdge(nextObj2hve);

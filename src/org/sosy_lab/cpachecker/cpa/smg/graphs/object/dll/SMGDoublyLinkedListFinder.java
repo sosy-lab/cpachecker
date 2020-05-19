@@ -201,7 +201,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
             pSmg.getHVEdges(
                 SMGEdgeHasValueFilter.objectFilter(pObject)
                     .filterAtOffset(pfo)
-                    .filterBySize(pSmg.getMachineModel().getSizeofPtrInBits()));
+                    .filterBySize(pSmg.getSizeofPtrInBits()));
 
         if (prevObjectprevPointer.size() != 1) {
           continue;
@@ -274,7 +274,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
           pSmg.getHVEdges(
               SMGEdgeHasValueFilter.objectFilter(nextObject)
                   .filterAtOffset(nfo)
-                  .filterBySize(pSmg.getMachineModel().getSizeofPtrInBits()));
+                  .filterBySize(pSmg.getSizeofPtrInBits()));
 
       if(nextObjectNextField.size() != 1) {
         return;
@@ -286,7 +286,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
               pSmg.getHVEdges(
                   SMGEdgeHasValueFilter.objectFilter(nextObject)
                       .filterAtOffset(pfo)
-                      .filterBySize(pSmg.getMachineModel().getSizeofPtrInBits())));
+                      .filterBySize(pSmg.getSizeofPtrInBits())));
 
       if (!pSmg.isPointer(nfoField.getValue())) {
         return;

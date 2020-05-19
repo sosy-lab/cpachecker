@@ -193,7 +193,7 @@ public final class SMGListAbstractionTestHelpers {
     // to prevent ambiguity, existing links must be deleted before the new linking
     deleteLinksOfObjects(pSmg, pAddresses, pNfo, pPfo);
 
-    int ptrSize = pSmg.getMachineModel().getSizeofPtrInBits();
+    int ptrSize = pSmg.getSizeofPtrInBits();
     final SMGValue firstAddress = pAddresses[0];
     if (!pSmg.isPointer(firstAddress)) {
       throw new IllegalArgumentException(
@@ -325,7 +325,7 @@ public final class SMGListAbstractionTestHelpers {
             pSmg.getHVEdges(
                 SMGEdgeHasValueFilter.objectFilter(object)
                     .filterAtOffset(offset)
-                    .filterBySize(pSmg.getMachineModel().getSizeofPtrInBits()));
+                    .filterBySize(pSmg.getSizeofPtrInBits()));
         for (SMGEdgeHasValue hv : set) {
           pSmg.removeHasValueEdge(hv);
         }
@@ -404,8 +404,7 @@ public final class SMGListAbstractionTestHelpers {
             pSmg, pSublists.length, pNodeSize, pHfo, pNfo, pPfo, minLengths, level, pLinkage);
     addPointersToRegionsOnHeap(pSmg, regions, addresses, 0);
     addPointersToListsOnHeap(pSmg, sublists, subaddresses, pHfo, SMGTargetSpecifier.FIRST);
-    addFieldsToObjectsOnHeap(
-        pSmg, regions, subaddresses, pSmg.getMachineModel().getSizeofPtrInBits(), pDfo);
+    addFieldsToObjectsOnHeap(pSmg, regions, subaddresses, pSmg.getSizeofPtrInBits(), pDfo);
     SMGValue[] values = joinValuesPerList(pSublists);
     addFieldsToObjectsOnHeap(pSmg, sublists, values, pDataSize, pDfo);
     return linkObjectsOnHeap(pSmg, addresses, pHfo, pNfo, pPfo, pCircularity, pLinkage);
@@ -437,10 +436,8 @@ public final class SMGListAbstractionTestHelpers {
   }
 
   static SMGRegion addGlobalListPointerToSMG(CLangSMG pSmg, SMGValue pHeadAddress, String pLabel) {
-    SMGRegion globalVar = new SMGRegion(pSmg.getMachineModel().getSizeofPtrInBits(), pLabel);
-    SMGEdgeHasValue hv =
-        new SMGEdgeHasValue(
-            pSmg.getMachineModel().getSizeofPtrInBits(), 0, globalVar, pHeadAddress);
+    SMGRegion globalVar = new SMGRegion(pSmg.getSizeofPtrInBits(), pLabel);
+    SMGEdgeHasValue hv = new SMGEdgeHasValue(pSmg.getSizeofPtrInBits(), 0, globalVar, pHeadAddress);
     pSmg.addGlobalObject(globalVar);
     pSmg.addHasValueEdge(hv);
     return globalVar;

@@ -326,8 +326,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     assert smgObject.getLabel().equals(new_object2.getLabel());
 
     // arrays are converted to pointers
-    assert smgObject.getSize() == pTypeSize
-        || smgObject.getSize() == heap.getMachineModel().getSizeofPtrInBits();
+    assert smgObject.getSize() == pTypeSize || smgObject.getSize() == heap.getSizeofPtrInBits();
 
     heap.addStackObject(smgObject);
     performConsistencyCheck(SMGRuntimeCheck.HALF);

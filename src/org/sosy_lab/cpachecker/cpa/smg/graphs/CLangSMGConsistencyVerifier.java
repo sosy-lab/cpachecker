@@ -271,7 +271,7 @@ public class CLangSMGConsistencyVerifier {
       if (!ptEdge.getValue().isZero()) {
         SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.valueFilter(ptEdge.getValue());
         for (SMGEdgeHasValue hvEdge : pSmg.getHVEdges(filter)) {
-          if (hvEdge.getSizeInBits() != pSmg.getMachineModel().getSizeofPtrInBits()) {
+          if (hvEdge.getSizeInBits() != pSmg.getSizeofPtrInBits()) {
             pLogger.log(
                 Level.SEVERE,
                 "CLangSMG inconsistent: pointer ["

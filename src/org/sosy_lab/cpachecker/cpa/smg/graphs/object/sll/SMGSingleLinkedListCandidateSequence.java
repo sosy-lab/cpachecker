@@ -68,7 +68,7 @@ public class SMGSingleLinkedListCandidateSequence extends SMGAbstractListCandida
               pSMG.getHVEdges(
                   SMGEdgeHasValueFilter.objectFilter(prevObject)
                       .filterAtOffset(nfo)
-                      .filterBySize(pSMG.getMachineModel().getSizeofPtrInBits())));
+                      .filterBySize(pSMG.getSizeofPtrInBits())));
       SMGObject nextObject = pSMG.getPointer(nextEdge.getValue()).getObject();
 
       if (nextObject == prevObject) {
@@ -106,7 +106,12 @@ public class SMGSingleLinkedListCandidateSequence extends SMGAbstractListCandida
 
       addPointsToEdges(pSMG, prevObject, newAbsObj, SMGTargetSpecifier.FIRST);
 
-      SMGEdgeHasValue nextObj2hve = Iterables.getOnlyElement(pSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(nfo).filterBySize(pSMG.getMachineModel().getSizeofPtrInBits())));
+      SMGEdgeHasValue nextObj2hve =
+          Iterables.getOnlyElement(
+              pSMG.getHVEdges(
+                  SMGEdgeHasValueFilter.objectFilter(nextObject)
+                      .filterAtOffset(nfo)
+                      .filterBySize(pSMG.getSizeofPtrInBits())));
 
       for (SMGObject obj : join.getNonSharedObjectsFromSMG1()) {
         pSMG.removeHeapObjectAndEdges(obj);

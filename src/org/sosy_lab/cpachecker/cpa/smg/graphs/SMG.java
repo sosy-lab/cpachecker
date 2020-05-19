@@ -442,6 +442,16 @@ public class SMG implements UnmodifiableSMG {
   }
 
   /**
+   * Getter for obtaining size of pointer. Constant.
+   *
+   * @return Size of pointer in bits
+   */
+  @Override
+  public final int getSizeofPtrInBits() {
+    return machine_model.getSizeofPtrInBits();
+  }
+
+  /**
    * Obtains a TreeMap offset to size signifying where the object bytes are nullified.
    *
    * <p>Constant.

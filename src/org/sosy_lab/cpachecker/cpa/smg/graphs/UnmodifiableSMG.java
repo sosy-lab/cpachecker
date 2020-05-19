@@ -74,6 +74,8 @@ public interface UnmodifiableSMG {
 
   MachineModel getMachineModel();
 
+  int getSizeofPtrInBits();
+
   TreeMap<Long, Integer> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj);
 
   boolean isPointer(SMGValue value);
