@@ -575,21 +575,7 @@ public class CtoFormulaConverter {
    * This method does not handle scoping and the NON_DET_VARIABLE!
    */
   protected Formula makeFreshVariable(String name, CType type, SSAMapBuilder ssa) {
-    int useIndex;
-
-    if (direction == AnalysisDirection.BACKWARD) {
-      useIndex = getIndex(name, type, ssa);
-    } else {
-      useIndex = makeFreshIndex(name, type, ssa);
-    }
-
-    Formula result = fmgr.makeVariable(this.getFormulaType(type, name), name, useIndex);
-
-    if (direction == AnalysisDirection.BACKWARD) {
-      makeFreshIndex(name, type, ssa);
-    }
-
-    return result;
+    return makeFreshVariable(name, this.getFormulaType(type, name), type, ssa);
   }
 
   /**
@@ -623,19 +609,13 @@ public class CtoFormulaConverter {
     return newVariable;
   }
 
-  protected IntegerFormula
-      makeIntBoolToIntNondet(final SSAMapBuilder ssa, final Constraints constraints) {
-    Formula newVariable =
-        makeFreshVariable(
-            INT_BOOL_TO_INT,
-            FormulaType.IntegerType,
-            CNumericTypes.INT.getCanonicalType(),
-            ssa);
-    if (options.addRangeConstraintsForNondet()) {
-      addRangeConstraint(newVariable, CNumericTypes.INT.getCanonicalType(), constraints);
-    }
-    assert (newVariable instanceof IntegerFormula);
-    return (IntegerFormula) newVariable;
+  protected Formula makeNondet(
+      final String name,
+      final FormulaType<?> fType,
+      final CType type,
+      final SSAMapBuilder ssa) {
+    Formula newVariable = makeFreshVariable(name, fType, type, ssa);
+    return newVariable;
   }
 
   Formula makeStringLiteral(String literal) {
@@ -804,7 +784,6 @@ public class CtoFormulaConverter {
         return intBoolToBitvector(
             toType,
             (BooleanFormula) formula,
-            cTypeNoPointer,
             ssa,
             constraints);
       } else {
@@ -822,7 +801,14 @@ public class CtoFormulaConverter {
    */
   private Formula
       intBoolToInt(BooleanFormula formula, SSAMapBuilder ssa, Constraints constraints) {
-    IntegerFormula placeh = makeIntBoolToIntNondet(ssa, constraints);
+    Formula newVariable =
+        makeNondet(
+            INT_BOOL_TO_INT,
+            FormulaType.IntegerType,
+            CNumericTypes.INT.getCanonicalType(),
+            ssa);
+    assert (newVariable instanceof IntegerFormula);
+    IntegerFormula placeh = (IntegerFormula) newVariable;
     IntegerFormula zero = ifmgr.makeNumber(0);
     BooleanFormula rhs = bfmgr.not(ifmgr.equal(placeh, zero));
     BooleanFormula constraint = bfmgr.equivalence(formula, rhs);
@@ -840,19 +826,19 @@ public class CtoFormulaConverter {
   private BitvectorFormula intBoolToBitvector(
       FormulaType<?> bitvType,
       BooleanFormula formula,
-      CType type,
       SSAMapBuilder ssa,
       Constraints constraints) {
     assert (bitvType instanceof BitvectorType);
-    this.makeFreshIndex(INT_BOOL_TO_BITVECTOR, type, ssa);
-    Formula placeh = this.makeVariable(INT_BOOL_TO_BITVECTOR, type, ssa);
-    assert (placeh instanceof BitvectorFormula);
+    Formula newVariable =
+        makeNondet(INT_BOOL_TO_BITVECTOR, bitvType, CNumericTypes.INT.getCanonicalType(), ssa);
+    assert (newVariable instanceof BitvectorFormula);
+    BitvectorFormula placeh = (BitvectorFormula) newVariable;
     BitvectorFormula zero = efmgr.makeBitvector((BitvectorType) bitvType, 0);
-    BooleanFormula rhs = bfmgr.not(efmgr.equal((BitvectorFormula) placeh, zero));
+    BooleanFormula rhs = bfmgr.not(efmgr.equal(placeh, zero));
     BooleanFormula constraint = bfmgr.equivalence(formula, rhs);
     constraints.addConstraint(constraint);
 
-    return (BitvectorFormula) placeh;
+    return placeh;
   }
 
   /** Replace the formula with a matching ITE-structure
