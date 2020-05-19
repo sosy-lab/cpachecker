@@ -294,15 +294,15 @@ public class SMGJoinFieldsTest {
 
     SMGRegion object = new SMGRegion(128, "Object");
     SMGEdgeHasValue smg1_4bFrom0ToV1 = new SMGEdgeHasValue(mockType4bSize, 0, object, value1);
-    SMGEdgeHasValue smg1_4bFrom2ToV2 = new SMGEdgeHasValue(mockType4bSize, 16, object, value2);
-    SMGEdgeHasValue smg1_4bFrom4ToNull =
-        new SMGEdgeHasValue(mockType4bSize, 32, object, SMGZeroValue.INSTANCE);
+    SMGEdgeHasValue smg1_4bFrom4ToV2 = new SMGEdgeHasValue(mockType4bSize, 32, object, value2);
+    SMGEdgeHasValue smg1_4bFrom8ToNull =
+        new SMGEdgeHasValue(mockType4bSize, 64, object, SMGZeroValue.INSTANCE);
 
     smg1.addObject(object);
     smg1.addValue(value1);
     smg1.addValue(value2);
-    smg1.addHasValueEdge(smg1_4bFrom4ToNull);
-    smg1.addHasValueEdge(smg1_4bFrom2ToV2);
+    smg1.addHasValueEdge(smg1_4bFrom8ToNull);
+    smg1.addHasValueEdge(smg1_4bFrom4ToV2);
     smg1.addHasValueEdge(smg1_4bFrom0ToV1);
 
     smg2.addObject(object);
@@ -317,10 +317,10 @@ public class SMGJoinFieldsTest {
     for (SMGEdgeHasValue edge : filter.filter(hvSet)) {
       if (edge.getOffset() == 0) {
         seenZero = true;
-      } else if (edge.getOffset() == 16) {
+      } else if (edge.getOffset() == 32) {
         seenTwo = true;
       }
-      assertThat(edge.getOffset()).isAnyOf(0L, 16L);
+      assertThat(edge.getOffset()).isAnyOf(0L, 32L);
       assertThat(edge.getSizeInBits()).isEqualTo(mockType4bSize);
       assertThat(values).doesNotContain(edge.getValue());
       values.add(edge.getValue());
