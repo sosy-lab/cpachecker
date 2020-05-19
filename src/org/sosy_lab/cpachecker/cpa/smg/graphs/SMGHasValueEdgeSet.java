@@ -23,6 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.collect.ImmutableSet;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -282,9 +284,7 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
 
   @Override
   public SMGHasValueEdgeSet addEdgesForObject(SMGHasValueEdges pEdgesSet) {
-    if (!(pEdgesSet instanceof SMGHasValueEdgeSet)) {
-      throw new IllegalArgumentException("Can't use different SMGHasValueEdges implementations");
-    }
+    checkArgument((pEdgesSet instanceof SMGHasValueEdgeSet), "Can't use different SMGHasValueEdges implementations");
     SMGHasValueEdgeSet edgesSet = (SMGHasValueEdgeSet)pEdgesSet;
     NavigableSet<Entry<SMGObject, PersistentSortedMap<Long, SMGEdgeHasValue>>> entries =
         edgesSet.map.entrySet();
