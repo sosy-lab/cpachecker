@@ -28,7 +28,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
@@ -256,6 +255,17 @@ public class SMG implements UnmodifiableSMG {
   }
 
   /**
+   * Quick add pEdge Has-Value edge to the SMG.
+   *
+   * Keeps consistency: no
+   *
+   * @param pEdgesSet Has-Value edges set to add
+   */
+  public void addHasValueEdges(SMGHasValueEdges pEdgesSet) {
+    //TODO: add values check
+    hv_edges = hv_edges.addEdgesForObject(pEdgesSet);
+  }
+  /**
    * Remove pEdge Has-Value edge from the SMG.
    *
    * Keeps consistency: no
@@ -400,9 +410,11 @@ public class SMG implements UnmodifiableSMG {
    */
   @Override
   public final @Nullable SMGObject getObjectPointedBy(SMGValue pValue) {
+    // TODO: precondition check is slow because values size is commonly bigger then pt_edges size
     checkArgument(values.contains(pValue), "Value [%s] not in SMG", pValue);
-    if (pt_edges.containsEdgeWithValue(pValue)) {
-      return pt_edges.getEdgeWithValue(pValue).getObject();
+    SMGEdgePointsTo ptEdge = pt_edges.getEdgeWithValue(pValue);
+    if (ptEdge != null) {
+      return ptEdge.getObject();
     } else {
       return null;
     }
@@ -466,46 +478,19 @@ public class SMG implements UnmodifiableSMG {
    *     object to NULL value
    */
   @Override
-  public TreeMap<Long, Integer> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj) {
+  public TreeMap<Long, Long> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj) {
 
-    // first get all possible offsets with their size, sorted by starting point
     SMGEdgeHasValueFilter nullValueFilter =
         SMGEdgeHasValueFilter.objectFilter(pObj)
             .filterHavingValue(SMGZeroValue.INSTANCE)
             .filterWithoutSize();
-    TreeMap<Long, Integer> offsetToSize = new TreeMap<>();
+    TreeMap<Long, Long> offsetToSize = new TreeMap<>();
     for (SMGEdgeHasValue edge : nullValueFilter.filter(hv_edges)) {
       long offset = edge.getOffset();
-      int size = (int) edge.getSizeInBits();
-      Integer existingSize = offsetToSize.get(offset);
-      if (existingSize != null) {
-        size = Math.max(size, existingSize);
-      }
+      long size = edge.getSizeInBits();
       offsetToSize.put(offset, size);
     }
-
-    // then filter out overlapping intervals of offsets
-    TreeMap<Long, Integer> resultOffsetToSize = new TreeMap<>();
-    if (!offsetToSize.isEmpty()) {
-      Iterator<Entry<Long, Integer>> offsetsIterator = offsetToSize.entrySet().iterator();
-      Entry<Long, Integer> entry = offsetsIterator.next();
-      long resultOffset = entry.getKey();
-      int resultSize = entry.getValue();
-      while (offsetsIterator.hasNext()) {
-        entry = offsetsIterator.next();
-        long nextOffset = entry.getKey();
-        int nextSize = entry.getValue();
-        if (nextOffset <= resultOffset + resultSize) {
-          resultSize = Math.toIntExact(Long.max(nextSize + nextOffset - resultOffset, resultSize));
-        } else {
-          resultOffsetToSize.put(resultOffset, resultSize);
-          resultOffset = nextOffset;
-          resultSize = nextSize;
-        }
-      }
-      resultOffsetToSize.put(resultOffset, resultSize);
-    }
-    return resultOffsetToSize;
+    return offsetToSize;
   }
 
   /**
@@ -545,8 +530,8 @@ public class SMG implements UnmodifiableSMG {
   private boolean isCoveredByNullifiedBlocks(SMGObject pObject, long pOffset, long size) {
     long expectedMinClear = pOffset + size;
 
-    TreeMap<Long, Integer> nullEdgesOffsetToSize = getNullEdgesMapOffsetToSizeForObject(pObject);
-    Entry<Long, Integer> floorEntry = nullEdgesOffsetToSize.floorEntry(pOffset);
+    TreeMap<Long, Long> nullEdgesOffsetToSize = getNullEdgesMapOffsetToSizeForObject(pObject);
+    Entry<Long, Long> floorEntry = nullEdgesOffsetToSize.floorEntry(pOffset);
     return (floorEntry != null && floorEntry.getValue() + floorEntry.getKey() >= expectedMinClear);
   }
 

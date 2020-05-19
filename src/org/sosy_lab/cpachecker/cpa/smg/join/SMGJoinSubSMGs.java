@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -104,7 +105,16 @@ final class SMGJoinSubSMGs {
 
     int prevLevel = pLevelMap.get(SMGJoinLevel.valueOf(pObj1.getLevel(), pObj2.getLevel()));
 
-    for (SMGEdgeHasValue hvIn1 : inputSMG1.getHVEdges(filterOnSMG1)) {
+    SMGHasValueEdges hvEdgesIn1 = inputSMG1.getHVEdges(filterOnSMG1);
+    SMGHasValueEdges hvEdgesIn2 = inputSMG2.getHVEdges(filterOnSMG2);
+    boolean edgesAreAdded = false;
+    if (hvEdgesIn1.size() > 0 && hvEdgesIn1.equals(hvEdgesIn2) && pObj1.equals(pNewObject)) {
+      //Fast copy edges
+      destSMG.addHasValueEdges(hvEdgesIn1);
+      edgesAreAdded = true;
+    }
+
+    for (SMGEdgeHasValue hvIn1 : hvEdgesIn1) {
       filterOnSMG2.filterAtOffset(hvIn1.getOffset()).filterWithoutSize();
       SMGEdgeHasValue hvIn2 = Iterables.getOnlyElement(inputSMG2.getHVEdges(filterOnSMG2));
 
@@ -123,8 +133,24 @@ final class SMGJoinSubSMGs {
         return;
       }
 
-      SMGJoinValues joinValues = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG,
-          mapping1, mapping2, levelMap, hvIn1.getValue(), hvIn2.getValue(), lDiff, identicalInputSmg, value1Level, value2Level, prevLevel, pSmgState1, pSmgState2);
+      SMGJoinValues joinValues =
+          new SMGJoinValues(
+              status,
+              inputSMG1,
+              inputSMG2,
+              destSMG,
+              mapping1,
+              mapping2,
+              levelMap,
+              hvIn1.getValue(),
+              hvIn2.getValue(),
+              lDiff,
+              identicalInputSmg,
+              value1Level,
+              value2Level,
+              prevLevel,
+              pSmgState1,
+              pSmgState2);
       status = joinValues.getStatus();
 
       /* If the join of the values is not defined and can't be
@@ -141,23 +167,24 @@ final class SMGJoinSubSMGs {
 
       if (joinValues.isDefined()) {
 
-        SMGEdgeHasValue newHV;
         if (hvIn1.getObject().equals(pNewObject)
             && joinValues.getValue().equals(hvIn1.getValue())) {
-          newHV = hvIn1;
+          if (!edgesAreAdded) {
+            destSMG.addHasValueEdge(hvIn1);
+          }
         } else {
-          newHV =
+          SMGEdgeHasValue newHV =
               new SMGEdgeHasValue(
-                  hvIn1.getSizeInBits(),
-                  hvIn1.getOffset(),
-                  pNewObject,
-                  joinValues.getValue());
+                  hvIn1.getSizeInBits(), hvIn1.getOffset(), pNewObject, joinValues.getValue());
+          if (edgesAreAdded) {
+            destSMG.removeHasValueEdge(hvIn1);
+          }
+          destSMG.addHasValueEdge(newHV);
         }
 
-        destSMG.addHasValueEdge(newHV);
-
-        if(joinValues.subSmgHasAbstractionsCandidates()) {
-          valueAbstractionCandidates.put(joinValues.getValue(), joinValues.getAbstractionCandidates());
+        if (joinValues.subSmgHasAbstractionsCandidates()) {
+          valueAbstractionCandidates.put(
+              joinValues.getValue(), joinValues.getAbstractionCandidates());
         }
       } else {
         allValuesDefined = false;
