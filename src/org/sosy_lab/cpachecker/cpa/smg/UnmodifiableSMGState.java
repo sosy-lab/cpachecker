@@ -178,7 +178,7 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
 
   boolean hasMemoryLeaks();
 
-  boolean isInNeq(SMGSymbolicValue pValue1, SMGSymbolicValue pValue2);
+  boolean areNonEqual(SMGSymbolicValue pValue1, SMGSymbolicValue pValue2);
 
   SMGObject getObjectForFunction(CFunctionDeclaration pDeclaration);
 

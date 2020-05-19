@@ -1539,6 +1539,11 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     heap.addHeapObject(new_object);
     heap.setValidity(new_object, true);
     heap.addValue(new_value);
+    for (SMGEdgePointsTo edge : heap.getPTEdges()) {
+      if (heap.isObjectValid(edge.getObject())) {
+        heap.addNeqRelation(new_value, edge.getValue());
+      }
+    }
     SMGEdgePointsTo pointsTo = new SMGEdgePointsTo(new_value, new_object, offset);
     heap.addPointsToEdge(pointsTo);
     heap.setExternallyAllocatedFlag(new_object, external);
@@ -1559,6 +1564,11 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     SMGKnownSymbolicValue new_value = SMGKnownSymValue.of();
     heap.addStackObject(new_object);
     heap.addValue(new_value);
+    for (SMGEdgePointsTo edge : heap.getPTEdges()) {
+      if (heap.isObjectValid(edge.getObject())) {
+        heap.addNeqRelation(new_value, edge.getValue());
+      }
+    }
     SMGEdgePointsTo pointsTo = new SMGEdgePointsTo(new_value, new_object, 0);
     heap.addPointsToEdge(pointsTo);
     performConsistencyCheck(SMGRuntimeCheck.HALF);
@@ -1819,16 +1829,32 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   public void identifyEqualValues(SMGKnownSymbolicValue pKnownVal1, SMGKnownSymbolicValue pKnownVal2) {
 
-    assert !isInNeq(pKnownVal1, pKnownVal2);
+    assert !areNonEqual(pKnownVal1, pKnownVal2);
     assert !(explicitValues.get(pKnownVal1) != null &&
         explicitValues.get(pKnownVal1).equals(explicitValues.get(pKnownVal2)));
-    assert !(heap.isPointer(pKnownVal1) && heap.isPointer(pKnownVal2));
 
     // Avoid remove NULL value on merge
     if (pKnownVal2.isZero()) {
       SMGKnownSymbolicValue tmp = pKnownVal1;
       pKnownVal1 = pKnownVal2;
       pKnownVal2 = tmp;
+    }
+
+    if (heap.isPointer(pKnownVal1)) {
+      SMGObject objectPointedBy1 = heap.getObjectPointedBy(pKnownVal1);
+      if (!heap.isObjectValid(objectPointedBy1)) {
+        heap.removePointsToEdge(pKnownVal1);
+        SMGKnownSymbolicValue tmp = pKnownVal1;
+        pKnownVal1 = pKnownVal2;
+        pKnownVal2 = tmp;
+      } else {
+        if (heap.isPointer(pKnownVal2)) {
+          SMGObject objectPointedBy2 = heap.getObjectPointedBy(pKnownVal2);
+          if (!heap.isObjectValid(objectPointedBy2)) {
+            heap.removePointsToEdge(pKnownVal2);
+          }
+        }
+      }
     }
 
     heap.replaceValue(pKnownVal1, pKnownVal2);
@@ -1983,9 +2009,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   @Override
-  public boolean isInNeq(SMGSymbolicValue pValue1, SMGSymbolicValue pValue2) {
+  public boolean areNonEqual(SMGSymbolicValue pValue1, SMGSymbolicValue pValue2) {
 
-    if (pValue1.isUnknown() || pValue2.isUnknown()) {
+    if (pValue1.isUnknown() || pValue2.isUnknown() || pValue1.equals(pValue2)) {
       return false;
     } else {
       return heap.haveNeqRelation(pValue1, pValue2);
