@@ -110,7 +110,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   private final int predecessorId;
   private final int id;
 
-  private final BiMap<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues = HashBiMap.create();
+  private final BiMap<SMGKnownSymbolicValue, SMGKnownExpValue> explicitValues =
+      HashBiMap.create(ImmutableMap.of(SMGZeroValue.INSTANCE, SMGZeroValue.INSTANCE));
   private final CLangSMG heap;
 
   private final boolean blockEnded;
