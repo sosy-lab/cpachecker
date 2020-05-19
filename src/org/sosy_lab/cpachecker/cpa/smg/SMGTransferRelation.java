@@ -846,7 +846,7 @@ public class SMGTransferRelation
                   symbolicValue,
                   rValueType));
         } else {
-          for (SMGValueAndState valueAndState : readValueToBeAssiged(pNewState, cfaEdge, rValue)) {
+          for (SMGValueAndState valueAndState : readValueToBeAssiged(newState, cfaEdge, rValue)) {
             SMGSymbolicValue value = valueAndState.getObject();
             SMGState curState = valueAndState.getSmgState();
 
@@ -863,7 +863,7 @@ public class SMGTransferRelation
 
         }
       } else {
-        for (SMGValueAndState valueAndState : readValueToBeAssiged(pNewState, cfaEdge, rValue)) {
+        for (SMGValueAndState valueAndState : readValueToBeAssiged(newState, cfaEdge, rValue)) {
           SMGSymbolicValue value = valueAndState.getObject();
           SMGState curState = valueAndState.getSmgState();
 
