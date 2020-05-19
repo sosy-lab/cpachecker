@@ -27,8 +27,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.Sets;
-import java.util.Set;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -79,11 +78,16 @@ final class SMGJoinMatchObjects {
       UnmodifiableSMG pSMG1,
       UnmodifiableSMG pSMG2) {
 
-    Set<SMGEdgeHasValue> edges1 = pSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj1));
-    Set<SMGEdgeHasValue> edges2 = pSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj2));
+    SMGHasValueEdges edges1 = pSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj1));
+    SMGHasValueEdges edges2 = pSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj2));
+    SMGHasValueEdges edges = edges1;
+    for (SMGEdgeHasValue edge : edges2) {
+      edges = edges.addEdgeAndCopy(edge);
+    }
+
 
     //TODO: We go through some fields twice, fix
-    for (SMGEdgeHasValue hv : Sets.union(edges1, edges2)) {
+    for (SMGEdgeHasValue hv : edges) {
       // edges are already filtered for given object, just filter again for type and offset.
       SMGEdgeHasValueFilter filter =
           new SMGEdgeHasValueFilter()

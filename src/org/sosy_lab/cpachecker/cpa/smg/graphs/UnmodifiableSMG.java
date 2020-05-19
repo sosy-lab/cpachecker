@@ -57,9 +57,9 @@ public interface UnmodifiableSMG {
 
   PersistentSet<SMGObject> getObjects();
 
-  Set<SMGEdgeHasValue> getHVEdges();
+  SMGHasValueEdges getHVEdges();
 
-  Set<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter);
+  SMGHasValueEdges getHVEdges(SMGEdgeHasValueFilter pFilter);
 
   Set<SMGEdgePointsTo> getPtEdges(SMGEdgePointsToFilter pFilter);
 

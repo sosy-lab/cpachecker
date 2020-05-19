@@ -33,6 +33,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdgeSet;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -67,8 +69,8 @@ class SMGJoinFields {
     joinFieldsRelaxStatus(pSMG1, newSMG1, SMGJoinStatus.LEFT_ENTAIL, pObj1);
     joinFieldsRelaxStatus(pSMG2, newSMG2, SMGJoinStatus.RIGHT_ENTAIL, pObj2);
 
-    Set<SMGEdgeHasValue> smg2Extension = mergeNonNullHasValueEdges(pSMG1, newSMG2, pObj1, pObj2);
-    Set<SMGEdgeHasValue> smg1Extension = mergeNonNullHasValueEdges(pSMG2, newSMG1, pObj2, pObj1);
+    SMGHasValueEdges smg2Extension = mergeNonNullHasValueEdges(pSMG1, newSMG2, pObj1, pObj2);
+    SMGHasValueEdges smg1Extension = mergeNonNullHasValueEdges(pSMG2, newSMG1, pObj2, pObj1);
 
     // Algorithm 3 from FIT-TR-2012-04, line 5
     for (SMGEdgeHasValue edge : smg1Extension) {
@@ -94,9 +96,9 @@ class SMGJoinFields {
   }
 
   @VisibleForTesting
-  public static Set<SMGEdgeHasValue> mergeNonNullHasValueEdges(
+  public static SMGHasValueEdges mergeNonNullHasValueEdges(
       UnmodifiableSMG pSMG1, UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
-    Set<SMGEdgeHasValue> returnSet = new LinkedHashSet<>();
+    SMGHasValueEdges returnSet = new SMGHasValueEdgeSet();
 
     SMGEdgeHasValueFilter filterForSMG1 = SMGEdgeHasValueFilter.objectFilter(pObj1);
     SMGEdgeHasValueFilter filterForSMG2 = SMGEdgeHasValueFilter.objectFilter(pObj2);
@@ -104,8 +106,8 @@ class SMGJoinFields {
 
     for (SMGEdgeHasValue edge : pSMG1.getHVEdges(filterForSMG1)) {
       filterForSMG2.filterAtOffset(edge.getOffset());
-      if (pSMG2.getHVEdges(filterForSMG2).isEmpty()) {
-        returnSet.add(
+      if (pSMG2.getHVEdges(filterForSMG2).size() == 0) {
+        returnSet = returnSet.addEdgeAndCopy(
             new SMGEdgeHasValue(
                 edge.getSizeInBits(),
                 edge.getOffset(),
@@ -159,7 +161,7 @@ class SMGJoinFields {
 
     SMGEdgeHasValueFilter nullValueFilter =
         SMGEdgeHasValueFilter.objectFilter(pObj1).filterHavingValue(SMGZeroValue.INSTANCE);
-    Set<SMGEdgeHasValue> edgesToRemove = pSMG.getHVEdges(nullValueFilter);
+    SMGHasValueEdges edgesToRemove = pSMG.getHVEdges(nullValueFilter);
     Set<SMGEdgeHasValue> edgesToAdd1 = getHVSetOfCommonNullValues(pSMG, pSMG2, pObj1, pObj2);
     Set<SMGEdgeHasValue> edgesToAdd2 = getHVSetOfMissingNullValues(pSMG, pSMG2, pObj1, pObj2);
 
@@ -194,7 +196,7 @@ class SMGJoinFields {
     for (SMGEdgeHasValue edge : pSMG2.getHVEdges(nonNullPtrInSmg2)) {
       nonNullPtrInSmg1.filterAtOffset(edge.getOffset());
 
-      if (pSMG1.getHVEdges(nonNullPtrInSmg1).isEmpty()) {
+      if (pSMG1.getHVEdges(nonNullPtrInSmg1).size() == 0) {
         TreeMap <Long, Integer> newNullEdgesOffsetToSize =
             pSMG1.getNullEdgesMapOffsetToSizeForObject(pObj1);
 
@@ -262,10 +264,10 @@ class SMGJoinFields {
           SMGEdgeHasValueFilter.objectFilter(pObj2)
               .filterAtOffset(edgeInSMG1.getOffset())
               .filterBySize(edgeInSMG1.getSizeInBits());
-      Set<SMGEdgeHasValue> hvInSMG2Set = pSMG2.getHVEdges(filter);
+      SMGHasValueEdges hvInSMG2Set = pSMG2.getHVEdges(filter);
 
       SMGEdgeHasValue hvInSMG2;
-      if (!hvInSMG2Set.isEmpty()) {
+      if (hvInSMG2Set.size() > 0) {
         hvInSMG2 = Iterables.getOnlyElement(hvInSMG2Set);
       } else {
         hvInSMG2 = null;

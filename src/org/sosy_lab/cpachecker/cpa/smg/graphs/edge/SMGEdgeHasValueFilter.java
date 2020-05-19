@@ -25,8 +25,6 @@ package org.sosy_lab.cpachecker.cpa.smg.graphs.edge;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
@@ -42,6 +40,22 @@ public class SMGEdgeHasValueFilter {
   private boolean valueComplement = false;
   private Long offset = null;
   private long sizeInBits = -1;
+
+  public SMGObject getObject() {
+    return object;
+  }
+
+  public SMGValue getValue() {
+    return value;
+  }
+
+  public Long getOffset() {
+    return offset;
+  }
+
+  public long getSize() {
+    return sizeInBits;
+  }
 
   @VisibleForTesting
   public SMGEdgeHasValueFilter filterByObject(SMGObject pObject) {
@@ -96,20 +110,14 @@ public class SMGEdgeHasValueFilter {
     return true;
   }
 
-  public Iterable<SMGEdgeHasValue> filter(SMGHasValueEdges pEdges) {
-    Set<SMGEdgeHasValue> filtered;
+  public SMGHasValueEdges filter(SMGHasValueEdges pEdges) {
+    SMGHasValueEdges filtered;
     if (object != null) {
       filtered = pEdges.getEdgesForObject(object);
     } else {
       filtered = pEdges.getHvEdges();
     }
-    return filter(filtered);
-  }
-
-  /** Info: Please use SMG.getHVEdges(filter) for better performance when filtering for objects. */
-  @VisibleForTesting
-  public Iterable<SMGEdgeHasValue> filter(Iterable<SMGEdgeHasValue> pEdges) {
-    return Iterables.filter(pEdges, this::holdsFor);
+    return filtered.filter(this);
   }
 
   public static SMGEdgeHasValueFilter valueFilter(SMGValue pValue) {

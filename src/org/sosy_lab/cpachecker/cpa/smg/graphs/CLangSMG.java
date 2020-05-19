@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.ImmutableLongArray;
@@ -373,9 +372,9 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
 
     for (SMGEdgeHasValue hvedge : getHVEdges()) {
       MemoryLocation memloc = resolveMemLoc(hvedge);
-      Set<SMGEdgeHasValue> edge = getHVEdgeFromMemoryLocation(memloc);
+      SMGHasValueEdges edge = getHVEdgeFromMemoryLocation(memloc);
 
-      if (!edge.isEmpty()) {
+      if (edge.size() != 0) {
         result.put(memloc, edge.iterator().next().getValue());
       }
     }
@@ -473,10 +472,10 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     removeObjectAndEdges(pObject);
   }
 
-  private Set<SMGEdgeHasValue> getHVEdgeFromMemoryLocation(MemoryLocation pLocation) {
+  private SMGHasValueEdges getHVEdgeFromMemoryLocation(MemoryLocation pLocation) {
     SMGObject objectAtLocation = getObjectFromMemoryLocation(pLocation);
     if (objectAtLocation == null) {
-      return ImmutableSet.of();
+      return new SMGHasValueEdgeSet();
     }
 
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(objectAtLocation);
@@ -537,9 +536,9 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     for (int i = 0; i < offsets.length(); i++) {
       final long offset = offsets.get(i);
 
-      Set<SMGEdgeHasValue> hves =
+      SMGHasValueEdges hves =
           getHVEdges(SMGEdgeHasValueFilter.objectFilter(object).filterAtOffset(offset));
-      if (hves.isEmpty()) {
+      if (hves.size() == 0) {
         return Optional.empty();
       }
 
@@ -676,7 +675,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
    */
   private SMGStateInformation createStateInfo(SMGObject pObj) {
 
-    Set<SMGEdgeHasValue> hves = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj));
+    SMGHasValueEdges hves = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj));
     Set<SMGEdgePointsTo> ptes = getPtEdges(SMGEdgePointsToFilter.targetObjectFilter(pObj));
     Set<SMGEdgePointsTo> resultPtes = new LinkedHashSet<>(ptes);
 
@@ -731,7 +730,14 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   }
 
   private void rememberEdges(SMGStateInformation pForgottenInformation) {
-    for(SMGEdgeHasValue edge : Sets.difference(pForgottenInformation.getHvEdges(), getHVEdges())) {
+    SMGHasValueEdges forgottenHvEdges = pForgottenInformation.getHvEdges();
+    SMGHasValueEdges toAddHvEdges = new SMGHasValueEdgeSet();
+    for (SMGEdgeHasValue edge : forgottenHvEdges) {
+      if (!getHVEdges().contains(edge)) {
+        toAddHvEdges = toAddHvEdges.addEdgeAndCopy(edge);
+      }
+     }
+    for(SMGEdgeHasValue edge : toAddHvEdges) {
       addHasValueEdge(edge);
     }
 

@@ -37,6 +37,7 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -473,8 +474,9 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     for (SMGEdgeHasValueTemplate fieldTmp : pointerToThisAbstraction) {
       SMGValue absVal = fieldTmp.getAbstractValue();
       SMGValue concreteValue = abstractToConcreteMap.get(absVal);
-
-      result.addAll(SMGUtils.getFieldsofThisValue(concreteValue, pInputSMG));
+      for (SMGEdgeHasValue edge: SMGUtils.getFieldsofThisValue(concreteValue, pInputSMG)) {
+        result.add(edge);
+      }
     }
     return result;
   }
@@ -575,7 +577,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       }
     }
 
-    Set<SMGEdgeHasValue> fields = SMGUtils.getFieldsofThisValue(pValue, pInputSMG);
+    SMGHasValueEdges fields = SMGUtils.getFieldsofThisValue(pValue, pInputSMG);
 
     Set<SMGEdgeHasValueTemplate> fieldsTemplate = pMatStep.getFieldsOfValue(pValueTemplate);
 
@@ -690,7 +692,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
       }
     }
 
-    Set<SMGEdgeHasValue> fieldsOfRegion = SMGUtils.getFieldsOfObject(region, pInputSMG);
+    SMGHasValueEdges fieldsOfRegion = SMGUtils.getFieldsOfObject(region, pInputSMG);
     FieldsOfTemplate fieldsOfTemplate = matStep.getFieldsOfThisTemplate(pTemplate);
 
     if (fieldsOfRegion.size() != fieldsOfTemplate.size()) {

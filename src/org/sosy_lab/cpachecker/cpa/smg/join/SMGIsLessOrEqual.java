@@ -29,9 +29,9 @@ import com.google.common.collect.Iterables;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -243,7 +243,7 @@ public class SMGIsLessOrEqual {
     SMGEdgeHasValueFilter filterForSMG1 = SMGEdgeHasValueFilter.objectFilter(pSMGObject1);
     SMGEdgeHasValueFilter filterForSMG2 = SMGEdgeHasValueFilter.objectFilter(pSMGObject2);
 
-    Set<SMGEdgeHasValue> HVE2 = pSMG2.getHVEdges(filterForSMG2);
+    SMGHasValueEdges HVE2 = pSMG2.getHVEdges(filterForSMG2);
 
     // TODO Merge Zero.
     for (SMGEdgeHasValue edge1 : pSMG1.getHVEdges(filterForSMG1)) {
