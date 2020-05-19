@@ -1840,7 +1840,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       pKnownVal2 = tmp;
     }
 
-    if (heap.isPointer(pKnownVal1)) {
+    if (!pKnownVal1.isZero() && heap.isPointer(pKnownVal1)) {
       SMGObject objectPointedBy1 = heap.getObjectPointedBy(pKnownVal1);
       if (!heap.isObjectValid(objectPointedBy1)) {
         heap.removePointsToEdge(pKnownVal1);
@@ -1848,7 +1848,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         pKnownVal1 = pKnownVal2;
         pKnownVal2 = tmp;
       } else {
-        if (heap.isPointer(pKnownVal2)) {
+        if (!pKnownVal2.isZero() && heap.isPointer(pKnownVal2)) {
           SMGObject objectPointedBy2 = heap.getObjectPointedBy(pKnownVal2);
           if (!heap.isObjectValid(objectPointedBy2)) {
             heap.removePointsToEdge(pKnownVal2);
