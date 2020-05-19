@@ -128,11 +128,11 @@ public class SMGKnownExpValue extends SMGKnownValue implements SMGExplicitValue 
   }
 
   public static SMGKnownExpValue valueOf(int pValue) {
-    return new SMGKnownExpValue(BigInteger.valueOf(pValue));
+    return valueOf(BigInteger.valueOf(pValue));
   }
 
   public static SMGKnownExpValue valueOf(long pValue) {
-    return new SMGKnownExpValue(BigInteger.valueOf(pValue));
+    return valueOf(BigInteger.valueOf(pValue));
   }
 
   public static SMGKnownExpValue valueOf(BigInteger pValue) {
