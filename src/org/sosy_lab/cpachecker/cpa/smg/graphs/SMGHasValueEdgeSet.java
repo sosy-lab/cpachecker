@@ -24,20 +24,22 @@
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import com.google.common.collect.ImmutableSet;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.util.PersistentMultimap;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentMultimapWithPersistentValues;
+import org.sosy_lab.cpachecker.cpa.smg.util.PersistentSet;
 
 public class SMGHasValueEdgeSet implements SMGHasValueEdges {
 
-  private final PersistentMultimap<SMGObject, SMGEdgeHasValue> map;
+  private final PersistentMultimapWithPersistentValues<SMGObject, SMGEdgeHasValue> map;
 
   public SMGHasValueEdgeSet() {
-    map = PersistentMultimap.of();
+    map = PersistentMultimapWithPersistentValues.of();
   }
 
-  private SMGHasValueEdgeSet(PersistentMultimap<SMGObject, SMGEdgeHasValue> pMap) {
+  private SMGHasValueEdgeSet(PersistentMultimapWithPersistentValues<SMGObject, SMGEdgeHasValue> pMap) {
     map = pMap;
   }
 
@@ -53,7 +55,7 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
 
   @Override
   public SMGHasValueEdgeSet removeEdgeAndCopy(SMGEdgeHasValue pEdge) {
-    PersistentMultimap<SMGObject, SMGEdgeHasValue> updated =
+    PersistentMultimapWithPersistentValues<SMGObject, SMGEdgeHasValue> updated =
         map.removeAndCopy(pEdge.getObject(), pEdge);
     if (map == updated) {
       return this;
@@ -68,9 +70,9 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
   }
 
   @Override
-  public ImmutableSet<SMGEdgeHasValue> getEdgesForObject(SMGObject pObject) {
-    @Nullable ImmutableSet<SMGEdgeHasValue> edges = map.get(pObject);
-    return edges == null ? ImmutableSet.of() : edges;
+  public Set<SMGEdgeHasValue> getEdgesForObject(SMGObject pObject) {
+    @Nullable PersistentSet<SMGEdgeHasValue> edges = map.get(pObject);
+    return edges == null ? ImmutableSet.of() : edges.asSet();
   }
 
   @Override
