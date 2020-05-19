@@ -95,15 +95,16 @@ public class SMGRegionsWithListsTest {
             0,
             HashBiMap.create());
 
-    final int intSize = 8 * MACHINE_MODEL_FOR_TESTING.getSizeofInt();
-    final int ptrSize = 8 * MACHINE_MODEL_FOR_TESTING.getSizeofPtr();
+    final int intSize =
+        MACHINE_MODEL_FOR_TESTING.getSizeofInt() * MACHINE_MODEL_FOR_TESTING.getSizeofCharInBits();
+    final int ptrSize = MACHINE_MODEL_FOR_TESTING.getSizeofPtrInBits();
 
     final int hfo = 0;
     final int nfo = 0;
     final int pfo = (linkage == SMGListLinkage.DOUBLY_LINKED) ? ptrSize : -1;
     dfo = (linkage == SMGListLinkage.DOUBLY_LINKED) ? 2 * ptrSize : ptrSize;
     final int dataSize = intSize;
-    nodeSize = dfo + dataSize;
+    nodeSize = dfo + ptrSize;
     listKind = (linkage == SMGListLinkage.DOUBLY_LINKED) ? SMGObjectKind.DLL : SMGObjectKind.SLL;
 
     SMGValue[] addresses =
@@ -137,7 +138,10 @@ public class SMGRegionsWithListsTest {
         abstractionResult, nodeSize, LEVEL_ZERO, listKind, sublists.length);
 
     SMGHasValueEdges dataFieldSet =
-        smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(abstractionResult).filterAtOffset(dfo));
+        smg.getHVEdges(
+            SMGEdgeHasValueFilter.objectFilter(abstractionResult)
+                .filterAtOffset(dfo)
+                .filterWithoutSize());
     assertThat(dataFieldSet).hasSize(1);
     SMGEdgeHasValue dataField = Iterables.getOnlyElement(dataFieldSet);
     SMGValue dataValue = dataField.getValue();

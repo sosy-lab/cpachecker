@@ -480,7 +480,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
 
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(objectAtLocation);
     if (pLocation.isReference()) {
-      filter.filterAtOffset(pLocation.getOffset());
+      filter.filterAtOffset(pLocation.getOffset()).filterWithoutSize();
     }
 
     // Remember, edges may overlap with different types

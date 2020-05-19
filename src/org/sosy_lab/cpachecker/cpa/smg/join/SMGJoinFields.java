@@ -168,7 +168,9 @@ class SMGJoinFields {
     }
 
     SMGEdgeHasValueFilter nullValueFilter =
-        SMGEdgeHasValueFilter.objectFilter(pObj1).filterHavingValue(SMGZeroValue.INSTANCE);
+        SMGEdgeHasValueFilter.objectFilter(pObj1)
+            .filterHavingValue(SMGZeroValue.INSTANCE)
+            .filterWithoutSize();
     SMGHasValueEdges edgesToRemove = pSMG.getHVEdges(nullValueFilter);
     Set<SMGEdgeHasValue> edgesToAdd1 = getHVSetOfCommonNullValues(pSMG, pSMG2, pObj1, pObj2);
     Set<SMGEdgeHasValue> edgesToAdd2 = getHVSetOfMissingNullValues(pSMG, pSMG2, pObj1, pObj2);
@@ -293,8 +295,14 @@ class SMGJoinFields {
   public static void checkResultConsistency(
       UnmodifiableSMG pSMG1, UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2)
       throws SMGInconsistentException {
-    SMGEdgeHasValueFilter nullEdges1 = SMGEdgeHasValueFilter.objectFilter(pObj1).filterHavingValue(SMGZeroValue.INSTANCE);
-    SMGEdgeHasValueFilter nullEdges2 = SMGEdgeHasValueFilter.objectFilter(pObj2).filterHavingValue(SMGZeroValue.INSTANCE);
+    SMGEdgeHasValueFilter nullEdges1 =
+        SMGEdgeHasValueFilter.objectFilter(pObj1)
+            .filterHavingValue(SMGZeroValue.INSTANCE)
+            .filterWithoutSize();
+    SMGEdgeHasValueFilter nullEdges2 =
+        SMGEdgeHasValueFilter.objectFilter(pObj2)
+            .filterHavingValue(SMGZeroValue.INSTANCE)
+            .filterWithoutSize();
     TreeMap<Long, Integer> nullEdgesInSMG1 = pSMG1.getNullEdgesMapOffsetToSizeForObject(pObj1);
     TreeMap<Long, Integer> nullEdgesInSMG2 = pSMG2.getNullEdgesMapOffsetToSizeForObject(pObj2);
 

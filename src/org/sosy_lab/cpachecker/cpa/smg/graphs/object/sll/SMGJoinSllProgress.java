@@ -60,8 +60,12 @@ class SMGJoinSllProgress
     }
 
     for (int i = 1; i < pLength; i++) {
-      SMGEdgeHasValue nextHveEdge = Iterables.getOnlyElement(pSmg.getHVEdges(
-          SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(pCandidate.getShape().getNfo())));
+      SMGEdgeHasValue nextHveEdge =
+          Iterables.getOnlyElement(
+              pSmg.getHVEdges(
+                  SMGEdgeHasValueFilter.objectFilter(nextObject)
+                      .filterAtOffset(pCandidate.getShape().getNfo())
+                      .filterBySize(pSmg.getMachineModel().getSizeofPtrInBits())));
       nextObject = pSmg.getPointer(nextHveEdge.getValue()).getObject();
       if (nextObject.getKind() == SMGObjectKind.SLL) {
         return true;

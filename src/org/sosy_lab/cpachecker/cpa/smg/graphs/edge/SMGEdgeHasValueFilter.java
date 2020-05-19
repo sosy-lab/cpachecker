@@ -40,6 +40,7 @@ public class SMGEdgeHasValueFilter {
   private boolean valueComplement = false;
   private Long offset = null;
   private long sizeInBits = -1;
+  private boolean sizeNotRequired = false;
 
   public SMGObject getObject() {
     return object;
@@ -57,21 +58,36 @@ public class SMGEdgeHasValueFilter {
     return sizeInBits;
   }
 
+  public boolean isSizeNotRequired() {
+    return sizeNotRequired;
+  }
+
   @VisibleForTesting
   public SMGEdgeHasValueFilter filterByObject(SMGObject pObject) {
     object = pObject;
     return this;
   }
 
+  public SMGEdgeHasValueFilter filterWithoutSize() {
+    sizeNotRequired = true;
+    return this;
+  }
+
   public SMGEdgeHasValueFilter filterHavingValue(SMGValue pValue) {
     value = pValue;
     valueComplement = false;
+    if (!pValue.isZero()) {
+      sizeNotRequired = true;
+    }
     return this;
   }
 
   public SMGEdgeHasValueFilter filterNotHavingValue(SMGValue pValue) {
     value = pValue;
     valueComplement = true;
+    if (pValue.isZero()) {
+      sizeNotRequired = true;
+    }
     return this;
   }
 
@@ -87,6 +103,7 @@ public class SMGEdgeHasValueFilter {
   }
 
   public boolean holdsFor(SMGEdgeHasValue pEdge) {
+    assert (sizeInBits >= 0 || sizeNotRequired);
     if (object != null && object != pEdge.getObject()) {
       return false;
     }
@@ -104,6 +121,10 @@ public class SMGEdgeHasValueFilter {
     }
 
     if (sizeInBits >= 0 && sizeInBits != pEdge.getSizeInBits()) {
+      // zero edge with bigger size can hold current edge
+      if (sizeInBits < pEdge.getSizeInBits() && pEdge.getValue().isZero()) {
+        return true;
+      }
       return false;
     }
 

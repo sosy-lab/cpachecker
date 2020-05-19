@@ -32,6 +32,9 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.smg.CLangStackFrame;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
@@ -256,6 +259,35 @@ public class CLangSMGConsistencyVerifier {
   }
 
   /**
+   * Verify pointers: each pointer should have correct size
+   *
+   * @param pLogger Logger to log the message
+   * @param pSmg the current smg
+   * @return True if pSmg is consistent w.r.t. this criteria. False otherwise.
+   */
+  private static boolean verifyPointersSize(LogManager pLogger, UnmodifiableCLangSMG pSmg) {
+
+    for (SMGEdgePointsTo ptEdge : pSmg.getPTEdges()) {
+      if (!ptEdge.getValue().isZero()) {
+        SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.valueFilter(ptEdge.getValue());
+        for (SMGEdgeHasValue hvEdge : pSmg.getHVEdges(filter)) {
+          if (hvEdge.getSizeInBits() != pSmg.getMachineModel().getSizeofPtrInBits()) {
+            pLogger.log(
+                Level.SEVERE,
+                "CLangSMG inconsistent: pointer ["
+                    + ptEdge.toString()
+                    + "] is stored with wrong size by hvEdge "
+                    + hvEdge.toString());
+            return false;
+          }
+        }
+      }
+    }
+
+    return true;
+  }
+
+  /**
    * Verify all the consistency properties related to CLangSMG
    *
    * @param pLogger Logger to log results
@@ -295,6 +327,12 @@ public class CLangSMGConsistencyVerifier {
         verifyStackNamespaces(pLogger, pSmg),
         pLogger,
         "Checking CLangSMG consistency: stack namespace");
+    toReturn =
+        toReturn
+            && verifyCLangSMGProperty(
+                verifyPointersSize(pLogger, pSmg),
+                pLogger,
+                "Checking CLangSMG consistency: pointer size");
 
     pLogger.log(Level.FINEST, "Ending consistency check of a CLangSMG");
 

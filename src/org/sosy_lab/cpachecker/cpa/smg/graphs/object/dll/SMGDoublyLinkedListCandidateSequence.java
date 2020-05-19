@@ -63,7 +63,12 @@ public class SMGDoublyLinkedListCandidateSequence extends SMGAbstractListCandida
 
     for (int i = 1; i < length; i++) {
 
-      SMGEdgeHasValue nextEdge = Iterables.getOnlyElement(pSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(prevObject).filterAtOffset(nfo)));
+      SMGEdgeHasValue nextEdge =
+          Iterables.getOnlyElement(
+              pSMG.getHVEdges(
+                  SMGEdgeHasValueFilter.objectFilter(prevObject)
+                      .filterAtOffset(nfo)
+                      .filterBySize(pSMG.getMachineModel().getSizeofPtrInBits())));
       SMGObject nextObject = pSMG.getPointer(nextEdge.getValue()).getObject();
 
       if (nextObject == prevObject) {

@@ -115,7 +115,10 @@ public class SMGSingleLinkedListFinderTest {
     SMGObject lastFromHead = smg.getPointer(head.getValue()).getObject();
     SMGEdgeHasValue connection = null;
     do {
-      SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(lastFromHead).filterAtOffset(64);
+      SMGEdgeHasValueFilter filter =
+          SMGEdgeHasValueFilter.objectFilter(lastFromHead)
+              .filterAtOffset(64)
+              .filterBySize(smg.getMachineModel().getSizeofPtrInBits());
       SMGHasValueEdges connections = smg.getHVEdges(filter);
       connection = null;
       if (connections.size() != 0) {

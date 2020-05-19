@@ -653,7 +653,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     long nfo = pListSeg.getNfo();
 
     SMGHasValueEdges oldSllFieldsToOldRegion =
-        heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pListSeg).filterAtOffset(nfo));
+        heap.getHVEdges(
+            SMGEdgeHasValueFilter.objectFilter(pListSeg)
+                .filterAtOffset(nfo)
+                .filterBySize(sizeOfVoidPointerInBits));
     SMGSymbolicValue oldPointerToRegion =
         readValue(pListSeg, nfo, sizeOfVoidPointerInBits).getObject();
     if (oldSllFieldsToOldRegion.size() != 0) {
@@ -770,7 +773,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     SMGHasValueEdges oldDllFieldsToOldRegion =
         heap.getHVEdges(
-            SMGEdgeHasValueFilter.objectFilter(pListSeg).filterAtOffset(offsetPointingToRegion));
+            SMGEdgeHasValueFilter.objectFilter(pListSeg)
+                .filterAtOffset(offsetPointingToRegion)
+                .filterWithoutSize());
     SMGSymbolicValue oldPointerToRegion =
         readValue(pListSeg, offsetPointingToRegion, sizeOfVoidPointerInBits).getObject();
     if (oldDllFieldsToOldRegion.size() != 0) {

@@ -211,11 +211,6 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
         }
       } else {
         for (SMGEdgeHasValue candidate : sortedByOffsets.values()) {
-          if (candidate.getValue().isZero() && filterSize >= 0) {
-            assert false;
-            //TODO
-            candidate = new SMGEdgeHasValue(filterSize, candidate.getOffset(), candidate.getObject(), candidate.getValue());
-          }
           if (pFilter.holdsFor(candidate)) {
             filtered = filtered.addEdgeAndCopy(candidate);
           }
