@@ -25,8 +25,7 @@ package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
+import java.util.Iterator;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
@@ -80,24 +79,16 @@ final class SMGJoinMatchObjects {
 
     SMGHasValueEdges edges1 = pSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj1));
     SMGHasValueEdges edges2 = pSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj2));
-    SMGHasValueEdges edges = edges1;
-    for (SMGEdgeHasValue edge : edges2) {
-      edges = edges.addEdgeAndCopy(edge);
-    }
+    Iterator<SMGEdgeHasValue> iterator2 = edges2.iterator();
+    SMGEdgeHasValue hv2 = iterator2.hasNext() ? iterator2.next() : null;
 
-
-    //TODO: We go through some fields twice, fix
-    for (SMGEdgeHasValue hv : edges) {
-      // edges are already filtered for given object, just filter again for type and offset.
-      SMGEdgeHasValueFilter filter =
-          new SMGEdgeHasValueFilter()
-              .filterBySize(hv.getSizeInBits())
-              .filterAtOffset(hv.getOffset());
-      Iterable<SMGEdgeHasValue> hv1 = filter.filter(edges1);
-      Iterable<SMGEdgeHasValue> hv2 = filter.filter(edges2);
-      if (Iterables.size(hv1) > 0 && Iterables.size(hv2) > 0) {
-        SMGValue v1 = Iterators.getOnlyElement(hv1.iterator()).getValue();
-        SMGValue v2 = Iterators.getOnlyElement(hv2.iterator()).getValue();
+    for (SMGEdgeHasValue hv1 : edges1) {
+      while (hv2 != null && hv2.getOffset() < hv1.getOffset()) {
+        hv2 = iterator2.hasNext() ? iterator2.next() : null;
+      }
+      if (hv2 != null && hv1.getOffset() == hv2.getOffset() && hv1.getSizeInBits() == hv2.getSizeInBits()) {
+        SMGValue v1 = hv1.getValue();
+        SMGValue v2 = hv2.getValue();
         if (pMapping1.containsKey(v1)
             && pMapping2.containsKey(v2)
             && !pMapping1.get(v1).equals(pMapping2.get(v2))) {
