@@ -44,7 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundState;
@@ -172,6 +172,11 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       stats.bmcPreparation.stop();
       shutdownNotifier.shutdownIfNecessary();
 
+      if (!from(pReachedSet).transformAndConcat(e -> ((ARGState) e).getCoveredByThis()).isEmpty()) {
+        throw new CPAException(
+            "Covered states exist in ARG, analysis result could be wrong.");
+      }
+
       logger.log(Level.FINE, "Collecting prefix, loop, and suffix formulas");
       if (maxLoopIterations == 1) {
         prefixFormula = getLoopHeadFormula(pReachedSet, maxLoopIterations - 1);
@@ -237,7 +242,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         .isLoopStart();
   }
 
-  private static FluentIterable<AbstractState> getLoopStart(final UnmodifiableReachedSet pReachedSet) {
+  private static FluentIterable<AbstractState> getLoopStart(final ReachedSet pReachedSet) {
     return from(pReachedSet).filter(IMCAlgorithm::isLoopStart);
   }
 
