@@ -310,8 +310,13 @@ public class SMGTest {
     smg1.addObject(object_16b);
     assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isTrue();
 
-    smg1.addHasValueEdge(hv_edge2);
-    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isFalse();
+    boolean thrown = false;
+    try {
+      smg1.addHasValueEdge(hv_edge2);
+    } catch (AssertionError pAssertionError) {
+      thrown = true;
+    }
+    assertThat(thrown).isTrue();
   }
 
   @Test
