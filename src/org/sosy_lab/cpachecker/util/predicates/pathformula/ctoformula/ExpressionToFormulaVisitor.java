@@ -399,9 +399,21 @@ public class ExpressionToFormulaVisitor
       final CBinaryExpression or = (CBinaryExpression) e1;
       final Formula zero = f2;
       final Formula a =
-          processOperand(or.getOperand1(), exp.getCalculationType(), exp.getExpressionType());
+          conv.makeFormulaTypeCast(
+              mgr.getFormulaType(zero),
+              exp.getCalculationType(),
+              processOperand(or.getOperand1(), exp.getCalculationType(), exp.getExpressionType()),
+              ssa,
+              constraints);
       final Formula b =
-          processOperand(or.getOperand2(), exp.getCalculationType(), exp.getExpressionType());
+          conv.makeFormulaTypeCast(
+              mgr.getFormulaType(zero),
+              exp.getCalculationType(),
+              processOperand(or.getOperand2(), exp.getCalculationType(), exp.getExpressionType()),
+              ssa,
+              constraints);
+      assert mgr.getFormulaType(zero).equals(mgr.getFormulaType(a));
+      assert mgr.getFormulaType(zero).equals(mgr.getFormulaType(b));
 
       return conv.bfmgr.and(mgr.makeEqual(a, zero), mgr.makeEqual(b, zero));
     }
