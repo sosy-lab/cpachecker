@@ -346,13 +346,13 @@ public class SMGJoinFieldsTest {
     UnmodifiableSMG resultSMG = jf.getSMG2();
 
     SMGHasValueEdges edges = resultSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2));
-    assertThat(edges.size()).isGreaterThan(0);
+    assertThat(edges.isEmpty()).isFalse();
 
     jf = new SMGJoinFields(smg2.copyOf(), smg1.copyOf(), obj2, obj1);
     resultSMG = jf.getSMG1();
 
     edges = resultSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj2));
-    assertThat(edges.size()).isGreaterThan(0);
+    assertThat(edges.isEmpty()).isFalse();
   }
 
   @Test

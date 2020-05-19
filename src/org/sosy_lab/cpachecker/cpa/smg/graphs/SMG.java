@@ -173,7 +173,7 @@ public class SMG implements UnmodifiableSMG {
     neq = neq.removeValueAndCopy(pValue);
     pathPredicate.removeValue(pValue);
     errorPredicate.removeValue(pValue);
-    assert hv_edges.filter(SMGEdgeHasValueFilter.valueFilter(pValue)).size() == 0;
+    assert hv_edges.filter(SMGEdgeHasValueFilter.valueFilter(pValue)).isEmpty();
   }
   /**
    * Remove pObj from the SMG. This method does not remove
@@ -575,7 +575,7 @@ public class SMG implements UnmodifiableSMG {
       pt_edges = pt_edges.removeAndCopy(pt_edge);
       // Workaround for removed object
       if (pt_edges.containsEdgeWithValue(fresh)) {
-        assert getHVEdges(SMGEdgeHasValueFilter.valueFilter(fresh)).size() == 0;
+        assert getHVEdges(SMGEdgeHasValueFilter.valueFilter(fresh)).isEmpty();
         pt_edges = pt_edges.removeEdgeWithValueAndCopy(fresh);
       }
       Preconditions.checkArgument(

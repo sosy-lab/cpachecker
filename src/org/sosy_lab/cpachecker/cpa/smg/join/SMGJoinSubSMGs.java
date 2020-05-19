@@ -108,7 +108,7 @@ final class SMGJoinSubSMGs {
     SMGHasValueEdges hvEdgesIn1 = inputSMG1.getHVEdges(filterOnSMG1);
     SMGHasValueEdges hvEdgesIn2 = inputSMG2.getHVEdges(filterOnSMG2);
     boolean edgesAreAdded = false;
-    if (hvEdgesIn1.size() > 0 && hvEdgesIn1.equals(hvEdgesIn2) && pObj1.equals(pNewObject)) {
+    if (!hvEdgesIn1.isEmpty() && hvEdgesIn1.equals(hvEdgesIn2) && pObj1.equals(pNewObject)) {
       //Fast copy edges
       destSMG.addHasValueEdges(hvEdgesIn1);
       edgesAreAdded = true;

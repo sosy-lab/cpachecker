@@ -660,7 +660,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
                 .filterBySize(sizeOfVoidPointerInBits));
     SMGSymbolicValue oldPointerToRegion =
         readValue(pListSeg, nfo, sizeOfVoidPointerInBits).getObject();
-    if (oldSllFieldsToOldRegion.size() != 0) {
+    if (!oldSllFieldsToOldRegion.isEmpty()) {
       SMGEdgeHasValue oldSllFieldToOldRegion = Iterables.getOnlyElement(oldSllFieldsToOldRegion);
       heap.removeHasValueEdge(oldSllFieldToOldRegion);
     }
