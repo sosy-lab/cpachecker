@@ -135,7 +135,9 @@ public class SMGSingleLinkedListCandidateSequence extends SMGAbstractListCandida
       // Don't forget object corresponding to AddressValue
       if (nfoHve.getValue() instanceof SMGAddressValue) {
         SMGAddressValue addressValue = (SMGAddressValue) nfoHve.getValue();
-        pSMG.addObject(addressValue.getObject());
+        if (!addressValue.isZero()) {
+          pSMG.addObject(addressValue.getObject());
+        }
       }
       pSMG.addHasValueEdge(nfoHve);
       pSmgState.pruneUnreachable();
