@@ -384,11 +384,7 @@ public class ExpressionToFormulaVisitor
   private BooleanFormula handleEquals(CBinaryExpression exp, Formula f1, Formula f2)
       throws UnrecognizedCodeException {
     assert exp.getOperator() == BinaryOperator.EQUALS;
-    FormulaType<?> f1Type = mgr.getFormulaType(f1);
-    FormulaType<?> f2Type = mgr.getFormulaType(f2);
-    if (!f1Type.equals(f2Type)) {
-      f1 = conv.makeFormulaTypeCast(f2Type, exp.getExpressionType(), f1, ssa, constraints);
-    }
+    assert mgr.getFormulaType(f1).equals(mgr.getFormulaType(f2));
     CExpression e1 = exp.getOperand1();
     CExpression e2 = exp.getOperand2();
     if (e2.equals(CIntegerLiteralExpression.ZERO)
