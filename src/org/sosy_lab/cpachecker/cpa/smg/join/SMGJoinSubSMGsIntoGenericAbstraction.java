@@ -27,6 +27,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -474,9 +475,7 @@ public class SMGJoinSubSMGsIntoGenericAbstraction {
     for (SMGEdgeHasValueTemplate fieldTmp : pointerToThisAbstraction) {
       SMGValue absVal = fieldTmp.getAbstractValue();
       SMGValue concreteValue = abstractToConcreteMap.get(absVal);
-      for (SMGEdgeHasValue edge: SMGUtils.getFieldsofThisValue(concreteValue, pInputSMG)) {
-        result.add(edge);
-      }
+      Iterables.addAll(result, SMGUtils.getFieldsofThisValue(concreteValue, pInputSMG));
     }
     return result;
   }

@@ -90,7 +90,7 @@ public class SMGSingleLinkedListCandidateTest {
     CLangSMG abstractedSmg = candidateSeq.execute(smg,
         new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration())));
     PersistentSet<SMGObject> heap = abstractedSmg.getHeapObjects();
-    assertThat(heap.size()).isEqualTo(2);
+    assertThat(heap).hasSize(2);
     SMGHasValueEdges globalHves =
         abstractedSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(root.getObject()));
     root = Iterables.getOnlyElement(globalHves);
@@ -132,7 +132,7 @@ public class SMGSingleLinkedListCandidateTest {
     CLangSMG abstractedSmg = candidateSeq.execute(smg,
         new SMGState(LogManager.createTestLogManager(), MachineModel.LINUX64, new SMGOptions(Configuration.defaultConfiguration())));
     PersistentSet<SMGObject> heap = abstractedSmg.getHeapObjects();
-    assertThat(heap.size()).isEqualTo(2);
+    assertThat(heap).hasSize(2);
     SMGHasValueEdges globalHves =
         abstractedSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(root.getObject()));
     root = Iterables.getOnlyElement(globalHves);
