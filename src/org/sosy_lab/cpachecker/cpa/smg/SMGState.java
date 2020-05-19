@@ -1539,9 +1539,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     heap.addHeapObject(new_object);
     heap.setValidity(new_object, true);
     heap.addValue(new_value);
-    for (SMGEdgePointsTo edge : heap.getPTEdges()) {
-      if (heap.isObjectValid(edge.getObject())) {
-        heap.addNeqRelation(new_value, edge.getValue());
+    for (SMGObject object : heap.getObjects()) {
+      if (!SMGNullObject.INSTANCE.equals(object) && !heap.isObjectValid(object)) {
+        heap.addPossibleEqualObjects(new_object, object);
       }
     }
     SMGEdgePointsTo pointsTo = new SMGEdgePointsTo(new_value, new_object, offset);
@@ -1564,9 +1564,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     SMGKnownSymbolicValue new_value = SMGKnownSymValue.of();
     heap.addStackObject(new_object);
     heap.addValue(new_value);
-    for (SMGEdgePointsTo edge : heap.getPTEdges()) {
-      if (heap.isObjectValid(edge.getObject())) {
-        heap.addNeqRelation(new_value, edge.getValue());
+    for (SMGObject object : heap.getObjects()) {
+      if (!SMGNullObject.INSTANCE.equals(object) && !heap.isObjectValid(object)) {
+        heap.addPossibleEqualObjects(new_object, object);
       }
     }
     SMGEdgePointsTo pointsTo = new SMGEdgePointsTo(new_value, new_object, 0);
@@ -2014,6 +2014,13 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     if (pValue1.isUnknown() || pValue2.isUnknown() || pValue1.equals(pValue2)) {
       return false;
     } else {
+      if (heap.isPointer(pValue1) && heap.isPointer(pValue2)) {
+        SMGObject object1 = heap.getObjectPointedBy(pValue1);
+        SMGObject object2 = heap.getObjectPointedBy(pValue2);
+        if (!object1.equals(object2)) {
+          return !heap.arePossibleEquals(object1, object2);
+        }
+      }
       return heap.haveNeqRelation(pValue1, pValue2);
     }
   }
