@@ -207,7 +207,7 @@ public class SMGJoinTest {
   public void simpleGlobalVarJoinTest() throws SMGInconsistentException {
     String varName = "variableName";
     addGlobalWithoutValueToBoth(varName);
-    SMGJoin join = new SMGJoin(smg1, smg2, null, null);
+    SMGJoin join = new SMGJoin(smg1, smg2, dummyState, dummyState);
     assertThat(join.isDefined()).isTrue();
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
 
@@ -223,7 +223,7 @@ public class SMGJoinTest {
     smg2.addStackFrame(functionDeclaration);
     addLocalWithoutValueToBoth(varName);
 
-    SMGJoin join = new SMGJoin(smg1, smg2, null, null);
+    SMGJoin join = new SMGJoin(smg1, smg2, dummyState, dummyState);
     assertThat(join.isDefined()).isTrue();
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
 
@@ -313,7 +313,7 @@ public class SMGJoinTest {
     Pair<SMGRegion, SMGRegion> c3 = addLocalWithoutValueToBoth("c", 32);
     addValueToBoth(c3, 0, 104, 32);
 
-    SMGJoin join = new SMGJoin(smg1, smg2, null, null);
+    SMGJoin join = new SMGJoin(smg1, smg2, dummyState, dummyState);
     assertThat(join.isDefined()).isTrue();
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.EQUAL);
   }
@@ -359,7 +359,7 @@ public class SMGJoinTest {
     Pair<SMGRegion, SMGRegion> global = addGlobalWithoutValueToBoth("global", 128);
     addPointerValueToBoth(global, 0, 100, 32, objs, 0);
 
-    SMGJoin join = new SMGJoin(smg1, smg2, null, null);
+    SMGJoin join = new SMGJoin(smg1, smg2, dummyState, dummyState);
     assertThat(join.isDefined()).isTrue();
     assertThat(join.getStatus()).isEqualTo(SMGJoinStatus.RIGHT_ENTAIL);
 
@@ -371,7 +371,7 @@ public class SMGJoinTest {
     smg1.addValue(un);
     smg1.addHasValueEdge(new SMGEdgeHasValue(mockType4bSize, 32, objs.getFirst(), un));
 
-    SMGJoin join2 = new SMGJoin(smg1, smg2, null, null);
+    SMGJoin join2 = new SMGJoin(smg1, smg2, dummyState, dummyState);
     assertThat(join2.isDefined()).isFalse();
     assertThat(join2.getStatus()).isEqualTo(SMGJoinStatus.INCOMPARABLE);
   }

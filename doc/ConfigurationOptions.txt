@@ -2622,6 +2622,10 @@ cpa.smg.handleUnknownDereferenceAsSafe = false
 cpa.smg.handleUnknownFunctions = STRICT
   enum:     [STRICT, ASSUME_SAFE, ASSUME_EXTERNAL_ALLOCATED]
 
+# Perform merge SMGStates by SMGJoin on ends of code block. Works with
+# 'merge=JOIN'
+cpa.smg.joinOnBlockEnd = true
+
 # Memory allocation functions
 cpa.smg.memoryAllocationFunctions = {"malloc", "__kmalloc", "kmalloc", "realloc"}
 
