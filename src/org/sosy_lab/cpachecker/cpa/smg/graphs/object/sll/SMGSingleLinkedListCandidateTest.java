@@ -106,7 +106,6 @@ public class SMGSingleLinkedListCandidateTest {
     assertThat(outboundEdges).hasSize(1);
     SMGEdgeHasValue onlyOutboundEdge = Iterables.getOnlyElement(outboundEdges);
     assertThat(onlyOutboundEdge.getOffset()).isEqualTo(OFFSET);
-    // assertThat(onlyOutboundEdge.getType()).isSameInstanceAs(CPointerType.POINTER_TO_VOID);
 
     assertThat(outboundEdges).hasSize(1);
     onlyOutboundEdge = Iterables.getOnlyElement(outboundEdges);
