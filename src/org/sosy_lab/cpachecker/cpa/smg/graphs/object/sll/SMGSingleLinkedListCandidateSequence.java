@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGAbstractListCandidateSequence;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinStatus;
 import org.sosy_lab.cpachecker.cpa.smg.join.SMGJoinSubSMGsForAbstraction;
 import org.sosy_lab.cpachecker.cpa.smg.refiner.SMGMemoryPath;
@@ -132,11 +131,6 @@ public class SMGSingleLinkedListCandidateSequence extends SMGAbstractListCandida
               nextObj2hve.getOffset(),
               newAbsObj,
               nextObj2hve.getValue());
-      // Don't forget object corresponding to AddressValue
-      if (nfoHve.getValue() instanceof SMGAddressValue) {
-        SMGAddressValue addressValue = (SMGAddressValue) nfoHve.getValue();
-        pSMG.addObject(addressValue.getObject());
-      }
       pSMG.addHasValueEdge(nfoHve);
       pSmgState.pruneUnreachable();
 
