@@ -10,7 +10,7 @@ Developers/Contributors:
   Pavel Andrianov (since 2014), ISP RAS, Russia
   Moritz Beck (since 2019), LMU Munich, Germany
   Thomas Bunk (since 2018), LMU Munich, Germany
-  Marek Chalupa (since 2018), Masaryk University, Czech Republic
+  Marek Chalupa (since 2018), Masaryk University, Czechia
   Matthias Dangl (since 2012), LMU Munich, Germany
   Karlheinz Friedberger (since 2011), LMU Munich, Germany
   Stephan Holzner (since 2019), LMU Munich, Germany
@@ -67,15 +67,15 @@ Former Developers/Contributors:
   Johannes Knaut (2018), LMU Munich, Germany
   Alexander Koos (2017 - 2018), LMU Munich, Germany
   Philipp Korth (2012), University of Paderborn, Germany
-  Michal Kotoun (2018), Brno University of Technology, Czech Republic
+  Michal Kotoun (2018), Brno University of Technology, Czechia
   Stefan Kronawitter (2012), University of Passau, Germany
-  Zdenek Letko (2014), Brno University of Technology, Czech Republic
+  Zdenek Letko (2014), Brno University of Technology, Czechia
   Stefan Löwe (2010 - 2016), University of Passau, Germany
   Stephan Lukasczyk (2015 - 2016), University of Passau, Germany
   Michael Maier (2017 - 2019), LMU Munich, Germany
   Mikhail Mandrykin (2013 - 2017), ISP RAS, Russia
   Alexander Maringer (2010), University of Passau, Germany
-  Petr Muller (2012 - 2014), Brno University of Technology, Czech Republic
+  Petr Muller (2012 - 2014), Brno University of Technology, Czechia
   Magdalena Murr (2015), University of Passau, Germany
   Lokesh Nandanwar (2018), National Institute of Technology Durgapur, India
   Christian Olbrich (2014), University of Passau, Germany
