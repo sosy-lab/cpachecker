@@ -3,10 +3,10 @@ The program AbsMinus (implemented in function foo) takes
 two integers i and j as input and returns the absolute value of i-j.
 
 There is an error in this program that is in the assignment 
-"k=k+2", which should be "k=k+2. By putting as input 
-{i=0, j=1}, the error makes the condition  "(k == 1 && i != j)" 
-false and therefore the execution of the instruction "result=i-j",
-which causes an incrorrect value to be output, -1 instead of 1. 
+"result=i-j", which should be "result=j-i. By putting as input 
+{i=0, j=1}, the program returns the value -1 as the absolute value 
+of i-j, however, the returned value should be 1. This program shows 
+a a case where all if-condition are free from faults. 
 
 @author: Mohammed Bekkouche
 @Web:    http://www.i3s.unice.fr
@@ -22,25 +22,27 @@ void __VERIFIER_assert(int cond) {
   }
   return;
 }
+
 /* returns |i-j|, the absolute value of i minus j */
 int foo (int i, int j) {
     int result;
     int k = 0;
-    if (i <= j) {
-        k = k+2; // error in the assignment : k = k+2 instead of k = k+1
+    if (i > j) {// error in the condition : i > j instead of i <= j
+        k = k+1;
     }
     if (k == 1 && i != j) {
-        result = j-i; 		
+        result = j-i;
     }
     else {
         result = i-j;
     }
-    //assert(result==1);
     __VERIFIER_assert( (i<j && result==j-i) || (i>=j && result==i-j));
 }
+
+
 int main() 
 { 
   
-  foo( __VERIFIER_nondet_int(),__VERIFIER_nondet_int());
+  foo(__VERIFIER_nondet_int(),__VERIFIER_nondet_int());
     return 0; 
 } 
