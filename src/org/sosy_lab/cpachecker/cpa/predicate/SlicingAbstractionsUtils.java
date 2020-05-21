@@ -324,7 +324,7 @@ public class SlicingAbstractionsUtils {
     AbstractStateWithAssumptions other =
         AbstractStates.extractStateByType(stop, AbstractStateWithAssumptions.class);
     if (other != null) {
-      if(stop.isTarget() && other instanceof OverflowState) {
+      if (stop.isTarget() && other instanceof OverflowState) {
         other = ((OverflowState) other).getParent();
       }
       for (CExpression assumption : Iterables.filter(other.getAssumptions(), CExpression.class)) {

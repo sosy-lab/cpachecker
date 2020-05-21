@@ -57,7 +57,7 @@ public final class OverflowState
   public OverflowState(
       Set<? extends AExpression> pAssumptions, boolean pNextHasOverflow, OverflowState pParent) {
     assumptions = ImmutableSet.copyOf(pAssumptions);
-    if(pParent != null) {
+    if (pParent != null) {
       hasOverflow = pParent.nextHasOverflow();
       parent = hasOverflow ? pParent : null;
     } else {
@@ -99,7 +99,9 @@ public final class OverflowState
       return false;
     }
     OverflowState that = (OverflowState) pO;
-    return nextHasOverflow == that.nextHasOverflow && hasOverflow == that.hasOverflow && Objects.equals(assumptions, that.assumptions);
+    return nextHasOverflow == that.nextHasOverflow
+        && hasOverflow == that.hasOverflow
+        && Objects.equals(assumptions, that.assumptions);
   }
 
   @Override

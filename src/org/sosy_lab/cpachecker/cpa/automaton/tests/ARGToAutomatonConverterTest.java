@@ -62,7 +62,10 @@ public class ARGToAutomatonConverterTest extends AbstractTranslationTest {
   private final ARGToAutomatonConverter converter;
 
   public ARGToAutomatonConverterTest(
-      @SuppressWarnings("unused") String pTestLabel, String pProgram, boolean pVerdict, boolean pForOverflow)
+      @SuppressWarnings("unused") String pTestLabel,
+      String pProgram,
+      boolean pVerdict,
+      boolean pForOverflow)
       throws IOException, InvalidConfigurationException {
     filePrefix = "automaton";
     program = pProgram;
@@ -113,7 +116,7 @@ public class ARGToAutomatonConverterTest extends AbstractTranslationTest {
 
     for (String analysis :
         ImmutableList.of("predicateAnalysis.properties", "valueAnalysis.properties")) {
-      if(forOverflow) {
+      if (forOverflow) {
         break;
       }
       // test whether C program still gives correct verdict with joint automaton:

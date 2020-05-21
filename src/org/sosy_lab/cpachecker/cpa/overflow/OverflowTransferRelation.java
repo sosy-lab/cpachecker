@@ -68,12 +68,13 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
     Set<CExpression> assumptions;
     ImmutableList.Builder<OverflowState> outStates = ImmutableList.builder();
 
-    if(leavingEdgesOfNextState == 0) {
+    if (leavingEdgesOfNextState == 0) {
       return ImmutableList.of(new OverflowState(ImmutableSet.of(), nextHasOverflow, prev));
     }
 
     for (int i = 0; i < leavingEdgesOfNextState; i++) {
-      assumptions = noOverflowAssumptionBuilder.assumptionsForEdge(cfaEdge.getSuccessor().getLeavingEdge(i));
+      assumptions =
+          noOverflowAssumptionBuilder.assumptionsForEdge(cfaEdge.getSuccessor().getLeavingEdge(i));
 
       if (assumptions.isEmpty()) {
         outStates.add(new OverflowState(ImmutableSet.of(), nextHasOverflow, prev));

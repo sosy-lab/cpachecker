@@ -799,7 +799,8 @@ public class ARGToAutomatonConverter {
     final Multimap<CallstackState, CallstackState> callstacks = LinkedHashMultimap.create();
     final Map<CallstackState, CallstackState> inverseCallstacks = new LinkedHashMap<>();
     final Multimap<CallstackState, ARGState> callstackToLeaves = LinkedHashMultimap.create();
-    final Multimap<CallstackState, ARGState> callstackToLeafWithParentAssumptions = LinkedHashMultimap.create();
+    final Multimap<CallstackState, ARGState> callstackToLeafWithParentAssumptions =
+        LinkedHashMultimap.create();
     for (ARGState leaf : pLeaves) {
       CallstackState callstack = AbstractStates.extractStateByType(leaf, CallstackState.class);
       Preconditions.checkNotNull(callstack);
@@ -811,9 +812,9 @@ public class ARGToAutomatonConverter {
         callstack = callstack.getPreviousState();
       }
       callstackToLeaves.put(callstack, leaf);
-      for(ARGState parent : leaf.getParents()) {
+      for (ARGState parent : leaf.getParents()) {
         if (AbstractStates.projectToType(
-            AbstractStates.asIterable(parent), AbstractStateWithAssumptions.class)
+                AbstractStates.asIterable(parent), AbstractStateWithAssumptions.class)
             .anyMatch(x -> !x.getAssumptions().isEmpty())) {
           callstackToLeafWithParentAssumptions.put(callstack, leaf);
         }
