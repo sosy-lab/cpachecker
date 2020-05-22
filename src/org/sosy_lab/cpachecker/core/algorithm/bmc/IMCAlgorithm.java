@@ -92,7 +92,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
 
-  private final CFA cfa;
+  //private final CFA cfa;
 
   public IMCAlgorithm(
       Algorithm pAlgorithm,
@@ -120,7 +120,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     pConfig.inject(this);
 
     cpa = pCPA;
-    cfa = pCFA;
+    //cfa = pCFA;
     algorithm = pAlgorithm;
 
     @SuppressWarnings("resource")
