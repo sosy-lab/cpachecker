@@ -217,6 +217,8 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
         f.addInfo(FaultInfo.hint("NOTE: The algorithm did not find a suitable abstraction."));
         faults.add(f);
       }
+    } else {
+      lastCreatedFault.addInfo(FaultInfo.hint("From now on, at least the marked values will not change until the end of the execution."));
     }
 
     return faults;

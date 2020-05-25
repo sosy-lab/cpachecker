@@ -234,7 +234,7 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
           ranking = FaultRankingUtils.concatHeuristicsDefaultFinalScoring(
               new ForwardPreConditionRanking(tf, context),
               new EdgeTypeRanking(),
-              // new HintRanking(3),
+              new HintRanking(3),
               // new MinimalLineDistanceRanking(edgeList.get(edgeList.size()-1)),
               new CallHierarchyRanking(edgeList, tf.getNegated().size()));
           break;

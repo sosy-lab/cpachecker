@@ -64,10 +64,10 @@ public class InformationProvider {
       if (description.contains("=")) {
         List<String> operands = Splitter.on("=").splitToList(description);
         if (operands.size() == 2) {
-          if (entry.getValue().size() > 2 && operands.get(1).contains(operands.get(0) + "+ 1")) {
+          if (entry.getValue().size() > 2 && operands.get(1).contains(operands.get(0) + " + 1")) {
             iterationVariables.add(operands.get(0).trim());
           }
-          if (entry.getValue().size() > 2 && operands.get(1).contains(operands.get(0) + "- 1")) {
+          if (entry.getValue().size() > 2 && operands.get(1).contains(operands.get(0) + " - 1")) {
             iterationVariables.add(operands.get(0).trim());
           }
         }

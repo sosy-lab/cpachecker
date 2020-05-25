@@ -35,13 +35,14 @@ import org.sosy_lab.java_smt.api.FormulaType;
 public class Selector extends FaultContribution implements AbstractTraceElement {
 
   private static Map<String, Selector> selectors = new HashMap<>();
-  private static int index = 0;
+  private static int maxIndex = 0;
 
   private String name;
   private CFAEdge edge;
   private BooleanFormula formula;
   private BooleanFormula selectorFormula;
   private FormulaContext context;
+  private int index;
 
   public CFAEdge getEdge() {
     return edge;
@@ -63,6 +64,7 @@ public class Selector extends FaultContribution implements AbstractTraceElement 
     } else {
       name = ("S" + pUniqueIndex + ": " + pEdge).replace("\t", " ");
     }
+    index = pUniqueIndex;
     formula = pFormula;
     selectorFormula = pFormula;
     context = pContext;
@@ -110,16 +112,30 @@ public class Selector extends FaultContribution implements AbstractTraceElement 
     }
 
     s = new Selector(
-            index,
+        maxIndex,
             pContext
                 .getSolver()
                 .getFormulaManager()
-                .makeVariable(FormulaType.BooleanType, "S" + index),
+                .makeVariable(FormulaType.BooleanType, "S" + maxIndex),
             pEdge,
             pContext);
     selectors.put(pFormula.toString(), s);
-    index++;
+    maxIndex++;
     return s;
+  }
+
+  public int getIndex() {
+    return index;
+  }
+
+  public void changeSelectorFormula(Selector selector) {
+    assert selector.correspondingEdge().getDescription().equals(correspondingEdge().getDescription());
+    if(selectorFormula.equals(formula)){
+      selectorFormula = selector.selectorFormula;
+      formula = selectorFormula;
+    } else {
+      selectorFormula = selector.selectorFormula;
+    }
   }
 
   public static Optional<Selector> of(BooleanFormula formula) {

@@ -63,7 +63,8 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface, Sta
     bmgr = solver.getFormulaManager().getBooleanFormulaManager();
 
     Set<Fault> hard = new HashSet<>();
-    Set<FaultContribution> soft = new HashSet<>(tf.getSelectors());
+
+    Set<FaultContribution> soft = new HashSet<>(tf.getRelevantSelectors());
     //if a selector is true (i. e. enabled) it cannot be part of the result set. This usually happens if the selector is a part of the pre-condition
     soft.removeIf(fc -> bmgr.isTrue(((Selector)fc).getFormula()) || bmgr.isFalse(((Selector)fc).getFormula()));
     int numberSelectors = soft.size();
@@ -126,7 +127,8 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface, Sta
         copy.remove(s);
         if (!isSubsetOrSupersetOf(copy, pHardSet)) {
           unsatCalls.inc();
-          if (solver.isUnsat(bmgr.and(composedFormula, softSetFormula(copy)))) {
+
+          if (solver.isUnsat(bmgr.and(composedFormula, adaptedPostCondition(copy, pTraceFormula), softSetFormula(copy)))) {
             changed = true;
             result.remove(s);
             break;
@@ -135,6 +137,15 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface, Sta
       }
     } while (changed);
     return new Fault(result);
+  }
+
+  private BooleanFormula adaptedPostCondition(Fault set, TraceFormula tf) {
+    //Find better way, index of is bad.
+    int max = set.stream().mapToInt(fc -> tf.getSelectors().indexOf(fc)).max().orElse(0);
+    BooleanFormula postcond = tf.getPostCondition();
+    postcond = solver.getFormulaManager().uninstantiate(postcond);
+    postcond = solver.getFormulaManager().instantiate(postcond, tf.getSsaMap(max+1)); // index 0 is precond so real indexing starts at one
+    return postcond;
   }
 
   private boolean isSubsetOrSupersetOf(Fault pSet, Set<Fault> pHardSet) {

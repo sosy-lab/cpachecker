@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -58,6 +59,7 @@ public class TraceFormula {
 
   private List<CFAEdge> edges;
   private List<BooleanFormula> negated;
+  private List<Selector> distinctSelectors;
   private FormulaEntries entries;
 
   // all available formulas
@@ -96,6 +98,12 @@ public class TraceFormula {
         description = "force alternative pre condition")
     private boolean forcePre = false;
 
+    @Option(
+        secure = true,
+        name = "uniqueSelectors",
+        description = "equal statements on the same line get the same selector")
+    private boolean distinctSelectors = false;
+
     public TraceFormulaOptions(Configuration pConfiguration) throws InvalidConfigurationException {
       pConfiguration.inject(this);
     }
@@ -111,10 +119,6 @@ public class TraceFormula {
     public String getIgnore() {
       return ignore;
     }
-
-    public boolean isForcePre() {
-      return forcePre;
-    }
   }
 
   public TraceFormula(FormulaContext pContext, TraceFormulaOptions pOptions, List<CFAEdge> pEdges)
@@ -125,6 +129,7 @@ public class TraceFormula {
     context = pContext;
     entries = new FormulaEntries();
     negated = new ArrayList<>();
+    distinctSelectors =  new ArrayList<>();
     createTraceFormulas();
   }
 
@@ -141,6 +146,17 @@ public class TraceFormula {
   }
 
   public List<Selector> getSelectors() {
+    return entries.selectors;
+  }
+
+  public List<Selector> getDistinctSelectors() {
+    return distinctSelectors;
+  }
+
+  public List<Selector> getRelevantSelectors() {
+    if (options.distinctSelectors) {
+      return distinctSelectors;
+    }
     return entries.selectors;
   }
 
@@ -202,6 +218,18 @@ public class TraceFormula {
       isAlwaysUnsat = true;
     }
 
+    if (options.distinctSelectors) {
+      Map<String, List<Selector>> friends =
+          getSelectors().stream()
+              .collect(Collectors.groupingBy(s -> s.correspondingEdge().getDescription()));
+      friends.forEach(
+          (e, v) -> {
+            Selector first = v.remove(0);
+            distinctSelectors.add(first);
+            v.forEach(s -> s.changeSelectorFormula(first));
+          });
+    }
+
     // Calculate formulas
     // No isPresent-check needed, because the Selector always exists (see the construction process above).
     BooleanFormula implicationFormula =
@@ -209,7 +237,7 @@ public class TraceFormula {
             .map(a -> bmgr.implication(Selector.of(a).orElseThrow().getFormula(), a))
             .collect(bmgr.toConjunction());
     actualForm = bmgr.and(bmgr.and(entries.atoms), postcondition);
-    implicationForm = bmgr.and(implicationFormula, postcondition);
+    implicationForm = implicationFormula;//bmgr.and(implicationFormula, postcondition);
   }
 
   private void calculateEntries(AlternativePrecondition altPre) throws CPATransferException, InterruptedException {
@@ -304,8 +332,7 @@ public class TraceFormula {
     }
 
     // Check if alternative precondition is required and remove corresponding entries.
-    if (/*options.algorithmType.equals("MAXSAT")
-        &&*/ (options.forcePre || bmgr.isTrue(precond))
+    if ((options.forcePre || bmgr.isTrue(precond))
         && !context.getSolver().isUnsat(bmgr.and(altPre.toFormula(), postcondition))) {
       for (BooleanFormula booleanFormula : altPre.getPreCondition()) {
         int index = entries.atoms.indexOf(booleanFormula);
@@ -314,7 +341,7 @@ public class TraceFormula {
       entries.maps.add(0, altPre.preConditionMap);
       return bmgr.and(precond, altPre.toFormula());
     }
-    entries.maps.add(SSAMap.emptySSAMap());
+    entries.maps.add(0, SSAMap.emptySSAMap());
     return precond;
   }
 
