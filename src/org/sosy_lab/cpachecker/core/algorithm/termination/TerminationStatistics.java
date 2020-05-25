@@ -31,7 +31,6 @@ import static java.util.logging.Level.FINER;
 import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.valueWithPercentage;
 
-import apache.harmony.math.BigInteger;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -55,6 +54,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
