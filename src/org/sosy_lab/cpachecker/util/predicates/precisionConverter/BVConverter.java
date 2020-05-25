@@ -26,12 +26,12 @@ package org.sosy_lab.cpachecker.util.predicates.precisionConverter;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.lang.String.format;
 
-import apache.harmony.math.BigInteger;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -199,7 +199,7 @@ public class BVConverter extends Converter {
     // simplify numerals, use the correct size directly instead of expensive casting
     if (term.matches("(\\(_\\sbv\\d+\\s\\d+\\))")) {
       List<String> splitted = Splitter.on(' ').splitToList(term);
-      BigInteger num = BigInteger.valueOf(splitted.get(1).substring(2));
+      BigInteger num = new BigInteger(splitted.get(1).substring(2));
       assert num.bitLength() <= neededBitsize:
         format("numeral %s does not fit into bitvector of length %d", num, neededBitsize);
       return getNumber(num, neededBitsize);
@@ -224,7 +224,7 @@ public class BVConverter extends Converter {
 
   @Override
   public Pair<String, Type<FormulaType<?>>> convertNumeral(String num) {
-    BigInteger n = BigInteger.valueOf(num);
+    BigInteger n = new BigInteger(num);
     // sufficient for a valid formula, we want one bit for bv0
     int bitsize = Math.max(1, n.bitLength());
     return Pair.of(
@@ -233,7 +233,8 @@ public class BVConverter extends Converter {
   }
 
   private String getNumber(BigInteger num, int bitsize) {
-    assert !num.isNegative() : "Negative numbers should be written with an unary minus.";
+    assert num.compareTo(BigInteger.ZERO) >= 0
+        : "Negative numbers should be written with an unary minus.";
     return format("(_ bv%s %d)", num, bitsize);
   }
 
