@@ -20,7 +20,6 @@
 	<classpathentry kind="lib" path="lib/java/test/junit.jar" sourcepath="lib/java-contrib/junit-sources.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/mockito-core.jar"/>
 	<classpathentry kind="lib" path="lib/java/test/hamcrest-core.jar"/>
-	<classpathentry kind="lib" path="lib/edu.cmu.sei.rtss.jldd.jar"/>
 	<classpathentry kind="lib" path="lib/jpl.jar"/>
 	<classpathentry kind="lib" path="lib/jsylvan.jar"/>
 	<classpathentry kind="lib" path="lib/apron.jar" sourcepath="lib/apron.jar"/>
