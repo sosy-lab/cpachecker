@@ -40,8 +40,3 @@ call "ant report-dependencies".
   It requires a working SWI-Prolog installation.
   Apache License, Version 2.0
 
-- symja: Symja is a pure Java library for symbolic mathematics.
-  https://bitbucket.org/axelclk/symja_android_library/wiki/Home
-  GNU Lesser General Public License
-  Symja is needed for simplifying symbolic expressions
-
