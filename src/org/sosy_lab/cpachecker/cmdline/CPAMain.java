@@ -39,10 +39,10 @@ import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
 import com.google.common.io.MoreFiles;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.io.StringWriter;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -57,7 +57,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.matheclipse.core.util.WriterOutputStream;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -731,11 +730,10 @@ public class CPAMain {
 
     PrintStream stream = makePrintStream(mergeStreams(console, file));
 
-    StringWriter statistics = new StringWriter();
+    ByteArrayOutputStream statistics = new ByteArrayOutputStream();
     try {
       // print statistics
-      PrintStream statisticsStream =
-          makePrintStream(mergeStreams(stream, new WriterOutputStream(statistics)));
+      PrintStream statisticsStream = makePrintStream(mergeStreams(stream, statistics));
       mResult.printStatistics(statisticsStream);
       stream.println();
 
@@ -763,7 +761,10 @@ public class CPAMain {
     // export report
     if (mResult.getResult() != Result.NOT_YET_STARTED) {
       reportGenerator.generate(
-          mResult.getResult(), mResult.getCfa(), mResult.getReached(), statistics.toString());
+          mResult.getResult(),
+          mResult.getCfa(),
+          mResult.getReached(),
+          statistics.toString(Charset.defaultCharset()));
     }
   }
 
