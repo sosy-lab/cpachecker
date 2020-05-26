@@ -16,6 +16,11 @@ For all other libraries and tools, document them here.
 License and copyright need to be declared in a `.license` file
 as supported by the `reuse` tool.
 
+- `apron.jar`, `gmp.jar`, `libjapron.so`, `libjgmp.so`:
+  [APRON numerical abstract domain library](http://apron.cri.ensmp.fr/library/)
+  and its [Java bindings](https://github.com/tobiatesan/japron)  
+  Used for polyhedral and octagon abstract domains
+
 - `cbmc`: [CBMC](http://www.cprover.org/cbmc/)  
   Bit-precise bounded model checker for C
 
