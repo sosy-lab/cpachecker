@@ -31,9 +31,7 @@ as supported by the `reuse` tool.
   BDD package for multi-core CPUs  
   Manual for building in `native/source/libsylvan.md`
 
-- `jpl.jar` and `libjpl.so`: [SWI-PL](http://www.swi-prolog.org/)  
-  Lesser GNU Public License
+- `jpl.jar` and `libjpl.so`: [SWI-PL](http://www.swi-prolog.org/)
 
 - `chc_lib`: CHC/CLP Generalization Operators Library  
-  It requires a working SWI-Prolog installation.  
-  Apache License, Version 2.0
+  It requires a working SWI-Prolog installation.
