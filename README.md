@@ -17,6 +17,8 @@ for a full list.
 In particular, MathSAT is available for research and evaluation purposes only
 (cf. `lib/license-libmathsatj.txt`),
 so make sure to use a different SMT solver if necessary.
+Note that although a GPL program is distributed together with CPAchecker,
+CPAchecker is separate from that program and thus not under the terms of the GPL.
 
 Prepare Programs for Verification by CPAchecker
 -----------------------------------------------

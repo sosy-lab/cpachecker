@@ -39,3 +39,7 @@ as supported by the `reuse` tool.
 
 - `chc_lib`: CHC/CLP Generalization Operators Library  
   It requires a working SWI-Prolog installation.
+
+- `ltl3ba`: [LTL3BA](https://sourceforge.net/projects/ltl3ba/)  
+  Translator of LTL formulae to Büchi automata based on LTL2BA
+  (command-line binary, includes [BuDDy](https://sourceforge.net/projects/buddy/))

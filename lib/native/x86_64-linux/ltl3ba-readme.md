@@ -1,6 +1,12 @@
 Instructions for building a new `ltl3ba` binary
 ===============================================
 
+Note that when updating ltl3ba,
+its sources (including statically linked dependencies)
+need to be committed to the repo in this directory
+to fulfill the GPL requirements!
+Also adjust ltl3ba.license where necessary.
+
 Requirements
 ----------------------------
 
@@ -9,9 +15,10 @@ LTL3BA was created and tested with BuDDy version 2.4.
 
 Steps for building BuDDy
 ----------------------------
-The url is taken from the sourceforge repository mentioned above.
+The archive was taken from the sourceforge repository mentioned above
+(repacked without doc and examples to save space):
 ```
-wget https://sourceforge.net/projects/buddy/files/latest/download -O buddy-2.4.tar.gz
+tar xf buddy-2.4.tar.xz
 cd buddy-2.4
 ./configure
 make
@@ -24,7 +31,6 @@ LTL3BA is open-source and [publicly available](https://sourceforge.net/projects/
 The current binary in CPAchecker was built using the version 1.1.3.
 
 ```
-wget https://sourceforge.net/projects/ltl3ba/files/latest/download -O ltl3ba-1.1.3.tar.gz
 tar xvf ltl3ba.tar.gz
 cd ltl3ba-1.1.3
 ```
