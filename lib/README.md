@@ -31,7 +31,6 @@ as supported by the `reuse` tool.
 - `jsylvan.jar` and `libsylvan.so`:
   [Sylvan](http://fmt.ewi.utwente.nl/tools/sylvan/)
   and its [Java bindings](https://github.com/trolando/jsylvan)  
-  Apache 2.0 License  
   BDD package for multi-core CPUs  
   Manual for building in `native/source/libsylvan.md`
 
@@ -43,3 +42,6 @@ as supported by the `reuse` tool.
 - `ltl3ba`: [LTL3BA](https://sourceforge.net/projects/ltl3ba/)  
   Translator of LTL formulae to Büchi automata based on LTL2BA
   (command-line binary, includes [BuDDy](https://sourceforge.net/projects/buddy/))
+
+- `z3`: [SMT Solver Z3](https://github.com/Z3Prover/z3)
+  The command-line binary is necessary because Ultimate LassoRanker calls it.
