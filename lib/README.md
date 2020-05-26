@@ -17,7 +17,6 @@ License and copyright need to be declared in a `.license` file
 as supported by the `reuse` tool.
 
 - `cbmc`: [CBMC](http://www.cprover.org/cbmc/)  
-  Open-source license: `license-cbmc.txt`  
   Bit-precise bounded model checker for C
 
 - `libJOct.so`: [Octagon Abstract Domain Library](http://www.di.ens.fr/~mine/oct/)  
