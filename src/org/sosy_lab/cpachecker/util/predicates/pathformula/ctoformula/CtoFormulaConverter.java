@@ -609,15 +609,6 @@ public class CtoFormulaConverter {
     return newVariable;
   }
 
-  protected Formula makeNondet(
-      final String name,
-      final FormulaType<?> fType,
-      final CType type,
-      final SSAMapBuilder ssa) {
-    Formula newVariable = makeFreshVariable(name, fType, type, ssa);
-    return newVariable;
-  }
-
   Formula makeStringLiteral(String literal) {
     Formula result = stringLitToFormula.get(literal);
 
@@ -802,7 +793,7 @@ public class CtoFormulaConverter {
   private Formula
       intBoolToInt(BooleanFormula formula, SSAMapBuilder ssa, Constraints constraints) {
     Formula newVariable =
-        makeNondet(
+        makeFreshVariable(
             INT_BOOL_TO_INT,
             FormulaType.IntegerType,
             CNumericTypes.INT.getCanonicalType(),
@@ -830,7 +821,11 @@ public class CtoFormulaConverter {
       Constraints constraints) {
     assert (bitvType instanceof BitvectorType);
     Formula newVariable =
-        makeNondet(INT_BOOL_TO_BITVECTOR, bitvType, CNumericTypes.INT.getCanonicalType(), ssa);
+        makeFreshVariable(
+            INT_BOOL_TO_BITVECTOR,
+            bitvType,
+            CNumericTypes.INT.getCanonicalType(),
+            ssa);
     assert (newVariable instanceof BitvectorFormula);
     BitvectorFormula placeh = (BitvectorFormula) newVariable;
     BitvectorFormula zero = efmgr.makeBitvector((BitvectorType) bitvType, 0);
