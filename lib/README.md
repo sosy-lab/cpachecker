@@ -20,7 +20,6 @@ as supported by the `reuse` tool.
   Bit-precise bounded model checker for C
 
 - `libJOct.so`: [Octagon Abstract Domain Library](http://www.di.ens.fr/~mine/oct/)  
-  Octagon-Abstract-Domain License: `license-octagon.txt`  
   Used for octagon abstract domain  
   Source for wrapper in `native/source/octagon-libJOct.so/`
 
