@@ -11,6 +11,10 @@ To add libraries there, add them to the file `ivy.xml`.
 Do not store any file in that directory, Ivy will delete it!
 To generate a report listing all libraries managed by Ivy,
 call `ant report-dependencies`.
+Licenses that are part of the `runtime` configuration
+will be bundled in CPAchecker release archives
+and thus their license text and copyright archive needs to be present.
+To ensure this add a note about the library to `java-runtime-licenses.txt`.
 
 For all other libraries and tools, document them here.
 License and copyright need to be declared in a `.license` file

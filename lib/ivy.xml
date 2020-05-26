@@ -32,6 +32,7 @@
     </configurations>
 
     <dependencies>
+        <!-- When adding/changing/removing a runtime dependency, make sure to also update java-runtime-licenses.txt! -->
 
         <!-- SoSy-Lab Common Library -->
         <dependency org="org.sosy_lab" name="common" rev="0.3000-392-g680ac82" conf="runtime->runtime; contrib->sources"/>

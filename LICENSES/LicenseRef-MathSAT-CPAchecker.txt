@@ -1,4 +1,4 @@
-  MathSAT5 is copyrighted 2009-2018 by Fondazione Bruno Kessler, Trento, Italy,
+  MathSAT5 is copyrighted 2009-2020 by Fondazione Bruno Kessler, Trento, Italy,
   University of Trento, Italy, and others. All rights reserved.
 
   MathSAT5 is available for research and evaluation purposes only.
