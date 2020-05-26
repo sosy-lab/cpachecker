@@ -12,6 +12,10 @@ Do not store any file in that directory, Ivy will delete it!
 To generate a report listing all libraries managed by Ivy,
 call `ant report-dependencies`.
 
+For all other libraries and tools, document them here.
+License and copyright need to be declared in a `.license` file
+as supported by the `reuse` tool.
+
 - `cbmc`: [CBMC](http://www.cprover.org/cbmc/)  
   Open-source license: `license-cbmc.txt`  
   Bit-precise bounded model checker for C

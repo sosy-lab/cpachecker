@@ -6,6 +6,18 @@ Develop and Contribute:     [`doc/Developing.md`](doc/Developing.md)
 
 More documentation can be found in the [`doc`](doc) folder.
 
+License and Copyright
+---------------------
+CPAchecker is licensed under the [Apache 2.0 License](https://www.apache.org/licenses/LICENSE-2.0)
+with copyright by [Dirk Beyer](https://www.sosy-lab.org/people/beyer/) and others
+(cf. Authors.txt for full list of all contributors).
+Third-party libraries are under various other licenses,
+run `ant report-dependencies` and open the produced HTML reports
+for a full list.
+In particular, MathSAT is available for research and evaluation purposes only
+(cf. `lib/license-libmathsatj.txt`),
+so make sure to use a different SMT solver if necessary.
+
 Prepare Programs for Verification by CPAchecker
 -----------------------------------------------
 
