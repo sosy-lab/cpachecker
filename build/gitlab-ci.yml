@@ -1,3 +1,11 @@
+# This file is part of SoSy-Lab Java-Project Template,
+# a collection of common files and build definitions for Java projects:
+# https://gitlab.com/sosy-lab/software/java-project-template
+#
+# SPDX-FileCopyrightText: 2018-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # DO NOT EDIT LOCALLY!
 # Keep this file synchronized with
 # https://gitlab.com/sosy-lab/software/java-project-template
@@ -185,6 +193,18 @@ refaster:
     variables:
       - $REFASTER_REPO_REVISION == null # required for job
       - $REFASTER_VERSION == null # required for job
+
+
+# check license declarations etc.
+reuse:
+  stage: checks
+  dependencies: []
+  needs: []
+  image:
+    name: fsfe/reuse:latest
+    entrypoint: [""]
+  script:
+    - reuse lint
 
 
 deploy-coverage:
