@@ -780,7 +780,13 @@ public class ExpressionToFormulaVisitor
           FormulaType<?> formulaType = conv.getFormulaTypeFromCType(paramType);
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
-            FloatingPointFormula param = (FloatingPointFormula)processOperand(parameters.get(0), paramType, paramType);
+            FloatingPointFormula param =
+                (FloatingPointFormula) conv.makeFormulaTypeCast(
+                    formulaType,
+                    paramType,
+                    processOperand(parameters.get(0), paramType, paramType),
+                    ssa,
+                    constraints);
             FloatingPointFormula fp_zero = fpfmgr.makeNumber(0, (FormulaType.FloatingPointType)formulaType);
 
             FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
