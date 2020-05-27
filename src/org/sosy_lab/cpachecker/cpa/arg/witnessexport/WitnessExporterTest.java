@@ -65,7 +65,9 @@ public class WitnessExporterTest {
 
     BDD_CONCURRENCY("bddAnalysis-concurrency"),
 
-    PREDICATE_ANALYSIS("predicateAnalysis");
+    PREDICATE_ANALYSIS("predicateAnalysis"),
+
+    VALUE_ANALYSIS("valueAnalysis");
 
     private final String fileName;
 
@@ -81,6 +83,22 @@ public class WitnessExporterTest {
   @Test(timeout = 90000)
   public void multivar_true() throws Exception {
     new WitnessTester("multivar.i", ExpectedVerdict.TRUE, WitnessGenerationConfig.K_INDUCTION)
+        .performTest();
+  }
+
+  @Test(timeout = 90000)
+  public void multivar_true_2() throws Exception {
+    new WitnessTester(
+            "multivar.i", ExpectedVerdict.TRUE, WitnessGenerationConfig.PREDICATE_ANALYSIS)
+        .performTest();
+  }
+
+  @Test(timeout = 90000)
+  public void aws_add_size_checked_harness_true() throws Exception {
+    new WitnessTester(
+            "aws_add_size_checked_harness.i",
+            ExpectedVerdict.TRUE,
+            WitnessGenerationConfig.VALUE_ANALYSIS)
         .performTest();
   }
 
@@ -123,6 +141,13 @@ public class WitnessExporterTest {
         .performTest();
   }
 
+  @Test(timeout = 90000)
+  public void rule60_list2_false_2() throws Exception {
+    new WitnessTester(
+        "rule60_list2.i", ExpectedVerdict.FALSE, WitnessGenerationConfig.VALUE_ANALYSIS)
+        .performTest();
+  }
+
   private static void performTest(
       String pFilename,
       String pSpecification,
@@ -162,6 +187,9 @@ public class WitnessExporterTest {
               + "::supply-reached-refinable");
     } else {
       overrideOptions.put("cpa.arg.proofWitness", pWitnessPath.uncompressedFilePath.toString());
+    }
+    if(pExpected.equals(ExpectedVerdict.TRUE)) {
+      overrideOptions.put("cpa.arg.compressWitness", "false");
     }
     Configuration generationConfig =
         getProperties(pGenerationConfig.fileName, overrideOptions, pSpecification);
