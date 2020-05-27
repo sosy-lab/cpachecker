@@ -183,7 +183,7 @@ final class Dominance {
     boolean changed = true;
 
     Arrays.fill(doms, UNDEFINED); // no immediate dominator is known
-    doms[start] = start; // start node is (only) dominated by itself
+    doms[start] = start; // needed to 'seed' the computation, reverted afterwards
 
     while (changed) {
       changed = false;
@@ -214,6 +214,8 @@ final class Dominance {
         index++; // skip delimiter
       }
     }
+
+    doms[start] = UNDEFINED; // the start node cannot have an immediate dominator
 
     return doms;
   }
@@ -470,9 +472,7 @@ final class Dominance {
 
       checkId(pId);
 
-      int idom = doms[pId];
-
-      return idom != pId ? idom : UNDEFINED;
+      return doms[pId];
     }
 
     /**
@@ -487,7 +487,7 @@ final class Dominance {
 
       checkId(pId);
 
-      return doms[pId] != UNDEFINED && doms[pId] != pId;
+      return doms[pId] != UNDEFINED;
     }
 
     /**
