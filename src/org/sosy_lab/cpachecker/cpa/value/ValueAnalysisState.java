@@ -777,7 +777,7 @@ public final class ValueAnalysisState
     try {
       Optional<ConfigurableProgramAnalysis> wrappedCpa = GlobalInfo.getInstance().getCPA();
       if (wrappedCpa.isPresent()) {
-        for (ConfigurableProgramAnalysis c : CPAs.asIterable(wrappedCpa.get())) {
+        for (ConfigurableProgramAnalysis c : CPAs.asIterable(wrappedCpa.orElseThrow())) {
           if (c instanceof ValueAnalysisCPA) {
             ValueAnalysisCPA vcpa = (ValueAnalysisCPA) c;
             Configuration config = vcpa.getConfiguration();
