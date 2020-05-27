@@ -36,14 +36,21 @@ public class TaDeclaration extends AFunctionDeclaration {
 
   private static final long serialVersionUID = 1L;
   private final Set<String> clocks;
+  private final Set<String> actions;
 
-  public TaDeclaration(FileLocation pFileLocation, String pName, Set<String> pClocks) {
+  public TaDeclaration(
+      FileLocation pFileLocation, String pName, Set<String> pClocks, Set<String> pActions) {
     super(pFileLocation, CFunctionType.NO_ARGS_VOID_FUNCTION, pName, pName, new ArrayList<>());
     clocks = pClocks;
+    actions = pActions;
   }
 
   public Set<String> getClocks() {
     return ImmutableSet.copyOf(clocks);
+  }
+
+  public Set<String> getActions() {
+    return ImmutableSet.copyOf(actions);
   }
 
   @Override

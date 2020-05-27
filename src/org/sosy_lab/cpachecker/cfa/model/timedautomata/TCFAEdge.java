@@ -23,9 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.model.timedautomata;
 
+import com.google.common.base.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariableCondition;
 import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
@@ -35,7 +35,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 public class TCFAEdge extends AbstractCFAEdge {
 
   private final Set<CIdExpression> variablesToReset;
-  private final TaVariableCondition guard;
+  private final Optional<TaVariableCondition> guard;
+  private final Optional<String> action;
 
   private static final long serialVersionUID = 5472749446453717391L;
 
@@ -43,22 +44,24 @@ public class TCFAEdge extends AbstractCFAEdge {
       FileLocation pFileLocation,
       CFANode pPredecessor,
       CFANode pSuccessor,
-      TaVariableCondition pGuard,
-      Set<CIdExpression> pResetStatements) {
-    super(getStatement(pGuard), pFileLocation, pPredecessor, pSuccessor);
+      Optional<TaVariableCondition> pGuard,
+      Set<CIdExpression> pResetStatements,
+      Optional<String> pAction) {
+    super("", pFileLocation, pPredecessor, pSuccessor);
     variablesToReset = pResetStatements;
     guard = pGuard;
+    action = pAction;
   }
 
-  private static String getStatement(CExpression pGuard) {
-    return pGuard.toASTString();
+  public Optional<String> getAction() {
+    return action;
   }
 
   public Set<CIdExpression> getVariablesToReset() {
     return variablesToReset;
   }
 
-  public TaVariableCondition getGuard() {
+  public Optional<TaVariableCondition> getGuard() {
     return guard;
   }
 
@@ -69,6 +72,6 @@ public class TCFAEdge extends AbstractCFAEdge {
 
   @Override
   public String getCode() {
-    return guard.toASTString();
+    return "";
   }
 }

@@ -4,7 +4,6 @@ import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
-import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAEdge;
@@ -12,6 +11,7 @@ import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 public class TatoFormulaConverter extends CtoFormulaConverter {
 
@@ -59,7 +60,8 @@ public class TatoFormulaConverter extends CtoFormulaConverter {
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
     var sourceNode = edge.getPredecessor();
-    if (sourceNode instanceof TCFAEntryNode) {
+    var targetNode = edge.getSuccessor();
+    if (sourceNode instanceof TCFAEntryNode && targetNode instanceof TCFANode) {
       return makeInitialFormula(edge, function, ssa, pts, constraints, errorConditions);
     }
     if (edge.getEdgeType() == CFAEdgeType.TimedAutomatonEdge) {
@@ -101,10 +103,10 @@ public class TatoFormulaConverter extends CtoFormulaConverter {
     var zero = fmgr.makeNumber(fmgr.getFormulaType(timeVariable), 0);
     var initialTimeGreaterZero = fmgr.makeGreaterOrEqual(timeVariable, zero, true);
 
-    var declaration = (TaDeclaration) ((TCFANode) initialEdge.getSuccessor()).getFunction();
+    var declaration = ((TCFANode) initialEdge.getSuccessor()).getAutomatonDeclaration();
     var allClocksZero = bfmgr.makeTrue();
     for (var clockVariable : declaration.getClocks()) {
-      var variable = makeFreshVariable(clockVariable, CNumericTypes.LONG_DOUBLE, ssa);
+      var variable = makeFreshVariable(clockVariable, getClockVariableCType(), ssa);
       var variableIsZero = fmgr.makeEqual(variable, zero);
       allClocksZero = bfmgr.and(allClocksZero, variableIsZero);
     }
@@ -124,18 +126,25 @@ public class TatoFormulaConverter extends CtoFormulaConverter {
   private BooleanFormula makeTimeUpdateFormula(final String function, final SSAMapBuilder ssa) {
     var oldTimeVar = getCurrentTimeVariableFormula(function, ssa);
     var newTimeVar =
-        makeFreshVariable(
-            getTimeVariableNameForAutomaton(function), CNumericTypes.LONG_DOUBLE, ssa);
+        makeFreshVariable(getTimeVariableNameForAutomaton(function), getClockVariableCType(), ssa);
 
     return fmgr.makeGreaterOrEqual(newTimeVar, oldTimeVar, true);
   }
 
-  private static String getTimeVariableNameForAutomaton(String automatonName) {
+  public static String getTimeVariableNameForAutomaton(String automatonName) {
     return automatonName + "#time";
   }
 
+  public static FormulaType<?> getClockVariableType() {
+    return FormulaType.getDoublePrecisionFloatingPointType();
+  }
+
+  public static CType getClockVariableCType() {
+    return CNumericTypes.LONG_DOUBLE;
+  }
+
   private Formula getCurrentTimeVariableFormula(final String function, final SSAMapBuilder ssa) {
-    return makeVariable(getTimeVariableNameForAutomaton(function), CNumericTypes.LONG_DOUBLE, ssa);
+    return makeVariable(getTimeVariableNameForAutomaton(function), getClockVariableCType(), ssa);
   }
 
   /**
@@ -150,8 +159,19 @@ public class TatoFormulaConverter extends CtoFormulaConverter {
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
     var successor = (TCFANode) edge.getSuccessor();
-    return makePredicate(
-        successor.getInvariant(), true, edge, function, ssa, pts, constraints, errorConditions);
+    if (successor.getInvariant().isPresent()) {
+      return makePredicate(
+          successor.getInvariant().get(),
+          true,
+          edge,
+          function,
+          ssa,
+          pts,
+          constraints,
+          errorConditions);
+    }
+
+    return bfmgr.makeTrue();
   }
 
   /**
@@ -166,11 +186,15 @@ public class TatoFormulaConverter extends CtoFormulaConverter {
       final Constraints constraints,
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
+    var transitionFormula = bfmgr.makeTrue();
 
     // guard
-    var guardFormula =
-        makePredicate(
-            edge.getGuard(), true, edge, function, ssa, pts, constraints, errorConditions);
+    if (edge.getGuard().isPresent()) {
+      var guardFormula =
+          makePredicate(
+              edge.getGuard().get(), true, edge, function, ssa, pts, constraints, errorConditions);
+      transitionFormula = bfmgr.and(guardFormula, transitionFormula);
+    }
 
     // clock reset
     var resetFormula = bfmgr.makeTrue();
@@ -181,19 +205,28 @@ public class TatoFormulaConverter extends CtoFormulaConverter {
           fmgr.makeEqual(variableFormula, getCurrentTimeVariableFormula(function, ssa));
       resetFormula = bfmgr.and(resetFormula, variableResetFormula);
     }
+    transitionFormula = bfmgr.and(resetFormula, transitionFormula);
 
     // successor invariant
     var successorInvariantFormula =
         makeSuccessorInvariantFormula(edge, function, ssa, pts, constraints, errorConditions);
+    transitionFormula = bfmgr.and(successorInvariantFormula, transitionFormula);
 
-    var transitionFormula = bfmgr.and(guardFormula, resetFormula, successorInvariantFormula);
+    // sync formula
+    if (edge.getAction().isPresent()) {
+      var actionVariable = makeFreshVariable(edge.getAction().get(), getClockVariableCType(), ssa);
+      var syncFormula =
+          fmgr.makeEqual(actionVariable, getCurrentTimeVariableFormula(function, ssa));
+      transitionFormula = bfmgr.and(syncFormula, transitionFormula);
+    }
 
     // delay transition
     var delayFormula = makeTimeUpdateFormula(function, ssa);
     var invariantAfterDelayFormula =
         makeSuccessorInvariantFormula(edge, function, ssa, pts, constraints, errorConditions);
     var delayTransitionFormula = bfmgr.and(delayFormula, invariantAfterDelayFormula);
+    transitionFormula = bfmgr.and(delayTransitionFormula, transitionFormula);
 
-    return bfmgr.and(transitionFormula, delayTransitionFormula);
+    return transitionFormula;
   }
 }

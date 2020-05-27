@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa.model.timedautomata;
 
+import com.google.common.base.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariableCondition;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -30,14 +31,14 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 public class TCFANode extends CFANode {
 
   private final String name;
-  private final TaVariableCondition invariant;
+  private final Optional<TaVariableCondition> invariant;
   private final boolean isInitialState;
 
   private static final long serialVersionUID = -7796108813615096804L;
 
   public TCFANode(
       String pName,
-      TaVariableCondition pInvariant,
+      Optional<TaVariableCondition> pInvariant,
       TaDeclaration pDeclaration,
       boolean pIsInitialState) {
     super(pDeclaration);
@@ -54,7 +55,11 @@ public class TCFANode extends CFANode {
     return isInitialState;
   }
 
-  public TaVariableCondition getInvariant() {
+  public Optional<TaVariableCondition> getInvariant() {
     return invariant;
+  }
+
+  public TaDeclaration getAutomatonDeclaration() {
+    return (TaDeclaration) getFunction();
   }
 }

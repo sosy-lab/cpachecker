@@ -379,8 +379,8 @@ public final class DOTBuilder2 {
       jnode.put("loop", node.isLoopStart());
       
       if(node instanceof TCFANode) {
-        TCFANode tcfaNode = (TCFANode)node; 
-        jnode.put("label", tcfaNode.getName() + "\nINV: " + tcfaNode.getInvariant().toASTString());
+        TCFANode tcfaNode = (TCFANode)node;
+        jnode.put("label", tcfaNode.getName());
         jnode.put("istimednode", true);
       }
 

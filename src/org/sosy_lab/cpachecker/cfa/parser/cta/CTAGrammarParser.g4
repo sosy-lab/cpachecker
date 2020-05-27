@@ -91,21 +91,11 @@ derivationCondition
 	;
 	
 transitionDefinition
-	: TRANS LBRACKET  (guardDefinition SEMICOLON)? (syncDefinition SEMICOLON)? (resetDefinition SEMICOLON)? (gotoDefinition SEMICOLON)? RBRACKET
+	: TRANS LBRACKET  (guardDefinition SEMICOLON)? (SYNC syncMark=IDENTIFIER SEMICOLON)? (resetDefinition SEMICOLON)? (gotoDefinition SEMICOLON)? RBRACKET
 	;
 
 guardDefinition
 	: GUARD variableCondition
-	;
-
-syncDefinition
-	: SYNC variableVisibilityPrefix IDENTIFIER
-	;
-
-variableVisibilityPrefix
-	: QUESTIONMARK
-	| EXCLAMATIONMARK
-	| HASH
 	;
 
 resetDefinition

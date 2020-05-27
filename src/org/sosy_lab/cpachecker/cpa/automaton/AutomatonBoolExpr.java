@@ -28,12 +28,15 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
@@ -561,8 +564,23 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     private final String label;
 
+    private final Map<String, String> automatonTargetLocations;
+
     public MatchLabelExact(String pLabel) {
       label = checkNotNull(pLabel);
+
+      // Timed automata are matched with the pattern Automaton:State;...
+      automatonTargetLocations = new HashMap<>();
+      var automatonDescriptions = Splitter.on(';').omitEmptyStrings().trimResults().split(pLabel);
+      for (var description : automatonDescriptions) {
+        var description_split =
+            Splitter.on(':').omitEmptyStrings().trimResults().splitToList(description);
+        if (description_split.size() != 2) {
+          continue;
+        }
+
+        automatonTargetLocations.put(description_split.get(0), description_split.get(1));
+      }
     }
 
     @Override
@@ -571,9 +589,19 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       if (successorNode instanceof CLabelNode
           && label.equals(((CLabelNode) successorNode).getLabel())) {
           return CONST_TRUE;
-      } else if (successorNode instanceof TCFANode
-          && label.equals(((TCFANode) successorNode).getName())) {
-        return CONST_TRUE;
+      } else if (successorNode instanceof TCFANode) {
+        var tcfaNode = (TCFANode) successorNode;
+        var automatonName = tcfaNode.getAutomatonDeclaration().getName();
+
+        if (!automatonTargetLocations.containsKey(automatonName)) {
+          return CONST_TRUE;
+        }
+
+        if (automatonTargetLocations.get(automatonName).equals(tcfaNode.getName())) {
+          return CONST_TRUE;
+        }
+
+        return CONST_FALSE;
       } else {
         return CONST_FALSE;
       }

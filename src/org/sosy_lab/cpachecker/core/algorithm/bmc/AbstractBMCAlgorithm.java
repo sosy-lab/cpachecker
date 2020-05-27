@@ -215,6 +215,10 @@ abstract class AbstractBMCAlgorithm
   private final List<ConditionAdjustmentEventSubscriber> conditionAdjustmentEventSubscribers =
       new CopyOnWriteArrayList<>();
 
+  public static final Predicate<AbstractState> HAS_ABSTRACT_PARENT =
+      Predicates.compose(
+          state -> !state.getParents().isEmpty(), AbstractStates.toState(ARGState.class));
+
   protected AbstractBMCAlgorithm(
       Algorithm pAlgorithm,
       ConfigurableProgramAnalysis pCPA,
@@ -380,7 +384,7 @@ abstract class AbstractBMCAlgorithm
         status = BMCHelper.unroll(logger, reachedSet, algorithm, cpa);
         stats.bmcPreparation.stop();
         if (from(reachedSet)
-            .skip(1) // first state of reached is always an abstraction state, so skip it
+            .filter(HAS_ABSTRACT_PARENT)
             .filter(not(IS_TARGET_STATE)) // target states may be abstraction states
             .anyMatch(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)) {
 

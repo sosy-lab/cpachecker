@@ -457,7 +457,6 @@ public class CFACreator {
           mainFunction = getCMainFunction(sourceFiles, c.getFunctions());
         break;
         case CTA:
-          // Only one automaton supported currently
           mainFunction = c.getFunctions().firstEntry().getValue();
           break;
       default:
