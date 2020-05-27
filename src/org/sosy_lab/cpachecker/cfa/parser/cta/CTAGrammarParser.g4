@@ -26,7 +26,7 @@ variableVisibilityQualifier
 	;
 
 variableDeclaration
-	: IDENTIFIER COLON variableType SEMICOLON
+	: name=IDENTIFIER COLON type=variableType SEMICOLON
 	;
 
 variableType
@@ -52,8 +52,6 @@ variableCondition
 
 variableExpression
 	: var=IDENTIFIER op=operator constant=NUMBER # BinaryVariableExpression
-	| TRUE # TrueExpression
-	| FALSE # FalseExpression
 	;
 
 operator

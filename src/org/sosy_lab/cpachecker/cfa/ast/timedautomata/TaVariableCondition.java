@@ -45,8 +45,6 @@ public class TaVariableCondition implements CExpression {
   /**
    * Creates a condition that represents a conjunction of expressions.
    *
-   * @param pFileLocation
-   * @param pExpressions
    */
   public TaVariableCondition(FileLocation pFileLocation, List<CExpression> pExpressions) {
     expressions = pExpressions;

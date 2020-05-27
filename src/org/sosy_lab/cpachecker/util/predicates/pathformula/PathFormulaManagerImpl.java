@@ -47,6 +47,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -78,6 +79,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFo
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TatoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
@@ -142,9 +144,15 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
       CFA pCfa, AnalysisDirection pDirection)
           throws InvalidConfigurationException {
-
-    this(pFmgr, config, pLogger, pShutdownNotifier, pCfa.getMachineModel(),
-        pCfa.getVarClassification(), pDirection);
+    this(
+        pFmgr,
+        config,
+        pCfa.getLanguage(),
+        pLogger,
+        pShutdownNotifier,
+        pCfa.getMachineModel(),
+        pCfa.getVarClassification(),
+        pDirection);
   }
 
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
@@ -152,7 +160,27 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       MachineModel pMachineModel,
       Optional<VariableClassification> pVariableClassification, AnalysisDirection pDirection)
           throws InvalidConfigurationException {
+    this(
+        pFmgr,
+        config,
+        Language.C,
+        pLogger,
+        pShutdownNotifier,
+        pMachineModel,
+        pVariableClassification,
+        pDirection);
+  }
 
+  public PathFormulaManagerImpl(
+      FormulaManagerView pFmgr,
+      Configuration config,
+      Language language,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      MachineModel pMachineModel,
+      Optional<VariableClassification> pVariableClassification,
+      AnalysisDirection pDirection)
+      throws InvalidConfigurationException {
     config.inject(this, PathFormulaManagerImpl.class);
 
     fmgr = pFmgr;
@@ -189,6 +217,18 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     } else {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel);
+      if (language == Language.CTA) {
+        converter =
+            new TatoFormulaConverter(
+                options,
+                fmgr,
+                pMachineModel,
+                pVariableClassification,
+                logger,
+                shutdownNotifier,
+                typeHandler,
+                pDirection);
+      } else {
       converter =
           new CtoFormulaConverter(
               options,
@@ -199,6 +239,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
               shutdownNotifier,
               typeHandler,
               pDirection);
+      }
 
       wpConverter =
           new CtoWpConverter(

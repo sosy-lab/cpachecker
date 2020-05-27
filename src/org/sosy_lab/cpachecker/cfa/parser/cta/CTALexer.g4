@@ -128,14 +128,6 @@ RESET
 	: 'RESET'
 	;
 
-TRUE
-	: 'True'
-	;
-
-FALSE
-	: 'False'
-	;
-
 QUESTIONMARK
 	: '?'
 	;

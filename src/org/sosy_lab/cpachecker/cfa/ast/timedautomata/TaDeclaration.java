@@ -23,7 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cfa.ast.timedautomata;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNodeVisitor;
@@ -33,9 +35,15 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 public class TaDeclaration extends AFunctionDeclaration {
 
   private static final long serialVersionUID = 1L;
+  private final Set<String> clocks;
 
-  public TaDeclaration(FileLocation pFileLocation, String pName) {
+  public TaDeclaration(FileLocation pFileLocation, String pName, Set<String> pClocks) {
     super(pFileLocation, CFunctionType.NO_ARGS_VOID_FUNCTION, pName, pName, new ArrayList<>());
+    clocks = pClocks;
+  }
+
+  public Set<String> getClocks() {
+    return ImmutableSet.copyOf(clocks);
   }
 
   @Override

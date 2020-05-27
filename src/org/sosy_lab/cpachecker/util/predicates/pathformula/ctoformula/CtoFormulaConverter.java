@@ -80,8 +80,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -1092,7 +1090,8 @@ public class CtoFormulaConverter {
   }
 
   /**
-   * This helper method creates a formula for an CFA edge, given the current function, SSA map and constraints.
+   * This helper method creates a formula for an CFA edge, given the current function, SSA map and
+   * constraints.
    *
    * @param edge the edge for which to create the formula
    * @param function the current scope
@@ -1100,11 +1099,14 @@ public class CtoFormulaConverter {
    * @param constraints the current constraints
    * @return the formula for the edge
    */
-  private BooleanFormula createFormulaForEdge(
-      final CFAEdge edge, final String function,
-      final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
-      final Constraints constraints, final ErrorConditions errorConditions)
-          throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
+  protected BooleanFormula createFormulaForEdge(
+      final CFAEdge edge,
+      final String function,
+      final SSAMapBuilder ssa,
+      final PointerTargetSetBuilder pts,
+      final Constraints constraints,
+      final ErrorConditions errorConditions)
+      throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
     switch (edge.getEdgeType()) {
     case StatementEdge: {
       return makeStatement((CStatementEdge) edge, function,
@@ -1148,9 +1150,6 @@ public class CtoFormulaConverter {
       return makeExitFunction(ce, function,
           ssa, pts, constraints, errorConditions);
 
-      case TimedAutomatonEdge:
-        return makeTimedEdgeFormula(
-            (TCFAEdge) edge, function, ssa, pts, constraints, errorConditions);
     default:
       throw new UnrecognizedCFAEdgeException(edge);
     }
@@ -1824,36 +1823,4 @@ public class CtoFormulaConverter {
    * @param out - output stream
    */
   public void printStatistics(PrintStream out) {}
-
-  /**
-   * Converts a timed automaton edge into a boolean formula representing the guard, invariant in the
-   * target state and clock resets
-   */
-  protected BooleanFormula makeTimedEdgeFormula(
-      final TCFAEdge edge,
-      final String function,
-      final SSAMapBuilder ssa,
-      final PointerTargetSetBuilder pts,
-      final Constraints constraints,
-      final ErrorConditions errorConditions)
-      throws UnrecognizedCodeException, InterruptedException {
-    var edgeFormula =
-        makePredicate(
-            edge.getGuard(), true, edge, function, ssa, pts, constraints, errorConditions);
-
-    for (var resetStatement : edge.getResetStatements()) {
-      var lhs = resetStatement.getLeftHandSide();
-      var rhs = resetStatement.getRightHandSide();
-      var resetFormula =
-          makeAssignment(lhs, rhs, edge, function, ssa, pts, constraints, errorConditions);
-      edgeFormula = bfmgr.and(edgeFormula, resetFormula);
-    }
-
-    TCFANode successor = (TCFANode) edge.getSuccessor();
-    BooleanFormula successorInvariantFormula =
-        makePredicate(
-            successor.getInvariant(), true, edge, function, ssa, pts, constraints, errorConditions);
-
-    return bfmgr.and(edgeFormula, successorInvariantFormula);
-  }
 }

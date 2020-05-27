@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cfa.parser.cta;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -39,11 +40,10 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -58,7 +58,6 @@ import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAExitNode;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFANode;
 import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.AutomatonDefinitionContext;
 import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.BinaryVariableExpressionContext;
-import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.FalseExpressionContext;
 import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.GotoDefinitionContext;
 import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.GuardDefinitionContext;
 import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.InitialConfigDefinitionContext;
@@ -66,8 +65,8 @@ import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.Invaria
 import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.ModuleSpecificationContext;
 import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.StateDefinitionContext;
 import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.TransitionDefinitionContext;
-import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.TrueExpressionContext;
 import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.VariableConditionContext;
+import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.VariableDeclarationContext;
 import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParserBaseVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
@@ -81,6 +80,7 @@ class TCFABuilder extends CTAGrammarParserBaseVisitor<Object> {
   NavigableMap<String, FunctionEntryNode> entryNodesByAutomaton;
   private TaDeclaration currentDeclaration;
   private Map<String, CIdExpression> idExpressionsByVariableName;
+  private Set<String> clocksOfCurrentModule;
 
   private String fileName;
 
@@ -120,8 +120,12 @@ class TCFABuilder extends CTAGrammarParserBaseVisitor<Object> {
 
   @Override
   public Object visitModuleSpecification(ModuleSpecificationContext pCtx) {
+    clocksOfCurrentModule = new HashSet<>();
     if (pCtx.initialConfigDefinition() != null) {
       visit(pCtx.initialConfigDefinition());
+    }
+    if (pCtx.variableDeclarationGroup(0) != null) {
+      visit(pCtx.variableDeclarationGroup(0));
     }
     if (pCtx.automatonDefinition() != null) {
       visit(pCtx.automatonDefinition());
@@ -151,26 +155,24 @@ class TCFABuilder extends CTAGrammarParserBaseVisitor<Object> {
   public Object visitBinaryVariableExpression(BinaryVariableExpressionContext pCtx) {
     var fileLocation = getFileLocation(pCtx);
     var variable = createIdExpression(getFileLocation(pCtx.var), pCtx.var.getText());
-    var constant = createLiteralExpression(getFileLocation(pCtx.constant), pCtx.constant.getText());
+    var constant =
+        createFloatLiteralExpression(getFileLocation(pCtx.constant), pCtx.constant.getText());
     var operator = getOperatorFromString(pCtx.operator().getText());
 
     return createBinaryExpression(fileLocation, variable, constant, operator);
   }
 
   @Override
-  public Object visitTrueExpression(TrueExpressionContext ctx) {
-    return createLiteralExpression(getFileLocation(ctx), "1");
-  }
-
-  @Override
-  public Object visitFalseExpression(FalseExpressionContext ctx) {
-    return createLiteralExpression(getFileLocation(ctx), "0");
+  public Object visitVariableDeclaration(VariableDeclarationContext ctx) {
+    clocksOfCurrentModule.add(ctx.name.getText());
+    return null;
   }
 
   @Override
   public Object visitAutomatonDefinition(AutomatonDefinitionContext pCtx) {
     var automatonName = pCtx.IDENTIFIER().getText();
-    currentDeclaration = new TaDeclaration(getFileLocation(pCtx), automatonName);
+    currentDeclaration =
+        new TaDeclaration(getFileLocation(pCtx), automatonName, clocksOfCurrentModule);
 
     // unique entry and exit nodes are required for CFAs:
     var exitNode = new TCFAExitNode(currentDeclaration);
@@ -223,7 +225,7 @@ class TCFABuilder extends CTAGrammarParserBaseVisitor<Object> {
     var stateName = pCtx.name.getText();
     TaVariableCondition invariant = null;
     if (pCtx.invariantDefinition() == null) {
-      invariant = createAlwaysTrueCondition(getFileLocation(pCtx));
+      invariant = createConstantCondition(getFileLocation(pCtx), true);
     } else {
       invariant = (TaVariableCondition) visit(pCtx.invariantDefinition());
     }
@@ -242,28 +244,26 @@ class TCFABuilder extends CTAGrammarParserBaseVisitor<Object> {
     TaVariableCondition guard = null;
     var fileLocation = getFileLocation(pCtx);
     if (pCtx.guardDefinition() == null) {
-      guard = createAlwaysTrueCondition(fileLocation);
+      guard = createConstantCondition(fileLocation, true);
     } else {
       var gd = pCtx.guardDefinition();
       guard = (TaVariableCondition) visit(gd);
     }
 
-    Set<CAssignment> resetStatements = null;
+    Set<CIdExpression> variablesToReset = null;
     if (pCtx.resetDefinition() == null) {
-      resetStatements = new HashSet<>();
+      variablesToReset = new HashSet<>();
     } else {
-      resetStatements = new HashSet<>(pCtx.resetDefinition().IDENTIFIER().size());
+      variablesToReset = new HashSet<>(pCtx.resetDefinition().IDENTIFIER().size());
       for (var identifier : pCtx.resetDefinition().vars) {
-        var resetStatement =
-            createResetStatement(getFileLocation(identifier), identifier.getText());
-        resetStatements.add(resetStatement);
+        variablesToReset.add(createIdExpression(fileLocation, identifier.getText()));
       }
     }
 
     TCFANode source = currentSourceNode;
     TCFANode target = (TCFANode) visit(pCtx.gotoDefinition());
 
-    var edge = new TCFAEdge(fileLocation, source, target, guard, resetStatements);
+    var edge = new TCFAEdge(fileLocation, source, target, guard, variablesToReset);
     source.addLeavingEdge(edge);
     target.addEnteringEdge(edge);
 
@@ -284,46 +284,40 @@ class TCFABuilder extends CTAGrammarParserBaseVisitor<Object> {
       FileLocation pFileLocation, AExpression op1, AExpression op2, BinaryOperator operator) {
     return new CBinaryExpression(
         pFileLocation,
-        createDummyType(),
-        createDummyType(),
+        CNumericTypes.BOOL,
+        CNumericTypes.BOOL,
         (CExpression) op1,
         (CExpression) op2,
         operator);
   }
 
-  private static CType createDummyType() {
-    return CNumericTypes.UNSIGNED_LONG_LONG_INT;
+  private static CType createFloatType() {
+    return CNumericTypes.LONG_DOUBLE;
   }
 
   private CIdExpression createIdExpression(FileLocation pFileLocation, String name) {
     if (!idExpressionsByVariableName.containsKey(name)) {
       var declaration =
           new CVariableDeclaration(
-              pFileLocation, false, CStorageClass.AUTO, createDummyType(), name, name, name, null);
-      var idExpression = new CIdExpression(pFileLocation, createDummyType(), name, declaration);
+              pFileLocation, false, CStorageClass.AUTO, createFloatType(), name, name, name, null);
+      var idExpression = new CIdExpression(pFileLocation, createFloatType(), name, declaration);
       idExpressionsByVariableName.put(name, idExpression);
     }
 
     return idExpressionsByVariableName.get(name);
   }
 
-  private static TaVariableCondition createAlwaysTrueCondition(FileLocation pFileLocation) {
-    var expression = createLiteralExpression(pFileLocation, "1");
+  private static TaVariableCondition createConstantCondition(
+      FileLocation pFileLocation, boolean pValue) {
+    var value = new BigInteger(pValue ? "1" : "0");
+    var expression = new CIntegerLiteralExpression(pFileLocation, CNumericTypes.BOOL, value);
     return new TaVariableCondition(pFileLocation, ImmutableList.of(expression));
   }
 
-  private static CIntegerLiteralExpression createLiteralExpression(
+  private static CFloatLiteralExpression createFloatLiteralExpression(
       FileLocation pFileLocation, String rawValue) {
-    var value = new BigInteger(rawValue);
-    return new CIntegerLiteralExpression(pFileLocation, createDummyType(), value);
-  }
-
-  private CAssignment createResetStatement(FileLocation pFileLocation, String variableName) {
-    var variableIdExpression = createIdExpression(pFileLocation, variableName);
-    var setToZeroExpression = createLiteralExpression(pFileLocation, "0");
-
-    return new CExpressionAssignmentStatement(
-        pFileLocation, variableIdExpression, setToZeroExpression);
+    var value = new BigDecimal(rawValue);
+    return new CFloatLiteralExpression(pFileLocation, createFloatType(), value);
   }
 
   private static BinaryOperator getOperatorFromString(String op) {
