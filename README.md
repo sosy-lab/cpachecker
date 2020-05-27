@@ -10,7 +10,7 @@ License and Copyright
 ---------------------
 CPAchecker is licensed under the [Apache 2.0 License](https://www.apache.org/licenses/LICENSE-2.0)
 with copyright by [Dirk Beyer](https://www.sosy-lab.org/people/beyer/) and others
-(cf. Authors.txt for full list of all contributors).
+(cf. [Authors.md](Authors.md) for full list of all contributors).
 Third-party libraries are under various other licenses and copyrights,
 cf. `lib/java-runtime-licenses.txt` for an overview
 and the files in the directory `LICENSES` for the full license texts.
