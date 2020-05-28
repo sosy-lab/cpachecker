@@ -35,7 +35,6 @@ import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiPredicate;
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -55,7 +54,6 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 public class WitnessExporter {
 
@@ -72,8 +70,6 @@ public class WitnessExporter {
     @Override
     public ExpressionTree<Object> provideInvariantFor(
         CFAEdge pEdge, Optional<? extends Collection<? extends ARGState>> pStates) {
-      // TODO interface for extracting the information from states, similar to
-      // FormulaReportingState
       if (!pStates.isPresent()) {
         return ExpressionTrees.getTrue();
       }
@@ -114,7 +110,6 @@ public class WitnessExporter {
     pConfig.inject(options);
     this.cfa = pCFA;
     this.logger = pLogger;
-    Solver.create(pConfig, pLogger, ShutdownNotifier.createDummy()).close();
     this.verificationTaskMetaData = new VerificationTaskMetaData(pConfig, pSpecification);
   }
 
