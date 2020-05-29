@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TatoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -58,22 +59,10 @@ public enum TimedAutomatonCandidateInvariant implements CandidateInvariant {
     Map<String, BooleanFormula> formulaByAutomata = new HashMap<>();
     Iterable<AbstractState> targetStates = filterApplicable(pReachedSet);
 
-    Map<String, Integer> maxVariableIndex = new HashMap<>();
-    for (PredicateAbstractState e :
-        AbstractStates.projectToType(targetStates, PredicateAbstractState.class)) {
-      var ssa = e.getPathFormula().getSsa();
-      for (var variable : ssa.allVariables()) {
-        maxVariableIndex.put(
-            variable, Math.max(ssa.getIndex(variable), maxVariableIndex.getOrDefault(variable, 0)));
-      }
-    }
-
-    var minusOne = pFMGR.makeNumber(TatoFormulaConverter.getClockVariableType(), -1);
-    var finalSyncAction =
-        pFMGR.makeVariable(TatoFormulaConverter.getClockVariableType(), "#final_sync");
+    // post-process each formula and build formula for each component automaton
     for (AbstractState aState : targetStates) {
       var location = (TCFANode) AbstractStates.extractLocation(aState);
-      var automatonActions = location.getAutomatonDeclaration().getActions();
+      var allActionsOfAutomaton = location.getAutomatonDeclaration().getActions();
       var automatonName = location.getAutomatonDeclaration().getName();
       var predicateState = AbstractStates.extractStateByType(aState, PredicateAbstractState.class);
       var ssa = predicateState.getPathFormula().getSsa();
@@ -84,36 +73,57 @@ public enum TimedAutomatonCandidateInvariant implements CandidateInvariant {
                   predicateState.getAbstractionFormula().getBlockFormula().getFormula(),
                   predicateState.getPathFormula().getFormula());
 
-      // add constraints for action that are not present in the formula
-      for (var action : automatonActions) {
-        for (int nextIndex = ssa.getIndex(action) + 1;
-            nextIndex <= maxVariableIndex.get(action);
-            nextIndex++) {
-          var actionVariable =
-              pFMGR.makeVariable(TatoFormulaConverter.getClockVariableType(), action, nextIndex);
-          var actionEqMinusOne = pFMGR.makeEqual(actionVariable, minusOne);
-          formula = pFMGR.makeAnd(actionEqMinusOne, formula);
-        }
-      }
-
-      // add final sync constraint
-      var timeVariableName = TatoFormulaConverter.getTimeVariableNameForAutomaton(automatonName);
-      var timeVariable =
-          pFMGR.makeVariable(
-              TatoFormulaConverter.getClockVariableType(),
-              timeVariableName,
-              ssa.getIndex(timeVariableName));
-      var finalSyncConstraint = pFMGR.makeEqual(finalSyncAction, timeVariable);
-      formula = pFMGR.makeAnd(finalSyncConstraint, formula);
+      var formulaSynced =
+          getFormulaWithSyncConstraints(formula, pFMGR, allActionsOfAutomaton, automatonName, ssa);
 
       // add formula to formula that describes the component automaton
       var automatonFormula =
           formulaByAutomata.getOrDefault(
               automatonName, pFMGR.getBooleanFormulaManager().makeFalse());
-      formulaByAutomata.put(automatonName, pFMGR.makeOr(formula, automatonFormula));
+      formulaByAutomata.put(automatonName, pFMGR.makeOr(formulaSynced, automatonFormula));
     }
 
     return pFMGR.makeNot(pFMGR.getBooleanFormulaManager().and(formulaByAutomata.values()));
+  }
+
+  /**
+   * Adds constraints to the formula which ensure that the conjunction of formulas of the component
+   * automata represent a consistent run in the product automaton: Number of occurence of each
+   * action: Ensures that shared actions are executed equally often by each component automaton.
+   * Final sync: Ensures that local clocks are synchronized (and thus consistent) in all final
+   * states.
+   */
+  private BooleanFormula getFormulaWithSyncConstraints(
+      BooleanFormula formula,
+      FormulaManagerView pFMGR,
+      Iterable<String> allActionsOfAutomaton,
+      String automatonName,
+      SSAMap ssa) {
+    // add constraints for number of action occurences
+    for (var action : allActionsOfAutomaton) {
+      var actionOccurenceCountVar =
+          pFMGR.makeVariableWithoutSSAIndex(
+              TatoFormulaConverter.getClockVariableType(), action + "#cnt");
+      var actionOccurenceCountVal =
+          pFMGR.makeNumber(TatoFormulaConverter.getClockVariableType(), ssa.getIndex(action));
+      var actionOccurenceCountFormula =
+          pFMGR.makeEqual(actionOccurenceCountVar, actionOccurenceCountVal);
+      formula = pFMGR.makeAnd(actionOccurenceCountFormula, formula);
+    }
+
+    // add final sync constraint
+    var timeVariableName = TatoFormulaConverter.getTimeVariableNameForAutomaton(automatonName);
+    var timeVariable =
+        pFMGR.makeVariable(
+            TatoFormulaConverter.getClockVariableType(),
+            timeVariableName,
+            ssa.getIndex(timeVariableName));
+    var finalSyncAction =
+        pFMGR.makeVariable(TatoFormulaConverter.getClockVariableType(), "#final_sync");
+    var finalSyncConstraint = pFMGR.makeEqual(finalSyncAction, timeVariable);
+    formula = pFMGR.makeAnd(finalSyncConstraint, formula);
+
+    return formula;
   }
 
   @Override
