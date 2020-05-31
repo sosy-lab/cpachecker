@@ -38,7 +38,20 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
-/** A utility class for calculating dominance trees and dominance frontiers. */
+/**
+ * A utility class for computing dominance trees and dominance frontiers.
+ *
+ * <p>A dominance tree ({@link DomTree}) is created by {@link #createDomTree}. The resulting tree
+ * cannot directly be used for tree traversal (e.g. depth-first search), as every node only contains
+ * a reference to its parent, but no references to its children.
+ *
+ * <p>If references to children are required, a traversable version of the dominance tree ({@link
+ * DomTraversable}) can by created by {@link #createDomTraversable(DomTree)}.
+ *
+ * <p>Dominance frontiers ({@link DomFrontiers}) are created by {@link
+ * #createDomFrontiers(DomTree)}. A {@link DomFrontiers}-object contains the dominance frontier for
+ * every node in the graph.
+ */
 final class Dominance {
 
   /** Undefined ID. */
@@ -55,9 +68,10 @@ final class Dominance {
       Function<? super T, ? extends Iterable<? extends T>> pSuccFunc,
       Function<? super T, ? extends Iterable<? extends T>> pPredFunc) {
 
-    // visited.get(node) == null: node not seen and not visited
-    // visited.get(node) == UNDEFINED: node seen but not visited
-    // visited.get(node) != null && != UNDEFINED: node seen and visited
+    // every node goes through the following stages (in this order):
+    // visited.get(node) == null: node was not encountered during graph traversal
+    // visited.get(node) == UNDEFINED: node was encountered during graph traversal, but has no ID
+    // visited.get(node) != null && != UNDEFINED: node has ID
     Map<T, Integer> visited = new HashMap<>();
     Deque<T> stack = new ArrayDeque<>();
     int counter = 0;
@@ -70,26 +84,26 @@ final class Dominance {
       T current = stack.pop();
 
       Integer id = visited.get(current);
-      if (id != null && id != UNDEFINED) { // node already visited?
+      if (id != null && id != UNDEFINED) { // node already has ID?
         continue;
       }
 
       for (T pred : pPredFunc.apply(current)) { // visit predecessors first
-        if (!visited.containsKey(pred)) { // not seen and not visited?
+        if (!visited.containsKey(pred)) { // predecessor never encountered before?
           stack.push(current);
           stack.push(pred);
-          visited.put(pred, UNDEFINED); // set node as seen but not visited
+          visited.put(pred, UNDEFINED); // mark node as encountered
           continue outer; // continue with predecessor (top stack element)
         }
       }
 
-      for (T succ : pSuccFunc.apply(current)) { // visit successors
-        if (!visited.containsKey(succ)) {
+      for (T succ : pSuccFunc.apply(current)) { // push successors onto the stack
+        if (!visited.containsKey(succ)) { // successor never encountered before?
           stack.push(succ);
         }
       }
 
-      visited.put(current, counter); // set node as visited
+      visited.put(current, counter); // set a node's ID
       counter++;
     }
 
@@ -105,7 +119,7 @@ final class Dominance {
    *
    * @param <T> the node-type of the specified graph.
    * @param pIds the ID-map (node to ID).
-   * @param pNodes an empty array for storing all nodes in ascending ID-order. The array is filled
+   * @param pNodes an empty array for storing all nodes in ascending-ID-order. The array is filled
    *     in this method. The length of the array must be equal to the size of the ID-map.
    * @param pPredFunc the predecessor-function.
    * @return the created {@link DomInput}-object.
@@ -115,19 +129,26 @@ final class Dominance {
       T[] pNodes,
       Function<? super T, ? extends Iterable<? extends T>> pPredFunc) {
 
+    // predsList is accessed by a node's reverse-postorder-ID (index == ID)
+    // and contains a list of predecessors for every node (the ID of a predecessor is stored)
     List<List<Integer>> predsList = new ArrayList<>(Collections.nCopies(pIds.size(), null));
+    int predCount = 0; // counts how many node-predecessor relationships are in the whole graph
 
-    List<Integer> preds = new ArrayList<>();
-    int predCount = 0;
+    List<Integer> preds = new ArrayList<>(); // stores the predecessors for a specific node
     for (Map.Entry<T, Integer> entry : pIds.entrySet()) {
+
       int id = entry.getValue();
 
-      for (T next : pPredFunc.apply(entry.getKey())) {
-        Integer predId = pIds.get(next);
+      for (T pred : pPredFunc.apply(entry.getKey())) {
+
+        Integer predId = pIds.get(pred);
+
         assert predId != null
-            : "Unknown node (missing order-ID): "
-                + next
-                + "; possible reasons: the graph changed, the predecessor- and successor-functions are incorrect";
+            : "Node has no reverse-postorder-ID: "
+                + pred
+                + "\n"
+                + "  Is the successor-function or predecessor-function incorrect?\n"
+                + "  Has the graph changed (concurrency issue)?";
 
         preds.add(predId);
         predCount++;
@@ -143,6 +164,9 @@ final class Dominance {
 
   /**
    * Creates the {@link DomTree} (dominance tree) for the specified graph.
+   *
+   * <p>Successors and predecessors of all graph nodes must not change during the creation of the
+   * dominance tree.
    *
    * @param <T> the node-type of the specified graph.
    * @param pStartNode the start node for graph traversal and root for resulting dominance tree.
@@ -162,23 +186,23 @@ final class Dominance {
 
     Map<T, Integer> ids = createReversePostOrder(pStartNode, pSuccFunc, pPredFunc);
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked") // it's impossible to create a new generic array T[]
     T[] nodes = (T[]) new Object[ids.size()];
 
     DomInput input = createDomInput(ids, nodes, pPredFunc);
 
-    int[] doms = calculateDoms(input);
+    int[] doms = computeDoms(input);
 
     return new DomTree<>(input, ids, nodes, doms);
   }
 
   /**
-   * Iterative Algorithm for calculating the immediate dominators of all nodes. For more information
+   * Iterative Algorithm for computing the immediate dominators of all nodes. For more information
    * on the algorithm, see "A Simple, Fast Dominance Algorithm" (Cooper et al.).
    */
-  private static int[] calculateDoms(final DomInput pInput) {
+  private static int[] computeDoms(final DomInput pInput) {
 
-    final int start = pInput.getNodeCount() - 1; // start node is node with the highest number
+    final int start = pInput.getNodeCount() - 1; // the start node is the node with the greatest ID
     int[] doms = new int[pInput.getNodeCount()]; // doms[x] == immediate dominator of x
     boolean changed = true;
 
@@ -188,7 +212,7 @@ final class Dominance {
     while (changed) {
       changed = false;
 
-      int index = 0; // index for input data
+      int index = 0; // index for input data (data format is specified in DomInput)
       for (int id = 0; id < start; id++) { // all nodes in reverse-post-order (except start)
         int idom = UNDEFINED; // immediate dominator for node
 
@@ -220,6 +244,11 @@ final class Dominance {
     return doms;
   }
 
+  /**
+   * Computes the intersection of doms(pId1) and doms(pId2) (doms(x) == all nodes that dominate x).
+   * Cooper et al. describe it as "[walking] up the the dominance tree from two different nodes
+   * until a common parent is reached".
+   */
   private static int intersect(final int[] pDoms, final int pId1, final int pId2) {
 
     int f1 = pId1;
@@ -238,8 +267,8 @@ final class Dominance {
   }
 
   /**
-   * Creates the {@link DomFrontiers}-object containing dominance frontiers for all nodes in the
-   * dominance tree.
+   * Creates the {@link DomFrontiers}-object that contains the dominance frontier for every node in
+   * the dominance tree.
    *
    * @param <T> the node-type of the original graph.
    * @param pDomTree the {@link DomTree} (dominance tree) of the original graph.
@@ -250,7 +279,7 @@ final class Dominance {
 
     Objects.requireNonNull(pDomTree, "pDomTree must not be null");
 
-    DomFrontiers.Frontier[] frontiers = calculateFrontiers(pDomTree.getInput(), pDomTree.getDoms());
+    DomFrontiers.Frontier[] frontiers = computeFrontiers(pDomTree.getInput(), pDomTree.getDoms());
 
     return new DomFrontiers<>(pDomTree.getIds(), pDomTree.getNodes(), frontiers);
   }
@@ -259,7 +288,7 @@ final class Dominance {
    * For more information on the algorithm, see "A Simple, Fast Dominance Algorithm" (Cooper et
    * al.).
    */
-  private static DomFrontiers.Frontier[] calculateFrontiers(
+  private static DomFrontiers.Frontier[] computeFrontiers(
       final DomInput pInput, final int[] pDoms) {
 
     DomFrontiers.Frontier[] frontiers = new DomFrontiers.Frontier[pInput.getNodeCount()];
@@ -267,16 +296,16 @@ final class Dominance {
       frontiers[id] = new DomFrontiers.Frontier();
     }
 
-    int index = 0; // index for input data
+    int index = 0; // index for input data (data format is specified in DomInput)
     for (int id = 0; id < pInput.getNodeCount(); id++) { // all nodes
 
-      if (pInput.data[index] == DomInput.DELIMITER) { // has zero predecessors?
+      if (pInput.data[index] == DomInput.DELIMITER) { // has no predecessors?
         index++; // skip delimiter
         continue;
       }
 
-      if (pInput.data[index + 1] == DomInput.DELIMITER) { // has only one predecessor?
-        index += 2; // skip single predecessor + delimiter
+      if (pInput.data[index + 1] == DomInput.DELIMITER) { // has exactly one predecessor?
+        index += 2; // skip only predecessor + delimiter
         continue;
       }
 
@@ -298,8 +327,9 @@ final class Dominance {
   }
 
   /**
-   * Creates the corresponding {@link DomTraversable} for a specified {@link DomTree}. The resulting
-   * DomTraversable can be used to traverse the specified dominance tree.
+   * Creates the corresponding {@link DomTraversable} for a specified {@link DomTree}.
+   *
+   * <p>The resulting DomTraversable can be used to traverse the specified dominance tree.
    *
    * @param <T> the node-type of the original graph.
    * @param pDomTree the {@link DomTree} (dominance tree) of the original graph.
@@ -313,18 +343,26 @@ final class Dominance {
     return DomTraversable.create(pDomTree);
   }
 
-  /** DomInput stores predecessors for all nodes and the number of nodes. */
+  /**
+   * DomInput stores the predecessors for every node as well as the number of nodes in the whole
+   * graph.
+   */
   private static final class DomInput {
 
     private static final int DELIMITER = -2;
 
+    // the data array contains the predecessors (their IDs) of every node
+    // the predecessors of a node are separated by a DELIMITER from other predecessors
+    // the first group of predecessors are for the node with ID == 0,
+    // the second group for node with ID == 1, ..., the last group for node with ID == nodeCount - 1
+    // the array must contain exactly one DELIMITER per node and its last element must be DELIMITER
+    //
     // p_X_Y: predecessor Y of node X
-    // format example: [p_0_0, p_0_1, DELIMITER, p_1_0, DELIMITER, DELIMITER, p_3_0, ...]
+    // format example: [p_0_a, p_0_b, DELIMITER, p_1_c, DELIMITER, DELIMITER, p_3_d, ...]
     // - node 0 has 2 predecessors
     // - node 1 has 1 predecessor
     // - node 2 has 0 predecessors
     // - node 3 has (at least) 1 predecessor
-    // the array must contain exactly one delimiter for every node
     private final int[] data;
 
     private final int nodeCount;
@@ -349,7 +387,7 @@ final class Dominance {
       return new DomInput(data, pData.size());
     }
 
-    /** Number of nodes in the graph. */
+    /** Number of nodes in the whole graph. */
     private int getNodeCount() {
       return nodeCount;
     }
@@ -358,11 +396,12 @@ final class Dominance {
   /**
    * A data structure representing a dominance tree.
    *
-   * <p>A node's parent in a dominance tree is its immediate dominator. All dominators for a node
-   * can be obtained by collecting the node and all its ancestors.
+   * <p>A node's parent in a dominance tree is its immediate dominator. All dominators of a node can
+   * be obtained by creating a set out of the node and all its ancestors.
    *
-   * <p>Depending on the structure of the graph, a single {@code DomTree}-object can have multiple
-   * roots, so not all nodes have to be (transitively) connected to a single root.
+   * <p>Depending on the structure of the graph, not all nodes have to be (transitively) connected
+   * to a single root. This happens when there are some nodes that aren't dominated by start node
+   * (i.e. the root of the dominance tree).
    *
    * <p>This class implements {@link Iterable}, which enables iteration over all contained nodes in
    * ascending ID-order.
@@ -410,9 +449,9 @@ final class Dominance {
     }
 
     /**
-     * Returns the number of nodes in the tree.
+     * Returns the number of nodes in this tree.
      *
-     * @return the number of nodes in the tree.
+     * @return the number of nodes in this tree.
      */
     public int getNodeCount() {
       return nodes.length;
@@ -422,10 +461,10 @@ final class Dominance {
      * Returns the ID for the specified node.
      *
      * <p>A valid ID for a node is {@code >= 0}, {@code < getNodeCount()}, and unique for every node
-     * in the tree. All valid IDs are used (there is a node for every valid ID).
+     * in this tree. All valid IDs are used (there is a node for every valid ID).
      *
      * @param pNode the node to get the ID for.
-     * @return the ID of the node, if the node is contained in the tree; otherwise, {@link
+     * @return the ID of the node, if the node is contained in this tree; otherwise, {@link
      *     Dominance#UNDEFINED} is returned.
      * @throws NullPointerException if {@code pNode} is {@code null}.
      */
@@ -442,7 +481,7 @@ final class Dominance {
      * Returns the node for a specified ID.
      *
      * <p>A valid ID for a node is {@code >= 0}, {@code < getNodeCount()}, and unique for every node
-     * in the tree. All valid IDs are used (there is a node for every valid ID).
+     * in this tree. All valid IDs are used (there is a node for every valid ID).
      *
      * @param pId the ID to get the node for.
      * @return the node with the specified ID.
@@ -457,14 +496,16 @@ final class Dominance {
     }
 
     /**
-     * Returns the parent's ID of the specified node, if the node has a parent (immediate
-     * dominator). Otherwise, {@link Dominance#UNDEFINED} is returned.
+     * Returns the ID of the specified node's parent.
+     *
+     * <p>If the node has a parent (immediate dominator), the ID of the parent is returned;
+     * otherwise, {@link Dominance#UNDEFINED} is returned.
      *
      * <p>Use {@link #hasParent(int)} to find out, if a node has a parent.
      *
      * @param pId the node's ID.
-     * @return if the node has a valid parent, the parent's ID; otherwise, {@link
-     *     Dominance#UNDEFINED} is returned.
+     * @return if the node has a parent, the parent's ID; otherwise, {@link Dominance#UNDEFINED} is
+     *     returned.
      * @throws IllegalArgumentException if the specified ID is not valid. Valid IDs must be {@code
      *     >= 0} and {@code < getNodeCount()}.
      */
@@ -479,7 +520,7 @@ final class Dominance {
      * Returns whether a node has a parent (immediate dominator) in the dominance tree.
      *
      * @param pId ID of the node.
-     * @return true, if node has a parent; otherwise false.
+     * @return true, if node has a parent in the dominance tree; otherwise, false.
      * @throws IllegalArgumentException if the specified ID is not valid. Valid IDs must be {@code
      *     >= 0} and {@code < getNodeCount()}.
      */
@@ -544,11 +585,11 @@ final class Dominance {
   }
 
   /**
-   * A data structure representing a node in a dominance tree that can be used for tree traversal.
+   * A data structure representing a dominance tree node that can be used for tree traversal.
    *
    * <p>It's possible to iterate over all direct children of this tree node (see {@link
    * DomTraversable#iterator()}). Recursive iteration over all descendants enables full tree
-   * traversal.
+   * traversal, if all nodes are (transitively) connected to this node.
    *
    * @param <T> the node-type of the original graph.
    */
@@ -609,6 +650,8 @@ final class Dominance {
 
     /**
      * Returns an iterator over the direct children of this DomTraversable.
+     *
+     * <p>The children are returned in no specific order.
      *
      * @return an iterator over the direct children of this DomTraversable.
      */
@@ -701,7 +744,7 @@ final class Dominance {
     /**
      * Returns the iterated dominance frontier for the specified set of nodes.
      *
-     * @param pNodes the nodes to get the iterated dominance frontier for.
+     * @param pNodes the set of nodes to get the iterated dominance frontier for.
      * @return an unmodifiable set consisting of all nodes in the iterated dominance frontier.
      * @throws IllegalArgumentException if {@code pNodes} contains a node that has no dominance
      *     frontier (see {@link #getFrontier(Object) getFrontier}).
