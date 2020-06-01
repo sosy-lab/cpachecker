@@ -27,6 +27,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
@@ -35,6 +36,12 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 
 public class ASTConverterTest {
+  private static JClassOrInterfaceType jClassOrInterfaceType;
+
+  @BeforeClass
+  public static void init() {
+    jClassOrInterfaceType = createStringJClassOrInterfaceType("java.lang.String", "String");
+  }
 
   @Test
   public void testGetClassOfJType() {
@@ -58,8 +65,6 @@ public class ASTConverterTest {
 
   @Test
   public void testGetClassOfJTypeForNonPrimitiveType() {
-    JClassOrInterfaceType jClassOrInterfaceType =
-        createStringJClassOrInterfaceType("java.lang.String", "String");
     Optional<Class<?>> optionalOfStringClass =
         ASTConverter.getClassOfJType(jClassOrInterfaceType, ImmutableSet.of());
     assertThat(optionalOfStringClass.get()).isEqualTo(String.class);
@@ -67,15 +72,14 @@ public class ASTConverterTest {
 
   @Test
   public void testGetArrayClass() {
-    JArrayType jArrayTypeOfString =
-        new JArrayType(createStringJClassOrInterfaceType("java.lang.Boolean", "Boolean"), 3);
+    JArrayType jArrayTypeOfString = new JArrayType(jClassOrInterfaceType, 3);
     Optional<Class<?>> optionalOfArrayClass =
         ASTConverter.getClassOfJType(jArrayTypeOfString, ImmutableSet.of());
     assertThat(optionalOfArrayClass.get().isArray()).isTrue();
-    assertThat(optionalOfArrayClass.get().toGenericString()).isEqualTo("java.lang.Boolean[][][]");
+    assertThat(optionalOfArrayClass.get().toGenericString()).isEqualTo("java.lang.String[][][]");
   }
 
-  private JClassOrInterfaceType createStringJClassOrInterfaceType(
+  private static JClassOrInterfaceType createStringJClassOrInterfaceType(
       String pFullyQualifiedName, String pString) {
     return JClassType.valueOf(
         pFullyQualifiedName,
@@ -84,7 +88,7 @@ public class ASTConverterTest {
         true,
         false,
         false,
-        JClassType.createUnresolvableType(),
+        JClassType.getTypeOfObject(),
         ImmutableSet.of());
   }
 }
