@@ -1522,21 +1522,6 @@ class ASTConverter {
       if (!cls.isPresent()) {
         return cls;
       }
-
-      if ((cls.get().isInterface() && pJType instanceof JClassType)
-          || (!cls.get().isInterface() && pJType instanceof JInterfaceType)) {
-        String errorMessage =
-            "Error in getting class of "
-                + jTypeName
-                + ". "
-                + jTypeName
-                + ((pJType instanceof JInterfaceType) ? " is" : " is not")
-                + " an interface "
-                + "but its derived class "
-                + cls.get().getName()
-                + (cls.get().isInterface() ? " is." : " is not.");
-        throw new AssertionError(errorMessage);
-      }
       return cls;
     }
     if (pJType instanceof JArrayType) {
