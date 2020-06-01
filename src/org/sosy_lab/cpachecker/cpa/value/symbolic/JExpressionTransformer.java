@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanceCreation;
+import org.sosy_lab.cpachecker.cfa.ast.java.JClassLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JEnumConstantExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFloatLiteralExpression;
@@ -283,6 +284,13 @@ public class JExpressionTransformer extends ExpressionTransformer
 
   @Override
   public SymbolicExpression visit(JThisExpression pThisExpression) throws UnrecognizedCodeException {
+    return null;
+  }
+
+  @Override
+  public SymbolicExpression visit(JClassLiteralExpression pJClassLiteralExpression)
+      throws UnrecognizedCodeException {
+    // TODO
     return null;
   }
 

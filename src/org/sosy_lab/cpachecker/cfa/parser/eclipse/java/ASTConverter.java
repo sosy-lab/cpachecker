@@ -91,6 +91,7 @@ import org.eclipse.jdt.core.dom.SuperFieldAccess;
 import org.eclipse.jdt.core.dom.SuperMethodInvocation;
 import org.eclipse.jdt.core.dom.ThisExpression;
 import org.eclipse.jdt.core.dom.Type;
+import org.eclipse.jdt.core.dom.TypeLiteral;
 import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
@@ -108,6 +109,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanceCreation;
+import org.sosy_lab.cpachecker.cfa.ast.java.JClassLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JConstructorDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JEnumConstantExpression;
@@ -881,7 +883,7 @@ class ASTConverter {
     case ASTNode.SUPER_FIELD_ACCESS :
       return convert(((SuperFieldAccess) e));
     case ASTNode.TYPE_LITERAL :
-      return convert();
+      return convert((TypeLiteral) e);
     case ASTNode.SUPER_METHOD_INVOCATION :
       return convert((SuperMethodInvocation) e);
     default:
@@ -966,12 +968,11 @@ class ASTConverter {
       return miv;
   }
 
-  private JAstNode convert() {
-    throw new CFAGenerationRuntimeException("Standard Library support not yet implemented.\n"
-      +  "Cannot use Type Literals which would return a class Object.");
+  private JAstNode convert(TypeLiteral pTypeLiteral) {
+    final ITypeBinding iTypeBinding = pTypeLiteral.resolveTypeBinding();
+    JType jType = typeConverter.convert(iTypeBinding);
+    return new JClassLiteralExpression(getFileLocation(pTypeLiteral), jType);
   }
-
-
 
   private JAstNode convert(SuperFieldAccess e) {
     // Only used, when there is no field Access.

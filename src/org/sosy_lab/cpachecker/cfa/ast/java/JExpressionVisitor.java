@@ -65,4 +65,6 @@ public interface JExpressionVisitor<R, X extends Exception> extends JLeftHandSid
 
   R visit(JThisExpression pThisExpression) throws X;
 
+  R visit(JClassLiteralExpression pJClassLiteralExpression) throws X;
+
 }

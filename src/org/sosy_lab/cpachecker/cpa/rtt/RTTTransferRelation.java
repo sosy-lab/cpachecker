@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.java.JCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JCharLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanceCreation;
+import org.sosy_lab.cpachecker.cfa.ast.java.JClassLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JEnumConstantExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
@@ -494,6 +495,13 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
     }
 
     @Override
+    public String visit(JClassLiteralExpression pJClassLiteralExpression)
+        throws UnrecognizedCodeException {
+      // TODO
+      return null;
+    }
+
+    @Override
     public String visit(JRunTimeTypeEqualsType pE) throws UnrecognizedCodeException {
 
       JReferenceType assignableType = pE.getTypeDef();
@@ -768,6 +776,13 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
       } else {
         return null;
       }
+    }
+
+    @Override
+    public String visit(JClassLiteralExpression pJClassLiteralExpression)
+        throws UnrecognizedCodeException {
+      JType jType = pJClassLiteralExpression.getExpressionType();
+      return jType.toASTString("");
     }
 
     @Override

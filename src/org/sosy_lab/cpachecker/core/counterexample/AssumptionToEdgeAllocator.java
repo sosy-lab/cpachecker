@@ -84,6 +84,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.java.JClassLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.AReturnStatementEdge;
@@ -1252,6 +1253,12 @@ public class AssumptionToEdgeAllocator {
         }
 
         return new NumericValue((Number) value);
+      }
+
+      @Override
+      public Value visit(JClassLiteralExpression pJClassLiteralExpression) throws NoException {
+        // TODO
+        return null;
       }
     }
 
