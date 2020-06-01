@@ -2513,14 +2513,17 @@ class ASTConverter {
     } else if (op.equals(InfixExpression.Operator.EQUALS)) {
       return BinaryOperator.EQUALS;
     } else if (op.equals(InfixExpression.Operator.AND)) {
-        return BinaryOperator.BINARY_AND;
+      return BinaryOperator.BINARY_AND;
     } else if (op.equals(InfixExpression.Operator.OR)) {
-        return BinaryOperator.BINARY_OR;
+      return BinaryOperator.BINARY_OR;
     } else if (op.equals(InfixExpression.Operator.XOR)) {
-        return BinaryOperator.BINARY_XOR;
+      return BinaryOperator.BINARY_XOR;
+    } else if (op.equals(InfixExpression.Operator.CONDITIONAL_OR)) {
+      return BinaryOperator.CONDITIONAL_OR;
+    } else if (op.equals(InfixExpression.Operator.CONDITIONAL_AND)) {
+      return BinaryOperator.CONDITIONAL_AND;
     } else {
-      throw new CFAGenerationRuntimeException(
-        "Could not proccess Operator: " + op.toString());
+      throw new CFAGenerationRuntimeException("Could not process Operator: " + op.toString());
     }
   }
 
