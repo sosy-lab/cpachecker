@@ -69,6 +69,7 @@ import org.sosy_lab.cpachecker.cfa.model.java.JMethodReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
@@ -495,7 +496,7 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
     @Override
     public String visit(JRunTimeTypeEqualsType pE) throws UnrecognizedCodeException {
 
-      JClassOrInterfaceType assignableType = pE.getTypeDef();
+      JReferenceType assignableType = pE.getTypeDef();
 
       String reference  = pE.getRunTimeTypeExpression().accept(this);
 
@@ -504,7 +505,12 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
       }
 
       if (truthAssumption) {
-        newState.assignAssumptionType(reference, assignableType);
+        if (assignableType instanceof JClassOrInterfaceType) {
+          newState.assignAssumptionType(reference, (JClassOrInterfaceType) assignableType);
+        }
+        else{
+          // TODO
+        }
       }
 
       return null;
@@ -728,7 +734,17 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
         return null;
       }
 
-      return Boolean.toString(jRunTimeTypeEqualsType.getTypeDef().getName().equals(jrunTimeType));
+      final JReferenceType typeDef = jRunTimeTypeEqualsType.getTypeDef();
+      String name;
+      if(typeDef instanceof JClassOrInterfaceType){
+        name = ((JClassOrInterfaceType) typeDef).getName();
+      }
+      else{
+        // TODO is probably wrongly implemented
+        name = ((JArrayType) typeDef).toString();
+      }
+
+      return Boolean.toString(name.equals(jrunTimeType));
 
     }
 
