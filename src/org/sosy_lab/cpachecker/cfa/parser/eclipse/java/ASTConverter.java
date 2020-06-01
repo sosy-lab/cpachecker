@@ -1332,19 +1332,7 @@ class ASTConverter {
         Level.FINEST,
         "No matching class for class instance creation \"%s\" in scope, trying to resolve by imports",
         fullName);
-
-    // Find CompilationUnit of class calling the constructor
-    ASTNode parent = pCIC.getParent();
-    while (!(parent instanceof CompilationUnit)) {
-      parent = parent.getParent();
-    }
-    // Make set of importDeclarations
-    Set<ImportDeclaration> importDeclarations =
-        ((List<?>) ((CompilationUnit) parent).imports())
-            .stream()
-                .filter(v -> v instanceof ImportDeclaration)
-                .map(ImportDeclaration.class::cast)
-                .collect(ImmutableSet.toImmutableSet());
+    Set<ImportDeclaration> importDeclarations = getImportDeclarations(pCIC);
 
     Optional<Constructor<?>> constructorOptional;
 
@@ -1379,6 +1367,20 @@ class ASTConverter {
         VisibilityModifier.NONE,
         false,
         JClassType.createUnresolvableType());
+  }
+
+  private Set<ImportDeclaration> getImportDeclarations(ASTNode astNode) {
+    // Find CompilationUnit of class calling the constructor
+    ASTNode compilationUnit = astNode.getParent();
+    while (!(compilationUnit instanceof CompilationUnit)) {
+      compilationUnit = compilationUnit.getParent();
+    }
+    // Make set of importDeclarations
+    return ((List<?>) ((CompilationUnit) compilationUnit).imports())
+        .stream()
+            .filter(v -> v instanceof ImportDeclaration)
+            .map(ImportDeclaration.class::cast)
+            .collect(ImmutableSet.toImmutableSet());
   }
 
   private VisibilityModifier getVisibilityModifierForConstructor(Constructor<?> pConstructor) {
