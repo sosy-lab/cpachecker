@@ -12,8 +12,8 @@ OBSERVER AUTOMATON AutomatonCoversLine
 INITIAL STATE Init;
 
 STATE USEFIRST Init :
-// 4 cannot be covered, it is a blank line between declarations.
-// 7 is the first statement in main, should be possible to cover.
-  COVERS_LINES(4 7) -> ERROR("Reached line 4 or line 7.");
+// 13 cannot be covered, it is a blank line between declarations.
+// 16 is the first statement in main, should be possible to cover.
+  COVERS_LINES(13 16) -> ERROR("Reached line 13 or line 16.");
 
 END AUTOMATON

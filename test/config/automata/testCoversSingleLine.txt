@@ -12,6 +12,6 @@ OBSERVER AUTOMATON AutomatonCoversLine
 INITIAL STATE Init;
 
 STATE USEFIRST Init :
-  COVERS_LINES(3) -> ERROR("Reached line 3.");
+  COVERS_LINES(12) -> ERROR("Reached line 12.");
 
 END AUTOMATON
