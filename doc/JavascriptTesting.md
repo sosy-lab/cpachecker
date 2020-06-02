@@ -1,3 +1,14 @@
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2018 Lokesh Nandanwar
+SPDX-FileCopyrightText: 2018-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # JavaScript Testing
 
 This documentation doesn't discuss much about testing. You can check [Protractor](https://www.protractortest.org/) and [Jasmine](https://jasmine.github.io/) documentation for more details.
