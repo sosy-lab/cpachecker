@@ -6,3 +6,10 @@ Files: config/properties/*.prp
  test/config/properties/*.prp
 Copyright: 2013-2020 Dirk Beyer <https://www.sosy-lab.org>
 License: Apache-2.0
+
+Files: test/*/blasting_linux/*.c
+ test/*/blasting_linux/*.h
+ test/*/linux-kernel/*.c
+ test/*/linux-kernel/*.i.bz2
+Copyright: The Linux kernel authors
+License: GPL-2.0-only
