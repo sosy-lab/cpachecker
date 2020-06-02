@@ -13,3 +13,12 @@ Files: test/*/blasting_linux/*.c
  test/*/linux-kernel/*.i.bz2
 Copyright: The Linux kernel authors
 License: GPL-2.0-only
+
+Files: test/programs/parser/*.c
+ test/programs/parser/*.h
+ test/programs/parser/*.i
+ test/programs/parser/*.desc
+Copyright: 2001-2013, Daniel Kroening, Edmund Clarke
+Copyright: Computer Science Department, Carnegie Mellon University
+Copyright: Computer Science Department, University of Oxford
+License: LicenseRef-BSD-4-Clause-CBMC
