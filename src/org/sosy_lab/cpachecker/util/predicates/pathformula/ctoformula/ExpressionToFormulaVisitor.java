@@ -124,8 +124,16 @@ public class ExpressionToFormulaVisitor
     Formula f = toFormula(e);
     if ((f instanceof BitvectorFormula) || (f instanceof FloatingPointFormula)) {
       return conv.makeCast(t, calculationType, f, constraints, edge);
+    } else if (calculationType.getCanonicalType().equals(CNumericTypes.INT)) {
+      return f;
+    } else {
+      return conv.makeCast(
+          t,
+          calculationType,
+          conv.makeFormulaTypeCast(conv.getFormulaTypeFromCType(t), t, f, ssa, constraints),
+          constraints,
+          edge);
     }
-    return f;
   }
 
   private Formula
@@ -594,6 +602,7 @@ public class ExpressionToFormulaVisitor
       CType returnType = exp.getExpressionType();
       FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
       if (!returnFormulaType.equals(mgr.getFormulaType(ret))) {
+          ret = conv.makeFormulaTypeCast(returnFormulaType, t, ret, ssa, constraints);
         ret = conv.makeCast(t, returnType, ret, constraints, edge);
       }
           assert returnFormulaType.equals(mgr.getFormulaType(ret))
