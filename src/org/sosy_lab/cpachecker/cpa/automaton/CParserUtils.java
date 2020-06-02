@@ -256,11 +256,11 @@ class CParserUtils {
         parseStatement(pCode, pResultFunction, pCParser, pScope, pParserTools);
     if (!tree.equals(ExpressionTrees.getTrue())) {
       if (tree.equals(ExpressionTrees.getFalse())) {
-        return Collections.<CStatement> singleton(
-          new CExpressionStatement(
-              FileLocation.DUMMY,
-              new CIntegerLiteralExpression(
-                  FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO)));
+        return Collections.singleton(
+            new CExpressionStatement(
+                FileLocation.DUMMY,
+                new CIntegerLiteralExpression(
+                    FileLocation.DUMMY, CNumericTypes.INT, BigInteger.ZERO)));
       }
       if (tree instanceof LeafExpression) {
         LeafExpression<AExpression> leaf = (LeafExpression<AExpression>) tree;
@@ -460,7 +460,7 @@ class CParserUtils {
       ParserTools pParserTools) {
     ExpressionTreeFactory<AExpression> factory = pParserTools.expressionTreeFactory;
     Map<CFANode, ExpressionTree<AExpression>> memo = new HashMap<>();
-    memo.put(pEntry, ExpressionTrees.<AExpression> getTrue());
+    memo.put(pEntry, ExpressionTrees.getTrue());
     Set<CFANode> ready = new HashSet<>();
     ready.add(pEntry);
     Queue<CFANode> waitlist = new ArrayDeque<>();
@@ -516,8 +516,7 @@ class CParserUtils {
                     replaceCPAcheckerTMPVariables(assumeEdge.getExpression(), tmpVariableValues);
               }
               final ExpressionTree<AExpression> newPath;
-              if (assumeEdge.getTruthAssumption()
-                  && !expression.toString().contains(CPACHECKER_TMP_PREFIX)) {
+              if (!expression.toString().contains(CPACHECKER_TMP_PREFIX)) {
                 newPath =
                     factory.and(
                         currentTree, factory.leaf(expression, assumeEdge.getTruthAssumption()));
@@ -528,13 +527,9 @@ class CParserUtils {
             }
           } else {
             final ExpressionTree<AExpression> newPath;
-            if (assumeEdge.getTruthAssumption()) {
               newPath =
                   factory.and(
                       currentTree, factory.leaf(expression, assumeEdge.getTruthAssumption()));
-            } else {
-              newPath = currentTree;
-            }
             succTree = factory.or(succTree, newPath);
           }
           // All other edges do not change the path

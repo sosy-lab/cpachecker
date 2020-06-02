@@ -69,7 +69,7 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
   }
 
   public static CFAPathWithAssumptions empty() {
-    return new CFAPathWithAssumptions(ImmutableList.<CFAEdgeWithAssumptions>of());
+    return new CFAPathWithAssumptions(ImmutableList.of());
   }
 
   @Override
@@ -79,10 +79,8 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
 
   boolean fitsPath(List<CFAEdge> pPath) {
     int index = 0;
-    Iterator<CFAEdge> it = pPath.iterator();
 
-    while (it.hasNext()) {
-      CFAEdge edge = it.next();
+    for (CFAEdge edge : pPath) {
       CFAEdgeWithAssumptions cfaWithAssignment = pathWithAssignments.get(index);
 
       if (!edge.equals(cfaWithAssignment.getCFAEdge())) {

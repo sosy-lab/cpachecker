@@ -26,7 +26,6 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
@@ -231,7 +230,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
         String str = annotation.orElseThrow();
         if(str.contains("_")) {
           try {
-            int limit = Integer.parseInt(str.substring(str.indexOf("_") + 1, str.length()));
+            int limit = Integer.parseInt(str.substring(str.indexOf("_") + 1));
             if (limit > 0) {
               return limit;
             }
@@ -545,7 +544,8 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
                 isPropertyChecked);
           }
 
-          if (from(currentContext.reached).anyMatch(IS_TARGET_STATE) && status.isPrecise()) {
+          if (from(currentContext.reached).anyMatch(AbstractStates::isTargetState)
+              && status.isPrecise()) {
             analysisFinishedWithResult = true;
             return status;
           }
@@ -561,7 +561,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
                 "Analysis %d terminated but did not finish: There are still states to be processed.",
                 stats.noOfCurrentAlgorithm);
 
-          } else if (!(from(currentContext.reached).anyMatch(IS_TARGET_STATE)
+          } else if (!(from(currentContext.reached).anyMatch(AbstractStates::isTargetState)
               && !status.isPrecise())) {
             // sound analysis and completely finished, terminate
             analysisFinishedWithResult = true;

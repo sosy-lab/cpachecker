@@ -27,7 +27,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 
 @Options(prefix = "cpa.arg.witness")
-class WitnessOptions {
+public class WitnessOptions {
 
   @Option(
     secure = true,
@@ -130,7 +130,7 @@ class WitnessOptions {
     return revertThreadFunctionRenaming;
   }
 
-  boolean exportNodeLabel() {
+  public boolean exportNodeLabel() {
     return exportNodeLabel;
   }
 

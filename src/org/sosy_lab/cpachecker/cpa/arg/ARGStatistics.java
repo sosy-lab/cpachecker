@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
@@ -39,7 +38,6 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.net.URI;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -76,7 +74,9 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExportOptions;
 import org.sosy_lab.cpachecker.cpa.arg.counterexamples.CEXExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ExtendedWitnessExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.ARGToAutomatonConverter;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.partitioning.PartitioningCPA.PartitionState;
@@ -116,6 +116,13 @@ public class ARGStatistics implements Statistics {
       description="export a proof as .graphml file")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path proofWitness = null;
+
+  @Option(
+      secure = true,
+      name = "proofWitness.dot",
+      description = "export a proof as dot/graphviz file")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private Path proofWitnessDot = null;
 
   @Option(
     secure = true,
@@ -216,12 +223,14 @@ public class ARGStatistics implements Statistics {
         && simplifiedArgFile == null
         && refinementGraphFile == null
         && proofWitness == null
+        && proofWitnessDot == null
         && pixelGraphicFile == null
         && (!exportAutomaton || (automatonSpcFile == null && automatonSpcDotFile == null))) {
       exportARG = false;
     }
 
-    if ((proofWitness == null || !exportARG) && counterexampleOptions.disabledCompletely()) {
+    if (((proofWitness == null && proofWitnessDot == null) || !exportARG)
+        && counterexampleOptions.disabledCompletely()) {
       argWitnessExporter = null;
     } else {
       argWitnessExporter = new WitnessExporter(config, logger, pSpecification, cfa);
@@ -342,7 +351,7 @@ public class ARGStatistics implements Statistics {
     String path = pPath.toString();
     int sepIx = path.lastIndexOf(".");
     String prefix = path.substring(0, sepIx);
-    String extension = path.substring(sepIx, path.length());
+    String extension = path.substring(sepIx);
     return Paths.get(prefix + "-" + partitionKey + extension);
   }
 
@@ -378,23 +387,33 @@ public class ARGStatistics implements Statistics {
       Result pResult) {
     SetMultimap<ARGState, ARGState> relevantSuccessorRelation =
         ARGUtils.projectARG(rootState, ARGState::getChildren, ARGUtils.RELEVANT_STATE);
-    Function<ARGState, Collection<ARGState>> relevantSuccessorFunction = Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.<ARGState>of());
+    Function<ARGState, Collection<ARGState>> relevantSuccessorFunction =
+        Functions.forMap(relevantSuccessorRelation.asMap(), ImmutableSet.of());
 
-    if (proofWitness != null && EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult)) {
-      try {
+    if (EnumSet.of(Result.TRUE, Result.UNKNOWN).contains(pResult)) {
+      final Witness witness =
+          argWitnessExporter.generateProofWitness(
+              rootState,
+              Predicates.alwaysTrue(),
+              BiPredicates.alwaysTrue(),
+              argWitnessExporter.getProofInvariantProvider());
+
+      if (proofWitness != null) {
         Path witnessFile = adjustPathNameForPartitioning(rootState, proofWitness);
-        Appender content =
-            pAppendable ->
-                argWitnessExporter.writeProofWitness(
-                    pAppendable, rootState, Predicates.alwaysTrue(), BiPredicates.alwaysTrue());
-        if (!compressWitness) {
-          IO.writeFile(witnessFile, StandardCharsets.UTF_8, content);
-        } else {
-          witnessFile = witnessFile.resolveSibling(witnessFile.getFileName() + ".gz");
-          IO.writeGZIPFile(witnessFile, StandardCharsets.UTF_8, content);
-        }
-      } catch (IOException e) {
-        logger.logUserException(Level.WARNING, e, "Could not write ARG to file");
+        WitnessToOutputFormatsUtils.writeWitness(
+            witnessFile,
+            compressWitness,
+            pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable),
+            logger);
+      }
+
+      if (proofWitnessDot != null) {
+        Path witnessFile = adjustPathNameForPartitioning(rootState, proofWitnessDot);
+        WitnessToOutputFormatsUtils.writeWitness(
+            witnessFile,
+            compressWitness,
+            pAppendable -> WitnessToOutputFormatsUtils.writeToDot(witness, pAppendable),
+            logger);
       }
     }
 
@@ -506,7 +525,7 @@ public class ARGStatistics implements Statistics {
       final UnmodifiableReachedSet pReached) {
     ImmutableMap.Builder<ARGState, CounterexampleInfo> counterexamples = ImmutableMap.builder();
 
-    for (AbstractState targetState : from(pReached).filter(IS_TARGET_STATE)) {
+    for (AbstractState targetState : from(pReached).filter(AbstractStates::isTargetState)) {
       ARGState s = (ARGState)targetState;
       CounterexampleInfo cex =
           ARGUtils.tryGetOrCreateCounterexampleInformation(s, cpa, assumptionToEdgeAllocator)

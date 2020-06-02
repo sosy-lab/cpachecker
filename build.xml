@@ -9,7 +9,7 @@
     <property file="build.properties"/>
     <property environment="env"/>
 
-    <property name="version.base" value="1.9.1-svn"/> <!-- change here for a release -->
+    <property name="version.base" value="1.9.2-svn"/> <!-- change here for a release -->
 
     <!-- Customization of build process. -->
     <property name="jar.file" value="cpachecker.jar"/>
@@ -20,6 +20,12 @@
     <property name="project.url" value="http://cpachecker.sosy-lab.org"/>
     <property name="ivy.configurations" value="build, runtime, test, format-source, spotbugs, checkstyle"/>
     <property name="documentation.options.file" value="doc/ConfigurationOptions.txt"/>
+
+    <!-- Disable errorprone except on Java 11 because it has problems with newer Java.
+         cf. https://github.com/google/error-prone/issues/1106 -->
+    <condition property="errorprone.disable">
+        <not><equals arg1="${ant.java.version}" arg2="11"/></not>
+    </condition>
 
     <!-- The following error-prone checks are disabled:
          BadImport: we often import FluentIterable.from and we have a Checkstyle check instead

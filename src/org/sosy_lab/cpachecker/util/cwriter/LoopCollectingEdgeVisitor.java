@@ -196,8 +196,7 @@ public class LoopCollectingEdgeVisitor implements EdgeVisitor {
       // we either need all loops because there were no before or because of
       // the heuristic
     } else {
-      for (int i = 0; i < loops.size(); i++) {
-        Loop actLoop = loops.get(i);
+      for (Loop actLoop : loops) {
         loopStack.push(actLoop);
         Set<ARGState> states = new HashSet<>();
         states.add(state);

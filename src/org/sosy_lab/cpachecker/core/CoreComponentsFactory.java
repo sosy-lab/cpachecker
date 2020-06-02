@@ -27,7 +27,6 @@ import static com.google.common.base.Verify.verifyNotNull;
 
 import com.google.common.base.Preconditions;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,6 +34,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtra
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.InterleavedAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ProgramSplitAlgorithm;
@@ -190,11 +191,21 @@ public class CoreComponentsFactory {
 
   @Option(
     secure = true,
+    name = "algorithm.MPI",
+    description = "Use MPI for running analyses in new subprocesses. The resulting reachedset "
+        + "is the one of the first analysis returning in time. All other mpi-processes will "
+        + "get aborted.")
+  private boolean useMPIProcessAlgorithm = false;
+
+  @Option(
+    secure = true,
     name = "algorithm.termination",
     description = "Use termination algorithm to prove (non-)termination.")
   private boolean useTerminationAlgorithm = false;
 
-  private final Path termSpecFile = Paths.get("config/specification/termination_as_reach.spc");
+  private static final Path TERMINATION_SPEC_FILE =
+      Classes.getCodeLocation(CoreComponentsFactory.class)
+          .resolveSibling("config/specification/termination_as_reach.spc");
 
   @Option(
       secure = true,
@@ -417,6 +428,9 @@ public class CoreComponentsFactory {
               cfa,
               aggregatedReachedSets);
 
+    } else if (useMPIProcessAlgorithm) {
+      algorithm = new MPIPortfolioAlgorithm(config, logger, shutdownNotifier, specification);
+
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
@@ -633,7 +647,7 @@ public class CoreComponentsFactory {
       if (fileName != null && fileName.toString().endsWith(".graphml")) {
         Preconditions.checkState(!witness.isPresent(), "More than one witness file.");
         witness = Optional.of(specFile);
-      } else if (!specFile.equals(termSpecFile)) {
+      } else if (!specFile.equals(TERMINATION_SPEC_FILE)) {
         atMostWitnessOrTermSpec = false;
       }
     }
@@ -654,10 +668,10 @@ public class CoreComponentsFactory {
     Collection<Path> specFiles;
     if (witness.isPresent()) {
       specFiles = new ArrayList<>(2);
-      specFiles.add(termSpecFile);
+      specFiles.add(TERMINATION_SPEC_FILE);
       specFiles.add(witness.orElseThrow());
     } else {
-      specFiles = Collections.singletonList(termSpecFile);
+      specFiles = Collections.singletonList(TERMINATION_SPEC_FILE);
     }
 
     return Specification.fromFiles(
@@ -665,7 +679,7 @@ public class CoreComponentsFactory {
             new SpecificationProperty(
                 cfa.getMainFunction().getFunctionName(),
                 Property.CommonPropertyType.TERMINATION,
-                Optional.of(termSpecFile.toString()))),
+                Optional.of(TERMINATION_SPEC_FILE.toString()))),
         specFiles,
         cfa,
         config,

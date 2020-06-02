@@ -279,19 +279,16 @@ public class AutomatonGraphmlCommon {
           return Optional.of(element);
         }
       }
-      if (pTextualRepresentation.equals("FALSE")) {
-        return Optional.of(VIOLATION_WITNESS);
+      switch (pTextualRepresentation) {
+        case "FALSE":
+        case "false_witness":
+          return Optional.of(VIOLATION_WITNESS);
+        case "TRUE":
+        case "true_witness":
+          return Optional.of(CORRECTNESS_WITNESS);
+        default:
+          return Optional.empty();
       }
-      if (pTextualRepresentation.equals("TRUE")) {
-        return Optional.of(CORRECTNESS_WITNESS);
-      }
-      if (pTextualRepresentation.equals("false_witness")) {
-        return Optional.of(VIOLATION_WITNESS);
-      }
-      if (pTextualRepresentation.equals("true_witness")) {
-        return Optional.of(CORRECTNESS_WITNESS);
-      }
-      return Optional.empty();
     }
   }
 
@@ -533,14 +530,15 @@ public class AutomatonGraphmlCommon {
     return handleAsEpsilonEdge(pEdge);
   }
 
+  /**
+   * This method checks whether an edge qualifies as epsilon edge.
+   * Epsilon edges are irrelevant edges that are not required in the witness.
+   * <li>global declarations (there is no other path possible in the CFA),
+   * <li>CPAchecker-internal temporary variable declarations (irrelevant for the witness),
+   * <li>blank edges and function summary edges (not required for a path in the witness).
+   */
   public static boolean handleAsEpsilonEdge(CFAEdge edge) {
-    if (handleAsEpsilonEdge0(edge)) {
-      if (edge.getSuccessor().getNumLeavingEdges() <= 0) {
-        return false;
-      }
-      return true;
-    }
-    return false;
+    return handleAsEpsilonEdge0(edge) && edge.getSuccessor().getNumLeavingEdges() > 0;
   }
 
   private static boolean handleAsEpsilonEdge0(CFAEdge edge) {

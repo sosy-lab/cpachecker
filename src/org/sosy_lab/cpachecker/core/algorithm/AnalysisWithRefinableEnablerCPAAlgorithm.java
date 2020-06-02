@@ -625,8 +625,10 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
       return false;
     }
     // check lists in reverse order for short-circuiting
-    List<CFANode> edges1 = Lists.transform(path1.asStatesList().reverse(), AbstractStates.EXTRACT_LOCATION);
-    List<CFANode> edges2 = Lists.transform(path2.asStatesList().reverse(), AbstractStates.EXTRACT_LOCATION);
+    List<CFANode> edges1 =
+        Lists.transform(path1.asStatesList().reverse(), AbstractStates::extractLocation);
+    List<CFANode> edges2 =
+        Lists.transform(path2.asStatesList().reverse(), AbstractStates::extractLocation);
     return edges1.equals(edges2);
   }
 

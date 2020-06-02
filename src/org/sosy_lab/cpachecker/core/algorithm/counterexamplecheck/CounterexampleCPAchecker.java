@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
 import com.google.common.base.Predicate;
@@ -74,7 +73,9 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPathBuilder;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
@@ -186,14 +187,15 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
   private boolean checkCounterexample(ARGState pRootState, ARGState pErrorState, Set<ARGState> pErrorPathStates,
       Path automatonFile) throws IOException, CPAException, InterruptedException {
 
+    final Predicate<ARGState> relevantState = Predicates.in(pErrorPathStates);
+    final Witness witness =
+        witnessExporter.generateErrorWitness(
+            pRootState,
+            relevantState,
+            BiPredicates.bothSatisfy(relevantState),
+            getCounterexampleInfo.apply(pErrorState).orElse(null));
     try (Writer w = IO.openOutputFile(automatonFile, Charset.defaultCharset())) {
-      final Predicate<ARGState> relevantState = Predicates.in(pErrorPathStates);
-      witnessExporter.writeErrorWitness(
-          w,
-          pRootState,
-          relevantState,
-          BiPredicates.bothSatisfy(relevantState),
-          getCounterexampleInfo.apply(pErrorState).orElse(null));
+      WitnessToOutputFormatsUtils.writeToGraphMl(witness, w);
     }
 
     // We assume only one initial node for an analysis, even for mutli-threaded tasks.
@@ -236,7 +238,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
       CPAs.closeIfPossible(lAlgorithm, lLogger);
 
       if (provideCEXInfoFromCEXCheck || replaceCexWithCexFromCheck) {
-        AbstractState target = from(lReached).firstMatch(IS_TARGET_STATE).orNull();
+        AbstractState target = from(lReached).firstMatch(AbstractStates::isTargetState).orNull();
         if (target instanceof ARGState) {
           ARGState argTarget = (ARGState) target;
           Optional<CounterexampleInfo> counterexampleFromCheck =

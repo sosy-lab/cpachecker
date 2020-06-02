@@ -31,7 +31,6 @@ import static java.util.logging.Level.FINER;
 import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.valueWithPercentage;
 
-import apache.harmony.math.BigInteger;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -55,7 +54,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.math.BigDecimal;
-import java.nio.charset.Charset;
+import java.math.BigInteger;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
@@ -72,7 +71,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -108,7 +106,9 @@ import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
@@ -142,6 +142,13 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   )
   @FileOption(Type.OUTPUT_FILE)
   private Path violationWitness = Paths.get("nontermination_witness.graphml");
+
+  @Option(
+      secure = true,
+      name = "violation.witness.dot",
+      description = "Export termination counterexample to file as dot/graphviz automaton ")
+  @FileOption(Type.OUTPUT_FILE)
+  private Path violationWitnessDot = Paths.get("nontermination_witness.dot");
 
   @Option(
     secure = true,
@@ -417,7 +424,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
     exportSynthesizedArguments();
 
-    if (pResult == Result.FALSE && violationWitness != null) {
+    if (pResult == Result.FALSE && (violationWitness != null || violationWitnessDot != null)) {
       Iterator<ARGState> violations =
           pReached
               .asCollection()
@@ -489,35 +496,28 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
     Predicate<? super ARGState> relevantStates = Predicates.in(cexStates);
 
-    try {
-      if (!compressWitness) {
-        try (Writer writer = IO.openOutputFile(violationWitness, Charset.defaultCharset())) {
-          witnessExporter.writeTerminationErrorWitness(
-              writer,
-              newRoot,
-              relevantStates,
-              BiPredicates.bothSatisfy(relevantStates),
-              state -> Objects.equals(state, loopStartInCEX),
-              provideQuasiInvariant);
-        }
-      } else {
-        Path file = violationWitness;
-        file = file.resolveSibling(file.getFileName() + ".gz");
-        IO.writeGZIPFile(
-            file,
-            Charset.defaultCharset(),
-            (Appender)
-                pAppendable ->
-                    witnessExporter.writeTerminationErrorWitness(
-                        pAppendable,
-                        newRoot,
-                        relevantStates,
-                        BiPredicates.bothSatisfy(relevantStates),
-                state -> Objects.equals(state, loopStartInCEX),
-                        provideQuasiInvariant));
-      }
-    } catch (IOException e) {
-      logger.logException(WARNING, e, "Violation witness export failed.");
+    final Witness witness =
+        witnessExporter.generateTerminationErrorWitness(
+            newRoot,
+            relevantStates,
+            BiPredicates.bothSatisfy(relevantStates),
+            state -> Objects.equals(state, loopStartInCEX),
+            provideQuasiInvariant);
+
+    if (violationWitness != null) {
+      WitnessToOutputFormatsUtils.writeWitness(
+          violationWitness,
+          compressWitness,
+          pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable),
+          logger);
+    }
+
+    if (violationWitnessDot != null) {
+      WitnessToOutputFormatsUtils.writeWitness(
+          violationWitnessDot,
+          compressWitness,
+          pAppendable -> WitnessToOutputFormatsUtils.writeToDot(witness, pAppendable),
+          logger);
     }
   }
 

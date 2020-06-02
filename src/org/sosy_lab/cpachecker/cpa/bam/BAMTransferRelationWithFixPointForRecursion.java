@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.bam;
 
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.isTargetState;
 
@@ -159,7 +158,7 @@ public class BAMTransferRelationWithFixPointForRecursion extends BAMTransferRela
       // OR:     we have completely analyzed the main-block and have not found an target-state.
       //         now we check, if we need to unwind recursive calls further until a fixpoint is reached.
 
-      targetFound = Iterables.any(resultStates, IS_TARGET_STATE);
+      targetFound = Iterables.any(resultStates, AbstractStates::isTargetState);
       if (targetFound) {
         // not really a fixpoint, but we return and let CEGAR check the target-state
         logger.log(Level.INFO, "fixpoint-iteration aborted, because there was a target state.");

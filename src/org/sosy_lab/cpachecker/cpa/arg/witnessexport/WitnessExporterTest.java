@@ -31,14 +31,12 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.io.BufferedReader;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -65,6 +63,8 @@ public class WitnessExporterTest {
   private enum WitnessGenerationConfig {
     K_INDUCTION("kInduction"),
 
+    BDD_CONCURRENCY("bddAnalysis-concurrency"),
+
     PREDICATE_ANALYSIS("predicateAnalysis");
 
     private final String fileName;
@@ -80,22 +80,47 @@ public class WitnessExporterTest {
 
   @Test(timeout = 90000)
   public void multivar_true() throws Exception {
-    newWitnessTester("multivar.i", ExpectedVerdict.TRUE)
-        .useGenerationConfig(WitnessGenerationConfig.K_INDUCTION)
+    new WitnessTester("multivar.i", ExpectedVerdict.TRUE, WitnessGenerationConfig.K_INDUCTION)
         .performTest();
   }
 
   @Test(timeout = 90000)
   public void minepump_spec1_product33_false() throws Exception {
-    newWitnessTester("minepump_spec1_product33.cil.c", ExpectedVerdict.FALSE)
-        .performTest()
-        .useGenerationConfig(WitnessGenerationConfig.K_INDUCTION)
+    new WitnessTester(
+            "minepump_spec1_product33.cil.c",
+            ExpectedVerdict.FALSE,
+            WitnessGenerationConfig.PREDICATE_ANALYSIS)
+        .performTest();
+  }
+
+  @Test(timeout = 90000)
+  public void minepump_spec1_product33_false_2() throws Exception {
+    new WitnessTester(
+            "minepump_spec1_product33.cil.c",
+            ExpectedVerdict.FALSE,
+            WitnessGenerationConfig.K_INDUCTION)
+        .performTest();
+  }
+
+  @Test(timeout = 90000)
+  public void concurrency_false_fib_bench() throws Exception {
+    new WitnessTester(
+            "fib_bench-2.i", ExpectedVerdict.FALSE, WitnessGenerationConfig.BDD_CONCURRENCY)
+        .performTest();
+  }
+
+  @Test(timeout = 90000)
+  public void concurrency_false_mix000_power() throws Exception {
+    new WitnessTester(
+            "mix000_power.oepc.i", ExpectedVerdict.FALSE, WitnessGenerationConfig.BDD_CONCURRENCY)
         .performTest();
   }
 
   @Test(timeout = 90000)
   public void rule60_list2_false() throws Exception {
-    newWitnessTester("rule60_list2.i", ExpectedVerdict.FALSE).performTest();
+    new WitnessTester(
+            "rule60_list2.i", ExpectedVerdict.FALSE, WitnessGenerationConfig.PREDICATE_ANALYSIS)
+        .performTest();
   }
 
   private static void performTest(
@@ -125,45 +150,15 @@ public class WitnessExporterTest {
       Map<String, String> pOverrideOptions,
       TempCompressedFilePath pWitnessPath)
       throws Exception {
-    Map<String, String> overrideOptions = new HashMap<>(pOverrideOptions);
+    Map<String, String> overrideOptions = new LinkedHashMap<>(pOverrideOptions);
     overrideOptions.put(
         "counterexample.export.graphml", pWitnessPath.uncompressedFilePath.toString());
     if (pGenerationConfig.equals(WitnessGenerationConfig.K_INDUCTION)) {
       overrideOptions.put("bmc.invariantsExport", pWitnessPath.uncompressedFilePath.toString());
-      Path origInvGenConfigFile = Paths.get("test/config/invariantGeneration-witness.properties");
-      Path invGenConfigFile =
-          origInvGenConfigFile.resolveSibling(
-              pWitnessPath.uncompressedFilePath.getFileName() + ".properties");
-      invGenConfigFile.toFile().deleteOnExit();
-      Files.copy(origInvGenConfigFile, invGenConfigFile);
-      List<String> lines;
-      try (BufferedReader reader =
-          new BufferedReader(
-              new InputStreamReader(
-                  new FileInputStream(invGenConfigFile.toString()), Charsets.UTF_8))) {
-        lines =
-            reader
-                .lines()
-                .map(
-                    line -> {
-                      Matcher matcher = PROOF_WITNESS_OPTION_PATTERN.matcher(line);
-                      if (matcher.matches()) {
-                        return matcher.group(1) + pWitnessPath.uncompressedFilePath.toString();
-                      }
-                      return line;
-                    })
-                .collect(Collectors.toList());
-      }
-      try (Writer writer = IO.openOutputFile(invGenConfigFile, Charsets.UTF_8)) {
-        for (String line : lines) {
-          writer.write(line);
-          writer.write(System.lineSeparator());
-        }
-      }
       overrideOptions.put(
           "parallelAlgorithm.configFiles",
           "config/components/kInduction/kInduction.properties, "
-              + invGenConfigFile.toString()
+              + getInvGenFile(pWitnessPath)
               + "::supply-reached-refinable");
     } else {
       overrideOptions.put("cpa.arg.proofWitness", pWitnessPath.uncompressedFilePath.toString());
@@ -175,15 +170,48 @@ public class WitnessExporterTest {
     // Trigger statistics so that the witness is written to the file
     results.getCheckerResult().writeOutputFiles();
 
-    if (pExpected == ExpectedVerdict.TRUE) {
-      results.assertIsSafe();
-      return WitnessType.CORRECTNESS_WITNESS;
-    } else if (pExpected == ExpectedVerdict.FALSE) {
-      results.assertIsUnsafe();
-      return WitnessType.VIOLATION_WITNESS;
+    switch (pExpected) {
+      case TRUE:
+        results.assertIsSafe();
+        return WitnessType.CORRECTNESS_WITNESS;
+      case FALSE:
+        results.assertIsUnsafe();
+        return WitnessType.VIOLATION_WITNESS;
+      default:
+        assertWithMessage("Cannot determine expected result.").fail();
+        throw new AssertionError("Unreachable code.");
     }
-    assertWithMessage("Cannot determine expected result.").fail();
-    throw new AssertionError("Unreachable code.");
+  }
+
+  private static String getInvGenFile(TempCompressedFilePath pWitnessPath) throws IOException {
+    Path origInvGenConfigFile = Paths.get("test/config/invariantGeneration-witness.properties");
+    Path invGenConfigFile =
+        origInvGenConfigFile.resolveSibling(
+            pWitnessPath.uncompressedFilePath.getFileName() + ".properties");
+    invGenConfigFile.toFile().deleteOnExit();
+    Files.copy(origInvGenConfigFile, invGenConfigFile);
+    List<String> lines;
+    try (BufferedReader reader = Files.newBufferedReader(invGenConfigFile)) {
+      lines =
+          reader
+              .lines()
+              .map(
+                  line -> {
+                    Matcher matcher = PROOF_WITNESS_OPTION_PATTERN.matcher(line);
+                    if (matcher.matches()) {
+                      return matcher.group(1) + pWitnessPath.uncompressedFilePath.toString();
+                    }
+                    return line;
+                  })
+              .collect(Collectors.toList());
+    }
+    try (Writer writer = IO.openOutputFile(invGenConfigFile, Charsets.UTF_8)) {
+      for (String line : lines) {
+        writer.write(line);
+        writer.write(System.lineSeparator());
+      }
+    }
+    return invGenConfigFile.toString();
   }
 
   private static void validateWitness(
@@ -194,8 +222,7 @@ public class WitnessExporterTest {
       TempCompressedFilePath witnessPath,
       WitnessType witnessType)
       throws Exception {
-    Map<String, String> overrideOptions;
-    overrideOptions = new HashMap<>(pOverrideOptions);
+    Map<String, String> overrideOptions = new LinkedHashMap<>(pOverrideOptions);
     final String validationConfigFile;
     String specification = pSpecification;
     switch (witnessType) {
@@ -218,12 +245,15 @@ public class WitnessExporterTest {
 
     TestResults results = CPATestRunner.run(validationConfig, pFilePath);
 
-    if (pExpected == ExpectedVerdict.TRUE) {
-      results.assertIsSafe();
-    } else if (pExpected == ExpectedVerdict.FALSE) {
-      results.assertIsUnsafe();
-    } else {
-      assertWithMessage("Cannot determine expected result.").fail();
+    switch (pExpected) {
+      case TRUE:
+        results.assertIsSafe();
+        break;
+      case FALSE:
+        results.assertIsUnsafe();
+        break;
+      default:
+        assertWithMessage("Cannot determine expected result.").fail();
     }
   }
 
@@ -290,22 +320,17 @@ public class WitnessExporterTest {
 
     private final String programFile;
     private final ExpectedVerdict expected;
-
-    private WitnessGenerationConfig generationConfig = WitnessGenerationConfig.PREDICATE_ANALYSIS;
+    private final WitnessGenerationConfig generationConfig;
 
     private String specificationFile = "config/specification/default.spc";
 
     private ImmutableMap.Builder<String, String> overrideOptionsBuilder = ImmutableMap.builder();
 
-    private WitnessTester(String pProgramFile, ExpectedVerdict pExpected) {
+    private WitnessTester(
+        String pProgramFile, ExpectedVerdict pExpected, WitnessGenerationConfig pGenerationConfig) {
       programFile = Objects.requireNonNull(pProgramFile);
       expected = pExpected;
-    }
-
-    @CanIgnoreReturnValue
-    public WitnessTester useGenerationConfig(WitnessGenerationConfig pGenerationConfig) {
       generationConfig = Objects.requireNonNull(pGenerationConfig);
-      return this;
     }
 
     @CanIgnoreReturnValue
@@ -320,19 +345,13 @@ public class WitnessExporterTest {
       return this;
     }
 
-    @CanIgnoreReturnValue
-    public WitnessTester performTest() throws Exception {
+    public void performTest() throws Exception {
       WitnessExporterTest.performTest(
           programFile,
           specificationFile,
           expected,
           generationConfig,
           overrideOptionsBuilder.build());
-      return this;
     }
-  }
-
-  private static WitnessTester newWitnessTester(String pProgramFile, ExpectedVerdict pExpected) {
-    return new WitnessTester(pProgramFile, pExpected);
   }
 }

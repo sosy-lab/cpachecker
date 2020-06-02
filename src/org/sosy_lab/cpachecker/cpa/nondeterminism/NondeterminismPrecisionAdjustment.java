@@ -65,7 +65,7 @@ public enum NondeterminismPrecisionAdjustment implements PrecisionAdjustment {
     if (pState instanceof NondeterminismNonAbstractionState
         && from(pOtherStates)
             .filter(PredicateAbstractState.class)
-            .anyMatch(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)) {
+            .anyMatch(PredicateAbstractState::isAbstractionState)) {
       result =
           new NondeterminismAbstractionState(
               ((NondeterminismNonAbstractionState) pState).getNondetVariables());

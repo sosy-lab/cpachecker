@@ -56,8 +56,8 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSetWrapper;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.BiPredicates;
+import org.sosy_lab.cpachecker.util.Precisions;
 
 /**
  * This class is a modifiable live view of a reached set, which shows the ARG
@@ -134,9 +134,8 @@ public class ARGReachedSet {
    * Warning: This might remove states that could cover other states.
    */
   public void removeSafeRegions() {
-    Collection<AbstractState> targetStates = from(mReached)
-        .filter(AbstractStates.IS_TARGET_STATE)
-        .toList();
+    Collection<AbstractState> targetStates =
+        from(mReached).filter(AbstractStates::isTargetState).toList();
     if (!targetStates.isEmpty()) {
       removeUnReachableFrom(targetStates,
           ARGState::getParents, x -> x.wasExpanded());
@@ -375,7 +374,7 @@ public class ARGReachedSet {
 
       refinementGraph.writeSubgraph(
           e,
-          Functions.forMap(successors.asMap(), ImmutableSet.<ARGState>of()),
+          Functions.forMap(successors.asMap(), ImmutableSet.of()),
           Predicates.alwaysTrue(),
           BiPredicates.alwaysFalse());
 

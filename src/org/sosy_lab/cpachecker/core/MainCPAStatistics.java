@@ -27,8 +27,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -80,6 +78,7 @@ import org.sosy_lab.cpachecker.core.reachedset.PartitionedReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.bam.AbstractBAMCPA;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
@@ -391,8 +390,8 @@ class MainCPAStatistics implements Statistics {
 
   private void dumpLocationMappedReachedSet(final UnmodifiableReachedSet pReachedSet, Appendable sb)
       throws IOException {
-    final ListMultimap<CFANode, AbstractState> locationIndex
-        =  Multimaps.index(pReachedSet, EXTRACT_LOCATION);
+    final ListMultimap<CFANode, AbstractState> locationIndex =
+        Multimaps.index(pReachedSet, AbstractStates::extractLocation);
 
     Function<CFANode, String> nodeLabelFormatter = new Function<>() {
       @Override
@@ -464,7 +463,7 @@ class MainCPAStatistics implements Statistics {
 
     } else {
       Multiset<CFANode> allLocations =
-          from(reached).transform(EXTRACT_LOCATION).filter(notNull()).toMultiset();
+          from(reached).transform(AbstractStates::extractLocation).filter(notNull()).toMultiset();
       locations = allLocations.elementSet();
 
       for (Multiset.Entry<CFANode> location : allLocations.entrySet()) {
@@ -503,7 +502,9 @@ class MainCPAStatistics implements Statistics {
         out.println();
       }
     }
-    out.println("  Number of target states:       " + from(reached).filter(IS_TARGET_STATE).size());
+    out.println(
+        "  Number of target states:       "
+            + from(reached).filter(AbstractStates::isTargetState).size());
   }
 
   private void printCfaStatistics(PrintStream out) {

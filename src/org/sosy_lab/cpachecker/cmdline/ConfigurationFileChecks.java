@@ -117,6 +117,11 @@ public class ConfigurationFileChecks {
           ".*Skipping one analysis because the configuration file .* could not be read.*",
           Pattern.DOTALL);
 
+  private static final Pattern MPI_PORTFOLIO_ALGORITHM_ALLOWED_WARNINGS_FOR_MISSING_LIBS =
+      Pattern.compile(
+          "Invalid configuration (mpiexec is required for performing the portfolio-analysis, but could not find it in PATH)",
+          Pattern.DOTALL);
+
   private static final Pattern UNMAINTAINED_CPA_WARNING =
       Pattern.compile(
           "Using ConfigurableProgramAnalysis .*, which is unmaintained and may not work correctly\\.");
@@ -198,6 +203,14 @@ public class ConfigurationFileChecks {
       description = "start different analyses interleaved and continue after unknown result"
     )
     private boolean useInterleavedAlgorithm = false;
+
+    @Option(
+      secure = true,
+      name = "analysis.algorithm.MPI",
+      description = "Use MPI for running analyses in new subprocesses. The resulting reachedset "
+          + "is the one of the first analysis returning in time. All other mpi-processes will "
+          + "get aborted.")
+    private boolean useMPIProcessAlgorithm = false;
 
     @Option(secure=true, name="limits.time.cpu::required",
         description="Enforce that the given CPU time limit is set as the value of limits.time.cpu.")
@@ -359,10 +372,6 @@ public class ConfigurationFileChecks {
         tempFolder.getRoot().getAbsolutePath(),
         "config/specification/modifications-present.spc");
     copyFile(
-        "config/specification/sv-comp-reachability.spc",
-        tempFolder.getRoot().getAbsolutePath(),
-        "config/specification/sv-comp-reachability.spc");
-    copyFile(
         "config/specification/TargetState.spc",
         tempFolder.getRoot().getAbsolutePath(),
         "config/specification/TargetState.spc");
@@ -370,10 +379,6 @@ public class ConfigurationFileChecks {
         "config/specification/test-comp-terminatingfunctions.spc",
         tempFolder.getRoot().getAbsolutePath(),
         "config/specification/test-comp-terminatingfunctions.spc");
-    copyFile(
-        "config/specification/termination_as_reach.spc",
-        tempFolder.getRoot().getAbsolutePath(),
-        "config/specification/termination_as_reach.spc");
   }
 
   /**
@@ -468,7 +473,8 @@ public class ConfigurationFileChecks {
     if (configFile instanceof Path) {
       assume()
           .that((Iterable<?>) configFile)
-          .containsNoneOf(Paths.get("includes"), Paths.get("pcc"));
+          .containsNoneOf(
+              Paths.get("includes"), Paths.get("pcc"), Paths.get("witnessValidation.properties"));
     }
 
     final OptionsWithSpecialHandlingInTest options = new OptionsWithSpecialHandlingInTest();
@@ -528,7 +534,11 @@ public class ConfigurationFileChecks {
                 .filter(s -> INDICATES_MISSING_FILES.matcher(s).matches()))
         .isEmpty();
 
-    if (!isOptionEnabled(config, "analysis.disable")) {
+    if (!(isOptionEnabled(config, "analysis.disable") || options.useMPIProcessAlgorithm)) {
+      // The MPI algorithm requires a mpiexec-bin on PATH and intentionally throws an exception
+      // if it cannot be found. As this is the usual case, the algorithm will not pass the initial
+      // setup and hence leaves the result object in its 'NOT_YET_STARTED' state.
+
       assert_()
           .withMessage(
               "Failure in CPAchecker run with following log\n%s\n",
@@ -612,10 +622,12 @@ public class ConfigurationFileChecks {
       logRecords = Streams.stream(logRecordIterator);
     }
     Stream<String> result = logRecords
-            .filter(record -> record.getLevel().intValue() >= Level.WARNING.intValue())
-            .map(LogRecord::getMessage)
-            .filter(s -> !INDICATES_MISSING_FILES.matcher(s).matches())
-            .filter(s -> !ALLOWED_WARNINGS.matcher(s).matches());
+        .filter(record -> record.getLevel().intValue() >= Level.WARNING.intValue())
+        .map(LogRecord::getMessage)
+        .filter(s -> !INDICATES_MISSING_FILES.matcher(s).matches())
+        .filter(s -> !ALLOWED_WARNINGS.matcher(s).matches())
+        .filter(
+            s -> MPI_PORTFOLIO_ALGORITHM_ALLOWED_WARNINGS_FOR_MISSING_LIBS.matcher(s).matches());
 
     if (isUnmaintainedConfig()) {
       result = result.filter(s -> !UNMAINTAINED_CPA_WARNING.matcher(s).matches());

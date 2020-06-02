@@ -172,7 +172,7 @@ public class BAMARGStatistics extends ARGStatistics {
 
     } catch (MissingBlockException e) {
       final Collection<ARGState> targetStates =
-          Collections2.filter(frontierStates, AbstractStates.IS_TARGET_STATE);
+          Collections2.filter(frontierStates, AbstractStates::isTargetState);
 
       if (pResult.equals(Result.FALSE) && !targetStates.isEmpty()) {
         // fallback: if there is a missing block and we have a target state,
@@ -196,7 +196,7 @@ public class BAMARGStatistics extends ARGStatistics {
     //   "Last state %s of reachedset with root %s is not in target states %s",
     //   pReached.getLastState(), pReached.getFirstState(), targets);
     ARGReachedSet pMainReachedSet =
-        new ARGReachedSet((ReachedSet) pReached, (ARGCPA) cpa, 0 /* irrelevant number */);
+        new ARGReachedSet((ReachedSet) pReached, cpa, 0 /* irrelevant number */);
     // assertion disabled, because it happens with interrupts from user or on timeouts.
     // assert pMainReachedSet.asReachedSet().asCollection().containsAll(frontierStates)
     //   : "The following states are frontier states, but not part of the reachedset: "

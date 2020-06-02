@@ -40,7 +40,6 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -334,8 +333,7 @@ public class GraphUtils {
     pIndex++;
     pDfsStack.push(pState);
 
-    for (Iterator<ARGState> iterator = pState.getChildren().iterator(); iterator.hasNext(); ) {
-      ARGState sucessorState = iterator.next();
+    for (ARGState sucessorState : pState.getChildren()) {
       if (pExcludeStates.isPresent() && pExcludeStates.orElseThrow().contains(sucessorState)) {
         continue;
       }

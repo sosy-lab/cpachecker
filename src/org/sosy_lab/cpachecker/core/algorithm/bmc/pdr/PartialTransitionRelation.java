@@ -24,8 +24,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.bmc.pdr;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.END_STATE_FILTER;
-import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.getLocationPredicate;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
@@ -149,13 +147,11 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
     currentEndStates =
         filterIterationsUpTo(reachedSet.getReachedSet(), desiredK)
             .filter(
-                END_STATE_FILTER.or(
-                        getLocationPredicate(loopHeads)
-                            .and(
-                                state ->
-                                    !Iterables.isEmpty(
-                                        filterIteration(Collections.singleton(state), desiredK))))
-                    ::test)
+                state ->
+                    BMCHelper.isEndState(state)
+                        || (BMCHelper.hasMatchingLocation(state, loopHeads)
+                            && !Iterables.isEmpty(
+                                filterIteration(Collections.singleton(state), desiredK))))
             .toSet();
     currentVariables = null;
     lastK = desiredK;

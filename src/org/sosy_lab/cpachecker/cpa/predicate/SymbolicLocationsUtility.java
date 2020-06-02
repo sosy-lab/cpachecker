@@ -66,7 +66,7 @@ public class SymbolicLocationsUtility {
     return PredicateAbstractState.mkAbstractionState(
         pfmgr.makeEmptyPathFormula(),
         pamgr.asAbstraction(makeStateFormula(init, error), pfmgr.makeEmptyPathFormula()),
-        PathCopyingPersistentTreeMap.<CFANode, Integer>of());
+        PathCopyingPersistentTreeMap.of());
   }
 
   public BooleanFormula makeStateFormula(boolean init, boolean error) {

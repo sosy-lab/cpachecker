@@ -137,6 +137,16 @@ public class BuiltinOverflowFunctions {
   }
 
   /**
+   * Check whether a given function is a known builtin function specific to overflows, but which is
+   * not yet supported by this class.
+   */
+  public static boolean isUnsupportedBuiltinOverflowFunction(String pFunctionName) {
+    return pFunctionName.startsWith(PREFIX)
+        && pFunctionName.endsWith(SUFFIX)
+        && !possibleIdentifiers.contains(pFunctionName);
+  }
+
+  /**
    * This method returns a {@link CExpression} that represents the truth value of checking whether
    * an arithmetic operation performed on the input expressions var1 and var1 overflows.
    *

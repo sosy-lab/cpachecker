@@ -28,7 +28,6 @@ import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.html.HtmlEscapers.htmlEscaper;
 import static java.nio.file.Files.isReadable;
 import static java.util.logging.Level.WARNING;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
@@ -92,6 +91,7 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 
 @Options
 public class ReportGenerator {
@@ -174,7 +174,8 @@ public class ReportGenerator {
 
     FluentIterable<CounterexampleInfo> counterExamples =
         Optionals.presentInstances(
-            from(pReached).filter(IS_TARGET_STATE)
+            from(pReached)
+                .filter(AbstractStates::isTargetState)
                 .filter(ARGState.class)
                 .transform(ARGState::getCounterexampleInformation));
 
@@ -238,7 +239,10 @@ public class ReportGenerator {
         witnessOptional =
             Optional.of(
                 argWitnessExporter.generateProofWitness(
-                    rootState, Predicates.alwaysTrue(), BiPredicates.alwaysTrue()));
+                    rootState,
+                    Predicates.alwaysTrue(),
+                    BiPredicates.alwaysTrue(),
+                    argWitnessExporter.getProofInvariantProvider()));
       } catch (InvalidConfigurationException e) {
         logger.logUserException(Level.WARNING, e, "Could not generate witness for witness view");
       }
@@ -345,6 +349,10 @@ public class ReportGenerator {
     if (counterExample != null) {
       writer.write(",\n\"errorPath\":");
       counterExample.toJSON(writer);
+      if(counterExample instanceof FaultLocalizationInfo){
+        writer.write(",\n\"faults\":");
+        ((FaultLocalizationInfo)counterExample).faultsToJSON(writer);
+      }
     }
 
     writer.write(",\n");
@@ -746,7 +754,6 @@ public class ReportGenerator {
       } else {
         edgeLabel.append("Line ");
         edgeLabel.append(edges.get(0).getFileLocation().getStartingLineInOrigin());
-        edgeLabel.append("");
         argEdge.put("line", edgeLabel.substring(5));
       }
       for (CFAEdge edge : edges) {
