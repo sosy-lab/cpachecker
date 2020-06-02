@@ -177,7 +177,7 @@ public class AutomatonTest {
     Configuration config = TestDataTools.configurationForTest().setOptions(prop).build();
     TestResults results =
         CPATestRunner.run(config, "test/programs/simple/simple_setuid_test.c", Level.FINER);
-    assertThat(results.getLog()).contains("Systemcall in line 14 with userid 2");
+    assertThat(results.getLog()).contains("Systemcall in line 22 with userid 2");
     assertThat(results.getLog()).contains("going to ErrorState on edge \"system(40);\"");
     results.assertIsUnsafe();
   }
@@ -295,7 +295,7 @@ public class AutomatonTest {
             "cpa.value.threshold", "2000");
 
     TestResults results = CPATestRunner.run(prop, "test/programs/simple/loop1.c");
-    assertThat(results.getLog()).contains("A: Matched i in line 13 x=2");
+    assertThat(results.getLog()).contains("A: Matched i in line 21 x=2");
     assertThat(results.getLog()).contains("B: A increased to 2 And i followed ");
     results.assertIsSafe();
   }
