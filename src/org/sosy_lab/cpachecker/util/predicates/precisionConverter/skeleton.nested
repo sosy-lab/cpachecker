@@ -1,3 +1,10 @@
+// This sekeleton code was taken from JFlex.
+// According to https://jflex.de/copying.html, the generated code inherits the license only from
+// the specification (the .jflex file), so the license of this file does not apply to it.
+//
+// SPDX-FileCopyrightText: Gerwin Klein, Steve Rowe, Regis Decamp
+//
+// SPDX-License-Identifier: BSD-3-Clause
 
   /** This character denotes the end of file */
   public static final int YYEOF = -1;
