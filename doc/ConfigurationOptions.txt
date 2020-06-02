@@ -1,6 +1,14 @@
 # This is an auto-generated file, DO NOT EDIT!
 # Run ant to generate it.
 
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # Possible log levels in descending order 
 # (lower levels include higher ones):
 # OFF:      no logs published
@@ -45,6 +53,7 @@ output.path = "output/"
 # base directory for all input & output files
 # (except for the configuration file itself)
 rootDirectory = "."
+
 
 # Further options for Boolector in addition to the default options. Format: 
 # "Optionname=value" with ’,’ to seperate options. Optionname and value can
@@ -130,6 +139,11 @@ solver.z3.requireProofs = true
 
 # Whether to use PhantomReferences for discarding Z3 AST
 solver.z3.usePhantomReferences = false
+
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
+#
+# SPDX-License-Identifier: Apache-2.0
 
 # Refiner that SlicingDelegatingRefiner should delegate to
 SlicingDelegatingRefiner.refiner = no default value
