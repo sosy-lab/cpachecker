@@ -176,7 +176,7 @@ public class TemplatePrecision implements Precision {
   private final TemplateToFormulaConversionManager
       templateToFormulaConversionManager;
 
-  // Temporary variables created by CPA checker.
+  // Temporary variables created by CPAchecker.
   private static final String TMP_VARIABLE = "__CPAchecker_TMP";
 
   // todo: do not hardcode, use automaton.
