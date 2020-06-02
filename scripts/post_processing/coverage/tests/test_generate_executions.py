@@ -213,8 +213,8 @@ class TestCoverageAAIsPrefixFromExistingPath(TestCoverage):
             ]
             self.assertEqual(mock_info.mock_calls, expected_calls)
 
-        self.assertEqual(lines_covered, set([3, 4, 13]))
-        self.assertEqual(lines_to_cover, set([3, 4, 5, 6, 7, 9, 10, 13, 14, 15]))
+        self.assertEqual(lines_covered, {12, 13, 22})
+        self.assertEqual(lines_to_cover, {12, 13, 14, 15, 16, 18, 19, 22, 23, 24})
 
 
 class TestCoveragePathAAFixPoint(TestCoverage):
@@ -249,8 +249,8 @@ class TestCoveragePathAAFixPoint(TestCoverage):
             ]
             self.assertEqual(mock_info.mock_calls, expected_calls)
 
-        self.assertEqual(lines_covered, set([3, 4, 13]))
-        self.assertEqual(lines_to_cover, set([3, 4, 5, 6, 7, 9, 10, 13, 14, 15]))
+        self.assertEqual(lines_covered, {12, 13, 22})
+        self.assertEqual(lines_to_cover, {12, 13, 14, 15, 16, 18, 19, 22, 23, 24})
 
 
 class TestCoverageTreeAAAndExisting2Paths(TestCoverage):
@@ -284,8 +284,8 @@ class TestCoverageTreeAAAndExisting2Paths(TestCoverage):
             ]
             self.assertEqual(mock_info.mock_calls, expected_calls)
 
-        self.assertEqual(lines_covered, set([3, 4, 5, 6, 9]))
-        self.assertEqual(lines_to_cover, set([3, 4, 5, 6, 7, 9, 10, 13, 14, 15]))
+        self.assertEqual(lines_covered, {12, 13, 14, 15, 18})
+        self.assertEqual(lines_to_cover, {12, 13, 14, 15, 16, 18, 19, 22, 23, 24})
 
 
 class TestCoverageFixPointProducesExecutions(TestCoverage):
@@ -335,11 +335,11 @@ class TestCoverageFixPointProducesAllPossibleExecutions(TestCoverage):
             cex_generated = [next(g.generate_executions())]
             # Updating covered lines, to force the generator to cover
             # other lines.
-            g.lines_covered.update([3, 4, 13, 14, 15])
+            g.lines_covered.update([12, 13, 22, 23, 24])
             cex_generated.append(next(g.generate_executions()))
-            g.lines_covered.update([3, 4, 5, 6, 7])
+            g.lines_covered.update([12, 13, 14, 15, 16])
             cex_generated.append(next(g.generate_executions()))
-            g.lines_covered.update([3, 4, 5, 9, 10])
+            g.lines_covered.update([12, 13, 14, 18, 19])
             expected_calls = [
                 call("Generated 1 executions."),
                 call("Generated 1 executions."),
@@ -372,10 +372,10 @@ class TestCoverageFixPointWithinAssumptionAutomatonPath(TestCoverage):
             )
             # Updating covered lines, to force the generator to cover
             # the only other possible path.
-            g.lines_covered.update([3, 4, 5, 9])
+            g.lines_covered.update([12, 13, 14, 18])
             cex_generated = [next(g.generate_executions())]
             # Updating covered lines, to reflect the execution just produced.
-            g.lines_covered.update([3, 4, 5, 6])
+            g.lines_covered.update([12, 13, 14, 15])
             cex_generated += list(g.generate_executions())
             expected_calls = [
                 call("Generated 1 executions."),
@@ -407,7 +407,7 @@ class TestCoverageFixPointAlreadyReached(TestCoverage):
             )
             # Updating covered lines such that it is impossible to
             # cover more lines.
-            g.lines_covered.update([3, 4, 5, 6, 9])
+            g.lines_covered.update([12, 13, 14, 15, 18])
             cex_generated = list(g.generate_executions())
             expected_calls = [call("Generated 0 executions.")]
             self.assertEqual(mock_info.mock_calls, expected_calls)

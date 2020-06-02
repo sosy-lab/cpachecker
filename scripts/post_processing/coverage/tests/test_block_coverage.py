@@ -76,8 +76,8 @@ class TestCoverageWhile(TestCoverage):
             )
             lines_covered, lines_to_cover = c.collect_coverage()
 
-        self.assertEqual(lines_covered, set([3, 4]))
-        self.assertEqual(lines_to_cover, set([3, 4, 5, 6, 7]))
+        self.assertEqual(lines_covered, {12, 13})
+        self.assertEqual(lines_to_cover, {12, 13, 14, 15, 16})
 
 
 class TestCoverageIf(TestCoverage):
@@ -100,8 +100,8 @@ class TestCoverageIf(TestCoverage):
             )
             lines_covered, lines_to_cover = c.collect_coverage()
 
-        self.assertEqual(lines_covered, set([3, 4]))
-        self.assertEqual(lines_to_cover, set([3, 4, 5, 6, 7]))
+        self.assertEqual(lines_covered, {12, 13})
+        self.assertEqual(lines_to_cover, {12, 13, 14, 15, 16})
 
 
 class TestCoverageSwitch(TestCoverage):
@@ -124,10 +124,10 @@ class TestCoverageSwitch(TestCoverage):
             )
             lines_covered, lines_to_cover = c.collect_coverage()
 
-        self.assertEqual(lines_covered, set([3, 4, 5, 8, 9, 14, 15, 16]))
+        self.assertEqual(lines_covered, {12, 13, 14, 17, 18, 23, 24, 25})
         self.assertEqual(
             lines_to_cover,
-            set([3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]),
+            {12, 13, 14, 15, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30},
         )
 
 
@@ -151,8 +151,8 @@ class TestCoverageWhileWithCall(TestCoverage):
             )
             lines_covered, lines_to_cover = c.collect_coverage()
 
-        self.assertEqual(lines_covered, set([4, 5]))
-        self.assertEqual(lines_to_cover, set([4, 5, 6, 7, 8, 9, 14, 15, 16, 17]))
+        self.assertEqual(lines_covered, {13, 14})
+        self.assertEqual(lines_to_cover, {13, 14, 15, 16, 17, 18, 23, 24, 25, 26})
 
 
 class TestCoverageMultilineSwitchExpression(TestCoverage):
@@ -176,42 +176,9 @@ class TestCoverageMultilineSwitchExpression(TestCoverage):
             lines_covered, lines_to_cover = c.collect_coverage()
 
         self.assertEqual(
-            lines_covered, set([3, 4, 5, 6, 7, 8, 14, 15, 16, 17, 18, 23, 24, 25])
+            lines_covered, {12, 13, 14, 15, 16, 17, 23, 24, 25, 26, 27, 32, 33, 34}
         )
-        self.assertEqual(
-            lines_to_cover,
-            set(
-                [
-                    3,
-                    4,
-                    5,
-                    6,
-                    7,
-                    8,
-                    9,
-                    10,
-                    11,
-                    12,
-                    14,
-                    15,
-                    16,
-                    17,
-                    18,
-                    19,
-                    20,
-                    21,
-                    22,
-                    23,
-                    24,
-                    25,
-                    26,
-                    27,
-                    28,
-                    29,
-                    30,
-                ]
-            ),
-        )
+        self.assertEqual(lines_to_cover, set(range(12, 40)) - {22})
 
 
 class TestCoverageMultilineSwitchExpressionAndCall(TestCoverage):
@@ -237,44 +204,9 @@ class TestCoverageMultilineSwitchExpressionAndCall(TestCoverage):
         # evaluated even though line 4 cannot be reached.
         self.assertEqual(
             lines_covered,
-            set([3, 4, 7, 8, 9, 10, 11, 12, 18, 19, 20, 21, 22, 27, 28, 29]),
+            {12, 13, 16, 17, 18, 19, 20, 21, 27, 28, 29, 30, 31, 36, 37, 38},
         )
-        self.assertEqual(
-            lines_to_cover,
-            set(
-                [
-                    3,
-                    4,
-                    7,
-                    8,
-                    9,
-                    10,
-                    11,
-                    12,
-                    13,
-                    14,
-                    15,
-                    16,
-                    18,
-                    19,
-                    20,
-                    21,
-                    22,
-                    23,
-                    24,
-                    25,
-                    26,
-                    27,
-                    28,
-                    29,
-                    30,
-                    31,
-                    32,
-                    33,
-                    34,
-                ]
-            ),
-        )
+        self.assertEqual(lines_to_cover, {12, 13} | (set(range(16, 44)) - {26}))
 
 
 if __name__ == "__main__":
