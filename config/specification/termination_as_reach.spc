@@ -1,3 +1,11 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 CONTROL AUTOMATON NonTerminationLabelAutomaton
 // Specification used by the termination algorithm to detect potential non-termination.
 // This automaton detects error locations that are specified by the label
