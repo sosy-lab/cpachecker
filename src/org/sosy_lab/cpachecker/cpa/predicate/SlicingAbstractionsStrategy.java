@@ -30,6 +30,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -399,10 +400,10 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
         SlicingAbstractionsUtils.removeOutgoingEdgesWithLocationMismatch((SLARGState) currentState);
       }
 
-      Map<ARGState, List<ARGState>> segmentMap =
+      Map<ARGState, PersistentList<ARGState>> segmentMap =
           SlicingAbstractionsUtils.calculateOutgoingSegments(currentState);
       Map<ARGState, Boolean> infeasibleMap = new HashMap<>();
-      for (Map.Entry<ARGState,List<ARGState>> entry : segmentMap.entrySet()) {
+      for (Map.Entry<ARGState, PersistentList<ARGState>> entry : segmentMap.entrySet()) {
         ARGState key = entry.getKey();
         List<ARGState> segment = entry.getValue();
         boolean infeasible;
@@ -428,7 +429,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
 
   private static void slice0(
       ARGState currentState,
-      Map<ARGState, List<ARGState>> segmentMap,
+      Map<ARGState, PersistentList<ARGState>> segmentMap,
       Map<ARGState, Boolean> infeasibleMap) {
     Set<ARGState> segmentStateSet = new HashSet<>();
     for (List<ARGState> segment : segmentMap.values()) {

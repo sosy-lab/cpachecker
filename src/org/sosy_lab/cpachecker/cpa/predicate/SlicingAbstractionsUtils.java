@@ -64,24 +64,25 @@ public class SlicingAbstractionsUtils {
   private SlicingAbstractionsUtils() {}
 
   /**
-   * Calculate parent abstraction states for a given abstraction state
-   * and the corresponding non-abstraction states that lie between them.
+   * Calculate parent abstraction states for a given abstraction state and the corresponding
+   * non-abstraction states that lie between them.
    *
    * @param originState The (abstraction) state for which to calculate the incoming segment
-   * @return A mapping of (abstraction) states to a list of (non-abstraction) states
-   *         via which originState can be reached from the corresponding key
+   * @return A mapping of (abstraction) states to a list of (non-abstraction) states via which
+   *     originState can be reached from the corresponding key
    */
-  public static Map<ARGState, List<ARGState>> calculateIncomingSegments(ARGState originState) {
+  public static Map<ARGState, PersistentList<ARGState>> calculateIncomingSegments(
+      ARGState originState) {
     checkArgument(isAbstractionState(originState));
 
-    final Map<ARGState, List<ARGState>> result = new TreeMap<>();
+    final Map<ARGState, PersistentList<ARGState>> result = new TreeMap<>();
     final List<ARGState> startAbstractionStates = calculateStartStates(originState);
 
     // This looks a bit expensive, but we cannot simply write this method like calculateOutgoingSegments!
     // Because of the way we build our ARG, we can be sure that a block has only one starting
     // abstraction state, but there could be several abstraction states to end at.
     for (ARGState s : startAbstractionStates) {
-      Map<ARGState, List<ARGState>> outgoing = calculateOutgoingSegments(s);
+      Map<ARGState, PersistentList<ARGState>> outgoing = calculateOutgoingSegments(s);
       if (outgoing.containsKey(originState)) {
          result.put(s,outgoing.get(originState));
       }
@@ -133,20 +134,22 @@ public class SlicingAbstractionsUtils {
   }
 
   /**
-   * Calculate child abstraction states for a given abstraction state
-   * and the corresponding non-abstraction states that lie between them.
+   * Calculate child abstraction states for a given abstraction state and the corresponding
+   * non-abstraction states that lie between them.
+   *
    * @param originState The (abstraction) state from which to start
-   * @return A mapping of (abstraction) states to a list of (non-abstraction) states
-   *         which can be reached from originState
+   * @return A mapping of (abstraction) states to a list of (non-abstraction) states which can be
+   *     reached from originState
    */
-  public static Map<ARGState, List<ARGState>> calculateOutgoingSegments(ARGState originState) {
+  public static Map<ARGState, PersistentList<ARGState>> calculateOutgoingSegments(
+      ARGState originState) {
     checkArgument(isAbstractionState(originState));
 
     // Used data structures:
     final Collection<ARGState> outgoingStates = originState.getChildren();
     final Deque<ARGState> waitlist = new ArrayDeque<>();
     final Map<ARGState, PersistentList<ARGState>> frontier = new TreeMap<>();
-    final Map<ARGState, List<ARGState>> segmentMap = new TreeMap<>();
+    final Map<ARGState, PersistentList<ARGState>> segmentMap = new TreeMap<>();
     final Collection<ARGState> reachableNonAbstractionStates = nonAbstractionReach(originState);
 
     // prepare initial state
@@ -210,7 +213,7 @@ public class SlicingAbstractionsUtils {
       for (ARGState child : currentState.getChildren()) {
         if (isAbstractionState(child)) {
           if (segmentMap.containsKey(child)) {
-            PersistentList<ARGState> storedStateList = (PersistentList<ARGState>) segmentMap.get(child);
+            PersistentList<ARGState> storedStateList = segmentMap.get(child);
             for (ARGState s : currentStateList.reversed()) {
               if (!storedStateList.contains(s)) {
                 storedStateList = storedStateList.with(s);
@@ -229,10 +232,10 @@ public class SlicingAbstractionsUtils {
     }
 
     // Now we need to reverse the segments so that they are in correct order:
-    for (Map.Entry<ARGState,List<ARGState>> entry : segmentMap.entrySet()) {
+    for (Map.Entry<ARGState, PersistentList<ARGState>> entry : segmentMap.entrySet()) {
       ARGState key = entry.getKey();
-      List<ARGState> segment = entry.getValue();
-      segmentMap.put(key, ((PersistentList<ARGState>) segment).reversed());
+      PersistentList<ARGState> segment = entry.getValue();
+      segmentMap.put(key, segment.reversed());
     }
 
     return segmentMap;
@@ -490,11 +493,13 @@ public class SlicingAbstractionsUtils {
    */
   public static void copyEdges(ARGState forkedState, ARGState originalState, ARGReachedSet pReached) {
 
-    final Map<ARGState,List<ARGState>> outgoingSegmentMap = calculateOutgoingSegments(originalState);
-    final Map<ARGState,List<ARGState>> incomingSegmentMap = calculateIncomingSegments(originalState);
+    final Map<ARGState, PersistentList<ARGState>> outgoingSegmentMap =
+        calculateOutgoingSegments(originalState);
+    final Map<ARGState, PersistentList<ARGState>> incomingSegmentMap =
+        calculateIncomingSegments(originalState);
 
     // copy the outgoing edges:
-    for (Map.Entry<ARGState, List<ARGState>> entry : outgoingSegmentMap.entrySet()) {
+    for (Map.Entry<ARGState, PersistentList<ARGState>> entry : outgoingSegmentMap.entrySet()) {
       ARGState endState = entry.getKey();
       List<ARGState> intermediateStateList = entry.getValue();
       copyEdge(intermediateStateList, originalState, endState, forkedState, endState, pReached);
@@ -505,7 +510,7 @@ public class SlicingAbstractionsUtils {
     }
 
     // copy the incoming edges:
-    for (Map.Entry<ARGState, List<ARGState>> entry : incomingSegmentMap.entrySet()) {
+    for (Map.Entry<ARGState, PersistentList<ARGState>> entry : incomingSegmentMap.entrySet()) {
       ARGState startState = entry.getKey();
       List<ARGState> intermediateStateList = entry.getValue();
       copyEdge(intermediateStateList, startState, originalState, startState, forkedState, pReached);
