@@ -15,6 +15,7 @@ SPDX-License-Identifier: Apache-2.0
     <!-- basedir should be the "CPAchecker" directory -->
 
     <property name="dir.parser" location="src/org/sosy_lab/cpachecker/cpa/automaton/" />
+    <property name="skeleton.source" value="skeleton.nested"/> <!-- For handling includes (parsing another file during parsing) -->
     <property name="scanner.target" value="AutomatonScanner"/>
     <property name="parser.target" value="AutomatonParser"/>
     <property name="symbols.target" value="AutomatonSym"/>

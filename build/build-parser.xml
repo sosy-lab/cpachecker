@@ -11,7 +11,7 @@ SPDX-License-Identifier: Apache-2.0
 -->
 
 <!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
-<project name="Base script for parser generation" default="generate-parser" basedir=".">
+<project name="Base script for parser generation" default="generate-parser" basedir="." xmlns:if="ant:if" xmlns:unless="ant:unless">
     <!-- basedir should be the "CPAchecker" directory -->
     <dirname property="dir.base" file="${ant.file.imported}"/>
     <property name="dir.src" location="${dir.base}/src" />
@@ -20,7 +20,7 @@ SPDX-License-Identifier: Apache-2.0
     <!-- the following properties will be used as default
          if the importing file does not overwrite them -->
     <property name="scanner.source" value="Scanner.jflex"/>
-    <property name="skeleton.source" value="skeleton.nested"/>
+    <!-- <property name="skeleton.source" value=""/> -->
     <property name="parser.source" value="parser.cup"/>
 
     <path id="parser.generator.path">
@@ -59,7 +59,8 @@ SPDX-License-Identifier: Apache-2.0
     </condition>
 
     <target name="generate-scanner" unless="scanner.uptodate" description="Generate automaton scanner">
-        <jflex file="${dir.parser}/${scanner.source}" destdir="${dir.src}" skel="${dir.parser}/${skeleton.source}"/>
+        <jflex file="${dir.parser}/${scanner.source}" destdir="${dir.src}" skel="${dir.parser}/${skeleton.source}" if:set="skeleton.source"/>
+        <jflex file="${dir.parser}/${scanner.source}" destdir="${dir.src}" unless:set="skeleton.source"/>
     </target>
 
     <target name="generate-parser" depends="generate-scanner" unless="parser.uptodate" description="Generate automaton parser">
