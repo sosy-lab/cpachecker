@@ -26,8 +26,6 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 
 @javax.annotation.processing.Generated("JFlex")
-@SuppressWarnings(value = { "all", "cast", "FallThrough" })
-@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = {"DLS_DEAD_LOCAL_STORE"})
 %%
 
 %cup

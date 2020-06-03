@@ -13,8 +13,6 @@ import java_cup.runtime.ComplexSymbolFactory.Location;
 import java_cup.runtime.Symbol;
 
 @javax.annotation.processing.Generated("JFlex")
-@SuppressWarnings(value = { "all", "cast", "FallThrough" })
-@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = {"DLS_DEAD_LOCAL_STORE"})
 %%
 
 %cup

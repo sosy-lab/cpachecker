@@ -61,6 +61,10 @@ SPDX-License-Identifier: Apache-2.0
     <target name="generate-scanner" unless="scanner.uptodate" description="Generate automaton scanner">
         <jflex file="${dir.parser}/${scanner.source}" destdir="${dir.src}" skel="${dir.parser}/${skeleton.source}" if:set="skeleton.source"/>
         <jflex file="${dir.parser}/${scanner.source}" destdir="${dir.src}" unless:set="skeleton.source"/>
+        <replace file="${dir.parser}/${scanner.target}.java"
+            token="@SuppressWarnings(&quot;FallThrough&quot;)"
+            value="@SuppressWarnings({&quot;FallThrough&quot;, &quot;all&quot;, &quot;cast&quot;})"
+        />
     </target>
 
     <target name="generate-parser" depends="generate-scanner" unless="parser.uptodate" description="Generate automaton parser">
