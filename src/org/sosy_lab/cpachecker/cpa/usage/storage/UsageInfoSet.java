@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cpa.usage.storage;
 
 import com.google.common.collect.Iterables;
 import java.util.Iterator;
-import java.util.SortedSet;
+import java.util.NavigableSet;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
@@ -24,7 +24,7 @@ public class UsageInfoSet extends TreeSet<UsageInfo> {
   public UsageInfoSet() {
   }
 
-  private UsageInfoSet(SortedSet<UsageInfo> pSet) {
+  private UsageInfoSet(NavigableSet<UsageInfo> pSet) {
     super(pSet);
   }
 

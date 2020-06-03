@@ -21,9 +21,10 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
+import java.util.NavigableSet;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -43,9 +44,9 @@ import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 public class UsageContainer {
-  private final SortedMap<SingleIdentifier, UnrefinedUsagePointSet> unrefinedIds;
-  private final SortedMap<SingleIdentifier, RefinedUsagePointSet> refinedIds;
-  private final SortedMap<SingleIdentifier, RefinedUsagePointSet> failedIds;
+  private final NavigableMap<SingleIdentifier, UnrefinedUsagePointSet> unrefinedIds;
+  private final NavigableMap<SingleIdentifier, RefinedUsagePointSet> refinedIds;
+  private final NavigableMap<SingleIdentifier, RefinedUsagePointSet> failedIds;
 
   private final UnsafeDetector detector;
 
@@ -78,9 +79,9 @@ public class UsageContainer {
   }
 
   private UsageContainer(
-      SortedMap<SingleIdentifier, UnrefinedUsagePointSet> pUnrefinedStat,
-      SortedMap<SingleIdentifier, RefinedUsagePointSet> pRefinedStat,
-      SortedMap<SingleIdentifier, RefinedUsagePointSet> failedStat,
+      NavigableMap<SingleIdentifier, UnrefinedUsagePointSet> pUnrefinedStat,
+      NavigableMap<SingleIdentifier, RefinedUsagePointSet> pRefinedStat,
+      NavigableMap<SingleIdentifier, RefinedUsagePointSet> failedStat,
       Set<SingleIdentifier> pFalseUnsafes,
       LogManager pLogger,
       UsageConfiguration pConfig,
@@ -138,7 +139,7 @@ public class UsageContainer {
 
   private void copyUsages(AbstractUsageStorage storage) {
     emptyEffectsTimer.start();
-    for (Entry<SingleIdentifier, SortedSet<UsageInfo>> entry : storage.entrySet()) {
+    for (Entry<SingleIdentifier, NavigableSet<UsageInfo>> entry : storage.entrySet()) {
       SingleIdentifier id = entry.getKey();
 
       if (falseUnsafes.contains(id) || refinedIds.containsKey(id)) {
@@ -161,7 +162,7 @@ public class UsageContainer {
     } else {
       Map<LockState, LockState> reduceToExpand = new HashMap<>();
 
-      for (Map.Entry<SingleIdentifier, SortedSet<UsageInfo>> entry : storage.entrySet()) {
+      for (Map.Entry<SingleIdentifier, NavigableSet<UsageInfo>> entry : storage.entrySet()) {
         SingleIdentifier id = entry.getKey();
 
         if (falseUnsafes.contains(id) || refinedIds.containsKey(id)) {

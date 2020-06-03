@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.cpa.usage.storage;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.NavigableSet;
 import java.util.Set;
-import java.util.SortedSet;
 import org.sosy_lab.cpachecker.cpa.lock.DeadLockState.DeadLockTreeNode;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
@@ -73,7 +73,7 @@ public class UnsafeDetector {
     return getUnsafePair(set.getTopUsages());
   }
 
-  private boolean isUnsafe(SortedSet<UsagePoint> points) {
+  private boolean isUnsafe(NavigableSet<UsagePoint> points) {
     for (UsagePoint point1 : points) {
       for (UsagePoint point2 : points.tailSet(point1)) {
         if (isUnsafePair(point1, point2)) {
@@ -84,7 +84,7 @@ public class UnsafeDetector {
     return false;
   }
 
-  private Pair<UsagePoint, UsagePoint> getUnsafePair(SortedSet<UsagePoint> set) {
+  private Pair<UsagePoint, UsagePoint> getUnsafePair(NavigableSet<UsagePoint> set) {
 
     for (UsagePoint point1 : set) {
       for (UsagePoint point2 : set.tailSet(point1)) {
