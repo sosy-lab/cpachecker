@@ -148,6 +148,13 @@ public class WitnessExporterTest {
         .performTest();
   }
 
+  @Test(timeout = 90000)
+  public void valueInvariant_true() throws Exception {
+    new WitnessTester(
+        "valueInvariant.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.VALUE_ANALYSIS)
+        .performTest();
+  }
+
   private static void performTest(
       String pFilename,
       String pSpecification,
