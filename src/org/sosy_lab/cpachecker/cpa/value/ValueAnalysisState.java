@@ -41,9 +41,6 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
@@ -60,7 +57,6 @@ import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
-import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
@@ -74,7 +70,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -773,25 +768,8 @@ public final class ValueAnalysisState
   @Override
   public ExpressionTree<Object> getFormulaApproximation(
       FunctionEntryNode pFunctionScope, CFANode pLocation) {
-    AssumptionToEdgeAllocator assumptionToEdgeAllocator = null;
-    try {
-      Optional<ConfigurableProgramAnalysis> wrappedCpa = GlobalInfo.getInstance().getCPA();
-      if (wrappedCpa.isPresent()) {
-        for (ConfigurableProgramAnalysis c : CPAs.asIterable(wrappedCpa.orElseThrow())) {
-          if (c instanceof ValueAnalysisCPA) {
-            ValueAnalysisCPA vcpa = (ValueAnalysisCPA) c;
-            Configuration config = vcpa.getConfiguration();
-            LogManager logger = vcpa.getLogger();
-            assumptionToEdgeAllocator =
-                AssumptionToEdgeAllocator.create(config, logger, machineModel);
-            break;
-          }
-        }
-      }
-      assert assumptionToEdgeAllocator != null;
-    } catch (InvalidConfigurationException e) {
-      throw new AssertionError("Failed to approximate state", e);
-    }
+    AssumptionToEdgeAllocator assumptionToEdgeAllocator =
+        GlobalInfo.getInstance().getAssumptionToEdgeAllocator();
 
     ExpressionTree<Object> invariant = ExpressionTrees.getTrue();
     ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
