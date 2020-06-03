@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cpa.lock.effects;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Preconditions;
-import java.util.SortedMap;
+import java.util.NavigableMap;
 import java.util.TreeMap;
 import org.sosy_lab.cpachecker.cpa.lock.AbstractLockStateBuilder;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
@@ -44,7 +44,8 @@ public class AcquireLockEffect extends LockEffect {
 
   private final static AcquireLockEffect instance = new AcquireLockEffect();
 
-  private final static SortedMap<LockIdentifier, AcquireLockEffect> AcquireLockEffectMap = new TreeMap<>();
+  private static final NavigableMap<LockIdentifier, AcquireLockEffect> AcquireLockEffectMap =
+      new TreeMap<>();
 
   protected final int maxRecursiveCounter;
 

@@ -17,9 +17,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.OptionalInt;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.TreeMap;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -35,7 +35,7 @@ class InOutVariablesCollector extends DefaultFormulaVisitor<TraversalProcess> {
 
   private final Set<Formula> inVariables = new LinkedHashSet<>();
   private final Set<Formula> outVariables = new LinkedHashSet<>();
-  private final Map<Pair<String, List<Formula>>, SortedMap<Integer, Formula>> ufs;
+  private final Map<Pair<String, List<Formula>>, NavigableMap<Integer, Formula>> ufs;
 
   private final SSAMap outVariablesSsa;
   private final SSAMap inVariablesSsa;

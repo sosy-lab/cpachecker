@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.SortedSetMultimap;
+import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.NavigableMap;
@@ -33,7 +33,7 @@ public class ParseResult {
 
   private final NavigableMap<String, FunctionEntryNode> functions;
 
-  private final SortedSetMultimap<String, CFANode> cfaNodes;
+  private final TreeMultimap<String, CFANode> cfaNodes;
 
   private final List<Pair<ADeclaration, String>> globalDeclarations;
 
@@ -41,7 +41,7 @@ public class ParseResult {
 
   public ParseResult(
       NavigableMap<String, FunctionEntryNode> pFunctions,
-      SortedSetMultimap<String, CFANode> pCfaNodes,
+      TreeMultimap<String, CFANode> pCfaNodes,
       List<Pair<ADeclaration, String>> pGlobalDeclarations,
       List<Path> pFileNames) {
     functions = pFunctions;
@@ -58,7 +58,7 @@ public class ParseResult {
     return functions;
   }
 
-  public SortedSetMultimap<String, CFANode> getCFANodes() {
+  public TreeMultimap<String, CFANode> getCFANodes() {
     return cfaNodes;
   }
 

@@ -12,7 +12,6 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -71,7 +70,7 @@ class CFABuilder extends ASTVisitor {
   // Data structures for handling function declarations
   private final List<Triple<List<IASTFunctionDefinition>, String, GlobalScope>> functionDeclarations = new ArrayList<>();
   private final NavigableMap<String, FunctionEntryNode> cfas = new TreeMap<>();
-  private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
+  private final TreeMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
   private final List<String> eliminateableDuplicates = new ArrayList<>();
 
   // Data structure for storing global declarations

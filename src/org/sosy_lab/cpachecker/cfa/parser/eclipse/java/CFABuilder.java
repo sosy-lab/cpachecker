@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
-import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -51,7 +50,7 @@ class CFABuilder extends ASTVisitor {
   // Data structures for handling method declarations
   // private Queue<MethodDeclaration> methodDeclarations = new LinkedList<>();
   private final NavigableMap<String, FunctionEntryNode> cfas = new TreeMap<>();
-  private final SortedSetMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
+  private final TreeMultimap<String, CFANode> cfaNodes = TreeMultimap.create();
 
   private final Scope scope;
   private final ASTConverter astCreator;
@@ -75,9 +74,10 @@ class CFABuilder extends ASTVisitor {
 
   /**
    * Retrieves list of all nodes
+   *
    * @return all CFAs in the program
    */
-  public SortedSetMultimap<String, CFANode> getCFANodes() {
+  public TreeMultimap<String, CFANode> getCFANodes() {
     return cfaNodes;
   }
 

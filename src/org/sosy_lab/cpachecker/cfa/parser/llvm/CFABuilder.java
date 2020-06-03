@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -24,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.OptionalInt;
-import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -136,7 +134,7 @@ public class CFABuilder {
   private int basicBlockId;
   protected NavigableMap<String, FunctionEntryNode> functions;
 
-  protected SortedSetMultimap<String, CFANode> cfaNodes;
+  protected TreeMultimap<String, CFANode> cfaNodes;
   protected List<Pair<ADeclaration, String>> globalDeclarations;
 
   public CFABuilder(final LogManager pLogger, final MachineModel pMachineModel) {
@@ -254,7 +252,7 @@ public class CFABuilder {
 
       // create the basic blocks and instructions of the function.
       // A basic block is mapped to a pair <entry node, exit node>
-      SortedMap<Integer, BasicBlockInfo> basicBlocks = new TreeMap<>();
+      NavigableMap<Integer, BasicBlockInfo> basicBlocks = new TreeMap<>();
       CLabelNode entryBB = iterateOverBasicBlocks(currFunc, en, basicBlocks, pFileName);
 
       // add the edge from the entry of the function to the first
@@ -312,7 +310,7 @@ public class CFABuilder {
   private CLabelNode iterateOverBasicBlocks(
       final Function pFunction,
       final FunctionEntryNode pEntryNode,
-      final SortedMap<Integer, BasicBlockInfo> pBasicBlocks,
+      final NavigableMap<Integer, BasicBlockInfo> pBasicBlocks,
       final String pFileName)
       throws LLVMException {
     if (pFunction.countBasicBlocks() == 0) {
@@ -350,7 +348,7 @@ public class CFABuilder {
   /** Add branching edges between first and last nodes of basic blocks. */
   private void addJumpsBetweenBasicBlocks(
       final Function pFunction,
-      final SortedMap<Integer, BasicBlockInfo> pBasicBlocks,
+      final NavigableMap<Integer, BasicBlockInfo> pBasicBlocks,
       final String pFileName)
       throws LLVMException {
     // for every basic block, get the last instruction and

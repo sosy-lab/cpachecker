@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.slab;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSortedSet;
 import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Collection;
@@ -20,7 +21,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedSet;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGToDotWriter;
@@ -192,7 +192,7 @@ public class SLARGToDotWriter {
    * Example: The integers {1,3,4,5,7} will be written as "1,3-5,7"
    */
   public static StringBuilder generateLocationString(Collection<Integer> pLocationNumbers) {
-    SortedSet<Integer> locationNumbers =
+    ImmutableSortedSet<Integer> locationNumbers =
         from(pLocationNumbers).toSortedSet(Comparator.naturalOrder());
     StringBuilder builder = new StringBuilder();
     int state = 0;

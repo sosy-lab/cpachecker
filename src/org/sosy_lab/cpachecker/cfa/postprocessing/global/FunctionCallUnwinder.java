@@ -68,7 +68,7 @@ public class FunctionCallUnwinder {
 
     // copy content of old CFAs
     final NavigableMap<String, FunctionEntryNode> functions = new TreeMap<>(cfa.getAllFunctions());
-    final SortedSetMultimap<String, CFANode> nodes = TreeMultimap.create();
+    final TreeMultimap<String, CFANode> nodes = TreeMultimap.create();
     for (final String function : cfa.getAllFunctionNames()) {
       nodes.putAll(function, cfa.getFunctionNodes(function));
     }

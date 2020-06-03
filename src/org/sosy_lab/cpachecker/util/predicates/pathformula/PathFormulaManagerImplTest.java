@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigInteger;
@@ -220,7 +219,7 @@ public class PathFormulaManagerImplTest extends SolverViewBasedTest0 {
         b, a
     );
 
-    SortedSetMultimap<String, CFANode> nodes = TreeMultimap.create();
+    TreeMultimap<String, CFANode> nodes = TreeMultimap.create();
     nodes.put("main", a);
     nodes.put("main", b);
 

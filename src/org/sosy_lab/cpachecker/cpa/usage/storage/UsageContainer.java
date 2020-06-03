@@ -24,7 +24,6 @@ import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -268,7 +267,8 @@ public class UsageContainer {
     return getKeySetIterator(refinedIds);
   }
 
-  private Iterator<SingleIdentifier> getKeySetIterator(SortedMap<SingleIdentifier, ? extends AbstractUsagePointSet> map) {
+  private Iterator<SingleIdentifier> getKeySetIterator(
+      NavigableMap<SingleIdentifier, ? extends AbstractUsagePointSet> map) {
     Set<SingleIdentifier> result = new TreeSet<>(map.keySet());
     return result.iterator();
   }

@@ -16,7 +16,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -90,7 +89,7 @@ public class ConstraintManager {
     logger.log(Level.FINEST, "\n * solve (w.r.t. " + varList + ")");
 
     @SuppressWarnings("unchecked")
-    Hashtable<String, Term> sol = q.oneSolution();
+    Map<String, Term> sol = q.oneSolution();
 
     return ConstraintManager.normalize("S", sol);
   }
@@ -168,7 +167,7 @@ public class ConstraintManager {
     return newVars;
   }
 
-  private static Constraint normalize(String sol, Hashtable<String,Term> varMap) {
+  private static Constraint normalize(String sol, Map<String, Term> varMap) {
 
     // fetches the solution
     Term cn = varMap.get(sol);

@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.postprocessing.global;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.util.Collection;
 import java.util.NavigableMap;
@@ -49,7 +48,7 @@ public class CFACloner {
 
     // copy content of old CFAs
     final NavigableMap<String, FunctionEntryNode> functions = new TreeMap<>(cfa.getAllFunctions());
-    final SortedSetMultimap<String, CFANode> nodes = TreeMultimap.create();
+    final TreeMultimap<String, CFANode> nodes = TreeMultimap.create();
     for (final String function : cfa.getAllFunctionNames()) {
       if (cfa instanceof MutableCFA) {
         // it is more efficient to directly copy the nodes

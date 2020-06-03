@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cfa;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.SortedSetMultimap;
+import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Optional;
-import java.util.SortedSet;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -32,7 +31,7 @@ public class MutableCFA implements CFA {
 
   private final MachineModel machineModel;
   private final NavigableMap<String, FunctionEntryNode> functions;
-  private final SortedSetMultimap<String, CFANode> allNodes;
+  private final TreeMultimap<String, CFANode> allNodes;
   private final FunctionEntryNode mainFunction;
   private final List<Path> fileNames;
   private final Language language;
@@ -42,7 +41,7 @@ public class MutableCFA implements CFA {
   public MutableCFA(
       MachineModel pMachineModel,
       NavigableMap<String, FunctionEntryNode> pFunctions,
-      SortedSetMultimap<String, CFANode> pAllNodes,
+      TreeMultimap<String, CFANode> pAllNodes,
       FunctionEntryNode pMainFunction,
       List<Path> pFileNames,
       Language pLanguage) {
@@ -69,7 +68,7 @@ public class MutableCFA implements CFA {
   }
 
   public void removeNode(CFANode pNode) {
-    SortedSet<CFANode> functionNodes = allNodes.get(pNode.getFunctionName());
+    NavigableSet<CFANode> functionNodes = allNodes.get(pNode.getFunctionName());
     assert functionNodes.contains(pNode);
     functionNodes.remove(pNode);
 
@@ -113,8 +112,8 @@ public class MutableCFA implements CFA {
     return Collections.unmodifiableNavigableMap(functions);
   }
 
-  public SortedSet<CFANode> getFunctionNodes(String pName) {
-    return Collections.unmodifiableSortedSet(allNodes.get(pName));
+  public NavigableSet<CFANode> getFunctionNodes(String pName) {
+    return Collections.unmodifiableNavigableSet(allNodes.get(pName));
   }
 
   @Override

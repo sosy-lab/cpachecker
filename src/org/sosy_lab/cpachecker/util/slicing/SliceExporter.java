@@ -12,7 +12,6 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.io.IOException;
 import java.io.Writer;
@@ -417,7 +416,7 @@ public class SliceExporter {
     final ImmutableSet<CFAEdge> relevantEdges = pSlice.getRelevantEdges();
 
     NavigableMap<String, FunctionEntryNode> newFunctions = new TreeMap<>();
-    SortedSetMultimap<String, CFANode> newNodes = TreeMultimap.create();
+    TreeMultimap<String, CFANode> newNodes = TreeMultimap.create();
     FunctionEntryNode newMainEntryNode = null;
 
     for (String functionName : originalCfa.getAllFunctionNames()) {

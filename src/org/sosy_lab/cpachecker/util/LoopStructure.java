@@ -36,7 +36,6 @@ import java.util.Map.Entry;
 import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.function.Function;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -470,23 +469,22 @@ public final class LoopStructure implements Serializable {
   public static LoopStructure getLoopStructure(MutableCFA cfa) throws ParserException {
     ImmutableMultimap.Builder<String, Loop> loops = ImmutableMultimap.builder();
     for (String functionName : cfa.getAllFunctionNames()) {
-      SortedSet<CFANode> nodes = cfa.getFunctionNodes(functionName);
+      NavigableSet<CFANode> nodes = cfa.getFunctionNodes(functionName);
       loops.putAll(functionName, findLoops(nodes, cfa.getLanguage()));
     }
     return new LoopStructure(loops.build());
   }
 
   /**
-   * Find all loops inside a given set of CFA nodes.
-   * The nodes in the given set may not be connected
-   * with any nodes outside of this set.
-   * This method tries to differentiate nested loops.
+   * Find all loops inside a given set of CFA nodes. The nodes in the given set may not be connected
+   * with any nodes outside of this set. This method tries to differentiate nested loops.
    *
    * @param nodes The set of nodes to look for loops in.
    * @param language The source language.
    * @return A collection of found loops.
    */
-  private static Collection<Loop> findLoops(SortedSet<CFANode> nodes, Language language) throws ParserException {
+  private static Collection<Loop> findLoops(NavigableSet<CFANode> nodes, Language language)
+      throws ParserException {
 
     // Two optimizations:
     // - if there are no backwards directed edges, there are no loops,
@@ -659,9 +657,13 @@ public final class LoopStructure implements Serializable {
     return ImmutableList.copyOf(loops);
   }
 
-  private static boolean identifyLoops(boolean reverseMerge, SortedSet<CFANode> nodes,
+  private static boolean identifyLoops(
+      boolean reverseMerge,
+      NavigableSet<CFANode> nodes,
       final Function<CFANode, Integer> arrayIndexForNode,
-      final CFANode[] nodesArray, final Edge[][] edges, List<Loop> loops) {
+      final CFANode[] nodesArray,
+      final Edge[][] edges,
+      List<Loop> loops) {
 
     boolean changed = false;
 
