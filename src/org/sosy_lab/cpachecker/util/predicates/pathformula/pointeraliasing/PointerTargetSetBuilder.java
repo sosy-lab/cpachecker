@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Optional;
@@ -411,7 +412,7 @@ public interface PointerTargetSetBuilder {
       }
 
       final PersistentSortedMap<String, PersistentList<PointerTarget>> oldTargets = targets;
-      for (final PersistentSortedMap.Entry<String, CType> baseEntry : bases.entrySet()) {
+      for (final Map.Entry<String, CType> baseEntry : bases.entrySet()) {
         addTargets(baseEntry.getKey(), baseEntry.getValue(), 0, 0, field);
       }
       fields = fields.putAndCopy(field, true);
