@@ -200,6 +200,7 @@ public class CMCPartitioningIOHelper extends PartitioningIOHelper{
       try {
         pIn.readObject();
       } catch (ClassNotFoundException e) {
+        throw new AssertionError(e);
       }
     }
   }

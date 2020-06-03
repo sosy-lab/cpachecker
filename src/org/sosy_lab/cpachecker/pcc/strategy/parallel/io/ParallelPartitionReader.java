@@ -18,12 +18,11 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.zip.ZipInputStream;
-
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy;
 import org.sosy_lab.cpachecker.pcc.strategy.AbstractStrategy.PCStrategyStatistics;
 import org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningIOHelper;
+import org.sosy_lab.cpachecker.util.Triple;
 
 
 public class ParallelPartitionReader implements Runnable {
@@ -74,6 +73,7 @@ public class ParallelPartitionReader implements Runnable {
   }
 
   @Override
+  @SuppressWarnings("Finally") // not really better doable without switching to Closer
   public void run() {
     Triple<InputStream, ZipInputStream, ObjectInputStream> streams = null;
     int nextId;
@@ -95,6 +95,7 @@ public class ParallelPartitionReader implements Runnable {
             streams.getSecond().close();
             streams.getFirst().close();
           } catch (IOException e) {
+            throw new AssertionError(e);
           }
         }
       }

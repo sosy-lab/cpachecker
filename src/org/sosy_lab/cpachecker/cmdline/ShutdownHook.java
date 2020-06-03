@@ -61,7 +61,9 @@ class ShutdownHook extends Thread {
       // from immediate termination.)
       try {
         mainThread.join();
-      } catch (InterruptedException expected) {}
+      } catch (InterruptedException expected) {
+        // expected
+      }
     }
   }
 }

@@ -24,7 +24,6 @@ public class StopIgnoringCallstack implements StopOperator{
   @Override
   public boolean stop(
       AbstractState pState, Collection<AbstractState> pReached, Precision pPrecision) {
-    try {
       ReachingDefState e1 = (ReachingDefState) pState;
       ReachingDefState e2;
       for (AbstractState p : pReached) {
@@ -34,8 +33,6 @@ public class StopIgnoringCallstack implements StopOperator{
           return true;
         }
       }
-    } catch (ClassCastException e) {
-    }
     return false;
   }
 

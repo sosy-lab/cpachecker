@@ -140,6 +140,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     return checkAndReadSequentially();
   }
 
+  @SuppressWarnings("Finally") // not really better doable without switching to Closer
   private boolean checkAndReadSequentially() {
     try {
       final ReachedSetFactory factory = new ReachedSetFactory(globalConfig, logger);
@@ -201,6 +202,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
             streams.getSecond().close();
             streams.getFirst().close();
           } catch (IOException e) {
+            throw new AssertionError(e);
           }
         }
       }
@@ -213,7 +215,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
     }
   }
 
-  @SuppressWarnings("unused")
+  @SuppressWarnings({"unused", "Finally"}) // not really better doable without switching to Closer
   private boolean checkAndReadInterleaved() throws InterruptedException, CPAException {
     final ConfigurableProgramAnalysis[] cpas = new ConfigurableProgramAnalysis[roots.length];
     try {
@@ -262,6 +264,7 @@ public class ARG_CMCStrategy extends AbstractStrategy {
                 streams.getSecond().close();
                 streams.getFirst().close();
               } catch (IOException e) {
+                throw new AssertionError(e);
               }
             }
           }

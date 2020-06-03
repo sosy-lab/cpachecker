@@ -224,6 +224,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       try {
         Files.deleteIfExists(residualProgram);
       } catch (IOException e) {
+        // ignore error on deleting file
       }
       throw new CPAException("Failed to write residual program.");
     }
@@ -531,9 +532,9 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
           | InvalidConfigurationException
           | IOException
           | ParserException e) {
+        // ignore
+        return null;
       }
-
-      return null;
     }
 
     @Override

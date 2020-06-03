@@ -112,6 +112,7 @@ public class ARGBasedPartialReachedSetConstructionAlgorithm extends
           }
         }
       } catch (InterruptedException | CPAException e) {
+        throw new AssertionError(e);
       }
       return false;
     }

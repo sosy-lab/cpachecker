@@ -219,8 +219,8 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
             if (limit > 0) {
               return limit;
             }
-          } catch(NumberFormatException e) {
-
+          } catch (NumberFormatException e) {
+            // ignored, invalid annotation
           }
         }
       }

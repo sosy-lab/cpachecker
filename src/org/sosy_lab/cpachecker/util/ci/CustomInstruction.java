@@ -224,6 +224,7 @@ public class CustomInstruction {
       Integer.parseInt(var);
       isNumber = true;
     } catch (NumberFormatException ex) {
+      // ignored, no number
     }
 
     sb.append("(= ");

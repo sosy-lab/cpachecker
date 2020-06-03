@@ -108,6 +108,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       logger.log(Level.INFO, "Start analysis");
       status = status.update(innerAlgorithm.run(pReachedSet));
     } catch (InfeasibleCounterexampleException | RefinementFailedException e) {
+      // ignore
     }
 
     if (!pReachedSet.hasWaitingState()

@@ -191,6 +191,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
     }
 
     @Override
+    @SuppressWarnings("Finally") // not really better doable without switching to Closer
     public void run() {
       Triple<InputStream, ZipInputStream, ObjectInputStream> streams = null;
       try {
@@ -220,6 +221,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedStrategy extends Abstract
             streams.getSecond().close();
             streams.getFirst().close();
           } catch (IOException e) {
+            throw new AssertionError(e);
           }
         }
       }

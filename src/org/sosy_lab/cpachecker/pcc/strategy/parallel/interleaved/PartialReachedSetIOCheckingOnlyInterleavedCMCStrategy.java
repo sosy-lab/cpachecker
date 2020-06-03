@@ -219,6 +219,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
         ioHelper.writeProof(pOut, reached);
      }
     } catch (ClassCastException e) {
+      logger.logDebugException(e);
       logger.log(Level.SEVERE, "Stop writing proof. Not all analysis use ARG CPA as top level CPA");
     }
   }
@@ -252,6 +253,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
     }
 
     @Override
+    @SuppressWarnings("Finally") // not really better doable without switching to Closer
     public void run() {
       Triple<InputStream, ZipInputStream, ObjectInputStream> streams = null;
       try {
@@ -331,6 +333,7 @@ public class PartialReachedSetIOCheckingOnlyInterleavedCMCStrategy extends Abstr
             streams.getSecond().close();
             streams.getFirst().close();
           } catch (IOException e) {
+            throw new AssertionError(e);
           }
         }
       }
