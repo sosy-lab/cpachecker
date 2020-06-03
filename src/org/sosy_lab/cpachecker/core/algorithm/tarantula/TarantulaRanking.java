@@ -23,25 +23,19 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tarantula;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Ordering;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.FailedCase;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.SafeCase;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.TarantulaCasesStatus;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
-import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 
 public class TarantulaRanking {
   private final SafeCase safeCase;
@@ -97,6 +91,12 @@ public class TarantulaRanking {
           fault.setScore(suspicious);
           faults.add(fault);
         });
-    return faults;
+    return sortingByScoreReversed(faults);
+  }
+
+  private List<Fault> sortingByScoreReversed(List<Fault> faults) {
+    return faults.stream()
+        .sorted(Comparator.comparing((Fault f) -> f.getScore()).reversed())
+        .collect(Collectors.toList());
   }
 }

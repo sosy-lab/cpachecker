@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.FailedCase;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.TarantulaCasesStatus;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 
 public class CoverageInformation {
@@ -81,6 +80,7 @@ public class CoverageInformation {
         }
       }
     }
+
     return coverageInfo;
   }
 
