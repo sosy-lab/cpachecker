@@ -768,10 +768,15 @@ public final class ValueAnalysisState
   @Override
   public ExpressionTree<Object> getFormulaApproximation(
       FunctionEntryNode pFunctionScope, CFANode pLocation) {
+
+    if (pLocation.getNumEnteringEdges() == 0) {
+      return ExpressionTrees.getTrue();
+    }
+
     AssumptionToEdgeAllocator assumptionToEdgeAllocator =
         GlobalInfo.getInstance().getAssumptionToEdgeAllocator();
 
-    ExpressionTree<Object> invariant = ExpressionTrees.getTrue();
+    ExpressionTree<Object> invariant = ExpressionTrees.getFalse();
     ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
     ConcreteState concreteState = ValueAnalysisConcreteErrorPathAllocator.createConcreteState(this);
 
@@ -779,9 +784,12 @@ public final class ValueAnalysisState
       CFAEdge edge = pLocation.getEnteringEdge(i);
       Iterable<AExpressionStatement> invariants =
           assumptionToEdgeAllocator.allocateAssumptionsToEdge(edge, concreteState).getExpStmts();
+      ExpressionTree<Object> edgeInvariant = ExpressionTrees.getTrue();
       for (AExpressionStatement expressionStatement : invariants) {
-        invariant = factory.and(invariant, LeafExpression.of(expressionStatement.getExpression()));
+        edgeInvariant =
+            factory.and(edgeInvariant, LeafExpression.of(expressionStatement.getExpression()));
       }
+      invariant = factory.or(invariant, edgeInvariant);
     }
 
     return invariant;
