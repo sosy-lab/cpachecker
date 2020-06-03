@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 import static com.google.common.base.Predicates.equalTo;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Lists.newArrayList;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SingleLocationFormulaInvariant.makeLocationInvariant;
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
@@ -841,7 +842,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
         throws CPAException, InterruptedException, InvalidConfigurationException {
       argPath = pPath;
       abstractionNodes =
-          from(pAbstractionStatesTrace).transform(AbstractStates::extractLocation).toList();
+          transformedImmutableListCopy(pAbstractionStatesTrace, AbstractStates::extractLocation);
       elementsOnPath = getAllStatesOnPathsTo(argPath.getLastState());
       abstractionStatesTrace = pAbstractionStatesTrace;
       imgr =
