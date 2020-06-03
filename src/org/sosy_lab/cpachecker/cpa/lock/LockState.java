@@ -260,7 +260,7 @@ public final class LockState extends AbstractLockState {
     locks = ImmutableMap.of();
   }
 
-  protected LockState(Map<LockIdentifier, Integer> gLocks, LockState state) {
+  LockState(Map<LockIdentifier, Integer> gLocks, LockState state) {
     super(state);
     this.locks = ImmutableMap.copyOf(gLocks);
   }

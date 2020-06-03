@@ -16,15 +16,14 @@ public final class AddressOfExpression extends UnarySymbolicExpression {
 
   private static final long serialVersionUID = -4583179464566332040L;
 
-  protected AddressOfExpression(SymbolicExpression pOperand, Type pType) {
+  AddressOfExpression(SymbolicExpression pOperand, Type pType) {
     super(pOperand, pType);
   }
 
-  protected AddressOfExpression(
+  AddressOfExpression(
       final SymbolicExpression pOperand,
       final Type pType,
-      final MemoryLocation pRepresentedLocation
-  ) {
+      final MemoryLocation pRepresentedLocation) {
     super(pOperand, pType, pRepresentedLocation);
   }
 

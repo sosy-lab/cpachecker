@@ -16,18 +16,20 @@ public final class LogicalOrExpression extends BinarySymbolicExpression {
 
   private static final long serialVersionUID = 1700286048694757256L;
 
-  protected LogicalOrExpression(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
-      Type pExpressionType, Type pCalculationType) {
+  LogicalOrExpression(
+      SymbolicExpression pOperand1,
+      SymbolicExpression pOperand2,
+      Type pExpressionType,
+      Type pCalculationType) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType);
   }
 
-  protected LogicalOrExpression(
+  LogicalOrExpression(
       final SymbolicExpression pOperand1,
       final SymbolicExpression pOperand2,
       final Type pExpressionType,
       final Type pCalculationType,
-      final MemoryLocation pRepresentedLocation
-  ) {
+      final MemoryLocation pRepresentedLocation) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType, pRepresentedLocation);
   }
 

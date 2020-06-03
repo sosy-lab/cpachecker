@@ -27,20 +27,23 @@ public final class ShiftRightExpression extends BinarySymbolicExpression {
 
   private final ShiftType shiftType;
 
-  protected ShiftRightExpression(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
-      Type pExpressionType, Type pCalculationType, ShiftType pShiftType) {
+  ShiftRightExpression(
+      SymbolicExpression pOperand1,
+      SymbolicExpression pOperand2,
+      Type pExpressionType,
+      Type pCalculationType,
+      ShiftType pShiftType) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType);
     shiftType = pShiftType;
   }
 
-  protected ShiftRightExpression(
+  ShiftRightExpression(
       final ShiftType pShiftType,
       final SymbolicExpression pOperand1,
       final SymbolicExpression pOperand2,
       final Type pExpressionType,
       final Type pCalculationType,
-      final MemoryLocation pRepresentedLocation
-  ) {
+      final MemoryLocation pRepresentedLocation) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType, pRepresentedLocation);
     shiftType = pShiftType;
   }

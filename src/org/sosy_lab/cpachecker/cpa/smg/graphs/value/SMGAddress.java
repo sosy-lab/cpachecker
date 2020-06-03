@@ -27,7 +27,7 @@ public final class SMGAddress {
   /** The offset relative to the beginning of object in byte. */
   private final SMGExplicitValue offset;
 
-  protected SMGAddress(SMGObject pObject, SMGExplicitValue pOffset) {
+  SMGAddress(SMGObject pObject, SMGExplicitValue pOffset) {
     checkNotNull(pOffset);
     object = pObject;
     offset = pOffset;

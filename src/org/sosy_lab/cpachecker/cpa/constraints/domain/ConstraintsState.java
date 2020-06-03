@@ -64,7 +64,7 @@ public final class ConstraintsState implements AbstractState, Graphable, Set<Con
    *
    * @param pState the state to copy
    */
-  protected ConstraintsState(ConstraintsState pState) {
+  ConstraintsState(ConstraintsState pState) {
     constraints = new ArrayList<>(pState.constraints);
 
     lastAddedConstraint = pState.lastAddedConstraint;

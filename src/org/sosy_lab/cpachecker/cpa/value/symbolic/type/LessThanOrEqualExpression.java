@@ -18,18 +18,20 @@ public final class LessThanOrEqualExpression extends BinarySymbolicExpression
 
   private static final long serialVersionUID = -805938567569160336L;
 
-  protected LessThanOrEqualExpression(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
-      Type pExpressionType, Type pCalculationType) {
+  LessThanOrEqualExpression(
+      SymbolicExpression pOperand1,
+      SymbolicExpression pOperand2,
+      Type pExpressionType,
+      Type pCalculationType) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType);
   }
 
-  protected LessThanOrEqualExpression(
+  LessThanOrEqualExpression(
       final SymbolicExpression pOperand1,
       final SymbolicExpression pOperand2,
       final Type pExpressionType,
       final Type pCalculationType,
-      final MemoryLocation pRepresentedLocation
-  ) {
+      final MemoryLocation pRepresentedLocation) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType, pRepresentedLocation);
   }
 

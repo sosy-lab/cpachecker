@@ -16,18 +16,20 @@ public final class BinaryXorExpression extends BinarySymbolicExpression {
 
   private static final long serialVersionUID = 4554823889664793659L;
 
-  protected BinaryXorExpression(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
-      Type pExpressionType, Type pCalculationType) {
+  BinaryXorExpression(
+      SymbolicExpression pOperand1,
+      SymbolicExpression pOperand2,
+      Type pExpressionType,
+      Type pCalculationType) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType);
   }
 
-  protected BinaryXorExpression(
+  BinaryXorExpression(
       final SymbolicExpression pOperand1,
       final SymbolicExpression pOperand2,
       final Type pExpressionType,
       final Type pCalculationType,
-      final MemoryLocation pRepresentedLocation
-  ) {
+      final MemoryLocation pRepresentedLocation) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType, pRepresentedLocation);
   }
 

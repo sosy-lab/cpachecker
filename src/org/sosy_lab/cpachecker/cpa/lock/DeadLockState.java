@@ -203,7 +203,7 @@ public final class DeadLockState extends AbstractLockState {
   }
 
   @SuppressWarnings("JdkObsolete") // TODO consider replacing this with ArrayList or ArrayDeque
-  protected DeadLockState(List<LockIdentifier> gLocks, DeadLockState state) {
+  DeadLockState(List<LockIdentifier> gLocks, DeadLockState state) {
     super(state);
     this.lockList = new LinkedList<>(gLocks);
   }

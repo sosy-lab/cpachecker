@@ -382,7 +382,7 @@ final class CompositeTransferRelation implements WrapperTransferRelation {
         || x instanceof FormulaReportingState;
   }
 
-  protected static Collection<List<AbstractState>> createCartesianProduct(
+  static Collection<List<AbstractState>> createCartesianProduct(
       List<Collection<? extends AbstractState>> allComponentsSuccessors, int resultCount) {
     Collection<List<AbstractState>> allResultingElements;
     switch (resultCount) {

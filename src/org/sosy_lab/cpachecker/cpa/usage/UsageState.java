@@ -341,7 +341,7 @@ public final class UsageState extends AbstractSingleWrapperState
         "Join is not supported for usage states, use merge operator");
   }
 
-  protected Object readResolve() {
+  Object readResolve() {
     return new UsageState(
         getWrappedState(),
         PathCopyingPersistentTreeMap.of(),

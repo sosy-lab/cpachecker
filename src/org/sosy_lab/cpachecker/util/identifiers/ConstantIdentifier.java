@@ -14,8 +14,8 @@ import java.util.Objects;
 
 public final class ConstantIdentifier implements AbstractIdentifier {
 
-  protected String name;
-  protected int dereference;
+  String name;
+  int dereference;
 
   public ConstantIdentifier(String nm, int deref) {
     name = nm;

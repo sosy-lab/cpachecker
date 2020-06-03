@@ -16,18 +16,20 @@ public final class LogicalAndExpression extends BinarySymbolicExpression {
 
   private static final long serialVersionUID = 8274694737043926521L;
 
-  protected LogicalAndExpression(SymbolicExpression pOperand1, SymbolicExpression pOperand2,
-      Type pExpressionType, Type pCalculationType) {
+  LogicalAndExpression(
+      SymbolicExpression pOperand1,
+      SymbolicExpression pOperand2,
+      Type pExpressionType,
+      Type pCalculationType) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType);
   }
 
-  protected LogicalAndExpression(
+  LogicalAndExpression(
       final SymbolicExpression pOperand1,
       final SymbolicExpression pOperand2,
       final Type pExpressionType,
       final Type pCalculationType,
-      final MemoryLocation pRepresentedLocation
-  ) {
+      final MemoryLocation pRepresentedLocation) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType, pRepresentedLocation);
   }
 

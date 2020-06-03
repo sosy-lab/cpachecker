@@ -20,11 +20,10 @@ public final class NegationExpression extends UnarySymbolicExpression {
     super(pOperand, pType);
   }
 
-  protected NegationExpression(
+  NegationExpression(
       final SymbolicExpression pOperand,
       final Type pType,
-      final MemoryLocation pRepresentedLocation
-  ) {
+      final MemoryLocation pRepresentedLocation) {
     super(pOperand, pType, pRepresentedLocation);
   }
 

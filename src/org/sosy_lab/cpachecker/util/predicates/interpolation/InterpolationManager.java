@@ -86,11 +86,11 @@ public final class InterpolationManager {
   private final Timer feasiblityCheckTimer = new Timer();
   private final Timer maximisationTimer = new Timer();
   private int reusedFormulasOnSolverStack = 0;
-  protected final Timer findingCommonVariablesTimer = new Timer();
-  protected final Timer buildingLatticeNamesAndLatticeTypesTimer = new Timer();
-  protected final Timer renamingTimer = new Timer();
-  protected final Timer buildingAbstractionsTimer = new Timer();
-  protected final Timer initialVariableExtractionTimer = new Timer();
+  final Timer findingCommonVariablesTimer = new Timer();
+  final Timer buildingLatticeNamesAndLatticeTypesTimer = new Timer();
+  final Timer renamingTimer = new Timer();
+  final Timer buildingAbstractionsTimer = new Timer();
+  final Timer initialVariableExtractionTimer = new Timer();
   final Timer interpolationTimer = new Timer();
 
   public void printStatistics(StatisticsWriter w0) {

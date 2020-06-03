@@ -132,7 +132,7 @@ final class OverflowState
     return assumptions;
   }
 
-  protected void updateStatesForPreconditions(Iterable<AbstractState> pCurrentStates) {
+  void updateStatesForPreconditions(Iterable<AbstractState> pCurrentStates) {
     if (!alreadyStrengthened) {
       previousStates = currentStates;
       // update current states while deliberately removing "this".

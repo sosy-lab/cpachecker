@@ -29,7 +29,7 @@ public final class ConstantSymbolicExpression extends SymbolicExpression {
    * @param pValue the value of the new object
    * @param pType the type of the value of the new object
    */
-  protected ConstantSymbolicExpression(Value pValue, Type pType) {
+  ConstantSymbolicExpression(Value pValue, Type pType) {
     value = pValue;
     type = pType;
   }
@@ -42,11 +42,8 @@ public final class ConstantSymbolicExpression extends SymbolicExpression {
    * @param pType the type of the value of the new object
    * @param pRepresentedLocation the memory location this symbolic expression represents
    */
-  protected ConstantSymbolicExpression(
-      final Value pValue,
-      final Type pType,
-      final MemoryLocation pRepresentedLocation
-  ) {
+  ConstantSymbolicExpression(
+      final Value pValue, final Type pType, final MemoryLocation pRepresentedLocation) {
     super(pRepresentedLocation);
     value = pValue;
     type = pType;

@@ -17,15 +17,14 @@ public final class LogicalNotExpression extends UnarySymbolicExpression implemen
 
   private static final long serialVersionUID = 1538819641715577876L;
 
-  protected LogicalNotExpression(SymbolicExpression pOperand, Type pType) {
+  LogicalNotExpression(SymbolicExpression pOperand, Type pType) {
     super(pOperand, pType);
   }
 
-  protected LogicalNotExpression(
+  LogicalNotExpression(
       final SymbolicExpression pOperand,
       final Type pType,
-      final MemoryLocation pRepresentedLocation
-  ) {
+      final MemoryLocation pRepresentedLocation) {
     super(pOperand, pType, pRepresentedLocation);
   }
 

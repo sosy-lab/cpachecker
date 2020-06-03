@@ -20,15 +20,14 @@ public final class PointerExpression extends UnarySymbolicExpression {
 
   private static final long serialVersionUID = -7348176261979912313L;
 
-  protected PointerExpression(SymbolicExpression pOperand, Type pType) {
+  PointerExpression(SymbolicExpression pOperand, Type pType) {
     super(pOperand, pType);
   }
 
-  protected PointerExpression(
+  PointerExpression(
       final SymbolicExpression pOperand,
       final Type pType,
-      final MemoryLocation pRepresentedLocation
-  ) {
+      final MemoryLocation pRepresentedLocation) {
     super(pOperand, pType, pRepresentedLocation);
   }
 

@@ -16,19 +16,20 @@ public final class SubtractionExpression extends BinarySymbolicExpression {
 
   private static final long serialVersionUID = -2240019127521654817L;
 
-  protected SubtractionExpression(SymbolicExpression pOperand1,
-      SymbolicExpression pOperand2, Type pExpressionType,
+  SubtractionExpression(
+      SymbolicExpression pOperand1,
+      SymbolicExpression pOperand2,
+      Type pExpressionType,
       Type pCalculationType) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType);
   }
 
-  protected SubtractionExpression(
+  SubtractionExpression(
       final SymbolicExpression pOperand1,
       final SymbolicExpression pOperand2,
       final Type pExpressionType,
       final Type pCalculationType,
-      final MemoryLocation pRepresentedLocation
-  ) {
+      final MemoryLocation pRepresentedLocation) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType, pRepresentedLocation);
   }
 

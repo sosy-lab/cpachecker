@@ -16,18 +16,20 @@ public final class DivisionExpression extends BinarySymbolicExpression {
 
   private static final long serialVersionUID = -5975310977950553115L;
 
-  protected DivisionExpression(SymbolicExpression pOperand1,
-      SymbolicExpression pOperand2, Type pExpressionType, Type pCalculationType) {
+  DivisionExpression(
+      SymbolicExpression pOperand1,
+      SymbolicExpression pOperand2,
+      Type pExpressionType,
+      Type pCalculationType) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType);
   }
 
-  protected DivisionExpression(
+  DivisionExpression(
       final SymbolicExpression pOperand1,
       final SymbolicExpression pOperand2,
       final Type pExpressionType,
       final Type pCalculationType,
-      final MemoryLocation pRepresentedLocation
-  ) {
+      final MemoryLocation pRepresentedLocation) {
     super(pOperand1, pOperand2, pExpressionType, pCalculationType, pRepresentedLocation);
   }
 

@@ -40,7 +40,7 @@ class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegi
 
     private final CType type;
 
-    protected GlobalBnBRegion(CType pType) {
+    GlobalBnBRegion(CType pType) {
       this.type = pType;
     }
 
@@ -85,7 +85,7 @@ class BnBRegionManager extends AbstractMemoryRegionManager implements MemoryRegi
     private final CType fieldType;
     private final String fieldName;
 
-    protected FieldBnBRegion(CType pFieldOwnerType, CType pFieldType, String pFieldName) {
+    FieldBnBRegion(CType pFieldOwnerType, CType pFieldType, String pFieldName) {
       fieldOwnerType = pFieldOwnerType;
       fieldType = pFieldType;
       fieldName = pFieldName;

@@ -23,8 +23,7 @@ public final class ValueAnalysisInformation {
 
   private final PersistentMap<MemoryLocation, ValueAndType> assignments;
 
-  protected ValueAnalysisInformation(
-      final PersistentMap<MemoryLocation, ValueAndType> pAssignments) {
+  ValueAnalysisInformation(final PersistentMap<MemoryLocation, ValueAndType> pAssignments) {
     assignments = pAssignments;
   }
 

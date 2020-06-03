@@ -121,7 +121,7 @@ final class OverflowState2
     throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
   }
 
-  protected void updateStatesForPreconditions(Iterable<AbstractState> pCurrentStates) {
+  void updateStatesForPreconditions(Iterable<AbstractState> pCurrentStates) {
     if (!alreadyStrengthened) {
       // update current states while deliberately removing "this".
       // Other states may get hold of this set via getStatesForPreconditions().

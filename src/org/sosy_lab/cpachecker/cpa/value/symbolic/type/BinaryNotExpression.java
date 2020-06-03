@@ -16,15 +16,14 @@ public final class BinaryNotExpression extends UnarySymbolicExpression {
 
   private static final long serialVersionUID = -84948336461412258L;
 
-  protected BinaryNotExpression(SymbolicExpression pOperand, Type pType) {
+  BinaryNotExpression(SymbolicExpression pOperand, Type pType) {
     super(pOperand, pType);
   }
 
-  protected BinaryNotExpression(
+  BinaryNotExpression(
       final SymbolicExpression pOperand,
       final Type pType,
-      final MemoryLocation pRepresentedLocation
-  ) {
+      final MemoryLocation pRepresentedLocation) {
     super(pOperand, pType, pRepresentedLocation);
   }
 

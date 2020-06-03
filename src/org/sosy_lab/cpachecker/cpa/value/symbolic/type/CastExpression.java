@@ -19,13 +19,13 @@ public final class CastExpression extends UnarySymbolicExpression {
   /**
    * Create a new <code>CastExpression</code> with the given operand and {@link Type}.
    *
-   * The given <code>Type</code> represents the type the operand should be casted to.
-   * No checks for compatibility between operand type and
+   * <p>The given <code>Type</code> represents the type the operand should be casted to. No checks
+   * for compatibility between operand type and
    *
    * @param pOperand the operand to cast
    * @param pType the type to cast the operand to
    */
-  protected CastExpression(SymbolicExpression pOperand, Type pType) {
+  CastExpression(SymbolicExpression pOperand, Type pType) {
     super(pOperand, pType);
   }
 
@@ -33,18 +33,17 @@ public final class CastExpression extends UnarySymbolicExpression {
    * Create a new <code>CastExpression</code> with the given operand and {@link Type} representing
    * the value of the given memory location.
    *
-   * The given <code>Type</code> represents the type the operand should be casted to.
-   * No checks for compatibility between operand type and
+   * <p>The given <code>Type</code> represents the type the operand should be casted to. No checks
+   * for compatibility between operand type and
    *
    * @param pOperand the operand to cast
    * @param pType the type to cast the operand to
    * @param pRepresentedLocation the memory location this cast expression represents
    */
-  protected CastExpression(
+  CastExpression(
       final SymbolicExpression pOperand,
       final Type pType,
-      final MemoryLocation pRepresentedLocation
-  ) {
+      final MemoryLocation pRepresentedLocation) {
     super(pOperand, pType, pRepresentedLocation);
   }
 

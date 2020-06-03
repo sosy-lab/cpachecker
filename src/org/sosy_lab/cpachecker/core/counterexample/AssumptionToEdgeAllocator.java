@@ -2058,7 +2058,7 @@ public class AssumptionToEdgeAllocator {
 
     private final CCastExpression castExpression;
 
-    protected CastedExplicitValueLiteral(CLiteralExpression pValueLiteral, CCastExpression exp) {
+    CastedExplicitValueLiteral(CLiteralExpression pValueLiteral, CCastExpression exp) {
       super(pValueLiteral);
       castExpression = exp;
     }
