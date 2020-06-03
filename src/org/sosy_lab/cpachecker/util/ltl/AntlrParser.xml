@@ -85,6 +85,7 @@ SPDX-License-Identifier: Apache-2.0
 			</classpath>
 		</java>
 		<property name="annotation" value="@javax.annotation.processing.Generated(&quot;Antlr&quot;)${line.separator}"/>
+		<replace file="${ltl.generated.dir}/${lexer.source}.java" token="@SuppressWarnings" value="${annotation}@SuppressWarnings"/>
 		<replace file="${ltl.generated.dir}/${parser.source}.java" token="@SuppressWarnings" value="${annotation}@SuppressWarnings"/>
 		<echo message="Generated parser-files in ${ltl.generated.dir}/*" level="info" />
 	</target>
