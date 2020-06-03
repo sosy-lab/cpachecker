@@ -43,15 +43,16 @@ public abstract class AbstractSimpleDeclaration extends AbstractAstNode implemen
    */
   private final String origName;
 
-  public AbstractSimpleDeclaration(FileLocation pFileLocation, final Type pType, final String pName, final String pOrigName) {
+  protected AbstractSimpleDeclaration(
+      FileLocation pFileLocation, final Type pType, final String pName, final String pOrigName) {
     super(pFileLocation);
     type = pType;
     name = pName;
     origName = pOrigName;
   }
 
-  public AbstractSimpleDeclaration(final FileLocation pFileLocation,
-      final Type pType, final String pName) {
+  protected AbstractSimpleDeclaration(
+      final FileLocation pFileLocation, final Type pType, final String pName) {
     this(pFileLocation, pType, pName, pName);
   }
 

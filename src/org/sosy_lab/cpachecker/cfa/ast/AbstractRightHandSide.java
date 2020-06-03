@@ -24,7 +24,7 @@ public  abstract class AbstractRightHandSide extends AbstractAstNode implements 
   private static final long serialVersionUID = 8144915127675011353L;
   private final Type type;
 
-  public AbstractRightHandSide(FileLocation pFileLocation, Type pType) {
+  protected AbstractRightHandSide(FileLocation pFileLocation, Type pType) {
     super(pFileLocation);
     type = pType;
   }

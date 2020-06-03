@@ -16,11 +16,12 @@ abstract class RecursiveBooleanFormulaVisitor<T> implements BooleanFormulaVisito
 
   private final RecursiveNumeralFormulaVisitor<T> recursiveNumeralFormulaVisitor;
 
-  public RecursiveBooleanFormulaVisitor() {
+  protected RecursiveBooleanFormulaVisitor() {
     this(null);
   }
 
-  public RecursiveBooleanFormulaVisitor(RecursiveNumeralFormulaVisitor<T> pRecursiveNumeralFormulaVisitor) {
+  protected RecursiveBooleanFormulaVisitor(
+      RecursiveNumeralFormulaVisitor<T> pRecursiveNumeralFormulaVisitor) {
     this.recursiveNumeralFormulaVisitor = pRecursiveNumeralFormulaVisitor;
   }
 

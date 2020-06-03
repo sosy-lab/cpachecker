@@ -15,7 +15,7 @@ public abstract class ForwardingCExpressionVisitor<R, X extends Exception>
 
   protected final CExpressionVisitor<R, X> delegate;
 
-  public ForwardingCExpressionVisitor(CExpressionVisitor<R, X> pDelegate) {
+  protected ForwardingCExpressionVisitor(CExpressionVisitor<R, X> pDelegate) {
     delegate = pDelegate;
   }
 

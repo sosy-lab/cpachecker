@@ -35,7 +35,7 @@ public abstract class PredicatePartition {
   Map<Integer, AbstractionPredicate> varIDToPredicate;
   Solver solver;
 
-  public PredicatePartition(FormulaManagerView fmgr, Solver solver, LogManager logger) {
+  protected PredicatePartition(FormulaManagerView fmgr, Solver solver, LogManager logger) {
     this.fmgr = fmgr;
     this.solver = solver;
     this.logger = logger;

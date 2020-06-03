@@ -14,15 +14,19 @@ import static com.google.common.base.Preconditions.checkState;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-
 public abstract class AVariableDeclaration extends AbstractDeclaration {
 
   private static final long serialVersionUID = -8792173769663524307L;
   private final String qualifiedName;
   private AInitializer initializer;
 
-  public AVariableDeclaration(FileLocation pFileLocation, boolean pIsGlobal,
-      Type pType, String pName, String pOrigName, String pQualifiedName,
+  protected AVariableDeclaration(
+      FileLocation pFileLocation,
+      boolean pIsGlobal,
+      Type pType,
+      String pName,
+      String pOrigName,
+      String pQualifiedName,
       AInitializer pInitializer) {
     super(pFileLocation, pIsGlobal, pType, pName, pOrigName);
     qualifiedName = checkNotNull(pQualifiedName);

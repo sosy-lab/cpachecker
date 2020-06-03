@@ -24,8 +24,12 @@ public abstract class CTypeDeclaration extends AbstractDeclaration implements CD
   private static final long serialVersionUID = -607383651501118425L;
   private final String qualifiedName;
 
-  public CTypeDeclaration(FileLocation pFileLocation, boolean pIsGlobal,
-      CType pType, String pName, String pQualifiedName) {
+  protected CTypeDeclaration(
+      FileLocation pFileLocation,
+      boolean pIsGlobal,
+      CType pType,
+      String pName,
+      String pQualifiedName) {
     super(pFileLocation, pIsGlobal, pType, pName, pName);
     qualifiedName = pQualifiedName;
   }

@@ -28,7 +28,7 @@ public abstract class AbstractLockState
   protected final AbstractLockState toRestore;
   // if we need restore state, we save it here
   // Used for function annotations like annotate.function_name.restore
-  public AbstractLockState() {
+  protected AbstractLockState() {
     toRestore = null;
   }
 

@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-
 public abstract class AArraySubscriptExpression extends AbstractLeftHandSide {
 
 
@@ -19,7 +18,8 @@ public abstract class AArraySubscriptExpression extends AbstractLeftHandSide {
   private final AExpression arrayExpression;
   private final AExpression subscriptExpression;
 
-  public AArraySubscriptExpression(FileLocation pFileLocation,
+  protected AArraySubscriptExpression(
+      FileLocation pFileLocation,
       Type pType,
       final AExpression pArrayExpression,
       final AExpression pSubscriptExpression) {

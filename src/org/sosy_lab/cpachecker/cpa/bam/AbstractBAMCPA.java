@@ -104,7 +104,7 @@ public abstract class AbstractBAMCPA extends AbstractSingleWrapperCPA {
   private final BAMARGStatistics argStats;
   private final BAMReachedSetExporter exporter;
 
-  public AbstractBAMCPA(
+  protected AbstractBAMCPA(
       ConfigurableProgramAnalysis pCpa,
       Configuration pConfig,
       LogManager pLogger,

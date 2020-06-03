@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.defaults;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-
+import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -25,8 +25,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 
-import java.util.Collection;
-
 /**
  * Base class for CPAs which wrap exactly one other CPA.
  */
@@ -34,7 +32,7 @@ public abstract class AbstractSingleWrapperCPA implements ConfigurableProgramAna
 
   private final ConfigurableProgramAnalysis wrappedCpa;
 
-  public AbstractSingleWrapperCPA(ConfigurableProgramAnalysis pCpa) {
+  protected AbstractSingleWrapperCPA(ConfigurableProgramAnalysis pCpa) {
     Preconditions.checkNotNull(pCpa);
 
     wrappedCpa = pCpa;

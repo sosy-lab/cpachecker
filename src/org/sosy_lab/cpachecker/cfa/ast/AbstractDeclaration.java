@@ -25,12 +25,14 @@ public abstract class AbstractDeclaration extends AbstractSimpleDeclaration impl
   private static final long serialVersionUID = 3218969369130423033L;
   private final boolean isGlobal;
 
-  public AbstractDeclaration(FileLocation pFileLocation,  boolean pIsGlobal, Type pType, String pName) {
+  protected AbstractDeclaration(
+      FileLocation pFileLocation, boolean pIsGlobal, Type pType, String pName) {
     super(pFileLocation, pType, pName, pName);
     isGlobal = pIsGlobal;
   }
 
-  public AbstractDeclaration(FileLocation pFileLocation,  boolean pIsGlobal, Type pType, String pName, String pOrigName) {
+  protected AbstractDeclaration(
+      FileLocation pFileLocation, boolean pIsGlobal, Type pType, String pName, String pOrigName) {
     super(pFileLocation, pType, pName, pOrigName);
     isGlobal = pIsGlobal;
   }

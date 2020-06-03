@@ -24,7 +24,7 @@ public abstract class SMGJoinAbstractListProgress<K, C extends SMGListCandidate<
   protected final Table<SMGObject, K, C> candidates = HashBasedTable.create();
   protected final Table<C, SMGJoinStatus, Integer> candidateLength = HashBasedTable.create();
 
-  public SMGJoinAbstractListProgress() {}
+  protected SMGJoinAbstractListProgress() {}
 
   /** @param pHasToBeLastInSequence used in some sub-class */
   public void updateProgress(

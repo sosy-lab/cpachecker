@@ -10,9 +10,6 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import java.util.Objects;
 
-
-
-
 public abstract class AFunctionCallAssignmentStatement extends AbstractStatement implements AAssignment, AFunctionCall {
 
 
@@ -20,9 +17,10 @@ public abstract class AFunctionCallAssignmentStatement extends AbstractStatement
   private final ALeftHandSide leftHandSide;
   private final AFunctionCallExpression rightHandSide;
 
-  public AFunctionCallAssignmentStatement(FileLocation pFileLocation,
-                                          ALeftHandSide pLeftHandSide,
-                                          AFunctionCallExpression pRightHandSide) {
+  protected AFunctionCallAssignmentStatement(
+      FileLocation pFileLocation,
+      ALeftHandSide pLeftHandSide,
+      AFunctionCallExpression pRightHandSide) {
     super(pFileLocation);
 
     leftHandSide = pLeftHandSide;

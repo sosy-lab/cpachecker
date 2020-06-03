@@ -10,14 +10,12 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-
-
 public abstract class AbstractAstNode implements AAstNode {
 
   private static final long serialVersionUID = -696796854111906290L;
   private final FileLocation fileLocation;
 
-  public AbstractAstNode(final FileLocation pFileLocation) {
+  protected AbstractAstNode(final FileLocation pFileLocation) {
     fileLocation = checkNotNull(pFileLocation);
   }
 

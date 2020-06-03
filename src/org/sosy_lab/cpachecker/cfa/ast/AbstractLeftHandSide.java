@@ -21,7 +21,7 @@ public abstract class AbstractLeftHandSide extends AbstractExpression implements
 
   private static final long serialVersionUID = -4471147853223357166L;
 
-  public AbstractLeftHandSide(FileLocation pFileLocation, Type pType) {
+  protected AbstractLeftHandSide(FileLocation pFileLocation, Type pType) {
     super(pFileLocation, pType);
   }
 

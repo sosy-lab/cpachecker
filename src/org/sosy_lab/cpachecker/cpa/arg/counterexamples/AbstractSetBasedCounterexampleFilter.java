@@ -41,7 +41,7 @@ public abstract class AbstractSetBasedCounterexampleFilter<T> implements Counter
 
   private final Set<T> foundCounterexamples = new HashSet<>();
 
-  public AbstractSetBasedCounterexampleFilter(
+  protected AbstractSetBasedCounterexampleFilter(
       Configuration config, LogManager logger, ConfigurableProgramAnalysis cpa) {
     // We do not need the parameter objects,
     // this constructor is only to encourage sub-classes

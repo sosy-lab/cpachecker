@@ -10,14 +10,13 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import java.util.Objects;
 
-
-
 public abstract class AFunctionCallStatement extends AbstractStatement implements AFunctionCall {
 
   private static final long serialVersionUID = 7606010817704105593L;
   private final AFunctionCallExpression functionCall;
 
-  public AFunctionCallStatement(FileLocation pFileLocation, AFunctionCallExpression pFunctionCall) {
+  protected AFunctionCallStatement(
+      FileLocation pFileLocation, AFunctionCallExpression pFunctionCall) {
     super(pFileLocation);
     functionCall = pFunctionCall;
   }

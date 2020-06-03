@@ -112,14 +112,14 @@ public abstract class GenericRefiner<S extends ForgetfulState<?>, I extends Inte
   private final StatInt numberOfTargets = new StatInt(StatKind.SUM, "Number of targets found");
   private final StatTimer refinementTime = new StatTimer("Time for completing refinement");
 
-  public GenericRefiner(
+  protected GenericRefiner(
       final FeasibilityChecker<S> pFeasibilityChecker,
       final PathInterpolator<I> pPathInterpolator,
       final InterpolantManager<S, I> pInterpolantManager,
       final PathExtractor pPathExtractor,
       final Configuration pConfig,
-      final LogManager pLogger
-  ) throws InvalidConfigurationException {
+      final LogManager pLogger)
+      throws InvalidConfigurationException {
 
     pConfig.inject(this, GenericRefiner.class);
 

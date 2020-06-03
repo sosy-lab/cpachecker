@@ -52,7 +52,7 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
   protected final Configuration globalConfig;
   protected final Specification specification;
 
-  public NestingAlgorithm(
+  protected NestingAlgorithm(
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,

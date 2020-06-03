@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-
 public abstract class GenericSinglePathRefiner extends
     WrappedConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>, Pair<ExtendedARGPath, ExtendedARGPath>>  {
 
@@ -25,7 +24,8 @@ public abstract class GenericSinglePathRefiner extends
   private StatCounter numberOfRefinements = new StatCounter("Number of refinements");
   private StatCounter numberOfRepeatedPath = new StatCounter("Number of repeated paths");
 
-  public GenericSinglePathRefiner(ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper) {
+  protected GenericSinglePathRefiner(
+      ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper) {
     super(pWrapper);
   }
 

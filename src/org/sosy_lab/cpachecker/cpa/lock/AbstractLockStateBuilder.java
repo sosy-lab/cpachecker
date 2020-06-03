@@ -16,7 +16,7 @@ public abstract class AbstractLockStateBuilder {
   protected boolean isRestored;
   protected boolean isFalseState;
 
-  public AbstractLockStateBuilder(AbstractLockState state) {
+  protected AbstractLockStateBuilder(AbstractLockState state) {
     parentState = state;
     mutableToRestore = state.toRestore;
     isRestored = false;

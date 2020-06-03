@@ -16,14 +16,14 @@ public abstract class SMGAbstractList<S> extends SMGObject implements SMGAbstrac
   private final S shape;
   protected final int id = SMGCPA.getNewValue(); // just for logging, not for other usage!
 
-  public SMGAbstractList(
+  protected SMGAbstractList(
       int pSize, String label, int level, SMGObjectKind kind, S pShape, int pMinLength) {
     super(pSize, label, level, kind);
     shape = pShape;
     minimumLength = pMinLength;
   }
 
-  public SMGAbstractList(SMGAbstractList<S> other) {
+  protected SMGAbstractList(SMGAbstractList<S> other) {
     super(other.getSize(), other.getLabel(), other.getLevel(), other.getKind());
     shape = other.shape;
     minimumLength = other.minimumLength;

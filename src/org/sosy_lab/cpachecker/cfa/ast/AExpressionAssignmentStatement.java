@@ -12,15 +12,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Objects;
 
-
 public abstract class AExpressionAssignmentStatement extends AbstractStatement implements AAssignment {
 
   private static final long serialVersionUID = -6099960243945488221L;
   private final ALeftHandSide leftHandSide;
   private final AExpression rightHandSide;
 
-  public AExpressionAssignmentStatement(FileLocation pFileLocation, ALeftHandSide pLeftHandSide,
-      AExpression pRightHandSide) {
+  protected AExpressionAssignmentStatement(
+      FileLocation pFileLocation, ALeftHandSide pLeftHandSide, AExpression pRightHandSide) {
     super(pFileLocation);
     leftHandSide = checkNotNull(pLeftHandSide);
     rightHandSide = checkNotNull(pRightHandSide);

@@ -24,8 +24,8 @@ public abstract class AbstractCFAEdge implements CFAEdge {
   private final String rawStatement;
   private final FileLocation fileLocation;
 
-  public AbstractCFAEdge(String pRawStatement, FileLocation pFileLocation,
-      CFANode pPredecessor, CFANode pSuccessor) {
+  protected AbstractCFAEdge(
+      String pRawStatement, FileLocation pFileLocation, CFANode pPredecessor, CFANode pSuccessor) {
 
     Preconditions.checkNotNull(pRawStatement);
     Preconditions.checkNotNull(pPredecessor);

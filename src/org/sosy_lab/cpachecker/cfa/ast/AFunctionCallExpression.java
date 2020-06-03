@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-
 public abstract class AFunctionCallExpression extends AbstractRightHandSide {
 
   private static final long serialVersionUID = -6120400526327639887L;
@@ -24,8 +23,10 @@ public abstract class AFunctionCallExpression extends AbstractRightHandSide {
   private final List<? extends AExpression> parameters;
   private final AFunctionDeclaration declaration;
 
-
-  public AFunctionCallExpression(FileLocation pFileLocation, Type pType, final AExpression pFunctionName,
+  protected AFunctionCallExpression(
+      FileLocation pFileLocation,
+      Type pType,
+      final AExpression pFunctionName,
       final List<? extends AExpression> pParameters,
       final AFunctionDeclaration pDeclaration) {
     super(pFileLocation, pType);

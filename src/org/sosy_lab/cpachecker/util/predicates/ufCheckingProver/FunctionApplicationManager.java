@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.predicates.ufCheckingProver;
 
+import java.math.BigInteger;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingBasicProverEnvironment.UFCheckingProverOptions;
@@ -16,9 +18,6 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
-import java.math.BigInteger;
-import java.util.logging.Level;
-
 /** This class contains code for a better evaluation of UFs. */
 public class FunctionApplicationManager {
 
@@ -26,8 +25,8 @@ public class FunctionApplicationManager {
   private final LogManager logger;
   private final UFCheckingProverOptions options;
 
-  public FunctionApplicationManager(FormulaManagerView pFmgr, LogManager pLogger,
-      UFCheckingProverOptions pOptions) {
+  protected FunctionApplicationManager(
+      FormulaManagerView pFmgr, LogManager pLogger, UFCheckingProverOptions pOptions) {
     this.fmgr = pFmgr;
     this.logger = pLogger;
     this.options = pOptions;

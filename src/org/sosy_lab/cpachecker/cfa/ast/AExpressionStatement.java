@@ -10,14 +10,12 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import java.util.Objects;
 
-
-
 public abstract class AExpressionStatement extends AbstractStatement {
 
   private static final long serialVersionUID = 315680811122305698L;
   private final AExpression expression;
 
-  public AExpressionStatement(FileLocation pFileLocation, final AExpression pExpression) {
+  protected AExpressionStatement(FileLocation pFileLocation, final AExpression pExpression) {
     super(pFileLocation);
     expression = pExpression;
   }

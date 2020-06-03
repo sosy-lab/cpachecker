@@ -28,7 +28,7 @@ public abstract class Constraint {
    * @param subVar Indentifies the subset variable in this Constraint.
    * @param superVar Indentifies the superset variable in this Constraint.
    */
-  public Constraint(String subVar, String superVar) {
+  protected Constraint(String subVar, String superVar) {
 
     this.subVar = subVar;
     this.superVar = superVar;

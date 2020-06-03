@@ -21,8 +21,8 @@ public abstract class ACastExpression extends AbstractLeftHandSide {
   private final AExpression operand;
   private final Type     castType;
 
-
-  public ACastExpression(FileLocation pFileLocation, Type castExpressionType, AExpression pOperand) {
+  protected ACastExpression(
+      FileLocation pFileLocation, Type castExpressionType, AExpression pOperand) {
     super(pFileLocation, castExpressionType);
 
     operand = pOperand;

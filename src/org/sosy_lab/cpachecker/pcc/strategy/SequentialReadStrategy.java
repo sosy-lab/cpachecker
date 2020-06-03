@@ -17,10 +17,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
-
 public abstract class SequentialReadStrategy extends AbstractStrategy {
 
-  public SequentialReadStrategy(Configuration pConfig, LogManager pLogger, Path pProofFile) throws InvalidConfigurationException {
+  protected SequentialReadStrategy(Configuration pConfig, LogManager pLogger, Path pProofFile)
+      throws InvalidConfigurationException {
     super(pConfig, pLogger, pProofFile);
   }
 

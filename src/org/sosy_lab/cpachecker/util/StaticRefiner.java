@@ -10,7 +10,11 @@ package org.sosy_lab.cpachecker.util;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
-
+import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Deque;
+import java.util.HashSet;
+import java.util.Set;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -19,12 +23,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-
-import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.Deque;
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * Abstract base class for static refinement approaches.
@@ -37,9 +35,8 @@ abstract public class StaticRefiner {
 
   protected final LogManager logger;
 
-  public StaticRefiner(
-      Configuration pConfig,
-      LogManager pLogger) throws InvalidConfigurationException {
+  protected StaticRefiner(Configuration pConfig, LogManager pLogger)
+      throws InvalidConfigurationException {
 
     this.logger = pLogger;
 

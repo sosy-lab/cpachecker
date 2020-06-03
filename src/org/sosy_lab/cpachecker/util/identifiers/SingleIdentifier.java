@@ -19,7 +19,7 @@ public abstract class SingleIdentifier implements AbstractIdentifier {
   protected CType type;
   protected int dereference;
 
-  public SingleIdentifier(String nm, CType tp, int deref) {
+  protected SingleIdentifier(String nm, CType tp, int deref) {
     name = nm;
     type = tp;
     dereference = deref;

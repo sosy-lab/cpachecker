@@ -23,7 +23,7 @@ public abstract class MultiStatistics implements Statistics {
   private final Collection<Statistics> subStats = new CopyOnWriteArrayList<>();
   protected final LogManager logger;
 
-  public MultiStatistics(LogManager pLogger) {
+  protected MultiStatistics(LogManager pLogger) {
     logger = Preconditions.checkNotNull(pLogger);
   }
 

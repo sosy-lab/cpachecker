@@ -27,7 +27,7 @@ public abstract class WrappingPrecisionAdjustment implements PrecisionAdjustment
 
   private final PrecisionAdjustment wrappedPrecOp;
 
-  public WrappingPrecisionAdjustment(PrecisionAdjustment pWrappedPrecOp) {
+  protected WrappingPrecisionAdjustment(PrecisionAdjustment pWrappedPrecOp) {
     this.wrappedPrecOp = Preconditions.checkNotNull(pWrappedPrecOp);
   }
 

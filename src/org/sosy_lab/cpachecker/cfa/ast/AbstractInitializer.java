@@ -14,7 +14,7 @@ public abstract class AbstractInitializer extends AbstractAstNode implements AIn
 
   private static final long serialVersionUID = 8957078095931687599L;
 
-  public AbstractInitializer(final FileLocation pFileLocation) {
+  protected AbstractInitializer(final FileLocation pFileLocation) {
     super(pFileLocation);
   }
 

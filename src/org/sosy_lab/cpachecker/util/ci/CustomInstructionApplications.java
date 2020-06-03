@@ -62,9 +62,11 @@ public class CustomInstructionApplications {
 
   /**
    * Constructor of CustomInstructionApplications
+   *
    * @param pCis ImmutableMap
    */
-  public CustomInstructionApplications(final Map<CFANode, AppliedCustomInstruction> pCis, final CustomInstruction pCi) {
+  protected CustomInstructionApplications(
+      final Map<CFANode, AppliedCustomInstruction> pCis, final CustomInstruction pCi) {
     cis = pCis;
     ci = pCi;
   }
@@ -156,8 +158,12 @@ public class CustomInstructionApplications {
     protected final ShutdownNotifier shutdownNotifier;
     protected final CFA cfa;
 
-    public CustomInstructionApplicationBuilder(final Configuration config, final LogManager pLogger,
-        final ShutdownNotifier sdNotifier, final CFA pCfa) throws InvalidConfigurationException {
+    protected CustomInstructionApplicationBuilder(
+        final Configuration config,
+        final LogManager pLogger,
+        final ShutdownNotifier sdNotifier,
+        final CFA pCfa)
+        throws InvalidConfigurationException {
       config.inject(this, CustomInstructionApplicationBuilder.class);
       logger = pLogger;
       shutdownNotifier = sdNotifier;

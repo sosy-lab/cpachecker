@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-
 /**
  * Defines an interface for heuristics for the partition of a program's CFA into blocks.
  *
@@ -40,10 +39,8 @@ public abstract class PartitioningHeuristic {
   protected final CFA cfa;
   protected final LogManager logger;
 
-  /**
-   * @param pConfig configuration can be used and injected in subclasses.
-   */
-  public PartitioningHeuristic(LogManager pLogger, CFA pCfa, Configuration pConfig) {
+  /** @param pConfig configuration can be used and injected in subclasses. */
+  protected PartitioningHeuristic(LogManager pLogger, CFA pCfa, Configuration pConfig) {
     cfa = pCfa;
     logger = pLogger;
   }

@@ -29,8 +29,8 @@ public abstract class SMGAbstractListCandidateSequence<C extends SMGListCandidat
   private final SMGJoinStatus seqStatus;
   private final boolean includesList;
 
-  public SMGAbstractListCandidateSequence(C pCandidate,
-      int pLength, SMGJoinStatus pSmgJoinStatus, boolean pIncludesList) {
+  protected SMGAbstractListCandidateSequence(
+      C pCandidate, int pLength, SMGJoinStatus pSmgJoinStatus, boolean pIncludesList) {
     candidate = pCandidate;
     length = pLength;
     seqStatus = pSmgJoinStatus;

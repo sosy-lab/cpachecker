@@ -71,7 +71,8 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
       description = "writes the validation configuration required for checking to proof")
   boolean storeConfig = false;
 
-  public AbstractStrategy(Configuration pConfig, LogManager pLogger, Path pProofFile) throws InvalidConfigurationException {
+  protected AbstractStrategy(Configuration pConfig, LogManager pLogger, Path pProofFile)
+      throws InvalidConfigurationException {
     pConfig.inject(this, AbstractStrategy.class);
     config = pConfig;
     numThreads = Math.max(1, numThreads);

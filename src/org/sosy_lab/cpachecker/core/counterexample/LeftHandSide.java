@@ -25,12 +25,12 @@ public abstract class LeftHandSide {
   private final String name;
   private final String functionName;
 
-  public LeftHandSide(String pName, String pFunctionName) {
+  protected LeftHandSide(String pName, String pFunctionName) {
     name = pName;
     functionName = pFunctionName;
   }
 
-  public LeftHandSide(String pName) {
+  protected LeftHandSide(String pName) {
     name = pName;
     functionName = null;
   }

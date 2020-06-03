@@ -12,23 +12,23 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-
 public abstract class AIdExpression extends AbstractLeftHandSide {
 
   private static final long serialVersionUID = -2534849615394054260L;
   private final String name;
   private final ASimpleDeclaration declaration;
 
-
-  public AIdExpression(FileLocation pFileLocation, Type pType, final String pName,
+  protected AIdExpression(
+      FileLocation pFileLocation,
+      Type pType,
+      final String pName,
       final ASimpleDeclaration pDeclaration) {
     super(pFileLocation, pType);
     name = pName.intern();
     declaration = pDeclaration;
   }
 
-
-  public AIdExpression(FileLocation pFileLocation, ASimpleDeclaration pDeclaration) {
+  protected AIdExpression(FileLocation pFileLocation, ASimpleDeclaration pDeclaration) {
     this(pFileLocation, pDeclaration.getType(),
         pDeclaration.getName(), pDeclaration);
   }

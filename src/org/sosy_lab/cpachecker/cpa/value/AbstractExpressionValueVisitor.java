@@ -145,13 +145,15 @@ public abstract class AbstractExpressionValueVisitor
 
   private boolean missingFieldAccessInformation = false;
 
-  /** This Visitor returns the numeral value for an expression.
+  /**
+   * This Visitor returns the numeral value for an expression.
+   *
    * @param pFunctionName current scope, used only for variable-names
    * @param pMachineModel where to get info about types, for casting and overflows
    * @param pLogger logging
    */
-  public AbstractExpressionValueVisitor(String pFunctionName,
-      MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
+  protected AbstractExpressionValueVisitor(
+      String pFunctionName, MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
 
     //this.state = pState;
     functionName = pFunctionName;

@@ -23,7 +23,8 @@ public abstract class ToCTranslationTest extends AbstractTranslationTest {
   private final boolean verdict;
   private final Configuration checkerConfig;
 
-  public ToCTranslationTest(Path pTargetProgram, boolean pVerdict, Configuration pCheckerConfig) {
+  protected ToCTranslationTest(
+      Path pTargetProgram, boolean pVerdict, Configuration pCheckerConfig) {
     verdict = pVerdict;
     checkerConfig = pCheckerConfig;
     targetProgram = pTargetProgram;

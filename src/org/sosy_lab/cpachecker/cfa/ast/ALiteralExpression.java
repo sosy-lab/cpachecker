@@ -10,12 +10,11 @@ package org.sosy_lab.cpachecker.cfa.ast;
 
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-
 public abstract class ALiteralExpression extends AbstractExpression {
 
   private static final long serialVersionUID = -457755136896976625L;
 
-  public ALiteralExpression(FileLocation pFileLocation, Type pType) {
+  protected ALiteralExpression(FileLocation pFileLocation, Type pType) {
     super(pFileLocation, pType);
   }
 

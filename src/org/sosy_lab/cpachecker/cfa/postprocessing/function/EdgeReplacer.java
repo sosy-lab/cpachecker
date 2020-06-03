@@ -55,7 +55,7 @@ public abstract class EdgeReplacer {
   private final LogManager logger;
   private int instrumentedFunctions;
 
-  public EdgeReplacer(MutableCFA pCfa, Configuration config, LogManager pLogger)
+  protected EdgeReplacer(MutableCFA pCfa, Configuration config, LogManager pLogger)
       throws InvalidConfigurationException {
     cfa = pCfa;
     logger = pLogger;

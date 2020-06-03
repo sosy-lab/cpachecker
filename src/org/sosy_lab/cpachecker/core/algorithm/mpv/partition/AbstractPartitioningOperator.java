@@ -19,7 +19,7 @@ abstract class AbstractPartitioningOperator implements PartitioningOperator {
   private final TimeSpan timeLimitPerProperty; // resource limitations per each property
   private int phase;
 
-  public AbstractPartitioningOperator(
+  protected AbstractPartitioningOperator(
       MultipleProperties pProperties, TimeSpan pTimeLimitPerProperty) {
     properties = pProperties;
     timeLimitPerProperty = pTimeLimitPerProperty;

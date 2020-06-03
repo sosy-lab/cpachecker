@@ -14,8 +14,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
-
-
 public abstract class WrappedConfigurableRefinementBlock<I, O> implements ConfigurableRefinementBlock<I>, StatisticsProvider {
   protected ConfigurableRefinementBlock<O> wrappedRefiner;
 
@@ -49,7 +47,7 @@ public abstract class WrappedConfigurableRefinementBlock<I, O> implements Config
     wrappedRefiner.update(getClass(), dstClass, data);
   }
 
-  public WrappedConfigurableRefinementBlock(ConfigurableRefinementBlock<O> wrapper) {
+  protected WrappedConfigurableRefinementBlock(ConfigurableRefinementBlock<O> wrapper) {
     wrappedRefiner = wrapper;
   }
 

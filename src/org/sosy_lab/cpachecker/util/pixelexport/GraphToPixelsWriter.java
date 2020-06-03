@@ -101,7 +101,7 @@ public abstract class GraphToPixelsWriter<Node> {
 
   private final CanvasProvider canvasHandler;
 
-  public GraphToPixelsWriter(Configuration pConfig) throws InvalidConfigurationException {
+  protected GraphToPixelsWriter(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this, GraphToPixelsWriter.class);
 
     imageFormat = imageFormat.toLowerCase();

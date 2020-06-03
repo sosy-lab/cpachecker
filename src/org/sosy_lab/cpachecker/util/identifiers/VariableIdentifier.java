@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public abstract class VariableIdentifier extends SingleIdentifier {
 
-  public VariableIdentifier(String nm, CType tp, int dereference) {
+  protected VariableIdentifier(String nm, CType tp, int dereference) {
     super(nm, tp, dereference);
   }
 

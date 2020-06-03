@@ -76,7 +76,7 @@ public abstract class ErrorTracePrinter {
 
   private BAMMultipleCEXSubgraphComputer subgraphComputer;
 
-  public ErrorTracePrinter(
+  protected ErrorTracePrinter(
       Configuration c,
       BAMMultipleCEXSubgraphComputer t,
       CFA pCfa,

@@ -12,15 +12,13 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-
 
 public abstract class AbstractARGPass {
 
   private final boolean visitMultipleTimes;
 
-  public AbstractARGPass(final boolean pMultipleVisits) {
+  protected AbstractARGPass(final boolean pMultipleVisits) {
     visitMultipleTimes = pMultipleVisits;
   }
 

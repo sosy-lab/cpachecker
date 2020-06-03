@@ -27,12 +27,12 @@ public abstract class SMGPrecision implements Precision {
   private final int maxLength;
   private final int threshold = 0; // TODO always zero??
 
-  public SMGPrecision(SMGPrecisionAbstractionOptions pOptions) {
+  protected SMGPrecision(SMGPrecisionAbstractionOptions pOptions) {
     options = pOptions;
     maxLength = 2;
   }
 
-  public SMGPrecision(SMGPrecisionAbstractionOptions pOptions, int pMaxLength) {
+  protected SMGPrecision(SMGPrecisionAbstractionOptions pOptions, int pMaxLength) {
     options = pOptions;
     maxLength = pMaxLength;
   }

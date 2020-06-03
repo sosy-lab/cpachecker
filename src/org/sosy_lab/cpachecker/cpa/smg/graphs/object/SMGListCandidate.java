@@ -17,7 +17,7 @@ public abstract class SMGListCandidate<S> {
   protected final MachineModel model;
   private final S shape;
 
-  public SMGListCandidate(SMGObject pStartObject, MachineModel pModel, S pShape) {
+  protected SMGListCandidate(SMGObject pStartObject, MachineModel pModel, S pShape) {
     startObject = pStartObject;
     model = pModel;
     shape = pShape;

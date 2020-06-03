@@ -19,12 +19,12 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.ci.CIUtils;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
-
 public abstract class CartesianRequirementsTranslator<T extends AbstractState> extends AbstractRequirementsTranslator<T> {
 
   protected final LogManager logger;
 
-  public CartesianRequirementsTranslator(final Class<T> pAbstractStateClass, final LogManager log) {
+  protected CartesianRequirementsTranslator(
+      final Class<T> pAbstractStateClass, final LogManager log) {
     super(pAbstractStateClass);
     logger = log;
   }

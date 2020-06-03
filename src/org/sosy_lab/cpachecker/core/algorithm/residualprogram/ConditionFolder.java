@@ -189,7 +189,7 @@ public abstract class ConditionFolder {
 
   private final FOLDER_TYPE type;
 
-  public ConditionFolder(final FOLDER_TYPE pType) {
+  protected ConditionFolder(final FOLDER_TYPE pType) {
     type = pType;
   }
 
@@ -310,7 +310,7 @@ public abstract class ConditionFolder {
     protected final CFA cfa;
     protected final Set<CFANode> loopHeads;
 
-    public StructureFolder(final CFA pCfa, final FOLDER_TYPE type) {
+    protected StructureFolder(final CFA pCfa, final FOLDER_TYPE type) {
       super(type);
       cfa = pCfa;
       Preconditions.checkState(cfa.getAllLoopHeads().isPresent());

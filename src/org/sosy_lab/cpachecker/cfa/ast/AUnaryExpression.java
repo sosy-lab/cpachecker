@@ -17,7 +17,10 @@ public abstract class AUnaryExpression extends AbstractExpression {
   private final AExpression operand;
   private final AUnaryOperator  operator;
 
-  public AUnaryExpression(FileLocation pFileLocation, Type pType, final AExpression pOperand,
+  protected AUnaryExpression(
+      FileLocation pFileLocation,
+      Type pType,
+      final AExpression pOperand,
       final AUnaryOperator pOperator) {
     super(pFileLocation, pType);
     operand = pOperand;

@@ -23,7 +23,7 @@ public abstract class AbstractRequirementsTranslator<T extends AbstractState> {
 
   private final Class<T> abstractStateClass;
 
-  public AbstractRequirementsTranslator(final Class<T> pAbstractStateClass) {
+  protected AbstractRequirementsTranslator(final Class<T> pAbstractStateClass) {
     abstractStateClass = pAbstractStateClass;
   }
 

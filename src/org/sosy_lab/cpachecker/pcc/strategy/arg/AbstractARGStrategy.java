@@ -36,8 +36,13 @@ public abstract class AbstractARGStrategy extends SequentialReadStrategy {
   protected final PropertyChecker propChecker;
   private final ShutdownNotifier shutdownNotifier;
 
-  public AbstractARGStrategy(Configuration pConfig, LogManager pLogger, PropertyChecker pPropertyChecker,
-      ShutdownNotifier pShutdownNotifier, Path pProofFile) throws InvalidConfigurationException {
+  protected AbstractARGStrategy(
+      Configuration pConfig,
+      LogManager pLogger,
+      PropertyChecker pPropertyChecker,
+      ShutdownNotifier pShutdownNotifier,
+      Path pProofFile)
+      throws InvalidConfigurationException {
     super(pConfig, pLogger, pProofFile);
     propChecker = pPropertyChecker;
     shutdownNotifier = pShutdownNotifier;

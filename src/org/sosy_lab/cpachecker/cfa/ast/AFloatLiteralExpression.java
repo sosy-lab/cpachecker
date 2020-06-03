@@ -13,13 +13,12 @@ import java.math.BigDecimal;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-
 public abstract class AFloatLiteralExpression extends ALiteralExpression {
 
   private static final long serialVersionUID = 8161363025296340648L;
   private final BigDecimal value;
 
-  public AFloatLiteralExpression(FileLocation pFileLocation, Type pType, BigDecimal pValue) {
+  protected AFloatLiteralExpression(FileLocation pFileLocation, Type pType, BigDecimal pValue) {
     super(pFileLocation, pType);
     value = pValue;
   }

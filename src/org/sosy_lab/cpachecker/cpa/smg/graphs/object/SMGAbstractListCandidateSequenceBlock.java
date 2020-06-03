@@ -23,8 +23,8 @@ public abstract class SMGAbstractListCandidateSequenceBlock<S> implements SMGAbs
   private final int length;
   private final SMGMemoryPath pointerToStartObject;
 
-  public SMGAbstractListCandidateSequenceBlock(S pShape, int pLength,
-      SMGMemoryPath pPointerToStartObject) {
+  protected SMGAbstractListCandidateSequenceBlock(
+      S pShape, int pLength, SMGMemoryPath pPointerToStartObject) {
     shape = pShape;
     length = pLength;
     pointerToStartObject = pPointerToStartObject;

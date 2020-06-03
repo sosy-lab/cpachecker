@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-
 public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinementBlock<I, O> {
   private StatTimer totalTimer = new StatTimer("Time for generic iterator");
   private StatCounter numOfIterations = new StatCounter("Number of iterations");
@@ -27,7 +26,7 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
   // Some iterations may be postponed to the end (complicated ones)
   List<O> postponedIterations = new ArrayList<>();
 
-  public GenericIterator(ConfigurableRefinementBlock<O> pWrapper) {
+  protected GenericIterator(ConfigurableRefinementBlock<O> pWrapper) {
     super(pWrapper);
   }
 

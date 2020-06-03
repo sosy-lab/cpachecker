@@ -75,7 +75,7 @@ public final class ConcreteStatePath implements Iterable<ConcreteStatePathNode> 
 
     private final CFAEdge cfaEdge;
 
-    public ConcreteStatePathNode(CFAEdge pCfaEdge) {
+    protected ConcreteStatePathNode(CFAEdge pCfaEdge) {
       cfaEdge = pCfaEdge;
     }
 

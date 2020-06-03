@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-
 public abstract class GenericFilter<P>  extends
 WrappedConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>, Pair<ExtendedARGPath, ExtendedARGPath>> {
 
@@ -47,8 +46,9 @@ WrappedConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>, Pair<
   Function<ARGState, String> getFunctionName = s -> AbstractStates.extractLocation(s).getFunctionName();
 
   @SuppressWarnings("deprecation")
-  public GenericFilter(ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper
-      , Configuration pConfig) {
+  protected GenericFilter(
+      ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>> pWrapper,
+      Configuration pConfig) {
     super(pWrapper);
     mainFunction = pConfig.getProperty("analysis.entryFunction");
   }

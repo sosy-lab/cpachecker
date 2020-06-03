@@ -12,7 +12,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 public abstract class GlobalRefinementStrategy extends RefinementStrategy {
 
-  public GlobalRefinementStrategy(Solver pSolver) {
+  protected GlobalRefinementStrategy(Solver pSolver) {
     super(pSolver);
   }
 

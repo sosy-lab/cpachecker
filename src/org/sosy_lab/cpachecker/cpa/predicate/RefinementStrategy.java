@@ -62,7 +62,7 @@ public abstract class RefinementStrategy {
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
 
-  public RefinementStrategy(Solver pSolver) {
+  protected RefinementStrategy(Solver pSolver) {
     solver = pSolver;
     bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
   }

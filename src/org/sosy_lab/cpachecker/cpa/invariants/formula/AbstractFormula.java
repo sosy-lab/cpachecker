@@ -10,12 +10,11 @@ package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 import org.sosy_lab.cpachecker.cpa.invariants.TypeInfo;
 
-
 abstract class AbstractFormula<ConstantType> implements NumeralFormula<ConstantType> {
 
   private final TypeInfo info;
 
-  public AbstractFormula(TypeInfo pInfo) {
+  protected AbstractFormula(TypeInfo pInfo) {
     this.info = pInfo;
   }
 

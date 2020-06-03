@@ -24,7 +24,9 @@ public abstract class ABinaryExpression extends AbstractExpression {
   private final AExpression operand2;
   private final ABinaryOperator operator;
 
-  public ABinaryExpression(FileLocation pFileLocation, Type pType,
+  protected ABinaryExpression(
+      FileLocation pFileLocation,
+      Type pType,
       final AExpression pOperand1,
       final AExpression pOperand2,
       final ABinaryOperator pOperator) {

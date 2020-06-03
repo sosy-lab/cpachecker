@@ -16,7 +16,7 @@ public abstract class APointerExpression extends AbstractLeftHandSide {
   private static final long serialVersionUID = -1287666395056820570L;
   private final AExpression operand;
 
-  public APointerExpression(FileLocation pFileLocation, Type pType, final AExpression pOperand) {
+  protected APointerExpression(FileLocation pFileLocation, Type pType, final AExpression pOperand) {
     super(pFileLocation, pType);
     operand = pOperand;
   }

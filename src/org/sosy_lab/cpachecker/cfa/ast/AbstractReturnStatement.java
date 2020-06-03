@@ -19,7 +19,8 @@ public abstract class AbstractReturnStatement extends AbstractAstNode implements
   private final Optional<? extends AExpression> expression;
   private final Optional<? extends AAssignment> assignment;
 
-  public AbstractReturnStatement(final FileLocation pFileLocation,
+  protected AbstractReturnStatement(
+      final FileLocation pFileLocation,
       final Optional<? extends AExpression> pExpression,
       final Optional<? extends AAssignment> pAssignment) {
     super(pFileLocation);

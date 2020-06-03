@@ -51,7 +51,7 @@ public abstract class AbstractTranslationTest {
   protected String filePrefix = "tmp";
   protected final LogManager logger;
 
-  public AbstractTranslationTest() {
+  protected AbstractTranslationTest() {
     StringBuildingLogHandler stringLogHandler = new StringBuildingLogHandler();
     stringLogHandler.setLevel(Level.ALL);
     stringLogHandler.setFormatter(ConsoleLogFormatter.withoutColors());

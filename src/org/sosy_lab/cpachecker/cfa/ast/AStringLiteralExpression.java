@@ -11,13 +11,12 @@ package org.sosy_lab.cpachecker.cfa.ast;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-
 public abstract class AStringLiteralExpression extends ALiteralExpression {
 
   private static final long serialVersionUID = 182481690634464284L;
   private final String value;
 
-  public AStringLiteralExpression(FileLocation pFileLocation, Type pType, String pValue) {
+  protected AStringLiteralExpression(FileLocation pFileLocation, Type pType, String pValue) {
     super(pFileLocation, pType);
      value = pValue;
   }
