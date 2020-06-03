@@ -916,7 +916,7 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
                     continue;
                   }
                 }
-                for (BigInteger c : constants.tailSet(BigInteger.ONE).headSet(max)) {
+                for (BigInteger c : constants.subSet(BigInteger.ONE, max)) {
                   try {
                     CIntegerLiteralExpression cLit =
                         new CIntegerLiteralExpression(FileLocation.DUMMY, type, c);
