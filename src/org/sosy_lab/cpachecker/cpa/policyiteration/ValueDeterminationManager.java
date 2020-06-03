@@ -56,7 +56,6 @@ public class ValueDeterminationManager {
   private final TemplateToFormulaConversionManager templateToFormulaConversionManager;
 
   /** Constants */
-  private static final String BOUND_VAR_NAME = "BOUND_[%s]_[%s]";
   private static final String VISIT_PREFIX = "[%d]_";
 
   public ValueDeterminationManager(
@@ -377,8 +376,7 @@ public class ValueDeterminationManager {
    * for the given template for the given state.
    */
   private String absDomainVarName(int locId, Template template) {
-    return String.format(
-        BOUND_VAR_NAME, locId, template.toString());
+    return String.format("BOUND_[%s]_[%s]", locId, template.toString());
   }
 
 }

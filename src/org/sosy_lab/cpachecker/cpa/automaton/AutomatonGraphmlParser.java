@@ -124,7 +124,7 @@ public class AutomatonGraphmlParser {
   private static final String TOO_MANY_GRAPHS_ERROR_MESSAGE =
       "The witness file must describe exactly one witness automaton.";
 
-  private static final String ACCESS_ERROR_MESSAGE = "Error while accessing witness file: %s!";
+  
 
   private static final String INVALID_AUTOMATON_ERROR_MESSAGE =
       "The witness automaton provided is invalid!";
@@ -2190,7 +2190,7 @@ public class AutomatonGraphmlParser {
       message = "Exception occurred, but details are unknown: " + pException.toString();
     }
     if (pException instanceof IOException) {
-      return String.format(ACCESS_ERROR_MESSAGE, message);
+      return String.format("Error while accessing witness file: %s!", message);
     }
     return message;
   }
