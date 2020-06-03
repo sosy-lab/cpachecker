@@ -30,23 +30,26 @@ import org.sosy_lab.common.log.LogManager;
 
 %cup
 %class AutomatonScanner
+%final
+%apiprivate
 %line
 %column
 
+%ctorarg Path file
+%ctorarg LogManager logger
+%ctorarg ComplexSymbolFactory sf
+%init{
+  filesStack.push(file);
+    this.sf = sf;
+    this.logger = logger;
+%init}
 %{
-  private StringBuilder string = new StringBuilder();
-  private ComplexSymbolFactory sf;
-  private LogManager logger;
+  private final StringBuilder string = new StringBuilder();
+  private final ComplexSymbolFactory sf;
+  private final LogManager logger;
   private final List<Path> scannedFiles = new ArrayList<>();
   private final Deque<Path> filesStack = new ArrayDeque<>();
 
-  public AutomatonScanner(java.io.Reader r, Path file, LogManager logger, ComplexSymbolFactory sf) {
-    this(r);
-    filesStack.push(file);
-    this.sf = sf;
-    this.logger = logger;
-  }
-   
   private Path getFile(String pYytext) throws FileNotFoundException {
     assert pYytext.startsWith("#include ");
     String fileName = pYytext.replaceFirst("#include ", "").trim();
@@ -103,9 +106,6 @@ import org.sosy_lab.common.log.LogManager;
     throw new IOException(msg.toString());
   }
 %}
-%eofval{
-    return symbol("EOF", AutomatonSym.EOF);
-%eofval}
 
 LineTerminator = \R
 InputCharacter = .

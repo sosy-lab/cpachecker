@@ -17,16 +17,17 @@ import java_cup.runtime.Symbol;
 
 %cup
 %class FormulaScanner
+%final
+%apiprivate
 %line
 %column
 
+%ctorarg ComplexSymbolFactory sf
+%init{
+  this.sf = sf;
+%init}
 %{
-  private ComplexSymbolFactory sf;
-
-  public FormulaScanner(java.io.Reader r, ComplexSymbolFactory sf) {
-    this(r);
-    this.sf = sf;
-  }
+  private final ComplexSymbolFactory sf;
   
   private Location getStartLocation() {
     return new Location("", yyline+1,yycolumn+1-yylength());
@@ -39,11 +40,7 @@ import java_cup.runtime.Symbol;
   private Symbol symbol(int sym, String name) {
     return sf.newSymbol(name, sym, getStartLocation(), getEndLocation(), name);
   }
-  
 %}
-%eofval{
-    return symbol("EOF", Symbol.EOF);
-%eofval}
 
 LineTerminator = \R
 WhiteSpace     = {LineTerminator} | [ \t\f]
@@ -55,9 +52,6 @@ Numeral = 0 | [1-9][0-9]*
 Decimal = {Numeral} "."  0* {Numeral}
 QuotedSymbol = "|" [^|]* "|"
 Symbol = {SMTLetter} {SMTLetterDigit}* 
-
-%state STRING
-
 
 %%
 
