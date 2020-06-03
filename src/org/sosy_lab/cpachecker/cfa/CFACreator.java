@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import LoopAcc.LoopInformation;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.io.MoreFiles;
@@ -573,6 +574,11 @@ public class CFACreator {
       }
     } else {
       depGraph = Optional.empty();
+    }
+
+    if (language == Language.C) {
+      LoopInformation builder = new LoopInformation(config, logger, cfa);
+      builder.collectStatistics(stats.statisticsCollection);
     }
 
     stats.processingTime.stop();
