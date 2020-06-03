@@ -509,13 +509,6 @@ public class CompoundMathematicalInterval implements CompoundIntegralInterval {
   }
 
   /**
-   * @param pBitVectorInfo the bitVector that should be casted
-   */
-  public CompoundInterval cast(BitVectorInfo pBitVectorInfo) {
-    return this;
-  }
-
-  /**
    * Checks if there is a lower bound to this compound state.
    *
    * @return <code>true</code> if there is an lower bound to this compound state, <code>false</code> otherwise.
