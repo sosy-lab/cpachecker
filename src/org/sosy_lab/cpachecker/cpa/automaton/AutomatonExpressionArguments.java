@@ -134,7 +134,7 @@ class AutomatonExpressionArguments {
 
     // replace references to Transition Variables
     Matcher matcher = AutomatonExpressionArguments.TRANSITION_VARS_PATTERN.matcher(pSourceString);
-    StringBuffer result = new StringBuffer();
+    StringBuilder result = new StringBuilder();
     while (matcher.find()) {
       matcher.appendReplacement(result, "");
       String key = matcher.group().substring(1); // matched string startswith $
@@ -157,7 +157,7 @@ class AutomatonExpressionArguments {
 
     // replace references to automaton Variables
     matcher = AutomatonExpressionArguments.AUTOMATON_VARS_PATTERN.matcher(result.toString());
-    result = new StringBuffer();
+    result = new StringBuilder();
     while (matcher.find()) {
       matcher.appendReplacement(result, "");
       String varName =  matcher.group().substring(2); // matched string starts with $$

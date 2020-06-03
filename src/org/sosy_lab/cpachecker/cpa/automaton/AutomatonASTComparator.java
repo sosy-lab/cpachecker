@@ -70,7 +70,7 @@ class AutomatonASTComparator {
   @VisibleForTesting
   static String replaceJokersInPattern(String pPattern) {
     Matcher matcher = JOKER_PATTERN.matcher(pPattern);
-    StringBuffer result = new StringBuffer();
+    StringBuilder result = new StringBuilder();
 
     // Each $? joker needs a unique C identifier to avoid type problems, so we append a counter.
     int wildcardCount = 0;
