@@ -25,7 +25,11 @@ package org.sosy_lab.cpachecker.core.algorithm.tarantula;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Ordering;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -34,6 +38,10 @@ import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.F
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.SafeCase;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.TarantulaCasesStatus;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 
 public class TarantulaRanking {
   private final SafeCase safeCase;
@@ -66,34 +74,29 @@ public class TarantulaRanking {
     return numerator / denominator;
   }
 
-  public Map<CFAEdge, Double> getRanked() throws InterruptedException {
+  public List<Fault> getRanked() throws InterruptedException {
     Set<ARGPath> safePaths = safeCase.getSafePaths();
     Set<ARGPath> errorPaths = failedCase.getErrorPaths();
     int totalSafePaths = safePaths.size();
     int totalErrorPaths = errorPaths.size();
-    Map<CFAEdge, TarantulaCasesStatus> coverage =
+    Map<FaultContribution, TarantulaCasesStatus> coverage =
         coverageInformation.getCoverageInformation(safePaths, errorPaths);
 
-    Map<CFAEdge, Double> resultMap = new LinkedHashMap<>();
+    List<Fault> faults = new ArrayList<>();
+
     coverage.forEach(
-        (pCFAEdge, pTarantulaCasesStatus) -> {
-          resultMap.put(
-              pCFAEdge,
+        (pFaultContribution, pTarantulaCasesStatus) -> {
+          double suspicious =
               computeSuspicious(
                   pTarantulaCasesStatus.getFailedCases(),
                   pTarantulaCasesStatus.getPassedCases(),
                   totalErrorPaths,
-                  totalSafePaths));
+                  totalSafePaths);
+
+          Fault fault = new Fault(pFaultContribution);
+          fault.setScore(suspicious);
+          faults.add(fault);
         });
-
-    return sortBySuspicious(resultMap);
-  }
-
-  private Map<CFAEdge, Double> sortBySuspicious(final Map<CFAEdge, Double> wordCounts) {
-
-    return ImmutableMap.<CFAEdge, Double>builderWithExpectedSize(wordCounts.size())
-        .orderEntriesByValue(Ordering.natural().reverse())
-        .putAll(wordCounts)
-        .build();
+    return faults;
   }
 }

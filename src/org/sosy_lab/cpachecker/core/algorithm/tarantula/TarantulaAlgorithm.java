@@ -23,21 +23,30 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.tarantula;
 
+import static com.google.common.collect.FluentIterable.from;
+
+import com.google.common.collect.FluentIterable;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.FailedCase;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.SafeCase;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.InfoType;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
@@ -58,7 +67,12 @@ public class TarantulaAlgorithm implements Algorithm, StatisticsProvider, Statis
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     totalAnalysisTime.start();
-
+    FluentIterable<CounterexampleInfo> counterExamples =
+        Optionals.presentInstances(
+            from(reachedSet)
+                .filter(AbstractStates::isTargetState)
+                .filter(ARGState.class)
+                .transform(ARGState::getCounterexampleInformation));
     try {
 
       AlgorithmStatus result = algorithm.run(reachedSet);
@@ -72,11 +86,10 @@ public class TarantulaAlgorithm implements Algorithm, StatisticsProvider, Statis
         }
         logger.log(Level.INFO, "Start tarantula algorithm ... ");
 
-        getFaultLocations(System.out, safeCase, failedCase);
+        getFaultLocations(System.out, counterExamples.get(0), safeCase, failedCase);
       } else {
         logger.log(Level.INFO, "There is no counterexample. No bugs found.");
       }
-
       return result;
     } finally {
       totalAnalysisTime.stop();
@@ -87,11 +100,18 @@ public class TarantulaAlgorithm implements Algorithm, StatisticsProvider, Statis
    * Prints result after calculating suspicious and make the ranking for all edges and then store
    * the result into <code>Map</code>.
    */
-  public void getFaultLocations(PrintStream out, SafeCase safeCase, FailedCase failedCase)
+  public void getFaultLocations(
+      PrintStream out,
+      CounterexampleInfo pCounterexampleInfo,
+      SafeCase safeCase,
+      FailedCase failedCase)
       throws InterruptedException {
-
+    FaultLocalizationInfo info;
     TarantulaRanking ranking = new TarantulaRanking(safeCase, failedCase, shutdownNotifier);
-    ranking.getRanked().forEach((k, v) -> out.println(k + "--->" + v));
+    out.println(ranking.getRanked());
+    info = new FaultLocalizationInfo(ranking.getRanked(), pCounterexampleInfo);
+    info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
+    info.apply();
   }
 
   @Override
