@@ -86,16 +86,19 @@ public class TarantulaRanking {
                   pTarantulaCasesStatus.getPassedCases(),
                   totalErrorPaths,
                   totalSafePaths);
-
-          Fault fault = new Fault(pFaultContribution);
-          fault.setScore(suspicious);
-          faults.add(fault);
+          // Skip 0 line numbers
+          if (pFaultContribution.correspondingEdge().getLineNumber() != 0) {
+            Fault fault = new Fault(pFaultContribution);
+            fault.setScore(suspicious);
+            faults.add(fault);
+          }
         });
     return sortingByScoreReversed(faults);
   }
 
   private List<Fault> sortingByScoreReversed(List<Fault> faults) {
     return faults.stream()
+        .filter(f -> f.getScore() != 0)
         .sorted(Comparator.comparing((Fault f) -> f.getScore()).reversed())
         .collect(Collectors.toList());
   }
