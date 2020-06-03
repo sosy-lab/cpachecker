@@ -13,8 +13,10 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPr
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -141,7 +143,7 @@ public class SlicingAbstractionsUtils {
    * @return A mapping of (abstraction) states to a list of (non-abstraction) states which can be
    *     reached from originState
    */
-  public static Map<ARGState, PersistentList<ARGState>> calculateOutgoingSegments(
+  public static ImmutableMap<ARGState, PersistentList<ARGState>> calculateOutgoingSegments(
       ARGState originState) {
     checkArgument(isAbstractionState(originState));
 
@@ -232,13 +234,7 @@ public class SlicingAbstractionsUtils {
     }
 
     // Now we need to reverse the segments so that they are in correct order:
-    for (Map.Entry<ARGState, PersistentList<ARGState>> entry : segmentMap.entrySet()) {
-      ARGState key = entry.getKey();
-      PersistentList<ARGState> segment = entry.getValue();
-      segmentMap.put(key, segment.reversed());
-    }
-
-    return segmentMap;
+    return ImmutableMap.copyOf(Maps.transformValues(segmentMap, segment -> segment.reversed()));
   }
 
   private static Collection<ARGState> nonAbstractionReach(ARGState pOriginState) {
