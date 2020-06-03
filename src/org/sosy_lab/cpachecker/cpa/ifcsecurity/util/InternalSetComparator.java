@@ -11,23 +11,23 @@ package org.sosy_lab.cpachecker.cpa.ifcsecurity.util;
 import com.google.common.collect.Comparators;
 import java.io.Serializable;
 import java.util.Comparator;
-import java.util.SortedSet;
+import java.util.NavigableSet;
 
 /**
- * Comparator for Sets. Establish a Ordering depending on
- * 1. Size
- * 2. Comparator of elements.
+ * Comparator for Sets. Establish a Ordering depending on 1. Size 2. Comparator of elements.
+ *
  * @param <E> Type of elements in the sets.
  */
-public class InternalSetComparator<E extends Comparable<? super E>> implements Serializable, Comparator<SortedSet<E>>{
+public class InternalSetComparator<E extends Comparable<? super E>>
+    implements Serializable, Comparator<NavigableSet<E>> {
 
     private static final long serialVersionUID = -4025316246248802824L;
 
   private final Comparator<Iterable<E>> setComparator =
       Comparators.lexicographical(Comparator.<E>naturalOrder());
 
-    @Override
-    public int compare(SortedSet<E> pObj1, SortedSet<E> pObj2) {
+  @Override
+  public int compare(NavigableSet<E> pObj1, NavigableSet<E> pObj2) {
       if(pObj1.size()<pObj2.size()){
         return -1;
       }

@@ -13,7 +13,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
-import java.util.SortedSet;
 import java.util.TreeSet;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -142,8 +141,8 @@ public class ControlDependencyTrackerRelation extends ForwardingTransferRelation
       for(AbstractState astate: pOtherStates){
         if(astate instanceof DependencyTrackerState){
           DependencyTrackerState ostate=(DependencyTrackerState) astate;
-          Map<Variable, SortedSet<Variable>> dependencies = ostate.getDependencies();
-          SortedSet<Variable> newmap=new TreeSet<>();
+          Map<Variable, NavigableSet<Variable>> dependencies = ostate.getDependencies();
+          NavigableSet<Variable> newmap = new TreeSet<>();
           for (Variable var : trackerState.getGuards().getTopVariables()) {
             if (dependencies.containsKey(var)) {
               newmap.addAll(dependencies.get(var));

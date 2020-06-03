@@ -9,13 +9,11 @@
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies;
 
 import com.google.common.collect.ComparisonChain;
-
-import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.InternalSetComparator;
-
 import java.io.Serializable;
+import java.util.NavigableSet;
 import java.util.Objects;
-import java.util.SortedSet;
 import java.util.TreeSet;
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.InternalSetComparator;
 
 /**
  * Class for specifiying an Information Flow Relation
@@ -29,19 +27,17 @@ public class Edge<E extends Comparable<? super E>> implements Comparable<Edge<E>
    * Security Level, which can have information of Security Levels <i>to</i>
    */
   private E from;
-  /**
-   * Security Levels, which can flow to Security Levels <i>from</i>
-   */
-  private SortedSet<E> to;
-
+  /** Security Levels, which can flow to Security Levels <i>from</i> */
+  private NavigableSet<E> to;
 
   /**
    * Constructs a new Information Flow Relation
+   *
    * @param pFrom Security Level, which can have information of Security Levels <i>to</i>
    * @param pTo Security Levels, which can flow to Security Levels <i>from</i>
    */
-  public Edge(E pFrom, SortedSet<E> pTo){
-    SortedSet<E> toclone = new TreeSet<>(pTo);
+  public Edge(E pFrom, NavigableSet<E> pTo) {
+    NavigableSet<E> toclone = new TreeSet<>(pTo);
     toclone.add(pFrom);
     this.from=pFrom;
     this.to=toclone;
@@ -51,7 +47,7 @@ public class Edge<E extends Comparable<? super E>> implements Comparable<Edge<E>
   public int compareTo(Edge<E> pOtherEdge) {
     return ComparisonChain.start()
         .compare(from, pOtherEdge.from)
-        .<SortedSet<E>>compare(to, pOtherEdge.to, new InternalSetComparator<E>())
+        .<NavigableSet<E>>compare(to, pOtherEdge.to, new InternalSetComparator<E>())
         .result();
   }
 
@@ -87,13 +83,11 @@ public class Edge<E extends Comparable<? super E>> implements Comparable<Edge<E>
     from = pFrom;
   }
 
-
-  protected SortedSet<E> getTo() {
+  protected NavigableSet<E> getTo() {
     return to;
   }
 
-
-  protected void setTo(SortedSet<E> pTo) {
+  protected void setTo(NavigableSet<E> pTo) {
     to = pTo;
   }
 

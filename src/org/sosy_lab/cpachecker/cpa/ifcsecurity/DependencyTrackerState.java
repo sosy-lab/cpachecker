@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.cpa.ifcsecurity;
 import java.io.Serializable;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.SortedSet;
+import java.util.NavigableSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -29,17 +29,14 @@ public class DependencyTrackerState
 
 
   private static final long serialVersionUID = -9169677539829708995L;
-  /**
-   * Internal Variable: Dependencies
-   */
-  private Map<Variable, SortedSet<Variable>> dependencies = new TreeMap<>();
+  /** Internal Variable: Dependencies */
+  private Map<Variable, NavigableSet<Variable>> dependencies = new TreeMap<>();
 
-  public Map<Variable, SortedSet<Variable>> getDependencies() {
+  public Map<Variable, NavigableSet<Variable>> getDependencies() {
     return dependencies;
   }
 
-
-  public void setDependencies(Map<Variable, SortedSet<Variable>> pDependencies) {
+  public void setDependencies(Map<Variable, NavigableSet<Variable>> pDependencies) {
     dependencies = pDependencies;
   }
 
@@ -64,7 +61,7 @@ public class DependencyTrackerState
   public boolean isEqual(DependencyTrackerState pOther) {
     if (this == pOther) { return true; }
     if (pOther == null) { return false; }
-    for (Entry<Variable, SortedSet<Variable>> entry : this.dependencies.entrySet()) {
+    for (Entry<Variable, NavigableSet<Variable>> entry : this.dependencies.entrySet()) {
       Variable var=entry.getKey();
       if (pOther.dependencies.containsKey(var)) {
         if (!entry.getValue().containsAll(pOther.dependencies.get(var))) {
@@ -74,7 +71,7 @@ public class DependencyTrackerState
         return false;
       }
     }
-    for (Entry<Variable, SortedSet<Variable>> entry : pOther.dependencies.entrySet()) {
+    for (Entry<Variable, NavigableSet<Variable>> entry : pOther.dependencies.entrySet()) {
       Variable var=entry.getKey();
       if (this.dependencies.containsKey(var)) {
         if (!entry.getValue().containsAll(this.dependencies.get(var))) {
@@ -96,10 +93,10 @@ public class DependencyTrackerState
       DependencyTrackerState merge = this;
       // implicit copy of this
       // explicit copy of pOther
-      for (Entry<Variable, SortedSet<Variable>> entry : pOther.dependencies.entrySet()) {
+      for (Entry<Variable, NavigableSet<Variable>> entry : pOther.dependencies.entrySet()) {
         Variable var = entry.getKey();
-        SortedSet<Variable> deps = entry.getValue();
-        SortedSet<Variable> ndeps = new TreeSet<>();
+        NavigableSet<Variable> deps = entry.getValue();
+        NavigableSet<Variable> ndeps = new TreeSet<>();
         if (this.dependencies.containsKey(var)) {
           assert (merge.dependencies.containsKey(var));
           ndeps = merge.dependencies.get(var);
@@ -116,8 +113,8 @@ public class DependencyTrackerState
       throws CPAException, InterruptedException {
     if (this == pOther) { return true; }
     if (pOther == null) { return false; }
-    //[l]>[l,h]
-    for (Entry<Variable, SortedSet<Variable>> entry : this.dependencies.entrySet()) {
+    // [l]>[l,h]
+    for (Entry<Variable, NavigableSet<Variable>> entry : this.dependencies.entrySet()) {
       Variable var=entry.getKey();
       if (pOther.dependencies.containsKey(var)) {
         if (!entry.getValue().containsAll(pOther.dependencies.get(var))) {
@@ -142,10 +139,10 @@ public class DependencyTrackerState
     DependencyTrackerState result = new DependencyTrackerState();
 
     result.dependencies = new TreeMap<>();
-    for (Entry<Variable, SortedSet<Variable>> entry : this.dependencies.entrySet()) {
+    for (Entry<Variable, NavigableSet<Variable>> entry : this.dependencies.entrySet()) {
       Variable key=entry.getKey();
-      SortedSet<Variable> vars = entry.getValue();
-      SortedSet<Variable> nvars = new TreeSet<>();
+      NavigableSet<Variable> vars = entry.getValue();
+      NavigableSet<Variable> nvars = new TreeSet<>();
       nvars.addAll(vars);
       result.dependencies.put(key, nvars);
     }

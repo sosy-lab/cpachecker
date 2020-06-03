@@ -8,9 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies;
 
+import java.util.NavigableSet;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
-
-import java.util.SortedSet;
 
 /**
  * A class for specifying the Bottom Policy for a given Domain according to Policy Algebra .
@@ -23,13 +22,14 @@ public class BottomPolicy<E extends Comparable<? super E>> extends ConglomerateP
 
   /**
    * Construct a Bottom Policy for the given domain <i>sets</i>
+   *
    * @param pSets Domain
    */
-  public BottomPolicy(SortedSet<E> pSets){
-    SortedSet<SortedSet<E>> powersets = SetUtil.getPowerSet(pSets);
+  public BottomPolicy(NavigableSet<E> pSets) {
+    NavigableSet<NavigableSet<E>> powersets = SetUtil.getPowerSet(pSets);
     Edge<E> edge;
     for(E elem:pSets){
-      for(SortedSet<E> set:powersets){
+      for (NavigableSet<E> set : powersets) {
         edge=new Edge<>(elem,set);
         addEdge(edge);
       }

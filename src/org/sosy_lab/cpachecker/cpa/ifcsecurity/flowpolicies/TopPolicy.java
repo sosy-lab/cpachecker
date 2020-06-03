@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies;
 
-import java.util.SortedSet;
+import java.util.NavigableSet;
 import java.util.TreeSet;
 
 /**
@@ -21,10 +21,11 @@ public class TopPolicy<E extends Comparable<? super E>> extends ConglomeratePoli
 
   /**
    * Construct a Top Policy for the given domain <i>sets</i>
+   *
    * @param pSets Domain
    */
-  public TopPolicy(SortedSet<E> pSets){
-    SortedSet<E> set;
+  public TopPolicy(NavigableSet<E> pSets) {
+    NavigableSet<E> set;
     Edge<E> edge;
     for(E elem:pSets){
       set=new TreeSet<>();

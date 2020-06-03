@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies;
 
 import java.io.Serializable;
-import java.util.SortedSet;
+import java.util.NavigableSet;
 import java.util.TreeSet;
 
 /**
@@ -19,10 +19,8 @@ import java.util.TreeSet;
 public class ConglomeratePolicy<E extends Comparable<? super E>> implements Serializable{
 
   private static final long serialVersionUID = 4589552203012815677L;
-  /**
-   * Internal Variable: allowed information flows relation
-   */
-  private SortedSet<Edge<E>> edges=new TreeSet<>();
+  /** Internal Variable: allowed information flows relation */
+  private NavigableSet<Edge<E>> edges = new TreeSet<>();
 
   /**
    * Constructs an empty Security Policy
@@ -77,13 +75,14 @@ public class ConglomeratePolicy<E extends Comparable<? super E>> implements Seri
 
   /**
    * Returns all Allowed Information Flow Relations.
+   *
    * @return All allowed information flows relation.
    */
-  public SortedSet<Edge<E>> getEdges(){
+  public NavigableSet<Edge<E>> getEdges() {
     return edges;
   }
 
-  protected void setEdges(SortedSet<Edge<E>> pEdges) {
+  protected void setEdges(NavigableSet<Edge<E>> pEdges) {
     edges = pEdges;
   }
 

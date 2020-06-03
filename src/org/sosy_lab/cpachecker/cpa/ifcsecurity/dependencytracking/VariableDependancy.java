@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking;
 
-import java.util.SortedSet;
+import java.util.NavigableSet;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -32,10 +32,8 @@ import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 /** VisitorClass to determine all variables that occur in a given expression. */
 public class VariableDependancy extends DefaultCExpressionVisitor<Void, UnsupportedCodeException> {
 
-  /**
-   * Internal variable, that contains all variables that are used in the expression
-   */
-  private SortedSet<Variable> vars=new TreeSet<>();
+  /** Internal variable, that contains all variables that are used in the expression */
+  private NavigableSet<Variable> vars = new TreeSet<>();
 
     /**
      * Construct a new Visitor
@@ -44,11 +42,12 @@ public class VariableDependancy extends DefaultCExpressionVisitor<Void, Unsuppor
       vars=new TreeSet<>();
     }
 
-    /**
-     * Return a Set of all variables that occured.
-     * @return A Set of all variables that occured.
-     */
-    public SortedSet<Variable> getResult(){
+  /**
+   * Return a Set of all variables that occured.
+   *
+   * @return A Set of all variables that occured.
+   */
+  public NavigableSet<Variable> getResult() {
       return vars;
     }
 

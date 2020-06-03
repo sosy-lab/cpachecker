@@ -8,10 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies;
 
-import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
-
-import java.util.SortedSet;
+import java.util.NavigableSet;
 import java.util.TreeSet;
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
 
 /**
  * Class for constructing a Policy that only contains all subset Edges of one specific Edge and all Reflexive Edges over the Domain of the Edge.
@@ -24,18 +23,20 @@ public class AggregationFlow<E extends Comparable<? super E>> extends Conglomera
   private static final long serialVersionUID = 2941727791174408022L;
 
   /**
-   * Class for constructing a Policy that only contains all subset Edges of one specifc Edge and all Reflexive Edges over the Domain of the Edge.
+   * Class for constructing a Policy that only contains all subset Edges of one specifc Edge and all
+   * Reflexive Edges over the Domain of the Edge.
+   *
    * @param pFrom the from Part for the Edge
    * @param pTo the to Part of the Edge
    */
-  public AggregationFlow(E pFrom, SortedSet<E> pTo){
-    SortedSet<SortedSet<E>> powersets = SetUtil.getPowerSet(pTo);
+  public AggregationFlow(E pFrom, NavigableSet<E> pTo) {
+    NavigableSet<NavigableSet<E>> powersets = SetUtil.getPowerSet(pTo);
     Edge<E> edge;
-    for(SortedSet<E> set:powersets){
+    for (NavigableSet<E> set : powersets) {
       edge=new Edge<>(pFrom,set);
       addEdge(edge);
     }
-    SortedSet<E> alphabet=new TreeSet<>(pTo);
+    NavigableSet<E> alphabet = new TreeSet<>(pTo);
     alphabet.add(pFrom);
     ConglomeratePolicy<E> toppol=new TopPolicy<>(alphabet);
 

@@ -8,12 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.policies;
 
+import java.util.NavigableSet;
+import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies.AggregationFlow;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies.ConglomeratePolicy;
 import org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies.PolicyAlgebra;
-
-import java.util.SortedSet;
-import java.util.TreeSet;
 
 /**
  * Class, that offers some common Policies and SecurityClasses.
@@ -62,8 +61,8 @@ public class PredefinedPolicies{
     //Specify Classes
     SecurityClasses l1=new EnumSecurityClass(SecurityClassesSet.low);
     SecurityClasses h1=new EnumSecurityClass(SecurityClassesSet.high);
-    //Specify Edges
-    SortedSet<SecurityClasses> set=new TreeSet<>();
+    // Specify Edges
+    NavigableSet<SecurityClasses> set = new TreeSet<>();
     set.add(l1);
     set.add(h1);
     //Set Policy
@@ -78,8 +77,8 @@ public class PredefinedPolicies{
   private static ConglomeratePolicy<SecurityClasses> createHiloAnyPol(){
     //Specify Classes
     SecurityClasses u=new EnumSecurityClass(SecurityClassesSet.any);
-    //Specify Edges
-    SortedSet<SecurityClasses> set=new TreeSet<>();
+    // Specify Edges
+    NavigableSet<SecurityClasses> set = new TreeSet<>();
     set.add(u);
     //Set Policy
     ConglomeratePolicy<SecurityClasses> pol=new AggregationFlow<>(u,set);
@@ -98,9 +97,9 @@ public class PredefinedPolicies{
     SecurityClasses c=new EnumSecurityClass(SecurityClassesSet.confidential);
     SecurityClasses s=new EnumSecurityClass(SecurityClassesSet.secret);
     SecurityClasses t=new EnumSecurityClass(SecurityClassesSet.topsecret);
-    //Set Policy
-    //u->{u}
-    SortedSet<SecurityClasses> set=new TreeSet<>();
+    // Set Policy
+    // u->{u}
+    NavigableSet<SecurityClasses> set = new TreeSet<>();
     set.add(u);
     ConglomeratePolicy<SecurityClasses> pol=new AggregationFlow<>(u,set);
     //c->{u,c}

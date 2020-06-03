@@ -13,7 +13,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.SortedSet;
+import java.util.NavigableSet;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -25,9 +25,10 @@ import org.sosy_lab.cpachecker.cpa.ifcsecurity.dependencytracking.Variable;
 public class ImmediateChecksParser {
 
   /**
-   * Internal set of Variables/functions that should be checked for security violation at every state.
+   * Internal set of Variables/functions that should be checked for security violation at every
+   * state.
    */
-  private SortedSet<Variable> set=new TreeSet<>();
+  private NavigableSet<Variable> set = new TreeSet<>();
 
   /**
    * Starts and execute the ImmediateChecksParser for parsing those Variables/functions that should be checked for security violation at every state.
@@ -41,7 +42,8 @@ public class ImmediateChecksParser {
     try {
       contents = Files.readAllLines(pFile, Charset.defaultCharset());
     } catch (IOException e) {
-      pLogger.logUserException(Level.WARNING, e, "Could not read intial security mapping from file named " + pFile);
+      pLogger.logUserException(
+          Level.WARNING, e, "Could not read intial security mapping from file named " + pFile);
       return ;
     }
 
@@ -58,10 +60,12 @@ public class ImmediateChecksParser {
   }
 
   /**
-   * Returns the set of Variables/function that should be checked for security violation at every state.
+   * Returns the set of Variables/function that should be checked for security violation at every
+   * state.
+   *
    * @return set of Variables/functions.
    */
-  public SortedSet<Variable> getSet(){
+  public NavigableSet<Variable> getSet() {
     return set;
   }
 }

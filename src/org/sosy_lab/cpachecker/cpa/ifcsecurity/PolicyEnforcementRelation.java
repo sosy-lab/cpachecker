@@ -13,7 +13,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.SortedSet;
+import java.util.NavigableSet;
 import java.util.TreeSet;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -112,7 +112,7 @@ public class PolicyEnforcementRelation<E extends Comparable<? super E>> extends 
         // Add if not in allowedsecurityclassmapping
         if (!result.getAllowedsecurityclassmapping().containsKey(var)) {
           result.getAllowedsecurityclassmapping().put(var,result.getDefaultlevel());
-          SortedSet<E> his=new TreeSet<>();
+          NavigableSet<E> his = new TreeSet<>();
           his.add(result.getDefaultlevel());
           result.getContentsecurityclasslevels().put(var, his);
         }
@@ -121,7 +121,7 @@ public class PolicyEnforcementRelation<E extends Comparable<? super E>> extends 
       }
       else{
         result.getAllowedsecurityclassmapping().put(var,result.getDefaultlevel());
-        SortedSet<E> his=new TreeSet<>();
+        NavigableSet<E> his = new TreeSet<>();
         his.add(result.getDefaultlevel());
         result.getContentsecurityclasslevels().put(var, his);
         result.getIsglobal().put(var,false);
@@ -139,7 +139,7 @@ public class PolicyEnforcementRelation<E extends Comparable<? super E>> extends 
         // Add if not in allowedsecurityclassmapping
         if (!result.getAllowedsecurityclassmapping().containsKey(var)) {
           result.getAllowedsecurityclassmapping().put(var,result.getDefaultlevel());
-          SortedSet<E> his=new TreeSet<>();
+          NavigableSet<E> his = new TreeSet<>();
           his.add(result.getDefaultlevel());
           result.getContentsecurityclasslevels().put(var, his);
           result.getIsglobal().put(var,false);
@@ -151,7 +151,7 @@ public class PolicyEnforcementRelation<E extends Comparable<? super E>> extends 
       // Add if not in allowedsecurityclassmapping
       if (!result.getAllowedsecurityclassmapping().containsKey(fvar)) {
         result.getAllowedsecurityclassmapping().put(fvar,result.getDefaultlevel());
-        SortedSet<E> his=new TreeSet<>();
+        NavigableSet<E> his = new TreeSet<>();
         his.add(result.getDefaultlevel());
         result.getContentsecurityclasslevels().put(fvar, his);
         result.getIsglobal().put(fvar,false);
@@ -202,14 +202,14 @@ public class PolicyEnforcementRelation<E extends Comparable<? super E>> extends 
       if(aState instanceof DependencyTrackerState){
 
         DependencyTrackerState otherstate=(DependencyTrackerState)aState;
-        Map<Variable, SortedSet<Variable>> deps = otherstate.getDependencies();
+        Map<Variable, NavigableSet<Variable>> deps = otherstate.getDependencies();
 
-        for(Entry<Variable, SortedSet<Variable>> entry: deps.entrySet()){
+        for (Entry<Variable, NavigableSet<Variable>> entry : deps.entrySet()) {
           Variable var=entry.getKey();
-          SortedSet<E> history = new TreeSet<>();
+          NavigableSet<E> history = new TreeSet<>();
           // Reflexivity
           history.add(policyState.getAllowedsecurityclassmapping().get(var));
-          SortedSet<Variable> vardep=deps.get(var);
+          NavigableSet<Variable> vardep = deps.get(var);
           //Add Dependancies to history
           for(Variable d: vardep){
             history.add(policyState.getAllowedsecurityclassmapping().get(d));

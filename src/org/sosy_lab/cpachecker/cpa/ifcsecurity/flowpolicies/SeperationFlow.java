@@ -8,10 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies;
 
-import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
-
-import java.util.SortedSet;
+import java.util.NavigableSet;
 import java.util.TreeSet;
+import org.sosy_lab.cpachecker.cpa.ifcsecurity.util.SetUtil;
 
 /**
  * Class for constructing a Policy that only contains one specific Edge and all Reflexive Edges over the Domain of the Edge.
@@ -22,14 +21,16 @@ public class SeperationFlow<E extends Comparable<? super E>> extends Conglomerat
   private static final long serialVersionUID = 2687695854333064398L;
 
   /**
-   * Class for constructing a Policy that only contains one specific Edge and all Reflexive Edges over the Domain of the Edge.
+   * Class for constructing a Policy that only contains one specific Edge and all Reflexive Edges
+   * over the Domain of the Edge.
+   *
    * @param pFrom the from Part for the Edge
    * @param pTo the to Part of the Edge
    */
-  public SeperationFlow(E pFrom, SortedSet<E> pTo){
+  public SeperationFlow(E pFrom, NavigableSet<E> pTo) {
     Edge<E> edge=new Edge<>(pFrom,pTo);
     addEdge(edge);
-    SortedSet<E> alphabet=new TreeSet<>(pTo);
+    NavigableSet<E> alphabet = new TreeSet<>(pTo);
     alphabet.add(pFrom);
     ConglomeratePolicy<E> toppol=new TopPolicy<>(alphabet);
     this.setEdges(SetUtil.union(this.getEdges(),toppol.getEdges()));
