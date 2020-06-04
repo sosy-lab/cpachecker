@@ -85,8 +85,9 @@ public class TarantulaAlgorithm implements Algorithm, StatisticsProvider, Statis
               Level.WARNING, "There is no safe Path, the algorithm is therefore not efficient");
         }
         logger.log(Level.INFO, "Start tarantula algorithm ... ");
-
-        getFaultLocations(System.out, counterExamples.get(0), safeCase, failedCase);
+        for (CounterexampleInfo counterExample : counterExamples) {
+          getFaultLocations(System.out, counterExample, safeCase, failedCase);
+        }
       } else {
         logger.log(Level.INFO, "There is no counterexample. No bugs found.");
       }
