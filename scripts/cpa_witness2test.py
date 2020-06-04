@@ -352,7 +352,7 @@ def analyze_result(test_result, harness, specification):
         The verdict is one of RESULT_ACCEPT, RESULT_REJECT and RESULT_UNK.
         The violated property is one element of the given specification.
     """
-    results_and_violated_props = list()
+    results_and_violated_props = []
 
     def check(code, err_msg, spec_property):
         results_and_violated_props.append(
@@ -433,7 +433,7 @@ def get_spec(specification_file):
     with open(specification_file, "r") as inp:
         content = inp.read().strip()
 
-    specification = list()
+    specification = []
     spec_matches = re.match(
         r"CHECK\(\s*init\(.*\),\s*LTL\(\s*(.+)\s*\)\\r*\\n*", content
     )

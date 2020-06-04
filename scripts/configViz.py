@@ -91,14 +91,14 @@ def getFilenamesFromLine(line):
                 fname = m.group(1)
                 typ = EdgeType.SPECIFICATION
     if not fname:
-        return (list(), typ)
+        return ([], typ)
     fnames = [name.strip().split("::")[0] for name in fname.split(",")]
     assert all(fnames), line
     return (fnames, typ)
 
 
 def collectChildren(filename):
-    children = dict()
+    children = {}
     try:
         multilineBuffer = ""
         for line in open(filename, "r"):
@@ -168,7 +168,7 @@ def writeDot(
 
     if clusterNodes or clusterKeywords:
         categoryMapping = defaultdict(dict)
-        unclustered = list()
+        unclustered = []
         for name, node in sorted(allNodesDict.items()):
             if clusterNodes:
                 categoryMapping[normPath(os.path.dirname(node.name))][name] = node
@@ -250,7 +250,7 @@ def normPath(f):
 
 
 def determineDependencies(nodes, showChildDependencies, showParentDependencies):
-    childDependencyNodes = dict()
+    childDependencyNodes = {}
     if showChildDependencies:
         childDependencyNodes = dict(
             (childNode.name, childNode)
@@ -258,7 +258,7 @@ def determineDependencies(nodes, showChildDependencies, showParentDependencies):
             for childNode in v.childNodes
             if childNode.name not in nodes
         )
-    parentDependencyNodes = dict()
+    parentDependencyNodes = {}
     if showParentDependencies:
         parentDependencyNodes = dict(
             (parentNode.name, parentNode)
@@ -267,7 +267,7 @@ def determineDependencies(nodes, showChildDependencies, showParentDependencies):
             if parentNode.name not in nodes
         )
 
-    allNodesDict = dict()
+    allNodesDict = {}
     allNodesDict.update(nodes)
     allNodesDict.update(childDependencyNodes)
     allNodesDict.update(parentDependencyNodes)
@@ -494,7 +494,7 @@ def transitiveReductionCheck(nodes):
 
     while wlist:
         current = wlist.pop()  # type: node name
-        reach = dict()  # key is reached element, value is by whom it was reached
+        reach = {}  # key is reached element, value is by whom it was reached
         for c in filterChildren(current):
             reach[c] = current
         wlist2 = [c for c in filterChildren(current)]  # type: list of Node objects
@@ -532,7 +532,7 @@ if __name__ == "__main__":
     componentsSanityCheck(nodes)
     transitiveReductionCheck(nodes)
 
-    children = list()
+    children = []
     if args.root != None:
         for root in args.root:
             if root not in nodes:
