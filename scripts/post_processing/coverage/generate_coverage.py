@@ -567,7 +567,6 @@ class GenerateFirstThenCollect(ComputeCoverage):
         create_temp_dir(temp_dir)
         specs = [aa_file, cex_spec_file]
         lines_covered = set()
-        lines_to_cover = set()
         command = self.cpachecker_command(
             temp_dir=temp_dir,
             specs=specs,
@@ -580,7 +579,7 @@ class GenerateFirstThenCollect(ComputeCoverage):
         try:
             run_command(command, logger)
             lines_covered = get_covered_lines(temp_dir)
-            lines_to_cover = get_lines_to_cover(temp_dir)
+            get_lines_to_cover(temp_dir)
         finally:
             shutil.rmtree(temp_dir)
         return lines_covered

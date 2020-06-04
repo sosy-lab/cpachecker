@@ -107,9 +107,9 @@ class TestGenerateExceptionFoundBug(TestGenerateExecutions):
                     start_time=self.start_time,
                     timer=generate_coverage.Timer(),
                 )
-                cex_generated = len(list(g.generate_executions()))
+                list(g.generate_executions())
                 self.fail("Should have raised FoundBugException.")
-            except generate_coverage.FoundBugException as e:
+            except generate_coverage.FoundBugException:
                 pass
             mock_logger.assert_called_once_with(
                 "Found an assertion violation. "
