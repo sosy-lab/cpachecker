@@ -15,14 +15,14 @@ import os
 sys.dont_write_bytecode = True  # prevent creation of .pyc files
 
 
-def determineRevision(dir):
+def determineRevision(dir_path):
     """
     Determine the revision of the given directory in a version control system.
     """
     # Check for SVN repository
     try:
         svnProcess = subprocess.Popen(
-            ["svnversion", "--committed", dir],
+            ["svnversion", "--committed", dir_path],
             env={"LANG": "C"},
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -51,37 +51,37 @@ def determineRevision(dir):
         gitProcess = subprocess.Popen(
             ["git", "svn", "find-rev", "HEAD"],
             env={"LANG": "C"},
-            cwd=dir,
+            cwd=dir_path,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
         (stdout, stderr) = gitProcess.communicate()
         stdout = _decode_to_string(stdout).strip()
         if not (gitProcess.returncode or stderr) and stdout:
-            return stdout + ("M" if _isGitRepositoryDirty(dir) else "")
+            return stdout + ("M" if _isGitRepositoryDirty(dir_path) else "")
 
         # Check for git repository
         gitProcess = subprocess.Popen(
             ["git", "log", "-1", "--pretty=format:%h", "--abbrev-commit"],
             env={"LANG": "C"},
-            cwd=dir,
+            cwd=dir_path,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
         (stdout, stderr) = gitProcess.communicate()
         stdout = _decode_to_string(stdout).strip()
         if not (gitProcess.returncode or stderr) and stdout:
-            return stdout + ("+" if _isGitRepositoryDirty(dir) else "")
+            return stdout + ("+" if _isGitRepositoryDirty(dir_path) else "")
     except OSError:
         pass
     return None
 
 
-def _isGitRepositoryDirty(dir):
+def _isGitRepositoryDirty(dir_path):
     gitProcess = subprocess.Popen(
         ["git", "status", "--porcelain"],
         env={"LANG": "C"},
-        cwd=dir,
+        cwd=dir_path,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
@@ -106,14 +106,16 @@ if __name__ == "__main__":
     if len(sys.argv) > 2:
         sys.exit("Unsupported command-line parameters.")
 
-    dir = "."
+    dir_path = "."
     if len(sys.argv) > 1:
-        dir = sys.argv[1]
+        dir_path = sys.argv[1]
 
-    revision = determineRevision(dir)
+    revision = determineRevision(dir_path)
     if revision:
         print(revision)
     else:
         sys.exit(
-            "Directory {0} is not a supported version control checkout.".format(dir)
+            "Directory {0} is not a supported version control checkout.".format(
+                dir_path
+            )
         )

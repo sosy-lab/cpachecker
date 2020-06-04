@@ -159,8 +159,8 @@ def formatEnvironment(environment):
     return ";".join(k + "=" + v for k, v in environment.get("newEnv", {}).items())
 
 
-def toTabList(l):
-    return "\t".join(map(str, l))
+def toTabList(items):
+    return "\t".join(map(str, items))
 
 
 def getCloudInput(benchmark):
