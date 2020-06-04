@@ -37,7 +37,7 @@ class Node:
     def __init__(self, name):
         self.name = name
         self.childrenToType = collectChildren(name)  # collect types of children
-        self.children = set([c for c in self.childrenToType.keys()])
+        self.children = set(self.childrenToType.keys())
         for c in self.children:
             assert c in self.childrenToType
         self.parents = []  # filled later
@@ -252,20 +252,20 @@ def normPath(f):
 def determineDependencies(nodes, showChildDependencies, showParentDependencies):
     childDependencyNodes = {}
     if showChildDependencies:
-        childDependencyNodes = dict(
-            (childNode.name, childNode)
+        childDependencyNodes = {
+            childNode.name: childNode
             for k, v in nodes.items()
             for childNode in v.childNodes
             if childNode.name not in nodes
-        )
+        }
     parentDependencyNodes = {}
     if showParentDependencies:
-        parentDependencyNodes = dict(
-            (parentNode.name, parentNode)
+        parentDependencyNodes = {
+            parentNode.name: parentNode
             for k, v in nodes.items()
             for parentNode in v.parentNodes
             if parentNode.name not in nodes
-        )
+        }
 
     allNodesDict = {}
     allNodesDict.update(nodes)
@@ -480,16 +480,16 @@ def transitiveReductionCheck(nodes):
         )
 
     def specificationOptionEqual(first, second):
-        firstspecs = set(
+        firstspecs = {
             c.name
             for c in first.childNodes
             if first.childrenToType[c.name] == EdgeType.SPECIFICATION
-        )
-        secondspecs = set(
+        }
+        secondspecs = {
             c.name
             for c in second.childNodes
             if second.childrenToType[c.name] == EdgeType.SPECIFICATION
-        )
+        }
         return firstspecs == secondspecs
 
     while wlist:
@@ -497,7 +497,7 @@ def transitiveReductionCheck(nodes):
         reach = {}  # key is reached element, value is by whom it was reached
         for c in filterChildren(current):
             reach[c] = current
-        wlist2 = [c for c in filterChildren(current)]  # type: list of Node objects
+        wlist2 = list(filterChildren(current))  # type: list of Node objects
         while wlist2:
             current2 = wlist2.pop()
             for c in filterChildren(current2):
@@ -539,7 +539,7 @@ if __name__ == "__main__":
                 log("Root file '%s' not found." % root)
             else:
                 children.extend(getTransitiveChildren(root, nodes))
-    nodesFromRoot = dict((k, v) for k, v in nodes.items() if k in children)
+    nodesFromRoot = {k: v for k, v in nodes.items() if k in children}
 
     nodesFromDepend = {}
     if args.depend != None:
@@ -547,7 +547,7 @@ if __name__ == "__main__":
             log("Depend file '%s' not found." % args.depend)
         else:
             parents = getTransitiveParents(args.depend, nodes)
-            nodesFromDepend = dict((k, v) for k, v in nodes.items() if k in parents)
+            nodesFromDepend = {k: v for k, v in nodes.items() if k in parents}
 
     # if any option is set, use its output
     if nodesFromRoot:
@@ -558,16 +558,16 @@ if __name__ == "__main__":
         nodes = nodesFromDepend
 
     if args.filter != None:
-        nodes = dict(
-            (k, v)
+        nodes = {
+            k: v
             for k, v in nodes.items()
             if any(f.lower() in k.lower() for f in args.filter)
-        )
+        }
 
     if args.exclude != None:
-        nodes = dict(
-            (k, v) for k, v in nodes.items() if not any(f in k for f in args.exclude)
-        )
+        nodes = {
+            k: v for k, v in nodes.items() if not any(f in k for f in args.exclude)
+        }
 
     # write dot-output
     out = sys.stdout  # open("configViz.dot","w")
