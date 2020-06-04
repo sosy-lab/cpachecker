@@ -80,14 +80,14 @@ def getFilenamesFromLine(line):
             r"^[a-zA-Z\.]*(config|Config|terminatingStatements)(?:Files|)\s*=\s*(.*)\s*",
             line,
         )
-        if m != None:
+        if m is not None:
             fname = m.group(2)
             typ = EdgeType.SPECIAL
             if fname in ["true", "false"]:
                 fname = None  # ignore some options with unusual name
         else:
             m = re.search(r"^specification\s*=\s*(.*)\s*", line)
-            if m != None:
+            if m is not None:
                 fname = m.group(1)
                 typ = EdgeType.SPECIFICATION
     if not fname:
@@ -289,11 +289,11 @@ def determineNode(node, dependencyNode=False):
     color = determineColor(node)
 
     tooltip = ""
-    if content != None:
+    if content is not None:
         tooltip = 'tooltip = "%s"' % content
 
     style = ""
-    if color != None:
+    if color is not None:
         style = 'style=filled fillcolor="%s"' % color
     if dependencyNode:
         style = 'style="setlinewidth(3),rounded" color="%s"' % color
@@ -533,7 +533,7 @@ if __name__ == "__main__":
     transitiveReductionCheck(nodes)
 
     children = []
-    if args.root != None:
+    if args.root is not None:
         for root in args.root:
             if root not in nodes:
                 log("Root file '%s' not found." % root)
@@ -542,7 +542,7 @@ if __name__ == "__main__":
     nodesFromRoot = {k: v for k, v in nodes.items() if k in children}
 
     nodesFromDepend = {}
-    if args.depend != None:
+    if args.depend is not None:
         if args.depend not in nodes:
             log("Depend file '%s' not found." % args.depend)
         else:
@@ -557,14 +557,14 @@ if __name__ == "__main__":
     elif nodesFromDepend:
         nodes = nodesFromDepend
 
-    if args.filter != None:
+    if args.filter is not None:
         nodes = {
             k: v
             for k, v in nodes.items()
             if any(f.lower() in k.lower() for f in args.filter)
         }
 
-    if args.exclude != None:
+    if args.exclude is not None:
         nodes = {
             k: v for k, v in nodes.items() if not any(f in k for f in args.exclude)
         }

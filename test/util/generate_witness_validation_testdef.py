@@ -80,12 +80,12 @@ def _generate_validation_file(testdef_path, tool):
 
     # add tool-specific options
     assert benchmark.attrib["tool"] == "cpachecker"
-    if tool is "CPAchecker":
+    if tool == "CPAchecker":
         benchmark.attrib["tool"] = "cpachecker"
         rundef.append(_option("-witnessValidation"))
         rundef.append(_option("-witness", witness_path))
 
-    elif tool is "UAutomizer":
+    elif tool == "UAutomizer":
         _fixOptions(benchmark, rundef, "--architecture", "{}bit")
         benchmark.attrib["tool"] = "ultimateautomizer"
         rundef.append(_option("--full-output"))
