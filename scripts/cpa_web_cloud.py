@@ -27,7 +27,7 @@ for egg in glob.glob(
 
 from benchexec import util
 
-from benchmark.webclient import *  # @UnusedWildImport
+from benchmark.webclient import WebInterface, WebClientError, handle_result
 
 __version__ = "1.0"
 

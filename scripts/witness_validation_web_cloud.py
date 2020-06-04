@@ -27,7 +27,7 @@ if os.path.basename(__file__) == "witness_validation_web_cloud.py":
     ):
         sys.path.insert(0, egg)
 
-from benchmark.webclient import *  # @UnusedWildImport
+from benchmark.webclient import WebInterface, WebClientError, handle_result
 
 __version__ = "1.0"
 

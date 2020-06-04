@@ -23,7 +23,14 @@ from concurrent.futures import as_completed
 
 import benchexec
 from . import util
-from .webclient import *  # @UnusedWildImport
+from .webclient import (
+    WebInterface,
+    WebClientError,
+    handle_result,
+    CORELIMIT,
+    MEMLIMIT,
+    RESULT_FILE_STDERR,
+)
 
 """
 This module provides a BenchExec integration for the web interface of the VerifierCloud.
