@@ -143,7 +143,7 @@ def listFiles(paths):
     for path in paths:
         for root, subFolders, files in os.walk(path):
             for item in files:
-                if not "README" in item:  # filter unwanted files
+                if "README" not in item:  # filter unwanted files
                     yield os.path.normpath(os.path.join(root, item))
 
 
@@ -222,7 +222,7 @@ def writeDot(
                     % (normPath(filename), normPath(childDependencyNodes[child].name))
                 )
         for parent in v.parents:
-            if not parent in nodes and parent in parentDependencyNodes:
+            if parent not in nodes and parent in parentDependencyNodes:
                 out.write(
                     '"%s" -> "%s" [style="dashed" color="grey"];\n'
                     % (normPath(parentDependencyNodes[parent].name), normPath(filename))
@@ -469,7 +469,7 @@ def componentsSanityCheck(nodes):
 
 
 def transitiveReductionCheck(nodes):
-    wlist = [node for name, node in nodes.items()]  # type: list of node names
+    wlist = [node for name, node in nodes.items()]  # type is list of node names
 
     def filterChildren(node):  # returns generator over Node objects
         return (
@@ -493,11 +493,11 @@ def transitiveReductionCheck(nodes):
         return firstspecs == secondspecs
 
     while wlist:
-        current = wlist.pop()  # type: node name
+        current = wlist.pop()  # type is node name
         reach = {}  # key is reached element, value is by whom it was reached
         for c in filterChildren(current):
             reach[c] = current
-        wlist2 = list(filterChildren(current))  # type: list of Node objects
+        wlist2 = list(filterChildren(current))  # type is list of Node objects
         while wlist2:
             current2 = wlist2.pop()
             for c in filterChildren(current2):

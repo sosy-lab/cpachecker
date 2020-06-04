@@ -259,7 +259,6 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
 
     def _handle_run_info(values):
         result_values.update(util.parse_vcloud_run_result(values.items()))
-        return None
 
     def _handle_host_info(values):
         host = values.pop("name", "-")

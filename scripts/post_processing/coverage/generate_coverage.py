@@ -361,6 +361,8 @@ class Timer:
 
 # When adding additional generators also update argparse documentation.
 available_generators = ["fixpoint", "blind"]
+
+
 # It will be necessary to refactor this code to support custom configuration
 # of the generators.
 def create_generator(
