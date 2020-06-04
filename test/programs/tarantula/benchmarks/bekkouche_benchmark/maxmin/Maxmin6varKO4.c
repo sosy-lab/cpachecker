@@ -28,14 +28,14 @@ void __VERIFIER_assert(int cond) {
 void foo (int a, int b, int c, int d, int e, int f) {
 	int max;
     int min;
-	if ((a>b) && (a>c) && (b>d) && (a>e) && (a>f)){ // error, the instruction should be ((a>b) && (a>c) && "(a>d)" && (a>e) && (a>f))
+	if ((a>b) && (a>c) && (a>d) && (a>e) && (a>f)){ 
         max=a;
         /*Calculer le minimum*/
         if ((b>c) && (b<d) && (b<e) && (b<f)){ // error, the instruction should be ("(b<c)" && (b<d) && (b<e) && (b<f))
             min=b;
         }
         else{
-            if ((c<d) && (c>e) && (c<f)){ // error, the instruction should be ((c<d) && "(c<e)" && (c<f))
+            if ((c<d) && (c<e) && (c<f)){
                 min=c;
             }
             else{

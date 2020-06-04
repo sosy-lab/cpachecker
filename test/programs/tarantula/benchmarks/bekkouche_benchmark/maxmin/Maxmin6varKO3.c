@@ -33,7 +33,7 @@ void foo (int a, int b, int c, int d, int e, int f) {
     int min;
 	if ((a>b) && (a>c) && (b>d)  && (a>e) && (a>f)){ // error, the instruction should be ((a>b) && (a>c) && "(a>d)" && (a>e) && (a>f))
         max=a;
-        if ((b<c) && (c<d) && (b<e) && (b<f)){ // error, the instruction should be ((b<c) && "(b<d)" && (b<e) && (b<f))
+        if ((b<c) && (b<d) && (b<e) && (b<f)){
             min=b;
         }
         else{
