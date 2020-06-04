@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorith
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVReachedSet;
@@ -103,6 +104,11 @@ import org.sosy_lab.cpachecker.util.SpecificationProperty;
  */
 @Options(prefix="analysis")
 public class CoreComponentsFactory {
+
+  @Option(
+      secure = true,
+      description = "Use explainer algorithm to prove (non-)termination.")
+  private boolean useExplainer = false;
 
   @Option(
       secure = true,
@@ -411,7 +417,15 @@ public class CoreComponentsFactory {
               cfa,
               aggregatedReachedSets);
 
-    } else {
+    } else if (useExplainer) {
+      algorithm = new Explainer(
+          config,
+          logger,
+          shutdownNotifier,
+          specification,
+          cfa);
+    }
+    else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
 
       if (constructResidualProgram) {
@@ -569,7 +583,8 @@ public class CoreComponentsFactory {
         || useRestartingAlgorithm
         || useHeuristicSelectionAlgorithm
         || useParallelAlgorithm
-        || asConditionalVerifier) {
+        || asConditionalVerifier
+        || useExplainer) {
       // this algorithm needs an indirection so that it can change
       // the actual reached set instance on the fly
       if (memorizeReachedAfterRestart) {
@@ -598,7 +613,9 @@ public class CoreComponentsFactory {
         || asConditionalVerifier
         || useNonTerminationWitnessValidation
         || useUndefinedFunctionCollector
-        || constructProgramSlice) {
+        || constructProgramSlice
+        || useExplainer
+    ) {
       // hard-coded dummy CPA
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }

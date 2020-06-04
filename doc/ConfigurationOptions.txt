@@ -431,6 +431,9 @@ analysis.unknownAsTrue = false
 # certain restrictions.
 analysis.unknownIfUnrestrictedProgram = false
 
+# Use explainer algorithm to prove (non-)termination.
+analysis.useExplainer = false
+
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
 
@@ -3144,6 +3147,9 @@ enabledanalysis.allowLazyRefinement = false
 # Which CPA is used as enabler in the current analysis.
 enabledanalysis.enablerCPA = PREDICATE
   enum:     [APRON, INTERVAL, OCTAGON, PREDICATE, VALUE]
+
+# Configuration of the first step of the Explainer Algorithm
+explainer.secondStep = no default value
 
 # Configuration for programs containing more than @Option adressedRatio
 # addressed vars.
