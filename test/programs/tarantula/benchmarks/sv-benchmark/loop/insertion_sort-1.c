@@ -17,7 +17,7 @@ int main() {
       i = j - 1;
       while((i>=0) && (v[i]>key)) {
          if (i<2)
-         v[i+1] = v[i];// error in array assignment v[i+100] instead of v[i+1]
+         v[i+100] = v[i];// error in array assignment v[i+100] instead of v[i+1]
          i = i - 1;
       }
       v[i+1] = key;	        
