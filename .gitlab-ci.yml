@@ -14,7 +14,7 @@ variables:
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
   REFASTER_REPO_REVISION: 1c7b66df1ee6460c3a7b04bc4495f440a093ece7
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
-  REFASTER_VERSION: 2.3.4
+  REFASTER_VERSION: 2.4.0
 
 
 .binary_check: &binary_check

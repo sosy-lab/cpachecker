@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.octagon;
 
-
+@SuppressWarnings("AlmostJavadoc")
 class OctWrapper {
 
   private OctWrapper() { }

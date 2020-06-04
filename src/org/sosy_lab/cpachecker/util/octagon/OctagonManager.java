@@ -62,6 +62,7 @@ public abstract class OctagonManager {
 
   private static boolean libraryLoaded = false;
 
+  @SuppressWarnings("StaticAssignmentInConstructor")
   protected OctagonManager(String libraryName) {
     if (!libraryLoaded) {
       libraryLoaded = true;

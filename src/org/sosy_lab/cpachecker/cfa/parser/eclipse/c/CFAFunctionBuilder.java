@@ -124,7 +124,7 @@ import org.sosy_lab.cpachecker.util.Pair;
  *   <li>Inlined assembler code is ignored
  * </ul>
  */
-@SuppressWarnings("InvalidBlockTag") // for @category
+@SuppressWarnings({"InvalidBlockTag", "MissingSummary"}) // for @category
 class CFAFunctionBuilder extends ASTVisitor {
 
   // Data structure for maintaining our scope stack in a function

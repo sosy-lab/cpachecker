@@ -81,6 +81,7 @@ public abstract class NondeterminismState implements LatticeAbstractState<Nondet
     }
 
     @Override
+    @SuppressWarnings("JdkObsolete")
     public NondeterminismState join(NondeterminismState pOther) {
       if (pOther instanceof NondeterminismNonAbstractionState) {
         NondeterminismNonAbstractionState other = (NondeterminismNonAbstractionState) pOther;

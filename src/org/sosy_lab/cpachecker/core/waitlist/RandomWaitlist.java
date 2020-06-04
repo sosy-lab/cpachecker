@@ -17,14 +17,13 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 @SuppressFBWarnings(
     value = "BC_BAD_CAST_TO_CONCRETE_COLLECTION",
     justification = "warnings is only because of casts introduced by generics")
-@SuppressWarnings("checkstyle:IllegalType")
+@SuppressWarnings({"checkstyle:IllegalType", "JdkObsolete"})
 public class RandomWaitlist extends AbstractWaitlist<LinkedList<AbstractState>> {
 
   private static final long serialVersionUID = 1L;
 
   private final Random rand = new Random(0);
 
-  @SuppressWarnings("JdkObsolete")
   protected RandomWaitlist() {
     super(new LinkedList<>());
   }

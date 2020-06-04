@@ -23,13 +23,8 @@ import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding
 import org.sosy_lab.cpachecker.util.predicates.precisionConverter.SymbolEncoding.UnknownFormulaSymbolException;
 import org.sosy_lab.java_smt.api.FormulaType;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-
-/** This is a dummy converter
- * that returns the identity of the given terms and types. */
+/** This is a dummy converter that returns the identity of the given terms and types. */
+@SuppressWarnings("MissingSummary")
 public class Converter {
 
   protected final Set<String> binBooleanOps = Sets.newHashSet("and", "or");

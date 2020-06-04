@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 @SuppressFBWarnings(
     value = "BC_BAD_CAST_TO_CONCRETE_COLLECTION",
     justification = "warnings is only because of casts introduced by generics")
-@SuppressWarnings("checkstyle:IllegalType")
+@SuppressWarnings({"checkstyle:IllegalType", "JdkObsolete"})
 public class RandomPathWaitlist extends AbstractWaitlist<LinkedList<AbstractState>> {
 
   private static final long serialVersionUID = 1L;
@@ -40,7 +40,6 @@ public class RandomPathWaitlist extends AbstractWaitlist<LinkedList<AbstractStat
   private int successorsOfParent;
   private transient @Nullable CFANode parent;
 
-  @SuppressWarnings("JdkObsolete")
   protected RandomPathWaitlist() {
     super(new LinkedList<>());
     successorsOfParent = 0;

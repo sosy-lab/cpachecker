@@ -403,9 +403,11 @@ public class ConstraintsSolver {
 
   private class MatchingConstraintsCache implements ConstraintsCache {
 
+    // TODO This should use an immutable data structure as key, and not Collection but List/Set
     private Map<Collection<BooleanFormula>, CacheResult> cacheMap = new HashMap<>();
 
     @Override
+    @SuppressWarnings("CollectionUndefinedEquality") // TODO there is a bug here
     public CacheResult getCachedResult(Collection<BooleanFormula> pConstraints) {
       stats.cacheLookups.inc();
       stats.directCacheLookupTime.start();
