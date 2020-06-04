@@ -77,9 +77,7 @@ public final class PolicyIntermediateState extends PolicyState {
     return other == mergedInto;
   }
 
-  /**
-   * @return Starting {@link PolicyAbstractedState} for the starting location.
-   */
+  /** Returns starting {@link PolicyAbstractedState} for the starting location. */
   public PolicyAbstractedState getBackpointerState() {
     return startingAbstraction;
   }

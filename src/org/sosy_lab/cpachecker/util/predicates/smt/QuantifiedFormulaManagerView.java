@@ -102,14 +102,12 @@ public class QuantifiedFormulaManagerView
   }
 
   /**
-   * @return  An (restricted) existential quantified formula.
-   * @see #forall(IntegerFormula, IntegerFormula, IntegerFormula, BooleanFormula)
+   * See {@link #forall(IntegerFormula, IntegerFormula, IntegerFormula, BooleanFormula)}.
+   *
+   * @return An (restricted) existential quantified formula.
    */
-  public <R extends IntegerFormula> BooleanFormula exists (
-      final R pVariable,
-      final R pLowerBound,
-      final R pUpperBound,
-      final BooleanFormula pBody) {
+  public <R extends IntegerFormula> BooleanFormula exists(
+      final R pVariable, final R pLowerBound, final R pUpperBound, final BooleanFormula pBody) {
 
     Preconditions.checkNotNull(pVariable);
     Preconditions.checkNotNull(pLowerBound);

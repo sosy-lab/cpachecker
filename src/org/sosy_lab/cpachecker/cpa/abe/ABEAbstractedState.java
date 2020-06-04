@@ -8,12 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.abe;
 
+import java.util.Optional;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-
-import java.util.Optional;
 
 /**
  * Abstracted state of ABE-based analysis.
@@ -29,29 +28,21 @@ public interface ABEAbstractedState<A extends ABEAbstractedState<A>>
     return true;
   }
 
-  /**
-   * @return {@link SSAMap} at which the new formula should start.
-   */
+  /** Returns {@link SSAMap} at which the new formula should start. */
   SSAMap getSSAMap();
 
-  /**
-   * @return {@link PointerTargetSet} at which the new formula should start.
-   */
+  /** Returns {@link PointerTargetSet} at which the new formula should start. */
   PointerTargetSet getPointerTargetSet();
 
-  /**
-   * @return Intermediate state which was used to generate {@code this} state.
-   */
+  /** Returns intermediate state which was used to generate {@code this} state. */
   Optional<ABEIntermediateState<A>> getGeneratingState();
 
-  /**
-   * @return Syntactic sugar: type casting.
-   */
+  /** Returns syntactic sugar: type casting. */
   A cast();
 
   /**
-   * @return Instantiated constraint represented by this state.
-   * May include additional stored invariants derived from other CPAs.
+   * Returns instantiated constraint represented by this state. May include additional stored
+   * invariants derived from other CPAs.
    */
   BooleanFormula instantiate();
 }

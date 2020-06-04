@@ -103,7 +103,7 @@ public class PathPosition {
     }
   }
 
-  /** @see PathIterator#getLocation() */
+  /** See {@link PathIterator#getLocation()}. */
   public CFANode getLocation() {
     return iterator().getLocation();
   }

@@ -152,15 +152,15 @@ interface AutomatonExpression<T> {
     boolean canNotEvaluate() {
       return this.canNotEvaluate;
     }
-    /** @returns null if cannotEvaluate() == false */
+    /** @return null if cannotEvaluate() == false */
     String getFailureMessage() {
       return failureMessage;
     }
-    /** @returns null if cannotEvaluate() == false */
+    /** @return null if cannotEvaluate() == false */
     String getFailureOrigin() {
       return failureOrigin;
     }
-    /** @returns null if cannotEvaluate() == true */
+    /** @return null if cannotEvaluate() == true */
     resultType getValue() {
       return value;
     }

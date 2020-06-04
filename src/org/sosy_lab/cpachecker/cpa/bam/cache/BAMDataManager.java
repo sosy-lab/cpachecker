@@ -45,15 +45,14 @@ public interface BAMDataManager {
       AbstractState reducedState, Block innerBlock);
 
   /**
-   * @param state Has to be a block-end state.
-   * It can be expanded or reduced (or even reduced expanded),
-   * because this depends on the nesting of blocks,
-   * i.e. if there are several overlapping block-end-nodes
-   * (e.g. nested loops or program calls 'exit()' inside a function).
+   * Returns whether the current state is at a node, where several block-exits are available and one
+   * of them was already left.
    *
-   * @return Whether the current state is at a node,
-   * where several block-exits are available and one of them was already left.
-   **/
+   * @param state Has to be a block-end state. It can be expanded or reduced (or even reduced
+   *     expanded), because this depends on the nesting of blocks, i.e. if there are several
+   *     overlapping block-end-nodes (e.g. nested loops or program calls 'exit()' inside a
+   *     function).
+   */
   boolean alreadyReturnedFromSameBlock(AbstractState state, Block block);
 
   /**

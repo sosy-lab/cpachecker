@@ -291,10 +291,7 @@ public class SSAMap implements Serializable {
     return value;
   }
 
-  /**
-   * @return index of the variable in the map,
-   * or the [defaultValue].
-   */
+  /** Returns index of the variable in the map, or the [defaultValue]. */
   public int getIndex(String variable) {
     return getIndex(variable, vars, defaultValue);
   }

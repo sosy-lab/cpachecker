@@ -126,7 +126,7 @@ public class CEXExporter {
     }
   }
 
-  /** @see #exportCounterexample(ARGState, CounterexampleInfo) */
+  /** See {@link #exportCounterexample(ARGState, CounterexampleInfo)}. */
   public void exportCounterexampleIfRelevant(
       final ARGState pTargetState, final CounterexampleInfo pCounterexampleInfo)
       throws InterruptedException {

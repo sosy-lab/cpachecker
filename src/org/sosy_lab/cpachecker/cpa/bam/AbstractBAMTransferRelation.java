@@ -205,12 +205,13 @@ public abstract class AbstractBAMTransferRelation<EX extends CPAException>
   }
 
   /**
+   * Returns expanded states for all reduced states and updates the caches.
+   *
    * @param reducedResult pairs of reduced sets associated with the block exit.
    * @param innerSubtree block associated with {@code reducedResult}.
    * @param outerSubtree block above the one associated with {@code reducedResult}.
    * @param state state associated with the block entry.
    * @param precision precision associated with the block entry.
-   * @return expanded states for all reduced states and updates the caches.
    */
   protected List<AbstractState> expandResultStates(
       final Collection<AbstractState> reducedResult,

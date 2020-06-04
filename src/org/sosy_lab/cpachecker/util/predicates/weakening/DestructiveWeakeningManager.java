@@ -56,17 +56,15 @@ public class DestructiveWeakeningManager {
     statistics = pStatistics;
   }
 
-  /**
-   * @return Set of selectors which should be abstracted.
-   */
+  /** Returns set of selectors which should be abstracted. */
   public Set<BooleanFormula> performWeakening(
       Map<BooleanFormula, BooleanFormula> selectionsVarsInfo,
       BooleanFormula fromState,
       PathFormula transition,
       BooleanFormula toState,
       SSAMap fromSSA,
-      Set<BooleanFormula> pFromStateLemmas
-  ) throws SolverException, InterruptedException {
+      Set<BooleanFormula> pFromStateLemmas)
+      throws SolverException, InterruptedException {
     Set<BooleanFormula> selectorsToAbstractOverApproximation;
     if (preRunSyntacticWeakening) {
       selectorsToAbstractOverApproximation =

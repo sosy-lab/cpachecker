@@ -162,16 +162,12 @@ public class TerminationState extends AbstractSingleWrapperState
     return enteringEdges;
   }
 
-  /**
-   * @return <code>true</code> iff this {@link TerminationState} is part of the lasso's loop.
-   */
+  /** Returns <code>true</code> iff this {@link TerminationState} is part of the lasso's loop. */
   public boolean isPartOfLoop() {
     return hondaLocation != null;
   }
 
-  /**
-   * @return <code>true</code> iff this {@link TerminationState} is part of the lasso's stem.
-   */
+  /** Returns <code>true</code> iff this {@link TerminationState} is part of the lasso's stem. */
   public boolean isPartOfStem() {
     return hondaLocation == null;
   }

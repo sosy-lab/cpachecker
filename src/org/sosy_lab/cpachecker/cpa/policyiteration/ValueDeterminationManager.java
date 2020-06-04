@@ -117,13 +117,10 @@ public class ValueDeterminationManager {
    * @param mergedState Newly created state
    * @param updated Set of updates templates for the {@code stateWithUpdates}
    * @param useUniquePrefix Flag on whether to use a unique prefix for each policy
-   *
-   * The abstract state associated with the <code>focusedNode</code>
-   * is the <b>new</b> state, with <code>updated</code> applied.
-   *
-   * @return Global constraint for value determination and
-   * table <code>(template + location) -> formula</code> denoting the abstract
-   * value.
+   *     <p>The abstract state associated with the <code>focusedNode</code> is the <b>new</b> state,
+   *     with <code>updated</code> applied.
+   * @return Global constraint for value determination and table <code>
+   *     {@code (template + location) -> formula}</code> denoting the abstract value.
    */
   private ValueDeterminationConstraints valueDeterminationFormula(
       PolicyAbstractedState newState,

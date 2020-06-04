@@ -60,7 +60,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
  *   number of lines of the format "(declare-fun ...)" or "(define-fun ...)"
  *   with definitions in SMTLIB2 format.
  * - Every section except the first one starts with a line of the format "key:",
- *   where key is either "*", "<FUNC>", or "<FUNC> N<ID>", with
+ *   where key is either "*", "<FUNC>", or "<FUNC> {@code N<ID>}", with
  *   <FUNC> being a function name of the program,
  *   and <ID> being a CFA node id.
  *   This line defines where the following predicates are to be used.

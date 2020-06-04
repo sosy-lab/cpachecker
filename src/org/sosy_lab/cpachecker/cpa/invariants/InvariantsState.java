@@ -805,11 +805,12 @@ public class InvariantsState implements AbstractState,
   }
 
   /**
-   * We build an interval formula like <code>A <= X <= B</code> for each known memory location.
+   * We build an interval formula like <code>{@code A <= X <= B}</code> for each known memory
+   * location.
    *
    * <p>Please note that we already try to simplify the interval, i.e., if X has type 'signed int',
-   * we return TRUE instead of <code>MIN_INT <= X <= MAX_INT</code> , because this is trivially
-   * satisfied.
+   * we return TRUE instead of <code>{@code MIN_INT <= X <= MAX_INT}</code> , because this is
+   * trivially satisfied.
    */
   private Iterable<BooleanFormula<CompoundInterval>> getTypeInformationAsAssumptions() {
     List<BooleanFormula<CompoundInterval>> assumptionsIntervals = new ArrayList<>();

@@ -74,9 +74,8 @@ public class ExpressionSimplificationVisitor
   }
 
   /**
-   * Takes an explicit value as returned by various ExplicitCPA functions and
-   * converts it to a <code>Pair<CExpression, Number></code> as required by
-   * this class.
+   * Takes an explicit value as returned by various ExplicitCPA functions and converts it to a
+   * <code>{@code Pair<CExpression, Number>}</code> as required by this class.
    */
   private CExpression convertExplicitValueToExpression(final CExpression expr, Value value) {
     // TODO: handle cases other than numeric values

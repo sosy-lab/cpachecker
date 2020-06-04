@@ -85,7 +85,7 @@ public abstract class WitnessToOutputFormatter<T> {
   /** This method is called AFTER traversing the witness graph. */
   protected abstract void finish(Appendable pTarget) throws IOException;
 
-  /** @return a unique identifier for the new node. */
+  /** Returns a unique identifier for the new node. */
   protected abstract T createNewNode(String pNodeId, Appendable pTarget) throws IOException;
 
   protected abstract void createNewEdge(

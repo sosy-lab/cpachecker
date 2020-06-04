@@ -23,14 +23,10 @@ public interface RegionCreator {
    */
   RegionBuilder builder(ShutdownNotifier pShutdownNotifier);
 
-  /**
-   * @return a representation of logical truth
-   */
+  /** Returns a representation of logical truth. */
   Region makeTrue();
 
-  /**
-   * @return a representation of logical falseness
-   */
+  /** Returns a representation of logical falseness. */
   Region makeFalse();
 
   /**

@@ -49,7 +49,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
  * <li> the type of the result of the calculation.
  * </ul>
  *
- * <p>Example: <code>"short l = (char)4 < (long)5;"</code><p>
+ * <p>Example: <code>{@code "short l = (char)4 < (long)5;"}</code><p>
  *
  * <ul>
  * <li> The values 4 and 5 are used in the calculation as values of type

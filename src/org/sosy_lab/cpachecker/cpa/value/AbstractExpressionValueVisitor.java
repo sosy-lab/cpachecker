@@ -2637,13 +2637,12 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   /**
+   * Returns a numeric type that can be used to perform arithmetics on an instance of the type
+   * directly, or null if none.
+   *
+   * <p>Most notably, CPointerType will be converted to the unsigned integer type of correct size.
    *
    * @param type the input type
-   * @return A numeric type that can be used to perform arithmetics on an instance
-   *         of the type directly, or null if none.
-   *
-   *         Most notably, CPointerType will be converted to the unsigned integer type
-   *         of correct size.
    */
   public static CSimpleType getArithmeticType(CType type) {
     type = type.getCanonicalType();

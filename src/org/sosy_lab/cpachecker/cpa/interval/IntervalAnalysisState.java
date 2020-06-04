@@ -232,10 +232,8 @@ public class IntervalAnalysisState
     return true;
   }
 
-  /**
-   * @return the set of tracked variables by this state
-   */
-  public Map<String,Interval> getIntervalMap() {
+  /** Returns the set of tracked variables by this state. */
+  public Map<String, Interval> getIntervalMap() {
     return intervals;
   }
 

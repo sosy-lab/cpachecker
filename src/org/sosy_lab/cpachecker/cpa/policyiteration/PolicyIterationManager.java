@@ -222,9 +222,9 @@ public class PolicyIterationManager {
   private final UniqueIdGenerator locationIDGenerator = new UniqueIdGenerator();
 
   /**
+   * Returns initial state for the analysis, assuming the first node is {@code pNode}.
+   *
    * @param pNode Initial node.
-   * @return Initial state for the analysis, assuming the first node
-   * is {@code pNode}.
    */
   public PolicyState getInitialState(CFANode pNode) {
     return PolicyAbstractedState.empty(

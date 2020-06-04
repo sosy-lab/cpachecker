@@ -192,12 +192,12 @@ public class SliceExporter {
   /**
    * Creates a new CFunctionCallEdge with the following connections:
    *
-   * <p><code>
+   * <p><code>{@code
    *                                                           (dummy nodes)
    * [pPredecessor] --- CFunctionCallEdge ---> new CFunctionEntryNode(newFunctionExitNode())
    *        |                    |
    *        ----------- CFunctionSummaryEdge ---> [pSuccessor]
-   * </code>
+   * }</code>
    */
   private CFunctionCallEdge cloneFunctionCall(
       CFunctionCallEdge pEdge, CFANode pPredecessor, CFANode pSuccessor) {

@@ -14,10 +14,10 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 /**
  * A single constraint.
  *
- * <p>A constraint is a boolean relation or operation over one or more operands.</p>
+ * <p>A constraint is a boolean relation or operation over one or more operands.
  *
- * <p>Possible examples would be relations like <code>'5 < 10'</code>, <code>'n == 10'</code>
- * or <code>'not true'</code></p>
+ * <p>Possible examples would be relations like <code>{@code '5 < 10'}</code>, <code>'n == 10'
+ * </code> or <code>'not true'</code>
  */
 public interface Constraint extends SymbolicValue {
 

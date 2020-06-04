@@ -27,12 +27,10 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.util.SymbolicValues;
 /**
  * ConstraintsPrecision that uses the code constraints represent.
  *
- * <p>Example:
- * A ConstraintBasedConstraintsPrecision contains for location <code>N12</code> the precision
- * <code>'a > 5'</code>. The ConstraintsState to adjust at this location is
- * <code>'s1(a) > 5, s3(b) > 5'</code>.
- * After precision adjustment, the ConstraintsState only consists of <code>'s1(a) > 5'</code>.
- * </p>
+ * <p>Example: A ConstraintBasedConstraintsPrecision contains for location <code>N12</code> the
+ * precision <code>{@code 'a > 5'}</code>. The ConstraintsState to adjust at this location is <code>
+ * {@code 's1(a) > 5, s3(b) > 5'}</code>. After precision adjustment, the ConstraintsState only
+ * consists of <code>{@code 's1(a) > 5'}</code>.
  */
 final class ConstraintBasedConstraintsPrecision
     implements ConstraintsPrecision {

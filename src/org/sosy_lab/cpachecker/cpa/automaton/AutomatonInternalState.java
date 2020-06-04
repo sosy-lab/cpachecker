@@ -120,8 +120,7 @@ public class AutomatonInternalState {
   public String getName() {
     return name;
   }
-  /** @return a integer representation of this state.
-   */
+  /** Returns a integer representation of this state. */
   public int getStateId() {
     return stateId;
   }
@@ -130,10 +129,7 @@ public class AutomatonInternalState {
     return mIsTarget;
   }
 
-  /**
-   * @return Is it a state in that we will remain
-   *  the rest of the time?
-   */
+  /** Returns is it a state in that we will remain the rest of the time?. */
   public boolean isFinalSelfLoopingState() {
     if (transitions.size() == 1) {
       AutomatonTransition tr = transitions.get(0);

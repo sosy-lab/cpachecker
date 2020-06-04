@@ -35,13 +35,13 @@ public class SymbolicValues {
   }
 
   /**
-   * Returns whether the given constraints represent the same C code (string wise).
-   * This is the case if two constraints are completely equal after replacing symbolic expressions
-   * with the program variables they represent.
+   * Returns whether the given constraints represent the same C code (string wise). This is the case
+   * if two constraints are completely equal after replacing symbolic expressions with the program
+   * variables they represent.
    *
-   * <p>Example: <code>s1 < 5</code> is equal to <code>s2 + 2 < 5</code> in respect to its meaning
-   * with <code>s1</code> and <code>s2</code> being symbolic identifiers, if both constraints
-   * represent <code>a < 5</code> with <code>a</code> being a program variable.</p>
+   * <p>Example: <code>{@code s1 < 5}</code> is equal to <code>{@code s2 + 2 < 5}</code> in respect
+   * to its meaning with <code>s1</code> and <code>s2</code> being symbolic identifiers, if both
+   * constraints represent <code>{@code a < 5}</code> with <code>a</code> being a program variable.
    *
    * @param pValue1 the first symbolic value
    * @param pValue2 the second symbolic value

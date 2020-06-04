@@ -1849,9 +1849,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   /**
+   * Returns explicit value merged with pKey, or Null if not merged.
+   *
    * @param pKey the key.
    * @param pValue the value.
-   * @return explicit value merged with pKey, or Null if not merged
    */
   public SMGKnownSymbolicValue putExplicit(SMGKnownSymbolicValue pKey, SMGKnownExpValue pValue) {
     Preconditions.checkNotNull(pKey);

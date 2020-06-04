@@ -51,12 +51,12 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
-
 /**
  * Helper class that collects all <code>ReferencedVariable</code>s in a given set of nodes.
  *
- * This is actually some kind of @link{VariableClassification}
- * for a limited set of nodes (all nodes of one BAM-block).
+ * <p>This is actually some kind of {@link
+ * org.sosy_lab.cpachecker.util.variableclassification.VariableClassification} for a limited set of
+ * nodes (all nodes of one BAM-block).
  */
 public class ReferencedVariablesCollector {
 

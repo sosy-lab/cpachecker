@@ -81,7 +81,7 @@ class BddArgBasedRefiner implements ARGBasedRefiner, Statistics, StatisticsProvi
    *
    * @param reached the current reached set
    * @param errorPath the current error path
-   * @returns true, if the value-analysis refinement was successful, else false
+   * @return true, if the value-analysis refinement was successful, else false
    * @throws CPAException when value-analysis interpolation fails
    */
   private boolean performValueAnalysisRefinement(final ARGReachedSet reached, final ARGPath errorPath) throws CPAException, InterruptedException {

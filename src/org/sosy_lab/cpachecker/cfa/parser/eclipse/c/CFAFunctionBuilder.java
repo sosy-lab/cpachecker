@@ -117,11 +117,14 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /**
- * Builder to traverse AST.
- * Known Limitations:
- * -- K&R style function definitions not implemented
- * -- Inlined assembler code is ignored
+ * Builder to traverse AST. Known Limitations:
+ *
+ * <ul>
+ *   <li>K&R style function definitions not implemented
+ *   <li>Inlined assembler code is ignored
+ * </ul>
  */
+@SuppressWarnings("InvalidBlockTag") // for @category
 class CFAFunctionBuilder extends ASTVisitor {
 
   // Data structure for maintaining our scope stack in a function

@@ -70,16 +70,16 @@ public class LassoAnalysis {
   // The configuration library does not support small letters in enum constants.
   public enum LassoAnalysisType {
 
-    /** @see AnalysisType#DISABLED */
+    /** See {@link AnalysisType#DISABLED}. */
     DISABLED(AnalysisType.DISABLED),
 
-    /** @see AnalysisType#LINEAR */
+    /** See {@link AnalysisType#LINEAR}. */
     LINEAR(AnalysisType.LINEAR),
 
-    /** @see AnalysisType#LINEAR_WITH_GUESSES */
+    /** See {@link AnalysisType#LINEAR_WITH_GUESSES}. */
     LINEAR_WITH_GUESSES(AnalysisType.LINEAR_WITH_GUESSES),
 
-    /** @see AnalysisType#NONLINEAR */
+    /** See {@link AnalysisType#NONLINEAR}. */
     NONLINEAR(AnalysisType.NONLINEAR);
 
     private final AnalysisType analysisType;

@@ -8,19 +8,17 @@
 
 package org.sosy_lab.cpachecker.cpa.statistics;
 
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Maps;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Maps;
-
 /**
- * A simple wrapper around the management of a Map<StatisticsProvider, StatisticsDataProvider> field.
- * All instances of this class are immutable.
+ * A simple wrapper around the management of a {@code Map<StatisticsProvider,
+ * StatisticsDataProvider>} field. All instances of this class are immutable.
  */
 public class StatisticsData implements Iterable<Entry<StatisticsProvider, StatisticsDataProvider>> {
   private final Map<StatisticsProvider, StatisticsDataProvider> data;

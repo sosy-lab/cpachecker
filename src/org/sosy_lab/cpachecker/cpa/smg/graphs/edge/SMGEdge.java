@@ -53,17 +53,17 @@ public abstract class SMGEdge {
     offset = pOffset;
   }
 
-  /** @see #value */
+  /** See {@link #value}. */
   public SMGValue getValue() {
     return value;
   }
 
-  /** @see #object */
+  /** See {@link #object}. */
   public SMGObject getObject() {
     return object;
   }
 
-  /** @see #offset */
+  /** See {@link #offset}. */
   public long getOffset() {
     return offset;
   }

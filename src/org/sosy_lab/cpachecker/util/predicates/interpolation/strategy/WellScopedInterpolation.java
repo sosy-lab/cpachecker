@@ -42,7 +42,7 @@ public class WellScopedInterpolation<T> extends AbstractTreeInterpolation<T> {
    * <p>The wellscoped interpolants at E->F and G->F do not contradict each other (transivitely).
    * This example shows that the idea of the paper "wellscoped interpolants" should not be used.
    *
-   * <pre>
+   * <pre>{@code
    * digraph tree {
    *   A [label="(and (= c@3 0)\n(= nondet@2 main::n@3)\n(not (< main::n@3 1))\n(not (< 31 main::n@3))\n(= c@4 0))"];
    *   B [label="(and (= main::n@3 apply::n_p_@2)\n(= c@4 c_p_apply@2))"];
@@ -62,7 +62,7 @@ public class WellScopedInterpolation<T> extends AbstractTreeInterpolation<T> {
    *   C->B [label="(not (= apply::n_p_@2 1))"];
    *   G->F [label="(not (= h::n_p_@2 0))"];
    * }
-   * </pre>
+   * }</pre>
    */
   public WellScopedInterpolation(
       LogManager pLogger,

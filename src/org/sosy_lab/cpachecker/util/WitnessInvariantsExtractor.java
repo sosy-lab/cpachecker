@@ -180,7 +180,7 @@ public class WitnessInvariantsExtractor {
   }
 
   /**
-   * Extracts the invariants with their corresponding CFA location from {@link:
+   * Extracts the invariants with their corresponding CFA location from {@link
    * WitnessInvariantsExtractor#reachedSet}. For two invariants at the same CFA location the
    * conjunction is applied for the two invariants.
    *
@@ -221,7 +221,7 @@ public class WitnessInvariantsExtractor {
   }
 
   /**
-   * Extracts the invariants from {@link: WitnessInvariantsExtractor#reachedSet} and stores it in
+   * Extracts the invariants from {@link WitnessInvariantsExtractor#reachedSet} and stores it in
    * {@code pCandidates}. The invariants are regarded as candidates that can hold at several CFA
    * locations. Therefore, {@code pCandidateGroupLocations} is used that groups CFANodes by using a
    * groupID. For two invariants that are part of the same group the conjunction is applied for the

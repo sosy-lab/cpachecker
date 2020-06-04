@@ -68,9 +68,9 @@ public abstract class RefinementStrategy {
   }
 
   /**
-   * @return whether previous counterexamples should be kept for comparison, such that we can
-   *     determine a repeated counterexample through multiple iterations of refinements. To keep
-   *     only the current counterexample, return <code>false</code>.
+   * Returns whether previous counterexamples should be kept for comparison, such that we can
+   * determine a repeated counterexample through multiple iterations of refinements. To keep only
+   * the current counterexample, return <code>false</code>.
    */
   public boolean performRefinement(
       ARGReachedSet pReached,
