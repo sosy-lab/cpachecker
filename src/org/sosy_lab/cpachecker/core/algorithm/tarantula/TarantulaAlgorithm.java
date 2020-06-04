@@ -85,9 +85,9 @@ public class TarantulaAlgorithm implements Algorithm, StatisticsProvider, Statis
               Level.WARNING, "There is no safe Path, the algorithm is therefore not efficient");
         }
         logger.log(Level.INFO, "Start tarantula algorithm ... ");
-        for (CounterexampleInfo counterExample : counterExamples) {
-          getFaultLocations(System.out, counterExample, safeCase, failedCase);
-        }
+
+        getFaultLocations(System.out, counterExamples, safeCase, failedCase);
+
       } else {
         logger.log(Level.INFO, "There is no counterexample. No bugs found.");
       }
@@ -103,16 +103,18 @@ public class TarantulaAlgorithm implements Algorithm, StatisticsProvider, Statis
    */
   public void getFaultLocations(
       PrintStream out,
-      CounterexampleInfo pCounterexampleInfo,
+      FluentIterable<CounterexampleInfo> pCounterexampleInfo,
       SafeCase safeCase,
       FailedCase failedCase)
       throws InterruptedException {
     FaultLocalizationInfo info;
     TarantulaRanking ranking = new TarantulaRanking(safeCase, failedCase, shutdownNotifier);
     out.println(ranking.getRanked());
-    info = new FaultLocalizationInfo(ranking.getRanked(), pCounterexampleInfo);
-    info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
-    info.apply();
+    for (CounterexampleInfo counterexample : pCounterexampleInfo) {
+      info = new FaultLocalizationInfo(ranking.getRanked(), counterexample);
+      info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
+      info.apply();
+    }
   }
 
   @Override
