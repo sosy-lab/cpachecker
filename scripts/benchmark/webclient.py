@@ -975,19 +975,11 @@ class WebInterface:
                     exception,
                 )
 
-                # client error
-                # if type(exception) is HTTPError and exception.response and  \
-                #    400 <= exception.response.status_code and exception.response.status_code <= 499:
-
                 if attempts < 10:
                     self._download_attempts[run_id] = attempts + 1
                     self._download_result_async(run_id)
                 else:
                     self._run_failed(run_id)
-
-                # else:
-                #    # retry t
-                #    self._download_result_async(run_id)
 
         if run_id not in self._downloading_result_futures.values():
             # result is not downloaded

@@ -47,9 +47,6 @@ def create_temp_dir(temp_dir):
 
 
 coverage_test_case_message = "Found covering test case"
-#
-# def found_coverage_test_case(output):
-#     return coverage_test_case_message.encode('utf-8') in output
 
 
 def gen_reach_exit_spec(f):

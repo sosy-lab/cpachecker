@@ -23,11 +23,6 @@ import post_processing.coverage.generate_coverage as generate_coverage
 script_path = os.path.dirname(os.path.realpath(__file__))
 
 
-def gen_files_in_dir(dir):
-    for f in os.listdir(dir):
-        yield os.path.join(dir, f)
-
-
 class TestCoverage(unittest.TestCase):
     aux_root = os.path.join(script_path, "aux_files")
     cpachecker_root = os.path.join(
@@ -622,10 +617,6 @@ class TestCoverageIntegrationCexCountOptional(TestCoverage):
                 instance,
             ]
         ]
-        # ch = logging.StreamHandler()
-        # ch.setLevel(logging.DEBUG)
-        # self.logger.addHandler(ch)
-        # self.logger.setLevel(logging.DEBUG)
         with patch.object(self.logger, "info") as mock_info:
             generate_coverage.main(argv, self.logger)
             expected_calls = [

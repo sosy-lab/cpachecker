@@ -23,11 +23,6 @@ import post_processing.coverage.generate_coverage as generate_coverage
 script_path = os.path.dirname(os.path.realpath(__file__))
 
 
-def gen_files_in_dir(dir):
-    for f in os.listdir(dir):
-        yield os.path.join(dir, f)
-
-
 class TestCoverage(unittest.TestCase):
     aux_root = os.path.join(script_path, "aux_files", "blocks")
     cpachecker_root = os.path.join(
