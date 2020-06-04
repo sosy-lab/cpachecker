@@ -50,9 +50,9 @@ RESULT_REJECT = "TRUE"
 RESULT_UNK = "UNKNOWN"
 
 # Regular expressions used to match given specification properties
-REGEX_REACH = re.compile("G\s*!\s*call\(\s*__VERIFIER_error\(\)\s*\)")
-REGEX_OVERFLOW = re.compile("G\s*!\s*overflow")
-_REGEX_MEM_TEMPLATE = "G\s*valid-%s"
+REGEX_REACH = re.compile(r"G\s*!\s*call\(\s*__VERIFIER_error\(\)\s*\)")
+REGEX_OVERFLOW = re.compile(r"G\s*!\s*overflow")
+_REGEX_MEM_TEMPLATE = r"G\s*valid-%s"
 REGEX_MEM_FREE = re.compile(_REGEX_MEM_TEMPLATE % "free")
 REGEX_MEM_DEREF = re.compile(_REGEX_MEM_TEMPLATE % "deref")
 REGEX_MEM_MEMTRACK = re.compile(_REGEX_MEM_TEMPLATE % "memtrack")
@@ -435,7 +435,7 @@ def get_spec(specification_file):
 
     specification = list()
     spec_matches = re.match(
-        "CHECK\(\s*init\(.*\),\s*LTL\(\s*(.+)\s*\)\\r*\\n*", content
+        r"CHECK\(\s*init\(.*\),\s*LTL\(\s*(.+)\s*\)\\r*\\n*", content
     )
     if spec_matches:
         for spec, regex in SPECIFICATIONS.items():
