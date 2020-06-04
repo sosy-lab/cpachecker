@@ -13,12 +13,10 @@ import logging
 import os
 import os.path
 import shutil
-import sys
 import time
 import unittest
 import unittest.mock
-from io import StringIO
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import patch
 
 import post_processing.coverage.generate_coverage as generate_coverage
 

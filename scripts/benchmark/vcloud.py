@@ -6,7 +6,6 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-import collections
 import sys
 
 sys.dont_write_bytecode = True  # prevent creation of .pyc files
@@ -16,7 +15,6 @@ import logging
 import os
 import shutil
 import subprocess
-import time
 
 from benchexec.model import MEMLIMIT, TIMELIMIT, CORELIMIT
 import benchexec.util

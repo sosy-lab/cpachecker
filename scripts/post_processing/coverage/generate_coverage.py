@@ -10,9 +10,6 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import argparse
-import errno
-import glob
-import json
 import logging
 import os
 import os.path
@@ -22,7 +19,6 @@ import subprocess
 import sys
 import time
 from subprocess import check_output
-from textwrap import wrap
 
 
 class FoundBugException(Exception):
