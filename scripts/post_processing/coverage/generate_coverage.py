@@ -9,8 +9,6 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from __future__ import print_function
-
 import argparse
 import errno
 import glob

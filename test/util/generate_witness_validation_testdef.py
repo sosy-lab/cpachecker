@@ -8,9 +8,6 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-# prepare for Python 3
-from __future__ import absolute_import, print_function, unicode_literals
-
 import sys
 import os
 from lxml import etree

@@ -8,9 +8,6 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-# prepare for Python 3
-from __future__ import absolute_import, division, print_function, unicode_literals
-
 import sys
 
 sys.dont_write_bytecode = True  # prevent creation of .pyc files
