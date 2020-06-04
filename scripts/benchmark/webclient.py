@@ -38,8 +38,9 @@ from benchexec.util import get_files
 
 try:
     import sseclient  # @UnresolvedImport
-except:
-    pass
+    HAS_SSECLIENT = True
+except ImportError:
+    HAS_SSECLIENT = False
 
 """
 This module provides helpers for accessing the web interface of the VerifierCloud.
@@ -153,7 +154,7 @@ class PollingResultDownloader:
         self._state_poll_executor.shutdown(wait=True)
 
 
-try:
+if HAS_SSECLIENT:
 
     class ShouldReconnectSeeClient(sseclient.SSEClient):
         def __init__(
@@ -325,10 +326,6 @@ try:
             self._state_receive_executor.shutdown(wait=wait)
 
 
-except:
-    pass
-
-
 class RunResultFuture(Future):
     def __init__(self, web_interface, run_id):
         super().__init__()
@@ -338,10 +335,7 @@ class RunResultFuture(Future):
     def cancel(self):
         canceled = super().cancel()
         if canceled:
-            try:
-                self._web_interface._stop_run(self._run_id)
-            except:
-                logging.warning("Stopping of run %s failed", self._run_id)
+            self._web_interface._stop_run(self._run_id)
 
         return canceled
 
@@ -431,9 +425,9 @@ class WebInterface:
         self._resolved_tool_revision(revision)
         self._tool_name = self._request_tool_name()
 
-        try:
+        if HAS_SSECLIENT:
             self._result_downloader = SseResultDownloader(self, result_poll_interval)
-        except:
+        else:
             self._result_downloader = PollingResultDownloader(
                 self, result_poll_interval
             )

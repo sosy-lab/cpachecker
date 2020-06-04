@@ -39,10 +39,7 @@ def print_command(command, logger):
 
 
 def create_temp_dir(temp_dir):
-    try:
-        shutil.rmtree(temp_dir)
-    except:
-        pass
+    shutil.rmtree(temp_dir, ignore_errors=True)
     os.makedirs(temp_dir)
 
 

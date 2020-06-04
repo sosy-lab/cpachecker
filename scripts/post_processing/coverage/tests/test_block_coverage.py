@@ -35,18 +35,12 @@ class TestCoverage(unittest.TestCase):
     temp_folder = os.path.join(script_path, "temp_folder")
 
     def setUp(self):
-        try:
-            shutil.rmtree(self.temp_folder)
-        except:
-            pass
+        shutil.rmtree(self.temp_folder, ignore_errors=True)
         self.logger = logging.getLogger()
         self.logger.setLevel(logging.INFO)
 
     def tearDown(self):
-        try:
-            shutil.rmtree(self.temp_folder)
-        except:
-            pass
+        shutil.rmtree(self.temp_folder, ignore_errors=True)
 
 
 class TestCoverageWhile(TestCoverage):

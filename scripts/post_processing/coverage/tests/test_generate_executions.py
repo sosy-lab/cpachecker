@@ -35,19 +35,13 @@ class TestCoverage(unittest.TestCase):
     temp_folder = os.path.join(script_path, "temp_folder")
 
     def setUp(self):
-        try:
-            shutil.rmtree(self.temp_folder)
-        except:
-            pass
+        shutil.rmtree(self.temp_folder, ignore_errors=True)
         self.logger = logging.getLogger()
         self.logger.setLevel(logging.INFO)
         self.start_time = time.time()
 
     def tearDown(self):
-        try:
-            shutil.rmtree(self.temp_folder)
-        except:
-            pass
+        shutil.rmtree(self.temp_folder, ignore_errors=True)
 
 
 class TestGenerateExecutions(TestCoverage):
@@ -578,11 +572,11 @@ class TestOutputParsingExceptionThrown(unittest.TestCase):
         with patch.object(logger, "error") as mock_error:
             cpachecker_result = generate_coverage.parse_result(self.output, logger)
             self.assertEqual(mock_error.mock_calls, [])
-        try:
+
+        with self.assertRaisesRegex(
+            Exception, "This method should not have been called"
+        ):
             cpachecker_result.found_bug()
-            self.fail()
-        except:
-            pass
 
 
 class TestOutputParsingIncompleteOutput(unittest.TestCase):
