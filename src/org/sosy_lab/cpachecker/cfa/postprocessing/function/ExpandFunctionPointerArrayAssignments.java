@@ -32,21 +32,20 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-/*
- * This class goes through the CFA and replace all assignments of the form
- * <code>
+/**
+ * This class goes through the CFA and replace all assignments of the form <code>
  * array[i] = ...
- * </code>
- * by
- * <code>
+ * </code> by <code>
  * if (i == 0) array[0] = ...
  * else if (i == 1) array[1] = ...
  * ...
- * </code>
- * if
- * - "array" is an array of function pointers
- * - "array" has a statically known length
- * - "i" is a simple variable (CIdExpression)
+ * </code> if
+ *
+ * <ul>
+ *   <li>{@code array} is an array of function pointers
+ *   <li>{code array} has a statically known length
+ *   <li>{code i} is a simple variable ({@link CIdExpression})
+ * </ul>
  */
 public class ExpandFunctionPointerArrayAssignments {
 

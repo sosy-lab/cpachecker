@@ -63,7 +63,6 @@ public abstract class EdgeReplacer {
     instrumentedFunctions = 0;
   }
 
-  /** @category helper */
   private CFANode newCFANode(final AFunctionDeclaration pFunction) {
     assert cfa != null;
     CFANode nextNode = new CFANode(pFunction);
@@ -78,8 +77,6 @@ public abstract class EdgeReplacer {
   /**
    * This method adds 2 edges to the cfa: 1. trueEdge from rootNode to thenNode and 2. falseEdge
    * from rootNode to elseNode.
-   *
-   * @category conditions
    */
   private void addConditionEdges(
       CExpression nameExp,

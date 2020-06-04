@@ -71,16 +71,17 @@ public class QuantifiedFormulaManagerView
   }
 
   /**
-   * @return A universal quantified formula for that the quantification
-   *          is restricted to a specific range (an interval.
+   * Create a universal quantified formula for that the quantification is restricted to a specific
+   * range (an interval.
    *
-   *          The result is a 'range predicate' (this term is used in
-   *          several papers that describe quantified formulas over arrays).
+   * <p>The result is a 'range predicate' (this term is used in several papers that describe
+   * quantified formulas over arrays).
    *
-   * @param pVariable     The variable for that the quantification should be restricted to a specific range.
-   * @param pLowerBound   The lower bound of the range (interval; included in the range).
-   * @param pUpperBound   The upper bound of the range (included in the range).
-   * @param pBody         Formula for that the (restricted) quantification is applied.
+   * @param pVariable The variable for that the quantification should be restricted to a specific
+   *     range.
+   * @param pLowerBound The lower bound of the range (interval; included in the range).
+   * @param pUpperBound The upper bound of the range (included in the range).
+   * @param pBody Formula for that the (restricted) quantification is applied.
    */
   public <R extends IntegerFormula> BooleanFormula forall (
       final R pVariable,

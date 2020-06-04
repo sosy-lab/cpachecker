@@ -46,13 +46,11 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
 
   private final Map<CType, String> pointerNameCache = new IdentityHashMap<>();
 
-  /*
-   * Use Multiset<String> instead of Map<String, Integer> because it is more
-   * efficient. The integer value is stored as the number of instances of any
-   * element in the Multiset. So instead of calling map.get(key) we just use
-   * Multiset.count(key). This is better because the Multiset internally uses
-   * modifiable integers instead of the immutable Integer class.
-   */
+  // Use Multiset<String> instead of Map<String, Integer> because it is more
+  // efficient. The integer value is stored as the number of instances of any
+  // element in the Multiset. So instead of calling map.get(key) we just use
+  // Multiset.count(key). This is better because the Multiset internally uses
+  // modifiable integers instead of the immutable Integer class.
   private final Multiset<CCompositeType> sizes = HashMultiset.create();
   private final Map<CCompositeType, ImmutableMap<String, Long>> offsets = new HashMap<>();
 

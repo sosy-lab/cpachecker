@@ -29,9 +29,9 @@ public interface CComplexType extends CType {
   String getQualifiedName();
 
   /**
-   * Returns the unqualified original name, e.g. for the type "struct s", this
-   * returns "."
-   * @returnA name string or the empty string if the type has no name.
+   * Returns the unqualified original name, e.g. for the type "struct s", this returns "."
+   *
+   * @return A name string or the empty string if the type has no name.
    */
   String getOrigName();
 

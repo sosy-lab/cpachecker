@@ -31,8 +31,9 @@ import org.sosy_lab.cpachecker.util.Pair;
 
 public class PartialReachedSetDirectedGraph implements Statistics {
 
-  /* index of node is its position in <code>nodes</code>*/
+  /** index of node is its position in <code>nodes</code> */
   private final AbstractState[] nodes;
+
   private final int numNodes;
   private final ImmutableList<ImmutableList<Integer>> adjacencyList;
 

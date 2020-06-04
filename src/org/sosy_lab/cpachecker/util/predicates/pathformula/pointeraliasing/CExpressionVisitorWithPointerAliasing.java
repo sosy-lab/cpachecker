@@ -244,18 +244,19 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   }
 
   /**
-   * Should be used whenever a location corresponding to a pointer dereference is required.
-   * This function properly handles the ambiguity arising from arrays vs. pointers.
-   * Consider {@code int *pa, a[]; int **ppa = &pa; *pa = 5; *a = 5;}.
-   * Here {@code *pa} should be encoded as <i>int (int*(ADDRESS_OF_pa))</i>, but
-   * {@code *a} should be encoded as <i>int (ADDRESS_OF_a)</i> while both {@code pa} and {@code a}
-   * will result in AliasedLocation with <i>ADDRESS_OF_pa</i> and <i>ADDRESS_OF_a</i> respectively.
-   * So this function will add the additional dereference if necessary.
+   * Should be used whenever a location corresponding to a pointer dereference is required. This
+   * function properly handles the ambiguity arising from arrays vs. pointers. Consider {@code int
+   * *pa, a[]; int **ppa = & pa; *pa = 5; *a = 5;}. Here {@code *pa} should be encoded as <i>int
+   * (int*(ADDRESS_OF_pa))</i>, but {@code *a} should be encoded as <i>int (ADDRESS_OF_a)</i> while
+   * both {@code pa} and {@code a} will result in AliasedLocation with <i>ADDRESS_OF_pa</i> and
+   * <i>ADDRESS_OF_a</i> respectively. So this function will add the additional dereference if
+   * necessary.
+   *
    * @param pE the source C expression form which the resulting {@code Expression} was obtained
    * @param pResult the {@code Expression} resulting from visiting the C expression {@code pE},
-   *        should normally be a Location, but in case of a value the corresponding location is
-   *        returned nontheless (e.g. *((int *)0) -- explicit access violation, may be used for
-   *        debugging in some cases)
+   *     should normally be a Location, but in case of a value the corresponding location is
+   *     returned nontheless (e.g. *((int *)0) -- explicit access violation, may be used for
+   *     debugging in some cases)
    * @return the result AliasedLocation of the pointed value
    */
   private AliasedLocation dereference(final CExpression pE, final Expression pResult) {

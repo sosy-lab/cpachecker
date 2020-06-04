@@ -297,7 +297,7 @@ public class LiveVariables {
         .toSet();
   }
 
-  /** @return iterable of all variables which are alive at at least one node. */
+  /** Return set of all variables which are alive at at least one node. */
   public Set<ASimpleDeclaration> getAllLiveVariables() {
     return from(liveVariables.values())
         .append(globalVariables)
