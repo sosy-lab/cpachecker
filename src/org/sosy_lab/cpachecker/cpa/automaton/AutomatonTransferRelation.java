@@ -319,9 +319,6 @@ public class AutomatonTransferRelation implements TransferRelation {
     return result;
   }
 
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.TransferRelation#strengthen(org.sosy_lab.cpachecker.core.interfaces.AbstractState, java.util.Iterable, org.sosy_lab.cpachecker.cfa.model.CFAEdge, org.sosy_lab.cpachecker.core.interfaces.Precision)
-   */
   @Override
   public Collection<AutomatonState> strengthen(
       AbstractState pElement,

@@ -155,9 +155,6 @@ class CFABuilder extends ASTVisitor {
     shutdownNotifier.shutdownIfNecessary();
   }
 
-  /* (non-Javadoc)
-   * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTDeclaration)
-   */
   @Override
   public int visit(IASTDeclaration declaration) {
     if (shutdownNotifier.shouldShutdown()) {
@@ -306,9 +303,6 @@ class CFABuilder extends ASTVisitor {
   }
 
   //Method to handle visiting a parsing problem.  Hopefully none exist
-  /* (non-Javadoc)
-   * @see org.eclipse.cdt.core.dom.ast.ASTVisitor#visit(org.eclipse.cdt.core.dom.ast.IASTProblem)
-   */
   @Override
   public int visit(IASTProblem problem) {
     if (shutdownNotifier.shouldShutdown()) {

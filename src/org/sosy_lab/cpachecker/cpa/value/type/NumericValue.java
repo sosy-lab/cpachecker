@@ -95,9 +95,6 @@ public class NumericValue implements Value, Serializable {
     return new BigInteger(number.toString());
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#toString()
-   */
   @Override
   public String toString() {
     return "NumericValue [number=" + number + "]";

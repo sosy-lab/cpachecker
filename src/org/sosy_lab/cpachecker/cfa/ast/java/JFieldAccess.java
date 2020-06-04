@@ -49,9 +49,6 @@ public final class JFieldAccess extends JIdExpression {
     return super.toASTString(pQualified);
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#hashCode()
-   */
   @Override
   public int hashCode() {
     final int prime = 31;
@@ -61,9 +58,6 @@ public final class JFieldAccess extends JIdExpression {
     return result;
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#equals(java.lang.Object)
-   */
   @Override
   public boolean equals(Object obj) {
     if (this == obj) {

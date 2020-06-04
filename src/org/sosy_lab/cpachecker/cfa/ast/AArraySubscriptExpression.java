@@ -46,9 +46,6 @@ public abstract class AArraySubscriptExpression extends AbstractLeftHandSide {
     return left + "[" + subscriptExpression.toASTString(pQualified) + "]";
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#hashCode()
-   */
   @Override
   public int hashCode() {
     final int prime = 31;
@@ -59,9 +56,6 @@ public abstract class AArraySubscriptExpression extends AbstractLeftHandSide {
     return result;
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#equals(java.lang.Object)
-   */
   @Override
   public boolean equals(Object obj) {
     if (this == obj) {

@@ -25,9 +25,6 @@ public class BAMBlockOperator extends BlockOperator {
     partitioning = pPartitioning;
   }
 
-  /**
-   * @see{@link BlockOperator#isBlockEnd}
-   */
   @Override
   public boolean isBlockEnd(CFANode loc, int thresholdValue) {
     return super.isBlockEnd(loc, thresholdValue)

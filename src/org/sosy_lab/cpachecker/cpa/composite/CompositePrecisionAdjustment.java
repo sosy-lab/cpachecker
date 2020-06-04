@@ -40,9 +40,6 @@ class CompositePrecisionAdjustment implements PrecisionAdjustment {
     return compState -> ((CompositeState) compState).get(i);
   }
 
-  /**
-   * @see PrecisionAdjustment#prec
-   */
   @Override
   public Optional<PrecisionAdjustmentResult> prec(
       AbstractState pElement,

@@ -77,13 +77,7 @@ public abstract class AutomatonVariable implements Cloneable, Serializable {
   @Override
   public abstract AutomatonVariable clone();
 
-  /*
-   * (non-Javadoc)
-   *
-   * @see java.lang.Object#hashCode()
-   *
-   * I don't use the hashcode, but it should be redefined every time equals is overwritten.
-   */
+  // We don't use the hashcode, but it should be redefined every time equals is overwritten.
   @Override
   public abstract int hashCode();
 

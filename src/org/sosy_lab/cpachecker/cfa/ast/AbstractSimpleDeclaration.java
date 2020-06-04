@@ -85,17 +85,11 @@ public abstract class AbstractSimpleDeclaration extends AbstractAstNode implemen
     type = pType;
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#hashCode()
-   */
   @Override
   public int hashCode() {
     return 31 * Objects.hash(type, name, origName) + super.hashCode();
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#equals(java.lang.Object)
-   */
   @Override
   public boolean equals(Object obj) {
     if (this == obj) {

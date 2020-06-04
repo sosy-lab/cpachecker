@@ -527,9 +527,6 @@ public class ARGState extends AbstractSingleWrapperState
     destroyed = true;
   }
 
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.cpa.arg.Splitable#forkWithReplacements(java.util.List)
-   */
   @Override
   public ARGState forkWithReplacements(Collection<AbstractState> pReplacementStates){
     AbstractState wrappedState = this.getWrappedState();

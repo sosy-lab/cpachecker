@@ -45,25 +45,12 @@ public abstract class Address {
    */
   public abstract Address addOffset(BigDecimal pOffset);
 
-  /*
-   * (non-Javadoc)
-   *
-   * @see java.lang.Object#toString()
-   */
   @Override
   public abstract String toString();
 
-  /*
-   * (non-Javadoc)
-   * @see java.lang.Object#hashCode()
-   */
   @Override
   public abstract int hashCode();
 
-  /*
-   * (non-Javadoc)
-   * @see java.lang.Object#equals(java.lang.Object)
-   */
   @Override
   public abstract boolean equals(Object obj);
 

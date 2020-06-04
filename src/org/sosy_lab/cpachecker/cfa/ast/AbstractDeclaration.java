@@ -42,17 +42,11 @@ public abstract class AbstractDeclaration extends AbstractSimpleDeclaration impl
     return isGlobal;
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#hashCode()
-   */
   @Override
   public int hashCode() {
     return (isGlobal ? 1231 : 1237) + super.hashCode();
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#equals(java.lang.Object)
-   */
   @Override
   public boolean equals(Object obj) {
     if (this == obj) {

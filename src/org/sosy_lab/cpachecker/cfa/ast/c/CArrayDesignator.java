@@ -48,9 +48,6 @@ public class CArrayDesignator extends CDesignator {
     return pV.visit(this);
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#hashCode()
-   */
   @Override
   public int hashCode() {
     final int prime = 31;
@@ -60,9 +57,6 @@ public class CArrayDesignator extends CDesignator {
     return result;
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#equals(java.lang.Object)
-   */
   @Override
   public boolean equals(Object obj) {
     if (obj == this) {

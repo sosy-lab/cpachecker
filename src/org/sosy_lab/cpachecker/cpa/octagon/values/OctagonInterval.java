@@ -118,9 +118,6 @@ public class OctagonInterval {
     return high;
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#equals(java.lang.Object)
-   */
   @Override
   public boolean equals(Object obj) {
     if (!(obj instanceof OctagonInterval)) {
@@ -142,9 +139,6 @@ public class OctagonInterval {
     return low.isEqual(high);
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#hashCode()
-   */
   @Override
   public int hashCode() {
     return Objects.hash(low, high);
@@ -445,9 +439,6 @@ public class OctagonInterval {
     return low == null && high == null;
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#toString()
-   */
   @Override
   public String toString() {
     return "[" + low + "; " + high + "]";

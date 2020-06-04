@@ -85,17 +85,11 @@ public final class CTypeIdExpression extends AbstractExpression implements CExpr
     return operator.getOperator() + "(" + type.toASTString("") + ")";
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#hashCode()
-   */
   @Override
   public int hashCode() {
     return Objects.hash(operator, type) * 31 + super.hashCode();
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#equals(java.lang.Object)
-   */
   @Override
   public boolean equals(Object obj) {
     if (this == obj) {

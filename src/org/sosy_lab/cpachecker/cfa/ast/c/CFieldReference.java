@@ -144,17 +144,11 @@ public final class CFieldReference extends AbstractExpression implements CLeftHa
     return left + op  + name;
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#hashCode()
-   */
   @Override
   public int hashCode() {
     return Objects.hash(isPointerDereference, name, owner) * 31 + super.hashCode();
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#equals(java.lang.Object)
-   */
   @Override
   public boolean equals(Object obj) {
     if (this == obj) {

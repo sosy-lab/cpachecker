@@ -278,9 +278,6 @@ public class IntervalAnalysisState
     return rebuildState;
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#equals(java.lang.Object)
-   */
   @Override
   public boolean equals(Object other) {
     if (this == other) {
@@ -294,17 +291,11 @@ public class IntervalAnalysisState
     return false;
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#hashCode()
-   */
   @Override
   public int hashCode() {
     return intervals.hashCode();
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#toString()
-   */
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();

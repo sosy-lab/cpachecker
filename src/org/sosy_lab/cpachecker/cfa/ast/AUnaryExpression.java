@@ -40,9 +40,6 @@ public abstract class AUnaryExpression extends AbstractExpression {
     return operator.getOperator() + operand.toParenthesizedASTString(pQualified);
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#hashCode()
-   */
   @Override
   public int hashCode() {
     final int prime = 31;
@@ -53,9 +50,6 @@ public abstract class AUnaryExpression extends AbstractExpression {
     return result;
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#equals(java.lang.Object)
-   */
   @Override
   public boolean equals(Object obj) {
     if (this == obj) {

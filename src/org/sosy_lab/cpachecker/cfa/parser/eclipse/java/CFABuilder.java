@@ -162,9 +162,6 @@ class CFABuilder extends ASTVisitor {
     return VISIT_CHILDREN;
   }
 
-  /* (non-Javadoc)
-   *
-   */
   @Override
   public boolean visit(MethodDeclaration md) {
     //methodDeclarations.add(fd);

@@ -34,9 +34,6 @@ public  abstract class AbstractRightHandSide extends AbstractAstNode implements 
     return type;
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#hashCode()
-   */
   @Override
   public int hashCode() {
     final int prime = 31;
@@ -46,9 +43,6 @@ public  abstract class AbstractRightHandSide extends AbstractAstNode implements 
     return result;
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#equals(java.lang.Object)
-   */
   @Override
   public boolean equals(Object obj) {
     if (this == obj) {

@@ -87,9 +87,6 @@ public final class Interval implements Serializable {
     return high;
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#equals(java.lang.Object)
-   */
   @Override
   public boolean equals(Object other) {
     if (other != null && getClass().equals(other.getClass())) {
@@ -99,9 +96,6 @@ public final class Interval implements Serializable {
     return false;
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#hashCode()
-   */
   @Override
   public int hashCode() {
     return Objects.hash(low, high);
@@ -457,9 +451,6 @@ public final class Interval implements Serializable {
     return !isEmpty() && low == Long.MIN_VALUE && high == Long.MAX_VALUE;
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#toString()
-   */
   @Override
   public String toString() {
     return "[" + (low == null ? "" : low) + "; " + (high == null ? "" : high) + "]";

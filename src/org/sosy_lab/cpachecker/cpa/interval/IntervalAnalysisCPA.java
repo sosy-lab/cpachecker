@@ -85,9 +85,6 @@ public class IntervalAnalysisCPA extends AbstractCPA
     logger = pLogger;
   }
 
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getMergeOperator()
-   */
   @Override
   public MergeOperator getMergeOperator() {
     return buildMergeOperator(mergeType);
@@ -98,9 +95,6 @@ public class IntervalAnalysisCPA extends AbstractCPA
     return new IntervalAnalysisReducer();
   }
 
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis#getInitialState(org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode)
-   */
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     return new IntervalAnalysisState();

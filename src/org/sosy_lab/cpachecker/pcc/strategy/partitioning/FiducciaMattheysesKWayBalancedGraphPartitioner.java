@@ -114,9 +114,6 @@ public class FiducciaMattheysesKWayBalancedGraphPartitioner
     }
   }
 
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningRefiner#refinePartitioning(java.util.List, org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.PartialReachedSetDirectedGraph, int)
-   */
   @Override
   public int refinePartitioning(List<Set<Integer>> partitioning,
       PartialReachedSetDirectedGraph pGraph, int numPartitions) {
@@ -124,9 +121,6 @@ public class FiducciaMattheysesKWayBalancedGraphPartitioner
     return refinePartitioning(partitioning, wGraph, numPartitions);
   }
 
-  /* (non-Javadoc)
-   * @see org.sosy_lab.cpachecker.pcc.strategy.partitioning.PartitioningRefiner#refinePartitioning(java.util.List, org.sosy_lab.cpachecker.pcc.strategy.partialcertificate.WeightedGraph, int)
-   */
   @Override
   public int refinePartitioning(List<Set<Integer>> partitioning,
       WeightedGraph wGraph, int numPartitions) {
