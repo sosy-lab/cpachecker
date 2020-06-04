@@ -39,7 +39,11 @@ public abstract class PartitioningHeuristic {
   protected final CFA cfa;
   protected final LogManager logger;
 
-  /** @param pConfig configuration can be used and injected in subclasses. */
+  /**
+   * Create instance.
+   *
+   * @param pConfig unused, but can be used and injected in subclasses.
+   */
   protected PartitioningHeuristic(LogManager pLogger, CFA pCfa, Configuration pConfig) {
     cfa = pCfa;
     logger = pLogger;

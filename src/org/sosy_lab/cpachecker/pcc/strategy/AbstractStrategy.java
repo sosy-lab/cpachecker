@@ -165,6 +165,8 @@ public abstract class AbstractStrategy implements PCCStrategy, StatisticsProvide
   }
 
   /**
+   * Hook for adding additional output in subclasses.
+   *
    * @param pOut the outputstream to which should be written
    * @throws IOException may be thrown in subclasses
    */

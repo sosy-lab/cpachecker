@@ -17,13 +17,14 @@ public final class CCastExpression extends ACastExpression implements CExpressio
   private static final long serialVersionUID = 3935774068573745972L;
 
   /**
+   * Create instance.
+   *
    * @param pFileLocation where is this cast?
    * @param pExpressionType target-type of the cast
    * @param pOperand is casted to target-type
    */
-  public CCastExpression(final FileLocation pFileLocation,
-                            final CType pExpressionType,
-                            final CExpression pOperand) {
+  public CCastExpression(
+      final FileLocation pFileLocation, final CType pExpressionType, final CExpression pOperand) {
     super(pFileLocation, pExpressionType, pOperand);
   }
 

@@ -576,8 +576,8 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
   }
 
   /**
-   * @return whether a leftHandSide variable is always live:
-   * anything on the LHS is addressed or global.
+   * Return whether a leftHandSide variable is always live: anything on the LHS is addressed or
+   * global.
    */
   private boolean isAlwaysLive(ALeftHandSide expression) {
     BitSet lhs = new BitSet(noVars);

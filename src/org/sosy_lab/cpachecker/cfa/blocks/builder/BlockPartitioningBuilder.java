@@ -114,9 +114,10 @@ public class BlockPartitioningBuilder {
   }
 
   /**
-   * @param nodes Nodes from which Block should be created;
-   *              if the set of nodes contains inner function calls, the called
-   *              function body should NOT be included.
+   * Create new block.
+   *
+   * @param nodes Nodes from which Block should be created; if the set of nodes contains inner
+   *     function calls, the called function body should NOT be included.
    * @param blockHead Entry point for the block.
    */
   public void addBlock(Set<CFANode> nodes, CFANode blockHead) {

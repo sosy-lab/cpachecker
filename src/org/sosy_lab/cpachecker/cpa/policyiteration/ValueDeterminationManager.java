@@ -369,8 +369,8 @@ public class ValueDeterminationManager {
   }
 
   /**
-   * @return Variable name representing the bound in the abstract domain
-   * for the given template for the given state.
+   * Return variable name representing the bound in the abstract domain for the given template for
+   * the given state.
    */
   private String absDomainVarName(int locId, Template template) {
     return String.format("BOUND_[%s]_[%s]", locId, template.toString());

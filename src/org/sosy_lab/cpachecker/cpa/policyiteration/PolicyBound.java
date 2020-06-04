@@ -95,7 +95,7 @@ public final class PolicyBound {
   }
 
   /**
-   * @return Unique identifier for value determination.
+   * Return unique identifier for value determination.
    *
    * <p>Based on triple {@code from, to, policy}.
    */

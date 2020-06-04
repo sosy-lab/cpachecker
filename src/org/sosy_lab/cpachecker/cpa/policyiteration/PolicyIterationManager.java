@@ -701,13 +701,9 @@ public class PolicyIterationManager {
     return Optional.of(stateWithUpdates.withNewAbstraction(newAbstraction));
   }
 
-  /**
-   * @return Whether the <code>state</code> is unreachable.
-   */
+  /** Return whether the <code>state</code> is unreachable. */
   private boolean isUnreachable(
-      PolicyIntermediateState state,
-      BooleanFormula extraInvariant,
-      boolean pIsTarget)
+      PolicyIntermediateState state, BooleanFormula extraInvariant, boolean pIsTarget)
       throws CPAException, InterruptedException {
     BooleanFormula startConstraints =
         stateFormulaConversionManager.getStartConstraintsWithExtraInvariant(state);
@@ -1096,20 +1092,14 @@ public class PolicyIterationManager {
     ));
   }
 
-
   /**
-   * @param supportingLemmas Closure computation should be done with respect
-   *                         to those variables.
+   * Compute a subset of {@code input}, which exactly preserves the state-space with respect to all
+   * variables in {@code vars}.
    *
-   * @return Subset {@code input},
-   * which exactly preserves the state-space with respect to all variables in
-   * {@code vars}.
+   * @param supportingLemmas Closure computation should be done with respect to those variables.
    */
   private Set<BooleanFormula> computeRelevantSubset(
-      Set<BooleanFormula> input,
-      Set<BooleanFormula> supportingLemmas,
-      Set<String> vars
-  ) {
+      Set<BooleanFormula> input, Set<BooleanFormula> supportingLemmas, Set<String> vars) {
     final Set<String> closure = relatedClosure(
         Sets.union(input, supportingLemmas), vars);
 
@@ -1120,13 +1110,12 @@ public class PolicyIterationManager {
   }
 
   /**
+   * Return set of variables contained in the closure.
+   *
    * @param input Set of lemmas.
    * @param vars Vars to perform the closure with respect to.
-   * @return Set of variables contained in the closure.
    */
-  private Set<String> relatedClosure(
-      Set<BooleanFormula> input,
-      Set<String> vars) {
+  private Set<String> relatedClosure(Set<BooleanFormula> input, Set<String> vars) {
     Set<String> related = new HashSet<>(vars);
     while (true) {
       boolean modified = false;
@@ -1210,14 +1199,13 @@ public class PolicyIterationManager {
   }
 
   /**
+   * Check whether to compute the abstraction when creating a new state associated with <code>node
+   * </code>.
+   *
    * @param totalState Encloses all other parallel states.
-   * @return Whether to compute the abstraction when creating a new
-   * state associated with <code>node</code>.
    */
   private boolean shouldPerformAbstraction(
-      PolicyIntermediateState iState,
-      AbstractState totalState
-  ) {
+      PolicyIntermediateState iState, AbstractState totalState) {
 
     CFANode node = iState.getNode();
 
@@ -1320,24 +1308,17 @@ public class PolicyIterationManager {
     return joinIntermediateStates(state1.asIntermediate(), state2.asIntermediate());
   }
 
-  /**
-   * @return state1 <= state2
-   */
+  /** Return {@code state1 <= state2} */
   private boolean isLessOrEqualIntermediate(
-      PolicyIntermediateState state1,
-      PolicyIntermediateState state2) {
+      PolicyIntermediateState state1, PolicyIntermediateState state2) {
     return state1.isMergedInto(state2)
         || (state1.getPathFormula().getFormula().equals(state2.getPathFormula().getFormula())
             && isLessOrEqualAbstracted(state1.getBackpointerState(), state2.getBackpointerState()));
   }
 
-  /**
-   * @return state1 <= state2
-   */
+  /** Return {@code state1 <= state2} */
   private boolean isLessOrEqualAbstracted(
-      PolicyAbstractedState aState1,
-      PolicyAbstractedState aState2
-  ) {
+      PolicyAbstractedState aState1, PolicyAbstractedState aState2) {
     for (Entry<Template, PolicyBound> e : aState2) {
       Template t = e.getKey();
       PolicyBound bound2 = e.getValue();

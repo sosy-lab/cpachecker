@@ -36,6 +36,8 @@ public final class MissingBlockAbstractionState extends AbstractSingleWrapperSta
   private final @Nullable ReachedSet reachedSet;
 
   /**
+   * Create instance.
+   *
    * @param pState the non-reduced state at the block entry
    * @param pReducedState the reduced state at the block entry
    * @param pBlock the entered block

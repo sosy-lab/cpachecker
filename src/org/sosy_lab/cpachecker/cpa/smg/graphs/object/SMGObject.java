@@ -75,6 +75,8 @@ public abstract class SMGObject implements Comparable<SMGObject> {
   public abstract boolean isMoreGeneral(SMGObject pOther);
 
   /**
+   * Compute the result of a join.
+   *
    * @param pOther object to join with
    * @param pDestLevel increase Nesting level.
    */

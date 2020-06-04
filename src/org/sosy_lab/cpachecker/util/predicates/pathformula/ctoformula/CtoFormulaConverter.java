@@ -1560,7 +1560,11 @@ public class CtoFormulaConverter {
     return bfmgr.not(fmgr.makeEqual(pF, zero));
   }
 
-  /** @throws InterruptedException may be thrown in subclasses */
+  /**
+   * Create a formula that represents a predicate, e.g., a condition of an assume edge.
+   *
+   * @throws InterruptedException may be thrown in subclasses
+   */
   protected BooleanFormula makePredicate(
       CExpression exp,
       boolean isTrue,

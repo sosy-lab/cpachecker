@@ -260,6 +260,8 @@ public class OverflowAssumptionManager {
   }
 
   /**
+   * Create the assumptions for checking overflows on left shift.
+   *
    * @param operand1 first operand in the C Expression for which the assumption should be generated
    * @param operand2 second operand in the C Expression for which the assumption should be generated
    * @param limit the largest value in the expression's type

@@ -164,10 +164,9 @@ public class LoopTransitionFinder implements StatisticsProvider {
     return out;
   }
 
-
   /**
-   * @return all edges in the local {@link Loop} associated with the {@code node},
-   * or an empty set, if {@code node} is not a loop-head.
+   * Return all edges in the local {@link Loop} associated with the {@code node}, or an empty set,
+   * if {@code node} is not a loop-head.
    */
   private List<CFAEdge> getEdgesInSCC(CFANode node) {
     SummarizingVisitor forwardVisitor = new SummarizingVisitorForward();

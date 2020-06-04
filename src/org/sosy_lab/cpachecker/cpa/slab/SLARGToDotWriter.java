@@ -121,6 +121,8 @@ public class SLARGToDotWriter {
   }
 
   /**
+   * Write out the ranked abstractions in Graphviz format.
+   *
    * @param sb Where to write the ARG into
    * @param states States that should be written
    * @param label A text to be show in the top left of the graph

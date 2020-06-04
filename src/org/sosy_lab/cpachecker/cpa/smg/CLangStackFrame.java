@@ -95,9 +95,7 @@ public final class CLangStackFrame {
   /* Non-modifying functions: getters and the like */
   /* ********************************************* */
 
-  /**
-   * @return String representation of the stack frame
-   */
+  /** Return string representation of the stack frame */
   @Override
   public String toString() {
     return String.format(

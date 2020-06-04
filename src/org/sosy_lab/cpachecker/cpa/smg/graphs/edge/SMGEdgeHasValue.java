@@ -24,6 +24,8 @@ public class SMGEdgeHasValue extends SMGEdge {
   private final BigInteger sizeInBits;
 
   /**
+   * Create instance.
+   *
    * @param pOffset the offset relative to the start of the source object, i.e. ZERO represents an
    *     direct access, a positive number accessed within or after the object and is used for
    *     array-element or struct-member access.

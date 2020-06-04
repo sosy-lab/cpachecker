@@ -23,6 +23,8 @@ public class AssumeEdge extends AbstractCFAEdge {
   protected final AExpression expression;
 
   /**
+   * Create instance.
+   *
    * @param pTruthAssumption If set to false, the expression is assumed to be negated.
    * @param pSwapped {@code true} if the value of {@code pTruthAssumption} corresponds inversely to
    *     the then/else branches of the branching statement in the source code.

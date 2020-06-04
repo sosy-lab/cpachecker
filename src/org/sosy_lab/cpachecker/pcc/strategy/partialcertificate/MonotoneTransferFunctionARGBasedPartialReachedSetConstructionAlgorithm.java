@@ -44,6 +44,8 @@ public class MonotoneTransferFunctionARGBasedPartialReachedSetConstructionAlgori
   }
 
   /**
+   * TODO write comment
+   *
    * @param pRootPrecision the root precision
    * @param pRoot the root state
    * @throws InvalidConfigurationException may be thrown in subclasses

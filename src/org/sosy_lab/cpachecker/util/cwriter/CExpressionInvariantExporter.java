@@ -125,12 +125,9 @@ public class CExpressionInvariantExporter {
     return Optional.of(formulaToCExpressionConverter.formulaToCExpression(formula));
   }
 
-  /**
-   * @return Mapping from line numbers to states associated with the given line.
-   */
+  /** Return mapping from line numbers to states associated with the given line. */
   private Map<Integer, BooleanFormula> getInvariantsForFile(
-      UnmodifiableReachedSet pReachedSet,
-      String filename) {
+      UnmodifiableReachedSet pReachedSet, String filename) {
 
     // One formula per reported state.
     Multimap<Integer, BooleanFormula> byState = HashMultimap.create();

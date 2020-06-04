@@ -145,8 +145,8 @@ public final class Template {
   }
 
   /**
-   * @return String suitable for formula serialization.
-   * Guarantees that two equal templates will get an equal serialization.
+   * Return a string suitable for formula serialization. Guarantees that two equal templates will
+   * get an equal serialization.
    */
   @Override
   public String toString() {

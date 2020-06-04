@@ -26,6 +26,8 @@ public class SMGEdgePointsTo extends SMGEdge {
   private final SMGTargetSpecifier tg;
 
   /**
+   * Create instance.
+   *
    * @param pValue the value that points to some object.
    * @param pObject the target object pointed to.
    * @param pOffset the offset relative to the start of the target object, i.e. ZERO represents a

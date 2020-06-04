@@ -94,8 +94,8 @@ public class MonitorState extends AbstractSingleWrapperState implements Avoidanc
   }
 
   /**
-   * @return  Is the current element the same as BOTTOM?
-   *  (no successor states because there was a reason that prevented it)
+   * Return whether the current element is the same as BOTTOM? (no successor states because there
+   * was a reason that prevented it)
    */
   @Override
   public boolean mustDumpAssumptionForAvoidance() {

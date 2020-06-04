@@ -80,8 +80,10 @@ public class PushSummandVisitor<T> extends DefaultParameterizedNumeralFormulaVis
   }
 
   /**
-   * @throws IllegalStateException if the visitor already managed to get a
-   * summand consumed, otherwise it does nothing.
+   * Handle addition.
+   *
+   * @throws IllegalStateException if the visitor already managed to get a summand consumed,
+   *     otherwise it does nothing.
    */
   @Override
   public NumeralFormula<T> visit(Add<T> pAdd, T pToPush) throws IllegalStateException {
@@ -95,8 +97,10 @@ public class PushSummandVisitor<T> extends DefaultParameterizedNumeralFormulaVis
   }
 
   /**
-   * @throws IllegalStateException if the visitor already managed to get a
-   * summand consumed, otherwise it does nothing.
+   * Handle constants.
+   *
+   * @throws IllegalStateException if the visitor already managed to get a summand consumed,
+   *     otherwise it does nothing.
    */
   @Override
   public NumeralFormula<T> visit(Constant<T> pConstant, T pToPush) throws IllegalStateException {
@@ -110,11 +114,14 @@ public class PushSummandVisitor<T> extends DefaultParameterizedNumeralFormulaVis
   }
 
   /**
-   * @throws IllegalStateException if the visitor already managed to get a
-   * summand consumed, otherwise it does nothing.
+   * Handle other expressions.
+   *
+   * @throws IllegalStateException if the visitor already managed to get a summand consumed,
+   *     otherwise it does nothing.
    */
   @Override
-  protected NumeralFormula<T> visitDefault(NumeralFormula<T> pFormula, T pToPush) throws IllegalStateException {
+  protected NumeralFormula<T> visitDefault(NumeralFormula<T> pFormula, T pToPush)
+      throws IllegalStateException {
     checkNotConsumed();
     InvariantsFormulaManager ifm = InvariantsFormulaManager.INSTANCE;
     NumeralFormula<T> toPush = ifm.asConstant(pFormula.getTypeInfo(), pToPush);

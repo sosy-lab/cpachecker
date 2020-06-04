@@ -260,21 +260,31 @@ public class SlicingAbstractionsUtils {
   }
 
   /**
+   * Create a path formula for a part of the ARG.
+   *
    * @param start The (abstraction) state to start at
-   * @param stop The (abstraction) state to end at
-   *        (has to be reachable via non-abstraction states from start!)
-   * @param pSSAMap The SSAMap to start with
-   *        (needed e.g. for building sequences of PathFormulas, see {@link SlicingAbstractionsBlockFormulaStrategy}
+   * @param stop The (abstraction) state to end at (has to be reachable via non-abstraction states
+   *     from start!)
+   * @param pSSAMap The SSAMap to start with (needed e.g. for building sequences of PathFormulas,
+   *     see {@link SlicingAbstractionsBlockFormulaStrategy}
    * @param pSolver solver object that provides the formula manager
    * @param pPfmgr {@link PathFormulaManager} for making PathFormulas from {@link CFAEdge}s
-   * @param withInvariants whether to include the abstraction formulas of start and stop (with the right SSA indices)
+   * @param withInvariants whether to include the abstraction formulas of start and stop (with the
+   *     right SSA indices)
    * @return generated PathFormula
    * @throws CPATransferException building the {@link PathFormula} from {@link CFAEdge}s failed
-   * @throws InterruptedException building the {@link PathFormula} from {@link CFAEdge}s got interrupted
+   * @throws InterruptedException building the {@link PathFormula} from {@link CFAEdge}s got
+   *     interrupted
    */
-  public static PathFormula buildPathFormula(ARGState start, ARGState stop,
-      SSAMap pSSAMap, PointerTargetSet pPts, Solver pSolver, PathFormulaManager pPfmgr, boolean withInvariants)
-          throws CPATransferException, InterruptedException {
+  public static PathFormula buildPathFormula(
+      ARGState start,
+      ARGState stop,
+      SSAMap pSSAMap,
+      PointerTargetSet pPts,
+      Solver pSolver,
+      PathFormulaManager pPfmgr,
+      boolean withInvariants)
+      throws CPATransferException, InterruptedException {
     List<ARGState> segmentList = SlicingAbstractionsUtils.calculateOutgoingSegments(start).get(stop);
     if (segmentList == null) {
       segmentList = ImmutableList.of();

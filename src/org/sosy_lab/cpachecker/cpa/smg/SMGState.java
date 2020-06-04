@@ -391,9 +391,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return plotter.smgAsDot(heap, pName, pLocation, explicitValues);
   }
 
-  /**
-   * @return A string representation of the SMGState.
-   */
+  /** Return a string representation of the SMGState. */
   @Override
   public String toString() {
     String parent =

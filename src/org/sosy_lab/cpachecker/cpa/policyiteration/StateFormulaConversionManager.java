@@ -155,13 +155,9 @@ public class StateFormulaConversionManager {
         fmgr, state.getBackpointerState(), true));
   }
 
-  /**
-   * @return Representation of an {@code abstractState} as a
-   * {@link PolicyIntermediateState}.
-   */
+  /** Return representation of an {@code abstractState} as a {@link PolicyIntermediateState}. */
   PolicyIntermediateState abstractStateToIntermediate(
-      PolicyAbstractedState abstractState,
-      boolean attachExtraInvariant) {
+      PolicyAbstractedState abstractState, boolean attachExtraInvariant) {
     CFANode node = abstractState.getNode();
     PathFormula generatingFormula = getPathFormula(abstractState,
         fmgr, attachExtraInvariant
@@ -171,9 +167,10 @@ public class StateFormulaConversionManager {
   }
 
   /**
+   * Return starting {@code PathFormula} associated with {@code abstractState}. Does not include the
+   * constraints.
+   *
    * @param attachExtraInvariant Whether the extra invariant should be attached.
-   * @return Starting {@code PathFormula} associated with {@code abstractState}. Does not include
-   *     the constraints.
    */
   PathFormula getPathFormula(
       PolicyAbstractedState abstractState,

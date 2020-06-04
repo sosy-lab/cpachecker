@@ -235,9 +235,7 @@ public class PolicyInterpolationRefiner implements Refiner {
     }
   }
 
-  /**
-   * @return All instantiated variables mentioned in templates associated with {@code pState}.
-   */
+  /** Return all instantiated variables mentioned in templates associated with {@code pState}. */
   private Set<String> getRelevantInstantiatedVars(PolicyAbstractedState pState) {
     return pState
         .getAbstraction()

@@ -97,13 +97,11 @@ class PolicyReducer implements Reducer {
   }
 
   /**
-   * @return Whether the {@code t} is bound to a single value (from above and below) in {@code
+   * Return whether the {@code t} is bound to a single value (from above and below) in {@code
    * abstraction}, and current template is an upper bound.
    */
   private boolean isUpperBoundOnEquality(
-      Template t,
-      PolicyBound bound,
-      Map<Template, PolicyBound> abstraction) {
+      Template t, PolicyBound bound, Map<Template, PolicyBound> abstraction) {
 
     if (t.getKind() != Kind.UPPER_BOUND) {
       return false;

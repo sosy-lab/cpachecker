@@ -227,6 +227,8 @@ public abstract class PredicateAbstractState
   }
 
   /**
+   * Mark this state as merged with another state.
+   *
    * @param pMergedInto the state that should be set as merged
    */
   void setMergedInto(PredicateAbstractState pMergedInto) {
