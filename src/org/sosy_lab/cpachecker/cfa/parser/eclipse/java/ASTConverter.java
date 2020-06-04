@@ -40,6 +40,7 @@ import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -1113,9 +1114,9 @@ class ASTConverter {
 
     // Do not return immutable list!
     if (pType instanceof JSimpleType) {
-      ArrayList<JType> list = new ArrayList<>(1);
-      list.add(pType);
-      return list;
+      Set<JType> set = new HashSet<>();
+      set.add(pType);
+      return new ArrayList<>(set);
     }
 
     assert pType instanceof JInterfaceType || pType instanceof JClassType
@@ -1139,7 +1140,8 @@ class ASTConverter {
       JIdExpression pLeftOperand,
       List<JType> pConcreteTypes,
       JType pExpressionType,
-      FileLocation pLocation, boolean isRightOperandArray) {
+      FileLocation pLocation,
+      boolean isRightOperandArray) {
 
     final JType firstElement = pConcreteTypes.remove(FIRST);
     if (!(firstElement instanceof JClassType)) {
@@ -1147,9 +1149,10 @@ class ASTConverter {
         return firstElement.equals(pLeftOperand.getExpressionType())
             ? new JBooleanLiteralExpression(pLocation, true)
             : new JBooleanLiteralExpression(pLocation, false);
-      } else
+      } else {
         throw new CFAGenerationRuntimeException(
             "Arguments for instance of must be reference type or null type");
+      }
     }
     JExpression currentCondition =
         convertClassRunTimeCompileTimeAccord(pLocation, pLeftOperand, (JClassType) firstElement);
