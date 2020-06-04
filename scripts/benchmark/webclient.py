@@ -38,6 +38,7 @@ from benchexec.util import get_files
 
 try:
     import sseclient  # @UnresolvedImport
+
     HAS_SSECLIENT = True
 except ImportError:
     HAS_SSECLIENT = False
