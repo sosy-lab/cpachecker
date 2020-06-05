@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.T
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 
 public class TarantulaRanking {
   private final SafeCase safeCase;
@@ -75,7 +76,6 @@ public class TarantulaRanking {
     int totalErrorPaths = errorPaths.size();
     Map<FaultContribution, TarantulaCasesStatus> coverage =
         coverageInformation.getCoverageInformation(safePaths, errorPaths);
-
     List<Fault> faults = new ArrayList<>();
 
     coverage.forEach(
@@ -90,9 +90,15 @@ public class TarantulaRanking {
           if (pFaultContribution.correspondingEdge().getLineNumber() != 0) {
             Fault fault = new Fault(pFaultContribution);
             fault.setScore(suspicious);
+            fault.addInfo(
+                FaultInfo.hint(
+                    "Unknown potential fault: "
+                        + pFaultContribution.correspondingEdge().getDescription()));
+
             faults.add(fault);
           }
         });
+
     return sortingByScoreReversed(faults);
   }
 
