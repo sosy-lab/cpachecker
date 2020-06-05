@@ -92,7 +92,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
 
-  //private final CFA cfa;
+  private final CFA cfa;
 
   public IMCAlgorithm(
       Algorithm pAlgorithm,
@@ -120,7 +120,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     pConfig.inject(this);
 
     cpa = pCPA;
-    //cfa = pCFA;
+    cfa = pCFA;
     algorithm = pAlgorithm;
 
     @SuppressWarnings("resource")
@@ -154,9 +154,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    */
   private AlgorithmStatus interpolationModelChecking(final ReachedSet pReachedSet)
       throws CPAException, SolverException, InterruptedException {
-//    if (!(cfa.getAllLoopHeads().isPresent() && cfa.getAllLoopHeads().orElseThrow().size() <= 1)) {
-//      throw new CPAException("Multi-loop programs are not supported yet");
-//    }
+    if (!(cfa.getAllLoopHeads().isPresent() && cfa.getAllLoopHeads().orElseThrow().size() <= 1)) {
+      throw new CPAException("Multi-loop programs are not supported yet");
+    }
 
     logger.log(Level.FINE, "Performing interpolation-based model checking");
     PathFormula prefixFormula = pmgr.makeEmptyPathFormula();
