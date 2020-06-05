@@ -26,7 +26,7 @@ int main(){
 	i2.left = 1;
 	i2.right = 3;
 
-	if(compare(&i1, &i2) == 0){
+	if(compare(&i1, &i2)){
 		goto ERROR;
 	}
 	

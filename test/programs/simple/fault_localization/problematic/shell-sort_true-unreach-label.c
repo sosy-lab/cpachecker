@@ -1,6 +1,3 @@
-#include <stdlib.h>
-#include <stdio.h>
-
 static void shell_sort(int a[], int size) {
 	int i, j;
 	int h = 1;
