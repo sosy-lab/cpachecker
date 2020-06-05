@@ -170,6 +170,10 @@ analysis.algorithm.CBMC = false
 # Currently all refiner require the use of the ARGCPA.
 analysis.algorithm.CEGAR = false
 
+# use McMillan's interpolation-based model checking algorithm, works only
+# with PredicateCPA and large-block encoding
+analysis.algorithm.IMC = false
+
 # Use MPI for running analyses in new subprocesses. The resulting reachedset
 # is the one of the first analysis returning in time. All other mpi-processes
 # will get aborted.
@@ -3207,6 +3211,12 @@ heuristicSelection.preAnalysisAlgorithmConfig = no default value
 
 # Configuration for programs containing recursion.
 heuristicSelection.recursionConfig = no default value
+
+# toggle deriving the interpolants from suffix formulas
+imc.deriveInterpolantFromSuffix = false
+
+# try using interpolation to verify programs with loops
+imc.interpolation = false
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true

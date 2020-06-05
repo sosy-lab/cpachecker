@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.core.algorithm.SelectionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.TestCaseGeneratorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
@@ -134,6 +135,13 @@ public class CoreComponentsFactory {
       description="use a BMC like algorithm that checks for satisfiability "
         + "after the analysis has finished, works only with PredicateCPA")
   private boolean useBMC = false;
+
+  @Option(
+    secure = true,
+    name = "algorithm.IMC",
+    description = "use McMillan's interpolation-based model checking algorithm, "
+        + "works only with PredicateCPA and large-block encoding")
+  private boolean useIMC = false;
 
   @Option(secure=true, name="algorithm.impact",
       description="Use McMillan's Impact algorithm for lazy interpolation")
@@ -328,7 +336,7 @@ public class CoreComponentsFactory {
         && !useRestartingAlgorithm
         && !useImpactAlgorithm
         && !runCBMCasExternalTool
-        && useBMC;
+        && (useBMC || useIMC);
   }
 
   public Algorithm createAlgorithm(
@@ -456,6 +464,21 @@ public class CoreComponentsFactory {
         verifyNotNull(shutdownManager);
         algorithm =
             new BMCAlgorithm(
+                algorithm,
+                cpa,
+                config,
+                logger,
+                reachedSetFactory,
+                shutdownManager,
+                cfa,
+                specification,
+                aggregatedReachedSets);
+      }
+
+      if (useIMC) {
+        verifyNotNull(shutdownManager);
+        algorithm =
+            new IMCAlgorithm(
                 algorithm,
                 cpa,
                 config,
