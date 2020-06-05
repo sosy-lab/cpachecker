@@ -15,7 +15,7 @@ SPDX-License-Identifier: Apache-2.0
         
     <pydev_pathproperty name="org.python.pydev.PROJECT_EXTERNAL_SOURCE_PATH">
                 
-        <path>/home/wendler/git/cpachecker/lib/python-benchmark/BenchExec-2.6-py3-none-any.whl</path>
+        <path>/home/wendler/git/cpachecker/lib/python-benchmark/BenchExec-2.7-py3-none-any.whl</path>
             
     </pydev_pathproperty>
         
