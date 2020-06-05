@@ -1,28 +1,12 @@
 #!/usr/bin/env python3
 
-"""
-CPAchecker is a tool for configurable software verification.
-This file is part of CPAchecker.
-
-Copyright (C) 2007-2018  Dirk Beyer
-All rights reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-
-CPAchecker web page:
-  http://cpachecker.sosy-lab.org
-"""
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
 
 import sys
 import os
@@ -66,9 +50,9 @@ RESULT_REJECT = "TRUE"
 RESULT_UNK = "UNKNOWN"
 
 # Regular expressions used to match given specification properties
-REGEX_REACH = re.compile("G\s*!\s*call\(\s*__VERIFIER_error\(\)\s*\)")
-REGEX_OVERFLOW = re.compile("G\s*!\s*overflow")
-_REGEX_MEM_TEMPLATE = "G\s*valid-%s"
+REGEX_REACH = re.compile(r"G\s*!\s*call\(\s*__VERIFIER_error\(\)\s*\)")
+REGEX_OVERFLOW = re.compile(r"G\s*!\s*overflow")
+_REGEX_MEM_TEMPLATE = r"G\s*valid-%s"
 REGEX_MEM_FREE = re.compile(_REGEX_MEM_TEMPLATE % "free")
 REGEX_MEM_DEREF = re.compile(_REGEX_MEM_TEMPLATE % "deref")
 REGEX_MEM_MEMTRACK = re.compile(_REGEX_MEM_TEMPLATE % "memtrack")
@@ -368,7 +352,7 @@ def analyze_result(test_result, harness, specification):
         The verdict is one of RESULT_ACCEPT, RESULT_REJECT and RESULT_UNK.
         The violated property is one element of the given specification.
     """
-    results_and_violated_props = list()
+    results_and_violated_props = []
 
     def check(code, err_msg, spec_property):
         results_and_violated_props.append(
@@ -449,9 +433,9 @@ def get_spec(specification_file):
     with open(specification_file, "r") as inp:
         content = inp.read().strip()
 
-    specification = list()
+    specification = []
     spec_matches = re.match(
-        "CHECK\(\s*init\(.*\),\s*LTL\(\s*(.+)\s*\)\\r*\\n*", content
+        r"CHECK\(\s*init\(.*\),\s*LTL\(\s*(.+)\s*\)\\r*\\n*", content
     )
     if spec_matches:
         for spec, regex in SPECIFICATIONS.items():

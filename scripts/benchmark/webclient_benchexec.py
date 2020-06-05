@@ -1,29 +1,10 @@
-"""
-CPAchecker is a tool for configurable software verification.
-This file is part of CPAchecker.
-
-Copyright (C) 2007-2015  Dirk Beyer
-All rights reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-
-CPAchecker web page:
-  http://cpachecker.sosy-lab.org
-"""
-
-# prepare for Python 3
-from __future__ import absolute_import, division, print_function, unicode_literals
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
 
 import collections
 import sys
@@ -42,7 +23,14 @@ from concurrent.futures import as_completed
 
 import benchexec
 from . import util
-from .webclient import *  # @UnusedWildImport
+from .webclient import (
+    WebInterface,
+    WebClientError,
+    handle_result,
+    CORELIMIT,
+    MEMLIMIT,
+    RESULT_FILE_STDERR,
+)
 
 """
 This module provides a BenchExec integration for the web interface of the VerifierCloud.
@@ -271,7 +259,6 @@ def _unzip_and_handle_result(zip_content, run, output_handler, benchmark):
 
     def _handle_run_info(values):
         result_values.update(util.parse_vcloud_run_result(values.items()))
-        return None
 
     def _handle_host_info(values):
         host = values.pop("name", "-")

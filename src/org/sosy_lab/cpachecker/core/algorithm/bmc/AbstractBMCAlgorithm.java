@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -116,8 +101,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.BasicProverEnvironment;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -367,8 +354,7 @@ abstract class AbstractBMCAlgorithm
 
     AlgorithmStatus status;
 
-    try (ProverEnvironmentWithFallback prover =
-        new ProverEnvironmentWithFallback(solver, ProverOptions.GENERATE_MODELS)) {
+    try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       invariantGeneratorHeadStart.waitForInvariantGenerator();
 
       do {
@@ -611,7 +597,7 @@ abstract class AbstractBMCAlgorithm
 
   protected boolean boundedModelCheck(
       final ReachedSet pReachedSet,
-      final ProverEnvironmentWithFallback pProver,
+      final BasicProverEnvironment<?> pProver,
       CandidateInvariant pCandidateInvariant)
       throws CPATransferException, InterruptedException, SolverException {
     return boundedModelCheck((Iterable<AbstractState>) pReachedSet, pProver, pCandidateInvariant);
@@ -619,7 +605,7 @@ abstract class AbstractBMCAlgorithm
 
   private boolean boundedModelCheck(
       Iterable<AbstractState> pReachedSet,
-      ProverEnvironmentWithFallback pProver,
+      BasicProverEnvironment<?> pProver,
       CandidateInvariant pCandidateInvariant)
       throws CPATransferException, InterruptedException, SolverException {
     BooleanFormula program = bfmgr.not(pCandidateInvariant.getAssertion(pReachedSet, fmgr, pmgr));
@@ -646,7 +632,7 @@ abstract class AbstractBMCAlgorithm
 
   private boolean refineCtiBlockingClauses(
       ReachedSet pReachedSet,
-      ProverEnvironmentWithFallback pProver,
+      BasicProverEnvironment<?> pProver,
       Set<Obligation> pCtiBlockingClauses,
       Map<SymbolicCandiateInvariant, BmcResult> pCheckedClauses)
       throws CPATransferException, InterruptedException, SolverException {
@@ -751,7 +737,7 @@ abstract class AbstractBMCAlgorithm
   protected void analyzeCounterexample(
       final BooleanFormula pCounterexample,
       final ReachedSet pReachedSet,
-      final ProverEnvironmentWithFallback pProver)
+      final BasicProverEnvironment<?> pProver)
       throws CPATransferException, InterruptedException {
     // by default, do nothing (just a hook for subclasses)
   }
@@ -771,7 +757,7 @@ abstract class AbstractBMCAlgorithm
    * @throws InterruptedException if the satisfiability check is interrupted.
    */
   private boolean checkBoundingAssertions(
-      final ReachedSet pReachedSet, final ProverEnvironmentWithFallback prover)
+      final ReachedSet pReachedSet, final BasicProverEnvironment<?> prover)
       throws SolverException, InterruptedException {
     FluentIterable<AbstractState> stopStates =
         from(pReachedSet)

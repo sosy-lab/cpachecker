@@ -1,3 +1,11 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 include: /build/gitlab-ci.yml
 
 variables:
@@ -6,13 +14,7 @@ variables:
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
   REFASTER_REPO_REVISION: 1c7b66df1ee6460c3a7b04bc4495f440a093ece7
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
-  REFASTER_VERSION: 2.3.4
-
-
-build:jdk-14:
-  variables:
-    # https://github.com/google/error-prone/issues/1106
-    ANT_PROPS_BUILD: "-Divy.disable=true -Derrorprone.disable=true"
+  REFASTER_VERSION: 2.4.0
 
 
 .binary_check: &binary_check
@@ -143,7 +145,7 @@ javascript-e2e-tests:
   image: ${CI_REGISTRY_IMAGE}/test:java-node
   before_script:
       # generate example report
-    - scripts/cpa.sh -predicateAnalysis test/programs/simple/SSAMap-bug_false-unreach-label.c
+    - scripts/cpa.sh -predicateAnalysis test/programs/simple/SSAMap-bug.c
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
     - npm install
     - "./node_modules/protractor/node_modules/webdriver-manager/bin/webdriver-manager update --versions.chrome $(dpkg-query --showformat='${Version}' --show chromium-browser)"
@@ -157,7 +159,6 @@ javascript-e2e-tests:
       - output/Counterexample.1.html
       - src/org/sosy_lab/cpachecker/core/counterexample/e2e-tests-report
     when: always
-  allow_failure: true # tests are currently racy (cf. #520)
 
 
 # Checks for Python code
@@ -178,7 +179,6 @@ flake8:
     - pip install flake8-awesome
   script:
     - flake8
-  allow_failure: true # need to fix existing code first
 
 
 build-tar:
@@ -209,6 +209,11 @@ deploy-docker:
   only:
     refs:
       - trunk
+
+
+# Not yet finished
+reuse:
+  allow_failure: True
 
 
 # No coverage is computed for CPAchecker

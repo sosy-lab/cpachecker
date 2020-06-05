@@ -1,6 +1,14 @@
 # This is an auto-generated file, DO NOT EDIT!
 # Run ant to generate it.
 
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # Possible log levels in descending order 
 # (lower levels include higher ones):
 # OFF:      no logs published
@@ -45,6 +53,7 @@ output.path = "output/"
 # base directory for all input & output files
 # (except for the configuration file itself)
 rootDirectory = "."
+
 
 # Further options for Boolector in addition to the default options. Format: 
 # "Optionname=value" with ’,’ to seperate options. Optionname and value can
@@ -131,6 +140,11 @@ solver.z3.requireProofs = true
 # Whether to use PhantomReferences for discarding Z3 AST
 solver.z3.usePhantomReferences = false
 
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # Refiner that SlicingDelegatingRefiner should delegate to
 SlicingDelegatingRefiner.refiner = no default value
 
@@ -156,8 +170,8 @@ analysis.algorithm.CBMC = false
 # Currently all refiner require the use of the ARGCPA.
 analysis.algorithm.CEGAR = false
 
-# use an interpolation-based algorithm that checks for satisfiability after
-# the analysis has finished, works only with PredicateCPA
+# use McMillan's interpolation-based model checking algorithm, works only
+# with PredicateCPA and large-block encoding
 analysis.algorithm.IMC = false
 
 # Use MPI for running analyses in new subprocesses. The resulting reachedset
@@ -600,14 +614,8 @@ bmc.boundingAssertionsSlicing = false
 # discovered, which is done if cpa.predicate.targetStateSatCheck=true.
 bmc.checkTargetStates = true
 
-# toggle deriving the interpolants from suffix formulas
-bmc.deriveInterpolantFromSuffix = false
-
 # try using induction to verify programs with loops
 bmc.induction = false
-
-# try using interpolation to verify programs with loops
-bmc.interpolation = false
 
 # Strategy for generating auxiliary invariants
 bmc.invariantGenerationStrategy = REACHED_SET
@@ -1691,6 +1699,16 @@ cpa.lock.stopAfterLockLimit = false
 cpa.lock.stopMode = DEFAULT
   enum:     [DEFAULT, EMPTYLOCKSET]
 
+# Only checks for targets after loops were unrolled exactly a number of times
+# that is contained in this list. The default is an empty list, which means
+# targets are checked in every iteration
+cpa.loopbound.checkOnlyAtBounds = []
+
+# Use a stop operator that will identify loop states who's depth is congruent
+# regarding the modulus of this number. Values smaller or equal to zero will
+# deactivate this feature.
+cpa.loopbound.cyclicStopModulus = -1
+
 # Number of loop iterations before the loop counter is abstracted. Zero is
 # equivalent to no limit.
 cpa.loopbound.loopIterationsBeforeAbstraction = 0
@@ -1711,7 +1729,7 @@ cpa.loopbound.maxLoopIterations = 0
 # adjuster.
 cpa.loopbound.maxLoopIterationsUpperBound = 0
 
-# Only checks for errror after loops were unrolled at least this amount of
+# Only checks for error after loops were unrolled at least this amount of
 # times.
 cpa.loopbound.startAtBound = 0
 
@@ -3193,6 +3211,12 @@ heuristicSelection.preAnalysisAlgorithmConfig = no default value
 
 # Configuration for programs containing recursion.
 heuristicSelection.recursionConfig = no default value
+
+# toggle deriving the interpolants from suffix formulas
+imc.deriveInterpolantFromSuffix = false
+
+# try using interpolation to verify programs with loops
+imc.interpolation = false
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true

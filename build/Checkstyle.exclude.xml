@@ -1,4 +1,15 @@
 <?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 <!DOCTYPE suppressions PUBLIC "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN" "https://checkstyle.org/dtds/suppressions_1_2.dtd">
 
 <suppressions>
@@ -6,7 +17,6 @@
   <!-- The following packages are unmaintained -->
   <suppress files="/cpa/cfapath/" checks=".*"/>
   <suppress files="/cpa/chc/" checks=".*"/>
-  <suppress files="/cpa/ldd/" checks=".*"/>
   <suppress files="/cpa/statistics/" checks=".*"/>
 
   <!-- Non-suppressible warnings that do not apply to this class -->

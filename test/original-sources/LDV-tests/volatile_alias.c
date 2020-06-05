@@ -1,3 +1,11 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 // Bug #260 - int is not aliased with volatile int
 // RESULT: yes, it flows through.
 
