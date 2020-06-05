@@ -230,7 +230,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     Set<BooleanFormula> conjunctions = bmgr.toConjunctionArgs(interval.invariant, true);
     for(BooleanFormula f: conjunctions){
       if (!f.toString().contains("_ADDRESS_OF")){
-        helpfulFormulas.add(ExpressionConverter.convert(fmgr.uninstantiate(f)).trim());
+        helpfulFormulas.add(formulaContext.getConverter().convert(fmgr.uninstantiate(f)).trim());
       } else {
         List<String> findName = Splitter.on("__ADDRESS_OF_").splitToList(f.toString());
         if (findName.size() > 1) {
@@ -240,7 +240,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
             continue;
           }
         }
-        helpfulFormulas.add(ExpressionConverter.convert(fmgr.uninstantiate(f)));
+        helpfulFormulas.add(formulaContext.getConverter().convert(fmgr.uninstantiate(f)));
       }
     }
     return "<ul><li>"  + helpfulFormulas.stream().distinct().map(s -> s.replaceAll("@", "")).collect(Collectors.joining(" </li><li> ")) + "</li></ul>";
@@ -375,7 +375,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
       if (this == pO) {
         return true;
       }
-      if (pO == null || getClass() != pO.getClass()) {
+      if (pO == null || !(pO instanceof MemorizeInterpolant)) {
         return false;
       }
       MemorizeInterpolant memorizeInterpolant = (MemorizeInterpolant) pO;

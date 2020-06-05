@@ -102,7 +102,7 @@ public class ForwardPreConditionRanking implements FaultRanking {
         BooleanFormula atom = traceFormula.getAtom(i);
         if(atom.toString().contains(entry.getKey())){
           atom = context.getSolver().getFormulaManager().uninstantiate(atom);
-          String assignment = ExpressionConverter.convert(atom.toString().replaceAll(entry.getKey(), entry.getValue()));
+          String assignment = context.getConverter().convert(atom.toString().replaceAll(entry.getKey(), entry.getValue()));
           assignments.add(assignment);
         }
       }

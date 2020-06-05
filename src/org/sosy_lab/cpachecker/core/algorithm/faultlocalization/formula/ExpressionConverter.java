@@ -26,10 +26,23 @@ package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula;
 import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.Map;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
+@Options(prefix="exprconv")
 public class ExpressionConverter {
+
+  @Option(secure=true, name="niceexpr",
+      description="transform boolean formulas")
+  private boolean niceExpressions = false;
+
+  public ExpressionConverter(Configuration pConfig) throws InvalidConfigurationException {
+    pConfig.inject(this);
+  }
 
   /**
    * Converts every string which matches: expr = ('binary_operator' expr expr) | ('unary_operator'
@@ -39,7 +52,10 @@ public class ExpressionConverter {
    * @param input input-string in pre-order
    * @return infix notation of input
    */
-  public static String convert(String input) {
+  public String convert(String input) {
+    if(!niceExpressions) {
+      return input;
+    }
     input = input.replaceAll("\\*", "p_");
     int exp = 0;
     Map<String, String> expressions = new HashMap<>();
@@ -112,15 +128,15 @@ public class ExpressionConverter {
     return input;
   }
 
-  public static String convert(PathFormula formula) {
+  public String convert(PathFormula formula) {
     return convert(formula.toString());
   }
 
-  public static String convert(BooleanFormula formula) {
+  public String convert(BooleanFormula formula) {
     return convert(formula.toString());
   }
 
-  private static String convertOperator(String operator) {
+  private String convertOperator(String operator) {
     if (operator.startsWith("=")) {
       return "=";
     }

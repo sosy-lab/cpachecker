@@ -75,28 +75,15 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface, Sta
     totalTime.start();
     while(minUnsatCore.size() != numberSelectors){
       minUnsatCore = getMinUnsatCore(soft, tf, hard);
-      /* Subsets of size 1 cannot be added to the hard set.
-         Assume that pre & implicForm & S1 is unsat.
-         Adding S1 to the hard set would make the formula pre & implicForm & hardSet unsat.
-         No new minimal subset can be found.
-         The correct handling of subsets of size 1 is to remove them from the soft set and later add
-         them to the hard set. */
       if (minUnsatCore.size() == 1) {
         soft.removeAll(minUnsatCore);
-        singletons.add(minUnsatCore);
         numberSelectors = soft.size();
-      } else {
-        //Otherwise the whole set would always be in the result set.
-        if(minUnsatCore.size() == numberSelectors && singletons.isEmpty() && !hard.isEmpty()){
-          break;
-        }
+      }
+      if(minUnsatCore.size() != tf.getRelevantSelectors().size()) {
         hard.add(minUnsatCore);
       }
     }
     totalTime.stop();
-
-    hard.addAll(singletons);
-
     return hard;
   }
 
@@ -116,8 +103,7 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface, Sta
     BooleanFormula composedFormula =
         bmgr.and(
             pTraceFormula.getPreCondition(),
-            pTraceFormula.getImplicationForm(),
-            hardSetFormula(pHardSet));
+            pTraceFormula.getImplicationForm());
     boolean changed;
     do {
       changed = false;
@@ -126,9 +112,7 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface, Sta
         Fault copy = new Fault(new HashSet<>(result));
         copy.remove(s);
         if (!isSubsetOrSupersetOf(copy, pHardSet)) {
-          unsatCalls.inc();
-
-          if (solver.isUnsat(bmgr.and(composedFormula, adaptedPostCondition(copy, pTraceFormula), softSetFormula(copy)))) {
+          if (solver.isUnsat(bmgr.and(composedFormula, softSetFormula(copy)))) {
             changed = true;
             result.remove(s);
             break;
@@ -137,15 +121,6 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface, Sta
       }
     } while (changed);
     return new Fault(result);
-  }
-
-  private BooleanFormula adaptedPostCondition(Fault set, TraceFormula tf) {
-    //Find better way, index of is bad.
-    int max = set.stream().mapToInt(fc -> tf.getSelectors().indexOf(fc)).max().orElse(0);
-    BooleanFormula postcond = tf.getPostCondition();
-    postcond = solver.getFormulaManager().uninstantiate(postcond);
-    postcond = solver.getFormulaManager().instantiate(postcond, tf.getSsaMap(max+1)); // index 0 is precond so real indexing starts at one
-    return postcond;
   }
 
   private boolean isSubsetOrSupersetOf(Fault pSet, Set<Fault> pHardSet) {
@@ -161,17 +136,18 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface, Sta
     return softSet.stream().map(f -> ((Selector)f).getFormula()).collect(bmgr.toConjunction());
   }
 
-  /**
+  /*
    * Creates the formula (a1 or a2 or a3) and (b1 or b2) ... for the input [[a1,a2,a3],[b1,b2]]
    *
    * @param hardSet the current hard set
    * @return conjunction of the disjunction of the sets
-   */
+
   private BooleanFormula hardSetFormula(Set<Fault> hardSet) {
     return hardSet.stream()
         .map(l -> l.stream().map(f -> ((Selector)f).getFormula()).collect(bmgr.toDisjunction()))
         .collect(bmgr.toConjunction());
   }
+   */
 
   @Override
   public void printStatistics(
@@ -182,6 +158,6 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface, Sta
 
   @Override
   public @Nullable String getName() {
-    return "Max-Sat algorithm";
+    return "MAX-SAT algorithm";
   }
 }

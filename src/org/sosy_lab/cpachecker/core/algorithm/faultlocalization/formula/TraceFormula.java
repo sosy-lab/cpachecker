@@ -100,9 +100,9 @@ public class TraceFormula {
 
     @Option(
         secure = true,
-        name = "uniqueSelectors",
+        name = "reducedselectors",
         description = "equal statements on the same line get the same selector")
-    private boolean distinctSelectors = false;
+    private boolean reduceSelectors = false;
 
     public TraceFormulaOptions(Configuration pConfiguration) throws InvalidConfigurationException {
       pConfiguration.inject(this);
@@ -154,7 +154,7 @@ public class TraceFormula {
   }
 
   public List<Selector> getRelevantSelectors() {
-    if (options.distinctSelectors) {
+    if (options.reduceSelectors) {
       return distinctSelectors;
     }
     return entries.selectors;
@@ -218,7 +218,7 @@ public class TraceFormula {
       isAlwaysUnsat = true;
     }
 
-    if (options.distinctSelectors) {
+    if (options.reduceSelectors) {
       Map<String, List<Selector>> friends =
           getSelectors().stream()
               .collect(Collectors.groupingBy(s -> s.correspondingEdge().getDescription()));
@@ -237,7 +237,7 @@ public class TraceFormula {
             .map(a -> bmgr.implication(Selector.of(a).orElseThrow().getFormula(), a))
             .collect(bmgr.toConjunction());
     actualForm = bmgr.and(bmgr.and(entries.atoms), postcondition);
-    implicationForm = implicationFormula;//bmgr.and(implicationFormula, postcondition);
+    implicationForm = bmgr.and(implicationFormula, postcondition);
   }
 
   private void calculateEntries(AlternativePrecondition altPre) throws CPATransferException, InterruptedException {
@@ -274,19 +274,19 @@ public class TraceFormula {
       }
     }
 
-    // enable banned selectors
+    // disable banned selectors
     if (!options.ban.isEmpty()) {
       List<String> banned = Splitter.on(",").splitToList(options.ban);
       for (int i = 0; i < entries.size(); i++) {
         String formulaString = entries.atoms.get(i).toString();
         Selector selector = entries.selectors.get(i);
-        for (String s : banned) {
-          if (s.contains("::")) {
-            if (formulaString.contains(s)) {
+        for (String ban : banned) {
+          if (ban.contains("::")) {
+            if (formulaString.contains(ban)) {
               selector.disable();
             }
           } else {
-            if (formulaString.contains("::" + s)) {
+            if (formulaString.contains("::" + ban)) {
               selector.disable();
             }
           }
@@ -302,28 +302,12 @@ public class TraceFormula {
     BooleanFormula precond = bmgr.makeTrue();
     try (ProverEnvironment prover = context.getProver()) {
       prover.push(bmgr.and(bmgr.and(entries.atoms), bmgr.and(negate)));
+
       if (!prover.isUnsat()) {
         for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
           BooleanFormula formula = modelAssignment.getAssignmentAsFormula();
           if(formula.toString().contains("__VERIFIER_nondet")){
             precond = bmgr.and(precond, formula);
-
-            //Enable selector corresponding to this formula.
-            String nondetString ="";
-            for(String symbol: Splitter.on(" ").split(formula.toString())){
-              if (symbol.contains("__VERIFIER_nondet")){
-                nondetString = symbol;
-                break;
-              }
-            }
-            for (int i = 0; i < entries.size(); i++) {
-              String formulaString = entries.atoms.get(i).toString();
-              Selector selector = entries.selectors.get(i);
-              if(formulaString.contains(nondetString)){
-                selector.enable();
-              }
-            }
-
           }
         }
       } else {
@@ -419,13 +403,13 @@ public class TraceFormula {
       if(!pEdge.getEdgeType().equals(CFAEdgeType.DeclarationEdge)){
         return false;
       }
-      for (String s : ignore) {
-        if(s.contains("::")){
-          if(formula.toString().contains(s + "@")) {
+      for (String ign : ignore) {
+        if(ign.contains("::")){
+          if(formula.toString().contains(ign + "@")) {
             return false;
           }
         } else {
-          if(formula.toString().contains("::" + s + "@")) {
+          if(formula.toString().contains("::" + ign + "@")) {
             return false;
           }
         }

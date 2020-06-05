@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.ErrorInvariantsA
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.FaultLocalizationAlgorithmInterface;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.MaxSatAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.SingleUnsatCoreAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.ExpressionConverter;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula.TraceFormulaOptions;
@@ -120,6 +121,7 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
     //Options
     pConfig.inject(this);
     options = new TraceFormulaOptions(pConfig);
+    checkOptions();
 
     // Parent algorithm
     algorithm = pStoreAlgorithm;
@@ -135,7 +137,7 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
             pCfa,
             AnalysisDirection.FORWARD);
     bmgr = solver.getFormulaManager().getBooleanFormulaManager();
-    context = new FormulaContext(solver, manager);
+    context = new FormulaContext(solver, manager, new ExpressionConverter(pConfig));
 
     switch (algorithmType){
       case "MAXSAT":
@@ -148,6 +150,19 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
         faultAlgorithm = new SingleUnsatCoreAlgorithm();
         break;
     }
+  }
+
+  public boolean checkOptions(){
+    boolean correctConfiguration = true;
+    if (!algorithmType.equals("ERRINV") && maintainCallHierarchy) {
+      logger.log(Level.SEVERE, "The optiion maintainhierarchy will be ignored since the error invariants algorithm is not selected");
+      correctConfiguration = false;
+    }
+    if (!options.getBan().isBlank() && algorithmType.equals("ERRINV")) {
+      logger.log(Level.SEVERE, "The option ban will be ignored because it is not applicable on the error invariants algorithm");
+      correctConfiguration = false;
+    }
+    return correctConfiguration;
   }
 
   @Override

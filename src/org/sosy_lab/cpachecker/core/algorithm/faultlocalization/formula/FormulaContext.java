@@ -33,11 +33,17 @@ public class FormulaContext {
   private Solver solver;
   private PathFormulaManagerImpl manager;
   private ProverEnvironment prover;
+  private ExpressionConverter converter;
 
-  public FormulaContext(Solver pSolver, PathFormulaManagerImpl pManager) {
+  public FormulaContext(Solver pSolver, PathFormulaManagerImpl pManager, ExpressionConverter pConverter) {
     solver = pSolver;
     manager = pManager;
     prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
+    converter = pConverter;
+  }
+
+  public ExpressionConverter getConverter() {
+    return converter;
   }
 
   public Solver getSolver() {
