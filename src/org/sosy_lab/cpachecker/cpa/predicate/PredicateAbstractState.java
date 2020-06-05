@@ -167,12 +167,7 @@ public abstract class PredicateAbstractState
         throw new AssertionError("Approximation of state was interrupted", e);
       }
       if (invString != null) {
-        if (invString.equals("0")) {
-          return ExpressionTrees.getFalse();
-        }
-        if (!invString.equals("1")) {
-          return LeafExpression.of(invString);
-        }
+        return LeafExpression.of(invString);
       }
       return ExpressionTrees.getTrue(); // no new invariant
     }
