@@ -96,11 +96,8 @@ public class WitnessExporterTest {
   }
 
   @Test(timeout = 90000)
-  public void aws_add_size_checked_harness_true() throws Exception {
-    new WitnessTester(
-            "aws_add_size_checked_harness.i",
-            ExpectedVerdict.TRUE,
-            WitnessGenerationConfig.VALUE_ANALYSIS)
+  public void max_true() throws Exception {
+    new WitnessTester("max.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.VALUE_ANALYSIS)
         .performTest();
   }
 
@@ -162,6 +159,11 @@ public class WitnessExporterTest {
     new WitnessTester(
         "valueInvariant.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.BAM)
         .performTest();
+  }
+
+  @Test(timeout = 90000)
+  public void max_true_2() throws Exception {
+    new WitnessTester("max.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.BAM).performTest();
   }
 
   private static void performTest(
