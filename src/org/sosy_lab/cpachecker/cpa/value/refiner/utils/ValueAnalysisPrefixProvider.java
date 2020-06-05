@@ -47,7 +47,7 @@ public class ValueAnalysisPrefixProvider extends GenericPrefixProvider<ValueAnal
 
     super(
         new ValueAnalysisStrongestPostOperator(pLogger, config, pCfa),
-        new ValueAnalysisState(pCfa.getMachineModel()),
+        new ValueAnalysisState(pCfa.getMachineModel(), null),
         pLogger,
         pCfa,
         config,

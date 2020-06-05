@@ -46,6 +46,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.ConcreteStatePath;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
@@ -76,7 +77,6 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAnalysisPrecision
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
@@ -166,10 +166,6 @@ public class ValueAnalysisCPA extends AbstractCPA
     transferOptions = new ValueTransferOptions(config);
     precisionAdjustmentOptions = new PrecAdjustmentOptions(config, cfa);
     precisionAdjustmentStatistics = new PrecAdjustmentStatistics();
-
-    GlobalInfo.getInstance()
-        .storeAssumptionToEdgeAllocator(
-            AssumptionToEdgeAllocator.create(config, logger, cfa.getMachineModel()));
   }
 
   private MemoryLocationValueHandler createUnknownValueHandler()
@@ -279,7 +275,15 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
-    return new ValueAnalysisState(cfa.getMachineModel());
+    MachineModel machineModel = cfa.getMachineModel();
+    try {
+      AssumptionToEdgeAllocator assumptionToEdgeAllocator =
+          AssumptionToEdgeAllocator.create(config, logger, machineModel);
+      return new ValueAnalysisState(machineModel, assumptionToEdgeAllocator);
+    } catch (InvalidConfigurationException e) {
+      logger.log(Level.WARNING, e, "Could not create instance of AssumptionToEdgeAllocator");
+      return new ValueAnalysisState(machineModel, null);
+    }
   }
 
   @Override

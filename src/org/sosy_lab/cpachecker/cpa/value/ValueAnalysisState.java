@@ -74,7 +74,6 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
-import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -115,24 +114,31 @@ public final class ValueAnalysisState
 
   private final @Nullable MachineModel machineModel;
 
-  public ValueAnalysisState(MachineModel pMachineModel) {
+  private final @Nullable AssumptionToEdgeAllocator assumptionToEdgeAllocator;
+
+  public ValueAnalysisState(
+      MachineModel pMachineModel,
+      @Nullable AssumptionToEdgeAllocator pAssumptionToEdgeAllocator) {
     this(
         checkNotNull(pMachineModel),
-        PathCopyingPersistentTreeMap.of());
+        PathCopyingPersistentTreeMap.of(),
+        pAssumptionToEdgeAllocator);
   }
 
   public ValueAnalysisState(
       Optional<MachineModel> pMachineModel,
       PersistentMap<MemoryLocation, ValueAndType> pConstantsMap) {
-    this(pMachineModel.orElse(null), pConstantsMap);
+    this(pMachineModel.orElse(null), pConstantsMap, null);
   }
 
   private ValueAnalysisState(
       @Nullable MachineModel pMachineModel,
-      PersistentMap<MemoryLocation, ValueAndType> pConstantsMap) {
+      PersistentMap<MemoryLocation, ValueAndType> pConstantsMap,
+      @Nullable AssumptionToEdgeAllocator pAssumptionToEdgeAllocator) {
     machineModel = pMachineModel;
     constantsMap = checkNotNull(pConstantsMap);
     hashCode = constantsMap.hashCode();
+    assumptionToEdgeAllocator = pAssumptionToEdgeAllocator;
   }
 
   private ValueAnalysisState(ValueAnalysisState state) {
@@ -140,6 +146,7 @@ public final class ValueAnalysisState
     constantsMap = checkNotNull(state.constantsMap);
     hashCode = state.hashCode;
     assert hashCode == constantsMap.hashCode();
+    assumptionToEdgeAllocator = state.assumptionToEdgeAllocator;
   }
 
   public static ValueAnalysisState copyOf(ValueAnalysisState state) {
@@ -385,7 +392,7 @@ public final class ValueAnalysisState
     if (newConstantsMap.size() == reachedState.constantsMap.size()) {
       return reachedState;
     } else {
-      return new ValueAnalysisState(machineModel, newConstantsMap);
+      return new ValueAnalysisState(machineModel, newConstantsMap, assumptionToEdgeAllocator);
     }
   }
 
@@ -769,12 +776,9 @@ public final class ValueAnalysisState
   public ExpressionTree<Object> getFormulaApproximation(
       FunctionEntryNode pFunctionScope, CFANode pLocation) {
 
-    if (pLocation.getNumEnteringEdges() == 0) {
+    if (assumptionToEdgeAllocator == null || pLocation.getNumEnteringEdges() == 0) {
       return ExpressionTrees.getTrue();
     }
-
-    AssumptionToEdgeAllocator assumptionToEdgeAllocator =
-        GlobalInfo.getInstance().getAssumptionToEdgeAllocator();
 
     ExpressionTree<Object> invariant = ExpressionTrees.getFalse();
     ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();

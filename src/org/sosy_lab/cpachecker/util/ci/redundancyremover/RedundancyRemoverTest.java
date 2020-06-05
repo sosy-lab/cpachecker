@@ -329,17 +329,17 @@ public class RedundancyRemoverTest {
 
     RedundantRequirementsValueAnalysisStateImplementation valueImpl = new RedundantRequirementsValueAnalysisStateImplementation();
 
-    ValueAnalysisState valState1 = new ValueAnalysisState(machineModel);
+    ValueAnalysisState valState1 = new ValueAnalysisState(machineModel, null);
     NumericValue val1 = new NumericValue(1L);
     valState1.assignConstant(MemoryLocation.valueOf("1"), val1, CNumericTypes.INT);
     //    Truth.assertThat(valueImpl.getAbstractValue(valState1, "1")).isEqualTo(val1); // TODO
 
-    ValueAnalysisState valState2 = new ValueAnalysisState(machineModel);
+    ValueAnalysisState valState2 = new ValueAnalysisState(machineModel, null);
     NumericValue val2 = new NumericValue(7L);
     valState2.assignConstant(MemoryLocation.valueOf("x"), val2, CNumericTypes.INT);
     Truth.assertThat(valueImpl.getAbstractValue(valState2, "x")).isEqualTo(val2);
 
-    ValueAnalysisState valState3 = new ValueAnalysisState(machineModel);
+    ValueAnalysisState valState3 = new ValueAnalysisState(machineModel, null);
     Value val3 = Value.UnknownValue.getInstance();
     valState3.assignConstant(MemoryLocation.valueOf("y"), val3, CNumericTypes.INT);
     Truth.assertThat(valueImpl.getAbstractValue(valState3, "y")).isEqualTo(val3);

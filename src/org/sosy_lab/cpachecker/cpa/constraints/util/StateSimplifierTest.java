@@ -98,7 +98,7 @@ public class StateSimplifierTest {
 
   @Test
   public void testRemoveOutdatedConstraints_allConstraintsOutdated() {
-    final ValueAnalysisState initialValueState = new ValueAnalysisState(machineModel);
+    final ValueAnalysisState initialValueState = new ValueAnalysisState(machineModel, null);
 
     ConstraintsState constraintsState = getSampleConstraints();
 
@@ -154,7 +154,7 @@ public class StateSimplifierTest {
   }
 
   private ValueAnalysisState getCompleteValueState() {
-    ValueAnalysisState state = new ValueAnalysisState(machineModel);
+    ValueAnalysisState state = new ValueAnalysisState(machineModel, null);
 
     state.assignConstant(group1MemLoc1, group1Id1, defaultNumericType);
     state.assignConstant(group1MemLoc2, group1Id2, defaultNumericType);

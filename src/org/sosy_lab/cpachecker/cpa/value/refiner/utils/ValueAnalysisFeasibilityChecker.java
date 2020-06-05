@@ -65,7 +65,7 @@ public class ValueAnalysisFeasibilityChecker
 
     super(
         pStrongestPostOp,
-        new ValueAnalysisState(pCfa.getMachineModel()),
+        new ValueAnalysisState(pCfa.getMachineModel(), null),
         ValueAnalysisCPA.class,
         pLogger,
         config,
@@ -81,7 +81,7 @@ public class ValueAnalysisFeasibilityChecker
 
     try {
       List<Pair<ValueAnalysisState, List<CFAEdge>>> reevaluatedPath = new ArrayList<>();
-      ValueAnalysisState next = new ValueAnalysisState(machineModel);
+      ValueAnalysisState next = new ValueAnalysisState(machineModel, null);
 
       PathIterator iterator = path.fullPathIterator();
       while (iterator.hasNext()) {

@@ -64,7 +64,7 @@ public class SymbolicValueAnalysisFeasibilityChecker
   }
 
   private static ForgettingCompositeState getInitialCompositeState(MachineModel pMachineModel) {
-    final ValueAnalysisState valueState = new ValueAnalysisState(pMachineModel);
+    final ValueAnalysisState valueState = new ValueAnalysisState(pMachineModel, null);
     final ConstraintsState constraintsState = new ConstraintsState();
 
     return new ForgettingCompositeState(valueState, constraintsState);

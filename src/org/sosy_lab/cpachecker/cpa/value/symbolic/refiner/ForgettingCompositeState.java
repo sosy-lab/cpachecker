@@ -45,7 +45,7 @@ public final class ForgettingCompositeState
 
   public static ForgettingCompositeState getInitialState(MachineModel pMachineModel) {
     return new ForgettingCompositeState(
-        new ValueAnalysisState(pMachineModel), new ConstraintsState());
+        new ValueAnalysisState(pMachineModel, null), new ConstraintsState());
   }
 
   /**
