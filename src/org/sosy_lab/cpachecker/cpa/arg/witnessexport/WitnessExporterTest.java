@@ -67,7 +67,9 @@ public class WitnessExporterTest {
 
     PREDICATE_ANALYSIS("predicateAnalysis"),
 
-    VALUE_ANALYSIS("valueAnalysis");
+    VALUE_ANALYSIS("valueAnalysis"),
+
+    BAM("valueAnalysis-predicateAnalysis-bam");
 
     private final String fileName;
 
@@ -152,6 +154,13 @@ public class WitnessExporterTest {
   public void valueInvariant_true() throws Exception {
     new WitnessTester(
         "valueInvariant.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.VALUE_ANALYSIS)
+        .performTest();
+  }
+
+  @Test(timeout = 90000)
+  public void valueInvariant_true_2() throws Exception {
+    new WitnessTester(
+        "valueInvariant.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.BAM)
         .performTest();
   }
 
