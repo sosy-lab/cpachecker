@@ -780,7 +780,7 @@ public final class ValueAnalysisState
       return ExpressionTrees.getTrue();
     }
 
-    ExpressionTree<Object> invariant = ExpressionTrees.getFalse();
+    Set<ExpressionTree<Object>> edgeApproximations = new HashSet<>();
     ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
     ConcreteState concreteState = ValueAnalysisConcreteErrorPathAllocator.createConcreteState(this);
 
@@ -788,15 +788,14 @@ public final class ValueAnalysisState
       CFAEdge edge = pLocation.getEnteringEdge(i);
       Iterable<AExpressionStatement> invariants =
           assumptionToEdgeAllocator.allocateAssumptionsToEdge(edge, concreteState).getExpStmts();
-      ExpressionTree<Object> edgeInvariant = ExpressionTrees.getTrue();
+      Set<ExpressionTree<Object>> edgeInvariants = new HashSet<>();
       for (AExpressionStatement expressionStatement : invariants) {
-        edgeInvariant =
-            factory.and(edgeInvariant, LeafExpression.of(expressionStatement.getExpression()));
+        edgeInvariants.add(LeafExpression.of(expressionStatement.getExpression()));
       }
-      invariant = factory.or(invariant, edgeInvariant);
+      edgeApproximations.add(factory.and(edgeInvariants));
     }
 
-    return invariant;
+    return factory.or(edgeApproximations);
   }
 
   public static class ValueAndType implements Serializable {
