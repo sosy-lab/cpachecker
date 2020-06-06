@@ -63,7 +63,8 @@ module.exports = function (config) {
     plugins: [
       // other plugins
       'karma-htmlfile-reporter',
-      'karma-phantomjs-launcher',
+      'karma-firefox-launcher',
+      'karma-chrome-launcher',
       'karma-jasmine'
     ],
 
@@ -82,7 +83,7 @@ module.exports = function (config) {
 
     // start these browsers
     // available browser launchers: https://npmjs.org/browse/keyword/karma-launcher
-    browsers: ['PhantomJS'],
+    browsers: ['ChromeHeadless', 'FirefoxHeadless'],
 
     // Continuous Integration mode
     // if true, Karma captures browsers, runs the tests and exits
