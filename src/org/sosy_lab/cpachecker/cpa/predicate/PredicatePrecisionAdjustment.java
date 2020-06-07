@@ -10,6 +10,9 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -83,17 +86,19 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     totalPrecTime.start();
     try {
       PredicateAbstractState element = (PredicateAbstractState)pElement;
-      CFANode location = AbstractStates.extractLocation(fullState);
+      final Iterable<CFANode> locations = AbstractStates.extractLocations(fullState);
 
-      if (shouldComputeAbstraction(fullState, location, element)) {
-        PredicatePrecision precision = (PredicatePrecision)pPrecision;
+      for (CFANode location : locations) {
+        if (shouldComputeAbstraction(fullState, location, element)) {
+          PredicatePrecision precision = (PredicatePrecision) pPrecision;
 
-        return computeAbstraction(element, precision, location, fullState);
-      } else {
-        return Optional.of(PrecisionAdjustmentResult.create(
-            element, pPrecision, PrecisionAdjustmentResult.Action.CONTINUE));
+          return computeAbstraction(element, precision, locations, fullState);
+        }
       }
 
+      return Optional.of(PrecisionAdjustmentResult.create(element,
+          pPrecision,
+          PrecisionAdjustmentResult.Action.CONTINUE));
     } catch (SolverException e) {
       throw new CPAException("Solver Failure: " + e.getMessage(), e);
     } finally {
@@ -125,39 +130,44 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
   private Optional<PrecisionAdjustmentResult> computeAbstraction(
       PredicateAbstractState element,
       PredicatePrecision precision,
-      CFANode loc,
+      Iterable<CFANode> locations,
       AbstractState fullState)
       throws SolverException, CPAException, InterruptedException {
 
     AbstractionFormula abstractionFormula = element.getAbstractionFormula();
     PersistentMap<CFANode, Integer> abstractionLocations = element.getAbstractionLocationsOnPath();
     PathFormula pathFormula = element.getPathFormula();
-    Integer newLocInstance = abstractionLocations.getOrDefault(loc, 0) + 1;
     Optional<CallstackStateEqualsWrapper> callstackWrapper =
         AbstractStates.extractOptionalCallstackWraper(fullState);
 
     statistics.numAbstractions.inc();
-    logger.log(Level.FINEST, "Computing abstraction at instance", newLocInstance, "of node", loc, "in path.");
 
     statistics.blockSize.setNextValue(pathFormula.getLength());
 
     // update/get invariants and add them, the need to be instantiated
     // (we do only update global invariants (computed by a parallelalgorithm) here
     // as everything else can only be computed during refinement)
-    invariants.updateGlobalInvariants();
-    BooleanFormula invariant;
-    if (invariants.appendToPathFormula()) {
-      invariant =
-          fmgr.instantiate(
-              invariants.getInvariantFor(loc, callstackWrapper, fmgr, pathFormulaManager, pathFormula),
-              pathFormula.getSsa());
-    } else {
-      invariant = fmgr.getBooleanFormulaManager().makeTrue();
+    this.invariants.updateGlobalInvariants();
+    List<BooleanFormula> invariantFormulas = new ArrayList<>();
+
+    for (CFANode loc : locations) {
+      BooleanFormula invariant;
+      if (this.invariants.appendToPathFormula()) {
+        invariant =
+            fmgr.instantiate(
+                this.invariants.getInvariantFor(loc, callstackWrapper, fmgr, pathFormulaManager, pathFormula),
+                pathFormula.getSsa());
+      } else {
+        invariant = fmgr.getBooleanFormulaManager().makeTrue();
+      }
+      invariantFormulas.add(invariant);
     }
 
     // we don't want to add trivially true invariants
-    if (!fmgr.getBooleanFormulaManager().isTrue(invariant)) {
-      pathFormula = pathFormulaManager.makeAnd(pathFormula, invariant);
+    for (BooleanFormula invariant : invariantFormulas) {
+      if (!fmgr.getBooleanFormulaManager().isTrue(invariant)) {
+        pathFormula = pathFormulaManager.makeAnd(pathFormula, invariant);
+      }
     }
 
     // get additional predicates
@@ -168,12 +178,16 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     // compute new abstraction
     computingAbstractionTime.start();
     try {
-      Set<AbstractionPredicate> preds = precision.getPredicates(loc, newLocInstance);
-      preds = Sets.union(preds, additionalPredicates);
+      for (CFANode loc : locations) {
+        Integer newLocInstance = abstractionLocations.getOrDefault(loc, 0) + 1;
+        additionalPredicates.addAll(precision.getPredicates(loc, newLocInstance));
+        // update abstraction locations map
+        abstractionLocations = abstractionLocations.putAndCopy(loc, newLocInstance);
+      }
 
       // compute a new abstraction with a precision based on `preds`
       newAbstractionFormula = formulaManager.buildAbstraction(
-          loc, callstackWrapper, abstractionFormula, pathFormula, preds);
+          locations, callstackWrapper, abstractionFormula, pathFormula, additionalPredicates);
     } finally {
       computingAbstractionTime.stop();
     }
@@ -189,12 +203,11 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
 
     // initialize path formula with current invariants
-    if (!fmgr.getBooleanFormulaManager().isTrue(invariant)) {
-      newPathFormula = pathFormulaManager.makeAnd(newPathFormula, invariant);
+    for (BooleanFormula invariant : invariantFormulas) {
+      if (!fmgr.getBooleanFormulaManager().isTrue(invariant)) {
+        newPathFormula = pathFormulaManager.makeAnd(newPathFormula, invariant);
+      }
     }
-
-    // update abstraction locations map
-    abstractionLocations = abstractionLocations.putAndCopy(loc, newLocInstance);
 
     PredicateAbstractState state =
         PredicateAbstractState.mkAbstractionState(newPathFormula,

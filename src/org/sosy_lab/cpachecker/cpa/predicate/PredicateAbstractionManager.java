@@ -25,6 +25,7 @@ import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -264,7 +265,7 @@ public class PredicateAbstractionManager {
 
     AbstractionFormula emptyAbstraction = makeTrueAbstractionFormula(null);
     AbstractionFormula newAbstraction =
-        buildAbstraction(location, callstackInformation, emptyAbstraction, pf, predicates);
+        buildAbstraction(Collections.singleton(location), callstackInformation, emptyAbstraction, pf, predicates);
 
     // fix block formula in result
     return new AbstractionFormula(
@@ -293,7 +294,7 @@ public class PredicateAbstractionManager {
    *          "abstractionFormula & pathFormula" with pathFormula as the block formula.
    */
   public AbstractionFormula buildAbstraction(
-      final CFANode location,
+      final Iterable<CFANode> locations,
       Optional<CallstackStateEqualsWrapper> callstackInformation,
       final AbstractionFormula abstractionFormula,
       final PathFormula pathFormula,
@@ -316,7 +317,7 @@ public class PredicateAbstractionManager {
     if (reuseAbstractionsFrom != null
         && !abstractionReuseDisabledBecauseOfAmbiguity) {
       AbstractionFormula reused =
-          reuseAbstractionIfPossible(abstractionFormula, pathFormula, primaryFormula, location);
+          reuseAbstractionIfPossible(abstractionFormula, pathFormula, primaryFormula, Iterables.getOnlyElement(locations));
       if (reused != null) {
         return reused;
       }
@@ -393,16 +394,18 @@ public class PredicateAbstractionManager {
     }
 
     // add invariants to abstraction formula if available
-    if (invariantSupplier != TrivialInvariantSupplier.INSTANCE) {
-      BooleanFormula invariant = invariantSupplier.getInvariantFor(
-          location, callstackInformation, fmgr, pfmgr, pathFormula);
+    for (CFANode location : locations) {
+      if (invariantSupplier != TrivialInvariantSupplier.INSTANCE) {
+        BooleanFormula invariant = invariantSupplier.getInvariantFor(
+            location, callstackInformation, fmgr, pfmgr, pathFormula);
 
-      if (!bfmgr.isTrue(invariant)) {
-        AbstractionPredicate absPred = amgr.makePredicate(invariant);
-        abs = rmgr.makeAnd(abs, absPred.getAbstractVariable());
+        if (!bfmgr.isTrue(invariant)) {
+          AbstractionPredicate absPred = amgr.makePredicate(invariant);
+          abs = rmgr.makeAnd(abs, absPred.getAbstractVariable());
 
-        // Calculate the set of predicates we still need to use for abstraction.
-        Iterables.removeIf(remainingPredicates, equalTo(absPred));
+          // Calculate the set of predicates we still need to use for abstraction.
+          Iterables.removeIf(remainingPredicates, equalTo(absPred));
+        }
       }
     }
 
@@ -443,6 +446,21 @@ public class PredicateAbstractionManager {
     }
 
     return result;
+  }
+
+  public AbstractionFormula buildAbstraction(
+      final CFANode location,
+      Optional<CallstackStateEqualsWrapper> callstackInformation,
+      final AbstractionFormula abstractionFormula,
+      final PathFormula pathFormula,
+      final Collection<AbstractionPredicate> pPredicates)
+      throws SolverException, InterruptedException {
+    return buildAbstraction(
+        Collections.singleton(location),
+        callstackInformation,
+        abstractionFormula,
+        pathFormula,
+        pPredicates);
   }
 
   /**
