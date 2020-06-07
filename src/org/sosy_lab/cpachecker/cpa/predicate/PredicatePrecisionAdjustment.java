@@ -9,9 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
