@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: Bernd Fischer
+//
+// SPDX-License-Identifier: Apache-2.0
+
 extern void abort(void); 
 void reach_error(){}
 extern void __VERIFIER_atomic_begin();

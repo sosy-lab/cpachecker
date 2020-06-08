@@ -211,11 +211,6 @@ deploy-docker:
       - trunk
 
 
-# Not yet finished
-reuse:
-  allow_failure: True
-
-
 # No coverage is computed for CPAchecker
 unit-tests:jdk-11:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
