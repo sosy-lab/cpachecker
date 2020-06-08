@@ -3,6 +3,7 @@
 // Karma configuration
 // Generated on Fri Jun 29 2018 17:07:20 GMT+0530 (India Standard Time)
 var fs = require('fs');
+const isDocker = require('is-docker')();
 
 // Replace scripts tag from HTML file and generate testReport.html for testing:
 // Remove everything from the line with REPORT_CSS to the line after REPORT_JS
@@ -83,7 +84,15 @@ module.exports = function (config) {
 
     // start these browsers
     // available browser launchers: https://npmjs.org/browse/keyword/karma-launcher
-    browsers: ['ChromeHeadless', 'FirefoxHeadless'],
+    browsers: ['ChromiumHeadlessNoSandbox', 'FirefoxHeadless'],
+    // to make Chrome run in Docker container
+    // https://github.com/karma-runner/karma-chrome-launcher/issues/158
+    customLaunchers: {
+      ChromiumHeadlessNoSandbox: {
+        base: 'ChromiumHeadless',
+        flags: isDocker ? ['--no-sandbox'] : []
+      }
+    },
 
     // Continuous Integration mode
     // if true, Karma captures browsers, runs the tests and exits
