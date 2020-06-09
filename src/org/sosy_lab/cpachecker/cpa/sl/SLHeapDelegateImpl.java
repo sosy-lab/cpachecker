@@ -166,7 +166,8 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
   @Override
   public void handleDeclaration(CVariableDeclaration pDecl) throws Exception {
     String name = pDecl.getQualifiedName();
-    if (!declarations.add(name)) {
+    // ignore non-program variables, e.g. from non-det functions.
+    if (!pDecl.getName().startsWith("__") && !declarations.add(name)) {
       incSSAIndex(name);
     }
     CType type = pDecl.getType();
