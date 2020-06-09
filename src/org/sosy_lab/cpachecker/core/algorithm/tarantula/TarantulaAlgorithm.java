@@ -86,7 +86,7 @@ public class TarantulaAlgorithm implements Algorithm, StatisticsProvider, Statis
         }
         logger.log(Level.INFO, "Start tarantula algorithm ... ");
 
-        getFaultLocations(System.out, counterExamples, safeCase, failedCase);
+        getFaultLocations(counterExamples, safeCase, failedCase);
 
       } else {
         logger.log(Level.INFO, "There is no counterexample. No bugs found.");
@@ -102,14 +102,13 @@ public class TarantulaAlgorithm implements Algorithm, StatisticsProvider, Statis
    * the result into <code>Map</code>.
    */
   public void getFaultLocations(
-      PrintStream out,
       FluentIterable<CounterexampleInfo> pCounterexampleInfo,
       SafeCase safeCase,
       FailedCase failedCase)
       throws InterruptedException {
     FaultLocalizationInfo info;
     TarantulaRanking ranking = new TarantulaRanking(safeCase, failedCase, shutdownNotifier);
-    out.println(ranking.getTarantulaFaults());
+    logger.log(Level.INFO, ranking.getTarantulaFaults());
     for (CounterexampleInfo counterexample : pCounterexampleInfo) {
       info = new FaultLocalizationInfo(ranking.getTarantulaFaults(), counterexample);
       info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);

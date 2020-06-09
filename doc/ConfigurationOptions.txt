@@ -140,6 +140,10 @@ solver.z3.requireProofs = true
 # Whether to use PhantomReferences for discarding Z3 AST
 solver.z3.usePhantomReferences = false
 
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2014-2017 Universit? Grenoble Alpes
+#
+# SPDX-License-Identifier: Apache-2.0
 
 # Refiner that SlicingDelegatingRefiner should delegate to
 SlicingDelegatingRefiner.refiner = no default value
