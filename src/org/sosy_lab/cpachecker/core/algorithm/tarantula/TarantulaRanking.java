@@ -72,15 +72,19 @@ public class TarantulaRanking {
     }
     return numerator / denominator;
   }
-
-  public Map<TarantulaFault, CFAEdge> getRanked() throws InterruptedException {
+  /**
+   * Gets ranking information with calculated Suspiciousness
+   *
+   * @return Calculated tarantula ranking.
+   */
+  private Map<TarantulaFault, CFAEdge> getRanked() throws InterruptedException {
     Set<ARGPath> safePaths = safeCase.getSafePaths();
     Set<ARGPath> errorPaths = failedCase.getErrorPaths();
     int totalSafePaths = safePaths.size();
     int totalErrorPaths = errorPaths.size();
     Map<FaultContribution, TarantulaCasesStatus> coverage =
         coverageInformation.getCoverageInformation(safePaths, errorPaths);
-    Map<TarantulaFault, CFAEdge> result = new HashMap<>();
+    Map<TarantulaFault, CFAEdge> rankedInfo = new HashMap<>();
 
     coverage.forEach(
         (pFaultContribution, pTarantulaCasesStatus) -> {
@@ -95,16 +99,22 @@ public class TarantulaRanking {
             Fault fault = new Fault(pFaultContribution);
             fault.setScore(suspicious);
 
-            result.put(
+            rankedInfo.put(
                 new TarantulaFault(suspicious, fault, pFaultContribution),
                 pFaultContribution.correspondingEdge());
           }
         });
 
-    return result;
+    return rankedInfo;
   }
-
-  public Map<TarantulaFault, List<CFAEdge>> rearrangeTarantulaFaults(
+  /**
+   * Sums up the ranking information so that each line has many CFAEdges by their highest calculated
+   * score
+   *
+   * @param origin input map
+   * @return rearranged faults.
+   */
+  private Map<TarantulaFault, List<CFAEdge>> rearrangeTarantulaFaults(
       Map<TarantulaFault, CFAEdge> origin) {
 
     return origin.entrySet().stream()
@@ -122,25 +132,14 @@ public class TarantulaRanking {
                         .get(),
                 e -> e.getValue().stream().map(Map.Entry::getValue).collect(Collectors.toList())));
   }
-
-  public List<Fault> getTarantulaFaults() throws InterruptedException {
-    List<Fault> faults = new ArrayList<>();
-
-    getSortedFaults()
-        .forEach(
-            (k, v) -> {
-              for (CFAEdge cfaEdge : v) {
-                k.getFault().addInfo(FaultInfo.hint("Unknown potential fault: " + cfaEdge));
-              }
-              faults.add(k.getFault());
-            });
-
-    return faults;
-  }
-
-  public LinkedHashMap<TarantulaFault, List<CFAEdge>> getSortedFaults()
-      throws InterruptedException {
-    Map<TarantulaFault, List<CFAEdge>> getRearrangedFaults = rearrangeTarantulaFaults(getRanked());
+  /**
+   * Sort each TarantulaFault and its CFAEdge by its scores
+   *
+   * @param getRearrangedFaults input map
+   * @return sorted Map.
+   */
+  private Map<TarantulaFault, List<CFAEdge>> getSortedFaultsByScore(
+      Map<TarantulaFault, List<CFAEdge>> getRearrangedFaults) {
 
     return getRearrangedFaults.entrySet().stream()
         .sorted(Map.Entry.comparingByKey())
@@ -150,5 +149,19 @@ public class TarantulaRanking {
                 Map.Entry::getValue,
                 (oldValue, newValue) -> oldValue,
                 LinkedHashMap::new));
+  }
+
+  public List<Fault> getTarantulaFaults() throws InterruptedException {
+    List<Fault> tarantulaFaults = new ArrayList<>();
+    getSortedFaultsByScore(rearrangeTarantulaFaults(getRanked()))
+        .forEach(
+            (k, v) -> {
+              for (CFAEdge cfaEdge : v) {
+                k.getFault().addInfo(FaultInfo.hint("Unknown potential fault: " + cfaEdge));
+              }
+              tarantulaFaults.add(k.getFault());
+            });
+
+    return tarantulaFaults;
   }
 }
