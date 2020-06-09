@@ -4,12 +4,9 @@
 
   <rundefinition/>
 
-  <requiredfiles>../programs/cpalien/cpalien-headers.h</requiredfiles>
   <tasks name="HeapMemSafety3">
-    <include>../programs/benchmarks/memsafety-ext3/*.c</include>
+    <include>../programs/benchmarks/memsafety-ext3/derefAfterFree1.yml</include>
     <option name="-sl"/>
   </tasks>
-  
-  <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
   
 </benchmark>
