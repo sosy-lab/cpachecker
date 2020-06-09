@@ -595,7 +595,7 @@ public class ExpressionToFormulaVisitor
         // Integer types smaller than int are promoted when an operation is performed on them.
         promoted = conv.machineModel.applyIntegerPromotion(promoted);
       }
-      Formula operandFormula = toFormula(operand);
+        Formula operandFormula = toFormula(operand);
       operandFormula = conv.makeCast(t, promoted, operandFormula, constraints, edge);
       Formula ret;
       if (op == UnaryOperator.MINUS) {
@@ -606,10 +606,10 @@ public class ExpressionToFormulaVisitor
         ret = mgr.makeNot(operandFormula);
       }
 
-      CType returnType = exp.getExpressionType();
-      FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
+        CType returnType = exp.getExpressionType();
+        FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
       if (!returnFormulaType.equals(mgr.getFormulaType(ret))) {
-          ret = conv.makeFormulaTypeCast(returnFormulaType, t, ret, ssa, constraints);
+          ret = conv.makeFormulaTypeCast(returnFormulaType, promoted, ret, ssa, constraints);
         ret = conv.makeCast(t, returnType, ret, constraints, edge);
       }
           assert returnFormulaType.equals(mgr.getFormulaType(ret))
@@ -797,12 +797,7 @@ public class ExpressionToFormulaVisitor
           if (formulaType.isFloatingPointType()) {
             FloatingPointFormulaManagerView fpfmgr = mgr.getFloatingPointFormulaManager();
             FloatingPointFormula param =
-                (FloatingPointFormula) conv.makeFormulaTypeCast(
-                    formulaType,
-                    paramType,
-                    processOperand(parameters.get(0), paramType, paramType),
-                    ssa,
-                    constraints);
+                (FloatingPointFormula) processOperand(parameters.get(0), paramType, paramType);
             FloatingPointFormula fp_zero = fpfmgr.makeNumber(0, (FormulaType.FloatingPointType)formulaType);
 
             FormulaType<?> resultType = conv.getFormulaTypeFromCType(CNumericTypes.INT);
