@@ -65,8 +65,11 @@ public class TarantulaFault implements Comparable<TarantulaFault> {
 
   @Override
   public int compareTo(TarantulaFault o) {
-    if (o.getScore() < this.getScore()) return -1;
-    else if (this.getScore() < o.getScore()) return 1;
+    if (o.getScore() < this.getScore()) {
+      return -1;
+    } else if (this.getScore() < o.getScore()) {
+      return 1;
+    }
     return 0;
   }
 }
