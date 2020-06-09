@@ -29,6 +29,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -41,10 +42,16 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
-import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -52,16 +59,15 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
-import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
-import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisInterpolant;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.ConstantSymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
@@ -776,26 +782,68 @@ public final class ValueAnalysisState
   public ExpressionTree<Object> getFormulaApproximation(
       FunctionEntryNode pFunctionScope, CFANode pLocation) {
 
-    if (assumptionToEdgeAllocator == null || pLocation.getNumEnteringEdges() == 0) {
-      return ExpressionTrees.getTrue();
-    }
+    assert machineModel != null : "Unable to approximate state";
 
-    Set<ExpressionTree<Object>> edgeApproximations = new HashSet<>();
+    //TODO: Get real logger
+    CBinaryExpressionBuilder builder =
+        new CBinaryExpressionBuilder(machineModel, LogManager.createNullLogManager());
     ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
-    ConcreteState concreteState = ValueAnalysisConcreteErrorPathAllocator.createConcreteState(this);
+    List<ExpressionTree<Object>> result = new ArrayList<>();
 
-    for (int i = 0; i < pLocation.getNumEnteringEdges(); i++) {
-      CFAEdge edge = pLocation.getEnteringEdge(i);
-      Iterable<AExpressionStatement> invariants =
-          assumptionToEdgeAllocator.allocateAssumptionsToEdge(edge, concreteState).getExpStmts();
-      Set<ExpressionTree<Object>> edgeInvariants = new HashSet<>();
-      for (AExpressionStatement expressionStatement : invariants) {
-        edgeInvariants.add(LeafExpression.of(expressionStatement.getExpression()));
+    for (Entry<MemoryLocation, ValueAndType> entry : constantsMap.entrySet()) {
+      NumericValue num = entry.getValue().getValue().asNumericValue();
+      if (num != null) {
+        MemoryLocation memoryLocation = entry.getKey();
+        Type type = entry.getValue().getType();
+        if (!memoryLocation.isReference()
+            && memoryLocation.isOnFunctionStack(pFunctionScope.getFunctionName())
+            && type instanceof CSimpleType) {
+          String id = memoryLocation.getIdentifier();
+          CSimpleType simpleType = (CSimpleType) type;
+          if (!pFunctionScope.getReturnVariable().isPresent()
+              || !id.equals(pFunctionScope.getReturnVariable().get().getName())) {
+            FileLocation loc =
+                pLocation.getNumEnteringEdges() > 0
+                    ? pLocation.getEnteringEdge(0).getFileLocation()
+                    : pFunctionScope.getFileLocation();
+            CVariableDeclaration decl =
+                new CVariableDeclaration(
+                    loc,
+                    false,
+                    CStorageClass.AUTO,
+                    simpleType,
+                    id,
+                    id,
+                    memoryLocation.getAsSimpleString(),
+                    null);
+            CExpression var = new CIdExpression(loc, decl);
+            CExpression val = null;
+            if (simpleType.getType().isIntegerType()) {
+              long value = num.getNumber().longValue();
+              val = new CIntegerLiteralExpression(loc, simpleType, BigInteger.valueOf(value));
+            } else if (simpleType.getType().isFloatingPointType()) {
+              double value = num.getNumber().doubleValue();
+              val =
+                  new CFloatLiteralExpression(
+                      loc, simpleType, BigDecimal.valueOf(value));
+            }
+            try {
+              CBinaryExpression exp =
+                  builder.buildBinaryExpression(
+                      var,
+                      Preconditions.checkNotNull(val),
+                      BinaryOperator.EQUALS);
+              result.add(LeafExpression.of(exp));
+            } catch (NullPointerException pE) {
+              throw new AssertionError("Unable to approximate state: ", pE);
+            } catch (UnrecognizedCodeException pE) {
+              throw new AssertionError("Unable to approximate state: ", pE);
+            }
+          }
+        }
       }
-      edgeApproximations.add(factory.and(edgeInvariants));
     }
-
-    return factory.or(edgeApproximations);
+    return factory.and(result);
   }
 
   public static class ValueAndType implements Serializable {
