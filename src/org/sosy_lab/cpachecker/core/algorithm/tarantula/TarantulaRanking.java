@@ -25,14 +25,17 @@ package org.sosy_lab.cpachecker.core.algorithm.tarantula;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.FailedCase;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.SafeCase;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.TarantulaCasesStatus;
+import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.TarantulaFault;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
@@ -69,14 +72,14 @@ public class TarantulaRanking {
     return numerator / denominator;
   }
 
-  public List<Fault> getRanked() throws InterruptedException {
+  public Map<TarantulaFault, CFAEdge> getRanked() throws InterruptedException {
     Set<ARGPath> safePaths = safeCase.getSafePaths();
     Set<ARGPath> errorPaths = failedCase.getErrorPaths();
     int totalSafePaths = safePaths.size();
     int totalErrorPaths = errorPaths.size();
     Map<FaultContribution, TarantulaCasesStatus> coverage =
         coverageInformation.getCoverageInformation(safePaths, errorPaths);
-    List<Fault> faults = new ArrayList<>();
+    Map<TarantulaFault, CFAEdge> result = new HashMap<>();
 
     coverage.forEach(
         (pFaultContribution, pTarantulaCasesStatus) -> {
@@ -90,22 +93,53 @@ public class TarantulaRanking {
           if (pFaultContribution.correspondingEdge().getLineNumber() != 0) {
             Fault fault = new Fault(pFaultContribution);
             fault.setScore(suspicious);
-            fault.addInfo(
-                FaultInfo.hint(
-                    "Unknown potential fault: "
-                        + pFaultContribution.correspondingEdge().getDescription()));
 
-            faults.add(fault);
+            result.put(
+                new TarantulaFault(suspicious, fault, pFaultContribution),
+                pFaultContribution.correspondingEdge());
           }
         });
 
-    return sortingByScoreReversed(faults);
+    return result;
   }
 
-  private List<Fault> sortingByScoreReversed(List<Fault> faults) {
-    return faults.stream()
-        .filter(f -> f.getScore() != 0)
-        .sorted(Comparator.comparing((Fault f) -> f.getScore()).reversed())
-        .collect(Collectors.toList());
+  public Map<TarantulaFault, List<CFAEdge>> rearrangeTheFaults(
+      Map<TarantulaFault, CFAEdge> origin) {
+    return origin.entrySet().stream()
+        .collect(
+            Collectors.groupingBy(
+                e -> e.getKey().getFaultContribution().correspondingEdge().getLineNumber()))
+        .entrySet()
+        .stream()
+        .collect(
+            Collectors.toMap(
+                e ->
+                    e.getValue().stream()
+                        .map(Map.Entry::getKey)
+                        .max(Comparator.comparing(TarantulaFault::getScore))
+                        .get(),
+                e -> e.getValue().stream().map(Map.Entry::getValue).collect(Collectors.toList())));
   }
+
+  public List<Fault> getTarantulaFaults() throws InterruptedException {
+    List<Fault> faults = new ArrayList<>();
+    rearrangeTheFaults(getRanked())
+        .forEach(
+            (k, v) -> {
+              k.getFault().addInfo(FaultInfo.hint("Unknown potential fault: " + v));
+              faults.add(k.getFault());
+            });
+
+    return faults;
+  }
+
+  /*private Map<TarantulaRanking, CFAEdge> sortBySuspicious(
+      final Map<TarantulaRanking, CFAEdge> wordCounts) {
+
+    return wordCounts.entrySet().stream()
+        .sorted(Map.Entry.<TarantulaRanking, CFAEdge>comparingByValue().reversed())
+        .collect(
+            Collectors.toMap(
+                Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
+  }*/
 }

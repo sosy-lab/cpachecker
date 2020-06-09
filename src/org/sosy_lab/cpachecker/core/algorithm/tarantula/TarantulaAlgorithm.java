@@ -109,9 +109,9 @@ public class TarantulaAlgorithm implements Algorithm, StatisticsProvider, Statis
       throws InterruptedException {
     FaultLocalizationInfo info;
     TarantulaRanking ranking = new TarantulaRanking(safeCase, failedCase, shutdownNotifier);
-    out.println(ranking.getRanked());
+    out.println(ranking.getTarantulaFaults());
     for (CounterexampleInfo counterexample : pCounterexampleInfo) {
-      info = new FaultLocalizationInfo(ranking.getRanked(), counterexample);
+      info = new FaultLocalizationInfo(ranking.getTarantulaFaults(), counterexample);
       info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
       info.apply();
     }
