@@ -122,19 +122,25 @@ public class ExpressionToFormulaVisitor
     e = conv.makeCastFromArrayToPointerIfNecessary(e, returnType);
     final CType t = e.getExpressionType();
     Formula f = toFormula(e);
-    if (!t.equals(calculationType)) {
-      if ((f instanceof BitvectorFormula) || (f instanceof FloatingPointFormula)) {
-        return conv.makeCast(t, calculationType, f, constraints, edge);
-      } else {
+    if ((f instanceof BitvectorFormula) || (f instanceof FloatingPointFormula)) {
+      return conv.makeCast(t, calculationType, f, constraints, edge);
+    } else if (calculationType.equals(CNumericTypes.DOUBLE)
+        || calculationType.equals(CNumericTypes.FLOAT)
+        || calculationType.equals(CNumericTypes.LONG_DOUBLE)) {
         return conv.makeCast(
-            t,
-            calculationType,
-            conv.makeFormulaTypeCast(conv.getFormulaTypeFromCType(t), t, f, ssa, constraints),
-            constraints,
-            edge);
-      }
+          t,
+          calculationType,
+          conv.makeFormulaTypeCast(
+              conv.getFormulaTypeFromCType(calculationType),
+              t,
+              f,
+              ssa,
+              constraints),
+          constraints,
+          edge);
+    } else {
+      return f;
     }
-    return f;
   }
 
   private Formula
