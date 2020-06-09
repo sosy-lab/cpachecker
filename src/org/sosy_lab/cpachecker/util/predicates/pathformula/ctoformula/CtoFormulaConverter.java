@@ -758,8 +758,13 @@ public class CtoFormulaConverter {
       } else if (toType.isFloatingPointType()) {
         final CSimpleType sType = (CSimpleType) cTypeNoPointer;
         final boolean signed = machineModel.isSigned(sType);
-        return fmgr.getFloatingPointFormulaManager()
-            .castFrom(formula, signed, FormulaType.getSinglePrecisionFloatingPointType());
+        if (sType.equals(CNumericTypes.FLOAT)) {
+          return fmgr.getFloatingPointFormulaManager()
+              .castFrom(formula, signed, FormulaType.getSinglePrecisionFloatingPointType());
+        } else {
+          return fmgr.getFloatingPointFormulaManager()
+              .castFrom(formula, signed, FormulaType.getDoublePrecisionFloatingPointType());
+        }
       } else if (toType.isBitvectorType()) {
         int size = ((BitvectorType) toType).getSize();
         return efmgr.makeBitvector(size, (IntegerFormula) formula);
