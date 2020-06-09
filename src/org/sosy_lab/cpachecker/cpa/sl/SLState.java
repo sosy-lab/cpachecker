@@ -43,7 +43,8 @@ public class SLState implements AbstractState, Targetable, AbstractQueryableStat
   public enum SLStateError {
     INVALID_DEREF,
     INVALID_FREE,
-    MEMORY_LEAK;
+    MEMORY_LEAK,
+    NONE;
   }
 
 
