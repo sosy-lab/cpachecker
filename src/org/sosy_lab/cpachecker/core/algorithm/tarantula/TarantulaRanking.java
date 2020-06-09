@@ -123,7 +123,9 @@ public class TarantulaRanking {
         .collect(
             Collectors.toMap(
                 e ->
-                    e.getValue().stream().max(Comparator.comparing(TarantulaFault::getScore)).get(),
+                    e.getValue().stream()
+                        .max(Comparator.comparing(TarantulaFault::getScore))
+                        .orElseThrow(),
                 e ->
                     e.getValue().stream()
                         .map(TarantulaFault::getDescription)
