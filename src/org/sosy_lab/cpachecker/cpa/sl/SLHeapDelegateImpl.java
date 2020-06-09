@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -49,8 +50,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.BitvectorFormula;
-import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
@@ -69,7 +68,6 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
   private final SLFormulaBuilder builder;
 
   private final FormulaManagerView fm;
-  private final BitvectorFormulaManager bvfm;
   private final IntegerFormulaManager ifm;
   private final SLFormulaManager slfm;
   private final BooleanFormulaManager bfm;
@@ -106,7 +104,6 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
     builder = pBuilder;
     machineModel = pMachineModel;
     fm = solver.getFormulaManager();
-    bvfm = fm.getBitvectorFormulaManager();
     ifm = fm.getIntegerFormulaManager();
     slfm = fm.getSLFormulaManager();
     bfm = fm.getBooleanFormulaManager();
@@ -159,6 +156,9 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
     if (loc == null) {
       return SLStateError.INVALID_FREE;
     }
+    if (allocationSizes.get(loc) == null) {
+      return SLStateError.INVALID_FREE;
+    }
     removeFromMemory(heap, loc);
     return null;
   }
@@ -205,9 +205,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
         // for (CInitializer i : iList.getInitializers()) {
         //
         // }
-
       }
-
     }
   }
 
@@ -216,7 +214,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
     Formula loc = createFormula(pExp, pOffset, true);
     CType type = ((CPointerType) pExp.getExpressionType()).getType();
     for (int i = 0; i < machineModel.getSizeof(type).intValueExact(); i++) {
-      final Formula f = fm.makePlus(loc, bvfm.makeBitvector(8, i));
+      final Formula f = fm.makePlus(loc, fm.makeNumber(loc, Rational.of(i)));
       if (!isAllocated(f, true)) {
         return SLStateError.INVALID_DEREF;
       }
@@ -233,7 +231,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
     CType type = ((CPointerType) pLHS.getExpressionType()).getType();
 
     for (int i = 0; i < machineModel.getSizeof(type).intValueExact(); i++) {
-      final Formula f = fm.makePlus(loc, bvfm.makeBitvector(8, i));
+      final Formula f = fm.makePlus(loc, fm.makeNumber(loc, Rational.of(i)));
       final Formula match = checkAllocation(f, val, true);
       if (match == null) {
         return SLStateError.INVALID_DEREF;
@@ -279,8 +277,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
       if (i == 0) {
         pMemory.remove(pMemoryLocation);
       } else {
-        Formula tmp =
-            bvfm.add((BitvectorFormula) pMemoryLocation, bvfm.makeBitvector(size.bitLength(), i));
+        Formula tmp = fm.makePlus(pMemoryLocation, fm.makeNumber(pMemoryLocation, Rational.of(i)));
         pMemory.remove(tmp);
       }
     }
@@ -371,7 +368,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
       Formula f = pMemoryLocation;
       if (i > 0) {
         // heap of bytes/chars.
-        f = bvfm.add((BitvectorFormula) f, bvfm.makeBitvector(16, i));
+        f = fm.makePlus(f, fm.makeNumber(f, Rational.of(i)));
       } else {
         allocationSizes.put(f, pSize);
       }
@@ -475,7 +472,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate {
         type = (CPointerType) pExp.getExpressionType();
       }
       BigInteger typeSize = machineModel.getSizeof(type.getType());
-      offset = fm.makeMultiply(offset, bvfm.makeBitvector(8, typeSize));
+      offset = fm.makeMultiply(offset, fm.makeNumber(offset, Rational.ofBigInteger(typeSize)));
       loc = fm.makePlus(loc, offset);
     }
     return loc;
