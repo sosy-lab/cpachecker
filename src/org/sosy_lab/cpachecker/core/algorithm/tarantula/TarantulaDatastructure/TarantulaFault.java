@@ -26,11 +26,11 @@ package org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 
-public class TarantulaFault {
+public class TarantulaFault implements Comparable<TarantulaFault> {
 
-  double score;
-  Fault fault;
-  FaultContribution faultContribution;
+  private final double score;
+  private final Fault fault;
+  private final FaultContribution faultContribution;
 
   public TarantulaFault(double pScore, Fault pFault, FaultContribution pFaultContribution) {
 
@@ -61,5 +61,12 @@ public class TarantulaFault {
         + ", faultContribution="
         + faultContribution
         + '}';
+  }
+
+  @Override
+  public int compareTo(TarantulaFault o) {
+    if (o.getScore() < this.getScore()) return -1;
+    else if (this.getScore() < o.getScore()) return 1;
+    return 0;
   }
 }

@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.core.algorithm.tarantula;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -103,8 +104,9 @@ public class TarantulaRanking {
     return result;
   }
 
-  public Map<TarantulaFault, List<CFAEdge>> rearrangeTheFaults(
+  public Map<TarantulaFault, List<CFAEdge>> rearrangeTarantulaFaults(
       Map<TarantulaFault, CFAEdge> origin) {
+
     return origin.entrySet().stream()
         .collect(
             Collectors.groupingBy(
@@ -123,23 +125,30 @@ public class TarantulaRanking {
 
   public List<Fault> getTarantulaFaults() throws InterruptedException {
     List<Fault> faults = new ArrayList<>();
-    rearrangeTheFaults(getRanked())
+
+    getSortedFaults()
         .forEach(
             (k, v) -> {
-              k.getFault().addInfo(FaultInfo.hint("Unknown potential fault: " + v));
+              for (CFAEdge cfaEdge : v) {
+                k.getFault().addInfo(FaultInfo.hint("Unknown potential fault: " + cfaEdge));
+              }
               faults.add(k.getFault());
             });
 
     return faults;
   }
 
-  /*private Map<TarantulaRanking, CFAEdge> sortBySuspicious(
-      final Map<TarantulaRanking, CFAEdge> wordCounts) {
+  public LinkedHashMap<TarantulaFault, List<CFAEdge>> getSortedFaults()
+      throws InterruptedException {
+    Map<TarantulaFault, List<CFAEdge>> getRearrangedFaults = rearrangeTarantulaFaults(getRanked());
 
-    return wordCounts.entrySet().stream()
-        .sorted(Map.Entry.<TarantulaRanking, CFAEdge>comparingByValue().reversed())
+    return getRearrangedFaults.entrySet().stream()
+        .sorted(Map.Entry.comparingByKey())
         .collect(
             Collectors.toMap(
-                Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new));
-  }*/
+                Map.Entry::getKey,
+                Map.Entry::getValue,
+                (oldValue, newValue) -> oldValue,
+                LinkedHashMap::new));
+  }
 }
