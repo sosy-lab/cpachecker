@@ -1,3 +1,11 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 include: /build/gitlab-ci.yml
 
 variables:
@@ -6,7 +14,7 @@ variables:
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
   REFASTER_REPO_REVISION: 1c7b66df1ee6460c3a7b04bc4495f440a093ece7
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
-  REFASTER_VERSION: 2.3.4
+  REFASTER_VERSION: 2.4.0
 
 
 .binary_check: &binary_check
@@ -171,7 +179,6 @@ flake8:
     - pip install flake8-awesome
   script:
     - flake8
-  allow_failure: true # need to fix existing code first
 
 
 build-tar:
@@ -202,11 +209,6 @@ deploy-docker:
   only:
     refs:
       - trunk
-
-
-# Not yet finished
-reuse:
-  allow_failure: True
 
 
 # No coverage is computed for CPAchecker

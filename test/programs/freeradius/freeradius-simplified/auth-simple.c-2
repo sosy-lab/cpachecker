@@ -1,4 +1,8 @@
-
+// SPDX-FileCopyrightText: 2000 Jeff Carneal <jeff@apex.net>
+// SPDX-FileCopyrightText: 2000 Miquel van Smoorenburg <miquels@cistron.nl>
+// SPDX-FileCopyrightText: 2000 The FreeRADIUS server project
+//
+// SPDX-License-Identifier: GPL-2.0-or-later
 
 #include "autoconf.h"
 #include "libradius.h"
