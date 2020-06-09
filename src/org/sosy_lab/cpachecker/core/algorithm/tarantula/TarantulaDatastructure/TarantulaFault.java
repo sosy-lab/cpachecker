@@ -63,6 +63,10 @@ public class TarantulaFault implements Comparable<TarantulaFault> {
         + '}';
   }
 
+  public String getDescription() {
+    return this.faultContribution.correspondingEdge().getDescription();
+  }
+
   @Override
   public int compareTo(TarantulaFault o) {
     if (o.getScore() < this.getScore()) {
