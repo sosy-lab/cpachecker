@@ -56,7 +56,7 @@ rootDirectory = "."
 
 
 # Further options for Boolector in addition to the default options. Format: 
-# "Optionname=value" with ?,? to seperate options. Optionname and value can
+# "Optionname=value" with ’,’ to seperate options. Optionname and value can
 # be found in BtorOption or Boolector C Api.Example:
 # "BTOR_OPT_MODEL_GEN=2,BTOR_OPT_INCREMENTAL=1".
 solver.boolector.furtherOptions = ""
@@ -140,6 +140,10 @@ solver.z3.requireProofs = true
 # Whether to use PhantomReferences for discarding Z3 AST
 solver.z3.usePhantomReferences = false
 
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
+#
+# SPDX-License-Identifier: Apache-2.0
 
 # Refiner that SlicingDelegatingRefiner should delegate to
 SlicingDelegatingRefiner.refiner = no default value
@@ -165,6 +169,10 @@ analysis.algorithm.CBMC = false
 # You need to specify a refiner with the cegar.refiner option.
 # Currently all refiner require the use of the ARGCPA.
 analysis.algorithm.CEGAR = false
+
+# use McMillan's interpolation-based model checking algorithm, works only
+# with PredicateCPA and large-block encoding
+analysis.algorithm.IMC = false
 
 # Use MPI for running analyses in new subprocesses. The resulting reachedset
 # is the one of the first analysis returning in time. All other mpi-processes
@@ -209,9 +217,6 @@ analysis.algorithm.proofCheckWithARGCMCStrategy = false
 # do analysis and then check if reached set fulfills property specified by
 # ConfigurableProgramAnalysisWithPropertyChecker
 analysis.algorithm.propertyCheck = false
-
-# use fault localization with tarantula
-analysis.algorithm.tarantula = false
 
 # Use termination algorithm to prove (non-)termination.
 analysis.algorithm.termination = false
@@ -498,7 +503,7 @@ assumptions.file = "assumptions.txt"
 # has successors.
 assumptions.removeNonExploredWithoutSuccessors = false
 
-# comma-separated list of files with specifications that should be used 
+# comma-separated list of files with specifications that should be used
 # in a backwards analysis; used if the analysis starts at the target states!
 # (see config/specification/ for examples)
 backwardSpecification = []
@@ -833,7 +838,7 @@ counterexample.ambigiousARG = false
 
 # Which model checker to use for verifying counterexamples as a second check.
 # Currently CBMC or CPAchecker with a different config or the concrete
-# execution 
+# execution
 # checker can be used.
 counterexample.checker = CBMC
   enum:     [CBMC, CPACHECKER, CONCRETE_EXECUTION]
@@ -1043,7 +1048,7 @@ cpa.apron.precisionFile = no default value
 cpa.apron.refiner.timeForApronFeasibilityCheck = 0ns
 
 # split disequalities considering integer operands into two states or use
-# disequality provided by apron library 
+# disequality provided by apron library
 cpa.apron.splitDisequalities = true
 
 # translate final ARG into this C file
@@ -2293,7 +2298,7 @@ cpa.predicate.refinement.maxPrefixLength = 1024
 # (ignored if 0)
 cpa.predicate.refinement.maxRefinementSize = 0
 
-# sets the level of the pathformulas to use for abstraction. 
+# sets the level of the pathformulas to use for abstraction.
 #   EDGE : Based on Pathformulas of every edge in ARGPath
 #   BLOCK: Based on Pathformulas at Abstractionstates
 cpa.predicate.refinement.newtonrefinement.abstractionLevel = EDGE
@@ -2361,7 +2366,7 @@ cpa.predicate.refinement.splitItpAtoms = false
 # INDUCTIVE_SEQ, but we do not guarantee the 'inductiveness', i.e. the solver
 # has to generate nice interpolants itself. Supported by all solvers!
 # - INDUCTIVE_SEQ: Generate an inductive sequence of interpolants the
-# partitions [1,...n]. 
+# partitions [1,...n].
 # - TREE: use the tree-interpolation-feature of a solver to get interpolants
 # - TREE_WELLSCOPED: We return each interpolant for i={0..n-1} for the
 # partitions A=[lastFunctionEntryIndex .. i] and B=[0 ..
@@ -3206,6 +3211,12 @@ heuristicSelection.preAnalysisAlgorithmConfig = no default value
 
 # Configuration for programs containing recursion.
 heuristicSelection.recursionConfig = no default value
+
+# toggle deriving the interpolants from suffix formulas
+imc.deriveInterpolantFromSuffix = false
+
+# try using interpolation to verify programs with loops
+imc.interpolation = false
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
