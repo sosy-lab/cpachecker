@@ -21,7 +21,7 @@ module.exports = function (config) {
 
     // frameworks to use
     // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
-    frameworks: ['jasmine'],
+    frameworks: ['jasmine', 'detectBrowsers'],
 
     // list of files / patterns to load in the browser
     files: [
@@ -66,8 +66,26 @@ module.exports = function (config) {
       'karma-htmlfile-reporter',
       'karma-firefox-launcher',
       'karma-chrome-launcher',
-      'karma-jasmine'
+      'karma-jasmine',
+      'karma-detect-browsers'
     ],
+
+    detectBrowsers: {
+      enabled: true,
+      usePhantomJS: false,
+      preferHeadless: true,
+      // Start Chromium with the custom launcher instead and remove all browsers except for Chromium, Chrome and Firefox
+      postDetection: availableBrowsers => {
+        if (isDocker && availableBrowsers.includes("ChromiumHeadless")) {
+          availableBrowsers[availableBrowsers.indexOf("ChromiumHeadless")] = "ChromiumHeadlessNoSandbox";
+        }
+        return availableBrowsers.filter(browser =>
+          browser.includes("Chromium") ||
+          browser.includes("Chrome") ||
+          browser.includes("Firefox")
+        );
+      }
+    },
 
     // web server port
     port: 9876,
@@ -82,15 +100,12 @@ module.exports = function (config) {
     // enable / disable watching file and executing tests whenever any file changes
     autoWatch: false,
 
-    // start these browsers
-    // available browser launchers: https://npmjs.org/browse/keyword/karma-launcher
-    browsers: ['ChromiumHeadlessNoSandbox', 'FirefoxHeadless'],
     // to make Chrome run in Docker container
     // https://github.com/karma-runner/karma-chrome-launcher/issues/158
     customLaunchers: {
       ChromiumHeadlessNoSandbox: {
         base: 'ChromiumHeadless',
-        flags: isDocker ? ['--no-sandbox'] : []
+        flags: ['--no-sandbox']
       }
     },
 
