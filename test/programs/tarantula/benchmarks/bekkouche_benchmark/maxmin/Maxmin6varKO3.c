@@ -26,7 +26,6 @@ void __VERIFIER_assert(int cond) {
 } 
 
 
-#include <sniper/sniper.h>
 
 /*
  * Find the maximum and minimum of six values.
