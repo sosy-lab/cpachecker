@@ -12,7 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPredicateState;
-import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
+import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -375,10 +375,11 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
       throws RefinementFailedException {
 
     { // Add predicate "false" to unreachable location
-      CFANode loc = extractLocation(pUnreachableState);
-      int locInstance = getPredicateState(pUnreachableState)
-                                       .getAbstractionLocationsOnPath().get(loc);
-      newPredicates.put(new LocationInstance(loc, locInstance), predAbsMgr.makeFalsePredicate());
+      for (CFANode loc : extractLocations(pUnreachableState)) {
+        int locInstance = getPredicateState(pUnreachableState)
+            .getAbstractionLocationsOnPath().get(loc);
+        newPredicates.put(new LocationInstance(loc, locInstance), predAbsMgr.makeFalsePredicate());
+      }
       pAffectedStates.add(pUnreachableState);
     }
 
