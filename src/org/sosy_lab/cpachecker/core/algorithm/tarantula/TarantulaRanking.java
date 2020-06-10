@@ -96,9 +96,10 @@ public class TarantulaRanking {
           // Skip 0 line numbers
           if (pFaultContribution.correspondingEdge().getLineNumber() != 0) {
             Fault fault = new Fault(pFaultContribution);
-            fault.setScore(suspicious);
-
-            rankedInfo.add(new TarantulaFault(suspicious, fault, pFaultContribution));
+            if (suspicious != 0) {
+              fault.setScore(suspicious);
+              rankedInfo.add(new TarantulaFault(suspicious, fault, pFaultContribution));
+            }
           }
         });
 
