@@ -187,6 +187,8 @@ void foo (int a, int b, int c, int d, int e, int f) {//__CPROVER_assume((a==1) &
             }
         }
     }
+       __VERIFIER_assert( (max >= a) && (max >= b) && (max >= c) && (max >= d) && (max >= e) && (max >= f) && (min <= a) && (min <= b) && (min <= c) && (min <= d) && (min <= e) && (min <= f));
+ 
     
 }
 
