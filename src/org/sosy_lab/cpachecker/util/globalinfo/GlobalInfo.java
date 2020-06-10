@@ -27,6 +27,7 @@ import com.google.common.base.Preconditions;
 import java.util.Optional;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.apron.ApronCPA;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageCPA;
@@ -49,6 +50,7 @@ public class GlobalInfo {
   private ApronManager apronManager;
   private LogManager apronLogger;
   private LogManager logger;
+  private AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
   private GlobalInfo() {
 
@@ -67,6 +69,15 @@ public class GlobalInfo {
 
   public synchronized Optional<CFAInfo> getCFAInfo() {
     return Optional.ofNullable(cfaInfo);
+  }
+
+  public void storeAssumptionToEdgeAllocator(AssumptionToEdgeAllocator pAssumptionToEdgeAllocator) {
+    assumptionToEdgeAllocator = Preconditions.checkNotNull(pAssumptionToEdgeAllocator);
+  }
+
+  public AssumptionToEdgeAllocator getAssumptionToEdgeAllocator() {
+    return Preconditions.checkNotNull(
+        assumptionToEdgeAllocator, "AssumptionToEdgeAllocator hasn't been stored yet");
   }
 
   public void storeLogManager(LogManager pLogger) {

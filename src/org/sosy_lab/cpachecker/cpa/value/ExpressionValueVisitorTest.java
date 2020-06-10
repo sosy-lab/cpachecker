@@ -102,7 +102,7 @@ public class ExpressionValueVisitorTest {
 
     evv =
         new ExpressionValueVisitor(
-            new ValueAnalysisState(machineModel, null), "dummy_function", machineModel, logger);
+            new ValueAnalysisState(machineModel), "dummy_function", machineModel, logger);
   }
 
   /**

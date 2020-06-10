@@ -56,7 +56,7 @@ public class ValueAnalysisEdgeInterpolator
         pStrongestPostOperator,
         pFeasibilityChecker,
         ValueAnalysisInterpolantManager.getInstance(),
-        new ValueAnalysisState(pCfa.getMachineModel(), null),
+        new ValueAnalysisState(pCfa.getMachineModel()),
         ValueAnalysisCPA.class,
         pConfig,
         pShutdownNotifier,

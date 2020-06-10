@@ -120,31 +120,24 @@ public final class ValueAnalysisState
 
   private final @Nullable MachineModel machineModel;
 
-  private final @Nullable AssumptionToEdgeAllocator assumptionToEdgeAllocator;
-
-  public ValueAnalysisState(
-      MachineModel pMachineModel,
-      @Nullable AssumptionToEdgeAllocator pAssumptionToEdgeAllocator) {
+  public ValueAnalysisState(MachineModel pMachineModel) {
     this(
         checkNotNull(pMachineModel),
-        PathCopyingPersistentTreeMap.of(),
-        pAssumptionToEdgeAllocator);
+        PathCopyingPersistentTreeMap.of());
   }
 
   public ValueAnalysisState(
       Optional<MachineModel> pMachineModel,
       PersistentMap<MemoryLocation, ValueAndType> pConstantsMap) {
-    this(pMachineModel.orElse(null), pConstantsMap, null);
+    this(pMachineModel.orElse(null), pConstantsMap);
   }
 
   private ValueAnalysisState(
       @Nullable MachineModel pMachineModel,
-      PersistentMap<MemoryLocation, ValueAndType> pConstantsMap,
-      @Nullable AssumptionToEdgeAllocator pAssumptionToEdgeAllocator) {
+      PersistentMap<MemoryLocation, ValueAndType> pConstantsMap) {
     machineModel = pMachineModel;
     constantsMap = checkNotNull(pConstantsMap);
     hashCode = constantsMap.hashCode();
-    assumptionToEdgeAllocator = pAssumptionToEdgeAllocator;
   }
 
   private ValueAnalysisState(ValueAnalysisState state) {
@@ -152,7 +145,6 @@ public final class ValueAnalysisState
     constantsMap = checkNotNull(state.constantsMap);
     hashCode = state.hashCode;
     assert hashCode == constantsMap.hashCode();
-    assumptionToEdgeAllocator = state.assumptionToEdgeAllocator;
   }
 
   public static ValueAnalysisState copyOf(ValueAnalysisState state) {
@@ -398,7 +390,7 @@ public final class ValueAnalysisState
     if (newConstantsMap.size() == reachedState.constantsMap.size()) {
       return reachedState;
     } else {
-      return new ValueAnalysisState(machineModel, newConstantsMap, assumptionToEdgeAllocator);
+      return new ValueAnalysisState(machineModel, newConstantsMap);
     }
   }
 
