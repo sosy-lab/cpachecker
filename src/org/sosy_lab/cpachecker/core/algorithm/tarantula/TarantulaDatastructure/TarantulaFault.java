@@ -24,56 +24,52 @@
 package org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure;
 
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
-
+/** Class represents a special fault where a line has its CFAEdge with its suspicious */
 public class TarantulaFault implements Comparable<TarantulaFault> {
 
-  private final double score;
+  private final double lineScore;
   private final Fault fault;
-  private final FaultContribution faultContribution;
+  private final TarantulaCFAEdgeSuspicious tarantulaCFAEdgeSuspicious;
 
-  public TarantulaFault(double pScore, Fault pFault, FaultContribution pFaultContribution) {
+  public TarantulaFault(
+      double pLineScore, Fault pFault, TarantulaCFAEdgeSuspicious pTarantulaCFAEdgeSuspicious) {
 
-    this.score = pScore;
+    this.lineScore = pLineScore;
     this.fault = pFault;
-    this.faultContribution = pFaultContribution;
+    this.tarantulaCFAEdgeSuspicious = pTarantulaCFAEdgeSuspicious;
   }
 
-  public double getScore() {
-    return score;
-  }
-
-  public FaultContribution getFaultContribution() {
-    return faultContribution;
+  public double getLineScore() {
+    return lineScore;
   }
 
   public Fault getFault() {
     return fault;
   }
 
-  @Override
-  public String toString() {
-    return "TarantulaFault{"
-        + "score="
-        + score
-        + ", fault="
-        + fault
-        + ", faultContribution="
-        + faultContribution
-        + '}';
-  }
-
-  public String getDescription() {
-    return this.faultContribution.correspondingEdge().getDescription();
+  public TarantulaCFAEdgeSuspicious getTarantulaCFAEdgeSuspicious() {
+    return tarantulaCFAEdgeSuspicious;
   }
 
   @Override
   public int compareTo(TarantulaFault o) {
-    if (o.getScore() < this.getScore()) {
+    if (o.getLineScore() < this.getLineScore()) {
       return -1;
-    } else if (this.getScore() < o.getScore()) {
+    } else if (this.getLineScore() < o.getLineScore()) {
       return 1;
     }
     return 0;
+  }
+
+  @Override
+  public String toString() {
+    return "TarantulaFault{"
+        + "score="
+        + lineScore
+        + ", fault="
+        + fault
+        + ", tarantulaCFAEdgeSuspicious="
+        + tarantulaCFAEdgeSuspicious
+        + '}';
   }
 }

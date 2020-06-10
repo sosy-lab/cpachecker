@@ -34,6 +34,7 @@ import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.FailedCase;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.SafeCase;
+import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.TarantulaCFAEdgeSuspicious;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.TarantulaCasesStatus;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.TarantulaFault;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -98,7 +99,12 @@ public class TarantulaRanking {
             Fault fault = new Fault(pFaultContribution);
             if (suspicious != 0) {
               fault.setScore(suspicious);
-              rankedInfo.add(new TarantulaFault(suspicious, fault, pFaultContribution));
+              rankedInfo.add(
+                  new TarantulaFault(
+                      suspicious,
+                      fault,
+                      new TarantulaCFAEdgeSuspicious(
+                          pFaultContribution.correspondingEdge(), suspicious)));
             }
           }
         });
@@ -112,24 +118,25 @@ public class TarantulaRanking {
    * @param origin input map
    * @return rearranged faults.
    */
-  private Map<TarantulaFault, List<String>> rearrangeTarantulaFaults(List<TarantulaFault> origin) {
+  private Map<TarantulaFault, List<TarantulaCFAEdgeSuspicious>> rearrangeTarantulaFaults(
+      List<TarantulaFault> origin) {
     Collection<TarantulaFault> collection = new ArrayList<>(origin);
 
     return collection.stream()
         .collect(
             Collectors.groupingBy(
-                e -> e.getFaultContribution().correspondingEdge().getLineNumber()))
+                e -> e.getTarantulaCFAEdgeSuspicious().getCfaEdge().getLineNumber()))
         .entrySet()
         .stream()
         .collect(
             Collectors.toMap(
                 e ->
                     e.getValue().stream()
-                        .max(Comparator.comparing(TarantulaFault::getScore))
+                        .max(Comparator.comparing(TarantulaFault::getLineScore))
                         .orElseThrow(),
                 e ->
                     e.getValue().stream()
-                        .map(TarantulaFault::getDescription)
+                        .map(v -> v.getTarantulaCFAEdgeSuspicious())
                         .collect(Collectors.toList())));
   }
   /**
@@ -138,8 +145,8 @@ public class TarantulaRanking {
    * @param getRearrangedFaults input map
    * @return sorted Map.
    */
-  private Map<TarantulaFault, List<String>> getSortedFaultsByScore(
-      Map<TarantulaFault, List<String>> getRearrangedFaults) {
+  private Map<TarantulaFault, List<TarantulaCFAEdgeSuspicious>> getSortedFaultsByScore(
+      Map<TarantulaFault, List<TarantulaCFAEdgeSuspicious>> getRearrangedFaults) {
 
     return getRearrangedFaults.entrySet().stream()
         .sorted(Map.Entry.comparingByKey())
@@ -156,8 +163,16 @@ public class TarantulaRanking {
     getSortedFaultsByScore(rearrangeTarantulaFaults(getRanked()))
         .forEach(
             (k, v) -> {
-              for (String description : v) {
-                k.getFault().addInfo(FaultInfo.hint("Unknown potential fault: " + description));
+              for (TarantulaCFAEdgeSuspicious cfaEdge : v) {
+                k.getFault()
+                    .addInfo(
+                        FaultInfo.hint(
+                            "Unknown potential fault at Edge ( "
+                                + cfaEdge.getCfaEdge().getDescription()
+                                + " ) "
+                                + "with suspicious ( "
+                                + cfaEdge.getCfaEdgeSuspicious()
+                                + " ) "));
               }
               tarantulaFaults.add(k.getFault());
             });
