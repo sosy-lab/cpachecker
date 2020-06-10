@@ -8,8 +8,8 @@ There is an error in this program that is in the assignment
 of i-j, however, the returned value should be 1. This program shows 
 a a case where all if-condition are free from faults. 
 
-@author: Mohammed Bekkouche
-@Web:    http://www.i3s.unice.fr
+SPDX-FileCopyrightText: Mohammed Bekkouche <http://www.i3s.unice.fr>
+SPDX-License-Identifier: Apache-2.0
 */
 
 extern int __VERIFIER_nondet_uint();

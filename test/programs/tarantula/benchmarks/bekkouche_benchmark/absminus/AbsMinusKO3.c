@@ -8,8 +8,8 @@ There is an error in this program that is in the assignment
 false and therefore the execution of the instruction "result=i-j",
 which causes an incrorrect value to be output, -1 instead of 1. 
 
-@author: Mohammed Bekkouche
-@Web:    http://www.i3s.unice.fr
+SPDX-FileCopyrightText: Mohammed Bekkouche <http://www.i3s.unice.fr>
+SPDX-License-Identifier: Apache-2.0
 */
 
 extern int __VERIFIER_nondet_uint();

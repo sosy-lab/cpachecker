@@ -7,8 +7,8 @@ There is three errors in this program. By taking the following
 input {a=1, b=-3, c=-4, d=-2, e=-1, f=-2}, the program outputs 
  {max=-1,min=-4} instead of {max=1,min=-4}. 
 
-@author: Mohammed Bekkouche
-@Web:    http://www.i3s.unice.fr
+SPDX-FileCopyrightText: Mohammed Bekkouche <http://www.i3s.unice.fr>
+SPDX-License-Identifier: Apache-2.0
 */
 
 extern int __VERIFIER_nondet_uint();

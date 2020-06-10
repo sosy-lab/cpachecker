@@ -1,8 +1,8 @@
 /*
- * Benchmarks contributed by Divyesh Unadkat[1,2], Supratik Chakraborty[1], Ashutosh Gupta[1]
- * [1] Indian Institute of Technology Bombay, Mumbai
- * [2] TCS Innovation labs, Pune
- *
+ SPDX-FileCopyrightText: Benchmarks contributed by Divyesh Unadkat[1,2], Supratik Chakraborty[1], Ashutosh Gupta[1]
+  [1] Indian Institute of Technology Bombay, Mumbai
+  [2] TCS Innovation labs, Pune
+SPDX-License-Identifier: Apache-2.0
  */
 
 

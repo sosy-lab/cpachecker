@@ -12,8 +12,8 @@ By taking the input {i=2,j=1,k=2}, the program returns as a sum of
 triangle sides the value 6, however, it should return the value 5. 
 All the conditions in this program are correct. 
 
-@author: Mohammed Bekkouche
-@Web:    http://www.i3s.unice.fr
+SPDX-FileCopyrightText: Mohammed Bekkouche <http://www.i3s.unice.fr>
+SPDX-License-Identifier: Apache-2.0
 */
 
 extern int __VERIFIER_nondet_uint();

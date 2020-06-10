@@ -13,8 +13,8 @@ instruction and returns 1, however, it should return 2 (the input
 correspond to an isosceles triangle).
 The program does not contain incorrect conditions. 
 
-@author: Mohammed Bekkouche
-@Web:    http://www.i3s.unice.fr
+SPDX-FileCopyrightText: Mohammed Bekkouche <http://www.i3s.unice.fr>
+SPDX-License-Identifier: Apache-2.0
 */
 
 extern int __VERIFIER_nondet_uint();

@@ -15,8 +15,8 @@ This program is semantically equivalent to TriPerimetreKO, the
 difference is that the triggered error is not in the same 
 instruction for the two programs. 
 
-@author: Mohammed Bekkouche
-@Web:    http://www.i3s.unice.fr
+SPDX-FileCopyrightText: Mohammed Bekkouche <http://www.i3s.unice.fr>
+SPDX-License-Identifier: Apache-2.0
 */
 
 extern int __VERIFIER_nondet_uint();

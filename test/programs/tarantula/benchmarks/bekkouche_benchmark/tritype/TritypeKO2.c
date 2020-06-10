@@ -14,8 +14,8 @@ that the triangle is isosceles, however, it shoudl return 4
 to indicate that the input does not correspond to a valid 
 triangle.
 
-@author: Mohammed Bekkouche
-@Web:    http://www.i3s.unice.fr
+SPDX-FileCopyrightText: Mohammed Bekkouche <http://www.i3s.unice.fr>
+SPDX-License-Identifier: Apache-2.0
 */
 
 extern int __VERIFIER_nondet_uint();

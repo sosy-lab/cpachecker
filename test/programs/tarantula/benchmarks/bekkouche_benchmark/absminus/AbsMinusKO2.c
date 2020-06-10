@@ -9,8 +9,8 @@ the returned value should be 1 as the absolute value of i-j.
 This program shows a a case where all if-condition are free 
 from faults. 
 
-@author: Mohammed Bekkouche
-@Web:    http://www.i3s.unice.fr
+SPDX-FileCopyrightText: Mohammed Bekkouche <http://www.i3s.unice.fr>
+SPDX-License-Identifier: Apache-2.0
 */
 
 extern int __VERIFIER_nondet_uint();

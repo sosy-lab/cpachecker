@@ -14,8 +14,8 @@ the program satisfies the condition and executes the instruction
 however, it should returns that the triangle is isosceles 
 (correct returned value should be 2).
 
-@author: Mohammed Bekkouche
-@Web:    http://www.i3s.unice.fr
+SPDX-FileCopyrightText: Mohammed Bekkouche <http://www.i3s.unice.fr>
+SPDX-License-Identifier: Apache-2.0
 */
 
 extern int __VERIFIER_nondet_uint();

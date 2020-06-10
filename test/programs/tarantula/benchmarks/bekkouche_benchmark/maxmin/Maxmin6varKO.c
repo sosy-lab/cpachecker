@@ -8,8 +8,8 @@ There is an error in this program that is in the if-statement
 can be used to trigger a wrong branching and result in a 
 wrong output {max=1,min=0}, instead of {max=1,min=-4}.
 
-@author: Mohammed Bekkouche
-@Web:    http://www.i3s.unice.fr
+SPDX-FileCopyrightText: Mohammed Bekkouche <http://www.i3s.unice.fr>
+SPDX-License-Identifier: Apache-2.0
 */
 
 extern int __VERIFIER_nondet_uint();

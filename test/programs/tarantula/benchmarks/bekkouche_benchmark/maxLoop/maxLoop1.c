@@ -1,3 +1,5 @@
+//SPDX-FileCopyrightText: Schindar Ali
+//SPDX-License-Identifier: Apache-2.0
 extern int __VERIFIER_nondet_uint();
 extern void __VERIFIER_error();
 

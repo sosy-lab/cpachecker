@@ -12,8 +12,8 @@ The error in this program is in the assignement
 {i=1,j=2,k=1}, the program returns 2 (isosceles triangle), 
 however, it should return the value 4 (invalid triangle).
 
-@author: Mohammed Bekkouche
-@Web:    http://www.i3s.unice.fr
+SPDX-FileCopyrightText: Mohammed Bekkouche <http://www.i3s.unice.fr>
+SPDX-License-Identifier: Apache-2.0
 */
 
 extern int __VERIFIER_nondet_uint();

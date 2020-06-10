@@ -10,8 +10,8 @@ condition ((b<c) && (c<d) && (b<e) && (b<f)).
 By taking as input {a=1, b=-3, c=0, d=-2, e=-1, f=-2}, 
 these errors trigger two wrong branching; the program 
 returns {max=0,min=-3} instead of {max=1,min=-3}.
-@author: Mohammed Bekkouche
-@Web:    http://www.i3s.unice.fr
+SPDX-FileCopyrightText: Mohammed Bekkouche <http://www.i3s.unice.fr>
+SPDX-License-Identifier: Apache-2.0
 */
 
 extern int __VERIFIER_nondet_uint();
