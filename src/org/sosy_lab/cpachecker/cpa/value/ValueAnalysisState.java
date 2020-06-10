@@ -817,28 +817,19 @@ public final class ValueAnalysisState
                     memoryLocation.getAsSimpleString(),
                     null);
             CExpression var = new CIdExpression(loc, decl);
-            CExpression val = null;
+            CExpression val;
             if (simpleType.getType().isIntegerType()) {
               long value = num.getNumber().longValue();
               val = new CIntegerLiteralExpression(loc, simpleType, BigInteger.valueOf(value));
             } else if (simpleType.getType().isFloatingPointType()) {
               double value = num.getNumber().doubleValue();
-              val =
-                  new CFloatLiteralExpression(
-                      loc, simpleType, BigDecimal.valueOf(value));
+              val = new CFloatLiteralExpression(loc, simpleType, BigDecimal.valueOf(value));
+            } else {
+              throw new AssertionError("Unexpected type: " + simpleType);
             }
-            try {
-              CBinaryExpression exp =
-                  builder.buildBinaryExpression(
-                      var,
-                      Preconditions.checkNotNull(val),
-                      BinaryOperator.EQUALS);
-              result.add(LeafExpression.of(exp));
-            } catch (NullPointerException pE) {
-              throw new AssertionError("Unable to approximate state: ", pE);
-            } catch (UnrecognizedCodeException pE) {
-              throw new AssertionError("Unable to approximate state: ", pE);
-            }
+            CBinaryExpression exp =
+                builder.buildBinaryExpressionUnchecked(var, val, BinaryOperator.EQUALS);
+            result.add(LeafExpression.of(exp));
           }
         }
       }
