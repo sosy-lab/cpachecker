@@ -105,7 +105,7 @@ python-unit-tests:jdk-14:
 javascript-unit-tests:
   stage: checks
   dependencies: []
-  image: node:8.10.0 # This version is also provided by Ubuntu 18.04
+  image: ${CI_REGISTRY_IMAGE}/test:node
   before_script:
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
     - npm install
@@ -125,6 +125,12 @@ build-docker:test:java-node:
   variables:
     DOCKERFILE: build/gitlab-ci.Dockerfile.java-node
     IMAGE: /test:java-node
+
+build-docker:test:java-node:
+  extends: .build-docker
+  variables:
+    DOCKERFILE: build/gitlab-ci.Dockerfile.node
+    IMAGE: /test:node
 
 build-docker:release:
   extends: .build-docker
