@@ -32,12 +32,13 @@ import static org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils.bui
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -491,7 +492,10 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
 
             try {
 
-              tasks.get(threadCounter).join();
+              int exitcode = tasks.get(threadCounter).join();
+              if (exitcode != 0) {
+                throw new CPAException("The exit code of one of the Solver Processes is non zero");
+              }
             } catch (CounterexampleAnalysisFailed e) {
               // TODO Auto-generated catch block
             } catch (IOException e) {
@@ -513,7 +517,6 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
                 checkEdgeParallel(
                     currentState,
                     key,
-                    segment,
                     pAbstractionStatesTrace,
                     rootState,
                     pInfeasiblePartOfART,
@@ -621,6 +624,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     return infeasible;
   }
 
+  /*
   private boolean checkEdgeSetParallel(SLARGState startState, SLARGState endState)
       throws InterruptedException, CPAException {
     assert startState.getChildren().contains(endState);
@@ -641,11 +645,17 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     }
     return infeasible;
   }
+  */
 
-  private boolean checkEdge(ARGState startState, ARGState endState,
-      List<ARGState> segmentList, final List<ARGState> abstractionStatesTrace, ARGState rootState,
-      ARGState pInfeasiblePartOfART, List<ARGState> pChangedElements)
-          throws InterruptedException, CPAException {
+  private boolean checkEdge(
+      ARGState startState,
+      ARGState endState,
+      List<ARGState> segmentList,
+      final List<ARGState> abstractionStatesTrace,
+      ARGState rootState,
+      ARGState pInfeasiblePartOfART,
+      List<ARGState> pChangedElements)
+      throws InterruptedException, CPAException {
     boolean infeasible = false;
     final boolean mustBeInfeasible = mustBeInfeasible(startState, endState,
         abstractionStatesTrace, rootState, pInfeasiblePartOfART, pChangedElements);
@@ -672,10 +682,15 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     return infeasible;
   }
 
-  private boolean checkEdgeParallel(ARGState startState, ARGState endState,
-      List<ARGState> segmentList, final List<ARGState> abstractionStatesTrace, ARGState rootState,
-      ARGState pInfeasiblePartOfART, List<ARGState> pChangedElements, boolean infeasibleExtern)
-          throws InterruptedException, CPAException {
+  private boolean checkEdgeParallel(
+      ARGState startState,
+      ARGState endState,
+      final List<ARGState> abstractionStatesTrace,
+      ARGState rootState,
+      ARGState pInfeasiblePartOfART,
+      List<ARGState> pChangedElements,
+      boolean infeasibleExtern)
+      throws InterruptedException, CPAException {
     boolean infeasible = false;
     final boolean mustBeInfeasible = mustBeInfeasible(startState, endState,
         abstractionStatesTrace, rootState, pInfeasiblePartOfART, pChangedElements);
@@ -723,6 +738,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     }
   }
 
+  /*
   private boolean checkSymbolicEdgeParallel(
       ARGState pStartState, ARGState pEndState, List<ARGState> pSegmentList)
       throws InterruptedException, CPAException {
@@ -743,6 +759,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       throw new RuntimeException("Checking a nonexisting transition in the ARG!");
     }
   }
+  */
 
   private boolean isInfeasibleEdge(ARGState start, ARGState stop, List<ARGState> segmentList)
       throws InterruptedException, CPAException {
@@ -789,7 +806,12 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
 
     stats.increaseSolverCallCounter();
     solver.getFormulaManager().dumpFormulaToFile(formula, Paths.get(filename));
-    try (Writer formulaFile = new BufferedWriter(new FileWriter(filename, true))) {
+    try (Writer formulaFile =
+        Files.newBufferedWriter(
+            Paths.get(filename),
+            StandardCharsets.UTF_8,
+            StandardOpenOption.CREATE,
+            StandardOpenOption.APPEND)) {
       formulaFile.append("\n(check-sat)");
     } catch (IOException e) {
       // TODO
