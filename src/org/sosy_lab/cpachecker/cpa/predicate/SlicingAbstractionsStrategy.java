@@ -791,7 +791,6 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
     solver.getFormulaManager().dumpFormulaToFile(formula, Paths.get(filename));
     try (Writer formulaFile = new BufferedWriter(new FileWriter(filename, true))) {
       formulaFile.append("\n(check-sat)");
-      formulaFile.close();
     } catch (IOException e) {
       // TODO
       throw new CPAException("Failure Writing Formula to File for solver to solver Formula", e);
