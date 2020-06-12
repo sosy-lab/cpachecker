@@ -57,11 +57,15 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
-import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
@@ -789,9 +793,17 @@ public final class ValueAnalysisState
         Type type = entry.getValue().getType();
         if (!memoryLocation.isReference()
             && memoryLocation.isOnFunctionStack(pFunctionScope.getFunctionName())
-            && type instanceof CSimpleType) {
+            && type instanceof CType
+            && CTypes.isArithmeticType((CType) type)) {
+          CType cType = (CType) type;
+          if (cType instanceof CBitFieldType) {
+            cType = ((CBitFieldType) cType).getType();
+          }
+          if (cType instanceof CElaboratedType) {
+            cType = ((CElaboratedType) cType).getRealType();
+          }
+          assert cType != null && CTypes.isArithmeticType(cType);
           String id = memoryLocation.getIdentifier();
-          CSimpleType simpleType = (CSimpleType) type;
           if (!pFunctionScope.getReturnVariable().isPresent()
               || !id.equals(pFunctionScope.getReturnVariable().get().getName())) {
             FileLocation loc =
@@ -803,21 +815,36 @@ public final class ValueAnalysisState
                     loc,
                     false,
                     CStorageClass.AUTO,
-                    simpleType,
+                    cType,
                     id,
                     id,
                     memoryLocation.getAsSimpleString(),
                     null);
             CExpression var = new CIdExpression(loc, decl);
-            CExpression val;
-            if (simpleType.getType().isIntegerType()) {
-              long value = num.getNumber().longValue();
-              val = new CIntegerLiteralExpression(loc, simpleType, BigInteger.valueOf(value));
-            } else if (simpleType.getType().isFloatingPointType()) {
-              double value = num.getNumber().doubleValue();
-              val = new CFloatLiteralExpression(loc, simpleType, BigDecimal.valueOf(value));
+            CExpression val = null;
+            if (cType instanceof CSimpleType) {
+              CSimpleType simpleType = (CSimpleType) type;
+              if (simpleType.getType().isIntegerType()) {
+                long value = num.getNumber().longValue();
+                val = new CIntegerLiteralExpression(loc, simpleType, BigInteger.valueOf(value));
+              } else if (simpleType.getType().isFloatingPointType()) {
+                double value = num.getNumber().doubleValue();
+                val = new CFloatLiteralExpression(loc, simpleType, BigDecimal.valueOf(value));
+              } else {
+                throw new AssertionError("Unexpected type: " + simpleType);
+              }
+            } else if (cType instanceof CEnumType) {
+              CEnumType enumType = (CEnumType) cType;
+              Long value = num.getNumber().longValue();
+              for (CEnumerator enumerator : enumType.getEnumerators()) {
+                if (enumerator.getValue() == value) {
+                  val = new CIdExpression(loc, enumerator);
+                  break;
+                }
+              }
+              assert val != null : "Unknown value " + value + " for enum " + enumType.getName();
             } else {
-              throw new AssertionError("Unexpected type: " + simpleType);
+              throw new AssertionError("Unknown arithmetic type: " + cType);
             }
             CBinaryExpression exp =
                 builder.buildBinaryExpressionUnchecked(var, val, BinaryOperator.EQUALS);
