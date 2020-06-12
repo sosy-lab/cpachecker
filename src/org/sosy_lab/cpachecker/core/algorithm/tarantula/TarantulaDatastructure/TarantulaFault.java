@@ -37,12 +37,22 @@ public class TarantulaFault implements Comparable<TarantulaFault> {
 
   @Override
   public int compareTo(TarantulaFault o) {
-    if (o.getLineScore() < this.getLineScore()) {
-      return -1;
-    } else if (this.getLineScore() < o.getLineScore()) {
-      return 1;
+    return Double.compare(o.lineScore, this.lineScore);
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (this == other) return true;
+
+    if (other == null || (this.getClass() != other.getClass())) {
+      return false;
     }
-    return 0;
+
+    TarantulaFault fault2 = (TarantulaFault) other;
+    return (this.lineScore == fault2.lineScore)
+        && (this.fault != null && fault.equals(fault2.fault))
+        && (this.tarantulaCFAEdgeSuspicious != null
+            && tarantulaCFAEdgeSuspicious.equals(fault2.tarantulaCFAEdgeSuspicious));
   }
 
   @Override
