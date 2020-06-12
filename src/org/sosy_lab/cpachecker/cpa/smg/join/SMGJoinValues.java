@@ -27,7 +27,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
@@ -1113,27 +1112,21 @@ final class SMGJoinValues {
     // Algorithm 9 from FIT-TR-2012-04, line 11
     SMGEdgeHasValue newHve = new SMGEdgeHasValue(nfSize, nf, list, newAdressFromDLS);
 
-    Iterator<SMGEdgeHasValue> currentValue =
-        pDestSMG
-            .getHVEdges(SMGEdgeHasValueFilter.objectFilter(list))
-            .getOverlapping(newHve)
-            .iterator();
-    if (!currentValue.hasNext()) {
+    if (!pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(list)).overlapsWith(newHve)) {
       pDestSMG.addHasValueEdge(newHve);
     } else {
-      if (!currentValue.next().getValue().equals(newAdressFromDLS)) {
-        return Pair.of(false, false);
+      for (SMGEdgeHasValue currentValue :
+          pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(list)).getOverlapping(newHve)) {
+        if (!currentValue.getValue().equals(newAdressFromDLS)) {
+          return Pair.of(false, false);
+        }
       }
     }
 
     if (smgState1.getAddress(pTarget, hfo, SMGTargetSpecifier.FIRST) == null) {
       long nfSize2 = getSize(pTarget, nfo, newInputSMG1);
       SMGEdgeHasValue newHve2 = new SMGEdgeHasValue(nfSize2, nfo, list, newAdressFromDLS);
-      if (!pDestSMG
-          .getHVEdges(SMGEdgeHasValueFilter.objectFilter(list))
-          .getOverlapping(newHve2)
-          .iterator()
-          .hasNext()) {
+      if (!pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(list)).overlapsWith(newHve2)) {
         pDestSMG.addHasValueEdge(newHve2);
       }
     }
@@ -1142,11 +1135,7 @@ final class SMGJoinValues {
         && smgState1.getAddress(pTarget, hfo, SMGTargetSpecifier.LAST) == null) {
       long nfSize2 = getSize(pTarget, pfo, newInputSMG1);
       SMGEdgeHasValue newHve2 = new SMGEdgeHasValue(nfSize2, pfo, list, newAdressFromDLS);
-      if (!pDestSMG
-          .getHVEdges(SMGEdgeHasValueFilter.objectFilter(list))
-          .getOverlapping(newHve2)
-          .iterator()
-          .hasNext()) {
+      if (!pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(list)).overlapsWith(newHve2)) {
         pDestSMG.addHasValueEdge(newHve2);
       }
     }
@@ -1373,27 +1362,21 @@ final class SMGJoinValues {
     long nfSize = getSize(pTarget, nf, newInputSMG2);
     SMGEdgeHasValue newHve = new SMGEdgeHasValue(nfSize, nf, list, newAdressFromDLS);
 
-    Iterator<SMGEdgeHasValue> currentValue =
-        pDestSMG
-            .getHVEdges(SMGEdgeHasValueFilter.objectFilter(list))
-            .getOverlapping(newHve)
-            .iterator();
-    if (!currentValue.hasNext()) {
+    if (!pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(list)).overlapsWith(newHve)) {
       pDestSMG.addHasValueEdge(newHve);
     } else {
-      if (!currentValue.next().getValue().equals(newAdressFromDLS)) {
-        return Pair.of(false, false);
+      for (SMGEdgeHasValue currentValue :
+          pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(list)).getOverlapping(newHve)) {
+        if (!currentValue.getValue().equals(newAdressFromDLS)) {
+          return Pair.of(false, false);
+        }
       }
     }
 
     if (smgState2.getAddress(pTarget, hfo, SMGTargetSpecifier.FIRST) == null) {
       long nfSize2 = getSize(pTarget, nfo, newInputSMG2);
       SMGEdgeHasValue newHve2 = new SMGEdgeHasValue(nfSize2, nfo, list, newAdressFromDLS);
-      if (!pDestSMG
-          .getHVEdges(SMGEdgeHasValueFilter.objectFilter(list))
-          .getOverlapping(newHve2)
-          .iterator()
-          .hasNext()) {
+      if (!pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(list)).overlapsWith(newHve2)) {
         pDestSMG.addHasValueEdge(newHve2);
       }
     }
@@ -1402,11 +1385,7 @@ final class SMGJoinValues {
         && smgState2.getAddress(pTarget, hfo, SMGTargetSpecifier.LAST) == null) {
       long nfSize2 = getSize(pTarget, nfo, newInputSMG2);
       SMGEdgeHasValue newHve2 = new SMGEdgeHasValue(nfSize2, pfo, list, newAdressFromDLS);
-      if (!pDestSMG
-          .getHVEdges(SMGEdgeHasValueFilter.objectFilter(list))
-          .getOverlapping(newHve2)
-          .iterator()
-          .hasNext()) {
+      if (!pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(list)).overlapsWith(newHve2)) {
         pDestSMG.addHasValueEdge(newHve2);
       }
     }
@@ -1507,7 +1486,9 @@ final class SMGJoinValues {
         SMGEdgeHasValue newEdge =
             new SMGEdgeHasValue(hve.getSizeInBits(), hve.getOffset(),
                 listCopy, newVal);
-        if (!pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(listCopy)).getOverlapping(newEdge).iterator().hasNext()) {
+        if (!pDestSMG
+            .getHVEdges(SMGEdgeHasValueFilter.objectFilter(listCopy))
+            .overlapsWith(newEdge)) {
           if (!pDestSMG.getValues().contains(newVal)) {
             pDestSMG.addValue(newVal);
           }

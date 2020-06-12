@@ -262,8 +262,7 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
   @Override
   public Iterable<SMGEdgeHasValue> getOverlapping(
       SMGEdgeHasValue pNew_edge) {
-    PersistentSortedMap<Long, SMGEdgeHasValue> sortedByOffsets =
-        map.get(pNew_edge.getObject());
+    PersistentSortedMap<Long, SMGEdgeHasValue> sortedByOffsets = map.get(pNew_edge.getObject());
     if (sortedByOffsets == null) {
       return ImmutableSet.of();
     }
@@ -283,8 +282,32 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
   }
 
   @Override
+  public boolean overlapsWith(SMGEdgeHasValue pNewHve) {
+    PersistentSortedMap<Long, SMGEdgeHasValue> sortedByOffsets = map.get(pNewHve.getObject());
+    if (sortedByOffsets == null) {
+      return false;
+    }
+    long startOffset = pNewHve.getOffset();
+    long endOffset = startOffset + pNewHve.getSizeInBits();
+    Entry<Long, SMGEdgeHasValue> floorEntryCandidate = sortedByOffsets.floorEntry(startOffset);
+    if (floorEntryCandidate != null) {
+      SMGEdgeHasValue edgeCandidate = floorEntryCandidate.getValue();
+      long edgeCandidateOffset = edgeCandidate.getOffset();
+      long edgeCandidateEndOffset = edgeCandidateOffset + edgeCandidate.getSizeInBits();
+      if (edgeCandidateEndOffset > startOffset) {
+        return true;
+      }
+    }
+    NavigableMap<Long, SMGEdgeHasValue> filteredMap =
+        sortedByOffsets.subMap(startOffset, endOffset);
+    return !filteredMap.isEmpty();
+  }
+
+  @Override
   public SMGHasValueEdgeSet addEdgesForObject(SMGHasValueEdges pEdgesSet) {
-    checkArgument((pEdgesSet instanceof SMGHasValueEdgeSet), "Can't use different SMGHasValueEdges implementations");
+    checkArgument(
+        (pEdgesSet instanceof SMGHasValueEdgeSet),
+        "Can't use different SMGHasValueEdges implementations");
     SMGHasValueEdgeSet edgesSet = (SMGHasValueEdgeSet)pEdgesSet;
     NavigableSet<Entry<SMGObject, PersistentSortedMap<Long, SMGEdgeHasValue>>> entries =
         edgesSet.map.entrySet();
@@ -304,7 +327,6 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
   public boolean isEmpty() {
     return size == 0;
   }
-
 
   @Override
   public int hashCode() {

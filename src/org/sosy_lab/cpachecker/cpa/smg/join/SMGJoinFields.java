@@ -108,15 +108,15 @@ class SMGJoinFields {
     filterForSMG1.filterNotHavingValue(SMGZeroValue.INSTANCE);
 
     for (SMGEdgeHasValue edge : pSMG1.getHVEdges(filterForSMG1)) {
-      if (!pSMG2.getHVEdges(filterForSMG2).getOverlapping(
-          new SMGEdgeHasValue(edge.getSizeInBits(), edge.getOffset(), pObj2, edge.getValue()))
-          .iterator().hasNext()) {
-        returnSet = returnSet.addEdgeAndCopy(
-            new SMGEdgeHasValue(
-                edge.getSizeInBits(),
-                edge.getOffset(),
-                pObj2,
-                SMGKnownSymValue.of()));
+      if (!pSMG2
+          .getHVEdges(filterForSMG2)
+          .overlapsWith(
+              new SMGEdgeHasValue(
+                  edge.getSizeInBits(), edge.getOffset(), pObj2, edge.getValue()))) {
+        returnSet =
+            returnSet.addEdgeAndCopy(
+                new SMGEdgeHasValue(
+                    edge.getSizeInBits(), edge.getOffset(), pObj2, SMGKnownSymValue.of()));
       }
     }
 
@@ -164,7 +164,8 @@ class SMGJoinFields {
   static void setCompatibleHVEdgesToSMG(
       SMG pSMG, UnmodifiableSMG pSMG2, SMGObject pObj1, SMGObject pObj2) {
 
-    if (pSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj1)).equals(pSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj2)))) {
+    if (pSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj1))
+        .equals(pSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj2)))) {
       return;
     }
 
@@ -307,8 +308,19 @@ class SMGJoinFields {
     TreeMap<Long, Long> nullEdgesInSMG1 = pSMG1.getNullEdgesMapOffsetToSizeForObject(pObj1);
     TreeMap<Long, Long> nullEdgesInSMG2 = pSMG2.getNullEdgesMapOffsetToSizeForObject(pObj2);
 
-    if (pSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj1).filterNotHavingValue(SMGZeroValue.INSTANCE)).size() != pSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj2).filterNotHavingValue(SMGZeroValue.INSTANCE)).size()) {
-      throw new SMGInconsistentException("SMGJoinFields output assertion does not hold: the objects do not have identical sets of fields");
+    if (pSMG1
+            .getHVEdges(
+                SMGEdgeHasValueFilter.objectFilter(pObj1)
+                    .filterNotHavingValue(SMGZeroValue.INSTANCE))
+            .size()
+        != pSMG2
+            .getHVEdges(
+                SMGEdgeHasValueFilter.objectFilter(pObj2)
+                    .filterNotHavingValue(SMGZeroValue.INSTANCE))
+            .size()) {
+      throw new SMGInconsistentException(
+          "SMGJoinFields output assertion does not hold: the objects do not have identical sets of"
+              + " fields");
     }
 
     checkResultConsistencySingleSide(pSMG1, nullEdges1, pSMG2, pObj2, nullEdgesInSMG2);
