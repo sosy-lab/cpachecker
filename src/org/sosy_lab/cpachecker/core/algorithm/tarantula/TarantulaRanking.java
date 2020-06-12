@@ -135,9 +135,9 @@ public class TarantulaRanking {
 
     return getRearrangedFaults.entrySet().stream()
         .sorted(
-            (Comparator.comparingDouble(
+            Comparator.comparingDouble(
                     (Entry<TarantulaFault, List<TarantulaCFAEdgeSuspicious>> k) ->
-                        k.getKey().getLineScore()))
+                        k.getKey().getLineScore())
                 .reversed())
         .collect(
             Collectors.toMap(
