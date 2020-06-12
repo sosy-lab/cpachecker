@@ -7,6 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.core.algorithm.tarantula;
 
+import java.util.Map.Entry;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -133,7 +134,11 @@ public class TarantulaRanking {
       Map<TarantulaFault, List<TarantulaCFAEdgeSuspicious>> getRearrangedFaults) {
 
     return getRearrangedFaults.entrySet().stream()
-        .sorted(Map.Entry.comparingByKey())
+        .sorted(
+            (Comparator.comparingDouble(
+                    (Entry<TarantulaFault, List<TarantulaCFAEdgeSuspicious>> k) ->
+                        k.getKey().getLineScore()))
+                .reversed())
         .collect(
             Collectors.toMap(
                 Map.Entry::getKey,
