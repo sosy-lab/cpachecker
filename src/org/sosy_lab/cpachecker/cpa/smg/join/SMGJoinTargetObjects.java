@@ -247,8 +247,7 @@ final class SMGJoinTargetObjects {
     Set<SMGObject> toCheck = new HashSet<>();
 
     pMapping.removeValue(targetObject);
-    SMGHasValueEdges hves =
-        destSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(targetObject));
+    SMGHasValueEdges hves = destSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(targetObject));
 
     destSMG.markObjectDeletedAndRemoveEdges(targetObject);
 

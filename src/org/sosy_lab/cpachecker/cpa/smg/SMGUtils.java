@@ -76,8 +76,7 @@ public final class SMGUtils {
     return pInputSMG.getPtEdges(objectFilter);
   }
 
-  public static SMGHasValueEdges getFieldsofThisValue(
-      SMGValue value, UnmodifiableSMG pInputSMG) {
+  public static SMGHasValueEdges getFieldsofThisValue(SMGValue value, UnmodifiableSMG pInputSMG) {
     SMGEdgeHasValueFilter valueFilter = SMGEdgeHasValueFilter.valueFilter(value);
     return pInputSMG.getHVEdges(valueFilter);
   }
@@ -218,7 +217,8 @@ public final class SMGUtils {
       String dot = currentState.toDot("SMG" + currentState.getId(), location);
       IO.writeFile(pOutputFile, Charset.defaultCharset(), dot);
     } catch (IOException e) {
-      pLogger.logUserException(Level.WARNING, e, "Could not write SMG " + currentState.getId() + " to file");
+      pLogger.logUserException(
+          Level.WARNING, e, "Could not write SMG " + currentState.getId() + " to file");
     }
   }
 }

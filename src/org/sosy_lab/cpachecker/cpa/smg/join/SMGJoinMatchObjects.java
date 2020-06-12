@@ -86,7 +86,9 @@ final class SMGJoinMatchObjects {
       while (hv2 != null && hv2.getOffset() < hv1.getOffset()) {
         hv2 = iterator2.hasNext() ? iterator2.next() : null;
       }
-      if (hv2 != null && hv1.getOffset() == hv2.getOffset() && hv1.getSizeInBits() == hv2.getSizeInBits()) {
+      if (hv2 != null
+          && hv1.getOffset() == hv2.getOffset()
+          && hv1.getSizeInBits() == hv2.getSizeInBits()) {
         SMGValue v1 = hv1.getValue();
         SMGValue v2 = hv2.getValue();
         if (pMapping1.containsKey(v1)

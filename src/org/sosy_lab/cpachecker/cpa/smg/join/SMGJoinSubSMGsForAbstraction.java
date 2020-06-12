@@ -117,7 +117,7 @@ final public class SMGJoinSubSMGsForAbstraction {
                       .filterAtOffset(nfo)
                       .filterBySize(smg.getSizeofPtrInBits())));
 
-      //FIXME: remove only one pointer size
+      // FIXME: remove only one pointer size
       smg.removeHasValueEdge(prevObj1hve);
       smg.removeHasValueEdge(nextObj1hve);
       smg.removeHasValueEdge(prevObj2hve);

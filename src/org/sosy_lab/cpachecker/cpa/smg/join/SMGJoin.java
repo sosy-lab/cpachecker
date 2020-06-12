@@ -57,7 +57,8 @@ public final class SMGJoin {
   private final SMGNodeMapping mapping1 = new SMGNodeMapping();
   private final SMGNodeMapping mapping2 = new SMGNodeMapping();
   final SMGLevelMapping levelMap = SMGLevelMapping.createDefaultLevelMap();
-  private final BiMap<SMGKnownSymbolicValue, SMGKnownExpValue> mergedExplicitValues = HashBiMap.create();
+  private final BiMap<SMGKnownSymbolicValue, SMGKnownExpValue> mergedExplicitValues =
+      HashBiMap.create();
 
   /**
    * Algorithm 10 from FIT-TR-2012-04.

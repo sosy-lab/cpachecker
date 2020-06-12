@@ -87,5 +87,5 @@ public interface UnmodifiableSMG {
 
   Set<SMGValue> getNeqsForValue(SMGValue pV);
 
-  PersistentSet<SMGObject>  getValidObjects();
+  PersistentSet<SMGObject> getValidObjects();
 }

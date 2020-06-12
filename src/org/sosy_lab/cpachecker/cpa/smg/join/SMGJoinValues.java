@@ -486,7 +486,8 @@ final class SMGJoinValues {
     SMGEdgePointsTo pointedToTargetEdge = Iterables.getOnlyElement(pointedToTarget);
 
     /*Fields of optional objects must have one pointer.*/
-    SMGHasValueEdges fieldsOfTarget = pInputSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget));
+    SMGHasValueEdges fieldsOfTarget =
+        pInputSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget));
 
     if (fieldsOfTarget.isEmpty()) {
       return Pair.of(false, true);
@@ -741,7 +742,8 @@ final class SMGJoinValues {
     SMGEdgePointsTo pointedToTargetEdge = Iterables.getOnlyElement(pointedToTarget);
 
     /*Fields of optional objects must have one pointer.*/
-    SMGHasValueEdges fieldsOfTarget = pInputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget));
+    SMGHasValueEdges fieldsOfTarget =
+        pInputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget));
 
     if (fieldsOfTarget.isEmpty()) {
       return Pair.of(false, true);
@@ -1484,8 +1486,7 @@ final class SMGJoinValues {
         }
 
         SMGEdgeHasValue newEdge =
-            new SMGEdgeHasValue(hve.getSizeInBits(), hve.getOffset(),
-                listCopy, newVal);
+            new SMGEdgeHasValue(hve.getSizeInBits(), hve.getOffset(), listCopy, newVal);
         if (!pDestSMG
             .getHVEdges(SMGEdgeHasValueFilter.objectFilter(listCopy))
             .overlapsWith(newEdge)) {
@@ -1575,11 +1576,11 @@ final class SMGJoinValues {
       }
 
       if (pDestSMG
-              .getHVEdges(
-                  SMGEdgeHasValueFilter.objectFilter(newObj)
-                      .filterAtOffset(hve.getOffset())
-                      .filterWithoutSize())
-              .isEmpty()) {
+          .getHVEdges(
+              SMGEdgeHasValueFilter.objectFilter(newObj)
+                  .filterAtOffset(hve.getOffset())
+                  .filterWithoutSize())
+          .isEmpty()) {
         if (!pDestSMG.getValues().contains(newVal)) {
           pDestSMG.addValue(newVal);
         }

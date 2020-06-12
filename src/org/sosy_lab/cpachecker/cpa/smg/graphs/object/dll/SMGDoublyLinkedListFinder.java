@@ -394,16 +394,14 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
         }
       } else if (nextObject.getKind() == SMGObjectKind.DLL
           && pte.getTargetSpecifier() == SMGTargetSpecifier.FIRST) {
-        SMGHasValueEdges prevs =
-            pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
+        SMGHasValueEdges prevs = pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
 
         if (prevs.size() != 1) {
           return;
         }
       } else if (nextObject.getKind() == SMGObjectKind.REG
           && !hasToBeLastInSequence) {
-        SMGHasValueEdges hves =
-            pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
+        SMGHasValueEdges hves = pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
 
         /* If we want to continue abstracting in this sequence there may be only these two edges, and the edges from the subSmg.*/
         int count = 0;

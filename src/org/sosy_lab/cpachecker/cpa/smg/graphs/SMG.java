@@ -201,11 +201,11 @@ public class SMG implements UnmodifiableSMG {
   /**
    * Mark pObj as deleted (invalid) and remove hasValueEdges leading from it from the SMG
    *
-   * Keeps consistency: no
+   * <p>Keeps consistency: no
    *
    * @param pObj Object to remove
    */
-  final public void markObjectDeletedAndRemoveEdges(final SMGObject pObj) {
+  public final void markObjectDeletedAndRemoveEdges(final SMGObject pObj) {
     Preconditions.checkArgument(pObj != SMGNullObject.INSTANCE, "Can not remove NULL from SMG");
     setValidity(pObj, false);
     hv_edges = hv_edges.removeAllEdgesOfObjectAndCopy(pObj);
@@ -264,12 +264,12 @@ public class SMG implements UnmodifiableSMG {
   /**
    * Quick add pEdge Has-Value edge to the SMG.
    *
-   * Keeps consistency: no
+   * <p>Keeps consistency: no
    *
    * @param pEdgesSet Has-Value edges set to add
    */
   public void addHasValueEdges(SMGHasValueEdges pEdgesSet) {
-    //TODO: add values check
+    // TODO: add values check
     hv_edges = hv_edges.addEdgesForObject(pEdgesSet);
   }
   /**
@@ -388,21 +388,23 @@ public class SMG implements UnmodifiableSMG {
 
   /**
    * Getter for obtaining unmodifiable view on Has-Value edges set. Constant.
+   *
    * @return Unmodifiable view on Has-Value edges set.
    */
   @Override
-  final public SMGHasValueEdges getHVEdges() {
+  public final SMGHasValueEdges getHVEdges() {
     return hv_edges;
   }
 
   /**
-   * Getter for obtaining unmodifiable view on Has-Value edges set, filtered by
-   * a certain set of criteria.
+   * Getter for obtaining unmodifiable view on Has-Value edges set, filtered by a certain set of
+   * criteria.
+   *
    * @param pFilter Filtering object
    * @return A set of Has-Value edges for which the criteria in p hold
    */
   @Override
-  final public SMGHasValueEdges getHVEdges(SMGEdgeHasValueFilter pFilter) {
+  public final SMGHasValueEdges getHVEdges(SMGEdgeHasValueFilter pFilter) {
     return pFilter.filter(hv_edges);
   }
 

@@ -74,7 +74,8 @@ public class SMGSingleLinkedListCandidateTest {
     int SEGMENT_LENGTH = 4;
     int OFFSET = 0;
 
-    SMGEdgeHasValue root = TestHelpers.createGlobalList(smg, SEGMENT_LENGTH, NODE_SIZE, OFFSET, "pointer");
+    SMGEdgeHasValue root =
+        TestHelpers.createGlobalList(smg, SEGMENT_LENGTH, NODE_SIZE, OFFSET, "pointer");
     SMGValue value = root.getValue();
 
     SMGObject startObject = smg.getPointer(value).getObject();
@@ -102,7 +103,8 @@ public class SMGSingleLinkedListCandidateTest {
     assertThat(segment.getSize()).isEqualTo(NODE_SIZE);
     assertThat(segment.getMinimumLength()).isEqualTo(SEGMENT_LENGTH);
     assertThat(segment.getNfo()).isEqualTo(OFFSET);
-    SMGHasValueEdges outboundEdges = abstractedSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(segment));
+    SMGHasValueEdges outboundEdges =
+        abstractedSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(segment));
     assertThat(outboundEdges).hasSize(1);
     SMGEdgeHasValue onlyOutboundEdge = Iterables.getOnlyElement(outboundEdges);
     assertThat(onlyOutboundEdge.getOffset()).isEqualTo(OFFSET);
@@ -142,7 +144,8 @@ public class SMGSingleLinkedListCandidateTest {
     assertThat(sll).isInstanceOf(SMGSingleLinkedList.class);
     SMGSingleLinkedList realSll = (SMGSingleLinkedList)sll;
     assertThat(realSll.getMinimumLength()).isEqualTo(2);
-    SMGHasValueEdges outboundEdges = abstractedSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(realSll));
+    SMGHasValueEdges outboundEdges =
+        abstractedSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(realSll));
     assertThat(outboundEdges).hasSize(1);
     SMGEdgeHasValue outbound = Iterables.getOnlyElement(outboundEdges);
     assertThat(outbound.getOffset()).isEqualTo(64);

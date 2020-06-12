@@ -832,48 +832,33 @@ public class SMGTransferRelation
 
           result.add(
               expressionEvaluator.assignFieldToState(
-                  newState,
-                  cfaEdge,
-                  memoryOfField,
-                  fieldOffset,
-                  symbolicValue,
-                  rValueType));
+                  newState, cfaEdge, memoryOfField, fieldOffset, symbolicValue, rValueType));
         } else {
           for (SMGValueAndState valueAndState : readValueToBeAssiged(newState, cfaEdge, rValue)) {
             SMGSymbolicValue value = valueAndState.getObject();
             SMGState curState = valueAndState.getSmgState();
 
-            curState.putExplicit((SMGKnownSymbolicValue)value, (SMGKnownExpValue)expValue);
+            curState.putExplicit((SMGKnownSymbolicValue) value, (SMGKnownExpValue) expValue);
             result.add(
                 expressionEvaluator.assignFieldToState(
-                    curState,
-                    cfaEdge,
-                    memoryOfField,
-                    fieldOffset,
-                    value,
-                    rValueType));
+                    curState, cfaEdge, memoryOfField, fieldOffset, value, rValueType));
           }
-
         }
       } else {
         for (SMGValueAndState valueAndState : readValueToBeAssiged(newState, cfaEdge, rValue)) {
           SMGSymbolicValue value = valueAndState.getObject();
           SMGState curState = valueAndState.getSmgState();
 
-          //TODO (  cast expression)
+          // TODO (  cast expression)
 
-          //6.5.16.1 right operand is converted to type of assignment expression
-          // 6.5.26 The type of an assignment expression is the type the left operand would have after lvalue conversion.
+          // 6.5.16.1 right operand is converted to type of assignment expression
+          // 6.5.26 The type of an assignment expression is the type the left operand would have
+          // after lvalue conversion.
           rValueType = pLFieldType;
 
           result.add(
               expressionEvaluator.assignFieldToState(
-                  curState,
-                  cfaEdge,
-                  memoryOfField,
-                  fieldOffset,
-                  value,
-                  rValueType));
+                  curState, cfaEdge, memoryOfField, fieldOffset, value, rValueType));
         }
       }
     }
@@ -1026,8 +1011,10 @@ public class SMGTransferRelation
       return ImmutableList.of(pNewState);
 
     } else if (pInitializer instanceof CDesignatedInitializer) {
-      throw new AssertionError("Error in handling initializer, designated Initializer " + pInitializer.toASTString()
-          + " should not appear at this point.");
+      throw new AssertionError(
+          "Error in handling initializer, designated Initializer "
+              + pInitializer.toASTString()
+              + " should not appear at this point.");
 
     } else {
       throw new UnrecognizedCodeException("Did not recognize Initializer", pInitializer);
