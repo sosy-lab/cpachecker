@@ -842,7 +842,9 @@ public final class ValueAnalysisState
                   break;
                 }
               }
-              assert val != null : "Unknown value " + value + " for enum " + enumType.getName();
+              if(val == null) {
+                val = new CIntegerLiteralExpression(loc, enumType, BigInteger.valueOf(value));
+              }
             } else {
               throw new AssertionError("Unknown arithmetic type: " + cType);
             }

@@ -166,6 +166,20 @@ public class WitnessExporterTest {
     new WitnessTester("max.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.BAM).performTest();
   }
 
+  @Test(timeout = 90000)
+  public void weekdays_true() throws Exception {
+    new WitnessTester(
+            "weekdays.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.VALUE_ANALYSIS)
+        .performTest();
+  }
+
+  @Test(timeout = 90000)
+  public void weekdays_no_termination_true() throws Exception {
+    new WitnessTester(
+        "weekdays_no_termination.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.VALUE_ANALYSIS)
+        .performTest();
+  }
+
   private static void performTest(
       String pFilename,
       String pSpecification,
