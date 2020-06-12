@@ -817,7 +817,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
       // TODO
       throw new CPAException("Failure Writing Formula to File for solver to solver Formula", e);
     }
-    String[] cmdLine = {"z3", filename};
+    String[] cmdLine = {"./lib/native/x86_64-linux/z3", "-smt2", filename};
     ProcessExecutor<CounterexampleAnalysisFailed> exec;
     try {
       exec =
