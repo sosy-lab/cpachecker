@@ -275,7 +275,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
 
     CallstackCPA callstackCpa;
     try {
-      callstackCpa = new CallstackCPA(Configuration.defaultConfiguration(), logger);
+      callstackCpa = new CallstackCPA(Configuration.defaultConfiguration(), logger, cfa);
     } catch (InvalidConfigurationException e) {
       logger.log(Level.INFO,
           "Cannot use inlined representation to detect unexplored target states. ",

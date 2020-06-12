@@ -22,6 +22,10 @@ public class FunctionExitNode extends CFANode {
     super(pFunction);
   }
 
+  public FunctionExitNode(String pName) {
+    super(pName);
+  }
+
   public void setEntryNode(FunctionEntryNode pEntryNode) {
     checkState(entryNode == null);
     entryNode = checkNotNull(pEntryNode);

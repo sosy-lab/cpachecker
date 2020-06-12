@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCall;
@@ -25,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.ProgramCounterValueAssumeEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -32,6 +34,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 
+@Options(prefix="cpa.callstack")
 public class CallstackTransferRelationBackwards extends CallstackTransferRelation {
 
   public CallstackTransferRelationBackwards(CallstackOptions pOptions, LogManager pLogger) {
@@ -80,6 +83,15 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
       break;
     }
 
+    case AssumeEdge: {
+      if (pEdge instanceof ProgramCounterValueAssumeEdge) {
+            throw new UnsupportedCodeException(
+                "ProgramCounterValueAssumeEdge not yet supported for the backwards analysis!",
+                pEdge);
+      }
+      break;
+    }
+
     case FunctionReturnEdge: {
       FunctionReturnEdge edge = (FunctionReturnEdge) pEdge;
       CFANode correspondingCallNode = edge.getSummaryEdge().getPredecessor();
@@ -103,12 +115,11 @@ public class CallstackTransferRelationBackwards extends CallstackTransferRelatio
       }
 
     case FunctionCallEdge: {
-          // FIXME: Actually, during backwards analysis you always have wildcard
-          // states, because you never know where you "came from",
-          // and obviously, there is some handling of that situation below,
-          // see "if (nextStackState == null) { ...".
-          // FIXME: ARTIFICIAL_PROGRAM_COUNTER does not even exist anymore
-          if (isWildcardState(e, AnalysisDirection.BACKWARD)) {
+        // FIXME: Actually, during backwards analysis you always have wildcard
+        // states, because you never know where you "came from",
+        // and obviously, there is some handling of that situation below,
+        // see "if (nextStackState == null) { ...".
+        if (isWildcardState(e, AnalysisDirection.BACKWARD)) {
             throw new UnsupportedCodeException(
                 "ARTIFICIAL_PROGRAM_COUNTER not yet supported for the backwards analysis!", pEdge);
         }

@@ -74,6 +74,15 @@ public class CFANode implements Comparable<CFANode>, Serializable {
     nodeNumber = idGenerator.getFreshId();
   }
 
+  public CFANode(String dummyName) {
+    function = new CFunctionDeclaration(
+        FileLocation.DUMMY,
+        CFunctionType.NO_ARGS_VOID_FUNCTION,
+        dummyName,
+            ImmutableList.of());
+    nodeNumber = idGenerator.getFreshId();
+  }
+
   public int getNodeNumber() {
     return nodeNumber;
   }

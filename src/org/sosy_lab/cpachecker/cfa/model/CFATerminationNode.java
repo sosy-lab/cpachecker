@@ -8,7 +8,11 @@
 
 package org.sosy_lab.cpachecker.cfa.model;
 
+import com.google.common.collect.ImmutableList;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 
 /**
  * A CFANode that marks the end of a path.
@@ -19,6 +23,15 @@ public class CFATerminationNode extends CFANode {
 
   public CFATerminationNode(AFunctionDeclaration pFunction) {
     super(pFunction);
+  }
+
+  public CFATerminationNode(String dummyName) {
+    super(
+        new CFunctionDeclaration(
+            FileLocation.DUMMY,
+            CFunctionType.NO_ARGS_VOID_FUNCTION,
+            dummyName,
+            ImmutableList.of()));
   }
 
   @Override

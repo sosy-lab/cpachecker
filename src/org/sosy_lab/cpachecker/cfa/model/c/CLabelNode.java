@@ -24,6 +24,12 @@ public class CLabelNode extends CFANode {
     label = pLabel;
   }
 
+  public CLabelNode(String pFunction, String pLabel) {
+    super(pFunction);
+    checkArgument(!pLabel.isEmpty());
+    label = pLabel;
+  }
+
   public String getLabel() {
     return label;
   }

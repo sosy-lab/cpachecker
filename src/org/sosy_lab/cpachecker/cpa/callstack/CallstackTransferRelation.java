@@ -29,6 +29,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.CFASingleLoopTransformation;
+import org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop.ProgramCounterValueAssumeEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -87,6 +89,29 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
           return ImmutableSet.of();
         }
         // otherwise use this edge just like a normal edge
+      }
+      break;
+    }
+
+    case AssumeEdge: {
+      boolean successorIsInCallstackContext = succFunction.equals(e.getCurrentFunction());
+      boolean isArtificialPCVEdge = pEdge instanceof ProgramCounterValueAssumeEdge;
+      boolean isSuccessorAritificialPCNode = succFunction.equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+      boolean isPredecessorAritificialPCNode = predFunction.equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
+      boolean isFunctionTransition = !succFunction.equals(predFunction);
+      if (!successorIsInCallstackContext
+          && !e.getCurrentFunction()
+              .equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)
+          && ((!isSuccessorAritificialPCNode && isArtificialPCVEdge)
+              || (isPredecessorAritificialPCNode && isFunctionTransition))) {
+        /*
+         * This edge is syntactically reachable, but makes no sense from this
+         * state, as it would change function without passing a function entry
+         * or exit node.
+         *
+         * Edges like this are introduced by the single loop transformation.
+         */
+        return Collections.emptySet();
       }
       break;
     }
@@ -171,6 +196,12 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
     // TODO: Maybe it would be better to have designated wildcard states (without a call node)
     // instead of this heuristic.
     String function = pState.getCurrentFunction();
+
+    // Single loop transformation case
+    if (function.equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)) {
+      return true;
+    }
+
     CFANode callNode = pState.getCallNode();
 
     // main function "call" case
