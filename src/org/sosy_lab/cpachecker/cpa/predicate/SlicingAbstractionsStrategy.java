@@ -475,8 +475,6 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
           if (currentState instanceof SLARGState) {
           } else {
             tasks.add(isInfeasibleEdgeParallel(currentState, key, segment, threadCounter));
-            // TODO get the return executor, put them all together pase the results and gibe them
-            // to check parallel edge
             threadCounter = threadCounter + 1;
           }
         }
@@ -503,11 +501,12 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
             } catch (InterruptedException e) {
               // TODO Auto-generated catch block
             }
-            String sat = tasks.get(threadCounter).getOutput().get(0);
+
+            String satResult = tasks.get(threadCounter).getOutput().get(0);
             boolean infeasibleSat;
-            if (sat == "sat") {
+            if (satResult.equals("sat")) {
               infeasibleSat = false;
-            } else if (sat == "unsat") {
+            } else if (satResult.equals("unsat")) {
               infeasibleSat = true;
             } else {
               infeasibleSat = true; // TODO better error handling
