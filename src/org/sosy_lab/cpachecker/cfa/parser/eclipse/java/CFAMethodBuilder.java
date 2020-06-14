@@ -2395,19 +2395,16 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     locStack.push(nextNode);
   }
 
-
-
-
   @Override
   public boolean visit(ReturnStatement returnStatement) {
 
+    handleElseCondition(returnStatement);
     FileLocation fileloc = astCreator.getFileLocation(returnStatement);
 
     CFANode prevNode = locStack.pop();
 
     CFANode nextNode = new CFANode(cfa.getFunction());
     cfaNodes.add(nextNode);
-
 
     FunctionExitNode functionExitNode = cfa.getExitNode();
 
@@ -2421,8 +2418,9 @@ private void handleTernaryExpression(ConditionalExpression condExp,
       astCreator.resetConditionalExpression();
     }
 
-    JReturnStatementEdge edge = new JReturnStatementEdge(returnStatement.toString(),
-        cfJReturnStatement, fileloc, prevNode, functionExitNode);
+    JReturnStatementEdge edge =
+        new JReturnStatementEdge(
+            returnStatement.toString(), cfJReturnStatement, fileloc, prevNode, functionExitNode);
     addToCFA(edge);
 
     locStack.push(nextNode);
