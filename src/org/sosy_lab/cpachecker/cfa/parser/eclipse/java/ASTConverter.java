@@ -1114,9 +1114,9 @@ class ASTConverter {
 
     // Do not return immutable list!
     if (pType instanceof JSimpleType) {
-      Set<JType> set = new HashSet<>();
-      set.add(pType);
-      return new ArrayList<>(set);
+      List<JType> result = new ArrayList<>(1);
+      result.add(pType);
+      return result;
     }
 
     assert pType instanceof JInterfaceType || pType instanceof JClassType
