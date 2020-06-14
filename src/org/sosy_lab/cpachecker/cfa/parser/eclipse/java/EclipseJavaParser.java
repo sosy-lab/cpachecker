@@ -385,8 +385,9 @@ class EclipseJavaParser implements JavaParser {
   }
 
   private CompilationUnit parse(Path file, boolean ignoreMethodBody) throws IOException {
-    parsedFiles.add(file);
-
+    if (!parsedFiles.contains(file)) {
+      parsedFiles.add(file);
+    }
     String[] encodings =
         Collections.nCopies(javaSourcePaths.size(), encoding.name()).toArray(new String[0]);
     parser.setEnvironment(asStrings(javaClassPaths), asStrings(javaSourcePaths), encodings, false);
