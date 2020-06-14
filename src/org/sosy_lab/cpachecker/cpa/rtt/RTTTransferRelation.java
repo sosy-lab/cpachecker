@@ -495,13 +495,6 @@ public class RTTTransferRelation extends ForwardingTransferRelation<RTTState,RTT
     }
 
     @Override
-    public String visit(JClassLiteralExpression pJClassLiteralExpression)
-        throws UnrecognizedCodeException {
-      // TODO
-      return null;
-    }
-
-    @Override
     public String visit(JRunTimeTypeEqualsType pE) throws UnrecognizedCodeException {
 
       JReferenceType assignableType = pE.getTypeDef();

@@ -846,7 +846,6 @@ public class CFAUtils {
     @Override
     public Iterable<? extends AAstNode> visit(JClassLiteralExpression pJClassLiteralExpression)
         throws NoException {
-      // TODO
       return ImmutableList.of();
     }
   }

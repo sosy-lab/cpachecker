@@ -275,7 +275,6 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
   @Override
   public Value visit(JClassLiteralExpression pJClassLiteralExpression) throws NoException {
-    // TODO
     return UnknownValue.getInstance();
   }
 

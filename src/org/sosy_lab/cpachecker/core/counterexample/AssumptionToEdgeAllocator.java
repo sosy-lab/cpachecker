@@ -1257,8 +1257,7 @@ public class AssumptionToEdgeAllocator {
 
       @Override
       public Value visit(JClassLiteralExpression pJClassLiteralExpression) throws NoException {
-        // TODO
-        return null;
+        return Value.UnknownValue.getInstance();
       }
     }
 

@@ -221,8 +221,7 @@ class ExplicitValueVisitor extends AbstractExpressionValueVisitor {
   }
 
   @Override
-  public Value visit(JClassLiteralExpression pJClassLiteralExpression) throws NoException {
-    // TODO
-    return null;
+  public Value visit(JClassLiteralExpression pJClassLiteralExpression) {
+    return UnknownValue.getInstance();
   }
 }

@@ -290,7 +290,6 @@ public class JExpressionTransformer extends ExpressionTransformer
   @Override
   public SymbolicExpression visit(JClassLiteralExpression pJClassLiteralExpression)
       throws UnrecognizedCodeException {
-    // TODO
     return null;
   }
 
