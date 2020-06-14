@@ -62,8 +62,11 @@ rootDirectory = "."
 solver.boolector.furtherOptions = ""
 
 # The SAT solver used by Boolector.
-solver.boolector.satSolver = PICOSAT
-  enum:     [LINGELING, PICOSAT, MINISAT, CADICAL]
+solver.boolector.satSolver = CADICAL
+  enum:     [LINGELING, PICOSAT, MINISAT, CMS, CADICAL]
+
+# Counts all operations and interactions towards the SMT solver.
+solver.collectStatistics = false
 
 # Default rounding mode for floating point operations.
 solver.floatingPointRoundingMode = NEAREST_TIES_TO_EVEN
@@ -116,11 +119,15 @@ solver.smtinterpol.furtherOptions = []
 solver.solver = SMTINTERPOL
   enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4]
 
+# Sequentialize all solver actions to allow concurrent access!
+solver.synchronize = false
+
+# Use provers from a seperate context to solve queries. This allows more
+# parallelity when solving larger queries.
+solver.synchronized.useSeperateProvers = false
+
 # Log solver actions, this may be slow!
 solver.useLogger = false
-
-# Dump failed interpolation queries to this file in SMTLIB2 format
-solver.z3.dumpFailedInterpolationQueries = no default value
 
 # Activate replayable logging in Z3. The log can be given as an input to the
 # solver and replayed.
