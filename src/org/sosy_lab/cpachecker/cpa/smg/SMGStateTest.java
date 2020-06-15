@@ -326,6 +326,7 @@ public class SMGStateTest {
 
     assertThat(valAndStates1).hasSize(1);
     SMGState newState = valAndStates1.get(0).getSmgState();
+    newState.pruneUnreachable();
     newState.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     UnmodifiableSMG newSMG = newState.getHeap();
@@ -401,6 +402,7 @@ public class SMGStateTest {
 
     assertThat(valAndStates1).hasSize(1);
     SMGState newState = valAndStates1.get(0).getSmgState();
+    newState.pruneUnreachable();
     newState.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     UnmodifiableSMG newSMG = newState.getHeap();

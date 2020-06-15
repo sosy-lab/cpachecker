@@ -235,7 +235,7 @@ final class SMGJoinTargetObjects {
     SMGHasValueEdges hves =
         destSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(targetObject));
 
-    destSMG.removeObjectAndEdges(targetObject);
+    destSMG.markObjectDeletedAndRemoveEdges(targetObject);
 
     Set<Long> restricted = new HashSet<>();
 
@@ -305,8 +305,7 @@ final class SMGJoinTargetObjects {
       }
     }
 
-
-    destSMG.removeObjectAndEdges(pObjToCheck);
+    destSMG.markObjectDeletedAndRemoveEdges(pObjToCheck);
   }
 
   public boolean isDefined() {

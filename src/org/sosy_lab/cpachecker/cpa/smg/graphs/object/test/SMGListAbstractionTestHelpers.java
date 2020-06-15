@@ -434,6 +434,7 @@ public final class SMGListAbstractionTestHelpers {
         new SMGAbstractionManager(LogManager.createTestLogManager(), pSmg, pState);
     pState.performConsistencyCheck(SMGRuntimeCheck.FORCED);
     manager.execute();
+    pState.pruneUnreachable();
     pState.performConsistencyCheck(SMGRuntimeCheck.FORCED);
   }
 
