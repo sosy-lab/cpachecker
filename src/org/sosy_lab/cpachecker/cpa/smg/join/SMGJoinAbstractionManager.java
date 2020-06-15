@@ -164,8 +164,10 @@ public class SMGJoinAbstractionManager {
     return Pair.of(sharedIPointer, nonSharedIPointer);
   }
 
-  private Triple<Set<Pair<SMGEdgeHasValue, SMGEdgeHasValue>>, Set<SMGEdgeHasValue>, Set<SMGEdgeHasValue>> assignToSharedPPointerAndNonSharedOPointerAndSharedNonPointer(
-      SMGHasValueEdges pFieldsOfObject1, SMGHasValueEdges pFieldsOfObject2) {
+  private Triple<
+          Set<Pair<SMGEdgeHasValue, SMGEdgeHasValue>>, Set<SMGEdgeHasValue>, Set<SMGEdgeHasValue>>
+      assignToSharedPPointerAndNonSharedOPointerAndSharedNonPointer(
+          SMGHasValueEdges pFieldsOfObject1, SMGHasValueEdges pFieldsOfObject2) {
 
     Set<Pair<SMGEdgeHasValue, SMGEdgeHasValue>> sharedOPointer = new HashSet<>();
     Set<SMGEdgeHasValue> nonSharedOPointer = new HashSet<>();

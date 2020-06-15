@@ -34,7 +34,8 @@ import org.sosy_lab.common.collect.PersistentMap;
 
 /** A Multimap-implementation based on the {@link PathCopyingPersistentTreeMap}. */
 @Immutable(containerOf = {"K", "V"})
-public class PersistentMultimapWithPersistentValues<K extends Comparable<? super K>, V extends Comparable<? super V>> {
+public class PersistentMultimapWithPersistentValues<
+    K extends Comparable<? super K>, V extends Comparable<? super V>> {
 
   private final PersistentMap<K, PersistentSet<V>> delegate;
 
@@ -42,7 +43,8 @@ public class PersistentMultimapWithPersistentValues<K extends Comparable<? super
     delegate = pDelegate;
   }
 
-  public static <K extends Comparable<? super K>, V extends Comparable<? super V>> PersistentMultimapWithPersistentValues<K, V> of() {
+  public static <K extends Comparable<? super K>, V extends Comparable<? super V>>
+      PersistentMultimapWithPersistentValues<K, V> of() {
     return new PersistentMultimapWithPersistentValues<K, V>(PathCopyingPersistentTreeMap.of());
   }
 
@@ -55,13 +57,14 @@ public class PersistentMultimapWithPersistentValues<K extends Comparable<? super
     if (old == null) {
       old = PersistentSet.of();
     }
-    for (V value: values) {
+    for (V value : values) {
       old = old.addAndCopy(value);
     }
     return new PersistentMultimapWithPersistentValues<>(delegate.putAndCopy(key, old));
   }
 
-  public PersistentMultimapWithPersistentValues<K, V> putAllAndCopy(PersistentMultimapWithPersistentValues<K, V> other) {
+  public PersistentMultimapWithPersistentValues<K, V> putAllAndCopy(
+      PersistentMultimapWithPersistentValues<K, V> other) {
     PersistentMultimapWithPersistentValues<K, V> tmp = this;
     for (Entry<K, PersistentSet<V>> entry : other.entries()) {
       tmp = tmp.putAllAndCopy(entry.getKey(), entry.getValue());
@@ -111,7 +114,7 @@ public class PersistentMultimapWithPersistentValues<K extends Comparable<? super
   @Override
   public boolean equals(Object o) {
     return o instanceof PersistentMultimapWithPersistentValues
-        && delegate.equals(((PersistentMultimapWithPersistentValues<?,?>)o).delegate);
+        && delegate.equals(((PersistentMultimapWithPersistentValues<?, ?>) o).delegate);
   }
 
   @Override

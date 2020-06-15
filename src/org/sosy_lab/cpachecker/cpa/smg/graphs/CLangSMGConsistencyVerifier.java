@@ -78,7 +78,10 @@ public class CLangSMGConsistencyVerifier {
     boolean toReturn = Collections.disjoint(stack, heap);
 
     if (! toReturn) {
-      pLogger.log(Level.SEVERE, "CLangSMG inconsistent, heap and stack objects are not disjoint: " + Sets.intersection(stack, heap));
+      pLogger.log(
+          Level.SEVERE,
+          "CLangSMG inconsistent, heap and stack objects are not disjoint: "
+              + Sets.intersection(stack, heap));
     }
 
     return toReturn;
@@ -161,7 +164,8 @@ public class CLangSMGConsistencyVerifier {
     // Verify that there is no NULL object in global scope
     for (SMGObject obj: pSmg.getGlobalObjects().values()) {
       if (obj == SMGNullObject.INSTANCE) {
-        pLogger.log(Level.SEVERE, "CLangSMG inconsistent: null object in global object set [" + obj + "]");
+        pLogger.log(
+            Level.SEVERE, "CLangSMG inconsistent: null object in global object set [" + obj + "]");
         return false;
       }
     }
@@ -171,7 +175,13 @@ public class CLangSMGConsistencyVerifier {
     for (SMGObject obj: pSmg.getHeapObjects()) {
       if (obj == SMGNullObject.INSTANCE) {
         if (firstNull != null) {
-          pLogger.log(Level.SEVERE, "CLangSMG inconsistent: second null object in heap object set [first=" + firstNull + ", second=" + obj +"]" );
+          pLogger.log(
+              Level.SEVERE,
+              "CLangSMG inconsistent: second null object in heap object set [first="
+                  + firstNull
+                  + ", second="
+                  + obj
+                  + "]");
           return false;
         } else {
           firstNull = obj;
@@ -183,7 +193,8 @@ public class CLangSMGConsistencyVerifier {
     for (CLangStackFrame frame: pSmg.getStackFrames()) {
       for (SMGObject obj: frame.getAllObjects()) {
         if (obj == SMGNullObject.INSTANCE) {
-          pLogger.log(Level.SEVERE, "CLangSMG inconsistent: null object in stack object set [" + obj + "]");
+          pLogger.log(
+              Level.SEVERE, "CLangSMG inconsistent: null object in stack object set [" + obj + "]");
           return false;
         }
       }
@@ -236,7 +247,9 @@ public class CLangSMGConsistencyVerifier {
     for (CLangStackFrame frame : pSmg.getStackFrames()) {
       for (SMGObject object : frame.getAllObjects()) {
         if (stack_objects.contains(object)) {
-          pLogger.log(Level.SEVERE, "CLangSMG inconsistent: object [" + object + "] present multiple times in the stack");
+          pLogger.log(
+              Level.SEVERE,
+              "CLangSMG inconsistent: object [" + object + "] present multiple times in the stack");
           return false;
         }
         stack_objects.add(object);
@@ -299,10 +312,13 @@ public class CLangSMGConsistencyVerifier {
         verifyDisjunctGlobalAndStack(pLogger, pSmg),
         pLogger,
         "Checking CLangSMG consistency: global and stack objects are disjunct");
-    toReturn = toReturn && verifyCLangSMGProperty(
-        verifyStackGlobalHeapUnion(pLogger, pSmg),
-        pLogger,
-        "Checking CLangSMG consistency: global, stack and heap object union contains all objects in SMG");
+    toReturn =
+        toReturn
+            && verifyCLangSMGProperty(
+                verifyStackGlobalHeapUnion(pLogger, pSmg),
+                pLogger,
+                "Checking CLangSMG consistency: global, stack and heap object union contains all"
+                    + " objects in SMG");
     toReturn = toReturn && verifyCLangSMGProperty(
         verifyNullObjectCLangProperties(pLogger, pSmg),
         pLogger,

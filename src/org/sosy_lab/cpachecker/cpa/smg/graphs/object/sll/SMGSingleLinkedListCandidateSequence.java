@@ -74,7 +74,8 @@ public class SMGSingleLinkedListCandidateSequence extends SMGAbstractListCandida
           new SMGJoinSubSMGsForAbstraction(pSMG, prevObject, nextObject, candidate, pSmgState);
 
       if(!join.isDefined()) {
-        throw new AssertionError("Unexpected join failure while abstracting longest mergeable sequence");
+        throw new AssertionError(
+            "Unexpected join failure while abstracting longest mergeable sequence");
       }
 
       SMGObject newAbsObj = join.getNewAbstractObject();
@@ -127,7 +128,11 @@ public class SMGSingleLinkedListCandidateSequence extends SMGAbstractListCandida
 
   @Override
   public String toString() {
-    return "SMGSingleLinkedListCandidateSequence [candidate=" + candidate + ", length=" + length + "]";
+    return "SMGSingleLinkedListCandidateSequence [candidate="
+        + candidate
+        + ", length="
+        + length
+        + "]";
   }
 
   @Override

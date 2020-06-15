@@ -87,7 +87,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   private static final String HAS_LEAKS = "has-leaks";
   private static final String HAS_HEAP_OBJECTS = "has-heap-objects";
 
-  private static final Pattern externalAllocationRecursivePattern = Pattern.compile("^(r_)(\\d+)(_.*)$");
+  private static final Pattern externalAllocationRecursivePattern =
+      Pattern.compile("^(r_)(\\d+)(_.*)$");
 
   // use 'id' and 'precessorId' only for debugging or logging, never for important stuff!
   // TODO remove to avoid problems?
@@ -628,9 +629,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         new SMGRegion(pListSeg.getSize(), "concrete sll segment ID " + SMGCPA.getNewValue(), 0);
     heap.addHeapObject(newConcreteRegion);
 
-    Set<SMGEdgeHasValue> restriction = ImmutableSet.of(
-        new SMGEdgeHasValue(sizeOfVoidPointerInBits, pListSeg.getNfo(),
-            pListSeg, SMGZeroValue.INSTANCE));
+    Set<SMGEdgeHasValue> restriction =
+        ImmutableSet.of(
+            new SMGEdgeHasValue(
+                sizeOfVoidPointerInBits, pListSeg.getNfo(), pListSeg, SMGZeroValue.INSTANCE));
 
     copyRestrictedSubSmgToObject(pListSeg, newConcreteRegion, restriction);
 
@@ -651,8 +653,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     SMGValue oldPointerToSll = pPointerToAbstractObject.getValue();
 
-    SMGHasValueEdges oldFieldsEdges =
-        heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pListSeg));
+    SMGHasValueEdges oldFieldsEdges = heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pListSeg));
     Set<SMGEdgePointsTo> oldPtEdges = SMGUtils.getPointerToThisObject(pListSeg, heap);
 
     heap.removePointsToEdge(oldPointerToSll);
@@ -728,11 +729,12 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         new SMGRegion(pListSeg.getSize(), "concrete dll segment ID " + SMGCPA.getNewValue(), 0);
     heap.addHeapObject(newConcreteRegion);
 
-    Set<SMGEdgeHasValue> restriction = ImmutableSet.of(
-        new SMGEdgeHasValue(sizeOfVoidPointerInBits, pListSeg.getNfo(),
-        pListSeg, SMGZeroValue.INSTANCE),
-        new SMGEdgeHasValue(sizeOfVoidPointerInBits, pListSeg.getPfo(),
-            pListSeg, SMGZeroValue.INSTANCE));
+    Set<SMGEdgeHasValue> restriction =
+        ImmutableSet.of(
+            new SMGEdgeHasValue(
+                sizeOfVoidPointerInBits, pListSeg.getNfo(), pListSeg, SMGZeroValue.INSTANCE),
+            new SMGEdgeHasValue(
+                sizeOfVoidPointerInBits, pListSeg.getPfo(), pListSeg, SMGZeroValue.INSTANCE));
 
     copyRestrictedSubSmgToObject(pListSeg, newConcreteRegion, restriction);
 
@@ -770,8 +772,12 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
       // Work around with nullified memory block
       if (oldDllFieldToOldRegion.getValue().isZero()) {
-        oldDllFieldToOldRegion = new SMGEdgeHasValue(sizeOfVoidPointerInBits,
-            oldDllFieldToOldRegion.getOffset(), oldDllFieldToOldRegion.getObject(), oldDllFieldToOldRegion.getValue());
+        oldDllFieldToOldRegion =
+            new SMGEdgeHasValue(
+                sizeOfVoidPointerInBits,
+                oldDllFieldToOldRegion.getOffset(),
+                oldDllFieldToOldRegion.getObject(),
+                oldDllFieldToOldRegion.getValue());
       }
       heap.removeHasValueEdge(oldDllFieldToOldRegion);
     }
@@ -781,8 +787,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
     heap.removePointsToEdge(oldPointerToDll);
 
-    SMGHasValueEdges oldFieldsEdges =
-        heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pListSeg));
+    SMGHasValueEdges oldFieldsEdges = heap.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pListSeg));
     Set<SMGEdgePointsTo> oldPtEdges = SMGUtils.getPointerToThisObject(pListSeg, heap);
 
     heap.markHeapObjectDeletedAndRemoveEdges(pListSeg);
@@ -844,8 +849,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return SMGAddressValueAndState.of(this, newPtEdgeToNewRegionFromOutsideSMG);
   }
 
-  private void copyRestrictedSubSmgToObject(SMGObject pRoot, SMGRegion pNewRegion,
-      Set<SMGEdgeHasValue> pRestrictions) {
+  private void copyRestrictedSubSmgToObject(
+      SMGObject pRoot, SMGRegion pNewRegion, Set<SMGEdgeHasValue> pRestrictions) {
 
     Set<SMGObject> toBeChecked = new HashSet<>();
     Map<SMGObject, SMGObject> newObjectMap = new HashMap<>();
@@ -926,8 +931,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
                 long endOffset = offset + sizeInBits;
                 long restrictionEndOffset = restriction.getOffset() + restriction.getSizeInBits();
                 if (endOffset > restrictionEndOffset) {
-                  recalcEdges.put(restrictionEndOffset,
-                      endOffset - restrictionEndOffset);
+                  recalcEdges.put(restrictionEndOffset, endOffset - restrictionEndOffset);
                 }
               } else {
                 recalcEdges.put(offset, sizeInBits);
@@ -937,7 +941,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
           }
           for (Entry<Long, Long> newEdge : newEdges.entrySet()) {
             SMGEdgeHasValue expandedZeroEdge =
-                new SMGEdgeHasValue(newEdge.getValue(), newEdge.getKey(), pNewRegion, SMGZeroValue.INSTANCE);
+                new SMGEdgeHasValue(
+                    newEdge.getValue(), newEdge.getKey(), pNewRegion, SMGZeroValue.INSTANCE);
             heap.addHasValueEdge(expandedZeroEdge);
           }
         }
@@ -1317,8 +1322,8 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     }
   }
 
-   private void shrinkOverlappingZeroEdges(SMGEdgeHasValue pNew_edge,
-      Iterable<SMGEdgeHasValue> pOverlappingZeroEdges) {
+  private void shrinkOverlappingZeroEdges(
+      SMGEdgeHasValue pNew_edge, Iterable<SMGEdgeHasValue> pOverlappingZeroEdges) {
 
     SMGObject object = pNew_edge.getObject();
     long offset = pNew_edge.getOffset();

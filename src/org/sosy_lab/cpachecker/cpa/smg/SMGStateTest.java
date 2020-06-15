@@ -606,7 +606,8 @@ public class SMGStateTest {
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // Check the object values and assert it has only the written 16b value
-    SMGHasValueEdges values_for_obj = state.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pt.getObject()));
+    SMGHasValueEdges values_for_obj =
+        state.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pt.getObject()));
     assertThat(values_for_obj).hasSize(1);
     assertThat(values_for_obj).contains(hv);
 

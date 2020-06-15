@@ -156,7 +156,8 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     }
 
     if (CLangSMG.performChecks() && global_objects.containsKey(pObject.getLabel())) {
-      throw new IllegalArgumentException("Global object with label [" + pObject.getLabel() + "] already in the SMG");
+      throw new IllegalArgumentException(
+          "Global object with label [" + pObject.getLabel() + "] already in the SMG");
     }
 
     global_objects = global_objects.putAndCopy(pObject.getLabel(), pObject);
@@ -180,7 +181,8 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   public void addStackObject(SMGRegion pObject) {
     super.addObject(pObject);
     CLangStackFrame top = stack_objects.peek();
-    Preconditions.checkArgument(!top.hasVariable(pObject.getLabel()), "object with same label cannot be added twice");
+    Preconditions.checkArgument(
+        !top.hasVariable(pObject.getLabel()), "object with same label cannot be added twice");
     stack_objects = stack_objects.popAndCopy().pushAndCopy(top.addStackVariable(pObject.getLabel(), pObject));
   }
 
@@ -456,7 +458,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     }
   }
 
-  final public void markHeapObjectDeletedAndRemoveEdges(SMGObject pObject) {
+  public final void markHeapObjectDeletedAndRemoveEdges(SMGObject pObject) {
     heap_objects = heap_objects.removeAndCopy(pObject);
     markObjectDeletedAndRemoveEdges(pObject);
   }
@@ -725,8 +727,8 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
       if (!getHVEdges().contains(edge)) {
         toAddHvEdges = toAddHvEdges.addEdgeAndCopy(edge);
       }
-     }
-    for(SMGEdgeHasValue edge : toAddHvEdges) {
+    }
+    for (SMGEdgeHasValue edge : toAddHvEdges) {
       addHasValueEdge(edge);
     }
 

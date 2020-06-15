@@ -107,8 +107,7 @@ public class SMGRegionsWithValuesTest {
 
     SMGListAbstractionTestHelpers.executeHeapAbstractionWithConsistencyChecks(state, smg);
 
-    SMGHasValueEdges hvs =
-        smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(globalListPointer));
+    SMGHasValueEdges hvs = smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(globalListPointer));
     assertThat(hvs).hasSize(1);
 
     SMGEdgePointsTo pt = smg.getPointer(Iterables.getOnlyElement(hvs).getValue());

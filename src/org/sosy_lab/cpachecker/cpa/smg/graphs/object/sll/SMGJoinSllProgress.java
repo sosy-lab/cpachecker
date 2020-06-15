@@ -62,6 +62,10 @@ class SMGJoinSllProgress
 
   @Override
   public String toString() {
-    return "SMGJoinDllProgress [candidates=" + candidates + ", candidateLength=" + candidateLength + "]";
+    return "SMGJoinDllProgress [candidates="
+        + candidates
+        + ", candidateLength="
+        + candidateLength
+        + "]";
   }
 }

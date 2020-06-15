@@ -291,8 +291,7 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
         /* Nothing besides the one link from the prev object pointer may
          * point to the next object in a sll
          */
-        SMGHasValueEdges prevs =
-            pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
+        SMGHasValueEdges prevs = pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
 
         if (prevs.size() != 1) {
           return;

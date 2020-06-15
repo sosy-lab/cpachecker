@@ -135,7 +135,8 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
         } else {
           description =
               String.format(
-                  "Field with %d  byte size can't be read from offset %s byte of object %d byte size",
+                  "Field with %d  byte size can't be read from offset %s byte of object %d byte"
+                      + " size",
                   typeBitSize / 8, fieldOffset / 8, objectBitSize / 8);
         }
         errState.addInvalidObject(pObject);

@@ -68,7 +68,9 @@ final class SMGConsistencyVerifier {
 
     // Verify that the value found in values is the one returned by getNullValue()
     if (SMGZeroValue.INSTANCE != null_value) {
-      pLogger.log(Level.SEVERE, "SMG inconsistent: null value in values set not returned by getNullValue()");
+      pLogger.log(
+          Level.SEVERE,
+          "SMG inconsistent: null value in values set not returned by getNullValue()");
       return false;
     }
 
