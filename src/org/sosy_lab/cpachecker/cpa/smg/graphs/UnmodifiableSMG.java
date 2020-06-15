@@ -61,7 +61,7 @@ public interface UnmodifiableSMG {
 
   int getSizeofPtrInBits();
 
-  TreeMap<Long, Integer> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj);
+  TreeMap<Long, Long> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj);
 
   boolean isPointer(SMGValue value);
 
