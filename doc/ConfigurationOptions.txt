@@ -142,7 +142,7 @@ solver.z3.optimizationEngine = "basic"
   allowed values: [basic, farkas, symba]
 
 # Require proofs from SMT solver
-solver.z3.requireProofs = true
+solver.z3.requireProofs = false
 
 # Whether to use PhantomReferences for discarding Z3 AST
 solver.z3.usePhantomReferences = false
