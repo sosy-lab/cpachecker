@@ -474,7 +474,7 @@ final class SMGJoinValues {
     /*Fields of optional objects must have one pointer.*/
     SMGHasValueEdges fieldsOfTarget = pInputSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget));
 
-    if (fieldsOfTarget.size() == 0) {
+    if (fieldsOfTarget.isEmpty()) {
       return Pair.of(false, true);
     }
 
@@ -729,7 +729,7 @@ final class SMGJoinValues {
     /*Fields of optional objects must have one pointer.*/
     SMGHasValueEdges fieldsOfTarget = pInputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget));
 
-    if (fieldsOfTarget.size() == 0) {
+    if (fieldsOfTarget.isEmpty()) {
       return Pair.of(false, true);
     }
 
@@ -950,7 +950,7 @@ final class SMGJoinValues {
                 .filterAtOffset(nf)
                 .filterBySize(newDestSMG.getSizeofPtrInBits()));
 
-    if(hvesNp.size() == 0) {
+    if(hvesNp.isEmpty()) {
       // Edge lost due to join fields, should be zero
       nextPointer = SMGZeroValue.INSTANCE;
     } else {
@@ -1144,7 +1144,7 @@ final class SMGJoinValues {
         pInputSMG1.getHVEdges(
             SMGEdgeHasValueFilter.objectFilter(pTarget).filterAtOffset(pNf).filterWithoutSize());
 
-    if (oldNfEdge.size() == 0) {
+    if (oldNfEdge.isEmpty()) {
       return new SMGEdgeHasValue(
               pInputSMG1.getSizeofPtrInBits(), pNf, pTarget, SMGZeroValue.INSTANCE)
           .getSizeInBits();
@@ -1219,7 +1219,7 @@ final class SMGJoinValues {
 
     SMGValue nextPointer;
 
-    if(npHves.size() == 0) {
+    if(npHves.isEmpty()) {
       // nullified block, but lacks edge
       nextPointer = SMGZeroValue.INSTANCE;
     } else {
@@ -1583,8 +1583,7 @@ final class SMGJoinValues {
                   SMGEdgeHasValueFilter.objectFilter(newObj)
                       .filterAtOffset(hve.getOffset())
                       .filterWithoutSize())
-              .size()
-          == 0) {
+              .isEmpty()) {
         if (!pDestSMG.getValues().contains(newVal)) {
           pDestSMG.addValue(newVal);
         }
