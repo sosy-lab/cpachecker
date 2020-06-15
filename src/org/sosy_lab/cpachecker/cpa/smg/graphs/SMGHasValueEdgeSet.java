@@ -97,8 +97,7 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
     int pSize = size;
 
     if (sizeForObject == 0) {
-      assert false;
-      return this;
+      throw new AssertionError();
     } else {
       PersistentSortedMap<Long, SMGEdgeHasValue> sortedByOffsets = map.get(pEdge.getObject());
       if (pEdge.getValue().isZero()) {
@@ -106,8 +105,7 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
         if (floorEntry != null) {
           SMGEdgeHasValue removingEdge = floorEntry.getValue();
           if (removingEdge.getOffset() + removingEdge.getSizeInBits() <= pEdge.getOffset()) {
-            assert false;
-            return this;
+            throw new AssertionError();
           } else {
             updated = sortedByOffsets.removeAndCopy(removingEdge.getOffset());
             pSize--;
@@ -128,8 +126,7 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
             }
           }
         } else {
-          assert false;
-          return this;
+          throw new AssertionError();
         }
       } else {
         updated = sortedByOffsets.removeAndCopy(pEdge.getOffset());
@@ -138,8 +135,7 @@ public class SMGHasValueEdgeSet implements SMGHasValueEdges {
       }
 
       if (updated == sortedByOffsets) {
-        assert false;
-        return this;
+        throw new AssertionError();
       } else {
         if (updated.isEmpty()) {
           return new SMGHasValueEdgeSet(map.removeAndCopy(pEdge.getObject()), sizesMap.removeAndCopy(pEdge.getObject()), pSize);
