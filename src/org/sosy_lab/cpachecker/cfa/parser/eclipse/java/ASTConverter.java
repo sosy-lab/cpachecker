@@ -1078,7 +1078,7 @@ class ASTConverter {
    * @return a {@link JExpression} representing an <code>instanceof</code> expression with the given
    *     parameters
    */
-  private JExpression createInstanceOfExpression(
+  JExpression createInstanceOfExpression(
       JIdExpression pLeftOperand, JReferenceType pRightOperand, FileLocation pLocation) {
     List<JType> allPossibleClasses;
     boolean isRightOperandArray;

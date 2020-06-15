@@ -45,6 +45,7 @@ import org.eclipse.jdt.core.dom.Assignment;
 import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.BooleanLiteral;
 import org.eclipse.jdt.core.dom.BreakStatement;
+import org.eclipse.jdt.core.dom.CatchClause;
 import org.eclipse.jdt.core.dom.ConditionalExpression;
 import org.eclipse.jdt.core.dom.ContinueStatement;
 import org.eclipse.jdt.core.dom.DoStatement;
@@ -63,6 +64,8 @@ import org.eclipse.jdt.core.dom.Statement;
 import org.eclipse.jdt.core.dom.SuperConstructorInvocation;
 import org.eclipse.jdt.core.dom.SwitchCase;
 import org.eclipse.jdt.core.dom.SwitchStatement;
+import org.eclipse.jdt.core.dom.ThrowStatement;
+import org.eclipse.jdt.core.dom.TryStatement;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.eclipse.jdt.core.dom.WhileStatement;
 import org.sosy_lab.common.log.LogManager;
@@ -124,9 +127,9 @@ import org.sosy_lab.cpachecker.util.Pair;
  */
 class CFAMethodBuilder extends ASTVisitor {
 
-  private static final boolean VISIT_CHILDS = true;
+  private static final boolean VISIT_CHILDREN = true;
 
-  private static final boolean SKIP_CHILDS = false;
+  private static final boolean SKIP_CHILDREN = false;
 
   private static final int ONLY_EDGE = 0;
 
@@ -141,6 +144,9 @@ class CFAMethodBuilder extends ASTVisitor {
   // Data structure for handling switch-statements
   private final Deque<JExpression> switchExprStack = new ArrayDeque<>();
   private final Deque<CFANode> switchCaseStack = new ArrayDeque<>();
+
+  // Data structure for handling try catch throw
+  private final List<JSimpleDeclaration> throwables = new ArrayList<>();
 
   // Data structures for label , continue , break
   private final Map<String, CLabelNode> labelMap = new HashMap<>();
@@ -218,7 +224,7 @@ class CFAMethodBuilder extends ASTVisitor {
       mDeclaration.getBody().accept(this);
     }
 
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
 
@@ -289,7 +295,7 @@ class CFAMethodBuilder extends ASTVisitor {
     assert nextNode != null;
     locStack.push(nextNode);
 
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
 
@@ -305,7 +311,7 @@ class CFAMethodBuilder extends ASTVisitor {
     assert nextNode != null;
     locStack.push(nextNode);
 
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
 
@@ -670,7 +676,7 @@ class CFAMethodBuilder extends ASTVisitor {
     handleElseCondition(bl);
     scope.enterBlock();
 
-    return VISIT_CHILDS;
+    return VISIT_CHILDREN;
   }
 
   @Override
@@ -760,7 +766,7 @@ class CFAMethodBuilder extends ASTVisitor {
       }
     }
 
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
   /**
@@ -862,7 +868,7 @@ class CFAMethodBuilder extends ASTVisitor {
     }
 
     locStack.push(lastNode);
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
 
@@ -890,7 +896,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
     locStack.push(lastNode);
 
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
 
@@ -1336,7 +1342,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     createConditionEdges(condition, fileloc, prevNode, thenNode, elseNode);
 
-    return VISIT_CHILDS;
+    return VISIT_CHILDREN;
   }
 
   @Override
@@ -1619,7 +1625,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     //  Skip to Body
     labelStatement.getBody().accept(this);
 
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
   @Override
@@ -1736,10 +1742,116 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     addToCFA(blankEdge2);
 
     // skip visiting children of switch, because switchBody was handled before
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
+  @Override
+  public boolean visit(TryStatement pTryStatement) {
 
+    FileLocation fileloc = astCreator.getFileLocation(pTryStatement);
+
+    CFANode prevNode = locStack.pop();
+
+    CFANode tryNode = new CFANode(cfa.getFunction());
+
+    cfaNodes.add(tryNode);
+    locStack.push(tryNode);
+
+    BlankEdge blankEdge =
+        new BlankEdge(pTryStatement.toString(), fileloc, prevNode, tryNode, "try");
+    addToCFA(blankEdge);
+    return VISIT_CHILDREN;
+  }
+
+  @Override
+  public boolean visit(CatchClause pCatchClauseNode) {
+
+    FileLocation fileloc = astCreator.getFileLocation(pCatchClauseNode);
+
+    CFANode prevNode = locStack.pop();
+
+    CFANode postIfNode = new CFANode(cfa.getFunction());
+
+    cfaNodes.add(postIfNode);
+    locStack.push(postIfNode);
+
+    CFANode thenNode = new CFANode(cfa.getFunction());
+    cfaNodes.add(thenNode);
+    locStack.push(thenNode);
+
+    CFANode elseNode;
+
+    elseNode = postIfNode;
+
+    JDeclaration jDeclaration = astCreator.convert(pCatchClauseNode.getException());
+    JIdExpression jIdExpressionOfException =
+        new JIdExpression(
+            jDeclaration.getFileLocation(),
+            jDeclaration.getType(),
+            jDeclaration.getName(),
+            jDeclaration);
+    //TODO Only first throwable of the list is taken into account. Need to create an || expression
+    final JExpression instanceOfExpression =
+        astCreator.createInstanceOfExpression(
+            jIdExpressionOfException, (JClassOrInterfaceType) throwables.get(0).getType(), fileloc);
+
+    createConditionEdges(instanceOfExpression, fileloc, prevNode, thenNode, elseNode);
+
+    return VISIT_CHILDREN;
+  }
+
+  @Override
+  public void endVisit(CatchClause node) {
+    final CFANode prevNode = locStack.pop();
+    final CFANode nextNode = locStack.peek();
+
+    if (isReachableNode(prevNode)) {
+
+      for (CFAEdge prevEdge : CFAUtils.allEnteringEdges(prevNode).toList()) {
+
+        boolean isBlankEdge =
+            (prevEdge instanceof BlankEdge) && prevEdge.getDescription().isEmpty();
+
+        if (isBlankEdge) {
+
+          // the only entering edge is a BlankEdge, so we delete this edge and prevNode
+
+          CFANode prevPrevNode = prevEdge.getPredecessor();
+          assert prevPrevNode.getNumLeavingEdges() == 1;
+          prevNode.removeEnteringEdge(prevEdge);
+          prevPrevNode.removeLeavingEdge(prevEdge);
+
+          BlankEdge blankEdge =
+              new BlankEdge("", prevEdge.getFileLocation(), prevPrevNode, nextNode, "");
+          addToCFA(blankEdge);
+        }
+      }
+
+      if (prevNode.getNumEnteringEdges() > 0) {
+        BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, prevNode, nextNode, "");
+        addToCFA(blankEdge);
+      }
+    }
+  }
+
+  @Override
+  public boolean visit(ThrowStatement pThrowStatement) {
+
+    FileLocation fileloc = astCreator.getFileLocation(pThrowStatement);
+
+    CFANode prevNode = locStack.pop();
+    CFANode throwNode = new CFANode(cfa.getFunction());
+
+    cfaNodes.add(throwNode);
+    locStack.push(throwNode);
+
+    BlankEdge blankEdge =
+        new BlankEdge(pThrowStatement.toString(), fileloc, prevNode, throwNode, "throw");
+    addToCFA(blankEdge);
+    throwables.add(scope.lookupVariable(pThrowStatement.getExpression().toString()));
+
+    return VISIT_CHILDREN;
+  }
 
   @Override
   public boolean visit(SwitchCase switchCase) {
@@ -1748,7 +1860,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     } else {
       handleCase(switchCase, astCreator.getFileLocation(switchCase));
     }
-    return VISIT_CHILDS;
+    return VISIT_CHILDREN;
   }
 
 
@@ -1863,7 +1975,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     //Visit Body, Expression already handled.
     whileStatement.getBody().accept(this);
 
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
   @Override
@@ -1903,7 +2015,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     // Visit Body not Children
     doStatement.getBody().accept(this);
 
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
 
@@ -2004,7 +2116,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     scope.leaveBlock();
 
     // skip visiting children of loop, because loopbody was handled before
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
   private void assignFormalParameterForLoop(SingleVariableDeclaration parameter, FileLocation fileLocation) {
@@ -2117,7 +2229,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     scope.leaveBlock();
 
     // skip visiting children of loop, because loopbody was handled before
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
 
@@ -2293,7 +2405,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
       handleLabeledBreakStatement(breakStatement);
     }
 
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
 
@@ -2344,7 +2456,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
       registerLabledContinueStatement(continueStatement);
     }
 
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
   private void handleLabledContinueStatement(ContinueStatement continueStatement, CFANode prevNode, CFANode startLoopNode) {
@@ -2425,7 +2537,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     locStack.push(nextNode);
 
-    return SKIP_CHILDS;
+    return SKIP_CHILDREN;
   }
 
   /**
