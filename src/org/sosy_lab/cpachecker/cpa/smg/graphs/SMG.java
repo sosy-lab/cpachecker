@@ -13,7 +13,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -365,8 +364,8 @@ public class SMG implements UnmodifiableSMG {
    * @return Unmodifiable view on Has-Value edges set.
    */
   @Override
-  final public Set<SMGEdgeHasValue> getHVEdges() {
-    return Collections.unmodifiableSet(hv_edges.getHvEdges());
+  final public SMGHasValueEdges getHVEdges() {
+    return hv_edges;
   }
 
   /**
@@ -376,8 +375,8 @@ public class SMG implements UnmodifiableSMG {
    * @return A set of Has-Value edges for which the criteria in p hold
    */
   @Override
-  final public Set<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter) {
-    return ImmutableSet.copyOf(pFilter.filter(hv_edges));
+  final public SMGHasValueEdges getHVEdges(SMGEdgeHasValueFilter pFilter) {
+    return pFilter.filter(hv_edges);
   }
 
   @Override

@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -102,7 +103,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
       return;
     }
 
-    Set<SMGEdgeHasValue> hvesOfObject = pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject));
+    SMGHasValueEdges hvesOfObject = pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject));
 
     if (hvesOfObject.size() < 2) {
       return;
@@ -125,7 +126,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
       SMGObject nextObject = nextPointerEdge.getObject();
 
-      Set<SMGEdgeHasValue> nextObjectHves =
+      SMGHasValueEdges nextObjectHves =
           pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject));
 
       if (nextObjectHves.size() < 2) {
@@ -181,7 +182,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
         //TODO At the moment, we still demand that a pointer is found at prev or next.
 
-        Set<SMGEdgeHasValue> prevObjectprevPointer =
+        SMGHasValueEdges prevObjectprevPointer =
             pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject).filterAtOffset(pfo));
 
         if (prevObjectprevPointer.size() != 1) {
@@ -251,7 +252,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
       //TODO At the moment, we still demand that a pointer is found at prev or next.
 
-      Set<SMGEdgeHasValue> nextObjectNextField =
+      SMGHasValueEdges nextObjectNextField =
           pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(nfo));
 
       if(nextObjectNextField.size() != 1) {
@@ -346,7 +347,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
         }
       } else if (startObject.getKind() == SMGObjectKind.DLL
           && pte.getTargetSpecifier() == SMGTargetSpecifier.LAST) {
-        Set<SMGEdgeHasValue> prevs = pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
+        SMGHasValueEdges prevs = pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
 
         if(prevs.size() != 1) {
           return;
@@ -364,7 +365,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
         }
       } else if (nextObject.getKind() == SMGObjectKind.DLL
           && pte.getTargetSpecifier() == SMGTargetSpecifier.FIRST) {
-        Set<SMGEdgeHasValue> prevs =
+        SMGHasValueEdges prevs =
             pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
 
         if (prevs.size() != 1) {
@@ -372,7 +373,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
         }
       } else if (nextObject.getKind() == SMGObjectKind.REG
           && !hasToBeLastInSequence) {
-        Set<SMGEdgeHasValue> hves =
+        SMGHasValueEdges hves =
             pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
 
         /* If we want to continue abstracting in this sequence there may be only these two edges, and the edges from the subSmg.*/
