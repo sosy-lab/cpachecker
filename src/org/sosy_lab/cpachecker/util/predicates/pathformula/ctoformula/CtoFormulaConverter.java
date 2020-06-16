@@ -693,7 +693,12 @@ public class CtoFormulaConverter {
    */
   protected Formula makeCast(final CType pFromType, final CType pToType,
       Formula formula, Constraints constraints, CFAEdge edge) throws UnrecognizedCodeException {
-    Formula result = makeCast0(pFromType, pToType, formula, edge);
+    Formula result;
+    if (formula instanceof BooleanFormula || formula instanceof IntegerFormula) {
+      result = formula;
+    } else {
+      result = makeCast0(pFromType, pToType, formula, edge);
+    }
 
     if (options.encodeOverflowsWithUFs()) {
       // handles arithmetic overflows like  "x+y>MAX"  or  "x-y<MIN"  .
