@@ -3,9 +3,10 @@
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="8 GB" cpuCores="2">
 
   <rundefinition/>
-
-  <tasks name="HeapMemSafety3">
-    <include>../programs/benchmarks/memsafety-ext3/derefAfterFree1.yml</include>
+  
+  <tasks name="MemSafety-ext3">
+    <includesfile>../programs/benchmarks/MemSafety-SL.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
     <option name="-sl"/>
   </tasks>
   
