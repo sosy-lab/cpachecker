@@ -28,7 +28,6 @@ import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
@@ -44,6 +43,7 @@ public final class OverflowState
     AbstractQueryableState {
 
   private final ImmutableSet<? extends AExpression> assumptions;
+  private final String readableAssumptions;
   private final OverflowState parent;
   private final boolean hasOverflow;
   private final boolean nextHasOverflow;
@@ -65,6 +65,10 @@ public final class OverflowState
     }
     assert !hasOverflow || pNextHasOverflow;
     nextHasOverflow = pNextHasOverflow;
+
+    StringBuilder sb = new StringBuilder();
+    Joiner.on(", ").appendTo(sb, assumptions.stream().map(x -> x.toASTString()).iterator());
+    readableAssumptions = sb.toString();
   }
 
   public boolean hasOverflow() {
@@ -105,14 +109,19 @@ public final class OverflowState
 
   @Override
   public String toString() {
-    return "OverflowState{" + ", assumeEdges=" + getReadableAssumptions() + ", hasOverflow="
-        + hasOverflow + ", nextHasOverflow=" + nextHasOverflow + '}';
+    return "OverflowState{assumeEdges=["
+        + readableAssumptions
+        + "], hasOverflow="
+        + hasOverflow
+        + ", nextHasOverflow="
+        + nextHasOverflow
+        + '}';
   }
 
   @Override
   public String toDOTLabel() {
     if (hasOverflow) {
-      return Joiner.on('\n').join(getReadableAssumptions());
+      return readableAssumptions.replaceAll(", ", "\n");
     }
     return "";
   }
@@ -120,10 +129,6 @@ public final class OverflowState
   @Override
   public boolean shouldBeHighlighted() {
     return false;
-  }
-
-  private List<String> getReadableAssumptions() {
-    return assumptions.stream().map(x -> x.toASTString()).collect(Collectors.toList());
   }
 
   @Override
