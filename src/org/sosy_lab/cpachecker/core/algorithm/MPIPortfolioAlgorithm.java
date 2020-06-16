@@ -306,11 +306,11 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
         logger.log(Level.INFO, "Printing output from tool");
         List<String> output = executor.getOutput();
-        output.stream().forEach(x -> logger.log(Level.INFO, x));
+        output.forEach(x -> logger.log(Level.INFO, x));
 
         logger.log(Level.WARNING, "Printing warnings from tool");
         List<String> err = executor.getErrorOutput();
-        err.stream().forEach(x -> logger.log(Level.WARNING, x));
+        err.forEach(x -> logger.log(Level.WARNING, x));
         throw new CPAException("MPI failed with exit code " + exitCode);
       }
 
@@ -396,7 +396,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
         if (subanalysisLog == null) {
           throw new RuntimeException("Log of subanalysis may not be null at this point");
         }
-        subanalysisLog.stream().forEach(x -> logger.log(Level.INFO, x));
+        subanalysisLog.forEach(x -> logger.log(Level.INFO, x));
 
         logger.log(Level.WARNING, "----------------- END SUBANALYSIS LOG -----------------");
         return AlgorithmStatus.SOUND_AND_IMPRECISE;
