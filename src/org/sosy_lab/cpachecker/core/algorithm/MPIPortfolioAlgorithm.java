@@ -211,15 +211,6 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
             .setOption("limits.time.cpu", subprocess_timelimit)
             .setOption("output.path", subprocess_output_basedir.toString())
             .setOption("specification", spec_path.toString())
-            // .setOption(
-            // "log.file",
-            // subprocess_logfile
-            // .toString())
-            //
-            // .setOption(
-            // "output.disable",
-            // "false") // the main instance requires this for parsing and taking over the
-            // // correct result from the children instances
             .build();
 
     // Bring the command-line into a format which is directly executable by a
@@ -422,6 +413,5 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   private static class DummyTargetState implements AbstractState {
-    // implements Targetable
   }
 }
