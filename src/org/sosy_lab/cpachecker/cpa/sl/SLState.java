@@ -168,11 +168,11 @@ public class SLState implements AbstractState, Targetable, AbstractQueryableStat
     SLState s =
         new SLState(
         newFormula,
-        new HashMap(heap),
-        new HashMap(stack),
-        new HashMap(allocationSizes),
-        new HashSet(inScopePtrs),
-        new HashSet(declarations),
+            new HashMap<>(heap),
+            new HashMap<>(stack),
+            new HashMap<>(allocationSizes),
+            new HashSet<>(inScopePtrs),
+            new HashSet<>(declarations),
         null);
     return s;
   }
