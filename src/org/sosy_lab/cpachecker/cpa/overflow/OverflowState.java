@@ -24,7 +24,6 @@
 package org.sosy_lab.cpachecker.cpa.overflow;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Objects;
@@ -82,7 +81,7 @@ public final class OverflowState
 
   @Override
   public List<? extends AExpression> getAssumptions() {
-    return ImmutableList.copyOf(assumptions);
+    return assumptions.asList();
   }
 
   @Override
@@ -101,7 +100,7 @@ public final class OverflowState
     OverflowState that = (OverflowState) pO;
     return nextHasOverflow == that.nextHasOverflow
         && hasOverflow == that.hasOverflow
-        && Objects.equals(assumptions, that.assumptions);
+        && assumptions.equals(that.assumptions);
   }
 
   @Override
