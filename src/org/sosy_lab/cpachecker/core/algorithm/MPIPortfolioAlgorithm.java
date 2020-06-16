@@ -38,7 +38,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.JSON;
-import org.sosy_lab.common.MoreStrings;
 import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -282,7 +281,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
     cmdList.add("--input");
     cmdList.add(mpiArgs);
-    logger.log(Level.FINEST, "MPI arguments: " + MoreStrings.lazyString(() -> mpiArgs));
+    logger.log(Level.FINEST, "MPI arguments: " + mpiArgs);
 
     ProcessExecutor<IOException> executor = null;
     try {
@@ -292,26 +291,20 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
           new ProcessExecutor<>(
               logger,
               IOException.class,
-              Iterables.toArray(cmdList, String.class));
+              Iterables.toArray(cmdList, String.class)) {
+
+            protected void handleOutput(String line) {
+              checkNotNull(line);
+              logger.logf(Level.INFO, "%s output: %s", binaries.get(MPI_BIN), line);
+              super.getOutput().add(line); // optional
+            }
+          };
 
       int exitCode = executor.join();
       logger.log(Level.INFO, "MPI has finished its job. Continuing in main node.");
 
       if (exitCode != 0) {
-
-        logger.log(Level.INFO, "Printing output from tool");
-        List<String> output = executor.getOutput();
-        output.forEach(x -> logger.log(Level.INFO, x));
-
-        logger.log(Level.WARNING, "Printing warnings from tool");
-        List<String> err = executor.getErrorOutput();
-        err.forEach(x -> logger.log(Level.WARNING, x));
-        throw new CPAException("MPI failed with exit code " + exitCode);
-      }
-
-      List<String> errorOutput = executor.getErrorOutput();
-      if (!errorOutput.isEmpty()) {
-        logger.log(Level.WARNING, "MPI script returned successfully, but printed warnings");
+        throw new CPAException("MPI script has failed with exit code " + exitCode);
       }
 
       List<String> output = executor.getOutput();
@@ -385,15 +378,15 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
           pReachedSet.add(new DummyTargetState(), SingletonPrecision.getInstance());
         }
 
-        logger.log(Level.WARNING, "In the following the log of the successful subanalysis");
-        logger.log(Level.WARNING, "---------------- START SUBANALYSIS LOG ----------------");
+        logger.log(Level.WARNING, "Subsequently the log of the successful subanalysis is printed");
+        logger.log(Level.WARNING, "------------------- START SUBANALYSIS LOG -------------------");
 
-        if (subanalysisLog == null) {
-          throw new RuntimeException("Log of subanalysis may not be null at this point");
-        }
-        subanalysisLog.forEach(x -> logger.log(Level.INFO, x));
+        // TODO: add the command line that was used to start the subanalysis
 
-        logger.log(Level.WARNING, "----------------- END SUBANALYSIS LOG -----------------");
+        checkNotNull(subanalysisLog);
+        logger.log(Level.INFO, Joiner.on("\n\n").join(subanalysisLog));
+
+        logger.log(Level.WARNING, "-------------------- END SUBANALYSIS LOG --------------------");
         return AlgorithmStatus.SOUND_AND_IMPRECISE;
       }
 
