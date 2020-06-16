@@ -124,9 +124,7 @@ public class ExpressionToFormulaVisitor
     Formula f = toFormula(e);
     if ((f instanceof BitvectorFormula) || (f instanceof FloatingPointFormula)) {
       return conv.makeCast(t, calculationType, f, constraints, edge);
-    } else if (calculationType.equals(CNumericTypes.DOUBLE)
-        || calculationType.equals(CNumericTypes.FLOAT)
-        || calculationType.equals(CNumericTypes.LONG_DOUBLE)) {
+    } else if (CTypes.isRealType(calculationType)) {
         return conv.makeCast(
           t,
           calculationType,
