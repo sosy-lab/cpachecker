@@ -19,12 +19,12 @@
  */
 package org.sosy_lab.cpachecker.cpa.sl;
 
-import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.sl.SLState.SLStateError;
-import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 public interface SLHeapDelegate {
 
@@ -108,8 +108,10 @@ public interface SLHeapDelegate {
       handleDereferenceAssignment(CExpression pLHS, CExpression pOffset, CExpression pRHS)
           throws Exception;
 
-  public Map<Formula, Formula> getStack();
-  public Map<Formula, Formula> getHeap();
+  public void setContext(SLState pState, CFAEdge pEdge);
 
+  public void clearContext();
+
+  public PathFormula getPathFormula();
 
 }

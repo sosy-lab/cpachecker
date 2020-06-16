@@ -80,8 +80,8 @@ public class SLCPA extends AbstractCPA {
   @Override
   public SLState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    PathFormula stack = pfm.makeEmptyPathFormula();
-    return new SLState(stack);
+    PathFormula store = pfm.makeEmptyPathFormula();
+    return new SLState(store);
   }
 
   @Override

@@ -20,7 +20,6 @@
 package org.sosy_lab.cpachecker.cpa.sl;
 
 import com.google.common.collect.ImmutableList;
-import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -44,41 +43,22 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.sl.SLState.SLStateError;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.Model.ValueAssignment;
-import org.sosy_lab.java_smt.api.ProverEnvironment;
-import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 
 public class SLTransferRelation
-    extends ForwardingTransferRelation<Collection<SLState>, SLState, Precision>
-    implements SLFormulaBuilder {
+    extends ForwardingTransferRelation<Collection<SLState>, SLState, Precision> {
 
   private final LogManager logger;
-  private final Solver solver;
-  private final PathFormulaManager pfm;
-  private final FormulaManagerView fm;
-  private final BitvectorFormulaManager bvfm;
+
 
   private final SLVisitor slVisitor;
   private final SLHeapDelegate memDel;
-
-  private PathFormula pathFormula;
-  private CFAEdge edge;
-
 
   public SLTransferRelation(
       LogManager pLogger,
@@ -86,11 +66,7 @@ public class SLTransferRelation
       PathFormulaManager pPfm,
       MachineModel pMachineModel) {
     logger = pLogger;
-    solver = pSolver;
-    fm = solver.getFormulaManager();
-    bvfm = fm.getBitvectorFormulaManager();
-    pfm = pPfm;
-    memDel = new SLHeapDelegateImpl(logger, solver, pMachineModel, this);
+    memDel = new SLHeapDelegateImpl(logger, pSolver, pMachineModel, pPfm);
     slVisitor = new SLVisitor(memDel);
   }
 
@@ -98,24 +74,20 @@ public class SLTransferRelation
   protected void
       setInfo(AbstractState pAbstractState, Precision pAbstractPrecision, CFAEdge pCfaEdge) {
     super.setInfo(pAbstractState, pAbstractPrecision, pCfaEdge);
-    try {
-      pathFormula = pfm.makeAnd(getPredPathFormula(), pCfaEdge);
-    } catch (CPATransferException | InterruptedException e) {
-      logger.log(Level.SEVERE, e.getMessage());
-    }
-    edge = pCfaEdge;
+    state = state.copyWithoutErrors();
+    memDel.setContext(state, pCfaEdge);
   }
 
   @Override
   protected Collection<SLState> postProcessing(Collection<SLState> pSuccessor, CFAEdge pEdge) {
     for (SLState slState : pSuccessor) {
-
+      slState.setPathFormula(memDel.getPathFormula());
       Set<CSimpleDeclaration> vars = pEdge.getSuccessor().getOutOfScopeVariables();
       for (CSimpleDeclaration outOfScopeVar : vars) {
         try {
           SLStateError error = memDel.handleOutOfScopeVariable(outOfScopeVar);
           if (error != null) {
-            slState.setTarget(error);
+            slState.addError(error);
           }
         } catch (Exception e) {
           logger.log(Level.SEVERE, "OutOfScopeVariable: " + e.getMessage());
@@ -133,8 +105,7 @@ public class SLTransferRelation
   @Override
   protected void resetInfo() {
     super.resetInfo();
-    pathFormula = null;
-    edge = null;
+    memDel.clearContext();
   }
 
   @Override
@@ -144,11 +115,12 @@ public class SLTransferRelation
     SLStateError error = null;
     try {
       error = pExpression.accept(slVisitor);
+      state.addError(error);
     } catch (Exception e) {
       logger.log(Level.SEVERE, e.getMessage());
     }
     return ImmutableList
-        .of(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), error));
+        .of(state);
   }
 
   @Override
@@ -161,7 +133,7 @@ public class SLTransferRelation
     // TODO Auto-generated method stub. Not yet implemented.
     // return super.handleFunctionCallEdge(pCfaEdge, pArguments, pParameters, pCalledFunctionName);
     return Collections
-        .singleton(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), null));
+        .singleton(state);
   }
 
   @Override
@@ -174,7 +146,7 @@ public class SLTransferRelation
     // TODO Auto-generated method stub. Not yet implemented.
     // return super.handleFunctionReturnEdge(pCfaEdge, pFnkCall, pSummaryExpr, pCallerFunctionName);
     return Collections
-        .singleton(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), null));
+        .singleton(state);
   }
 
   @Override
@@ -184,11 +156,12 @@ public class SLTransferRelation
     SLStateError error = null;
     try {
       error = pDecl.accept(slVisitor);
+      state.addError(error);
     } catch (Exception e) {
       logger.log(Level.SEVERE, e.getMessage());
     }
     return ImmutableList
-        .of(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), error));
+        .of(state);
   }
 
   @Override
@@ -199,88 +172,25 @@ public class SLTransferRelation
     SLStateError error = null;
     try {
       error = pStatement.accept(slVisitor);
+      state.addError(error);
     } catch (Exception e) {
       logger.log(Level.SEVERE, e.getMessage());
     }
     return ImmutableList
-        .of(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), error));
+        .of(state);
   }
 
   @Override
   protected Collection<SLState> handleReturnStatementEdge(CReturnStatementEdge pCfaEdge)
       throws CPATransferException {
-    return ImmutableList.of(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), null));
+    return ImmutableList.of(state);
   }
 
   @Override
   protected Set<SLState> handleBlankEdge(BlankEdge pCfaEdge) {
     return Collections
-        .singleton(new SLState(pathFormula, memDel.getHeap(), memDel.getStack(), null));
-  }
-
-  @Override
-  public BigInteger getValueForCExpression(CExpression pExp, boolean usePredContext)
-      throws Exception {
-    PathFormula context = usePredContext ? getPredPathFormula() : pathFormula;
-    Formula f = pfm.expressionToFormula(context, pExp, edge);
-    final String dummyVarName = "0_allocationSize"; // must not be a valid C variable name.
-    f = fm.makeEqual(bvfm.makeVariable(32, dummyVarName), f);
-
-    try (ProverEnvironment env = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-      env.addConstraint(context.getFormula());
-      env.addConstraint((BooleanFormula) f);
-      if (!env.isUnsat()) {
-        List<ValueAssignment> assignments = env.getModelAssignments();
-        for (ValueAssignment a : assignments) {
-          if (a.getKey().toString().equals(dummyVarName)) {
-            return (BigInteger) a.getValue();
-          }
-        }
-      }
-    } catch (Exception e) {
-      logger.log(Level.SEVERE, e.getMessage());
-    }
-    logger.log(
-        Level.SEVERE,
-        "Numeric value of expression " + pExp.toString() + " could not be determined.");
-    return null;
+        .singleton(state);
   }
 
 
-  @Override
-  public Formula
-      getFormulaForVariableName(String pVariable, boolean usePredContext) {
-    PathFormula context = usePredContext ? getPredPathFormula() : pathFormula;
-    // String var = addFctScope ? functionName + "::" + pVariable : pVariable;
-    CType type = context.getSsa().getType(pVariable);
-    return pfm.makeFormulaForVariable(context, pVariable, type);
-  }
-
-  @Override
-  public Formula getFormulaForDeclaration(CSimpleDeclaration pDecl) {
-    return pfm.makeFormulaForVariable(pathFormula, pDecl.getQualifiedName(), pDecl.getType());
-  }
-
-  @Override
-  public Formula getFormulaForExpression(CExpression pExp, boolean usePredContext)
-      throws UnrecognizedCodeException {
-    PathFormula context = usePredContext ? getPredPathFormula() : pathFormula;
-    return pfm.expressionToFormula(context, pExp, edge);
-  }
-
-  @Override
-  public PathFormula getPathFormula() {
-    return pathFormula;
-  }
-
-  @Override
-  public PathFormula getPredPathFormula() {
-    return state.getPathFormula();
-  }
-
-  @SuppressWarnings("deprecation")
-  @Override
-  public void updateSSAMap(SSAMap pMap) {
-    pathFormula = pfm.makeNewPathFormula(pathFormula, pMap); // TODO
-  }
 }
