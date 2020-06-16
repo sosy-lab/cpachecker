@@ -26,12 +26,14 @@ package org.sosy_lab.cpachecker.core.algorithm.explainer;
 import com.google.common.base.Splitter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 
 public class ExplainTool {
 
-  public static void ExplainDeltas(List<CFAEdge> counterexample, List<CFAEdge> closestExecution) {
+  public static void ExplainDeltas(List<CFAEdge> counterexample, List<CFAEdge> closestExecution, LogManager logger) {
     //ln("Explain Tool Started!");
     counterexample = cleanPath(counterexample);
     closestExecution = cleanPath(closestExecution);

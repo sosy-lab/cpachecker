@@ -76,33 +76,6 @@ public class ControlFLowDistanceMetric {
     List<CFAEdge> closest_suc_path = comparePaths(branches_ce, convertPathsToEdges(safePaths));
 
 
-    // JUST FOR NOW --------------------------------------------------------------
-    for (int i = 0; i < safePaths.size(); i++) {
-      if (safePaths.get(i).getFullPath().equals(closest_suc_path)) {
-        safePaths.remove(i);
-        break;
-      }
-    }
-
-
-    List<CFAEdge> cl1 = comparePaths(branches_ce, convertPathsToEdges(safePaths));
-    ExplainTool.ExplainDeltas(ce, cl1);
-    //ln("");
-
-
-    // JUST FOR NOW
-    for (int i = 0; i < safePaths.size(); i++) {
-      if (safePaths.get(i).getFullPath().equals(cl1)) {
-        safePaths.remove(i);
-        break;
-      }
-    }
-
-    List<CFAEdge> cl2 = comparePaths(branches_ce, convertPathsToEdges(safePaths));
-    ExplainTool.ExplainDeltas(ce, cl2);
-    //ln("");
-
-
     return closest_suc_path;
 
 

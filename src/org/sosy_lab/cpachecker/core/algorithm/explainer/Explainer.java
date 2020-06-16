@@ -36,7 +36,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import javax.naming.ConfigurationException;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownManager;
@@ -67,19 +70,14 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Triple;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.ProverEnvironment;
-import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
-import org.sosy_lab.java_smt.api.SolverException;
-
 @Options(prefix = "explainer")
 public class Explainer extends NestingAlgorithm implements Algorithm {
 
@@ -125,6 +123,7 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
       } catch (InterruptedException pE) {
       } catch (CPAException pE) {
       }
+
 
 
     currentReached = secondAlg.getThird();
@@ -193,31 +192,36 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
 
     // HERE START **
 
-    ControlFLowDistanceMetric metric = new ControlFLowDistanceMetric();
-    AbstractDistanceMetric metric2 = new AbstractDistanceMetric();
+    // TODO: I need this later
+    //ControlFLowDistanceMetric metric = new ControlFLowDistanceMetric();
     List<CFAEdge> closestSuccessfulExecution;
-    try {
-    // Compare all paths with the CE
-      closestSuccessfulExecution = metric.startDistanceMetric(safePaths, targetPath);
-    // Generate the closest path to the CE with respect to the distance metric
+    // TODO: Bring that back to life
+    /*try {
+      // Compare all paths with the CE
+      //closestSuccessfulExecution = metric.startDistanceMetric(safePaths, targetPath);
+      // Generate the closest path to the CE with respect to the distance metric
       closestSuccessfulExecution = metric.startPathGenerator(safePaths, targetPath);
     } catch (SolverException pE) {}
+*/
 
-    //
+
+    // create a SOLVER
+    Solver solver;
+    PredicateCPA cpa = null;
+    try {
+      cpa = CPAs.retrieveCPAOrFail(secondAlg.getSecond(), PredicateCPA.class, ConfigurationException.class);
+    } catch (InvalidConfigurationException pE) {}
+    solver = cpa.getSolver();
+    BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
+
+    AbstractDistanceMetric metric2 = new AbstractDistanceMetric(bfmgr);
     closestSuccessfulExecution = metric2.startDistanceMetric(safePaths, targetPath);
 
     if (closestSuccessfulExecution == null) {
       //ln("EXECUTION COLLAPSED");
       return status;
     }
-
-    ExplainTool.ExplainDeltas(targetPath.getFullPath(), closestSuccessfulExecution);
-    //ln();
-    //ln();
-
-    // FIND PREDICATES ?
-    //BooleanFormula form = AbstractStates.extractStateByType(targetState, PredicateAbstractState.class).getPathFormula().getFormula();
-
+    ExplainTool.ExplainDeltas(targetPath.getFullPath(), closestSuccessfulExecution, super.logger);
     return status;
 
   }
