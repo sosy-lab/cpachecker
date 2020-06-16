@@ -302,6 +302,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
               IOException.class,
               Iterables.toArray(cmdList, String.class)) {
 
+            @Override
             protected void handleOutput(String line) {
               checkNotNull(line);
               logger.logf(Level.INFO, "%s output: %s", binaries.get(MPI_BIN), line);
@@ -319,6 +320,8 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       Result result = null;
       ImmutableList<String> subanalysisLog = null;
 
+      // The map will be replaced eventually by an object that contains all information
+      // about the successful subanalysis
       Map<Path, CPAcheckerResult> results = new HashMap<>();
       for (Entry<Path, Path> entry : subanalysesOutputPaths.entrySet()) {
 
@@ -369,7 +372,11 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
           // One of the subanalyses returned "FALSE" as result, so a reachedset with one dummy
           // targetstate is returned to reflect that in the main analysis
           pReachedSet.clear();
-          pReachedSet.add(new DummyTargetState(), SingletonPrecision.getInstance());
+          String violatedProperty =
+              Iterables.getOnlyElement(results.entrySet())
+                  .getValue()
+                  .getViolatedPropertyDescription();
+          pReachedSet.add(new DummyTargetState(violatedProperty), SingletonPrecision.getInstance());
         }
 
         logger.log(Level.WARNING, "Subsequently the log of the successful subanalysis is printed");

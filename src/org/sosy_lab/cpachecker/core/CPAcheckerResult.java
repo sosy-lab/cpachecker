@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.base.Verify.verify;
 
 import java.io.PrintStream;
@@ -78,6 +79,15 @@ public class CPAcheckerResult {
    */
   public Result getResult() {
     return result;
+  }
+
+  /**
+   * Return the reason as to why a property got violated. If the result does not contain a property
+   * violation, then calling this method will result in an error.
+   */
+  public String getViolatedPropertyDescription() {
+    checkState(result == Result.FALSE);
+    return violatedPropertyDescription;
   }
 
   /**
