@@ -16,6 +16,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.MoreCollectors;
 import java.io.File;
@@ -33,25 +34,33 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
+import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -307,18 +316,10 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
         throw new CPAException("MPI script has failed with exit code " + exitCode);
       }
 
-      List<String> output = executor.getOutput();
-      if (!output.isEmpty()) {
-        logger.logf(Level.INFO, "MPI produced %d output lines", output.size());
-      }
-
-      String RESULT_TRUE = "TRUE";
-      String RESULT_FALSE = "FALSE";
-
-      boolean resultsFound = false;
+      Result result = null;
       ImmutableList<String> subanalysisLog = null;
 
-      Map<Path, String> results = new HashMap<>();
+      Map<Path, CPAcheckerResult> results = new HashMap<>();
       for (Entry<Path, Path> entry : subanalysesOutputPaths.entrySet()) {
 
         Path logfilePath = entry.getValue().resolve(subanalysesLogfilePaths.get(entry.getKey()));
@@ -338,39 +339,32 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
             continue;
           }
 
-          String subanalysisResult = subanalysisResultOpt.orElseThrow().substring(21);
-          if (subanalysisResult.startsWith(RESULT_TRUE)) {
-            resultsFound = true;
-            logger.logf(
-                Level.WARNING,
-                "Received result for analysis '%s': %s",
-                entry.getKey().toString(),
-                RESULT_TRUE);
-            results.put(entry.getKey(), RESULT_TRUE);
-            break;
-          } else if (subanalysisResult.startsWith(RESULT_FALSE)) {
-            resultsFound = true;
-            logger.logf(
-                Level.WARNING,
-                "Received result for analysis '%s': %s",
-                entry.getKey().toString(),
-                RESULT_FALSE);
-            results.put(entry.getKey(), RESULT_FALSE);
-            break;
+          Optional<CPAcheckerResult> resultOpt =
+              CPAcheckerResult.parseResultString(subanalysisResultOpt.orElseThrow());
+          CPAcheckerResult subanalyisResult = resultOpt.orElseThrow();
+          if (subanalyisResult.getResult() == Result.UNKNOWN) {
+            continue;
           }
+
+          result = subanalyisResult.getResult();
+          verify(result == Result.TRUE || result == Result.FALSE);
+          logger
+              .logf(Level.WARNING, "Received result for analysis '%s': %s", entry.getKey(), result);
+          results.put(entry.getKey(), subanalyisResult);
+          break;
         }
       }
 
-      if (!resultsFound) {
+      if (result == null) {
         logger.logf(Level.WARNING, "None of the subanalyses produced a result.");
       } else {
-        if (results.values().stream().anyMatch(x -> x.equals(RESULT_TRUE))) {
+        if (result == Result.TRUE) {
           logger.logf(Level.FINE, "Returning result: TRUE");
           // One of the subanalyses returned "TRUE" as result, so an empty reachedset is
           // purposefully returned to reflect that in the main analysis
           pReachedSet.clear();
 
-        } else if (results.values().stream().anyMatch(x -> x.equals(RESULT_FALSE))) {
+        } else if (result == Result.FALSE) {
           logger.logf(Level.FINE, "Returning result: FALSE");
           // One of the subanalyses returned "FALSE" as result, so a reachedset with one dummy
           // targetstate is returned to reflect that in the main analysis
@@ -400,6 +394,23 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
   }
 
-  private static class DummyTargetState implements AbstractState {
+  private static class DummyTargetState implements AbstractState, Targetable {
+
+    private ImmutableSet<String> violatedProperties;
+
+    private DummyTargetState(String... pViolatedProperties) {
+      violatedProperties = ImmutableSet.copyOf(pViolatedProperties);
+    }
+
+    @Override
+    public boolean isTarget() {
+      return true;
+    }
+
+    @Override
+    public @NonNull Set<Property> getViolatedProperties() throws IllegalStateException {
+      return Collections3
+          .transformedImmutableSetCopy(violatedProperties, x -> NamedProperty.create(x));
+    }
   }
 }

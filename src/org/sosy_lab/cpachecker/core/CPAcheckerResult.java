@@ -9,8 +9,11 @@
 package org.sosy_lab.cpachecker.core;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Verify.verify;
 
 import java.io.PrintStream;
+import java.util.Objects;
+import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -60,6 +63,14 @@ public class CPAcheckerResult {
     this.reached = reached;
     this.cfa = cfa;
     this.stats = stats;
+  }
+
+  private CPAcheckerResult(Result result) {
+    this(result, "");
+  }
+
+  private CPAcheckerResult(Result result, String violatedPropertyDescription) {
+    this(result, violatedPropertyDescription, null, null, null);
   }
 
   /**
@@ -139,6 +150,28 @@ public class CPAcheckerResult {
       default:
         throw new AssertionError(result);
     }
+  }
+
+  public static Optional<CPAcheckerResult> parseResultString(String pResult) {
+    Objects.requireNonNull(pResult);
+
+    if (pResult.startsWith("Verification result: ")) {
+      String property = pResult.substring(21);
+      if (property.equals("TRUE. No property violation found by chosen configuration.")) {
+        return Optional.of(new CPAcheckerResult(Result.TRUE));
+      } else if (property.startsWith("FALSE. Property violation")) {
+        if (property.contains("(")) {
+          // TODO: add violationPropertyDescription if there is one
+          return Optional.of(new CPAcheckerResult(Result.FALSE, ""));
+        }
+        return Optional.of(new CPAcheckerResult(Result.FALSE));
+      } else {
+        verify(pResult.equals("UNKNOWN, incomplete analysis."));
+        return Optional.of(new CPAcheckerResult(Result.UNKNOWN));
+      }
+    }
+
+    return Optional.empty();
   }
 
   public Statistics getStatistics() {
