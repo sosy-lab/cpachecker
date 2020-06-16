@@ -12,6 +12,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
 import static java.util.function.Predicate.not;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -123,7 +125,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
         logger.logf(
             Level.INFO,
             "Found env variable 'HOST_FILE_PATH' ('%s'). Continuing using this value.",
-            hostfile.toString());
+            hostfile);
       } else {
         logger.log(
             Level.INFO,
@@ -145,7 +147,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       verify(
           hostfile.normalize().toFile().exists(),
           "Hostfile specified, but cannot find it at the given location '%s'",
-          hostfile.toString());
+          hostfile);
     }
 
     try (StringWriter stringWriter = new StringWriter();) {
@@ -215,25 +217,18 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
     // Bring the command-line into a format which is directly executable by a
     // subprocess.run() command in python
-    ImmutableList<String> formattedOptions =
-        Pattern.compile("\n")
-            .splitAsStream(childargs.asPropertiesString())
-            .map(x -> x.replace(" = ", "="))
-            .map(x -> "-setprop " + x)
-            .map(x -> x.split(" "))
-            .flatMap(Stream::of)
-            .collect(ImmutableList.toImmutableList());
-    ImmutableList<Object> cmdline =
+    ImmutableList.Builder<Object> cmdLineBuilder =
         ImmutableList.builder()
             .add("scripts/cpa.sh")
             .add("-config")
-            .add(subprocess_config.toString())
-            .addAll(formattedOptions)
-            .build();
+            .add(subprocess_config.toString());
+    for (String opt : Splitter.on('\n').omitEmptyStrings().split(childargs.asPropertiesString())) {
+      cmdLineBuilder.add("-setprop").add(opt);
+    }
 
     ImmutableMap.Builder<String, Object> builder = new ImmutableMap.Builder<>();
     builder.put("analysis", subprocess_config.getFileName().toString());
-    builder.put("cmd", cmdline);
+    builder.put("cmd", cmdLineBuilder.build());
     builder.put("output", subprocess_output_basedir.toString());
     builder.put("logfile", subprocess_output_basedir.resolve(subprocess_logfile).toString());
 
