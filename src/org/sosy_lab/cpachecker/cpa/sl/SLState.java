@@ -39,12 +39,14 @@ import org.sosy_lab.java_smt.api.Formula;
 
 public class SLState implements AbstractState, Targetable, AbstractQueryableState {
 
-  private static final String HAS_INVALID_DEREFS = "has-invalid-derefs";
+  private static final String HAS_INVALID_READS = "has-invalid-reads";
+  private static final String HAS_INVALID_WRITES = "has-invalid-writes";
   private static final String HAS_LEAKS = "has-leaks";
   private static final String HAS_INVALID_FREES = "has-invalid-frees";
 
   public enum SLStateError {
-    INVALID_DEREF,
+    INVALID_READ,
+    INVALID_WRITE,
     INVALID_FREE,
     MEMORY_LEAK,
     NONE;
@@ -147,8 +149,11 @@ public class SLState implements AbstractState, Targetable, AbstractQueryableStat
       case HAS_LEAKS:
         return errors.contains(SLStateError.MEMORY_LEAK);
 
-      case HAS_INVALID_DEREFS:
-        return errors.contains(SLStateError.INVALID_DEREF);
+      case HAS_INVALID_READS:
+        return errors.contains(SLStateError.INVALID_READ);
+
+      case HAS_INVALID_WRITES:
+        return errors.contains(SLStateError.INVALID_WRITE);
 
       case HAS_INVALID_FREES:
         return errors.contains(SLStateError.INVALID_FREE);

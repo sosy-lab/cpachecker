@@ -129,7 +129,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     Formula f = checkAllocation(state.getHeap(), oldLoc, null, true);
     if (f == null) {
       logger.log(Level.SEVERE, "REALLOC() failed - address not allocated.");
-      return SLStateError.INVALID_DEREF;
+      return SLStateError.INVALID_READ;
     }
     removeFromMemory(state.getHeap(), oldLoc);
     addToMemory(state.getHeap(), loc, size);
@@ -214,7 +214,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     for (int i = 0; i < machineModel.getSizeof(type).intValueExact(); i++) {
       final Formula f = fm.makePlus(loc, fm.makeNumber(loc, Rational.of(i)));
       if (!isAllocated(f, true)) {
-        return SLStateError.INVALID_DEREF;
+        return SLStateError.INVALID_READ;
       }
     }
     return null;
@@ -232,7 +232,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
       final Formula f = fm.makePlus(loc, fm.makeNumber(loc, Rational.of(i)));
       final Formula match = checkAllocation(f, val, true);
       if (match == null) {
-        return SLStateError.INVALID_DEREF;
+        return SLStateError.INVALID_WRITE;
       }
     }
     return null;
