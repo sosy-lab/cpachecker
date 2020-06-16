@@ -813,8 +813,8 @@ public class ARGToAutomatonConverter {
       }
       callstackToLeaves.put(callstack, leaf);
       for (ARGState parent : leaf.getParents()) {
-        if (AbstractStates.projectToType(
-                AbstractStates.asIterable(parent), AbstractStateWithAssumptions.class)
+        if (AbstractStates.asIterable(parent)
+            .filter(AbstractStateWithAssumptions.class)
             .anyMatch(x -> !x.getAssumptions().isEmpty())) {
           callstackToLeafWithParentAssumptions.put(callstack, leaf);
         }
@@ -846,9 +846,7 @@ public class ARGToAutomatonConverter {
       Set<AExpression> assumptions = new HashSet<>();
       for (ARGState leaf : callstackToLeafWithParentAssumptions.get(elem)) {
         for (ARGState parent : leaf.getParents()) {
-          AbstractStates.projectToType(
-                  AbstractStates.asIterable(parent), AbstractStateWithAssumptions.class)
-              .stream()
+          AbstractStates.asIterable(parent).filter(AbstractStateWithAssumptions.class).stream()
               .map(x -> x.getAssumptions())
               .flatMap(Collection::stream)
               .forEach(assumptions::add);
