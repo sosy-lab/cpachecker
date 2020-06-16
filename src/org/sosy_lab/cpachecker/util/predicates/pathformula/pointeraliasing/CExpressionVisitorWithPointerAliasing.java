@@ -222,22 +222,36 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
    * @return A formula for the value.
    */
   private Formula asValueFormula(final Expression e, final CType type, final boolean isSafe) {
+    Formula ret;
     if (e.isNondetValue()) {
       // should happen only because of bit fields that we currently do not handle
       String nondetName = "__nondet_value_" + CTypeUtils.typeToString(type).replace(' ', '_');
-      return conv.makeNondet(nondetName, type, ssa, constraints);
+      ret = conv.makeNondet(nondetName, type, ssa, constraints);
     } else if (e.isValue()) {
-      return e.asValue().getValue();
+      ret = e.asValue().getValue();
     } else if (e.isAliasedLocation()) {
       MemoryRegion region = e.asAliasedLocation().getMemoryRegion();
       if(region == null) {
         region = regionMgr.makeMemoryRegion(type);
       }
-      return !isSafe ? conv.makeDereference(type, e.asAliasedLocation().getAddress(), ssa, errorConditions, region) :
+      ret =
+          !isSafe
+              ? conv.makeDereference(
+                  type,
+                  e.asAliasedLocation().getAddress(),
+                  ssa,
+                  errorConditions,
+                  region)
+              :
                        conv.makeSafeDereference(type, e.asAliasedLocation().getAddress(), ssa, region);
     } else { // Unaliased location
-      return conv.makeVariable(e.asUnaliasedLocation().getVariableName(), type, ssa);
+      ret = conv.makeVariable(e.asUnaliasedLocation().getVariableName(), type, ssa);
     }
+    if (delegate.getForceFormType().isPresent()) {
+      ret =
+          conv.makeFormulaTypeCast(delegate.getForceFormType().get(), type, ret, ssa, constraints);
+    }
+    return ret;
   }
 
   /**
@@ -424,8 +438,30 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     }
 
     final CType operandType = typeHandler.getSimplifiedType(operand);
+    final CExpressionVisitorWithPointerAliasing visitor;
+    if (!CTypes.isIntegerType(resultType)) {
+      visitor =
+          new CExpressionVisitorWithPointerAliasing(
+              conv,
+              edge,
+              function,
+              ssa,
+              constraints,
+              errorConditions,
+              pts,
+              regionMgr,
+              Optional.of(conv.getFormulaTypeFromCType(operandType)));
+    } else {
+      visitor = this;
+    }
     if (CTypeUtils.isSimpleType(resultType)) {
-      return Value.ofValue(conv.makeCast(operandType, resultType, asValueFormula(result, operandType), constraints, edge));
+      return Value.ofValue(
+          conv.makeCast(
+              operandType,
+              resultType,
+              visitor.asValueFormula(result, operandType),
+              constraints,
+              edge));
     } else if (CTypes.withoutConst(resultType).equals(CTypes.withoutConst(operandType))) {
       // Special case: conversion of non-scalar type to itself is allowed (and ignored)
       // Change of const modifier is ignored, too.

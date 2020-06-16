@@ -87,7 +87,7 @@ public class ExpressionToFormulaVisitor
   protected final FormulaManagerView mgr;
   protected final SSAMapBuilder ssa;
 
-  private final Optional<FormulaType<?>> literalFormulaType;
+  private final Optional<FormulaType<?>> forceFormulaType;
 
   public ExpressionToFormulaVisitor(
       CtoFormulaConverter pCtoFormulaConverter,
@@ -96,7 +96,7 @@ public class ExpressionToFormulaVisitor
       String pFunction,
       SSAMapBuilder pSsa,
       Constraints pConstraints,
-      Optional<FormulaType<?>> litFormType) {
+      Optional<FormulaType<?>> forceFormType) {
 
     conv = pCtoFormulaConverter;
     edge = pEdge;
@@ -104,7 +104,7 @@ public class ExpressionToFormulaVisitor
     ssa = pSsa;
     constraints = pConstraints;
     mgr = pFmgr;
-    literalFormulaType = litFormType;
+    forceFormulaType = forceFormType;
   }
 
   @Override
@@ -176,7 +176,7 @@ public class ExpressionToFormulaVisitor
 
     final ExpressionToFormulaVisitor newVisitor;
     FormulaType<?> litFormType = determineLiteralFormulaType(exp, returnType);
-    if (literalFormulaType.isEmpty()) {
+    if (forceFormulaType.isEmpty()) {
       if (litFormType == null) {
         newVisitor = this;
       } else {
@@ -552,8 +552,8 @@ public class ExpressionToFormulaVisitor
   public Formula visit(CIntegerLiteralExpression iExp) throws UnrecognizedCodeException {
     FormulaType<?> t;
 
-    if (literalFormulaType.isPresent()) {
-      t = literalFormulaType.get();
+    if (forceFormulaType.isPresent()) {
+      t = forceFormulaType.get();
     } else {
       t = conv.getFormulaTypeFromCType(iExp.getExpressionType());
     }
@@ -1382,5 +1382,9 @@ public class ExpressionToFormulaVisitor
       }
     }
     return result;
+  }
+
+  public Optional<FormulaType<?>> getForceFormType() {
+    return forceFormulaType;
   }
 }
