@@ -8,6 +8,6 @@ CONTROL AUTOMATON SMGCPAMEMTRACK
 INITIAL STATE Init;
 
 STATE USEFIRST Init :
-  CHECK(SMGCPA, "has-leaks") -> ERROR("valid-memtrack");
+  CHECK("has-leaks") -> ERROR("valid-memtrack");
 
 END AUTOMATON
