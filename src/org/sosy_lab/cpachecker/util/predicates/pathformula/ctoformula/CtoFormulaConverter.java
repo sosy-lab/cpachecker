@@ -763,12 +763,11 @@ public class CtoFormulaConverter {
       } else if (toType.isFloatingPointType()) {
         final CSimpleType sType = (CSimpleType) cTypeNoPointer;
         final boolean signed = machineModel.isSigned(sType);
-        if (sType.equals(CNumericTypes.FLOAT)) {
+        if (sType.getType().isFloatingPointType()) {
           return fmgr.getFloatingPointFormulaManager()
-              .castFrom(formula, signed, FormulaType.getSinglePrecisionFloatingPointType());
+              .castFrom(formula, signed, (FormulaType.FloatingPointType) getFormulaTypeFromCType(sType));
         } else {
-          return fmgr.getFloatingPointFormulaManager()
-              .castFrom(formula, signed, FormulaType.getDoublePrecisionFloatingPointType());
+          throw new AssertionError("Cannot cast into given FloatingPointType!");
         }
       } else if (toType.isBitvectorType()) {
         int size = ((BitvectorType) toType).getSize();
