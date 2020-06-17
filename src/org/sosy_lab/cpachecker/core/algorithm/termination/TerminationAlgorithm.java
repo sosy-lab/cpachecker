@@ -108,7 +108,8 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 @Options(prefix = "termination")
 public class TerminationAlgorithm implements Algorithm, AutoCloseable, StatisticsProvider {
 
-  private final static Set<Property> TERMINATION_PROPERTY = NamedProperty.singleton("termination");
+  private static final ImmutableSet<Property> TERMINATION_PROPERTY =
+      NamedProperty.singleton("termination");
 
   private enum ResetReachedSetStrategy {
     REMOVE_TARGET_STATE,

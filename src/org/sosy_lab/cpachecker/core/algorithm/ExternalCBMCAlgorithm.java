@@ -25,6 +25,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -165,17 +166,10 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private static class CbmcReachabilityProperty implements Property {
-
-    @Override
-    public String toString() {
-      return "Target location reachabable with CBMC!";
-    }
-  }
-
   private static class DummyErrorState implements AbstractState, Targetable {
 
-    private final Property prop = new CbmcReachabilityProperty();
+    private static final ImmutableSet<Property> PROP =
+        NamedProperty.singleton("Target location reachabable with CBMC!");
 
     @Override
     public boolean isTarget() {
@@ -183,8 +177,8 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     @Override
-    public Set<Property> getViolatedProperties() throws IllegalStateException {
-      return ImmutableSet.of(prop);
+    public Set<Property> getViolatedProperties() {
+      return PROP;
     }
   }
 }
