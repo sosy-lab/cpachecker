@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.cta.moduleSpecification;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -36,21 +39,34 @@ public class ModuleInstantiation {
     private Map<String, String> variableMappings = new HashMap<>();
 
     public Builder specificationName(String pSpecificationName) {
-      specificationName = pSpecificationName;
+      specificationName = checkNotNull(pSpecificationName);
+      checkArgument(
+          !specificationName.isEmpty(), "Empty module specification names are not allowed");
       return this;
     }
-
+    
     public Builder instanceName(String pInstanceName) {
-      instanceName = pInstanceName;
+      instanceName = checkNotNull(pInstanceName);
+      checkArgument(!instanceName.isEmpty(), "Empty module instance names are not allowed");
+
       return this;
     }
 
     public Builder variableMapping(String vSpecName, String vInstanceName) {
+      checkNotNull(vSpecName);
+      checkNotNull(vInstanceName);
+      checkArgument(!vInstanceName.isEmpty(), "Empty variable instance names are not allowed");
+      checkArgument(!vSpecName.isEmpty(), "Empty variable names are not allowed");
+
       variableMappings.put(vSpecName, vInstanceName);
       return this;
     }
 
     public ModuleInstantiation build() {
+      checkNotNull(specificationName);
+      checkNotNull(instanceName);
+      checkNotNull(variableMappings);
+
       return new ModuleInstantiation(specificationName, instanceName, variableMappings);
     }
   }

@@ -8,7 +8,12 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.cta.moduleSpecification;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.base.Optional;
+import java.math.BigDecimal;
 
 public class VariableSpecification {
   public static enum VariableType {
@@ -45,17 +50,18 @@ public class VariableSpecification {
     private Optional<Number> initialization = Optional.absent();
 
     public Builder name(String pName) {
-      name = pName;
+      name = checkNotNull(pName);
+      checkArgument(!name.isEmpty(), "Empty variable names are not allowed");
       return this;
     }
 
     public Builder type(VariableType pType) {
-      type = pType;
+      type = checkNotNull(pType);
       return this;
     }
 
     public Builder visibility(VariableVisibility pVisibility) {
-      visibility = pVisibility;
+      visibility = checkNotNull(pVisibility);
       return this;
     }
 
@@ -65,6 +71,18 @@ public class VariableSpecification {
     }
 
     public VariableSpecification build() {
+      checkNotNull(name);
+      checkNotNull(type);
+      checkNotNull(visibility);
+      checkNotNull(initialization);
+      checkState(
+          !initialization.isPresent() || type.equals(VariableType.CONST),
+          "Initalizations are only allowed for constant variables.");
+      checkState(
+          !initialization.isPresent()
+              || (new BigDecimal(initialization.get().toString()).signum() >= 0),
+          "Negative values are not allowed for constants.");
+
       return new VariableSpecification(name, type, visibility, initialization);
     }
   }

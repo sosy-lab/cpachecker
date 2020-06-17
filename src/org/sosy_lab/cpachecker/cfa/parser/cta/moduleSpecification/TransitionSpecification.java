@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.cta.moduleSpecification;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.Optional;
 import java.util.Set;
 
@@ -39,31 +42,42 @@ public class TransitionSpecification {
     private Optional<String> syncMark;
 
     public Builder source(String pSource) {
-      source = pSource;
+      source = checkNotNull(pSource);
+      checkArgument(!source.isEmpty(), "Empty source states are not allowed");
       return this;
     }
 
     public Builder target(String pTarget) {
-      target = pTarget;
+      target = checkNotNull(pTarget);
+      checkArgument(!target.isEmpty(), "Empty target states are not allowed");
       return this;
     }
 
     public Builder guard(Optional<BooleanCondition> pGuard) {
-      guard = pGuard;
+      guard = checkNotNull(pGuard);
       return this;
     }
 
     public Builder resetClocks(Set<String> pResetClocks) {
-      resetClocks = pResetClocks;
+      resetClocks = checkNotNull(pResetClocks);
+      checkArgument(!resetClocks.contains(""), "Empty variable names are not allowed");
       return this;
     }
 
     public Builder syncMark(Optional<String> pSyncMark) {
-      syncMark = pSyncMark;
+      syncMark = checkNotNull(pSyncMark);
+      checkArgument(
+          !syncMark.isPresent() || !syncMark.get().isEmpty(), "Empty sync marks are not allowed");
       return this;
     }
 
     public TransitionSpecification build() {
+      checkNotNull(source);
+      checkNotNull(target);
+      checkNotNull(guard);
+      checkNotNull(resetClocks);
+      checkNotNull(syncMark);
+
       return new TransitionSpecification(source, target, guard, resetClocks, syncMark);
     }
   }

@@ -8,6 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.cta.moduleSpecification;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.google.common.base.Optional;
 
 public class StateSpecification {
@@ -28,12 +31,14 @@ public class StateSpecification {
     public boolean isInitialState;
 
     public Builder name(String pName) {
-      name = pName;
+      name = checkNotNull(pName);
+      checkArgument(!name.isEmpty(), "Empty state names are not allowed");
+
       return this;
     }
 
     public Builder invariant(Optional<BooleanCondition> pInvariant) {
-      invariant = pInvariant;
+      invariant = checkNotNull(pInvariant);
       return this;
     }
 
@@ -43,6 +48,9 @@ public class StateSpecification {
     }
 
     public StateSpecification build() {
+      checkNotNull(name);
+      checkNotNull(invariant);
+
       return new StateSpecification(name, invariant, isInitialState);
     }
   }

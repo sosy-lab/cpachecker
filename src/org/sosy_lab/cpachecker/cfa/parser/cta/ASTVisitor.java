@@ -77,7 +77,10 @@ class ASTVisitor extends CTAGrammarParserBaseVisitor<SystemSpecification> {
     public ModuleSpecification visitModuleSpecification(ModuleSpecificationContext pCtx) {
       var initialCondition = pCtx.initialCondition.accept(new InitialConditionVisitor());
       var automatonSpecification =
-          pCtx.automaton.accept(new AutomatonSpecificationVisitor(initialCondition));
+          Optional.fromNullable(pCtx.automaton)
+              .transform(
+                  automatonSpec ->
+                      automatonSpec.accept(new AutomatonSpecificationVisitor(initialCondition)));
       var isRoot = pCtx.ROOT() != null;
       var moduleName = pCtx.name.getText();
       var variables =

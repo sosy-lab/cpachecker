@@ -128,7 +128,11 @@ class TCFABuilder {
   }
 
   private void createAutomaton() {
-    var automatonSpec = moduleSpec.automaton;
+    if (!moduleSpec.automaton.isPresent()) {
+      return;
+    }
+
+    var automatonSpec = moduleSpec.automaton.get();
 
     automatonSpec.stateSpecifications.forEach(this::createNode);
     automatonSpec.transitions.forEach(this::createTransition);
