@@ -251,7 +251,7 @@ public class AutomatonGraphmlParser {
    * @throws InvalidConfigurationException if the configuration is invalid.
    * @return the automata representing the witnesses found in the file.
    */
-  public List<Automaton> parseAutomatonFile(Path pInputFile, Set<Property> pProperties)
+  public Automaton parseAutomatonFile(Path pInputFile, Set<Property> pProperties)
       throws InvalidConfigurationException, InterruptedException {
     return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
         MoreFiles.asByteSource(pInputFile),
@@ -268,7 +268,7 @@ public class AutomatonGraphmlParser {
    * @throws IOException if there occurs an IOException while reading from the stream.
    * @return the automata representing the witnesses found in the stream.
    */
-  private List<Automaton> parseAutomatonFile(InputStream pInputStream, Set<Property> pProperties)
+  private Automaton parseAutomatonFile(InputStream pInputStream, Set<Property> pProperties)
       throws InvalidConfigurationException, IOException, InterruptedException {
     final CParser cparser =
         CParser.Factory.getParser(
@@ -330,7 +330,7 @@ public class AutomatonGraphmlParser {
       }
     }
 
-    return ImmutableList.of(automaton);
+    return automaton;
   }
 
   /**

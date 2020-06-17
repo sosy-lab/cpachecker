@@ -99,6 +99,24 @@ public final class Specification {
       return Specification.alwaysSatisfied();
     }
 
+    ImmutableListMultimap<Path, Automaton> specificationAutomata =
+        parseSpecificationFiles(specFiles, cfa, config, logger, pShutdownNotifier, pProperties);
+
+    return new Specification(pProperties, specificationAutomata);
+  }
+
+  private static ImmutableListMultimap<Path, Automaton> parseSpecificationFiles(
+      Iterable<Path> specFiles,
+      CFA cfa,
+      Configuration config,
+      LogManager logger,
+      ShutdownNotifier pShutdownNotifier,
+      Set<SpecificationProperty> pProperties)
+      throws InvalidConfigurationException, InterruptedException {
+    if (Iterables.isEmpty(specFiles)) {
+      return ImmutableListMultimap.of();
+    }
+
     Scope scope;
     switch (cfa.getLanguage()) {
       case C:
@@ -116,49 +134,65 @@ public final class Specification {
         ImmutableListMultimap.builder();
 
     for (Path specFile : specFiles) {
-      List<Automaton> automata = ImmutableList.of();
-      // Check that the automaton file exists and is not empty
-      try {
-        if (Files.size(specFile) == 0) {
-          throw new InvalidConfigurationException("The specification file is empty: " + specFile);
-        }
-      } catch (IOException e) {
-        throw new InvalidConfigurationException(
-            "Could not load automaton from file " + e.getMessage(), e);
-      }
+      List<Automaton> automata =
+          parseSpecificationFile(
+              specFile, cfa, config, logger, pShutdownNotifier, properties, scope);
+      multiplePropertiesBuilder.putAll(specFile, automata);
+    }
+    return multiplePropertiesBuilder.build();
+  }
 
-      if (AutomatonGraphmlParser.isGraphmlAutomatonFromConfiguration(specFile)) {
-        AutomatonGraphmlParser graphmlParser =
-            new AutomatonGraphmlParser(config, logger, pShutdownNotifier, cfa, scope);
-        automata = graphmlParser.parseAutomatonFile(specFile, properties);
-
-      } else {
-        automata =
-            AutomatonParser.parseAutomatonFile(
-                specFile,
-                config,
-                logger,
-                cfa.getMachineModel(),
-                scope,
-                cfa.getLanguage(),
-                pShutdownNotifier);
+  private static List<Automaton> parseSpecificationFile(
+      Path specFile,
+      CFA cfa,
+      Configuration config,
+      LogManager logger,
+      ShutdownNotifier pShutdownNotifier,
+      Set<Property> properties,
+      Scope scope)
+      throws InvalidConfigurationException, InterruptedException {
+    List<Automaton> automata;
+    // Check that the automaton file exists and is not empty
+    try {
+      if (Files.size(specFile) == 0) {
+        throw new InvalidConfigurationException("The specification file is empty: " + specFile);
       }
+    } catch (IOException e) {
+      throw new InvalidConfigurationException(
+          "Could not load automaton from file " + e.getMessage(), e);
+    }
+
+    if (AutomatonGraphmlParser.isGraphmlAutomatonFromConfiguration(specFile)) {
+      AutomatonGraphmlParser graphmlParser =
+          new AutomatonGraphmlParser(config, logger, pShutdownNotifier, cfa, scope);
+      automata = ImmutableList.of(graphmlParser.parseAutomatonFile(specFile, properties));
+
+    } else {
+      automata =
+          AutomatonParser.parseAutomatonFile(
+              specFile,
+              config,
+              logger,
+              cfa.getMachineModel(),
+              scope,
+              cfa.getLanguage(),
+              pShutdownNotifier);
 
       if (automata.isEmpty()) {
         throw new InvalidConfigurationException(
             "Specification file contains no automata: " + specFile);
       }
-
-      for (Automaton automaton : automata) {
-        logger.logf(
-            Level.FINER,
-            "Loaded Automaton %s with %d states.",
-            automaton.getName(),
-            automaton.getNumberOfStates());
-      }
-      multiplePropertiesBuilder.putAll(specFile, automata);
     }
-    return new Specification(pProperties, multiplePropertiesBuilder.build());
+
+    for (Automaton automaton : automata) {
+      logger.logf(
+          Level.FINER,
+          "Loaded Automaton %s with %d states from %s.",
+          automaton.getName(),
+          automaton.getNumberOfStates(),
+          specFile);
+    }
+    return automata;
   }
 
   public static Specification combine(final Specification pSpec1, final Specification pSpec2) {
