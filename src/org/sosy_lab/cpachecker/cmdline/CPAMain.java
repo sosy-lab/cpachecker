@@ -593,10 +593,9 @@ public class CPAMain {
 
     String specFiles =
         Optionals.presentInstances(
-                properties
-                    .stream()
-                    .map(SpecificationProperty::getInternalSpecificationPath)
-                    .distinct())
+                properties.stream().map(SpecificationProperty::getInternalSpecificationPath))
+            .map(Object::toString)
+            .distinct()
             .collect(Collectors.joining(","));
     cmdLineOptions.put(SPECIFICATION_OPTION, specFiles);
     if (cmdLineOptions.containsKey(ENTRYFUNCTION_OPTION)) {

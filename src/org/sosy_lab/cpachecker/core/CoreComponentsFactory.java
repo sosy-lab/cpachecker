@@ -12,8 +12,8 @@ import static com.google.common.base.Verify.verifyNotNull;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
-import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
@@ -671,11 +671,11 @@ public class CoreComponentsFactory {
             .build();
 
     return Specification.fromFiles(
-        Collections.singleton(
+        ImmutableSet.of(
             new SpecificationProperty(
                 cfa.getMainFunction().getFunctionName(),
                 Property.CommonPropertyType.TERMINATION,
-                Optional.of(TERMINATION_SPEC_FILE.toString()))),
+                Optional.of(TERMINATION_SPEC_FILE))),
         specFiles,
         cfa,
         config,

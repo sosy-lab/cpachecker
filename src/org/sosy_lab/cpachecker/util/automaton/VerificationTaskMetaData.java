@@ -81,14 +81,14 @@ public class VerificationTaskMetaData {
    */
   public List<Path> getNonPropertySpecificationFiles() throws IOException {
     classifyAutomataFiles();
-    Set<String> pathsAssociatedWithPropertyFiles =
+    Set<Path> pathsAssociatedWithPropertyFiles =
         FluentIterable.from(getProperties())
             .transform(SpecificationProperty::getInternalSpecificationPath)
             .filter(Optional::isPresent)
             .transform(Optional::get)
             .toSet();
     return FluentIterable.from(nonWitnessAutomatonFiles)
-        .filter(p -> !pathsAssociatedWithPropertyFiles.contains(p.toString()))
+        .filter(p -> !pathsAssociatedWithPropertyFiles.contains(p))
         .toList();
   }
 
