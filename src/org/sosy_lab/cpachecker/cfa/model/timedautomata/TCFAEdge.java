@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cfa.model.timedautomata;
 import com.google.common.base.Optional;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariableCondition;
 import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -19,7 +18,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class TCFAEdge extends AbstractCFAEdge {
 
-  private final Set<CIdExpression> variablesToReset;
+  private final Set<String> variablesToReset;
   private final Optional<TaVariableCondition> guard;
   private final Optional<String> action;
 
@@ -30,10 +29,10 @@ public class TCFAEdge extends AbstractCFAEdge {
       CFANode pPredecessor,
       CFANode pSuccessor,
       Optional<TaVariableCondition> pGuard,
-      Set<CIdExpression> pResetStatements,
+      Set<String> pVariablesToReset,
       Optional<String> pAction) {
     super("", pFileLocation, pPredecessor, pSuccessor);
-    variablesToReset = pResetStatements;
+    variablesToReset = pVariablesToReset;
     guard = pGuard;
     action = pAction;
   }
@@ -42,7 +41,7 @@ public class TCFAEdge extends AbstractCFAEdge {
     return action;
   }
 
-  public Set<CIdExpression> getVariablesToReset() {
+  public Set<String> getVariablesToReset() {
     return variablesToReset;
   }
 

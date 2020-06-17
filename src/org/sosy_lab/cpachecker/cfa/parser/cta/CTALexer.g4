@@ -104,6 +104,10 @@ GREATEREQUAL
 	: '>='
 	;
 
+ASSIGN
+	: '='
+	;
+
 AUTOMATON
 	: 'AUTOMATON'
 	;
@@ -198,4 +202,12 @@ COMMA
 WHITESPACE
     :   [ \t\u000C\r\n]+
         -> skip
+    ;
+
+COMMENT
+    :   '/*' .*? '*/' -> skip
+    ;
+
+LINE_COMMENT
+    :   '//' ~[\r\n]* -> skip
     ;

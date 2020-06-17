@@ -15,15 +15,15 @@ options {
 
 // PARSER
 specification
-	: moduleSpecification+
+	: modules+=moduleSpecification+
 	;
 
 moduleSpecification
-	: MODULE ROOT? IDENTIFIER LBRACKET variableDeclarationGroup* initialConfigDefinition? moduleInstantiation* automatonDefinition? RBRACKET
+	: MODULE ROOT? name=IDENTIFIER LBRACKET variables+=variableDeclarationGroup* initialCondition=initialConfigDefinition? instantiations+=moduleInstantiation* automaton=automatonDefinition? RBRACKET
 	;
 
 variableDeclarationGroup
-	: variableVisibilityQualifier variableDeclaration+
+	: visibility=variableVisibilityQualifier declarations+=variableDeclaration+
 	;
 
 variableVisibilityQualifier
@@ -34,7 +34,7 @@ variableVisibilityQualifier
 	;
 
 variableDeclaration
-	: name=IDENTIFIER COLON type=variableType SEMICOLON
+	: name=IDENTIFIER (ASSIGN initialization=NUMBER) COLON type=variableType SEMICOLON
 	;
 
 variableType
@@ -59,7 +59,8 @@ variableCondition
 	;
 
 variableExpression
-	: var=IDENTIFIER op=operator constant=NUMBER # BinaryVariableExpression
+	: var=IDENTIFIER op=operator constant=NUMBER #NumericVariableExpression
+  | var=IDENTIFIER op=operator constant=IDENTIFIER #ParametricVariableExpression
 	;
 
 operator
@@ -71,19 +72,19 @@ operator
 	;
 
 moduleInstantiation
-	: INST IDENTIFIER FROM IDENTIFIER WITH LBRACKET variableInstantiation* RBRACKET
+	: INST instanceName=IDENTIFIER FROM specificationName=IDENTIFIER WITH LBRACKET variableInstantiations+=variableInstantiation* RBRACKET
 	;
 
 variableInstantiation
-	: IDENTIFIER AS IDENTIFIER SEMICOLON
+	: specName=IDENTIFIER AS instanceName=IDENTIFIER SEMICOLON
 	;
 
 automatonDefinition
-	: AUTOMATON IDENTIFIER LBRACKET stateDefinition* RBRACKET
+	: AUTOMATON name=IDENTIFIER LBRACKET states+=stateDefinition* RBRACKET
 	;
 
 stateDefinition
-	: STATE name=IDENTIFIER LBRACKET invariantDefinition? derivationDefinition? transitionDefinition* RBRACKET
+	: STATE name=IDENTIFIER LBRACKET invariant=invariantDefinition? transitions+=transitionDefinition* RBRACKET
 	;
 
 invariantDefinition
@@ -99,7 +100,7 @@ derivationCondition
 	;
 	
 transitionDefinition
-	: TRANS LBRACKET  (guardDefinition SEMICOLON)? (SYNC syncMark=IDENTIFIER SEMICOLON)? (resetDefinition SEMICOLON)? (gotoDefinition SEMICOLON)? RBRACKET
+	: TRANS LBRACKET  (guard=guardDefinition SEMICOLON)? (SYNC syncMark=IDENTIFIER SEMICOLON)? (resetDefinition SEMICOLON)? gotoDefinition SEMICOLON RBRACKET
 	;
 
 guardDefinition

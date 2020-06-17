@@ -14,6 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Level;
 import org.antlr.v4.runtime.CharStreams;
@@ -57,15 +58,17 @@ class CTAParser implements Parser {
       parser.addErrorListener(ParserErrorListener.INSTANCE);
       ParseTree tree = parser.specification();
 
-      TCFABuilder builder = new TCFABuilder();
-      builder.setFileName(pFilename);
+      var visitor = new ASTVisitor();
+      var cfaBuilder = new TCFABuilder();
 
       parseTimer.stop();
       cfaCreationTimer.start();
-      builder.visit(tree);
 
-      var nodes = builder.getNodesByAutomatonMap();
-      var entryNodes = builder.getEntryNodesByAutomatonMap();
+      var specification = visitor.visit(tree);
+      cfaBuilder.instantiateSpecification(specification, new HashMap<>());
+
+      var nodes = cfaBuilder.getNodesByAutomatonResult();
+      var entryNodes = cfaBuilder.getEntryNodesByAutomatoResult();
 
       cfaCreationTimer.stop();
 

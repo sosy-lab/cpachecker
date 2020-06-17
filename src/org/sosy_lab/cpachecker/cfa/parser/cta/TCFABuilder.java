@@ -11,19 +11,16 @@ package org.sosy_lab.cpachecker.cfa.parser.cta;
 import static com.google.common.base.Verify.verify;
 
 import com.google.common.base.Optional;
+import com.google.common.base.VerifyException;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.Set;
 import java.util.TreeMap;
-import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.Token;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -41,254 +38,240 @@ import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAExitNode;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFANode;
-import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.AutomatonDefinitionContext;
-import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.BinaryVariableExpressionContext;
-import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.GotoDefinitionContext;
-import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.GuardDefinitionContext;
-import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.InitialConfigDefinitionContext;
-import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.InvariantDefinitionContext;
-import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.ModuleSpecificationContext;
-import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.StateDefinitionContext;
-import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.TransitionDefinitionContext;
-import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.VariableConditionContext;
-import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParser.VariableDeclarationContext;
-import org.sosy_lab.cpachecker.cfa.parser.cta.generated.CTAGrammarParserBaseVisitor;
+import org.sosy_lab.cpachecker.cfa.parser.cta.moduleSpecification.BooleanCondition;
+import org.sosy_lab.cpachecker.cfa.parser.cta.moduleSpecification.BooleanCondition.NumericVariableExpression;
+import org.sosy_lab.cpachecker.cfa.parser.cta.moduleSpecification.BooleanCondition.ParametricVariableExpression;
+import org.sosy_lab.cpachecker.cfa.parser.cta.moduleSpecification.BooleanCondition.VariableExpression;
+import org.sosy_lab.cpachecker.cfa.parser.cta.moduleSpecification.ModuleInstantiation;
+import org.sosy_lab.cpachecker.cfa.parser.cta.moduleSpecification.ModuleSpecification;
+import org.sosy_lab.cpachecker.cfa.parser.cta.moduleSpecification.StateSpecification;
+import org.sosy_lab.cpachecker.cfa.parser.cta.moduleSpecification.SystemSpecification;
+import org.sosy_lab.cpachecker.cfa.parser.cta.moduleSpecification.TransitionSpecification;
+import org.sosy_lab.cpachecker.cfa.parser.cta.moduleSpecification.VariableSpecification.VariableType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-class TCFABuilder extends CTAGrammarParserBaseVisitor<Object> {
+class TCFABuilder {
+  private SystemSpecification systemSpec;
+  private ModuleSpecification moduleSpec;
+  private ModuleInstantiation instantiation;
+  private Map<String, Number> constantInitializations;
+
+  private Map<String, CFANode> nodesByName;
+  private Map<String, CIdExpression> currentIdExpressionsByVariableName;
+  private TaDeclaration moduleDeclaration;
+
   private SortedSetMultimap<String, CFANode> nodesByAutomaton;
   private NavigableMap<String, FunctionEntryNode> entryNodesByAutomaton;
-  private TCFANode currentTransitionSourceNode;
-  private Map<String, TCFANode> currentParsedNodesByName;
-  private TaDeclaration currentDeclaration;
-  private Map<String, CIdExpression> currentIdExpressionsByVariableName;
-  private Set<String> currentClocksOfModule;
-  private Set<String> currentActionsOfModule;
-  private Set<String> currentInitialStates;
 
-  private String fileName;
+  public void instantiateSpecification(
+      SystemSpecification pSpecification, Map<String, Number> pConstantInitializations) {
+    init(pSpecification, pConstantInitializations);
 
-  public TCFABuilder() {
-    currentInitialStates = new HashSet<>();
-    currentParsedNodesByName = new HashMap<>();
-    nodesByAutomaton = TreeMultimap.create();
-    entryNodesByAutomaton = new TreeMap<>();
-    currentIdExpressionsByVariableName = new HashMap<>();
-    currentClocksOfModule = new HashSet<>();
-    currentActionsOfModule = new HashSet<>();
+    createFunctionDeclaration();
+    createAutomaton();
+    createSubInstantiations();
+    addToResult();
   }
 
-  public void setFileName(String pFileName) {
-    fileName = pFileName;
-  }
-
-  public SortedSetMultimap<String, CFANode> getNodesByAutomatonMap() {
+  public SortedSetMultimap<String, CFANode> getNodesByAutomatonResult() {
     return nodesByAutomaton;
   }
 
-  public NavigableMap<String, FunctionEntryNode> getEntryNodesByAutomatonMap() {
+  public NavigableMap<String, FunctionEntryNode> getEntryNodesByAutomatoResult() {
     return entryNodesByAutomaton;
   }
 
-  private FileLocation getFileLocation(ParserRuleContext ctx) {
-    if (ctx != null) {
-      return new FileLocation(fileName, 0, 0, 0, 0);
-    }
-    return new FileLocation(fileName, 0, 0, 0, 0);
-  }
-
-  private FileLocation getFileLocation(Token token) {
-    if (token != null) {
-      return new FileLocation(fileName, 0, 0, 0, 0);
-    }
-    return new FileLocation(fileName, 0, 0, 0, 0);
-  }
-
-  @Override
-  public Object visitModuleSpecification(ModuleSpecificationContext pCtx) {
-    currentClocksOfModule = new HashSet<>();
-    currentActionsOfModule = new HashSet<>();
-    currentInitialStates = new HashSet<>();
-
-    if (pCtx.initialConfigDefinition() != null) {
-      visit(pCtx.initialConfigDefinition());
-    }
-    if (pCtx.variableDeclarationGroup(0) != null) {
-      visit(pCtx.variableDeclarationGroup(0));
-    }
-    if (pCtx.automatonDefinition() != null) {
-      visit(pCtx.automatonDefinition());
-    }
-
-    return null;
-  }
-
-  @Override
-  public Object visitInitialConfigDefinition(InitialConfigDefinitionContext pCtx) {
-    pCtx.stateNames.forEach(name -> currentInitialStates.add(name.getText()));
-
-    return null;
-  }
-
-  @Override
-  public Object visitVariableCondition(VariableConditionContext pCtx) {
-    List<CExpression> expressions = new ArrayList<>(pCtx.expressions.size());
-    for (var expression : pCtx.expressions) {
-      expressions.add((CExpression) visit(expression));
-    }
-
-    var result = new TaVariableCondition(getFileLocation(pCtx), expressions);
-    return result;
-  }
-
-  @Override
-  public Object visitBinaryVariableExpression(BinaryVariableExpressionContext pCtx) {
-    var fileLocation = getFileLocation(pCtx);
-    var variable = createIdExpression(getFileLocation(pCtx.var), pCtx.var.getText());
-    var constant =
-        createFloatLiteralExpression(getFileLocation(pCtx.constant), pCtx.constant.getText());
-    var operator = getOperatorFromString(pCtx.operator().getText());
-
-    return createBinaryExpression(fileLocation, variable, constant, operator);
-  }
-
-  @Override
-  public Object visitVariableDeclaration(VariableDeclarationContext ctx) {
-    if (ctx.type.SYNC() != null) {
-      currentActionsOfModule.add(ctx.name.getText());
-    } else {
-      currentClocksOfModule.add(ctx.name.getText());
-    }
-    return null;
-  }
-
-  @Override
-  public Object visitAutomatonDefinition(AutomatonDefinitionContext pCtx) {
-    currentParsedNodesByName = new HashMap<>();
+  private void init(
+      SystemSpecification pSpecification, Map<String, Number> pConstantInitializations) {
+    nodesByName = new HashMap<>();
     currentIdExpressionsByVariableName = new HashMap<>();
+    nodesByAutomaton = TreeMultimap.create();
+    entryNodesByAutomaton = new TreeMap<>();
 
-    var automatonName = pCtx.IDENTIFIER().getText();
-    currentDeclaration =
-        new TaDeclaration(
-            getFileLocation(pCtx), automatonName, currentClocksOfModule, currentActionsOfModule);
-
-    // unique entry and exit nodes are required for CFAs:
-    var exitNode = new TCFAExitNode(currentDeclaration);
-    var entryNode = new TCFAEntryNode(FileLocation.DUMMY, exitNode, currentDeclaration);
-    exitNode.setEntryNode(entryNode);
-    entryNodesByAutomaton.put(automatonName, entryNode);
-    var edge = new BlankEdge("", FileLocation.DUMMY, entryNode, exitNode, "dummy edge");
-    entryNode.addLeavingEdge(edge);
-    exitNode.addEnteringEdge(edge);
-    nodesByAutomaton.put(automatonName, exitNode); // exit node needs to be first
-    nodesByAutomaton.put(automatonName, entryNode);
-
-    // first parse all the nodes, before edges can be parsed
-    for (var stateDefinition : pCtx.stateDefinition()) {
-      var newNode = (TCFANode) visit(stateDefinition);
-      nodesByAutomaton.put(automatonName, newNode);
-      currentParsedNodesByName.put(newNode.getName(), newNode);
-    }
-
-    // process the edges which are defined by their source states
-    for (var stateDefinition : pCtx.stateDefinition()) {
-      currentTransitionSourceNode = currentParsedNodesByName.get(stateDefinition.name.getText());
-      for (var transitionDefinition : stateDefinition.transitionDefinition()) {
-        visit(transitionDefinition);
-      }
-    }
-
-    // add edges from entry node to all initial states
-    for (var entry : currentParsedNodesByName.entrySet()) {
-      var node = entry.getValue();
-      if (node.isInitialState()) {
-        edge = new BlankEdge("", FileLocation.DUMMY, entryNode, node, "initial dummy edge");
-        entryNode.addLeavingEdge(edge);
-        node.addEnteringEdge(edge);
-      }
-    }
-
-    return null;
+    systemSpec = pSpecification;
+    instantiation = pSpecification.instantiation;
+    moduleSpec =
+        pSpecification.modules.stream()
+            .filter(spec -> spec.moduleName.equals(instantiation.specificationName))
+            .findFirst()
+            .orElseThrow();
+    constantInitializations = new HashMap<>(pConstantInitializations);
   }
 
-  @Override
-  public Object visitStateDefinition(StateDefinitionContext pCtx) {
-    var stateName = pCtx.name.getText();
-    Optional<TaVariableCondition> invariant;
-    if (pCtx.invariantDefinition() == null) {
-      invariant = Optional.absent();
-    } else {
-      invariant = Optional.of((TaVariableCondition) visit(pCtx.invariantDefinition()));
-    }
+  private void createFunctionDeclaration() {
+    var moduleName = instantiation.instanceName;
+    var variablesByType =
+        moduleSpec.variables.stream().collect(Collectors.groupingBy(variable -> variable.type));
 
-    return new TCFANode(
-        stateName, invariant, currentDeclaration, currentInitialStates.contains(stateName));
+    var clockVariableNames =
+        variablesByType.get(VariableType.CLOCK).stream()
+            .map(variable -> variable.name)
+            .collect(Collectors.toSet());
+    var actionVariableNames =
+        variablesByType.get(VariableType.SYNC).stream()
+            .map(variable -> variable.name)
+            .collect(Collectors.toSet());
+    moduleDeclaration =
+        new TaDeclaration(FileLocation.DUMMY, moduleName, clockVariableNames, actionVariableNames);
+
+    variablesByType
+        .get(VariableType.CONST)
+        .forEach(
+            variable -> {
+              if (variable.initialization.isPresent()) {
+                constantInitializations.put(
+                    getInstantiatedName(variable.name), variable.initialization.get());
+              }
+            });
   }
 
-  @Override
-  public Object visitInvariantDefinition(InvariantDefinitionContext pCtx) {
-    return visit(pCtx.variableCondition());
+  private void createAutomaton() {
+    var automatonSpec = moduleSpec.automaton;
+
+    automatonSpec.stateSpecifications.forEach(this::createNode);
+    automatonSpec.transitions.forEach(this::createTransition);
+    addDummyNodes();
   }
 
-  @Override
-  public Object visitTransitionDefinition(TransitionDefinitionContext pCtx) {
-    var fileLocation = getFileLocation(pCtx);
-    Optional<TaVariableCondition> guard;
-    if (pCtx.guardDefinition() == null) {
-      guard = Optional.absent();
-    } else {
-      guard = Optional.of((TaVariableCondition) visit(pCtx.guardDefinition()));
-    }
+  private void createNode(StateSpecification specification) {
+    var stateName = specification.name;
+    Optional<TaVariableCondition> invariant =
+        specification.invariant.transform(this::createVariableCondition);
 
-    Set<CIdExpression> variablesToReset = null;
-    if (pCtx.resetDefinition() == null) {
-      variablesToReset = new HashSet<>();
-    } else {
-      variablesToReset = new HashSet<>(pCtx.resetDefinition().IDENTIFIER().size());
-      for (var identifier : pCtx.resetDefinition().vars) {
-        variablesToReset.add(createIdExpression(fileLocation, identifier.getText()));
-      }
-    }
+    var result =
+        new TCFANode(stateName, invariant, moduleDeclaration, specification.isInitialState);
+    nodesByName.put(stateName, result);
+  }
 
-    TCFANode source = currentTransitionSourceNode;
-    TCFANode target = (TCFANode) visit(pCtx.gotoDefinition());
+  private void createTransition(TransitionSpecification specification) {
+    verify(
+        nodesByName.containsKey(specification.source),
+        "Source state "
+            + specification.source
+            + " is unknown in instantiated module "
+            + moduleDeclaration.getName());
+    verify(
+        nodesByName.containsKey(specification.target),
+        "Target state "
+            + specification.target
+            + " is unknown in transition from "
+            + specification.source
+            + " in instantiated module "
+            + moduleDeclaration.getName());
 
-    Optional<String> action = Optional.absent();
-    if (pCtx.syncMark != null) {
-      action = Optional.of(pCtx.syncMark.getText());
+    var instantiatedResetClocks =
+        specification.resetClocks.stream()
+            .map(this::getInstantiatedName)
+            .collect(Collectors.toSet());
+    verify(
+        moduleDeclaration.getClocks().containsAll(instantiatedResetClocks),
+        "Undeclared clocks are reset in transition "
+            + specification.source
+            + "->"
+            + specification.target
+            + " in instantiated module "
+            + moduleDeclaration.getName());
+
+    var instantiatedAction = specification.syncMark.transform(this::getInstantiatedName);
+    if (instantiatedAction.isPresent()) {
       verify(
-          currentActionsOfModule.contains(action.get()),
-          "Sync action '%s' appears on a transition but is not declared in the module.",
-          action.get());
+          moduleDeclaration.getActions().contains(instantiatedAction.get()),
+          "Undeclared action on transition "
+              + specification.source
+              + "->"
+              + specification.target
+              + " in instantiated module "
+              + moduleDeclaration.getName());
     }
 
-    var edge = new TCFAEdge(fileLocation, source, target, guard, variablesToReset, action);
+    Optional<TaVariableCondition> guard =
+        specification.guard.transform(this::createVariableCondition);
+    Optional<String> action = specification.syncMark;
+    TCFANode source = (TCFANode) nodesByName.get(specification.source);
+    TCFANode target = (TCFANode) nodesByName.get(specification.target);
+
+    var edge =
+        new TCFAEdge(FileLocation.DUMMY, source, target, guard, instantiatedResetClocks, action);
     source.addLeavingEdge(edge);
     target.addEnteringEdge(edge);
-
-    return edge;
   }
 
-  @Override
-  public Object visitGuardDefinition(GuardDefinitionContext pCtx) {
-    return visit(pCtx.variableCondition());
+  private TaVariableCondition createVariableCondition(BooleanCondition specification) {
+    List<CExpression> expressions =
+        specification.expressions.stream()
+            .map(this::createVariableExpression)
+            .collect(Collectors.toList());
+    return new TaVariableCondition(FileLocation.DUMMY, expressions);
   }
 
-  @Override
-  public Object visitGotoDefinition(GotoDefinitionContext pCtx) {
+  private CExpression createVariableExpression(VariableExpression varExpr) {
+    var instantiatedVariable = getInstantiatedName(varExpr.variableName);
     verify(
-        currentParsedNodesByName.containsKey(pCtx.state.getText()),
-        "Target state '%s' does not exist",
-        pCtx.state.getText());
-    return currentParsedNodesByName.get(pCtx.state.getText());
+        moduleDeclaration.getClocks().contains(instantiatedVariable),
+        "Undeclared variable "
+            + instantiatedVariable
+            + " (uninstantiated name: "
+            + varExpr.variableName
+            + ") in instantiated module "
+            + moduleDeclaration.getName());
+
+    var variableIdExpression = createIdExpression(instantiatedVariable);
+    var operator = convertOperatorType(varExpr.operator);
+
+    Number constant;
+    if (varExpr instanceof NumericVariableExpression) {
+      constant = ((NumericVariableExpression) varExpr).constant;
+    } else {
+      var constantVariableName = ((ParametricVariableExpression) varExpr).constant;
+      var instantiatedConstantVariableName = getInstantiatedName(constantVariableName);
+      verify(
+          constantInitializations.containsKey(instantiatedConstantVariableName),
+          "Uninitialized constant variable"
+              + instantiatedConstantVariableName
+              + " (uninstantiated name: "
+              + constantVariableName
+              + ") in instantiated module "
+              + moduleDeclaration.getName());
+
+      constant = constantInitializations.get(instantiatedConstantVariableName);
+    }
+
+    var constantExpression = createFloatLiteralExpression(constant);
+
+    return createBinaryExpression(variableIdExpression, constantExpression, operator);
+  }
+
+  private CIdExpression createIdExpression(String name) {
+    if (!currentIdExpressionsByVariableName.containsKey(name)) {
+      var declaration =
+          new CVariableDeclaration(
+              FileLocation.DUMMY,
+              false,
+              CStorageClass.AUTO,
+              createFloatType(),
+              name,
+              name,
+              name,
+              null);
+      var idExpression =
+          new CIdExpression(FileLocation.DUMMY, createFloatType(), name, declaration);
+      currentIdExpressionsByVariableName.put(name, idExpression);
+    }
+
+    return currentIdExpressionsByVariableName.get(name);
+  }
+
+  private static CFloatLiteralExpression createFloatLiteralExpression(Number pValue) {
+    var value = new BigDecimal(pValue.toString());
+    return new CFloatLiteralExpression(FileLocation.DUMMY, createFloatType(), value);
   }
 
   private static CBinaryExpression createBinaryExpression(
-      FileLocation pFileLocation, AExpression op1, AExpression op2, BinaryOperator operator) {
+      AExpression op1, AExpression op2, BinaryOperator operator) {
     return new CBinaryExpression(
-        pFileLocation,
+        FileLocation.DUMMY,
         CNumericTypes.BOOL,
         CNumericTypes.BOOL,
         (CExpression) op1,
@@ -300,42 +283,114 @@ class TCFABuilder extends CTAGrammarParserBaseVisitor<Object> {
     return CNumericTypes.LONG_DOUBLE;
   }
 
-  private CIdExpression createIdExpression(FileLocation pFileLocation, String name) {
-    verify(
-        currentClocksOfModule.contains(name),
-        "Clock variable '%s' appears in expression but is not declared in the module.",
-        name);
-    if (!currentIdExpressionsByVariableName.containsKey(name)) {
-      var declaration =
-          new CVariableDeclaration(
-              pFileLocation, false, CStorageClass.AUTO, createFloatType(), name, name, name, null);
-      var idExpression = new CIdExpression(pFileLocation, createFloatType(), name, declaration);
-      currentIdExpressionsByVariableName.put(name, idExpression);
-    }
-
-    return currentIdExpressionsByVariableName.get(name);
-  }
-
-  private static CFloatLiteralExpression createFloatLiteralExpression(
-      FileLocation pFileLocation, String rawValue) {
-    var value = new BigDecimal(rawValue);
-    return new CFloatLiteralExpression(pFileLocation, createFloatType(), value);
-  }
-
-  private static BinaryOperator getOperatorFromString(String op) {
+  private static BinaryOperator convertOperatorType(BooleanCondition.Operator op) {
     switch (op) {
-      case "<":
+      case LESS:
         return BinaryOperator.LESS_THAN;
-      case "<=":
+      case LESS_EQUAL:
         return BinaryOperator.LESS_EQUAL;
-      case ">":
+      case GREATER:
         return BinaryOperator.GREATER_THAN;
-      case ">=":
+      case GREATER_EQUAL:
         return BinaryOperator.GREATER_EQUAL;
-      case "==":
+      case EQUAL:
         return BinaryOperator.EQUALS;
       default:
-        return BinaryOperator.EQUALS;
+        throw new VerifyException("Unknown binary operator " + op);
     }
+  }
+
+  private String getInstantiatedName(String name) {
+    return instantiation.variableMappings.getOrDefault(name, name);
+  }
+
+  private void addDummyNodes() {
+    // unique entry and exit nodes are required for CFAs:
+    var exitNode = new TCFAExitNode(moduleDeclaration);
+    var entryNode = new TCFAEntryNode(FileLocation.DUMMY, exitNode, moduleDeclaration);
+    exitNode.setEntryNode(entryNode);
+
+    var edge = new BlankEdge("", FileLocation.DUMMY, entryNode, exitNode, "dummy edge");
+    entryNode.addLeavingEdge(edge);
+    exitNode.addEnteringEdge(edge);
+
+    // add edges from entry node to all initial states
+    for (var node : nodesByName.values()) {
+      var tcfaNode = (TCFANode) node;
+      if (tcfaNode.isInitialState()) {
+        edge = new BlankEdge("", FileLocation.DUMMY, entryNode, node, "initial dummy edge");
+        entryNode.addLeavingEdge(edge);
+        node.addEnteringEdge(edge);
+      }
+    }
+
+    nodesByName.put("__#entry", entryNode);
+    nodesByName.put("__#exit", exitNode);
+  }
+
+  private void addToResult() {
+    // once the automaton of this module is created, populate nodesByAutomaton and
+    // entryNodesByAutomaton
+    var automatonName = moduleDeclaration.getName();
+    nodesByAutomaton.putAll(automatonName, nodesByName.values());
+
+    var entryNodes =
+        nodesByName.values().stream()
+            .filter(node -> node instanceof TCFAEntryNode)
+            .collect(Collectors.toSet());
+    verify(
+        entryNodes.size() == 1,
+        "Expected automaton to have 1 entry node but found "
+            + entryNodes.size()
+            + " in instantiated module "
+            + automatonName);
+    entryNodesByAutomaton.put(
+        moduleDeclaration.getName(), (FunctionEntryNode) entryNodes.iterator().next());
+  }
+
+  private void createSubInstantiations() {
+    for (var subInstantiation : moduleSpec.instantiations) {
+      var mergedInstantiation = mergeInstantiations(instantiation, subInstantiation);
+      var updatedSystemSpecification =
+          new SystemSpecification.Builder()
+              .modules(systemSpec.modules)
+              .instantiation(mergedInstantiation)
+              .build();
+      var constantInits = new HashMap<>(constantInitializations);
+      var tcfaBuilder = new TCFABuilder();
+
+      tcfaBuilder.instantiateSpecification(updatedSystemSpecification, constantInits);
+
+      var entryNodeResults = tcfaBuilder.getEntryNodesByAutomatoResult();
+      var nodeResults = tcfaBuilder.getNodesByAutomatonResult();
+
+      verify(
+          !entryNodeResults.containsKey(moduleDeclaration.getName())
+              && !nodeResults.containsKey(moduleDeclaration.getName()),
+          "Cannot instantiate more than one module with name " + moduleDeclaration.getName());
+
+      entryNodesByAutomaton.putAll(entryNodeResults);
+      nodesByAutomaton.putAll(nodeResults);
+    }
+  }
+
+  private static ModuleInstantiation mergeInstantiations(
+      ModuleInstantiation parentInstantiation, ModuleInstantiation subInstantiation) {
+    // apply overwriting instantiations
+    var instantiationBuilder =
+        new ModuleInstantiation.Builder()
+            .specificationName(subInstantiation.specificationName)
+            .instanceName(subInstantiation.instanceName);
+
+    for (var variableMapping : subInstantiation.variableMappings.entrySet()) {
+      var originalVariable = variableMapping.getKey();
+      var instantiatedName =
+          parentInstantiation.variableMappings.getOrDefault(
+              variableMapping.getValue(), variableMapping.getValue());
+
+      instantiationBuilder.variableMapping(originalVariable, instantiatedName);
+    }
+
+    return instantiationBuilder.build();
   }
 }
