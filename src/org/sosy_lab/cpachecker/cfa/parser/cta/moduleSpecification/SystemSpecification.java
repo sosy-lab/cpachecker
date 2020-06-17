@@ -41,15 +41,38 @@ public class SystemSpecification {
     }
 
     public SystemSpecification build() {
+      checkConsitency();
+      return new SystemSpecification(modules, instantiation);
+    }
+
+    private void checkConsitency() {
       checkNotNull(instantiation);
-      var specificationNames = modules.stream().map(moduleSpec -> moduleSpec.moduleName);
-      var instantiations = modules.stream().flatMap(module -> module.instantiations.stream());
-      var instantiatedModules = instantiations.map(inst -> inst.specificationName);
-      var instanceNames = instantiations.map(inst -> inst.instanceName);
+      var rootModules =
+          modules.stream()
+              .filter(module -> module.isRoot)
+              .map(module -> module.moduleName)
+              .collect(Collectors.toSet());
+      checkState(
+          rootModules.size() == 1,
+          "Invalid number of root modules. Expected 1 but got " + rootModules.size());
+
+      var instantiatedModules =
+          modules.stream()
+              .flatMap(module -> module.instantiations.stream())
+              .map(inst -> inst.specificationName)
+              .collect(Collectors.toSet());
+      instantiatedModules.add(rootModules.iterator().next());
+      var instanceNames =
+          modules.stream()
+              .flatMap(module -> module.instantiations.stream())
+              .map(inst -> inst.instanceName);
+      var moduleNames =
+          modules.stream().map(moduleSpec -> moduleSpec.moduleName).collect(Collectors.toSet());
 
       var specNameOccurences =
-          specificationNames.collect(
-              Collectors.groupingBy(moduleSpec -> moduleSpec, Collectors.counting()));
+          modules.stream()
+              .map(moduleSpec -> moduleSpec.moduleName)
+              .collect(Collectors.groupingBy(moduleSpec -> moduleSpec, Collectors.counting()));
       var duplicateSpecNames =
           specNameOccurences.entrySet().stream()
               .filter(entry -> entry.getValue() > 1)
@@ -60,20 +83,14 @@ public class SystemSpecification {
           "Module specification names must be uniques. Found duplicate names: "
               + String.join(", ", duplicateSpecNames));
 
-      var unknownInstantiations =
-          Sets.difference(
-              instantiatedModules.collect(Collectors.toSet()),
-              specificationNames.collect(Collectors.toSet()));
+      var unknownInstantiations = Sets.difference(instantiatedModules, moduleNames);
       checkState(
           unknownInstantiations.isEmpty(),
           "Instantiation of module(s) "
               + String.join(", ", unknownInstantiations)
               + " invalid. No matching specification found.");
 
-      var uninstantiatedSpecifications =
-          Sets.difference(
-              specificationNames.collect(Collectors.toSet()),
-              instantiatedModules.collect(Collectors.toSet()));
+      var uninstantiatedSpecifications = Sets.difference(moduleNames, instantiatedModules);
       checkState(
           uninstantiatedSpecifications.isEmpty(),
           "The following modules are specified but never instantiated: "
@@ -91,8 +108,6 @@ public class SystemSpecification {
           duplicateInstanceNames.isEmpty(),
           "Module instance names must be uniques. Found duplicate names: "
               + String.join(", ", duplicateInstanceNames));
-
-      return new SystemSpecification(modules, instantiation);
     }
   }
 }

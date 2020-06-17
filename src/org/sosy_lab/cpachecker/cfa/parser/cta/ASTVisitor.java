@@ -12,6 +12,7 @@ import static com.google.common.base.Verify.verify;
 
 import com.google.common.base.Optional;
 import com.google.common.base.VerifyException;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;
@@ -75,14 +76,23 @@ class ASTVisitor extends CTAGrammarParserBaseVisitor<SystemSpecification> {
 
     @Override
     public ModuleSpecification visitModuleSpecification(ModuleSpecificationContext pCtx) {
-      var initialCondition = pCtx.initialCondition.accept(new InitialConditionVisitor());
+      var moduleName = pCtx.name.getText();
+      var isRoot = pCtx.ROOT() != null;
+      var initialCondition =
+          Optional.fromNullable(pCtx.initialCondition)
+              .transform(ic -> ic.accept(new InitialConditionVisitor()));
       var automatonSpecification =
           Optional.fromNullable(pCtx.automaton)
               .transform(
-                  automatonSpec ->
-                      automatonSpec.accept(new AutomatonSpecificationVisitor(initialCondition)));
-      var isRoot = pCtx.ROOT() != null;
-      var moduleName = pCtx.name.getText();
+                  automatonSpec -> {
+                    verify(
+                        initialCondition.isPresent(),
+                        "Module "
+                            + moduleName
+                            + " contains an automaton but no initial state definition.");
+                    return automatonSpec.accept(
+                        new AutomatonSpecificationVisitor(initialCondition.get()));
+                  });
       var variables =
           pCtx.variables.stream()
               .flatMap(
@@ -229,7 +239,7 @@ class ASTVisitor extends CTAGrammarParserBaseVisitor<SystemSpecification> {
     public StateSpecification visitStateDefinition(StateDefinitionContext pCtx) {
       var invariant =
           Optional.fromNullable(pCtx.invariant)
-              .transform(inv -> inv.accept(new BooleanConditionVisitor()));
+              .transform(inv -> inv.condition.accept(new BooleanConditionVisitor()));
       return new StateSpecification.Builder()
           .name(pCtx.name.getText())
           .invariant(invariant)
@@ -263,12 +273,14 @@ class ASTVisitor extends CTAGrammarParserBaseVisitor<SystemSpecification> {
       var guard =
           Optional.fromNullable(pCtx.guard).transform(g -> g.accept(new BooleanConditionVisitor()));
       var syncMark = Optional.fromNullable(pCtx.syncMark).transform(Token::getText);
-      var resetClocks = pCtx.resetDefinition().accept(new ResetClocksVisitor());
+      var resetClocks =
+          Optional.fromNullable(pCtx.resetDefinition())
+              .transform(r -> r.accept(new ResetClocksVisitor()));
       var targetState = pCtx.gotoDefinition().state.getText();
 
       return new TransitionSpecification.Builder()
           .guard(guard)
-          .resetClocks(resetClocks)
+          .resetClocks(resetClocks.or(ImmutableSet.of()))
           .source(sourceState)
           .syncMark(syncMark)
           .target(targetState)
@@ -282,7 +294,7 @@ class ASTVisitor extends CTAGrammarParserBaseVisitor<SystemSpecification> {
       if (pCtx == null){ 
         return new HashSet<>();
       }
-      return pCtx.vars.stream().map(Token::toString).collect(Collectors.toSet());
+      return pCtx.vars.stream().map(Token::getText).collect(Collectors.toSet());
     }
   }
 

@@ -92,7 +92,7 @@ public enum TimedAutomatonCandidateInvariant implements CandidateInvariant {
     // add constraints for number of action occurences
     for (var action : allActionsOfAutomaton) {
       var localOccurenceCountVarName =
-          TatoFormulaConverter.getActionOccurenceVariableName(action, automatonName);
+          TatoFormulaConverter.getActionOccurenceVariableName(automatonName, action);
       var localOccurenceCountVar =
           pFMGR.makeVariable(
               TatoFormulaConverter.getIntegerVariableType(),

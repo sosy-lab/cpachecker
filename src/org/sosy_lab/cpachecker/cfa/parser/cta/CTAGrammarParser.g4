@@ -34,7 +34,7 @@ variableVisibilityQualifier
 	;
 
 variableDeclaration
-	: name=IDENTIFIER (ASSIGN initialization=NUMBER) COLON type=variableType SEMICOLON
+	: name=IDENTIFIER (EQUAL initialization=NUMBER)? COLON type=variableType SEMICOLON
 	;
 
 variableType
@@ -88,7 +88,7 @@ stateDefinition
 	;
 
 invariantDefinition
-	: INV variableCondition SEMICOLON
+	: INV condition=variableCondition SEMICOLON
 	; 
 	
 derivationDefinition

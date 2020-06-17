@@ -18,20 +18,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class AutomatonSpecification {
-  public String automatonName;
   public Set<StateSpecification> stateSpecifications;
   public Set<TransitionSpecification> transitions;
-  public Set<String> initialStates;
-
+  
   private AutomatonSpecification(
-      String pAutomatonName,
       Set<StateSpecification> pStateSpecifications,
-      Set<TransitionSpecification> pTransitions,
-      Set<String> pInitialStates) {
-    automatonName = pAutomatonName;
+      Set<TransitionSpecification> pTransitions) {
     stateSpecifications = pStateSpecifications;
     transitions = pTransitions;
-    initialStates = pInitialStates;
   }
 
   public static class Builder {
@@ -98,8 +92,7 @@ public class AutomatonSpecification {
           !stateSpecifications.isEmpty(),
           "Automaton " + automatonName + " needs at least one state");
 
-      return new AutomatonSpecification(
-          automatonName, stateSpecifications, transitions, initialStates);
+      return new AutomatonSpecification(stateSpecifications, transitions);
     }
   }
 }

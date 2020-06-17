@@ -85,7 +85,7 @@ STATE
 	;
 
 EQUAL
-	: '=='
+	: '='
 	;
 
 LESS
@@ -102,10 +102,6 @@ GREATER
 
 GREATEREQUAL
 	: '>='
-	;
-
-ASSIGN
-	: '='
 	;
 
 AUTOMATON

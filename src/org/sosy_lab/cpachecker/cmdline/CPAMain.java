@@ -435,6 +435,9 @@ public class CPAMain {
       Language language;
       String suffix = program.substring(program.lastIndexOf(".") + 1);
       switch (suffix) {
+        case "cta":
+          language = Language.CTA;
+          break;
         case "ll":
         case "bc":
           language = Language.LLVM;
