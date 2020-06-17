@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core;
+package org.sosy_lab.cpachecker.core.specification;
 
 import static java.util.stream.Collectors.joining;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
@@ -30,12 +30,11 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.core.CPABuilder;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageType;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
-import org.sosy_lab.cpachecker.util.Property;
-import org.sosy_lab.cpachecker.util.Property.CommonCoverageType;
-import org.sosy_lab.cpachecker.util.SpecificationProperty;
 import org.sosy_lab.cpachecker.util.ltl.Ltl2BuechiConverter;
 import org.sosy_lab.cpachecker.util.ltl.formulas.LabelledFormula;
 
@@ -189,10 +188,8 @@ public final class Specification {
     pathToSpecificationAutomata = pSpecification;
   }
 
-  /**
-   * This is not public by intention! Only CPABuilder should need to access this method.
-   */
-  ImmutableList<Automaton> getSpecificationAutomata() {
+  /** This method should only be used by {@link CPABuilder} when creating the set of CPAs. */
+  public ImmutableList<Automaton> getSpecificationAutomata() {
     return ImmutableList.copyOf(pathToSpecificationAutomata.values());
   }
 

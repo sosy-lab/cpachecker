@@ -6,11 +6,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util;
+package org.sosy_lab.cpachecker.core.specification;
 
 import java.util.Objects;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.util.Property.CommonCoverageType;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageType;
 
 public class SpecificationProperty {
 
