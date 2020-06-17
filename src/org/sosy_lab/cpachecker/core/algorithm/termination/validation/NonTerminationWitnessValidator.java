@@ -26,9 +26,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.logging.Level;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -63,17 +61,15 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
+import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -110,6 +106,9 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 @Options(prefix = "witness.validation.termination")
 public class NonTerminationWitnessValidator implements Algorithm, StatisticsProvider {
+
+  private static final DummyTargetState DUMMY_TARGET_STATE =
+      DummyTargetState.withSingleProperty("termination");
 
   private static final String REACHABILITY_SPEC_NAME = "ReachabilityObserver";
   private static final String STEM_SPEC_NAME = "StemEndController";
@@ -295,8 +294,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
               logger.log(Level.INFO, "Non-termination witness confirmed.");
               if (reportSuccessfulCheckAsViolation) {
                 pReachedSet.add(
-                    new ARGState(TerminationViolatingDummyState.INSTANCE, null),
-                    SingletonPrecision.getInstance());
+                    new ARGState(DUMMY_TARGET_STATE, null), SingletonPrecision.getInstance());
               }
               return AlgorithmStatus.SOUND_AND_PRECISE; // TODO correct choice here?
             }
@@ -1117,24 +1115,6 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
     @Override
     public @Nullable String getName() {
       return "Nontermination Witness Validation";
-    }
-  }
-
-  private static class TerminationViolatingDummyState implements AbstractState, Targetable {
-
-    private TerminationViolatingDummyState() {}
-
-    public static final TerminationViolatingDummyState INSTANCE =
-        new TerminationViolatingDummyState();
-
-    @Override
-    public boolean isTarget() {
-      return true;
-    }
-
-    @Override
-    public @NonNull Set<Property> getViolatedProperties() throws IllegalStateException {
-      return NamedProperty.singleton("termination");
     }
   }
 }

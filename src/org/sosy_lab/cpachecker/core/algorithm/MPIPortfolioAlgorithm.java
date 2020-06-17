@@ -16,7 +16,6 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.MoreCollectors;
 import java.io.File;
@@ -34,17 +33,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.ProcessExecutor;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -54,13 +50,10 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
-import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
+import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -376,7 +369,9 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
               Iterables.getOnlyElement(results.entrySet())
                   .getValue()
                   .getViolatedPropertyDescription();
-          pReachedSet.add(new DummyTargetState(violatedProperty), SingletonPrecision.getInstance());
+          pReachedSet.add(
+              DummyTargetState.withSingleProperty(violatedProperty),
+              SingletonPrecision.getInstance());
         }
 
         logger.log(Level.WARNING, "Subsequently the log of the successful subanalysis is printed");
@@ -399,25 +394,5 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     // them
     return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
 
-  }
-
-  private static class DummyTargetState implements AbstractState, Targetable {
-
-    private ImmutableSet<String> violatedProperties;
-
-    private DummyTargetState(String... pViolatedProperties) {
-      violatedProperties = ImmutableSet.copyOf(pViolatedProperties);
-    }
-
-    @Override
-    public boolean isTarget() {
-      return true;
-    }
-
-    @Override
-    public @NonNull Set<Property> getViolatedProperties() throws IllegalStateException {
-      return Collections3
-          .transformedImmutableSetCopy(violatedProperties, x -> NamedProperty.create(x));
-    }
   }
 }
