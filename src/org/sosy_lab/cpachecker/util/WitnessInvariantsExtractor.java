@@ -15,7 +15,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -119,7 +118,7 @@ public class WitnessInvariantsExtractor {
     this.logger = pLogger;
     this.cfa = pCFA;
     this.shutdownNotifier = pShutdownNotifier;
-    this.automatonAsSpec = buildSpecification(pAutomaton);
+    this.automatonAsSpec = Specification.fromAutomata(ImmutableList.of(pAutomaton));
     analyzeWitness();
   }
 
@@ -150,12 +149,6 @@ public class WitnessInvariantsExtractor {
         config,
         logger,
         shutdownNotifier);
-  }
-
-  private Specification buildSpecification(Automaton pAutomaton) {
-    List<Automaton> automata = new ArrayList<>(1);
-    automata.add(pAutomaton);
-    return Specification.fromAutomata(automata);
   }
 
   private void analyzeWitness() throws InvalidConfigurationException, CPAException {

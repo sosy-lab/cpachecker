@@ -11,15 +11,15 @@ package org.sosy_lab.cpachecker.core;
 import static com.google.common.base.Verify.verifyNotNull;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Classes;
+import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -664,14 +664,11 @@ public class CoreComponentsFactory {
                 cfa.getMainFunction().getFunctionName()),
         "Non-termination property used.");
 
-    Collection<Path> specFiles;
-    if (witness.isPresent()) {
-      specFiles = new ArrayList<>(2);
-      specFiles.add(TERMINATION_SPEC_FILE);
-      specFiles.add(witness.orElseThrow());
-    } else {
-      specFiles = Collections.singletonList(TERMINATION_SPEC_FILE);
-    }
+    ImmutableList<Path> specFiles =
+        ImmutableList.<Path>builder()
+            .add(TERMINATION_SPEC_FILE)
+            .addAll(Optionals.asSet(witness))
+            .build();
 
     return Specification.fromFiles(
         Collections.singleton(
