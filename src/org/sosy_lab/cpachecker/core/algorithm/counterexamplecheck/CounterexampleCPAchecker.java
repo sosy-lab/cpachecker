@@ -22,7 +22,6 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -199,13 +198,8 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
       ResourceLimitChecker.fromConfiguration(lConfig, lLogger, lShutdownManager).start();
 
       Specification lSpecification =
-          Specification.fromFiles(
-              specification.getProperties(),
-              Iterables.concat(specification.getSpecFiles(), Collections.singleton(automatonFile)),
-              cfa,
-              lConfig,
-              lLogger,
-              shutdownNotifier);
+          specification.withAdditionalSpecificationFile(
+              ImmutableList.of(automatonFile), cfa, lConfig, lLogger, shutdownNotifier);
       CoreComponentsFactory factory =
           new CoreComponentsFactory(
               lConfig, lLogger, lShutdownManager.getNotifier(), new AggregatedReachedSets());

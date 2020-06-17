@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.slicing;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -59,10 +58,9 @@ public class ReducerExtractor extends AllTargetsExtractor {
       throws InterruptedException {
     Specification compositeSpec;
     try {
-      Specification conditionSpec =
-          Specification.fromFiles(
-              ImmutableSet.of(), conditionFiles, pCfa, config, logger, shutdownNotifier);
-      compositeSpec = Specification.combine(conditionSpec, pError);
+      compositeSpec =
+          pError.withAdditionalSpecificationFile(
+              conditionFiles, pCfa, config, logger, shutdownNotifier);
     } catch (InvalidConfigurationException e) {
       logger.logException(
           Level.WARNING,

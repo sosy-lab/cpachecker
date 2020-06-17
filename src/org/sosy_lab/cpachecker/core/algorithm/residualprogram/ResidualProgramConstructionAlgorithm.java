@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.residualprogram;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -21,9 +22,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -273,12 +272,9 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       CoreComponentsFactory coreComponents =
           new CoreComponentsFactory(config, logger, shutdown, new AggregatedReachedSets());
 
-      Specification constrSpec = spec;
-      List<Path> specList = new ArrayList<>(constrSpec.getSpecFiles());
-      specList.add(conditionSpec);
-      specList.add(condition);
-      constrSpec =
-          Specification.fromFiles(spec.getProperties(), specList, cfa, config, logger, shutdown);
+      final Specification constrSpec =
+          spec.withAdditionalSpecificationFile(
+              ImmutableList.of(conditionSpec, condition), cfa, config, logger, shutdown);
 
       ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, constrSpec);
 

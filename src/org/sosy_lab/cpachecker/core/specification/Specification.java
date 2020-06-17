@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -195,15 +196,27 @@ public final class Specification {
     return automata;
   }
 
-  public static Specification combine(final Specification pSpec1, final Specification pSpec2) {
+  /**
+   * Return a new specification instance that has everything that the current instance has, and
+   * additionally some new specification files.
+   */
+  public Specification withAdditionalSpecificationFile(
+      Collection<Path> pSpecificationFiles,
+      CFA cfa,
+      Configuration config,
+      LogManager logger,
+      ShutdownNotifier pShutdownNotifier)
+      throws InvalidConfigurationException, InterruptedException {
+
+    ImmutableListMultimap<Path, Automaton> newSpecificationAutomata =
+        parseSpecificationFiles(
+            pSpecificationFiles, cfa, config, logger, pShutdownNotifier, properties);
+
     return new Specification(
-        ImmutableSet.<SpecificationProperty>builder()
-            .addAll(pSpec1.properties)
-            .addAll(pSpec2.properties)
-            .build(),
+        properties,
         ImmutableListMultimap.<Path, Automaton>builder()
-            .putAll(pSpec1.pathToSpecificationAutomata)
-            .putAll(pSpec2.pathToSpecificationAutomata)
+            .putAll(pathToSpecificationAutomata)
+            .putAll(newSpecificationAutomata)
             .build());
   }
 
