@@ -8,23 +8,13 @@
 
 package org.sosy_lab.cpachecker.util.error;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Set;
-
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 
-import com.google.common.collect.ImmutableSet;
-
-
 public class DummyErrorState extends ARGState {
-
-  private static final Property dummyProperty = new Property() {
-    @Override
-    public String toString() {
-      return "DummyProperty";
-    }
-  };
 
   private static final long serialVersionUID = 1338393013733003150L;
 
@@ -38,8 +28,8 @@ public class DummyErrorState extends ARGState {
   }
 
   @Override
-  public Set<Property> getViolatedProperties() throws IllegalStateException {
-    return ImmutableSet.of(dummyProperty);
+  public Set<Property> getViolatedProperties() {
+    return ImmutableSet.of();
   }
 
   @Override
