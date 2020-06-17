@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -107,56 +106,87 @@ public class TatoFormulaConverter extends CtoFormulaConverter {
       final Constraints constraints,
       final ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
-    var timeVariable = getCurrentTimeVariableFormula(function, ssa);
-    var zero = fmgr.makeNumber(fmgr.getFormulaType(timeVariable), 0);
-    var initialTimeGreaterZero = fmgr.makeGreaterOrEqual(timeVariable, zero, true);
-
     var declaration = ((TCFANode) initialEdge.getSuccessor()).getAutomatonDeclaration();
+
+    var timeVariable = getCurrentTimeVariableFormula(function, ssa);
+    var decimalZero = fmgr.makeNumber(getDecimalVariableType(), 0);
+    var initialTimeGreaterZero = fmgr.makeGreaterOrEqual(timeVariable, decimalZero, true);
+
     var allClocksZero = bfmgr.makeTrue();
     for (var clockVariable : declaration.getClocks()) {
-      var variable = makeFreshVariable(clockVariable, getClockVariableCType(), ssa);
-      var variableIsZero = fmgr.makeEqual(variable, zero);
+      var variable = makeFreshVariable(clockVariable, getDecimalVariableType(), ssa);
+      var variableIsZero = fmgr.makeEqual(variable, decimalZero);
       allClocksZero = bfmgr.and(allClocksZero, variableIsZero);
+    }
+
+    var allActionCountsZero = bfmgr.makeTrue();
+    var integerZero = fmgr.makeNumber(getIntegerVariableType(), 0);
+    for (var action : declaration.getActions()) {
+      var occurenceVarName = getActionOccurenceVariableName(function, action);
+      var occurenceVariable = makeVariable(occurenceVarName, getIntegerVariableType(), ssa);
+      allActionCountsZero =
+          bfmgr.and(fmgr.makeEqual(occurenceVariable, integerZero), allActionCountsZero);
     }
 
     var firstInvariantSatisfied =
         makeSuccessorInvariantFormula(
             initialEdge, function, ssa, pts, constraints, errorConditions);
 
-    var initFormula = bfmgr.and(initialTimeGreaterZero, firstInvariantSatisfied, allClocksZero);
+    var initFormula =
+        bfmgr.and(
+            initialTimeGreaterZero, firstInvariantSatisfied, allClocksZero, allActionCountsZero);
 
     return initFormula;
   }
 
-  /**
-   * Creates a new free time variable that represents an updated version of the old time variable
-   */
+  /** Creates t = t' + d /\ d >= 0, where d is a fresh unique variable. */
   private BooleanFormula makeTimeUpdateFormula(final String function, final SSAMapBuilder ssa) {
-    var oldTimeVar = getCurrentTimeVariableFormula(function, ssa);
-    var newTimeVar =
-        makeFreshVariable(getTimeVariableNameForAutomaton(function), getClockVariableCType(), ssa);
+    var oldTimeVariable = getCurrentTimeVariableFormula(function, ssa);
+    var newTimeVariable =
+        makeFreshVariable(getTimeVariableNameForAutomaton(function), getDecimalVariableType(), ssa);
+    var deltaVariable =
+        makeConstant(generateNewDeltaVariableName(function), getDecimalVariableType());
+    var zero = fmgr.makeNumber(getDecimalVariableType(), 0);
 
-    return fmgr.makeGreaterOrEqual(newTimeVar, oldTimeVar, true);
+    var deltaVarGreaterZero = fmgr.makeGreaterOrEqual(deltaVariable, zero, true);
+    var timeStepFormula = fmgr.makePlus(oldTimeVariable, deltaVariable);
+    var newTimeFormula = fmgr.makeEqual(newTimeVariable, timeStepFormula);
+
+    return fmgr.makeAnd(newTimeFormula, deltaVarGreaterZero);
   }
 
   public static String getTimeVariableNameForAutomaton(String automatonName) {
     return automatonName + "#time";
   }
 
-  public static FormulaType<?> getClockVariableType() {
-    return FormulaType.getDoublePrecisionFloatingPointType();
+  public static String generateNewDeltaVariableName(String automatonName) {
+    return automatonName + "#delta" + System.currentTimeMillis();
   }
 
-  public static CType getClockVariableCType() {
-    return CNumericTypes.LONG_DOUBLE;
+  public static String getActionOccurenceVariableName(String automatonName, String actionName) {
+    return automatonName + "#action_occurence#" + actionName;
+  }
+
+  public static String getActionVariableName(String automatonName, String actionName) {
+    return automatonName + "#action#" + actionName;
+  }
+
+  public static FormulaType<?> getDecimalVariableType() {
+    return FormulaType.getFloatingPointType(15, 112);
+  }
+
+  public static FormulaType<?> getIntegerVariableType() {
+    return FormulaType.getBitvectorTypeWithSize(128);
   }
 
   private Formula getCurrentTimeVariableFormula(final String function, final SSAMapBuilder ssa) {
-    return makeVariable(getTimeVariableNameForAutomaton(function), getClockVariableCType(), ssa);
+    return makeVariable(getTimeVariableNameForAutomaton(function), getDecimalVariableType(), ssa);
   }
 
   /**
    * Create a formula that expresses that the invariant of the successor of the edge is satisfied
+   * This method should be called after the reset formulas were created, such that the SSA indices
+   * correspond to variables after the transition.
    */
   private BooleanFormula makeSuccessorInvariantFormula(
       final CFAEdge edge,
@@ -207,8 +237,7 @@ public class TatoFormulaConverter extends CtoFormulaConverter {
     // clock reset
     var resetFormula = bfmgr.makeTrue();
     for (var variableToReset : edge.getVariablesToReset()) {
-      var variableFormula =
-          makeFreshVariable(variableToReset.getName(), variableToReset.getExpressionType(), ssa);
+      var variableFormula = makeFreshVariable(variableToReset, getDecimalVariableType(), ssa);
       var variableResetFormula =
           fmgr.makeEqual(variableFormula, getCurrentTimeVariableFormula(function, ssa));
       resetFormula = bfmgr.and(resetFormula, variableResetFormula);
@@ -222,7 +251,17 @@ public class TatoFormulaConverter extends CtoFormulaConverter {
 
     // sync formula
     if (edge.getAction().isPresent()) {
-      var actionVariable = makeFreshVariable(edge.getAction().get(), getClockVariableCType(), ssa);
+      var action = edge.getAction().get();
+      var one = fmgr.makeNumber(getIntegerVariableType(), 1);
+      var occurenceVarName = getActionOccurenceVariableName(function, action);
+      var oldOccurenceVariable = makeVariable(occurenceVarName, getIntegerVariableType(), ssa);
+      var newOccurenceVariable = makeFreshVariable(occurenceVarName, getIntegerVariableType(), ssa);
+      var occurenceUpdate =
+          fmgr.makeEqual(newOccurenceVariable, fmgr.makePlus(oldOccurenceVariable, one));
+      transitionFormula = bfmgr.and(occurenceUpdate, transitionFormula);
+
+      var actionVarName = getActionVariableName(function, action);
+      var actionVariable = makeFreshVariable(actionVarName, getDecimalVariableType(), ssa);
       var syncFormula =
           fmgr.makeEqual(actionVariable, getCurrentTimeVariableFormula(function, ssa));
       transitionFormula = bfmgr.and(syncFormula, transitionFormula);
@@ -236,5 +275,42 @@ public class TatoFormulaConverter extends CtoFormulaConverter {
     transitionFormula = bfmgr.and(delayTransitionFormula, transitionFormula);
 
     return transitionFormula;
+  }
+
+  /**
+   * Overwrites the method of CtoFormulaConverter but uses FormulaType as argument (CTypes are not
+   * needed/known). Since the SSA map requires CTypes, this method simply passes any CType as
+   * arugments to the respective methods.
+   */
+  protected Formula makeVariable(String name, FormulaType<?> type, SSAMapBuilder ssa) {
+    int useIndex = getIndex(name, CNumericTypes.INT, ssa);
+    return fmgr.makeVariable(type, name, useIndex);
+  }
+
+  /**
+   * Overwrites the method of CtoFormulaConverter but uses FormulaType as argument (CTypes are not
+   * needed/known). Since the SSA map requires CTypes, this method simply passes any CType as
+   * arugments to the respective methods.
+   */
+  protected Formula makeFreshVariable(String name, FormulaType<?> type, SSAMapBuilder ssa) {
+    int useIndex;
+
+    if (direction == AnalysisDirection.BACKWARD) {
+      useIndex = getIndex(name, CNumericTypes.INT, ssa);
+    } else {
+      useIndex = makeFreshIndex(name, CNumericTypes.INT, ssa);
+    }
+
+    Formula result = fmgr.makeVariable(type, name, useIndex);
+
+    if (direction == AnalysisDirection.BACKWARD) {
+      makeFreshIndex(name, CNumericTypes.INT, ssa);
+    }
+
+    return result;
+  }
+
+  protected Formula makeConstant(String name, FormulaType<?> type) {
+    return fmgr.makeVariableWithoutSSAIndex(type, name);
   }
 }

@@ -11,8 +11,10 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Streams;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -68,7 +70,10 @@ public enum TimedAutomatonCandidateInvariant implements CandidateInvariant {
       formulaByAutomata.put(automatonName, pFMGR.makeOr(formulaSynced, automatonFormula));
     }
 
-    return pFMGR.makeNot(pFMGR.getBooleanFormulaManager().and(formulaByAutomata.values()));
+    var pathEncoding = pFMGR.getBooleanFormulaManager().and(formulaByAutomata.values());
+    var globalSyncConstraint = getGlobalSyncConstraint(targetStates, pFMGR);
+
+    return pFMGR.makeNot(pFMGR.getBooleanFormulaManager().and(pathEncoding, globalSyncConstraint));
   }
 
   /**
@@ -86,13 +91,18 @@ public enum TimedAutomatonCandidateInvariant implements CandidateInvariant {
       SSAMap ssa) {
     // add constraints for number of action occurences
     for (var action : allActionsOfAutomaton) {
-      var actionOccurenceCountVar =
+      var localOccurenceCountVarName =
+          TatoFormulaConverter.getActionOccurenceVariableName(action, automatonName);
+      var localOccurenceCountVar =
+          pFMGR.makeVariable(
+              TatoFormulaConverter.getIntegerVariableType(),
+              localOccurenceCountVarName,
+              ssa.getIndex(localOccurenceCountVarName));
+      var globalOccurenceCountVar =
           pFMGR.makeVariableWithoutSSAIndex(
-              TatoFormulaConverter.getClockVariableType(), action + "#cnt");
-      var actionOccurenceCountVal =
-          pFMGR.makeNumber(TatoFormulaConverter.getClockVariableType(), ssa.getIndex(action));
+              TatoFormulaConverter.getIntegerVariableType(), action + "#cnt");
       var actionOccurenceCountFormula =
-          pFMGR.makeEqual(actionOccurenceCountVar, actionOccurenceCountVal);
+          pFMGR.makeEqual(globalOccurenceCountVar, localOccurenceCountVar);
       formula = pFMGR.makeAnd(actionOccurenceCountFormula, formula);
     }
 
@@ -100,15 +110,84 @@ public enum TimedAutomatonCandidateInvariant implements CandidateInvariant {
     var timeVariableName = TatoFormulaConverter.getTimeVariableNameForAutomaton(automatonName);
     var timeVariable =
         pFMGR.makeVariable(
-            TatoFormulaConverter.getClockVariableType(),
+            TatoFormulaConverter.getDecimalVariableType(),
             timeVariableName,
             ssa.getIndex(timeVariableName));
     var finalSyncAction =
-        pFMGR.makeVariable(TatoFormulaConverter.getClockVariableType(), "#final_sync");
+        pFMGR.makeVariable(TatoFormulaConverter.getDecimalVariableType(), "#final_sync");
     var finalSyncConstraint = pFMGR.makeEqual(finalSyncAction, timeVariable);
     formula = pFMGR.makeAnd(finalSyncConstraint, formula);
 
     return formula;
+  }
+
+  /**
+   * Produces a formula that ensures that the i-th occurence of action a happened at the same time
+   * among all path formulas.
+   */
+  private BooleanFormula getGlobalSyncConstraint(
+      Iterable<AbstractState> pTargetStates, FormulaManagerView pFMGR) {
+    Map<String, Integer> maxSSAIndexOfAction = new HashMap<>();
+    for (AbstractState aState : pTargetStates) {
+      var predicateState = AbstractStates.extractStateByType(aState, PredicateAbstractState.class);
+      var ssa = predicateState.getPathFormula().getSsa();
+      for (var action : ssa.allVariables()) {
+        var index = ssa.getIndex(action);
+        var maxIndex = Math.max(index, maxSSAIndexOfAction.getOrDefault(action, 0));
+        maxSSAIndexOfAction.put(action, maxIndex);
+      }
+    }
+
+    var result = pFMGR.getBooleanFormulaManager().makeTrue();
+    var allRelevantAutomata =
+        Streams.stream(pTargetStates)
+            .map(aState -> (TCFANode) AbstractStates.extractLocation(aState))
+            .map(tcfaNode -> tcfaNode.getAutomatonDeclaration())
+            .collect(Collectors.toSet());
+    for (var automaton : allRelevantAutomata) {
+      var actions = automaton.getActions();
+      for (var action : actions) {
+        for (int variableIndex = 0;
+            variableIndex <= maxSSAIndexOfAction.get(action);
+            variableIndex++) {
+          for (int numberOfOccurences = 0;
+              numberOfOccurences <= variableIndex;
+              numberOfOccurences++) {
+            var countVarName =
+                TatoFormulaConverter.getActionOccurenceVariableName(automaton.getName(), action);
+            var globalTimestampVarName = action + "#occurence#";
+            var localTimestampVarName =
+                TatoFormulaConverter.getActionVariableName(automaton.getName(), action);
+
+            var countVar =
+                pFMGR.makeVariable(
+                    TatoFormulaConverter.getIntegerVariableType(), countVarName, variableIndex);
+            var globalTimestampVar =
+                pFMGR.makeVariable(
+                    TatoFormulaConverter.getDecimalVariableType(),
+                    globalTimestampVarName + numberOfOccurences);
+            var localTimestampVar =
+                pFMGR.makeVariable(
+                    TatoFormulaConverter.getDecimalVariableType(),
+                    localTimestampVarName,
+                    variableIndex);
+            var occurenceFormula =
+                pFMGR.makeNumber(TatoFormulaConverter.getIntegerVariableType(), numberOfOccurences);
+
+            var countVarValueFormula = pFMGR.makeEqual(countVar, occurenceFormula);
+            var timeStampsEqualFormula = pFMGR.makeEqual(globalTimestampVar, localTimestampVar);
+            var syncFormula =
+                pFMGR
+                    .getBooleanFormulaManager()
+                    .implication(countVarValueFormula, timeStampsEqualFormula);
+
+            result = pFMGR.makeAnd(syncFormula, result);
+          }
+        }
+      }
+    }
+
+    return result;
   }
 
   @Override
