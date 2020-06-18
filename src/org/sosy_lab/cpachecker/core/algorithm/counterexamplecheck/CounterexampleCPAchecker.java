@@ -199,7 +199,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
 
       Specification lSpecification =
           specification.withAdditionalSpecificationFile(
-              ImmutableList.of(automatonFile), cfa, lConfig, lLogger, shutdownNotifier);
+              ImmutableSet.of(automatonFile), cfa, lConfig, lLogger, shutdownNotifier);
       CoreComponentsFactory factory =
           new CoreComponentsFactory(
               lConfig, lLogger, lShutdownManager.getNotifier(), new AggregatedReachedSets());

@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.residualprogram;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -274,7 +274,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
 
       final Specification constrSpec =
           spec.withAdditionalSpecificationFile(
-              ImmutableList.of(conditionSpec, condition), cfa, config, logger, shutdown);
+              ImmutableSet.of(conditionSpec, condition), cfa, config, logger, shutdown);
 
       ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, constrSpec);
 

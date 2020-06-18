@@ -12,7 +12,6 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
@@ -329,7 +328,7 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
         assert (assumptionAutomaton != null);
         spec =
             spec.withAdditionalSpecificationFile(
-                ImmutableList.of(getAssumptionGuider(), assumptionAutomaton),
+                ImmutableSet.of(getAssumptionGuider(), assumptionAutomaton),
                 cfa,
                 config,
                 logger,

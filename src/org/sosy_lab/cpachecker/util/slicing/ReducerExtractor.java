@@ -8,10 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.slicing;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.Classes;
@@ -37,8 +36,8 @@ public class ReducerExtractor extends AllTargetsExtractor {
       description =
           "path to condition files plus additional assumption guiding automaton when condition itself is in propriertary format and not in witness format")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private List<Path> conditionFiles =
-      ImmutableList.of(
+  private Set<Path> conditionFiles =
+      ImmutableSet.of(
           Paths.get("output/AssumptionAutomaton.txt"),
           Classes.getCodeLocation(ReducerExtractor.class)
               .resolveSibling("config/specification/AssumptionGuidingAutomaton.spc"));

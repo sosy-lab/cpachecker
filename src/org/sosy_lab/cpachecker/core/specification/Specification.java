@@ -15,11 +15,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -201,16 +201,20 @@ public final class Specification {
    * additionally some new specification files.
    */
   public Specification withAdditionalSpecificationFile(
-      Collection<Path> pSpecificationFiles,
+      Set<Path> pSpecificationFiles,
       CFA cfa,
       Configuration config,
       LogManager logger,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException, InterruptedException {
+    Set<Path> newSpecFiles =
+        Sets.difference(pSpecificationFiles, pathToSpecificationAutomata.keySet()).immutableCopy();
+    if (newSpecFiles.isEmpty()) {
+      return this;
+    }
 
     ImmutableListMultimap<Path, Automaton> newSpecificationAutomata =
-        parseSpecificationFiles(
-            pSpecificationFiles, cfa, config, logger, pShutdownNotifier, properties);
+        parseSpecificationFiles(newSpecFiles, cfa, config, logger, pShutdownNotifier, properties);
 
     return new Specification(
         properties,
