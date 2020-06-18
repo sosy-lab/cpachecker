@@ -72,7 +72,7 @@ public class ARGToAutomatonConverterTest extends AbstractTranslationTest {
     verdict = pVerdict;
     forOverflow = pForOverflow;
     automatonPath = newTempFile();
-    String propfile = "split-callstack.properties";
+    String propfile = forOverflow ? "split--overflow.properties" : "split-callstack.properties";
     ConfigurationBuilder configBuilder =
         TestDataTools.configurationForTest()
             .loadFromResource(ARGToAutomatonConverterTest.class, propfile)
@@ -88,18 +88,23 @@ public class ARGToAutomatonConverterTest extends AbstractTranslationTest {
   public static Collection<Object[]> data() {
     ImmutableList.Builder<Object[]> b = ImmutableList.builder();
 
-    b.add(simpleTask("main.c", true, false));
-    b.add(simpleTask("main2.c", false, false));
-    b.add(simpleTask("functionreturn.c", false, false));
-    b.add(simpleTask("overflow.c", false, true));
-    b.add(simpleTask("no_overflow.c", true, true));
+    b.add(simpleTask("main.c", true));
+    b.add(simpleTask("main2.c", false));
+    b.add(simpleTask("functionreturn.c", false));
+    b.add(simpleTaskForOverflow("overflow.c", false));
+    b.add(simpleTaskForOverflow("no_overflow.c", true));
 
     return b.build();
   }
 
-  private static Object[] simpleTask(String program, boolean verdict, boolean pForOverflow) {
-    String label = String.format("SimpleTest(%s is %s)", program, Boolean.toString(verdict));
-    return new Object[] {label, program, verdict, pForOverflow};
+  private static Object[] simpleTask(String program, boolean verdict) {
+    String label = String.format("SimpleTest(%s is %s)", program, verdict);
+    return new Object[] {label, program, verdict, false};
+  }
+
+  private static Object[] simpleTaskForOverflow(String program, boolean verdict) {
+    String label = String.format("SimpleTestForOverflow(%s is %s)", program, verdict);
+    return new Object[] {label, program, verdict, true};
   }
 
   @Test
