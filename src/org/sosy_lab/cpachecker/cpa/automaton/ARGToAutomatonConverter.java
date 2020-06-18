@@ -843,15 +843,16 @@ public class ARGToAutomatonConverter {
     while (!waitlist.isEmpty()) {
       final CallstackState elem = waitlist.removeFirst();
       boolean useAll = false;
-      Set<AExpression> assumptions = new HashSet<>();
+      ImmutableSet.Builder<AExpression> assumptionsBuilder = ImmutableSet.builder();
       for (ARGState leaf : callstackToLeafWithParentAssumptions.get(elem)) {
         for (ARGState parent : leaf.getParents()) {
           for (AbstractStateWithAssumptions state :
               AbstractStates.asIterable(parent).filter(AbstractStateWithAssumptions.class)) {
-            assumptions.addAll(state.getAssumptions());
+            assumptionsBuilder.addAll(state.getAssumptions());
           }
         }
       }
+      Set<AExpression> assumptions = assumptionsBuilder.build();
       final List<AutomatonTransition> transitions = new ArrayList<>();
       for (ARGState leaf : callstackToLeaves.get(elem)) {
         if (assumptions.isEmpty()) {
