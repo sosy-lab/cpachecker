@@ -1784,16 +1784,15 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     elseNode = postIfNode;
 
     JDeclaration jDeclaration = astCreator.convert(pCatchClauseNode.getException());
-    JIdExpression jIdExpressionOfException =
-        new JIdExpression(
-            jDeclaration.getFileLocation(),
-            jDeclaration.getType(),
-            jDeclaration.getName(),
-            jDeclaration);
-    //TODO Only first throwable of the list is taken into account. Need to create an || expression
+
+    // TODO Only first throwable of the list is taken into account. Need to create an || expression
+    JSimpleDeclaration thrown = throwables.get(0);
+    JIdExpression jIdExpressionOfThrown =
+        new JIdExpression(thrown.getFileLocation(), thrown.getType(), thrown.getName(), thrown);
+
     final JExpression instanceOfExpression =
         astCreator.createInstanceOfExpression(
-            jIdExpressionOfException, (JClassOrInterfaceType) throwables.get(0).getType(), fileloc);
+            jIdExpressionOfThrown, (JClassOrInterfaceType) jDeclaration.getType(), fileloc);
 
     createConditionEdges(instanceOfExpression, fileloc, prevNode, thenNode, elseNode);
 
