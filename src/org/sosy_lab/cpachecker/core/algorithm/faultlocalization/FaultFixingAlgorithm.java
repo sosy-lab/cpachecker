@@ -19,6 +19,11 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.SolverException;
 
+/**
+ * First implementation of a FaultFixingAlgorithm.
+ * Unused at the moment.
+ * Missing Feature: restart with modified input program
+ */
 public class FaultFixingAlgorithm {
 
   private MultiMap<FaultContribution, BooleanFormula> fix;

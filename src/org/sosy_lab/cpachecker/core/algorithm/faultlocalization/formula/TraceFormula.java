@@ -100,7 +100,7 @@ public class TraceFormula {
 
     @Option(
         secure = true,
-        name = "reducedselectors",
+        name = "uniqueselectors",
         description = "equal statements on the same line get the same selector")
     private boolean reduceSelectors = false;
 
@@ -121,6 +121,13 @@ public class TraceFormula {
     }
   }
 
+  /**
+   * Creates the trace formula for a given list of CFAEdges.
+   * Additionally creates a trace formula with selectors.
+   * @param pContext commonly used objects
+   * @param pOptions set options for trace formula
+   * @param pEdges counterexample
+   */
   public TraceFormula(FormulaContext pContext, TraceFormulaOptions pOptions, List<CFAEdge> pEdges)
       throws CPATransferException, InterruptedException, SolverException {
     isAlwaysUnsat = false;
@@ -192,8 +199,9 @@ public class TraceFormula {
     return entries.size();
   }
 
-  //TODO prover precondition does not guarantee that corresponding edge is excluded in the report as possible resource.
-  //TODO altpre cannot be used if nondet_X() are in the formula
+  /**
+   * Create all trace formulas at once.
+   */
   private void createTraceFormulas()
       throws CPATransferException, InterruptedException, SolverException {
 
@@ -213,11 +221,15 @@ public class TraceFormula {
     // Create pre-condition
     precondition = calculatePreCondition(negated, altPre);
 
-    // If however the pre condition conjugated with the post-condition is UNSAT tell the main algorithm that this formula is always unsat.
+    // If however the pre condition conjugated with the post-condition is UNSAT
+    // tell the main algorithm that this formula is always unsat.
+    // happens in programs like: x = 0, y = x, x == 0
     if(context.getSolver().isUnsat(bmgr.and(precondition, postcondition))){
       isAlwaysUnsat = true;
     }
 
+    // loop enrollment causes selectors for each statement instead of actual "lines" in the program
+    // less selectors improve the runtime so it may be useful to enable this option
     if (options.reduceSelectors) {
       Map<String, List<Selector>> friends =
           getSelectors().stream()
@@ -240,6 +252,10 @@ public class TraceFormula {
     implicationForm = bmgr.and(implicationFormula, postcondition);
   }
 
+  /**
+   * Calculate the boolean formulas for every edge including the SSA-maps and the selectors.
+   * @param altPre Creates the alternative precondition on the fly regardless of set options
+   */
   private void calculateEntries(AlternativePrecondition altPre) throws CPATransferException, InterruptedException {
     PathFormulaManagerImpl manager = context.getManager();
     BooleanFormulaManager bmgr = context.getSolver().getFormulaManager().getBooleanFormulaManager();
@@ -253,6 +269,9 @@ public class TraceFormula {
 
     Preconditions.checkState(errorStartingLine != -1, "No error condition found");
 
+    // add the current edge formula to the previous one to update the ssa-map, then split them again
+    // and add the new part as atom to the entry list.
+    // all edges that are at the same line as the last assume edge are added to "negate"
     PathFormula current = manager.makeEmptyPathFormula();
     for (CFAEdge e : edges) {
       BooleanFormula prev = current.getFormula();
@@ -295,6 +314,12 @@ public class TraceFormula {
     }
   }
 
+  /**
+   * Calculate the precondition of the program based on a model or the alternative precondition.
+   * @param negate all last assume edges
+   * @param altPre the alternative precondition
+   * @return either the calculated precondition or the alternative precondition
+   */
   private BooleanFormula calculatePreCondition(List<BooleanFormula> negate, AlternativePrecondition altPre) throws SolverException, InterruptedException {
     // Create pre condition as model of the actual formula.
     // If the program is has a bug the model is guaranteed to be existent.
@@ -316,7 +341,7 @@ public class TraceFormula {
     }
 
     // Check if alternative precondition is required and remove corresponding entries.
-    if ((options.forcePre || bmgr.isTrue(precond))
+    if (options.forcePre || bmgr.isTrue(precond)
         && !context.getSolver().isUnsat(bmgr.and(altPre.toFormula(), postcondition))) {
       for (BooleanFormula booleanFormula : altPre.getPreCondition()) {
         int index = entries.atoms.indexOf(booleanFormula);
@@ -344,7 +369,7 @@ public class TraceFormula {
 
   @Override
   public String toString() {
-    return actualForm.toString();
+    return context.getConverter().convert(actualForm);
   }
 
   private class AlternativePrecondition{

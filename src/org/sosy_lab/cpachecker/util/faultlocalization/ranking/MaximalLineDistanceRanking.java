@@ -52,10 +52,12 @@ public class MaximalLineDistanceRanking implements FaultRanking {
 
   @Override
   public List<Fault> rank(Set<Fault> result) {
+
     if(result.isEmpty()){
       return ImmutableList.of();
     }
-   RankingResults ranking = FaultRankingUtils.rankedListFor(result,
+
+    RankingResults ranking = FaultRankingUtils.rankedListFor(result,
         e -> e.stream()
         .mapToDouble(fc -> Math.abs(errorLocation - fc.correspondingEdge().getFileLocation().getStartingLineInOrigin()))
         .max()
@@ -69,7 +71,11 @@ public class MaximalLineDistanceRanking implements FaultRanking {
       return ranking.getRankedList();
     }
 
-    //Score identical likelihoods equally
+    /* Example: dist(Fault A) = 1, dist(Fault B) = 5, dist(Fault C) = 5, dist(Fault D) = 10.
+     * Expected Likelihood: L(Fault A) = 1/9, L(Fault B) = 2/9, L(Fault C) = 2/9, L(Fault D) = 4/9.
+     * If two faults A and B do not have the same distance and are ranked exactly 1 apart,
+     * L(A) = 2*L(B) must hold. The code below ensures this.
+     * */
     List<Double> sortedLikelihood = ranking.getLikelihoodMap().values().stream().distinct().sorted().collect(
         Collectors.toList());
     Map<Double, Integer> index = new HashMap<>();

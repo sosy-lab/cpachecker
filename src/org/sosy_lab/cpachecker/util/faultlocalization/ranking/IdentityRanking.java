@@ -30,12 +30,19 @@ import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 
+/**
+ * Rank faults in order of appearance and assign an equal score.
+ */
 public class IdentityRanking implements FaultRanking {
 
   @Override
   public List<Fault> rank(
       Set<Fault> pFaults) {
-    pFaults.forEach(c -> c.addInfo(FaultInfo.hint("Ranked by Identity.")));
+    pFaults.forEach(c -> {
+      c.addInfo(FaultInfo.hint("Ranked by Identity."));
+      // division by zero not possible
+      c.addInfo(FaultInfo.rankInfo("Identity ranking", 1d/pFaults.size()));
+    });
     return new ArrayList<>(pFaults);
   }
 

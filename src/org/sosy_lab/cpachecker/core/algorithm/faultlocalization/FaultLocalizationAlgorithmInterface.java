@@ -32,6 +32,9 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.java_smt.api.SolverException;
 
+/**
+ * Implements a method to obtain a set of faults out of a trace formula
+ */
 public interface FaultLocalizationAlgorithmInterface {
 
   Set<Fault> run(FormulaContext context, TraceFormula tf)

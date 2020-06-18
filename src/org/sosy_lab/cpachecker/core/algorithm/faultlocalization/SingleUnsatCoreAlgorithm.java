@@ -64,20 +64,11 @@ public class SingleUnsatCoreAlgorithm implements FaultLocalizationAlgorithmInter
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     totalTime.start();
     BooleanFormula toVerify = tf.getActualForm();
-
-    // trivial programs like x = 0, if (x == 0) goto ERROR; are simplified to false (boolean
-    // formula: x = 0 & x != 0 <=> false).
-    // for fault localization this is a loss of information.
-    // In case of this happening we take the implication formula with the selectors marked as hard.
-    // The selectors avoid the formula from getting simplified.
-    if (bmgr.isFalse(toVerify)) {
-      List<BooleanFormula> formulas =
-          tf.getSelectors().stream().map(Selector::getFormula).collect(Collectors.toList());
-      toVerify = bmgr.and(tf.getImplicationForm(), bmgr.and(formulas));
-    }
     if (!solver.isUnsat(toVerify)) {
       toVerify = bmgr.and(tf.getPreCondition(), toVerify);
     }
+
+    // calculate an arbitrary UNSAT-core
     List<Selector> unsatCore =
         solver.unsatCore(toVerify).stream()
             .filter(l -> Selector.of(l).isPresent())

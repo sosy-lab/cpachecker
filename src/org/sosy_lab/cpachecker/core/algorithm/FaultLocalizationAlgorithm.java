@@ -156,6 +156,7 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
     boolean correctConfiguration = true;
     if (!algorithmType.equals("ERRINV") && maintainCallHierarchy) {
       logger.log(Level.SEVERE, "The optiion maintainhierarchy will be ignored since the error invariants algorithm is not selected");
+      maintainCallHierarchy = false;
       correctConfiguration = false;
     }
     if (!options.getBan().isBlank() && algorithmType.equals("ERRINV")) {
@@ -273,7 +274,7 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
       } else {
         info = new FaultLocalizationInfo(errorIndicators, ranking, pInfo);
       }
-      info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
+      //info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
       info.apply();
       logger.log(
           Level.INFO,

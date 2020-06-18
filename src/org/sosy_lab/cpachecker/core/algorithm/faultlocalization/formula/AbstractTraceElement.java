@@ -26,8 +26,9 @@ package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula;
 /**
  * Marker interface for types that can be a part of an abstract error trace.
  */
-
 public interface AbstractTraceElement {
+
+  //intended to exclusively be implemented by Selector and Interval
 
   @Override
   int hashCode();

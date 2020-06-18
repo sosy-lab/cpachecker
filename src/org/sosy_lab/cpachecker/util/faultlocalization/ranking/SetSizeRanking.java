@@ -53,38 +53,15 @@ public class SetSizeRanking implements FaultRanking {
     if (result.isEmpty()) {
       return ImmutableList.of();
     }
-    RankingResults ranking = FaultRankingUtils.rankedListFor(result,
-        e -> 1d/e.size());
 
-    if(ranking.getRankedList().size()==1){
-      Fault current = ranking.getRankedList().get(0);
-      current.addInfo(FaultInfo.rankInfo(
-              "The set has a size of " + current.size() + ".",
-              1d));
-      return ranking.getRankedList();
+    int max = result.stream().mapToInt(f -> f.size()).max().getAsInt();
+    RankingResults results = FaultRankingUtils.rankedListFor(result, f -> (double)max + 1 - f.size());
+    double sum = results.getLikelihoodMap().values().stream().mapToDouble(Double::valueOf).sum();
+
+    for (Fault fault : result) {
+      fault.addInfo(FaultInfo.rankInfo("The set has a size of " + results.getLikelihoodMap().get(fault).intValue(), results.getLikelihoodMap().get(fault)/sum));
     }
 
-    List<Double> sortedLikelihood = ranking.getLikelihoodMap().values().stream().distinct().sorted().collect(Collectors.toList());
-    Map<Double, Integer> index = new HashMap<>();
-    for(int i = 0; i < sortedLikelihood.size(); i++){
-      index.put(sortedLikelihood.get(i), i);
-    }
-
-    int total = 0;
-
-    for(Double val: ranking.getLikelihoodMap().values()){
-      total += 1<<index.get(val);
-    }
-
-    double single = 1d/total;
-
-    for(Map.Entry<Fault, Double> entry: ranking.getLikelihoodMap().entrySet()){
-      Fault current = entry.getKey();
-      current.addInfo(FaultInfo.rankInfo(
-              "The set has a size of " + current.size() + ".",
-              Math.pow(2, index.get(entry.getValue()))*single));
-    }
-
-    return ranking.getRankedList();
+    return results.getRankedList();
   }
 }

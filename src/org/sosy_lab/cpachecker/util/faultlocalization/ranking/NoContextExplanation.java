@@ -52,7 +52,7 @@ public class NoContextExplanation implements FaultExplanation {
     switch (pEdge.getEdgeType()) {
       case AssumeEdge:
       {
-        String[] ops = {"<", ">", "<=", "!=", "==", ">="};
+        String[] ops = {"<=", "!=", "==", ">=", "<", ">"};
         String op = "";
         for (String o : ops) {
           if (description.contains(o)) {
@@ -64,7 +64,7 @@ public class NoContextExplanation implements FaultExplanation {
             + op
             + "\" in \""
             + description
-            + "\" with another boolean operator (<, >, <=, !=, ==, >=).";
+            + "\" with another boolean operator (<, >, <=, !=, ==, >=). This line may be prone to off-by-one errors!";
       }
       case StatementEdge:
       {

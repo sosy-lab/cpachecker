@@ -39,6 +39,12 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 
 public class InformationProvider {
 
+  /**
+   * First raw implementation of additional information search.
+   * Search for iteration variables and for calculations in array brackets.
+   * @param faults ranked faults
+   * @param edges counterexample as list of edges
+   */
   public static void searchForAdditionalInformation(Collection<Fault> faults, List<CFAEdge> edges){
     Set<String> iterationVariables = new HashSet<>();
     Set<CFAEdge> arrayEdges = new HashSet<>();

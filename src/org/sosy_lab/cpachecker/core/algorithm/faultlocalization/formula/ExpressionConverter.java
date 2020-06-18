@@ -36,6 +36,10 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 @Options(prefix="exprconv")
 public class ExpressionConverter {
 
+  //static access for debugging purposes
+  public static ExpressionConverter converter = new ExpressionConverter();
+
+  // set this option change the formulas from prefix to infix when printed to user
   @Option(secure=true, name="niceexpr",
       description="transform boolean formulas")
   private boolean niceExpressions = false;
@@ -43,6 +47,9 @@ public class ExpressionConverter {
   public ExpressionConverter(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
   }
+
+  // enable static access
+  private ExpressionConverter() {}
 
   /**
    * Converts every string which matches: expr = ('binary_operator' expr expr) | ('unary_operator'
@@ -136,6 +143,11 @@ public class ExpressionConverter {
     return convert(formula.toString());
   }
 
+  /**
+   * Convert a formula operator to a readable operator
+   * @param operator operator in a BooleanFormula object
+   * @return readable operator
+   */
   private String convertOperator(String operator) {
     if (operator.startsWith("=")) {
       return "=";

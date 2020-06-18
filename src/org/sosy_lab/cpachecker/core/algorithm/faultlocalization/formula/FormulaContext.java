@@ -35,6 +35,12 @@ public class FormulaContext {
   private ProverEnvironment prover;
   private ExpressionConverter converter;
 
+  /**
+   * This class maintains the most often used objects in fault localization.
+   * @param pSolver the solver for BooleanFormulas
+   * @param pManager manager to concatenate CFAEdges to a boolean formula
+   * @param pConverter converter to convert formulas to infix notation.
+   */
   public FormulaContext(Solver pSolver, PathFormulaManagerImpl pManager, ExpressionConverter pConverter) {
     solver = pSolver;
     manager = pManager;

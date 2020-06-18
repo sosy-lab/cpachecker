@@ -68,17 +68,20 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface, Sta
     //if a selector is true (i. e. enabled) it cannot be part of the result set. This usually happens if the selector is a part of the pre-condition
     soft.removeIf(fc -> bmgr.isTrue(((Selector)fc).getFormula()) || bmgr.isFalse(((Selector)fc).getFormula()));
     int numberSelectors = soft.size();
-    Set<Fault> singletons = new HashSet<>();
 
     Fault minUnsatCore = new Fault();
 
     totalTime.start();
+    // loop as long as new unsat cores are found.
+    // if the newly found unsat core has the size of all left selectors break.
     while(minUnsatCore.size() != numberSelectors){
       minUnsatCore = getMinUnsatCore(soft, tf, hard);
       if (minUnsatCore.size() == 1) {
         soft.removeAll(minUnsatCore);
         numberSelectors = soft.size();
       }
+      // adding all possible selectors yields no information because the user knows that the program
+      // is buggy
       if(minUnsatCore.size() != tf.getRelevantSelectors().size()) {
         hard.add(minUnsatCore);
       }
@@ -88,7 +91,9 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface, Sta
   }
 
   /**
-   * Get the minimal subset of selectors considering the already found ones
+   * Get a minimal subset of selectors considering the already found ones
+   * Minimal means that we cannot remove a single selector from the returned set and maintain unsatisfiability.
+   * Minimal does not mean that there does not exist a smaller unsat-core here. (Since we loop, this is no problem)
    *
    * @param pTraceFormula TraceFormula to the error
    * @param pHardSet already found minimal sets
@@ -132,6 +137,11 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface, Sta
     return false;
   }
 
+  /**
+   * Conjunct of all selector-formulas
+   * @param softSet left selectors
+   * @return boolean formula as conjunct of all selector formulas
+   */
   private BooleanFormula softSetFormula(Fault softSet) {
     return softSet.stream().map(f -> ((Selector)f).getFormula()).collect(bmgr.toConjunction());
   }

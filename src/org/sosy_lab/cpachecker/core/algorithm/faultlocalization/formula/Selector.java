@@ -128,6 +128,11 @@ public class Selector extends FaultContribution implements AbstractTraceElement 
     return index;
   }
 
+  /**
+   * Changes the selector formula. Needed for example after loop enrolling.
+   * Statements on the exact same location in the program should have the same selector
+   * @param selector This selector copies the formula from the given selector
+   */
   public void changeSelectorFormula(Selector selector) {
     assert selector.correspondingEdge().getDescription().equals(correspondingEdge().getDescription());
     if(selectorFormula.equals(formula)){

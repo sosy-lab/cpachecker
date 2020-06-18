@@ -35,6 +35,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -45,7 +46,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.AbstractTraceElement;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.ExpressionConverter;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula;
@@ -75,7 +75,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
   private LogManager logger;
   private TraceFormula errorTrace;
   private FormulaContext formulaContext;
-  //private CFA cfa;
+  //(commented out, needed for flowsensitive traceformula)private CFA cfa;
   //private boolean useImproved;
 
   //Memorize already processed interpolants to minimize solver calls
@@ -99,6 +99,10 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     //useImproved = pImproved;
   }
 
+  /**
+   * Calculate interpolants
+   * @return all interpolants for each position
+   */
   private List<BooleanFormula> getInterpolants()
       throws CPAException, InterruptedException, InvalidConfigurationException {
     InterpolationManager interpolationManager =
@@ -131,6 +135,8 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
 
     List<BooleanFormula> interpolants = getInterpolants();
     Set<Interval> allIntervals = new HashSet<>();
+
+    // calculate interval boundaries for each interpolant
     for (int i = 0; i < interpolants.size(); i++) {
       // TODO actualForm can evaluate to false (c.f. SingleUnsatCore)
       BooleanFormula interpolant = interpolants.get(i);
@@ -142,6 +148,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
       allIntervals.add(current);
     }
 
+    //sort the intervals and calculate abstrace error trace
     List<Interval> sortedIntervals = allIntervals.stream().sorted().collect(Collectors.toList());
     Interval maxInterval = sortedIntervals.get(0);
     int prevEnd = 0;
@@ -160,6 +167,8 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
         }
       }
     }
+
+    //transform error trace into report format
     return createFaults(abstractTrace);
   }
 
@@ -217,13 +226,20 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
         f.addInfo(FaultInfo.hint("NOTE: The algorithm did not find a suitable abstraction."));
         faults.add(f);
       }
-    } else {
-      lastCreatedFault.addInfo(FaultInfo.hint("From now on, at least the marked values will not change until the end of the execution."));
     }
-
+    String abstractErrorTrace = abstractTrace.stream().map(e -> "-" + e).collect(Collectors.joining("\n"));
+    logger.log(Level.INFO, "Abstract error trace:\n"+abstractErrorTrace);
     return faults;
   }
 
+  /**
+   * Some interpolants (eg arrays) may have an unreadable format.
+   * Since most of the users will be confused by the internal representation we reduce
+   * the information to only the relevant one.
+   * @param fmgr formula manager to instantiate and uninstantiate formulas
+   * @param interval interval to extract information from
+   * @return relevant information
+   */
   private String extractRelevantInformation(FormulaManagerView fmgr, Interval interval) {
     BooleanFormulaManager bmgr = fmgr.getBooleanFormulaManager();
     List<String> helpfulFormulas = new ArrayList<>();
@@ -243,9 +259,17 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
         helpfulFormulas.add(formulaContext.getConverter().convert(fmgr.uninstantiate(f)));
       }
     }
-    return "<ul><li>"  + helpfulFormulas.stream().distinct().map(s -> s.replaceAll("@", "")).collect(Collectors.joining(" </li><li> ")) + "</li></ul>";
+    //return "<ul><li>"  + helpfulFormulas.stream().distinct().map(s -> s.replaceAll("@", "")).collect(Collectors.joining(" </li><li> ")) + "</li></ul>";
+    return helpfulFormulas.stream().distinct().map(s -> s.replaceAll("@", "")).collect(Collectors.joining(" and "));
   }
 
+  /**
+   * Perform a binary search to find the limits of an inductive interpolant
+   * @param low start point
+   * @param high end point
+   * @param incLow function that indicates the search direction
+   * @return the maximal or minimal bound of an inductive interval
+   */
   private int search(int low, int high, Function<Integer, Boolean> incLow) {
     searchCalls.inc();
     if (high < low) {
@@ -259,11 +283,25 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     }
   }
 
+
+  /**
+   * Return if interpolant is inductive on position i.
+   * @param interpolant A interpolant
+   * @param i position in the trace formula
+   * @return true if interpolant is inductive at i, false else
+   */
   private boolean isErrInv(BooleanFormula interpolant, int i) {
     Solver solver = formulaContext.getSolver();
     FormulaManagerView fmgr = solver.getFormulaManager();
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     int n = errorTrace.traceSize();
+    BooleanFormula plainInterpolant = fmgr.uninstantiate(interpolant);
+    MemorizeInterpolant currInterpolant = new MemorizeInterpolant(plainInterpolant, i);
+
+    //Memoization
+    if (memorize.containsKey(currInterpolant)) {
+      return memorize.get(currInterpolant);
+    }
 
     // shift the interpolant to the correct time stamp
     SSAMap shift =
@@ -271,13 +309,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
             errorTrace.getSsaMap(i),
             errorTrace.getSsaMap(0),
             MapsDifference.collectMapsDifferenceTo(new ArrayList<>()));
-    BooleanFormula plainInterpolant = fmgr.uninstantiate(interpolant);
     BooleanFormula shiftedInterpolant = fmgr.instantiate(plainInterpolant, shift);
-
-    MemorizeInterpolant currInterpolant = new MemorizeInterpolant(plainInterpolant, i);
-    if (memorize.containsKey(currInterpolant)) {
-      return memorize.get(currInterpolant);
-    }
 
     solverCalls.inc();
     BooleanFormula firstFormula =
@@ -320,7 +352,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
   }
 
   /**
-   * Stores the interpolant for a selector and its scope
+   * Stores the interpolant for a selector and its boundaries
    */
   private static class Interval implements Comparable<Interval>, AbstractTraceElement {
 

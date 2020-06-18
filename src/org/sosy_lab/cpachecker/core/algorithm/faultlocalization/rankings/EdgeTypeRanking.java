@@ -32,6 +32,9 @@ import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 
+/**
+ * Sort faults based on their contained edge types.
+ */
 public class EdgeTypeRanking implements FaultRanking {
 
   @Override

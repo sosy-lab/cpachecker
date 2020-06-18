@@ -11,6 +11,9 @@ import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 
+/**
+ * Sort the faults by the time of execution
+ */
 public class CallHierarchyRanking implements FaultRanking {
 
   private Map<CFAEdge, Integer> mapEdgeToPosition;

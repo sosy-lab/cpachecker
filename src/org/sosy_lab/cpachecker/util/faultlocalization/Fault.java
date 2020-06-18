@@ -109,7 +109,7 @@ public class Fault extends ForwardingSet<FaultContribution> {
 
     StringBuilder out = new StringBuilder("Error suspected on line(s): "
         + listDistinctLinesAndJoin()
-        + ". (Score: " + (int)(getScore()*100) + ")\n");
+        + ".\n");
     for (FaultInfo faultInfo : copy) {
       switch(faultInfo.getType()){
         case RANK_INFO:

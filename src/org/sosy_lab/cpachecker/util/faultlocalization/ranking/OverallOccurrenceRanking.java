@@ -23,12 +23,18 @@
  */
 package org.sosy_lab.cpachecker.util.faultlocalization.ranking;
 
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
+import com.google.common.collect.ImmutableList;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.DoubleStream;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
@@ -47,34 +53,33 @@ public class OverallOccurrenceRanking implements FaultRanking {
   @Override
   public List<Fault> rank(
       Set<Fault> result) {
-    Set<FaultContribution> alreadyAttached = new HashSet<>();
-    Map<FaultContribution, Double> occurrence = new HashMap<>();
-    double elements = 0;
-    for (Fault faultLocalizationOutputs : result) {
-      for (FaultContribution faultContribution : faultLocalizationOutputs) {
-        occurrence.merge(faultContribution, 1d, Double::sum);
-        elements++;
+
+    if(result.isEmpty()){
+      return ImmutableList.of();
+    }
+
+    Map<Fault, Double> faultValue = new HashMap<>();
+    for(Fault f1: result) {
+      double value = 0;
+      for(Fault f2: result) {
+        Set<FaultContribution> intersection = new HashSet<>(f1);
+        intersection.removeAll(f2);
+        value += f1.size() - intersection.size();
+      }
+      faultValue.put(f1, value);
+    }
+
+    double sum = faultValue.values().stream().mapToDouble(Double::valueOf).sum();
+    if(sum == 0) {
+      for(Fault f: result) {
+        f.addInfo(FaultInfo.rankInfo("Overall occurrence ranking", 1d/result.size()));
+      }
+    } else {
+      for(Fault f: result) {
+        f.addInfo(FaultInfo.rankInfo("Overall occurrence ranking", faultValue.get(f)/sum));
       }
     }
 
-    RankingResults rankingResults = FaultRankingUtils.rankedListFor(result,
-        c -> c.stream().mapToDouble(occurrence::get).sum());
-
-    for (Entry<Fault, Double> entry : rankingResults.getLikelihoodMap().entrySet()) {
-      entry.getKey().addInfo(
-          FaultInfo.rankInfo("Overall occurrence of elements in this set.", entry.getValue()/elements));
-      for (FaultContribution faultContribution : entry.getKey()) {
-        if (!alreadyAttached.contains(faultContribution)) {
-          double elementOverall = occurrence.get(faultContribution);
-          faultContribution.addInfo(
-              FaultInfo.rankInfo(
-                  "Overall occurrence in the sets: " + (int) elementOverall,
-                  elementOverall / elements));
-          alreadyAttached.add(faultContribution);
-        }
-      }
-    }
-
-    return rankingResults.getRankedList();
+    return FaultRankingUtils.rankedListFor(result, f -> faultValue.get(f)).getRankedList();
   }
 }

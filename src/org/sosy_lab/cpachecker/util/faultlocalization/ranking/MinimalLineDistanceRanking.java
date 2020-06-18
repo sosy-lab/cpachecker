@@ -66,11 +66,16 @@ public class MinimalLineDistanceRanking implements FaultRanking {
     if(ranking.getRankedList().size()==1){
       Fault current = ranking.getRankedList().get(0);
       current.addInfo(FaultInfo.rankInfo(
-          "Minimal distance to error location: " + (errorLocation-(int)ranking.getLikelihoodMap().get(current).doubleValue()) + " line(s)",
+          "Minimal distance to error location: " + Math.abs(errorLocation-(int)ranking.getLikelihoodMap().get(current).doubleValue()) + " line(s)",
           1d));
       return ranking.getRankedList();
     }
 
+    /* Example: dist(Fault A) = 10, dist(Fault B) = 5, dist(Fault C) = 5, dist(Fault D) = 1.
+     * Expected Likelihood: L(Fault A) = 1/9, L(Fault B) = 2/9, L(Fault C) = 2/9, L(Fault D) = 4/9.
+     * If two faults A and B do not have the same distance and are ranked exactly 1 apart,
+     * L(A) = 2*L(B) must hold. The code below ensures this.
+     * */
     List<Double> sortedLikelihood = ranking.getLikelihoodMap().values().stream().distinct().sorted().collect(Collectors.toList());
     Map<Double, Integer> index = new HashMap<>();
     for(int i = 0; i < sortedLikelihood.size(); i++){
@@ -88,7 +93,7 @@ public class MinimalLineDistanceRanking implements FaultRanking {
     for(Map.Entry<Fault, Double> entry: ranking.getLikelihoodMap().entrySet()){
       Fault current = entry.getKey();
       current.addInfo(FaultInfo.rankInfo(
-              "Minimal distance to error location: " + (errorLocation-(int)ranking.getLikelihoodMap().get(current).doubleValue()) + " line(s)",
+              "Minimal distance to error location: " + Math.abs(errorLocation-(int)ranking.getLikelihoodMap().get(current).doubleValue()) + " line(s)",
               Math.pow(2, index.get(entry.getValue()))*single));
     }
 

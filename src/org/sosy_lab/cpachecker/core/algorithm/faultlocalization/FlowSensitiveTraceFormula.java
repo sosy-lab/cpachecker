@@ -1,6 +1,15 @@
 package org.sosy_lab.cpachecker.core.algorithm.faultlocalization;
 public class FlowSensitiveTraceFormula {
-
+//WIP
+  //Missing Feature: Check if something belongs to a certain if statement.
+  /*
+  if (a) {
+    if (b) {
+    }
+    c = d;
+  }
+  c belongs to a and not to b.
+   */
 }
 
 /*
