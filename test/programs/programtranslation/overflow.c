@@ -6,8 +6,19 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-int main() {
-    int i = 2147483647 + 1;
-    int j = i * i;
+int main(void) {
+    int x = 0;
+    while (x < 10) {
+        if (x % 2 == 0) {
+            x = x + 3;
+        } else {
+            x = x + 1;
+        }
+    }
+    int y = 2;
+    if (x > 10) {
+       y = 2147483647;
+    }
+    y = x + y;
     return 0;
 }
