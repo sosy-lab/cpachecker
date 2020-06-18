@@ -778,7 +778,9 @@ public final class ValueAnalysisState
   public ExpressionTree<Object> getFormulaApproximation(
       FunctionEntryNode pFunctionScope, CFANode pLocation) {
 
-    assert machineModel != null : "Unable to approximate state";
+    if (machineModel == null) {
+      return ExpressionTrees.getTrue();
+    }
 
     //TODO: Get real logger
     CBinaryExpressionBuilder builder =
