@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.CProgramScope;
 import org.sosy_lab.cpachecker.cfa.DummyScope;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPABuilder;
-import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageType;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonParser;
@@ -67,9 +66,6 @@ public final class Specification {
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException, InterruptedException {
     if (Iterables.isEmpty(specFiles)) {
-      if (pProperties.stream().anyMatch(p -> p.getProperty() instanceof CommonCoverageType)) {
-        return new Specification(pProperties, ImmutableListMultimap.of());
-      }
       if (pProperties.size() == 1) {
         SpecificationProperty specProp = Iterables.getOnlyElement(pProperties);
         if (specProp.getProperty() instanceof LabelledFormula) {
@@ -97,7 +93,7 @@ public final class Specification {
           }
         }
       }
-      return Specification.alwaysSatisfied();
+      return new Specification(pProperties, ImmutableListMultimap.of());
     }
 
     ImmutableListMultimap<Path, Automaton> specificationAutomata =
