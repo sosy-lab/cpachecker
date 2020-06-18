@@ -846,10 +846,10 @@ public class ARGToAutomatonConverter {
       Set<AExpression> assumptions = new HashSet<>();
       for (ARGState leaf : callstackToLeafWithParentAssumptions.get(elem)) {
         for (ARGState parent : leaf.getParents()) {
-          AbstractStates.asIterable(parent).filter(AbstractStateWithAssumptions.class).stream()
-              .map(x -> x.getAssumptions())
-              .flatMap(Collection::stream)
-              .forEach(assumptions::add);
+          for (AbstractStateWithAssumptions state :
+              AbstractStates.asIterable(parent).filter(AbstractStateWithAssumptions.class)) {
+            assumptions.addAll(state.getAssumptions());
+          }
         }
       }
       final List<AutomatonTransition> transitions = new ArrayList<>();
