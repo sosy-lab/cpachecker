@@ -254,10 +254,11 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     PathFormula blockFormula = predicateState.getAbstractionFormula().getBlockFormula();
 
     Collection<AbstractionPredicate> localPreds = convertInterpolant(pInterpolant, blockFormula);
-    CFANode loc = AbstractStates.extractLocation(interpolationPoint);
-    int locInstance = predicateState.getAbstractionLocationsOnPath().get(loc);
-
-    newPredicates.putAll(new LocationInstance(loc, locInstance), localPreds);
+    Iterable<CFANode> locations = AbstractStates.extractLocations(interpolationPoint);
+    for (CFANode loc : locations) {
+      int locInstance = predicateState.getAbstractionLocationsOnPath().get(loc);
+      newPredicates.putAll(new LocationInstance(loc, locInstance), localPreds);
+    }
     predicateCreation.stop();
 
     return false;

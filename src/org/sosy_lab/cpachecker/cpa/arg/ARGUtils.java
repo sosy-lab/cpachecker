@@ -515,9 +515,11 @@ public class ARGUtils {
         ARGState trueChild = null;
         ARGState falseChild = null;
 
-        CFANode loc = AbstractStates.extractLocation(currentElement);
-        if (!leavingEdges(loc).allMatch(Predicates.instanceOf(AssumeEdge.class))) {
-          throw new IllegalArgumentException("ARG branches where there is no AssumeEdge!");
+        Iterable<CFANode> locations = AbstractStates.extractLocations(currentElement);
+        for (CFANode loc : locations) {
+          if (!leavingEdges(loc).allMatch(Predicates.instanceOf(AssumeEdge.class))) {
+            throw new IllegalArgumentException("ARG branches where there is no AssumeEdge!");
+          }
         }
 
         for (ARGState currentChild : childrenInArg) {
