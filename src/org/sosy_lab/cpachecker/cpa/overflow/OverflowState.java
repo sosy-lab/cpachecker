@@ -43,7 +43,6 @@ public final class OverflowState
     AbstractQueryableState {
 
   private final ImmutableSet<? extends AExpression> assumptions;
-  private final String readableAssumptions;
   private final OverflowState parent;
   private final boolean hasOverflow;
   private final boolean nextHasOverflow;
@@ -65,10 +64,6 @@ public final class OverflowState
     }
     assert !hasOverflow || pNextHasOverflow;
     nextHasOverflow = pNextHasOverflow;
-
-    StringBuilder sb = new StringBuilder();
-    Joiner.on(", ").appendTo(sb, assumptions.stream().map(x -> x.toASTString()).iterator());
-    readableAssumptions = sb.toString();
   }
 
   public boolean hasOverflow() {
@@ -110,7 +105,7 @@ public final class OverflowState
   @Override
   public String toString() {
     return "OverflowState{assumeEdges=["
-        + readableAssumptions
+        + getReadableAssumptions()
         + "], hasOverflow="
         + hasOverflow
         + ", nextHasOverflow="
@@ -121,7 +116,7 @@ public final class OverflowState
   @Override
   public String toDOTLabel() {
     if (hasOverflow) {
-      return readableAssumptions.replaceAll(", ", "\n");
+      return getReadableAssumptions().replaceAll(", ", "\n");
     }
     return "";
   }
@@ -129,6 +124,12 @@ public final class OverflowState
   @Override
   public boolean shouldBeHighlighted() {
     return false;
+  }
+
+  private String getReadableAssumptions() {
+    StringBuilder sb = new StringBuilder();
+    Joiner.on(", ").appendTo(sb, assumptions.stream().map(x -> x.toASTString()).iterator());
+    return sb.toString();
   }
 
   @Override
