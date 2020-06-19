@@ -225,7 +225,9 @@ analysis.algorithm.proofCheckWithARGCMCStrategy = false
 # ConfigurableProgramAnalysisWithPropertyChecker
 analysis.algorithm.propertyCheck = false
 
-# Use termination algorithm to prove (non-)termination.
+# Use termination algorithm to prove (non-)termination. This needs the
+# TerminationCPA as root CPA and an automaton CPA with
+# termination_as_reach.spc in the tree of CPAs.
 analysis.algorithm.termination = false
 
 # collect undefined functions
