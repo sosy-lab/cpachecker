@@ -69,5 +69,17 @@ public class ModuleInstantiation {
 
       return new ModuleInstantiation(specificationName, instanceName, variableMappings);
     }
+
+    private Builder variableMappings(Map<String, String> pVariableMappings) {
+      variableMappings = new HashMap<>(pVariableMappings);
+      return this;
+    }
+
+    public static ModuleInstantiation.Builder copy(ModuleInstantiation original) {
+      return new Builder()
+          .instanceName(original.instanceName)
+          .specificationName(original.specificationName)
+          .variableMappings(original.variableMappings);
+    }
   }
 }

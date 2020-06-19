@@ -59,7 +59,8 @@ class ASTVisitor extends CTAGrammarParserBaseVisitor<SystemSpecification> {
     var rootModules = modules.stream().filter(module -> module.isRoot).collect(Collectors.toSet());
     verify(
         rootModules.size() == 1,
-        "Invalid number of root modules. Expected 1 but got " + rootModules.size());
+        "Invalid number of root modules. Expected 1 but got %s",
+        rootModules.size());
 
     return new SystemSpecification.Builder()
         .modules(modules)
@@ -87,9 +88,8 @@ class ASTVisitor extends CTAGrammarParserBaseVisitor<SystemSpecification> {
                   automatonSpec -> {
                     verify(
                         initialCondition.isPresent(),
-                        "Module "
-                            + moduleName
-                            + " contains an automaton but no initial state definition.");
+                        "Module %s contains an automaton but no initial state definition.",
+                        moduleName);
                     return automatonSpec.accept(
                         new AutomatonSpecificationVisitor(initialCondition.get()));
                   });
@@ -201,7 +201,7 @@ class ASTVisitor extends CTAGrammarParserBaseVisitor<SystemSpecification> {
           return Operator.GREATER;
         case ">=":
           return Operator.GREATER_EQUAL;
-        case "==":
+        case "=":
           return Operator.EQUAL;
         default:
           throw new VerifyException("Unknown binary operator " + op.getText());

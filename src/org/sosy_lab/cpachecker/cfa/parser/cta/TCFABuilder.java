@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,6 +56,7 @@ class TCFABuilder {
   private ModuleInstantiation instantiation;
   private Map<String, Number> instantiatedConstantInitializations;
   private Set<String> uninstantiatedLocalVariableNames;
+  private String moduleInstanceName;
 
   private Map<String, CFANode> nodesByName;
   private Map<String, TaVariable> variablesByName;
@@ -82,10 +84,9 @@ class TCFABuilder {
         Sets.intersection(localVariables, instantiation.variableMappings.keySet());
     checkArgument(
         instantiatedLocalVariables.isEmpty(),
-        "Cannot instantiate local variables "
-            + String.join(", ", instantiatedLocalVariables)
-            + " for instantiated module "
-            + instantiation.instanceName);
+        "Cannot instantiate local variable(s) %s for instantiated module %s",
+        String.join(", ", instantiatedLocalVariables),
+        moduleInstanceName);
 
     var inputVariables =
         moduleSpec.variables.stream()
@@ -96,10 +97,9 @@ class TCFABuilder {
         Sets.difference(inputVariables, instantiation.variableMappings.keySet());
     checkArgument(
         uninstantiatedInputVariables.isEmpty(),
-        "Uninstantiated input variables "
-            + String.join(", ", uninstantiatedInputVariables)
-            + " for instantiated module "
-            + instantiation.instanceName);
+        "Uninstantiated input variable(s) %s for instantiated module %s",
+        String.join(", ", uninstantiatedInputVariables),
+        moduleInstanceName);
 
     createFunctionDeclaration();
     createAutomaton();
@@ -126,6 +126,7 @@ class TCFABuilder {
 
     systemSpec = pSpecification;
     instantiation = pSpecification.instantiation;
+    moduleInstanceName = instantiation.instanceName;
     moduleSpec =
         pSpecification.modules.stream()
             .filter(spec -> spec.moduleName.equals(instantiation.specificationName))
@@ -141,7 +142,6 @@ class TCFABuilder {
   }
 
   private void createFunctionDeclaration() {
-    var moduleName = instantiation.instanceName;
     var variablesByType =
         moduleSpec.variables.stream().collect(Collectors.groupingBy(variable -> variable.type));
 
@@ -154,10 +154,10 @@ class TCFABuilder {
             .map(variable -> getOrCreateVariable(variable.name))
             .collect(Collectors.toSet());
     moduleDeclaration =
-        new TaDeclaration(FileLocation.DUMMY, moduleName, clockVariables, actionVariables);
+        new TaDeclaration(FileLocation.DUMMY, moduleInstanceName, clockVariables, actionVariables);
 
     variablesByType
-        .get(VariableType.CONST)
+        .getOrDefault(VariableType.CONST, new ArrayList<>())
         .forEach(
             variable -> {
               if (variable.initialization.isPresent()) {
@@ -191,18 +191,15 @@ class TCFABuilder {
   private void createTransition(TransitionSpecification specification) {
     verify(
         nodesByName.containsKey(specification.source),
-        "Source state "
-            + specification.source
-            + " is unknown in instantiated module "
-            + moduleDeclaration.getName());
+        "Source state %s is unknown in instantiated module %s",
+        specification.source,
+        moduleInstanceName);
     verify(
         nodesByName.containsKey(specification.target),
-        "Target state "
-            + specification.target
-            + " is unknown in transition from "
-            + specification.source
-            + " in instantiated module "
-            + moduleDeclaration.getName());
+        "Target state %s is unknown in transition from %s in instantiated module %s",
+        specification.target,
+        specification.source,
+        moduleInstanceName);
 
     var resetClocks =
         specification.resetClocks.stream()
@@ -210,23 +207,19 @@ class TCFABuilder {
             .collect(Collectors.toSet());
     verify(
         moduleDeclaration.getClocks().containsAll(resetClocks),
-        "Undeclared clocks are reset in transition "
-            + specification.source
-            + "->"
-            + specification.target
-            + " in instantiated module "
-            + moduleDeclaration.getName());
+        "Undeclared clocks are reset in transition %s->%s in instantiated module %s",
+        specification.source,
+        specification.target,
+        moduleInstanceName);
 
     var action = specification.syncMark.transform(this::getOrCreateVariable);
     if (action.isPresent()) {
       verify(
           moduleDeclaration.getActions().contains(action.get()),
-          "Undeclared action on transition "
-              + specification.source
-              + "->"
-              + specification.target
-              + " in instantiated module "
-              + moduleDeclaration.getName());
+          "Undeclared action on transition %s->%s in instantiated module %s",
+          specification.source,
+          specification.target,
+          moduleInstanceName);
     }
 
     Optional<TaVariableCondition> guard =
@@ -251,12 +244,10 @@ class TCFABuilder {
     var instantiatedVariable = getOrCreateVariable(varExpr.variableName);
     verify(
         moduleDeclaration.getClocks().contains(instantiatedVariable),
-        "Undeclared variable "
-            + instantiatedVariable
-            + " (uninstantiated name: "
-            + varExpr.variableName
-            + ") in instantiated module "
-            + moduleDeclaration.getName());
+        "Undeclared variable %s (uninstantiated name: %s) in instantiated module %s",
+        instantiatedVariable,
+        varExpr.variableName,
+        moduleInstanceName);
 
     var operator = convertOperatorType(varExpr.operator);
 
@@ -321,7 +312,7 @@ class TCFABuilder {
     }
     // once the automaton of this module is created, populate nodesByAutomaton and
     // entryNodesByAutomaton
-    var automatonName = moduleDeclaration.getName();
+    var automatonName = moduleInstanceName;
     nodesByAutomaton.putAll(automatonName, nodesByName.values());
 
     var entryNodes =
@@ -330,20 +321,29 @@ class TCFABuilder {
             .collect(Collectors.toSet());
     verify(
         entryNodes.size() == 1,
-        "Expected automaton to have 1 entry node but found "
-            + entryNodes.size()
-            + " in instantiated module "
-            + automatonName);
-    entryNodesByAutomaton.put(
-        moduleDeclaration.getName(), (FunctionEntryNode) entryNodes.iterator().next());
+        "Expected automaton to have 1 entry node but found %s in instantiated module %s",
+        entryNodes.size(),
+        automatonName);
+    entryNodesByAutomaton.put(moduleInstanceName, (FunctionEntryNode) entryNodes.iterator().next());
   }
 
   private void createSubInstantiations() {
     for (var subInstantiation : moduleSpec.instantiations) {
+      // transfer relevant variable mappings
       Map<String, TaVariable> variableInstanceMapping = new HashMap<>();
       for (var mapping : subInstantiation.variableMappings.entrySet()) {
         variableInstanceMapping.put(mapping.getKey(), getOrCreateVariable(mapping.getValue()));
       }
+
+      // qualify instance name
+      var qualifiedInstanceName = subInstantiation.instanceName;
+      if (!moduleSpec.isRoot) {
+        qualifiedInstanceName = moduleInstanceName + "-" + qualifiedInstanceName;
+      }
+      var updatedSubInstantiation =
+          ModuleInstantiation.Builder.copy(subInstantiation)
+              .instanceName(qualifiedInstanceName)
+              .build();
 
       var constantInits = new HashMap<>(instantiatedConstantInitializations);
       var tcfaBuilder = new TCFABuilder();
@@ -351,7 +351,7 @@ class TCFABuilder {
       var updatedSystemSpecification =
           new SystemSpecification.Builder()
               .modules(systemSpec.modules)
-              .instantiation(subInstantiation)
+              .instantiation(updatedSubInstantiation)
               .build();
 
       tcfaBuilder.instantiateSpecification(
@@ -361,9 +361,10 @@ class TCFABuilder {
       var nodeResults = tcfaBuilder.getNodesByAutomatonResult();
 
       verify(
-          !entryNodeResults.containsKey(moduleDeclaration.getName())
-              && !nodeResults.containsKey(moduleDeclaration.getName()),
-          "Cannot instantiate more than one module with name " + moduleDeclaration.getName());
+          !entryNodeResults.containsKey(moduleInstanceName)
+              && !nodeResults.containsKey(moduleInstanceName),
+          "Cannot instantiate more than one module with name %s",
+          moduleInstanceName);
 
       entryNodesByAutomaton.putAll(entryNodeResults);
       nodesByAutomaton.putAll(nodeResults);
@@ -377,7 +378,7 @@ class TCFABuilder {
   private TaVariable getOrCreateVariable(String name) {
     if (!variablesByName.containsKey(name)) {
       var isLocal = !moduleSpec.isRoot && uninstantiatedLocalVariableNames.contains(name);
-      var variable = new TaVariable(name, instantiation.instanceName, isLocal);
+      var variable = new TaVariable(name, moduleInstanceName, isLocal);
       variablesByName.put(name, variable);
     }
 
@@ -405,12 +406,10 @@ class TCFABuilder {
     var instantiatedName = getInstantiatedVariableName(uninstantiatedName);
     verify(
         instantiatedConstantInitializations.containsKey(instantiatedName),
-        "Uninitialized constant variable "
-            + instantiatedName
-            + " (uninstantiated name: "
-            + uninstantiatedName
-            + ") in instantiated module "
-            + moduleDeclaration.getName());
+        "Uninitialized constant variable %s (uninstantiated name: %s) in instantiated module %s",
+        instantiatedName,
+        uninstantiatedName,
+        moduleInstanceName);
 
     return instantiatedConstantInitializations.get(instantiatedName);
   }

@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.model.timedautomata;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -64,16 +63,15 @@ public class TCFAEdge extends AbstractCFAEdge {
 
   @Override
   public String getDescription() {
-    var guardString = guard.transform(g -> g.toString()).or("");
-    var actionString = action.transform(a -> a.getShortName()).or("");
+    var guardString = guard.transform(g -> g.toString()).or("-");
+    var actionString = action.transform(a -> a.getShortName()).or("-");
     var resetString =
         String.join(
             ", ", variablesToReset.stream().map(v -> v.getShortName()).collect(Collectors.toSet()));
-    var result =
-        ImmutableList.of(guardString, actionString, resetString).stream()
-            .filter(s -> !s.isBlank())
-            .collect(Collectors.toList());
+    if (resetString.isBlank()) {
+      resetString = "-";
+    }
 
-    return String.join("; ", result);
+    return guardString + " | " + actionString + " | " + resetString;
   }
 }

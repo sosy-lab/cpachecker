@@ -35,6 +35,7 @@ import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -564,7 +565,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     private final String label;
 
-    private final Map<String, String> automatonTargetLocations;
+    private final Map<String, Set<String>> automatonTargetLocations;
 
     public MatchLabelExact(String pLabel) {
       label = checkNotNull(pLabel);
@@ -576,10 +577,13 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         var description_split =
             Splitter.on(':').omitEmptyStrings().trimResults().splitToList(description);
         if (description_split.size() != 2) {
-          continue;
+          throw new VerifyError(
+              "Invalid target state location specification. Required format is: automatonName:stateName;...");
         }
 
-        automatonTargetLocations.put(description_split.get(0), description_split.get(1));
+        var automatonName = description_split.get(0);
+        automatonTargetLocations.computeIfAbsent(automatonName, s -> new HashSet<>());
+        automatonTargetLocations.get(automatonName).add(description_split.get(1));
       }
     }
 
@@ -597,7 +601,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
           return CONST_TRUE;
         }
 
-        if (automatonTargetLocations.get(automatonName).equals(tcfaNode.getName())) {
+        if (automatonTargetLocations.get(automatonName).contains(tcfaNode.getName())) {
           return CONST_TRUE;
         }
 

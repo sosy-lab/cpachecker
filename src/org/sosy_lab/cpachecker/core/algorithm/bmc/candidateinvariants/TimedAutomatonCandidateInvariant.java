@@ -45,7 +45,11 @@ public enum TimedAutomatonCandidateInvariant implements CandidateInvariant {
       Iterable<AbstractState> pReachedSet, FormulaManagerView pFMGR, PathFormulaManager pPFMGR)
       throws InterruptedException {
     Map<String, BooleanFormula> formulaByAutomata = new HashMap<>();
-    Iterable<AbstractState> targetStates = filterApplicable(pReachedSet);
+    var targetStates = filterApplicable(pReachedSet).toList();
+
+    if (targetStates.isEmpty()) {
+      return pFMGR.getBooleanFormulaManager().makeTrue();
+    }
 
     // post-process each formula and build formula for each component automaton
     for (AbstractState aState : targetStates) {

@@ -32,7 +32,7 @@ public class TaVariable implements Serializable {
 
   public String getShortName() {
     if (isLocal) {
-      return "L_" + name;
+      return "[" + name + "]";
     }
     return name;
   }

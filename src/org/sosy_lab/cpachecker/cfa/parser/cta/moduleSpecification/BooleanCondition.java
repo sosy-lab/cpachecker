@@ -55,7 +55,7 @@ public class BooleanCondition {
 
       checkArgument(!variableName.isEmpty(), "Empty variable names are not allowed");
       checkArgument(
-          (new BigDecimal(constant.toString()).signum() >= 0),
+          new BigDecimal(constant.toString()).signum() >= 0,
           "Negative values are not allowed for constants.");
 
       expressions.add(variableExpression);

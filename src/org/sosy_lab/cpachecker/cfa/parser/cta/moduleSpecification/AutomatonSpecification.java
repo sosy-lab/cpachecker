@@ -72,25 +72,21 @@ public class AutomatonSpecification {
       var unspecifiedTransitionStates = Sets.difference(statesInTransitions, stateNames);
       checkState(
           unspecifiedTransitionStates.isEmpty(),
-          "Unspecified states "
-              + String.join(", ", unspecifiedTransitionStates)
-              + " cannot appear as source or target state in automaton "
-              + automatonName);
+          "Unspecified state(s) %s cannot appear as source or target state in automaton %s",
+          String.join(", ", unspecifiedTransitionStates),
+          automatonName);
 
       var unspecifiedInitialStates = Sets.difference(initialStates, stateNames);
       checkState(
           unspecifiedInitialStates.isEmpty(),
-          "Unspecified states "
-              + String.join(", ", unspecifiedTransitionStates)
-              + " cannot appear as initial state in automaton "
-              + automatonName);
+          "Unspecified state(s) %s cannot appear as initial state in automaton %s",
+          String.join(", ", unspecifiedInitialStates),
+          automatonName);
 
       checkState(
-          !initialStates.isEmpty(),
-          "Automaton " + automatonName + " needs at least one initial state");
+          !initialStates.isEmpty(), "Automaton %s needs at least one initial state", automatonName);
       checkState(
-          !stateSpecifications.isEmpty(),
-          "Automaton " + automatonName + " needs at least one state");
+          !stateSpecifications.isEmpty(), "Automaton %s needs at least one state", automatonName);
 
       return new AutomatonSpecification(stateSpecifications, transitions);
     }

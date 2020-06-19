@@ -54,7 +54,8 @@ public class SystemSpecification {
               .collect(Collectors.toSet());
       checkState(
           rootModules.size() == 1,
-          "Invalid number of root modules. Expected 1 but got " + rootModules.size());
+          "Invalid number of root modules. Expected 1 but got %s",
+          rootModules.size());
 
       var instantiatedModules =
           modules.stream()
@@ -80,21 +81,20 @@ public class SystemSpecification {
               .collect(Collectors.toSet());
       checkState(
           duplicateSpecNames.isEmpty(),
-          "Module specification names must be uniques. Found duplicate names: "
-              + String.join(", ", duplicateSpecNames));
+          "Module specification names must be uniques. Found duplicate name(s): %s",
+          String.join(", ", duplicateSpecNames));
 
       var unknownInstantiations = Sets.difference(instantiatedModules, moduleNames);
       checkState(
           unknownInstantiations.isEmpty(),
-          "Instantiation of module(s) "
-              + String.join(", ", unknownInstantiations)
-              + " invalid. No matching specification found.");
+          "Instantiation of module(s) %s is invalid. No matching specification found.",
+          String.join(", ", unknownInstantiations));
 
       var uninstantiatedSpecifications = Sets.difference(moduleNames, instantiatedModules);
       checkState(
           uninstantiatedSpecifications.isEmpty(),
-          "The following modules are specified but never instantiated: "
-              + String.join(", ", uninstantiatedSpecifications));
+          "The following module(s) are specified but never instantiated: %s",
+          String.join(", ", uninstantiatedSpecifications));
 
       var instNameOccurences =
           instanceNames.collect(
@@ -106,8 +106,8 @@ public class SystemSpecification {
               .collect(Collectors.toSet());
       checkState(
           duplicateInstanceNames.isEmpty(),
-          "Module instance names must be uniques. Found duplicate names: "
-              + String.join(", ", duplicateInstanceNames));
+          "Module instance names must be uniques. Found duplicate name(s): ",
+          String.join(", ", duplicateInstanceNames));
     }
   }
 }

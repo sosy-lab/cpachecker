@@ -208,7 +208,7 @@ public class TestDataTools {
       program = tempFile.toString();
     } else {
       tempFile = getTempFile(pTempFolder, "automaton.cta");
-      fileContent = "MODULE m1 { INITIAL A1_S1; AUTOMATON A1 { STATE A1_S1 { } } }";
+      fileContent = "MODULE ROOT m1 { INITIAL A1_S1; AUTOMATON A1 { STATE A1_S1 { } } }";
       program = tempFile.toString();
     }
     if (tempFile.createNewFile()) {

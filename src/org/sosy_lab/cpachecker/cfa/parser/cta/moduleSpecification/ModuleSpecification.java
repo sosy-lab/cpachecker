@@ -80,7 +80,8 @@ public class ModuleSpecification {
           instantiations.stream().map(inst -> inst.specificationName).collect(Collectors.toSet());
       checkState(
           !instantiatedModules.contains(moduleName),
-          "Module " + moduleName + " must not instantiate itself.");
+          "Module %s must not instantiate itself.",
+          moduleName);
 
       var variableNameOccurences =
           variables.stream()
@@ -92,10 +93,9 @@ public class ModuleSpecification {
               .collect(Collectors.toSet());
       checkState(
           duplicateVariableNames.isEmpty(),
-          "The following variable names of module "
-              + moduleName
-              + " are not unique: "
-              + String.join(", ", duplicateVariableNames));
+          "The following variable names of module %s are not unique: %s",
+          moduleName,
+          String.join(", ", duplicateVariableNames));
 
       var instNameOccurences =
           instantiations.stream()
@@ -107,10 +107,9 @@ public class ModuleSpecification {
               .collect(Collectors.toSet());
       checkState(
           duplicateInstNames.isEmpty(),
-          "The following instance names defined in module "
-              + moduleName
-              + " are not unique: "
-              + String.join(", ", duplicateInstNames));
+          "The following instance names defined in module %s are not unique: %s",
+          moduleName,
+          String.join(", ", duplicateInstNames));
 
       return new ModuleSpecification(isRoot, variables, instantiations, automaton, moduleName);
     }
