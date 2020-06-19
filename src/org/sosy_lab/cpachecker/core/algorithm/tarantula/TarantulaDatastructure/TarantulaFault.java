@@ -7,43 +7,43 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure;
 
-import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
-/** Class represents a special fault where a line has its CFAEdge with its suspicious */
+import java.util.Set;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
+
+/** Class represents a special fault where a line has a set of Fault contributions */
 public class TarantulaFault {
 
   private final double lineScore;
-  private final Fault fault;
-  private final TarantulaCFAEdgeSuspicious tarantulaCFAEdgeSuspicious;
+  private final int lineNumber;
+  private final Set<FaultContribution> hints;
 
-  public TarantulaFault(
-      double pLineScore, Fault pFault, TarantulaCFAEdgeSuspicious pTarantulaCFAEdgeSuspicious) {
-
+  public TarantulaFault(double pLineScore, Set<FaultContribution> pHints, int pLineNumber) {
     this.lineScore = pLineScore;
-    this.fault = pFault;
-    this.tarantulaCFAEdgeSuspicious = pTarantulaCFAEdgeSuspicious;
+    this.lineNumber = pLineNumber;
+    this.hints = pHints;
   }
 
   public double getLineScore() {
     return lineScore;
   }
 
-  public Fault getFault() {
-    return fault;
+  public Set<FaultContribution> getHints() {
+    return hints;
   }
 
-  public TarantulaCFAEdgeSuspicious getTarantulaCFAEdgeSuspicious() {
-    return tarantulaCFAEdgeSuspicious;
+  public int getLineNumber() {
+    return lineNumber;
   }
 
   @Override
   public String toString() {
     return "TarantulaFault{"
-        + "score="
+        + "lineScore="
         + lineScore
-        + ", fault="
-        + fault
-        + ", tarantulaCFAEdgeSuspicious="
-        + tarantulaCFAEdgeSuspicious
+        + ", lineNumber="
+        + lineNumber
+        + ", hints="
+        + hints
         + '}';
   }
 }
