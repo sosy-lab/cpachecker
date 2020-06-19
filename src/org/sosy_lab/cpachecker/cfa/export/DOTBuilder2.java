@@ -380,7 +380,9 @@ public final class DOTBuilder2 {
       
       if(node instanceof TCFANode) {
         TCFANode tcfaNode = (TCFANode)node;
-        jnode.put("label", tcfaNode.getName());
+        var invariantString =
+            tcfaNode.getInvariant().transform(inv -> "\nINV: " + inv.toString()).or("");
+        jnode.put("label", tcfaNode.getName() + invariantString);
         jnode.put("istimednode", true);
       }
 

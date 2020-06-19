@@ -8,10 +8,13 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Optional;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariableCondition;
+import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariableExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAEdge;
@@ -34,6 +37,7 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
 public class TatoFormulaConverter extends CtoFormulaConverter {
 
@@ -69,43 +73,17 @@ public class TatoFormulaConverter extends CtoFormulaConverter {
     var sourceNode = edge.getPredecessor();
     var targetNode = edge.getSuccessor();
     if (sourceNode instanceof TCFAEntryNode && targetNode instanceof TCFANode) {
-      return makeInitialFormula(edge, function, ssa, pts, constraints, errorConditions);
+      return makeInitialFormula(edge, function, ssa);
     }
     if (edge.getEdgeType() == CFAEdgeType.TimedAutomatonEdge) {
-      return makeTimedEdgeFormula(
-          (TCFAEdge) edge, function, ssa, pts, constraints, errorConditions);
+      return makeTimedEdgeFormula((TCFAEdge) edge, function, ssa);
     }
     return super.createFormulaForEdge(edge, function, ssa, pts, constraints, errorConditions);
   }
 
-  @Override
-  protected CRightHandSideVisitor<Formula, UnrecognizedCodeException> createCRightHandSideVisitor(
-      CFAEdge pEdge,
-      String pFunction,
-      SSAMapBuilder ssa,
-      PointerTargetSetBuilder pts,
-      Constraints constraints,
-      ErrorConditions errorConditions) {
-
-    return new TaExpressionToDifferenceFormulaVisitor(
-        this,
-        fmgr,
-        pEdge,
-        pFunction,
-        ssa,
-        constraints,
-        getCurrentTimeVariableFormula(pFunction, ssa));
-  }
-
   /** Creates a formula that represents the initial state of a timed automaton */
   private BooleanFormula makeInitialFormula(
-      final CFAEdge initialEdge,
-      final String function,
-      final SSAMapBuilder ssa,
-      final PointerTargetSetBuilder pts,
-      final Constraints constraints,
-      final ErrorConditions errorConditions)
-      throws UnrecognizedCodeException, InterruptedException {
+      final CFAEdge initialEdge, final String function, final SSAMapBuilder ssa) {
     var declaration = ((TCFANode) initialEdge.getSuccessor()).getAutomatonDeclaration();
 
     var timeVariable = getCurrentTimeVariableFormula(function, ssa);
@@ -114,7 +92,7 @@ public class TatoFormulaConverter extends CtoFormulaConverter {
 
     var allClocksZero = bfmgr.makeTrue();
     for (var clockVariable : declaration.getClocks()) {
-      var variable = makeFreshVariable(clockVariable, getDecimalVariableType(), ssa);
+      var variable = makeFreshVariable(clockVariable.getName(), getDecimalVariableType(), ssa);
       var variableIsZero = fmgr.makeEqual(variable, decimalZero);
       allClocksZero = bfmgr.and(allClocksZero, variableIsZero);
     }
@@ -122,15 +100,13 @@ public class TatoFormulaConverter extends CtoFormulaConverter {
     var allActionCountsZero = bfmgr.makeTrue();
     var integerZero = fmgr.makeNumber(getIntegerVariableType(), 0);
     for (var action : declaration.getActions()) {
-      var occurenceVarName = getActionOccurenceVariableName(function, action);
+      var occurenceVarName = getActionOccurenceVariableName(function, action.getName());
       var occurenceVariable = makeVariable(occurenceVarName, getIntegerVariableType(), ssa);
       allActionCountsZero =
           bfmgr.and(fmgr.makeEqual(occurenceVariable, integerZero), allActionCountsZero);
     }
 
-    var firstInvariantSatisfied =
-        makeSuccessorInvariantFormula(
-            initialEdge, function, ssa, pts, constraints, errorConditions);
+    var firstInvariantSatisfied = makeSuccessorInvariantFormula(initialEdge, function, ssa);
 
     var initFormula =
         bfmgr.and(
@@ -189,24 +165,10 @@ public class TatoFormulaConverter extends CtoFormulaConverter {
    * correspond to variables after the transition.
    */
   private BooleanFormula makeSuccessorInvariantFormula(
-      final CFAEdge edge,
-      final String function,
-      final SSAMapBuilder ssa,
-      final PointerTargetSetBuilder pts,
-      final Constraints constraints,
-      final ErrorConditions errorConditions)
-      throws UnrecognizedCodeException, InterruptedException {
+      final CFAEdge edge, final String function, final SSAMapBuilder ssa) {
     var successor = (TCFANode) edge.getSuccessor();
     if (successor.getInvariant().isPresent()) {
-      return makePredicate(
-          successor.getInvariant().get(),
-          true,
-          edge,
-          function,
-          ssa,
-          pts,
-          constraints,
-          errorConditions);
+      return makeFormulaFromCondition(successor.getInvariant().get(), function, ssa);
     }
 
     return bfmgr.makeTrue();
@@ -217,27 +179,20 @@ public class TatoFormulaConverter extends CtoFormulaConverter {
    * target state, clock resets and one time delay transition
    */
   private BooleanFormula makeTimedEdgeFormula(
-      final TCFAEdge edge,
-      final String function,
-      final SSAMapBuilder ssa,
-      final PointerTargetSetBuilder pts,
-      final Constraints constraints,
-      final ErrorConditions errorConditions)
-      throws UnrecognizedCodeException, InterruptedException {
+      final TCFAEdge edge, final String function, final SSAMapBuilder ssa) {
     var transitionFormula = bfmgr.makeTrue();
 
     // guard
     if (edge.getGuard().isPresent()) {
-      var guardFormula =
-          makePredicate(
-              edge.getGuard().get(), true, edge, function, ssa, pts, constraints, errorConditions);
+      var guardFormula = makeFormulaFromCondition(edge.getGuard().get(), function, ssa);
       transitionFormula = bfmgr.and(guardFormula, transitionFormula);
     }
 
     // clock reset
     var resetFormula = bfmgr.makeTrue();
     for (var variableToReset : edge.getVariablesToReset()) {
-      var variableFormula = makeFreshVariable(variableToReset, getDecimalVariableType(), ssa);
+      var variableFormula =
+          makeFreshVariable(variableToReset.getName(), getDecimalVariableType(), ssa);
       var variableResetFormula =
           fmgr.makeEqual(variableFormula, getCurrentTimeVariableFormula(function, ssa));
       resetFormula = bfmgr.and(resetFormula, variableResetFormula);
@@ -245,22 +200,21 @@ public class TatoFormulaConverter extends CtoFormulaConverter {
     transitionFormula = bfmgr.and(resetFormula, transitionFormula);
 
     // successor invariant
-    var successorInvariantFormula =
-        makeSuccessorInvariantFormula(edge, function, ssa, pts, constraints, errorConditions);
+    var successorInvariantFormula = makeSuccessorInvariantFormula(edge, function, ssa);
     transitionFormula = bfmgr.and(successorInvariantFormula, transitionFormula);
 
     // sync formula
     if (edge.getAction().isPresent()) {
       var action = edge.getAction().get();
       var one = fmgr.makeNumber(getIntegerVariableType(), 1);
-      var occurenceVarName = getActionOccurenceVariableName(function, action);
+      var occurenceVarName = getActionOccurenceVariableName(function, action.getName());
       var oldOccurenceVariable = makeVariable(occurenceVarName, getIntegerVariableType(), ssa);
       var newOccurenceVariable = makeFreshVariable(occurenceVarName, getIntegerVariableType(), ssa);
       var occurenceUpdate =
           fmgr.makeEqual(newOccurenceVariable, fmgr.makePlus(oldOccurenceVariable, one));
       transitionFormula = bfmgr.and(occurenceUpdate, transitionFormula);
 
-      var actionVarName = getActionVariableName(function, action);
+      var actionVarName = getActionVariableName(function, action.getName());
       var actionVariable = makeFreshVariable(actionVarName, getDecimalVariableType(), ssa);
       var syncFormula =
           fmgr.makeEqual(actionVariable, getCurrentTimeVariableFormula(function, ssa));
@@ -269,8 +223,7 @@ public class TatoFormulaConverter extends CtoFormulaConverter {
 
     // delay transition
     var delayFormula = makeTimeUpdateFormula(function, ssa);
-    var invariantAfterDelayFormula =
-        makeSuccessorInvariantFormula(edge, function, ssa, pts, constraints, errorConditions);
+    var invariantAfterDelayFormula = makeSuccessorInvariantFormula(edge, function, ssa);
     var delayTransitionFormula = bfmgr.and(delayFormula, invariantAfterDelayFormula);
     transitionFormula = bfmgr.and(delayTransitionFormula, transitionFormula);
 
@@ -312,5 +265,51 @@ public class TatoFormulaConverter extends CtoFormulaConverter {
 
   protected Formula makeConstant(String name, FormulaType<?> type) {
     return fmgr.makeVariableWithoutSSAIndex(type, name);
+  }
+
+  protected BooleanFormula makeFormulaFromCondition(
+      TaVariableCondition condition, String automatonName, SSAMapBuilder ssa) {
+    return condition.getExpressions().stream()
+        .reduce(
+            bfmgr.makeTrue(),
+            (res, expr) -> bfmgr.and(makeFormulaFromExpression(expr, automatonName, ssa), res),
+            (f1, f2) -> bfmgr.and(f1, f2));
+  }
+
+  protected BooleanFormula makeFormulaFromExpression(
+      TaVariableExpression expression, String automatonName, SSAMapBuilder ssa) {
+    var variableFormula =
+        makeVariable(expression.getVariable().getName(), getDecimalVariableType(), ssa);
+    var timeVariableFormula = getCurrentTimeVariableFormula(automatonName, ssa);
+    var differenceFormula = fmgr.makeMinus(timeVariableFormula, variableFormula);
+    var constantFormula = makeFormulaFromNumber(expression.getConstant());
+
+    switch (expression.getOperator()) {
+      case GREATER:
+        return fmgr.makeGreaterThan(differenceFormula, constantFormula, true);
+      case GREATER_EQUAL:
+        return fmgr.makeGreaterOrEqual(differenceFormula, constantFormula, true);
+      case LESS:
+        return fmgr.makeLessThan(differenceFormula, constantFormula, true);
+      case LESS_EQUAL:
+        return fmgr.makeLessOrEqual(differenceFormula, constantFormula, true);
+      case EQUAL:
+        return fmgr.makeEqual(differenceFormula, constantFormula);
+      default:
+        throw new AssertionError();
+    }
+  }
+
+  protected Formula makeFormulaFromNumber(Number pNumber) {
+    if (pNumber instanceof BigInteger) {
+      return fmgr.makeNumber(TatoFormulaConverter.getIntegerVariableType(), (BigInteger) pNumber);
+    } else if (pNumber instanceof BigDecimal) {
+      return fmgr.getFloatingPointFormulaManager()
+          .makeNumber(
+              (BigDecimal) pNumber,
+              (FloatingPointType) TatoFormulaConverter.getDecimalVariableType());
+    } else {
+      throw new AssertionError();
+    }
   }
 }

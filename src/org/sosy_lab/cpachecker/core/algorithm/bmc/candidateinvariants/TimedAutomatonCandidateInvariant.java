@@ -15,6 +15,7 @@ import com.google.common.collect.Streams;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -86,13 +87,13 @@ public enum TimedAutomatonCandidateInvariant implements CandidateInvariant {
   private BooleanFormula getFormulaWithSyncConstraints(
       BooleanFormula formula,
       FormulaManagerView pFMGR,
-      Iterable<String> allActionsOfAutomaton,
+      Iterable<TaVariable> allActionsOfAutomaton,
       String automatonName,
       SSAMap ssa) {
     // add constraints for number of action occurences
     for (var action : allActionsOfAutomaton) {
       var localOccurenceCountVarName =
-          TatoFormulaConverter.getActionOccurenceVariableName(automatonName, action);
+          TatoFormulaConverter.getActionOccurenceVariableName(automatonName, action.getName());
       var localOccurenceCountVar =
           pFMGR.makeVariable(
               TatoFormulaConverter.getIntegerVariableType(),
@@ -148,16 +149,17 @@ public enum TimedAutomatonCandidateInvariant implements CandidateInvariant {
       var actions = automaton.getActions();
       for (var action : actions) {
         for (int variableIndex = 0;
-            variableIndex <= maxSSAIndexOfAction.get(action);
+            variableIndex <= maxSSAIndexOfAction.get(action.getName());
             variableIndex++) {
           for (int numberOfOccurences = 0;
               numberOfOccurences <= variableIndex;
               numberOfOccurences++) {
             var countVarName =
-                TatoFormulaConverter.getActionOccurenceVariableName(automaton.getName(), action);
+                TatoFormulaConverter.getActionOccurenceVariableName(
+                    automaton.getName(), action.getName());
             var globalTimestampVarName = action + "#occurence#";
             var localTimestampVarName =
-                TatoFormulaConverter.getActionVariableName(automaton.getName(), action);
+                TatoFormulaConverter.getActionVariableName(automaton.getName(), action.getName());
 
             var countVar =
                 pFMGR.makeVariable(

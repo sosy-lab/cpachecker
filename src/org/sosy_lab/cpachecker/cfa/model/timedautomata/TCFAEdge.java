@@ -9,8 +9,11 @@
 package org.sosy_lab.cpachecker.cfa.model.timedautomata;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariable;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariableCondition;
 import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -18,9 +21,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class TCFAEdge extends AbstractCFAEdge {
 
-  private final Set<String> variablesToReset;
+  private final Set<TaVariable> variablesToReset;
   private final Optional<TaVariableCondition> guard;
-  private final Optional<String> action;
+  private final Optional<TaVariable> action;
 
   private static final long serialVersionUID = 5472749446453717391L;
 
@@ -29,19 +32,19 @@ public class TCFAEdge extends AbstractCFAEdge {
       CFANode pPredecessor,
       CFANode pSuccessor,
       Optional<TaVariableCondition> pGuard,
-      Set<String> pVariablesToReset,
-      Optional<String> pAction) {
+      Set<TaVariable> pVariablesToReset,
+      Optional<TaVariable> pAction) {
     super("", pFileLocation, pPredecessor, pSuccessor);
     variablesToReset = pVariablesToReset;
     guard = pGuard;
     action = pAction;
   }
 
-  public Optional<String> getAction() {
+  public Optional<TaVariable> getAction() {
     return action;
   }
 
-  public Set<String> getVariablesToReset() {
+  public Set<TaVariable> getVariablesToReset() {
     return variablesToReset;
   }
 
@@ -57,5 +60,20 @@ public class TCFAEdge extends AbstractCFAEdge {
   @Override
   public String getCode() {
     return "";
+  }
+
+  @Override
+  public String getDescription() {
+    var guardString = guard.transform(g -> g.toString()).or("");
+    var actionString = action.transform(a -> a.getShortName()).or("");
+    var resetString =
+        String.join(
+            ", ", variablesToReset.stream().map(v -> v.getShortName()).collect(Collectors.toSet()));
+    var result =
+        ImmutableList.of(guardString, actionString, resetString).stream()
+            .filter(s -> !s.isBlank())
+            .collect(Collectors.toList());
+
+    return String.join("; ", result);
   }
 }

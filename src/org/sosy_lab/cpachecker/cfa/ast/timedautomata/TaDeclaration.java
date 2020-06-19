@@ -20,21 +20,21 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 public class TaDeclaration extends AFunctionDeclaration {
 
   private static final long serialVersionUID = 1L;
-  private final Set<String> clocks;
-  private final Set<String> actions;
+  private final Set<TaVariable> clocks;
+  private final Set<TaVariable> actions;
 
   public TaDeclaration(
-      FileLocation pFileLocation, String pName, Set<String> pClocks, Set<String> pActions) {
+      FileLocation pFileLocation, String pName, Set<TaVariable> pClocks, Set<TaVariable> pActions) {
     super(pFileLocation, CFunctionType.NO_ARGS_VOID_FUNCTION, pName, pName, new ArrayList<>());
     clocks = pClocks;
     actions = pActions;
   }
 
-  public Set<String> getClocks() {
+  public Set<TaVariable> getClocks() {
     return ImmutableSet.copyOf(clocks);
   }
 
-  public Set<String> getActions() {
+  public Set<TaVariable> getActions() {
     return ImmutableSet.copyOf(actions);
   }
 

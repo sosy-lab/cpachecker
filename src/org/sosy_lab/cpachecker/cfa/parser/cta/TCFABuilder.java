@@ -17,7 +17,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
-import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,16 +24,12 @@ import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariable;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariableCondition;
+import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariableExpression;
+import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariableExpression.Operator;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
@@ -53,27 +48,30 @@ import org.sosy_lab.cpachecker.cfa.parser.cta.moduleSpecification.SystemSpecific
 import org.sosy_lab.cpachecker.cfa.parser.cta.moduleSpecification.TransitionSpecification;
 import org.sosy_lab.cpachecker.cfa.parser.cta.moduleSpecification.VariableSpecification.VariableType;
 import org.sosy_lab.cpachecker.cfa.parser.cta.moduleSpecification.VariableSpecification.VariableVisibility;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 class TCFABuilder {
   private SystemSpecification systemSpec;
   private ModuleSpecification moduleSpec;
   private ModuleInstantiation instantiation;
-  private Map<String, Number> constantInitializations;
+  private Map<String, Number> instantiatedConstantInitializations;
   private Set<String> uninstantiatedLocalVariableNames;
 
   private Map<String, CFANode> nodesByName;
-  private Map<String, CIdExpression> currentIdExpressionsByVariableName;
+  private Map<String, TaVariable> variablesByName;
   private TaDeclaration moduleDeclaration;
 
   private SortedSetMultimap<String, CFANode> nodesByAutomaton;
   private NavigableMap<String, FunctionEntryNode> entryNodesByAutomaton;
 
-  public void instantiateSpecification(
-      SystemSpecification pSpecification, Map<String, Number> pConstantInitializations) {
-    init(pSpecification, pConstantInitializations);
+  public void instantiateSpecification(SystemSpecification pSpecification) {
+    instantiateSpecification(pSpecification, new HashMap<>(), new HashMap<>());
+  }
+
+  private void instantiateSpecification(
+      SystemSpecification pSpecification,
+      Map<String, Number> pConstantInitializations,
+      Map<String, TaVariable> pVariables) {
+    init(pSpecification, pConstantInitializations, pVariables);
 
     var localVariables =
         moduleSpec.variables.stream()
@@ -118,9 +116,11 @@ class TCFABuilder {
   }
 
   private void init(
-      SystemSpecification pSpecification, Map<String, Number> pConstantInitializations) {
+      SystemSpecification pSpecification,
+      Map<String, Number> pConstantInitializations,
+      Map<String, TaVariable> pVariables) {
     nodesByName = new HashMap<>();
-    currentIdExpressionsByVariableName = new HashMap<>();
+    variablesByName = pVariables;
     nodesByAutomaton = TreeMultimap.create();
     entryNodesByAutomaton = new TreeMap<>();
 
@@ -131,7 +131,7 @@ class TCFABuilder {
             .filter(spec -> spec.moduleName.equals(instantiation.specificationName))
             .findFirst()
             .orElseThrow();
-    constantInitializations = new HashMap<>(pConstantInitializations);
+    instantiatedConstantInitializations = new HashMap<>(pConstantInitializations);
 
     uninstantiatedLocalVariableNames =
         moduleSpec.variables.stream()
@@ -145,24 +145,23 @@ class TCFABuilder {
     var variablesByType =
         moduleSpec.variables.stream().collect(Collectors.groupingBy(variable -> variable.type));
 
-    var clockVariableNames =
+    var clockVariables =
         variablesByType.getOrDefault(VariableType.CLOCK, ImmutableList.of()).stream()
-            .map(variable -> getInstantiatedName(variable.name))
+            .map(variable -> getOrCreateVariable(variable.name))
             .collect(Collectors.toSet());
-    var actionVariableNames =
+    var actionVariables =
         variablesByType.getOrDefault(VariableType.SYNC, ImmutableList.of()).stream()
-            .map(variable -> getInstantiatedName(variable.name))
+            .map(variable -> getOrCreateVariable(variable.name))
             .collect(Collectors.toSet());
     moduleDeclaration =
-        new TaDeclaration(FileLocation.DUMMY, moduleName, clockVariableNames, actionVariableNames);
+        new TaDeclaration(FileLocation.DUMMY, moduleName, clockVariables, actionVariables);
 
     variablesByType
         .get(VariableType.CONST)
         .forEach(
             variable -> {
               if (variable.initialization.isPresent()) {
-                constantInitializations.put(
-                    getInstantiatedName(variable.name), variable.initialization.get());
+                setConstantInitialization(variable.name, variable.initialization.get());
               }
             });
   }
@@ -205,12 +204,12 @@ class TCFABuilder {
             + " in instantiated module "
             + moduleDeclaration.getName());
 
-    var instantiatedResetClocks =
+    var resetClocks =
         specification.resetClocks.stream()
-            .map(this::getInstantiatedName)
+            .map(this::getOrCreateVariable)
             .collect(Collectors.toSet());
     verify(
-        moduleDeclaration.getClocks().containsAll(instantiatedResetClocks),
+        moduleDeclaration.getClocks().containsAll(resetClocks),
         "Undeclared clocks are reset in transition "
             + specification.source
             + "->"
@@ -218,10 +217,10 @@ class TCFABuilder {
             + " in instantiated module "
             + moduleDeclaration.getName());
 
-    var instantiatedAction = specification.syncMark.transform(this::getInstantiatedName);
-    if (instantiatedAction.isPresent()) {
+    var action = specification.syncMark.transform(this::getOrCreateVariable);
+    if (action.isPresent()) {
       verify(
-          moduleDeclaration.getActions().contains(instantiatedAction.get()),
+          moduleDeclaration.getActions().contains(action.get()),
           "Undeclared action on transition "
               + specification.source
               + "->"
@@ -232,26 +231,24 @@ class TCFABuilder {
 
     Optional<TaVariableCondition> guard =
         specification.guard.transform(this::createVariableCondition);
-    Optional<String> action = specification.syncMark;
     TCFANode source = (TCFANode) nodesByName.get(specification.source);
     TCFANode target = (TCFANode) nodesByName.get(specification.target);
 
-    var edge =
-        new TCFAEdge(FileLocation.DUMMY, source, target, guard, instantiatedResetClocks, action);
+    var edge = new TCFAEdge(FileLocation.DUMMY, source, target, guard, resetClocks, action);
     source.addLeavingEdge(edge);
     target.addEnteringEdge(edge);
   }
 
   private TaVariableCondition createVariableCondition(BooleanCondition specification) {
-    List<CExpression> expressions =
+    List<TaVariableExpression> expressions =
         specification.expressions.stream()
             .map(this::createVariableExpression)
             .collect(Collectors.toList());
-    return new TaVariableCondition(FileLocation.DUMMY, expressions);
+    return new TaVariableCondition(expressions);
   }
 
-  private CExpression createVariableExpression(VariableExpression varExpr) {
-    var instantiatedVariable = getInstantiatedName(varExpr.variableName);
+  private TaVariableExpression createVariableExpression(VariableExpression varExpr) {
+    var instantiatedVariable = getOrCreateVariable(varExpr.variableName);
     verify(
         moduleDeclaration.getClocks().contains(instantiatedVariable),
         "Undeclared variable "
@@ -261,7 +258,6 @@ class TCFABuilder {
             + ") in instantiated module "
             + moduleDeclaration.getName());
 
-    var variableIdExpression = createIdExpression(instantiatedVariable);
     var operator = convertOperatorType(varExpr.operator);
 
     Number constant;
@@ -269,88 +265,26 @@ class TCFABuilder {
       constant = ((NumericVariableExpression) varExpr).constant;
     } else {
       var constantVariableName = ((ParametricVariableExpression) varExpr).constant;
-      var instantiatedConstantVariableName = getInstantiatedName(constantVariableName);
-      verify(
-          constantInitializations.containsKey(instantiatedConstantVariableName),
-          "Uninitialized constant variable "
-              + instantiatedConstantVariableName
-              + " (uninstantiated name: "
-              + constantVariableName
-              + ") in instantiated module "
-              + moduleDeclaration.getName());
-
-      constant = constantInitializations.get(instantiatedConstantVariableName);
+      constant = getConstantInitialization(constantVariableName);
     }
-
-    var constantExpression = createFloatLiteralExpression(constant);
-
-    return createBinaryExpression(variableIdExpression, constantExpression, operator);
+    return new TaVariableExpression(instantiatedVariable, operator, constant);
   }
 
-  private CIdExpression createIdExpression(String name) {
-    if (!currentIdExpressionsByVariableName.containsKey(name)) {
-      var declaration =
-          new CVariableDeclaration(
-              FileLocation.DUMMY,
-              false,
-              CStorageClass.AUTO,
-              createFloatType(),
-              name,
-              name,
-              name,
-              null);
-      var idExpression =
-          new CIdExpression(FileLocation.DUMMY, createFloatType(), name, declaration);
-      currentIdExpressionsByVariableName.put(name, idExpression);
-    }
-
-    return currentIdExpressionsByVariableName.get(name);
-  }
-
-  private static CFloatLiteralExpression createFloatLiteralExpression(Number pValue) {
-    var value = new BigDecimal(pValue.toString());
-    return new CFloatLiteralExpression(FileLocation.DUMMY, createFloatType(), value);
-  }
-
-  private static CBinaryExpression createBinaryExpression(
-      AExpression op1, AExpression op2, BinaryOperator operator) {
-    return new CBinaryExpression(
-        FileLocation.DUMMY,
-        CNumericTypes.BOOL,
-        CNumericTypes.BOOL,
-        (CExpression) op1,
-        (CExpression) op2,
-        operator);
-  }
-
-  private static CType createFloatType() {
-    return CNumericTypes.LONG_DOUBLE;
-  }
-
-  private static BinaryOperator convertOperatorType(BooleanCondition.Operator op) {
+  private static TaVariableExpression.Operator convertOperatorType(BooleanCondition.Operator op) {
     switch (op) {
       case LESS:
-        return BinaryOperator.LESS_THAN;
+        return Operator.LESS;
       case LESS_EQUAL:
-        return BinaryOperator.LESS_EQUAL;
+        return Operator.LESS_EQUAL;
       case GREATER:
-        return BinaryOperator.GREATER_THAN;
+        return Operator.GREATER;
       case GREATER_EQUAL:
-        return BinaryOperator.GREATER_EQUAL;
+        return Operator.GREATER_EQUAL;
       case EQUAL:
-        return BinaryOperator.EQUALS;
+        return Operator.EQUAL;
       default:
         throw new VerifyException("Unknown binary operator " + op);
     }
-  }
-
-  private String getInstantiatedName(String variableName) {
-    // local variables are prefixed:
-    if (moduleSpec.isRoot && uninstantiatedLocalVariableNames.contains(variableName)) {
-      return instantiation.instanceName + "::" + variableName;
-    }
-    // others can be renamed via instantiation:
-    return instantiation.variableMappings.getOrDefault(variableName, variableName);
   }
 
   private void addDummyNodes() {
@@ -406,16 +340,22 @@ class TCFABuilder {
 
   private void createSubInstantiations() {
     for (var subInstantiation : moduleSpec.instantiations) {
-      var instantiatedInstantiation = instantiateInstantiation(subInstantiation);
+      Map<String, TaVariable> variableInstanceMapping = new HashMap<>();
+      for (var mapping : subInstantiation.variableMappings.entrySet()) {
+        variableInstanceMapping.put(mapping.getKey(), getOrCreateVariable(mapping.getValue()));
+      }
+
+      var constantInits = new HashMap<>(instantiatedConstantInitializations);
+      var tcfaBuilder = new TCFABuilder();
+
       var updatedSystemSpecification =
           new SystemSpecification.Builder()
               .modules(systemSpec.modules)
-              .instantiation(instantiatedInstantiation)
+              .instantiation(subInstantiation)
               .build();
-      var constantInits = new HashMap<>(constantInitializations);
-      var tcfaBuilder = new TCFABuilder();
 
-      tcfaBuilder.instantiateSpecification(updatedSystemSpecification, constantInits);
+      tcfaBuilder.instantiateSpecification(
+          updatedSystemSpecification, constantInits, variableInstanceMapping);
 
       var entryNodeResults = tcfaBuilder.getEntryNodesByAutomatoResult();
       var nodeResults = tcfaBuilder.getNodesByAutomatonResult();
@@ -431,24 +371,47 @@ class TCFABuilder {
   }
 
   /**
-   * Overwrites instantiated variable names of the given module with instantiated values of current
-   * module. E.g. the instatiation maps u to v, but in the current module, v is mapped to w. Then
-   * the mapping u to v is replaced by u to w.
+   * Returns a variable of its instantiated variable name. Returned elements are unique for each
+   * name.
    */
-  private ModuleInstantiation instantiateInstantiation(ModuleInstantiation subInstantiation) {
-    // apply overwriting instantiations
-    var instantiationBuilder =
-        new ModuleInstantiation.Builder()
-            .specificationName(subInstantiation.specificationName)
-            .instanceName(subInstantiation.instanceName);
-
-    for (var variableMapping : subInstantiation.variableMappings.entrySet()) {
-      var originalVariable = variableMapping.getKey();
-      var instantiatedName = getInstantiatedName(variableMapping.getValue());
-
-      instantiationBuilder.variableMapping(originalVariable, instantiatedName);
+  private TaVariable getOrCreateVariable(String name) {
+    if (!variablesByName.containsKey(name)) {
+      var isLocal = !moduleSpec.isRoot && uninstantiatedLocalVariableNames.contains(name);
+      var variable = new TaVariable(name, instantiation.instanceName, isLocal);
+      variablesByName.put(name, variable);
     }
 
-    return instantiationBuilder.build();
+    return variablesByName.get(name);
+  }
+
+  private String getInstantiatedVariableName(String uninstantiatedName) {
+    return getOrCreateVariable(uninstantiatedName).getName();
+  }
+
+  /**
+   * Takes the uninstantiated name (i.e. the name as it appears in the module specification) of a
+   * constant and stores the provided initialization value.
+   */
+  private void setConstantInitialization(String uninstantiatedName, Number value) {
+    instantiatedConstantInitializations.put(getInstantiatedVariableName(uninstantiatedName), value);
+  }
+
+  /**
+   * Takes the uninstantiated name (i.e. the name as it appears in the module specification) of a
+   * constant and returns the stored initialization value. If no value is stored, an exception is
+   * thrown.
+   */
+  private Number getConstantInitialization(String uninstantiatedName) {
+    var instantiatedName = getInstantiatedVariableName(uninstantiatedName);
+    verify(
+        instantiatedConstantInitializations.containsKey(instantiatedName),
+        "Uninitialized constant variable "
+            + instantiatedName
+            + " (uninstantiated name: "
+            + uninstantiatedName
+            + ") in instantiated module "
+            + moduleDeclaration.getName());
+
+    return instantiatedConstantInitializations.get(instantiatedName);
   }
 }
