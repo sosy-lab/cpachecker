@@ -12,6 +12,7 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.collect.FluentIterable;
 import java.io.PrintStream;
 import java.util.Collection;
+import java.util.List;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Optionals;
@@ -21,6 +22,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.FailedCase;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.SafeCase;
+import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.TarantulaFault;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -29,6 +31,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.InfoType;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -44,7 +47,6 @@ public class TarantulaAlgorithm implements Algorithm, StatisticsProvider, Statis
       Algorithm analysisAlgorithm, ShutdownNotifier pShutdownNotifier, final LogManager pLogger) {
     algorithm = analysisAlgorithm;
     this.shutdownNotifier = pShutdownNotifier;
-
     this.logger = pLogger;
   }
 
@@ -62,7 +64,9 @@ public class TarantulaAlgorithm implements Algorithm, StatisticsProvider, Statis
       AlgorithmStatus result = algorithm.run(reachedSet);
       SafeCase safeCase = new SafeCase(reachedSet);
       FailedCase failedCase = new FailedCase(reachedSet);
+      // Checks if there is any error paths before starting the algorithm
       if (failedCase.existsErrorPath()) {
+        // Checks if there is any safe paths before starting the algorithm
         if (!safeCase.existsSafePath()) {
 
           logger.log(
@@ -70,7 +74,7 @@ public class TarantulaAlgorithm implements Algorithm, StatisticsProvider, Statis
         }
         logger.log(Level.INFO, "Start tarantula algorithm ... ");
 
-        getFaultLocations(counterExamples, safeCase, failedCase);
+        runTarantulaProcess(counterExamples, safeCase, failedCase);
 
       } else {
         logger.log(Level.INFO, "There is no counterexample. No bugs found.");
@@ -83,18 +87,19 @@ public class TarantulaAlgorithm implements Algorithm, StatisticsProvider, Statis
 
   /**
    * Prints result after calculating suspicious and make the ranking for all edges and then store
-   * the result into <code>Map</code>.
+   * the results <code>CPALog.txt</code> and make the graphical representations possible
    */
-  public void getFaultLocations(
+  public void runTarantulaProcess(
       FluentIterable<CounterexampleInfo> pCounterexampleInfo,
       SafeCase safeCase,
       FailedCase failedCase)
       throws InterruptedException {
     FaultLocalizationInfo info;
     TarantulaRanking ranking = new TarantulaRanking(safeCase, failedCase, shutdownNotifier);
-    logger.log(Level.INFO, ranking.getTarantulaFaults());
+    List<Fault> faults = new TarantulaFault().getTarantulaFaults(ranking.getRanked());
+    logger.log(Level.INFO, faults);
     for (CounterexampleInfo counterexample : pCounterexampleInfo) {
-      info = new FaultLocalizationInfo(ranking.getTarantulaFaults(), counterexample);
+      info = new FaultLocalizationInfo(faults, counterexample);
       info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
       info.apply();
     }
