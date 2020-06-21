@@ -327,22 +327,18 @@ public class TraceFormula {
     BooleanFormula precond = bmgr.makeTrue();
     try (ProverEnvironment prover = context.getProver()) {
       prover.push(bmgr.and(bmgr.and(entries.atoms), bmgr.and(negate)));
-
-      if (!prover.isUnsat()) {
-        for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
-          BooleanFormula formula = modelAssignment.getAssignmentAsFormula();
-          if(formula.toString().contains("__VERIFIER_nondet")){
-            precond = bmgr.and(precond, formula);
-          }
+      Preconditions.checkArgument(!prover.isUnsat(), "a model has to be existent");
+      for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
+        BooleanFormula formula = modelAssignment.getAssignmentAsFormula();
+        if(formula.toString().contains("__VERIFIER_nondet")){
+          precond = bmgr.and(precond, formula);
         }
-      } else {
-        throw new AssertionError("a model has to be existent");
       }
     }
 
     // Check if alternative precondition is required and remove corresponding entries.
-    if (options.forcePre || bmgr.isTrue(precond)
-        && !context.getSolver().isUnsat(bmgr.and(altPre.toFormula(), postcondition))) {
+    if (options.forcePre || (bmgr.isTrue(precond)
+        && !context.getSolver().isUnsat(bmgr.and(altPre.toFormula(), postcondition)))) {
       for (BooleanFormula booleanFormula : altPre.getPreCondition()) {
         int index = entries.atoms.indexOf(booleanFormula);
         entries.removeAll(index);

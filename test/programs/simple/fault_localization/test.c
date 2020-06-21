@@ -1,7 +1,7 @@
 extern int __VERIFIER_nondet_int();
 
 int main() {
-	int x = __VERIFIER_nondet_int();
+/*	int x = __VERIFIER_nondet_int();
 	if (x <= 0)
 		goto EXIT;
 	int answer = 0;
@@ -19,7 +19,19 @@ int main() {
 	if (x % 2 == 0 && answer == 0) {
 		goto ERROR;
 	}
-	
+
+int x = 0;
+x++;
+if (x == 1) {
+ int i = 0;
+ int j = 2;
+  while(i != j) i++;
+  goto ERROR;
+}*/
+int a = 1;
+int i;
+for (i = 0; i < 5; i++) a++;
+if (i != 5 || a == 6) goto ERROR;	
 EXIT:
 	return 0;
 ERROR:

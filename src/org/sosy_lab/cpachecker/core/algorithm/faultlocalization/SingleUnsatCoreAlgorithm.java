@@ -63,12 +63,14 @@ public class SingleUnsatCoreAlgorithm implements FaultLocalizationAlgorithmInter
     Solver solver = context.getSolver();
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     totalTime.start();
+    // if precondition is not needed to guarantee unsatisfiability, do not add it and obtain better
+    // results (i.e. find locations independently from the inputs first).
     BooleanFormula toVerify = tf.getActualForm();
     if (!solver.isUnsat(toVerify)) {
       toVerify = bmgr.and(tf.getPreCondition(), toVerify);
     }
 
-    // calculate an arbitrary UNSAT-core
+    // calculate an arbitrary UNSAT-core and filter the ones with selectors
     List<Selector> unsatCore =
         solver.unsatCore(toVerify).stream()
             .filter(l -> Selector.of(l).isPresent())
