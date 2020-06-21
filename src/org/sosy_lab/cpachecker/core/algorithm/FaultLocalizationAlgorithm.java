@@ -75,7 +75,6 @@ import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
-import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.InfoType;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.HintRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.MinimalLineDistanceRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.OverallOccurrenceRanking;
