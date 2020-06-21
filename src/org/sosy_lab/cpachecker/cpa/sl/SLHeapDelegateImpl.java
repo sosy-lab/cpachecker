@@ -87,7 +87,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
   private final FormulaType<IntegerFormula> heapValueFormulaType = FormulaType.IntegerType;
   private final FormulaType<IntegerFormula> heapAddresFormulaType = FormulaType.IntegerType;
   private final Formula NOT_INITIALIZED;
-  private Set<String> declarations;
+  private Set<CVariableDeclaration> declarations;
   private Set<CSimpleDeclaration> inScopePtrs;
 
   public SLHeapDelegateImpl(
@@ -164,7 +164,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
   public void handleDeclaration(CVariableDeclaration pDecl) throws Exception {
     String name = pDecl.getQualifiedName();
     // ignore non-program variables, e.g. from non-det functions.
-    if (!pDecl.getName().startsWith("__") && !declarations.add(name)) {
+    if (!pDecl.getName().startsWith("__") && !declarations.add(pDecl)) {
       incSSAIndex(name);
     }
     CType type = pDecl.getType();
@@ -175,7 +175,8 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
 
       if (type instanceof CArrayType) {
         CArrayType aType = (CArrayType) type;
-        type = aType.getType();
+        CType arrayType = aType.getType();
+        type = aType.asPointerType();
         OptionalInt s = aType.getLengthAsInt();
         length =
             s.isPresent()
@@ -183,13 +184,13 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
                 : getValueForCExpression(aType.getLength(), true);
 
         f = getFormulaForDeclaration(pDecl);
-        addToMemory(state.getStack(), f, machineModel.getSizeof(type).multiply(length));
+        addToMemory(state.getStack(), f, machineModel.getSizeof(arrayType).multiply(length));
       }
     }
     CExpression e = createSymbolicLocation(pDecl);
     f = getFormulaForExpression(e, false);
 
-    addToMemory(state.getStack(), f, machineModel.getSizeof(type).multiply(length));
+    addToMemory(state.getStack(), f, machineModel.getSizeof(type));
     CInitializer init = pDecl.getInitializer();
     if (init != null) {
       Formula val = NOT_INITIALIZED;
@@ -443,7 +444,9 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
         type = (CPointerType) pExp.getExpressionType();
       }
       BigInteger typeSize = machineModel.getSizeof(type.getType());
-      offset = fm.makeMultiply(offset, fm.makeNumber(offset, Rational.ofBigInteger(typeSize)));
+      if (typeSize.longValue() > 1) {
+        offset = fm.makeMultiply(offset, fm.makeNumber(offset, Rational.ofBigInteger(typeSize)));
+      }
       loc = fm.makePlus(loc, offset);
     }
     return loc;
@@ -497,7 +500,8 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
 
   @Override
   public Formula getFormulaForDeclaration(CSimpleDeclaration pDecl) {
-    return pfm.makeFormulaForVariable(pathFormula, pDecl.getQualifiedName(), pDecl.getType());
+    CType type = pDecl.getType();
+    return pfm.makeFormulaForVariable(pathFormula, pDecl.getQualifiedName(), type);
   }
 
   @Override
