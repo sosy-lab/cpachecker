@@ -28,6 +28,7 @@ import java.util.Set;
 import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -59,7 +60,7 @@ public class SLState implements AbstractState, Targetable, AbstractQueryableStat
 
   private final Map<Formula, BigInteger> allocationSizes;
   private final Set<CSimpleDeclaration> inScopePtrs;
-  private final Set<String> declarations;
+  private final Set<CVariableDeclaration> declarations;
 
   private final Set<SLStateError> errors = new HashSet<>();
 
@@ -70,7 +71,7 @@ public class SLState implements AbstractState, Targetable, AbstractQueryableStat
       Map<Formula, Formula> pStack,
       Map<Formula, BigInteger> pAllocationSizes,
       Set<CSimpleDeclaration> pInScopePtrs,
-      Set<String> pDeclarations,
+      Set<CVariableDeclaration> pDeclarations,
       SLStateError pError) {
     pathFormula = pPathFormula;
     heap = pHeap;
@@ -186,7 +187,7 @@ public class SLState implements AbstractState, Targetable, AbstractQueryableStat
     return allocationSizes;
   }
 
-  public Set<String> getDeclarations() {
+  public Set<CVariableDeclaration> getDeclarations() {
     return declarations;
   }
 
