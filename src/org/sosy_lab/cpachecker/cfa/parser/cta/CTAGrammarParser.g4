@@ -19,7 +19,7 @@ specification
 	;
 
 moduleSpecification
-	: MODULE ROOT? name=IDENTIFIER LBRACKET variables+=variableDeclarationGroup* initialCondition=initialConfigDefinition? instantiations+=moduleInstantiation* automaton=automatonDefinition? RBRACKET
+	: MODULE ROOT? name=IDENTIFIER LBRACKET variables+=variableDeclarationGroup* instantiations+=moduleInstantiation* initialCondition=initialConfigDefinition? automaton=automatonDefinition? RBRACKET
 	;
 
 variableDeclarationGroup

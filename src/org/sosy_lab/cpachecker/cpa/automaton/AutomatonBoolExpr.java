@@ -577,8 +577,8 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
         var description_split =
             Splitter.on(':').omitEmptyStrings().trimResults().splitToList(description);
         if (description_split.size() != 2) {
-          throw new VerifyError(
-              "Invalid target state location specification. Required format is: automatonName:stateName;...");
+          // invalid format, no ta spec
+          return;
         }
 
         var automatonName = description_split.get(0);

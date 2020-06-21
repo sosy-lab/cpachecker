@@ -1,0 +1,154 @@
+MODULE Process
+{
+  INPUT
+    is_pid_0:       SYNC;
+    is_pid_id:      SYNC;
+    set_pid_id:     SYNC;
+    set_pid_0:      SYNC;
+    is_pid_not_id:  SYNC;
+    a:              CONST;
+    b:              CONST;
+  LOCAL
+    x:  CLOCK;
+  INITIAL default;
+  AUTOMATON Process
+  {
+    STATE default
+    {
+      TRANS
+      {
+        SYNC is_pid_0;
+        RESET x;
+        GOTO request;
+      }
+    }
+    STATE request
+    {
+      INV x <= a;
+      TRANS
+      {
+        SYNC is_pid_0;
+        RESET x;
+        GOTO request;
+      }
+    }
+    STATE wait
+    {
+      TRANS
+      {
+        GUARD x > b;
+        SYNC is_pid_id;
+        RESET x;
+        GOTO critical;
+      }
+      TRANS
+      {
+        GUARD x > b;
+        SYNC is_pid_not_id;
+        RESET x;
+        GOTO default;
+      }
+    }
+    STATE critical
+    {
+      TRANS
+      {
+        SYNC set_pid_0;
+        RESET x;
+        GOTO default;
+      }
+    }
+  }
+}
+MODULE Variable
+{
+  INPUT
+    is_0_p1:   SYNC;
+    is_1:      SYNC;
+    is_not_1:  SYNC;
+    set_1:     SYNC;
+    set_0_p1:  SYNC;
+    is_0_p2:   SYNC;
+    is_2:      SYNC;
+    is_not_2:  SYNC;
+    set_2:     SYNC;
+    set_0_p2:  SYNC;
+  INITIAL s_0;
+  AUTOMATON Variable
+  {
+    STATE s_0
+    {
+      TRANS { SYNC is_0_p1; GOTO s_0; }
+      TRANS { SYNC is_not_1; GOTO s_0; }
+      TRANS { SYNC set_1; GOTO s_1; }
+      TRANS { SYNC is_0_p2; GOTO s_0; }
+      TRANS { SYNC is_not_2; GOTO s_0; }
+      TRANS { SYNC set_2; GOTO s_2; }
+    }
+    STATE s_1
+    {
+      TRANS { SYNC is_1; GOTO s_1; }
+      TRANS { SYNC set_0_p1; GOTO s_0; }
+      TRANS { SYNC is_not_2; GOTO s_1; }
+      TRANS { SYNC set_2; GOTO s_2; }
+      TRANS { SYNC set_0_p2; GOTO s_0; }
+    }
+    STATE s_2
+    {
+      TRANS { SYNC is_2; GOTO s_2; }
+      TRANS { SYNC is_not_1; GOTO s_2; }
+      TRANS { SYNC set_1; GOTO s_1; }
+      TRANS { SYNC set_0_p1; GOTO s_0; }
+      TRANS { SYNC set_0_p2; GOTO s_0; }
+    }
+  }
+}
+MODULE ROOT System
+{
+  LOCAL
+    is_0_p1:   SYNC;
+    is_1:      SYNC;
+    is_not_1:  SYNC;
+    set_1:     SYNC;
+    set_0_p1:  SYNC;
+    is_0_p2:   SYNC;
+    is_2:      SYNC;
+    is_not_2:  SYNC;
+    set_2:     SYNC;
+    set_0_p2:  SYNC;
+    a = 10:    CONST;
+    b = 15:    CONST;
+  INST variable FROM Variable WITH
+  {
+    is_0_p1  AS is_0_p1;
+    is_1     AS is_1;
+    is_not_1 AS is_not_1;
+    set_1    AS set_1;
+    set_0_p1 AS set_0_p1;
+    is_0_p2  AS is_0_p2;
+    is_2     AS is_2;
+    is_not_2 AS is_not_2;
+    set_2    AS set_2;
+    set_0_p2 AS set_0_p2;
+  }
+  INST process_1 FROM Process WITH
+  {
+    is_pid_0      AS is_0_p1;
+    set_pid_0     AS set_0_p1;
+    is_pid_id     AS is_1;
+    is_pid_not_id AS is_not_1;
+    set_pid_id    AS set_1;
+    a             AS a;
+    b             AS b;
+  }
+  INST process_2 FROM Process WITH
+  {
+    is_pid_0      AS is_0_p2;
+    set_pid_0     AS set_0_p2;
+    is_pid_id     AS is_2;
+    is_pid_not_id AS is_not_2;
+    set_pid_id    AS set_2;
+    a             AS a;
+    b             AS b;
+  }
+}

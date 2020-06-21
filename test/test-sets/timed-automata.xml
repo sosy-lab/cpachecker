@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.18//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.18.dtd">
+<benchmark tool="cpachecker" timelimit="900s" hardtimelimit="1000s" memlimit="8000 MB" cpuCores="4">
+  <option name="-heap">7000M</option>
+  
+  <tasks name="FischerProtocol">
+    <include>../programs/timedautomata/fischer/fischer1.cta</include>
+    <option name="-spec">../programs/timedautomata/fischer/fischer.spec</option>
+  </tasks>
+
+
+  <rundefinition name="bmc-ta">
+    <option name="-noout"/>
+    <option name="-config">config/timedBMC.properties</option>
+    <option name="-setprop">cpa.loopbound.maxLoopIterations=1</option>
+    <option name="-setprop">cpa.loopbound.maxLoopIterationsUpperBound=15</option>
+    <option name="-setprop">cpa.loopbound.maxLoopIterationAdjusterFactory=INCREMENT</option>
+  </rundefinition>
+
+</benchmark>

@@ -220,7 +220,7 @@ class ASTVisitor extends CTAGrammarParserBaseVisitor<SystemSpecification> {
 
       for (var variableInstantiation : pCtx.variableInstantiations) {
         builder.variableMapping(
-            variableInstantiation.instanceName.getText(), variableInstantiation.specName.getText());
+            variableInstantiation.specName.getText(), variableInstantiation.instanceName.getText());
       }
 
       return builder.build();

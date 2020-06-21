@@ -216,7 +216,8 @@ class TCFABuilder {
     if (action.isPresent()) {
       verify(
           moduleDeclaration.getActions().contains(action.get()),
-          "Undeclared action on transition %s->%s in instantiated module %s",
+          "Undeclared action %s on transition %s->%s in instantiated module %s",
+          specification.syncMark.get(),
           specification.source,
           specification.target,
           moduleInstanceName);
@@ -245,7 +246,7 @@ class TCFABuilder {
     verify(
         moduleDeclaration.getClocks().contains(instantiatedVariable),
         "Undeclared variable %s (uninstantiated name: %s) in instantiated module %s",
-        instantiatedVariable,
+        instantiatedVariable.getName(),
         varExpr.variableName,
         moduleInstanceName);
 

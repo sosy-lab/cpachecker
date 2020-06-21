@@ -87,6 +87,12 @@ public class CFACheck {
       FunctionEntryNode cfa, @Nullable Set<CFANode> nodes, MachineModel machineModel)
       throws VerifyException {
 
+    if (cfa instanceof TCFAEntryNode) {
+      // cfas of timed automata are not transformed from programs.
+      // checks are already possible (and done) in the parser.
+      return true;
+    }
+
     Set<CFANode> visitedNodes = new HashSet<>();
     Deque<CFANode> waitingNodeList = new ArrayDeque<>();
 
