@@ -23,20 +23,14 @@
  */
 package org.sosy_lab.cpachecker.util.faultlocalization.ranking;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.google.common.collect.ImmutableList;
-
-import java.util.stream.Collectors;
-
+import java.util.List;
+import java.util.Set;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
-import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils.RankingResults;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 
 public class SetSizeRanking implements FaultRanking {
 
@@ -54,7 +48,7 @@ public class SetSizeRanking implements FaultRanking {
       return ImmutableList.of();
     }
 
-    int max = result.stream().mapToInt(f -> f.size()).max().getAsInt();
+    int max = result.stream().mapToInt(f -> f.size()).max().orElseThrow();
     RankingResults results = FaultRankingUtils.rankedListFor(result, f -> (double)max + 1 - f.size());
     double sum = results.getLikelihoodMap().values().stream().mapToDouble(Double::valueOf).sum();
 

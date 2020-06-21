@@ -407,7 +407,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
       if (this == pO) {
         return true;
       }
-      if (pO == null || !(pO instanceof MemorizeInterpolant)) {
+      if (!(pO instanceof MemorizeInterpolant)) {
         return false;
       }
       MemorizeInterpolant memorizeInterpolant = (MemorizeInterpolant) pO;
