@@ -21,7 +21,9 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.common.base.Optional;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import com.google.common.base.Charsets;
 import com.google.common.io.Files;
@@ -45,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
@@ -159,15 +162,31 @@ public class WitnessToACSLAlgorithm implements Algorithm {
       }
     }
 
-
     for (String file : files) {
+      HashMap<CFANode, Integer> locationCache = new HashMap<>();
+
       //Sort invariants by location
       List<CFANode> sortedNodes = new ArrayList<>(invMap.size());
       for (Entry<CFANode, CExpression> entry : invMap.entrySet()) {
-        //TODO: Check whether current invariant belongs to current file
         CFANode node = entry.getKey();
-        //TODO: Use different metric for getting file location
-        int location = node.getLeavingEdge(0).getLineNumber();
+        if(!node.getFunction().getFileLocation().getFileName().equals(file)) {
+          //Current invariant belongs to another program
+          continue;
+        }
+        int location = 0;
+        //TODO: What if there are no leaving edges?
+        for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+          CFAEdge edge = node.getLeavingEdge(i);
+          while(edge.getFileLocation().equals(FileLocation.DUMMY)) {
+            //TODO: Add error handling
+            edge = edge.getSuccessor().getLeavingEdge(0);
+          }
+          if(edge.getLineNumber() > 0) {
+            location = edge.getLineNumber();
+            locationCache.put(node, location);
+            break;
+          }
+        }
         boolean added = false;
         for (int i = 0; i < sortedNodes.size(); i++) {
           int otherLocation = sortedNodes.get(i).getLeavingEdge(0).getLineNumber();
@@ -196,9 +215,8 @@ public class WitnessToACSLAlgorithm implements Algorithm {
       List<String> output = new ArrayList<>();
 
       //TODO: NP possible (have to write tests anyway)
-      while (currentNode != null && currentNode.getLeavingEdge(0).getLineNumber() == 0) {
+      while (currentNode != null && locationCache.get(currentNode) == 0) {
         CExpression inv = invMap.get(currentNode);
-        //TODO: actually transform invariant to valid ACSL annotation
         String annotation = makeACSLAnnotation(inv);
         output.add(annotation);
         if (iterator.hasNext()) {
@@ -210,11 +228,10 @@ public class WitnessToACSLAlgorithm implements Algorithm {
 
       String[] splitContent = fileContent.split("\\r?\\n");
       for (int i = 0; i < splitContent.length; i++) {
-        assert currentNode == null ? true : currentNode.getLeavingEdge(0).getLineNumber() > i;
+        assert currentNode == null ? true : locationCache.get(currentNode) > i;
         //TODO: NP possible (have to write tests anyway)
-        while (currentNode != null && currentNode.getLeavingEdge(0).getLineNumber() == i + 1) {
+        while (currentNode != null && locationCache.get(currentNode) == i + 1) {
           CExpression inv = invMap.get(currentNode);
-          //TODO: actually transform invariant to valid ACSL annotation
           String annotation = makeACSLAnnotation(inv);
           String indentation = getIndentation(splitContent[i]);
           output.add(indentation.concat(annotation));
@@ -226,31 +243,38 @@ public class WitnessToACSLAlgorithm implements Algorithm {
         }
         output.add(splitContent[i]);
       }
-
-      //TODO: Move IO-handling to own function
-      Path path = Path.of(file);
-      Path directory = path.getParent();
-      assert directory != null;
-      Path oldFileName = path.getFileName();
-      String newFileName = "annotated_".concat(oldFileName.toString());
-
-      File outFile = new File(Path.of(directory.toString(), newFileName).toUri());
       try {
-        if(!outFile.createNewFile()) {
-          //TODO: File already exists
-        }
-        FileWriter out = new FileWriter(outFile);
-        for(String line : output) {
-          out.append(line.concat("\n"));
-        }
-        out.flush();
-        out.close();
+        writeToFile(file, output);
       } catch (IOException pE) {
-        logger.logfUserException(Level.SEVERE, pE, "Could not write to file %s", outFile);
+        logger.logfUserException(Level.SEVERE, pE, "Could not write annotations for file %s", file);
       }
     }
-
     return AlgorithmStatus.SOUND_AND_PRECISE;
+  }
+
+  private void writeToFile(String pathToOriginalFile, List<String> newContent) throws IOException{
+    Path path = Path.of(pathToOriginalFile);
+    Path directory = path.getParent();
+    assert directory != null;
+    Path oldFileName = path.getFileName();
+    String newFileName = makeNameForAnnotatedFile(oldFileName.toString());
+
+    File outFile = new File(Path.of(directory.toString(), newFileName).toUri());
+    assert outFile.createNewFile() : String.format("File %s already exists!", outFile);
+    FileWriter out = new FileWriter(outFile);
+    for(String line : newContent) {
+      out.append(line.concat("\n"));
+    }
+    out.flush();
+    out.close();
+  }
+
+  private String makeNameForAnnotatedFile(String oldFileName) {
+    int indexOfFirstPeriod = oldFileName.indexOf('.');
+    String nameWithoutExtension = oldFileName.substring(0, indexOfFirstPeriod);
+    String extension = oldFileName.substring(indexOfFirstPeriod);
+    String timestamp = new SimpleDateFormat("YYYY-MM-dd_HH:mm:ss").format(new Date());
+    return "annotated_".concat(nameWithoutExtension).concat(timestamp).concat(extension);
   }
 
   /**
@@ -272,6 +296,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     return indentation == null ? correctlyIndented : indentation;
   }
 
+  //TODO: actually transform invariant to valid ACSL annotation
   private String makeACSLAnnotation(CExpression pInv) {
     return "//" + pInv.toASTString();
   }
