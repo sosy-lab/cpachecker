@@ -99,7 +99,7 @@ class WebClientError(Exception):
 
 
 class PollingResultDownloader:
-    def __init__(self, web_interface, result_poll_interval, unfinished_runs={}):
+    def __init__(self, web_interface, result_poll_interval, unfinished_runs=None):
         self._unfinished_runs = set()
         self._unfinished_runs_lock = threading.Lock()
         self._web_interface = web_interface
@@ -558,8 +558,8 @@ class WebInterface:
         priority="IDLE",
         user_pwd=None,
         revision=None,
-        result_files_patterns=[],
-        required_files=[],
+        result_files_patterns=(),
+        required_files=(),
     ):
         """
         Submits a single run to the VerifierCloud.
@@ -1048,7 +1048,7 @@ class WebInterface:
         data=None,
         headers=None,
         files=None,
-        expectedStatusCodes=[200],
+        expectedStatusCodes=(200,),
         user_pwd=None,
     ):
         url = self._web_interface_url + path
@@ -1151,7 +1151,7 @@ def handle_result(
     handle_run_info=_handle_run_info,
     handle_host_info=_handle_host_info,
     handle_special_files=_handle_special_files,
-    result_files_patterns=["*"],
+    result_files_patterns=("*"),
 ):
     """
     Parses the given result ZIP archive: Extract meta information
