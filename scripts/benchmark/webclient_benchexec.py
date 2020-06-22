@@ -102,7 +102,6 @@ def execute_benchmark(benchmark, output_handler):
             output_handler.output_before_run_set(runSet)
             try:
                 result_futures = _submitRunsParallel(runSet, benchmark, output_handler)
-
                 _handle_results(result_futures, output_handler, benchmark, runSet)
             except KeyboardInterrupt:
                 STOPPED_BY_INTERRUPT = True
@@ -187,25 +186,20 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
                         "Submitted run %s/%s", submissonCounter, len(runSet.runs)
                     )
 
-            except (HTTPError, WebClientError) as e:
+            except HTTPError as e:
                 output_handler.set_error("VerifierCloud problem", runSet)
-                body = (
-                    getattr(e.request, "body", None)
-                    if isinstance(e, HTTPError)
-                    else None
-                )
+                body = getattr(e.request, "body", None)
                 if body:
-                    logging.warning(
-                        'Could not submit run %s, got error "%s" for request with body "%s"',
-                        run.identifier,
-                        e,
-                        body[:200],
+                    raise WebClientError(
+                        'Could not submit run {}, got error "{}" for request with body "{}"'.format(
+                            run.identifier,
+                            e,
+                            body[:200],
+                        )
                     )
                 else:
-                    logging.warning(
-                        'Could not submit run %s, got error "%s"', run.identifier, e
-                    )
-                return result_futures  # stop submitting runs
+                    raise WebClientError(
+                        'Could not submit run %s, got error "%s"'.format(run.identifier, e))
 
             finally:
                 submissonCounter += 1
