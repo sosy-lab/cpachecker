@@ -20,34 +20,21 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.common.base.Optional;
-import com.google.common.io.MoreFiles;
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.nio.charset.Charset;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
+import java.io.File;
+import java.io.FileWriter;
+import java.nio.file.Path;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
-import org.eclipse.cdt.core.dom.ast.ASTGenericVisitor;
-import org.eclipse.cdt.core.dom.ast.ASTVisitor;
-import org.eclipse.cdt.core.dom.ast.IASTNode;
-import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
-import org.eclipse.cdt.core.dom.ast.gnu.c.GCCLanguage;
-import org.eclipse.cdt.core.dom.rewrite.ASTRewrite;
-import org.eclipse.cdt.core.model.ILanguage;
-import org.eclipse.cdt.core.parser.FileContent;
-import org.eclipse.cdt.core.parser.IScannerInfo;
-import org.eclipse.cdt.core.parser.ParserFactory;
-import org.eclipse.cdt.internal.core.parser.scanner.InternalFileContentProvider;
-import org.eclipse.core.runtime.CoreException;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -59,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.parser.Parsers;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
@@ -68,6 +54,7 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGene
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator.KInductionInvariantGeneratorOptions;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
@@ -85,7 +72,6 @@ public class WitnessToACSLAlgorithm implements Algorithm {
   private final KInductionInvariantGeneratorOptions kindOptions;
   private final TargetLocationProvider targetLocationProvider;
   private final ToCExpressionVisitor toCExpressionVisitor;
-  private final ILanguage lang;
 
   public WitnessToACSLAlgorithm(
       Configuration pConfig,
@@ -94,7 +80,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
       Specification pSpecification,
       CFA pCfa,
       AggregatedReachedSets pAggregatedReachedSets)
-      throws InvalidConfigurationException, CPAException {
+      throws InvalidConfigurationException, CPAException, InterruptedException {
     config = pConfig;
     specification = pSpecification;
     logger = pLogger;
@@ -104,17 +90,18 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     config.inject(kindOptions);
     targetLocationProvider = new CachingTargetLocationProvider(pShutdownNotifier, logger, cfa);
     toCExpressionVisitor = new ToCExpressionVisitor(cfa.getMachineModel(), logger);
-    lang = GCCLanguage.getDefault();
-    //    KInductionInvariantGenerator invGen =
-    //        KInductionInvariantGenerator.create(
-    //            pConfig,
-    //            pLogger,
-    //            shutdownManager,
-    //            cfa,
-    //            specification,
-    //            new ReachedSetFactory(config, logger),
-    //            pTargetLocationProvider,
-    //            pAggregatedReachedSets);
+    KInductionInvariantGenerator invGen =
+        KInductionInvariantGenerator.create(
+            pConfig,
+            pLogger,
+            shutdownManager,
+            cfa,
+            specification,
+            new ReachedSetFactory(config, logger),
+            //TODO: get this from somewhere else(?):
+            //pTargetLocationProvider,
+            targetLocationProvider,
+            pAggregatedReachedSets);
 
   }
 
@@ -168,204 +155,124 @@ public class WitnessToACSLAlgorithm implements Algorithm {
         //          rewrite.addComment(astNodeOptional.get(), li.get(0), CommentPosition.leading);
         files.add(fileLoc.getFileName());
       } else {
+        //TODO
       }
     }
 
-    // Compile found files into Eclipse ASTs.
 
-    Map <String,IASTTranslationUnit> astMap = new HashMap<>();
     for (String file : files) {
-      char[] source = null;
+      //Sort invariants by location
+      List<CFANode> sortedNodes = new ArrayList<>(invMap.size());
+      for (Entry<CFANode, CExpression> entry : invMap.entrySet()) {
+        //TODO: Check whether current invariant belongs to current file
+        CFANode node = entry.getKey();
+        //TODO: Use different metric for getting file location
+        int location = node.getLeavingEdge(0).getLineNumber();
+        boolean added = false;
+        for (int i = 0; i < sortedNodes.size(); i++) {
+          int otherLocation = sortedNodes.get(i).getLeavingEdge(0).getLineNumber();
+          if (location <= otherLocation) {
+            sortedNodes.add(i, node);
+            added = true;
+            break;
+          }
+          //TODO: If two annotations at same location: merge (check ACSL docs if necessary)
+        }
+        if (!added) {
+          sortedNodes.add(node);
+        }
+      }
+
+      String fileContent = "";
       try {
-        source =
-            MoreFiles.asCharSource(Paths.get(file), Charset.defaultCharset()).read().toCharArray();
-      } catch (IOException e1) {
-        logger.logfUserException(Level.SEVERE, e1, "Could not read file %s", file);
+        fileContent = Files.asCharSource(new File(file), Charsets.UTF_8).read();
+      } catch (IOException pE) {
+        logger.logfUserException(Level.SEVERE, pE, "Could not read file %s", file);
       }
 
+      Iterator<CFANode> iterator = sortedNodes.iterator();
+      CFANode currentNode = iterator.next();
 
-      TranslationUnitInfo info = createTranslationUnitInfo(file, source);
+      List<String> output = new ArrayList<>();
+
+      //TODO: NP possible (have to write tests anyway)
+      while (currentNode != null && currentNode.getLeavingEdge(0).getLineNumber() == 0) {
+        CExpression inv = invMap.get(currentNode);
+        //TODO: actually transform invariant to valid ACSL annotation
+        String annotation = makeACSLAnnotation(inv);
+        output.add(annotation);
+        if (iterator.hasNext()) {
+          currentNode = iterator.next();
+        } else {
+          currentNode = null;
+        }
+      }
+
+      String[] splitContent = fileContent.split("\\r?\\n");
+      for (int i = 0; i < splitContent.length; i++) {
+        assert currentNode == null ? true : currentNode.getLeavingEdge(0).getLineNumber() > i;
+        //TODO: NP possible (have to write tests anyway)
+        while (currentNode != null && currentNode.getLeavingEdge(0).getLineNumber() == i + 1) {
+          CExpression inv = invMap.get(currentNode);
+          //TODO: actually transform invariant to valid ACSL annotation
+          String annotation = makeACSLAnnotation(inv);
+          String indentation = getIndentation(splitContent[i]);
+          output.add(indentation.concat(annotation));
+          if (iterator.hasNext()) {
+            currentNode = iterator.next();
+          } else {
+            currentNode = null;
+          }
+        }
+        output.add(splitContent[i]);
+      }
+
+      //TODO: Move IO-handling to own function
+      Path path = Path.of(file);
+      Path directory = path.getParent();
+      assert directory != null;
+      Path oldFileName = path.getFileName();
+      String newFileName = "annotated_".concat(oldFileName.toString());
+
+      File outFile = new File(Path.of(directory.toString(), newFileName).toUri());
       try {
-        IASTTranslationUnit translationUnit =
-            lang.getASTTranslationUnit(
-                info.getFileContent(),
-                info.getScannerInfo(),
-                info.getFileContentProvider(), // needed for imports!
-                null,
-                ILanguage.OPTION_NO_IMAGE_LOCATIONS,
-                ParserFactory.createDefaultLogService());
-        astMap.put(file, translationUnit);
-      } catch (CoreException e) {
-        logger.logfUserException(Level.SEVERE, e, "Failed to create AST for file %s", file);
+        if(!outFile.createNewFile()) {
+          //TODO: File already exists
+        }
+        FileWriter out = new FileWriter(outFile);
+        for(String line : output) {
+          out.append(line.concat("\n"));
+        }
+        out.flush();
+        out.close();
+      } catch (IOException pE) {
+        logger.logfUserException(Level.SEVERE, pE, "Could not write to file %s", outFile);
       }
-
-    }
-
-    for (Entry<String, IASTTranslationUnit> e : astMap.entrySet()) {
-      String file = e.getKey();
-      IASTTranslationUnit tu = e.getValue();
-      ASTRewrite rewrite = ASTRewrite.create(tu);
-      for (Entry<CFANode, CExpression> e2 : invMap.entrySet()) {
-        CFANode node = e2.getKey();
-        CExpression inv = e2.getValue();
-        ASTVisitor myV = new myVisitor();
-        tu.accept(myV);
-        break;
-      }
-
     }
 
     return AlgorithmStatus.SOUND_AND_PRECISE;
   }
 
-  /*
-   * This method encapsulates ugly stuff that we currently need to get the ASTTranslationUnit that we want.
-   * A future TODO is to find a nicer way to do this
+  /**
+   * Returns a String containing only space chars the same length as the given parameters
+   * indentation. Note that length refers to the length of the printed whitespace and not
+   * necessarily the value returned by <code>String.length()</code>.
+   *
+   * @param correctlyIndented A String of which the indentation should be matched.
+   * @return the longest whitespace-only prefix of the given String.
    */
-  private TranslationUnitInfo createTranslationUnitInfo(String file, char[] source) {
-    FileContent fileContent = FileContent.create(file, source);
-    InternalFileContentProvider fileContentProvider = null;
-    IScannerInfo scannerInfo = null;
-    ClassLoader loader;
-    try {
-      Method m =
-          Parsers.class.getDeclaredMethod("getClassLoader", new Class[] {LogManager.class});
-      m.setAccessible(true);
-      loader = (ClassLoader) m.invoke(null, logger);
-      Class<? extends Object> parserClass =
-          loader.loadClass("org.sosy_lab.cpachecker.cfa.parser.eclipse.c.EclipseCParser");
-      List<Class> classes = Arrays.asList(parserClass.getDeclaredClasses());
-      Class scannerClass = null;
-      Class fileContentProviderClass = null;
-      for (Class c : classes) {
-        if (c.getName().contains("StubScannerInfo")) {
-          scannerClass = c;
-        } else if (c.getName().contains("FileContentProvider")) {
-          {
-            fileContentProviderClass = c;
-          }
-        }
+  private String getIndentation(String correctlyIndented) {
+    String indentation = null;
+    for(int i = 0; i < correctlyIndented.length(); i++) {
+      if (!Character.isSpaceChar(correctlyIndented.charAt(i))) {
+        indentation = correctlyIndented.substring(0, i);
+        break;
       }
-      final Field field = scannerClass.getDeclaredField("instance");
-      field.setAccessible(true);
-      // org.eclipse.cdt.core.parser.IScannerInfo
-      //        Class<?> type = field.getType();
-      Object o = field.get(null);
-      //        if (IScannerInfo.class.isInstance(o)) {
-      scannerInfo =
-          new IScannerInfo() {
-            @Override
-            public java.util.Map<String, String> getDefinedSymbols() {
-              try {
-                Object instance = field.get(null);
-                Method m;
-                m =
-                    field
-                        .getType()
-                        .getDeclaredMethod("getDefinedSymbols", new Class[] {});
-                m.setAccessible(true);
-                return (Map<String, String>) m.invoke(instance);
-              } catch (NoSuchMethodException
-                  | SecurityException
-                  | IllegalArgumentException
-                  | IllegalAccessException
-                  | InvocationTargetException e) {
-                logger.logException(Level.SEVERE, e, null);
-                return null;
-              }
-            };
-
-            @Override
-            public String[] getIncludePaths() {
-              Object instance;
-              try {
-                instance = field.get(null);
-                Method m =
-                    field
-                        .getType()
-                        .getDeclaredMethod("getIncludePaths", new Class[] {});
-                m.setAccessible(true);
-                return (String[]) m.invoke(instance);
-              } catch (IllegalArgumentException
-                  | IllegalAccessException
-                  | NoSuchMethodException
-                  | SecurityException
-                  | InvocationTargetException e) {
-                logger.logException(Level.SEVERE, e, null);
-                return null;
-              }
-            };
-          };
-      Field scannerField = field;
-      assert scannerInfo != null;
-      final Field field2 = fileContentProviderClass.getDeclaredField("instance");
-      field2.setAccessible(true);
-      o = field2.get(null);
-      if (o instanceof InternalFileContentProvider) {
-        fileContentProvider = (InternalFileContentProvider) o;
-      }
-
-    } catch (IllegalAccessException
-        | IllegalArgumentException
-        | InvocationTargetException
-        | NoSuchMethodException
-        | SecurityException
-        | ClassNotFoundException
-        | NoSuchFieldException e1) {
-      logger.logException(Level.SEVERE, e1, null);
     }
-
-    TranslationUnitInfo info =
-        new TranslationUnitInfo(fileContent, fileContentProvider, scannerInfo);
-    return info;
+    return indentation == null ? correctlyIndented : indentation;
   }
 
-  private class myVisitor extends ASTGenericVisitor {
-
-    private int rank = 0;
-
-    public myVisitor() {
-      super(true); // visit nodes
-      // TODO Auto-generated constructor stub
-    }
-
-    @Override
-    protected int genericVisit(IASTNode node) {
-      return PROCESS_CONTINUE;
-    }
-
-    @Override
-    protected int genericLeave(IASTNode pNode) {
-      // TODO Auto-generated method stub
-      rank--;
-      return super.genericLeave(pNode);
-    }
-  }
-
-  private class TranslationUnitInfo {
-    private FileContent fileContent;
-    private InternalFileContentProvider fileContentProvider;
-    private IScannerInfo scannerInfo;
-
-    public TranslationUnitInfo(
-        FileContent pFileContent,
-        InternalFileContentProvider pFileContentProvider,
-        IScannerInfo pScannerInfo) {
-      fileContent = pFileContent;
-      fileContentProvider = pFileContentProvider;
-      scannerInfo = pScannerInfo;
-    }
-
-    public FileContent getFileContent() {
-      return fileContent;
-    }
-
-    public InternalFileContentProvider getFileContentProvider() {
-      return fileContentProvider;
-    }
-
-    public IScannerInfo getScannerInfo() {
-      return scannerInfo;
-    }
+  private String makeACSLAnnotation(CExpression pInv) {
+    return "//" + pInv.toASTString();
   }
 }
