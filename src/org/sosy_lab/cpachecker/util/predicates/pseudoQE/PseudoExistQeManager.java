@@ -75,6 +75,48 @@ public class PseudoExistQeManager implements StatisticsProvider {
   @Option(secure = true, description = "Use Unconnected Parameter Drop as simplification method")
   private boolean useUPD = true;
 
+  /**
+   * This class visits one level of a formula and returns the pair of bound variable and its equal
+   * part if found, and NULL otherwise.
+   */
+  private static final class EqualityExtractor
+      extends DefaultFormulaVisitor<Map<Formula, Formula>> {
+
+    private final Set<Formula> boundVars;
+
+    private EqualityExtractor(Set<Formula> pBoundVars) {
+      boundVars = pBoundVars;
+    }
+
+    @Override
+    protected Map<Formula, Formula> visitDefault(Formula pF) {
+      return null;
+    }
+
+    @Override
+    public Map<Formula, Formula> visitFunction(
+        Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
+      switch (pFunctionDeclaration.getKind()) {
+
+        // TODO this code assumes that equality has exactly two arguments.
+        // We might have more than two.
+
+        case EQ: // check those functions that represent equality
+        case BV_EQ:
+        case FP_EQ:
+          if (boundVars.contains(pArgs.get(0))) {
+            return ImmutableMap.of(pArgs.get(0), pArgs.get(1));
+          } else if (boundVars.contains(pArgs.get(1))) {
+            return ImmutableMap.of(pArgs.get(1), pArgs.get(0));
+          } else {
+            return null;
+          }
+        default:
+          return null;
+      }
+    }
+  }
+
   enum SolverQeTactic {
     /** Don't use Solver Quantifier Elimination */
     NONE,
@@ -170,17 +212,18 @@ public class PseudoExistQeManager implements StatisticsProvider {
         existFormula = applyRealQuantifierElimination(existFormula);
       }
 
-      stats.qeSuccessCounter += (pQuantifiedVars.size() - existFormula.getNumberOfQuantifiers());
+      int numberOfEliminatedVariables =
+          pQuantifiedVars.size() - existFormula.getNumberOfQuantifiers();
+      stats.qeSuccessCounter += numberOfEliminatedVariables;
       // How to handle remaining Quantifiers based on Options and result of previous operations
-      if (pQuantifiedVars.size() - existFormula.getNumberOfQuantifiers() < 1) {
+      if (numberOfEliminatedVariables < 1) {
         if (overapprox) {
-          logger.log(
+          logger.logf(
               Level.FINE,
-              "Successfully eliminated "
-                  + (pQuantifiedVars.size() - existFormula.getNumberOfQuantifiers())
-                  + "quantified variable(s), overapproximated formulas containing remaining "
-                  + existFormula.getNumberOfQuantifiers()
-                  + "quantified variable(s).");
+              "Successfully eliminated %d quantified variable(s), "
+                  + "overapproximated formulas containing remaining %d quantified variable(s).",
+              numberOfEliminatedVariables,
+              existFormula.getNumberOfQuantifiers());
           return Optional.of(overapproximateFormula(existFormula));
         } else {
           return Optional.empty();
@@ -206,38 +249,14 @@ public class PseudoExistQeManager implements StatisticsProvider {
     try {
       Set<Formula> boundVars = ImmutableSet.copyOf(pExistFormula.getQuantifiedVarFormulas());
 
-      FormulaVisitor<Map<Formula, Formula>> visitor =
-          new DefaultFormulaVisitor<>() {
-            @Override
-            protected Map<Formula, Formula> visitDefault(Formula pF) {
-              return null;
-            }
-
-            @Override
-            public Map<Formula, Formula> visitFunction(
-                Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
-              switch (pFunctionDeclaration.getKind()) {
-                case EQ: // check those functions that represent equality
-                case BV_EQ:
-                case FP_EQ:
-                  if (boundVars.contains(pArgs.get(0))) {
-                    return ImmutableMap.of(pArgs.get(0), pArgs.get(1));
-                  } else if (boundVars.contains(pArgs.get(1))) {
-                    return ImmutableMap.of(pArgs.get(1), pArgs.get(0));
-                  } else {
-                    return null;
-                  }
-                default:
-                  return null;
-              }
-            }
-          };
+      FormulaVisitor<Map<Formula, Formula>> visitor = new EqualityExtractor(boundVars);
 
       Map<Formula, Formula> potentialReplacement = null;
 
       // Loop through Conjuncts with quantified Vars
       for (BooleanFormula conjunct : pExistFormula.getConjunctsWithQuantifiedVars()) {
         potentialReplacement = fmgr.visit(conjunct, visitor);
+        // abort after the first available replacement
         if (potentialReplacement != null) {
           break;
         }

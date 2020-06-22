@@ -124,4 +124,9 @@ class PseudoExistFormula {
   List<BooleanFormula> getConjunctsWithQuantifiedVars() {
     return conjunctsWithQuantifiedVars;
   }
+
+  @Override
+  public String toString() {
+    return String.format("EXISTS %s : %s", quantifiedVars, quantifiedFormula);
+  }
 }

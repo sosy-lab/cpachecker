@@ -24,7 +24,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.List;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
@@ -41,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -53,6 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
@@ -327,12 +326,13 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       Specification spec = getSpecification();
       if (usesParallelCompositionOfProgramAndCondition()) {
         assert (assumptionAutomaton != null);
-        List<Path> specList = new ArrayList<>(spec.getSpecFiles());
-        specList.add(getAssumptionGuider());
-        specList.add(assumptionAutomaton);
         spec =
-            Specification.fromFiles(
-                getSpecification().getProperties(), specList, cfa, config, logger, shutdown);
+            spec.withAdditionalSpecificationFile(
+                ImmutableSet.of(getAssumptionGuider(), assumptionAutomaton),
+                cfa,
+                config,
+                logger,
+                shutdown);
       }
       ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, spec);
 

@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.interfaces;
 
 import java.util.Set;
-
 import org.checkerframework.checker.nullness.qual.NonNull;
 
 /**
@@ -23,10 +22,11 @@ public interface Targetable {
   boolean isTarget();
 
   /**
-   * Return a human-readable description of the violated property.
-   * Example: "assert statement in line X"
-   * @return A non-null String, may be empty if no description is available.
+   * Return more information about the violated property. Example: "assert statement in line X"
+   *
+   * @return A set of violated properties, may be empty if no information is available.
    * @throws IllegalStateException if {@link #isTarget()} returns false
    */
-  @NonNull Set<Property> getViolatedProperties() throws IllegalStateException;
+  @NonNull
+  Set<Property> getViolatedProperties() throws IllegalStateException;
 }

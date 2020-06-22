@@ -13,7 +13,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectKind;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObjectVisitor;
 
-
 public final class SMGSingleLinkedList extends SMGAbstractList<SMGSingleLinkedListShape> {
 
   public SMGSingleLinkedList(int pSize, long pHfo, long pNfo,
@@ -46,8 +45,19 @@ public final class SMGSingleLinkedList extends SMGAbstractList<SMGSingleLinkedLi
 
   @Override
   public String toString() {
-    return "SLL(id=" + id + " size=" + getSize() + ", hfo=" + getHfo() + ", nfo=" + getNfo()
-        + ", len=" + getMinimumLength() + ", level=" + getLevel() + ")";
+    return "SLL(id="
+        + getId()
+        + " size="
+        + getSize()
+        + ", hfo="
+        + getHfo()
+        + ", nfo="
+        + getNfo()
+        + ", len="
+        + getMinimumLength()
+        + ", level="
+        + getLevel()
+        + ")";
   }
 
   @Override

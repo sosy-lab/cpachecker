@@ -167,7 +167,7 @@ class Benchmark(benchexec.benchexec.BenchExec):
                     if os.path.exists(build_file) and subprocess.call(
                         ["ant", "-q", "jar"],
                         cwd=base_dir,
-                        shell=benchmark.util.is_windows(),
+                        shell=benchmark.util.is_windows(),  # noqa: S602
                     ):
                         sys.exit(
                             "Failed to build CPAchecker, please fix the build first."

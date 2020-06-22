@@ -15,7 +15,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -31,7 +30,6 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
@@ -42,6 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -119,7 +118,7 @@ public class WitnessInvariantsExtractor {
     this.logger = pLogger;
     this.cfa = pCFA;
     this.shutdownNotifier = pShutdownNotifier;
-    this.automatonAsSpec = buildSpecification(pAutomaton);
+    this.automatonAsSpec = Specification.fromAutomata(ImmutableList.of(pAutomaton));
     analyzeWitness();
   }
 
@@ -150,12 +149,6 @@ public class WitnessInvariantsExtractor {
         config,
         logger,
         shutdownNotifier);
-  }
-
-  private Specification buildSpecification(Automaton pAutomaton) {
-    List<Automaton> automata = new ArrayList<>(1);
-    automata.add(pAutomaton);
-    return Specification.fromAutomata(automata);
   }
 
   private void analyzeWitness() throws InvalidConfigurationException, CPAException {

@@ -22,7 +22,6 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -31,6 +30,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.pcc.util.ValidationConfigurationBuilder;
@@ -59,7 +59,7 @@ public class ConfigReadingProofCheckAlgorithm implements Algorithm, StatisticsPr
       final ShutdownNotifier pShutdownNotifier,
       final CFA pCfa,
       final Specification pSpecification)
-      throws InvalidConfigurationException, CPAException, InterruptedException {
+      throws InvalidConfigurationException, CPAException {
     pConfig.inject(this);
 
     cfa = pCfa;
@@ -90,8 +90,7 @@ public class ConfigReadingProofCheckAlgorithm implements Algorithm, StatisticsPr
   }
 
   private ConfigurableProgramAnalysis instantiateCPA(
-      final CFA pCfa, final Specification pSpecification)
-      throws InvalidConfigurationException, InterruptedException {
+      final CFA pCfa, final Specification pSpecification) throws InvalidConfigurationException {
     try {
       return coreFact.createCPA(pCfa, pSpecification);
     } catch (CPAException e) {

@@ -75,8 +75,8 @@ public class SMGTest {
     SMGEdgeHasValue hv = new SMGEdgeHasValue(mockTypeSize, 32, obj1, SMGZeroValue.INSTANCE);
     smg1.addHasValueEdge(hv);
 
-    TreeMap<Long, Integer> nullEdges = smg1.getNullEdgesMapOffsetToSizeForObject(obj1);
-    assertThat(nullEdges).containsExactly(32L, 32);
+    TreeMap<Long, Long> nullEdges = smg1.getNullEdgesMapOffsetToSizeForObject(obj1);
+    assertThat(nullEdges).containsExactly(32L, 32L);
   }
 
   @Test
@@ -164,8 +164,8 @@ public class SMGTest {
     assertThat(smg1.getObjects()).contains(object);
     smg1.removeObject(object);
     assertThat(smg1.getObjects()).doesNotContain(object);
-    assertThat(smg1.getHVEdges()).contains(hv0);
-    assertThat(smg1.getHVEdges()).contains(hv4);
+    assertThat(smg1.getHVEdges().contains(hv0)).isTrue();
+    assertThat(smg1.getHVEdges().contains(hv4)).isTrue();
     assertThat(smg1.getPTEdges()).contains(pt);
   }
 
@@ -186,11 +186,11 @@ public class SMGTest {
     smg1.addHasValueEdge(hv4);
 
     assertThat(smg1.getObjects()).contains(object);
-    smg1.removeObjectAndEdges(object);
-    assertThat(smg1.getObjects()).doesNotContain(object);
+    smg1.markObjectDeletedAndRemoveEdges(object);
+    assertThat(smg1.isObjectValid(object)).isFalse();
     assertThat(smg1.getHVEdges()).doesNotContain(hv0);
     assertThat(smg1.getHVEdges()).doesNotContain(hv4);
-    assertThat(smg1.getPTEdges()).doesNotContain(pt);
+    assertThat(smg1.getPTEdges()).contains(pt);
   }
 
   @Test
@@ -295,8 +295,13 @@ public class SMGTest {
     smg1.addObject(object_16b);
     assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isTrue();
 
-    smg1.addHasValueEdge(hv_edge2);
-    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isFalse();
+    boolean thrown = false;
+    try {
+      smg1.addHasValueEdge(hv_edge2);
+    } catch (AssertionError pAssertionError) {
+      thrown = true;
+    }
+    assertThat(thrown).isTrue();
   }
 
   @Test

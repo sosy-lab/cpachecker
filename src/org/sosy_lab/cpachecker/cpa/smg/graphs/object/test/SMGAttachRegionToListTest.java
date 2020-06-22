@@ -13,7 +13,6 @@ import static com.google.common.truth.Truth.assertThat;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
-import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -28,7 +27,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -75,13 +74,6 @@ public class SMGAttachRegionToListTest {
   public void setUp() throws InvalidConfigurationException {
 
     smg = new CLangSMG(MACHINE_MODEL_FOR_TESTING);
-    state =
-        new SMGState(
-            LogManager.createTestLogManager(),
-            new SMGOptions(Configuration.defaultConfiguration()),
-            smg,
-            0,
-            HashBiMap.create());
 
     final int intSize = 8 * MACHINE_MODEL_FOR_TESTING.getSizeofInt();
     final int ptrSize = 8 * MACHINE_MODEL_FOR_TESTING.getSizeofPtr();
@@ -93,8 +85,6 @@ public class SMGAttachRegionToListTest {
     final int dataSize = intSize;
     nodeSize = dfo + dataSize;
     listKind = (linkage == SMGListLinkage.DOUBLY_LINKED) ? SMGObjectKind.DLL : SMGObjectKind.SLL;
-
-    smg = new CLangSMG(MACHINE_MODEL_FOR_TESTING);
 
     // create one region
     addressOfRegion =
@@ -123,6 +113,14 @@ public class SMGAttachRegionToListTest {
             dataSize,
             circularity,
             linkage)[0];
+
+    state =
+        new SMGState(
+            LogManager.createTestLogManager(),
+            new SMGOptions(Configuration.defaultConfiguration()),
+            smg,
+            0,
+            HashBiMap.create());
   }
 
   @Test
@@ -141,8 +139,7 @@ public class SMGAttachRegionToListTest {
 
     SMGListAbstractionTestHelpers.executeHeapAbstractionWithConsistencyChecks(state, smg);
 
-    Set<SMGEdgeHasValue> hves =
-        smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(globalListPointer));
+    SMGHasValueEdges hves = smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(globalListPointer));
     assertThat(hves).hasSize(1);
 
     SMGEdgePointsTo pt = smg.getPointer(Iterables.getOnlyElement(hves).getValue());
@@ -168,8 +165,7 @@ public class SMGAttachRegionToListTest {
 
     SMGListAbstractionTestHelpers.executeHeapAbstractionWithConsistencyChecks(state, smg);
 
-    Set<SMGEdgeHasValue> hves =
-        smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(globalListPointer));
+    SMGHasValueEdges hves = smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(globalListPointer));
     assertThat(hves).hasSize(1);
 
     SMGEdgePointsTo pt = smg.getPointer(Iterables.getOnlyElement(hves).getValue());
