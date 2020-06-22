@@ -8,6 +8,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+import ast
 import copy
 import getopt
 import json
@@ -92,7 +93,7 @@ class MPIMain:
                 logger.setLevel(logging.DEBUG)
             elif opt in ("-i", "--input"):
                 if isinstance(arg, str):
-                    self.input_args = eval(arg)
+                    self.input_args = ast.literal_eval(arg)
                 elif isinstance(arg, dict):
                     self.input_args = arg
                 else:
