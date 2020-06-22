@@ -25,8 +25,11 @@ package org.sosy_lab.cpachecker.cpa.acsl;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotationLocations;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLAnnotation;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -45,7 +48,12 @@ public class ACSLTransferRelation extends SingleEdgeTransferRelation {
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
-    Collection<ACSLAnnotation> annotationsForEdge = cfa.getEdgesToAnnotations().get(cfaEdge);
-    return ImmutableList.of(new ACSLState(annotationsForEdge));
+    CFANode successor = cfaEdge.getSuccessor();
+    Set<ACSLAnnotation> annotationsForState = new HashSet<>();
+    for (int i = 0; i < successor.getNumEnteringEdges(); i++) {
+      CFAEdge currentEdge = successor.getEnteringEdge(i);
+      annotationsForState.addAll(cfa.getEdgesToAnnotations().get(currentEdge));
+    }
+    return ImmutableList.of(new ACSLState(annotationsForState));
   }
 }
