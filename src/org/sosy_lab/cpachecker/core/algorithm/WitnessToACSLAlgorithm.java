@@ -152,6 +152,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
       CExpression exp =
           ((ExpressionTree<AExpression>) (Object) c.asExpressionTree())
               .accept(toCExpressionVisitor);
+      //TODO: Do this only if astNodeOptional is present?
       invMap.put(loc, exp);
       if (astNodeOptional.isPresent()) {
         AAstNode astNode = astNodeOptional.get();
@@ -180,7 +181,8 @@ public class WitnessToACSLAlgorithm implements Algorithm {
         // (these should all be return statements)
         for (int i = 0; i < node.getNumLeavingEdges(); i++) {
           CFAEdge edge = node.getLeavingEdge(i);
-          while(edge.getFileLocation().equals(FileLocation.DUMMY)) {
+          while(edge.getFileLocation().equals(FileLocation.DUMMY) ||
+              edge.getDescription().contains("__CPAchecker_TMP")) {
             if(!(edge.getSuccessor().getNumLeavingEdges() > 0)) {
               break;
             }
@@ -314,9 +316,11 @@ public class WitnessToACSLAlgorithm implements Algorithm {
   //TODO: actually transform invariant to valid ACSL annotation
   private String makeACSLAnnotation(WitnessInvariant inv) {
     if(inv.isAtLoopStart()) {
-     return "/*@ loop invariant " + inv.getExpression().toASTString() + ";*/";
+     return "/*@ loop invariant " + inv.getExpression().toASTString() + "; */";
+    } else if (inv.isAtFunctionEntry()) {
+      return "/*@ ensures " + inv.getExpression().toASTString() + "; */";
     } else {
-      return "/*@ ensures " + inv.getExpression().toASTString() + ";*/";
+      return "/*@ assert " + inv.getExpression().toASTString() + "; */";
     }
   }
 }

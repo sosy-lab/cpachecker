@@ -29,6 +29,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class WitnessInvariant {
@@ -36,6 +37,7 @@ public class WitnessInvariant {
   private int lineNumber;
   private CExpression exp;
   private boolean atLoopStart;
+  private boolean atFunctionEntry;
   //Contains those nodes that this invariant holds for
   private List<CFANode> holdsFor;
   private final CBinaryExpressionBuilder builder;
@@ -54,6 +56,7 @@ public class WitnessInvariant {
     }
     exp = pExpression;
     atLoopStart = node.isLoopStart();
+    atFunctionEntry = node instanceof FunctionEntryNode;
     holdsFor = new ArrayList<>();
     holdsFor.add(node);
     builder = pBuilder;
@@ -71,6 +74,10 @@ public class WitnessInvariant {
     return atLoopStart;
   }
 
+  public boolean isAtFunctionEntry()  {
+    return atFunctionEntry;
+  }
+
   private List<CFANode> getForWhichHolds() {
     return holdsFor;
   }
@@ -82,6 +89,7 @@ public class WitnessInvariant {
       exp = builder.buildBinaryExpression(exp, other.getExpression(), BinaryOperator.BINARY_AND);
     }
     atLoopStart = atLoopStart || other.isAtLoopStart();
+    atFunctionEntry = atFunctionEntry || other.isAtFunctionEntry();
     holdsFor.addAll(other.getForWhichHolds());
   }
 }
