@@ -421,7 +421,7 @@ class WebInterface:
         self._executor = ThreadPoolExecutor(thread_count)
         self._thread_local = threading.local()
         self._hash_code_cache = {}
-        self._group_id = str(random.randint(0, 1000000))
+        self._group_id = str(random.randint(0, 1000000))  # noqa: S311
         self._read_hash_code_cache()
         self._resolved_tool_revision(revision)
         self._tool_name = self._request_tool_name()
@@ -449,8 +449,8 @@ class WebInterface:
             os.makedirs(directory, exist_ok=True)
             with tempfile.NamedTemporaryFile(dir=directory, delete=False) as tmpFile:
                 for (path, mTime), hashValue in self._hash_code_cache.items():
-                    line = (path + "\t" + mTime + "\t" + hashValue + "\n").encode()
-                    tmpFile.write(line)
+                    line = path + "\t" + mTime + "\t" + hashValue + "\n"
+                    tmpFile.write(line.encode())
 
                 os.renames(tmpFile.name, HASH_CODE_CACHE_PATH)
         except OSError as e:

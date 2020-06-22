@@ -79,7 +79,7 @@ def execute_benchmark(benchmark, output_handler):
         ant = subprocess.Popen(
             ["ant", "resolve-benchmark-dependencies"],
             cwd=_ROOT_DIR,
-            shell=util.is_windows(),
+            shell=util.is_windows(),  # noqa: S602
         )
         ant.communicate()
         ant.wait()
@@ -122,7 +122,7 @@ def execute_benchmark(benchmark, output_handler):
         start_time = benchexec.util.read_local_time()
 
         cloud = subprocess.Popen(
-            cmdLine, stdin=subprocess.PIPE, shell=util.is_windows()
+            cmdLine, stdin=subprocess.PIPE, shell=util.is_windows()  # noqa: S602
         )
         try:
             cloud.communicate(cloudInput.encode("utf-8"))
