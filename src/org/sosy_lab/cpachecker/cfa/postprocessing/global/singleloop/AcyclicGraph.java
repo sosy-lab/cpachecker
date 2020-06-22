@@ -11,9 +11,7 @@ package org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop;
 import static com.google.common.base.Predicates.notNull;
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
@@ -56,31 +54,25 @@ class AcyclicGraph {
   /**
    * A predicate that matches edges contained in the subgraph.
    */
-  private final Predicate<CFAEdge> CONTAINS_EDGE = pArg0 -> pArg0 != null && containsEdge(pArg0);
+
+  private boolean checkNullContainsEdge(CFAEdge pArg0) {
+    return pArg0 != null && containsEdge(pArg0);
+  }
 
   /** A function producing those edges leaving a node that are contained in this subgraph. */
-  private final Function<CFANode, Iterable<CFAEdge>> GET_CONTAINED_LEAVING_EDGES =
-      new Function<>() {
 
-        @Override
-        public Iterable<CFAEdge> apply(@Nullable CFANode pArg0) {
-          if (pArg0 == null) {
-            return Collections.emptySet();
-          }
-          return getLeavingEdges(pArg0)
-              .filter(CONTAINS_EDGE)
-              .transform(
-                  edge -> {
-                    if (edge instanceof FunctionCallEdge) {
-                      CFAEdge summaryEdge = ((FunctionCallEdge) edge).getSummaryEdge();
-                      return containsNode(summaryEdge.getSuccessor()) ? summaryEdge : null;
-                    }
-                    return edge;
-                  })
-              .filter(notNull());
-        }
-      };
-
+  private Iterable<CFAEdge> getContainedLeavingEdges(@Nullable CFANode pArg0) {
+    if (pArg0 == null) {
+      return Collections.emptySet();
+    }
+    return getLeavingEdges(pArg0).filter(edge -> checkNullContainsEdge(edge)).transform(edge -> {
+      if (edge instanceof FunctionCallEdge) {
+        CFAEdge summaryEdge = ((FunctionCallEdge) edge).getSummaryEdge();
+        return containsNode(summaryEdge.getSuccessor()) ? summaryEdge : null;
+      }
+      return edge;
+    }).filter(notNull());
+  }
   /**
    * Creates a new acyclic graph with the given root node and default growth
    * strategy.
@@ -113,8 +105,7 @@ class AcyclicGraph {
    * Checks if the given node is contained in this graph.
    *
    * @param pNode the node to look for.
-   * @return @{code true} if the node is contained in the graph,
-   * @{code false} otherwise.
+   * @return {@code true} if the node is contained in the graph, {@code false} otherwise.
    */
   public boolean containsNode(CFANode pNode) {
     return this.nodes.contains(pNode) || this.uncommittedNodes.contains(pNode);
@@ -124,8 +115,7 @@ class AcyclicGraph {
    * Checks if the given edge is contained in this graph.
    *
    * @param pEdge the edge to look for.
-   * @return @{code true} if the edge is contained in the graph,
-   * @{code false} otherwise.
+   * @return {@code true} if the edge is contained in the graph, {@code false} otherwise.
    */
   public boolean containsEdge(CFAEdge pEdge) {
     return this.edges.containsValue(pEdge) || this.uncommittedEdges.containsValue(pEdge);
@@ -206,7 +196,11 @@ class AcyclicGraph {
    * shutdown notifier.
    */
   public boolean introducesLoop(CFAEdge pEdge, ShutdownNotifier pShutdownNotifier) throws InterruptedException {
-    return CFAUtils.existsPath(pEdge.getSuccessor(), pEdge.getPredecessor(), GET_CONTAINED_LEAVING_EDGES, pShutdownNotifier);
+    return CFAUtils.existsPath(
+        pEdge.getSuccessor(),
+        pEdge.getPredecessor(),
+        this::getContainedLeavingEdges,
+        pShutdownNotifier);
   }
 
   /**
