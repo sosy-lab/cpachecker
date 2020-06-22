@@ -105,7 +105,6 @@ public class WitnessToACSLAlgorithm implements Algorithm {
             //pTargetLocationProvider,
             targetLocationProvider,
             pAggregatedReachedSets);
-
   }
 
   @Override
@@ -175,10 +174,14 @@ public class WitnessToACSLAlgorithm implements Algorithm {
         }
         int location = 0;
         //TODO: What if there are no leaving edges?
+        // Put no annotation or add before all entering edges?
+        // (these should all be return statements)
         for (int i = 0; i < node.getNumLeavingEdges(); i++) {
           CFAEdge edge = node.getLeavingEdge(i);
           while(edge.getFileLocation().equals(FileLocation.DUMMY)) {
-            //TODO: Add error handling
+            if(!(edge.getSuccessor().getNumLeavingEdges() > 0)) {
+              break;
+            }
             edge = edge.getSuccessor().getLeavingEdge(0);
           }
           if(edge.getLineNumber() > 0) {
@@ -214,8 +217,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
 
       List<String> output = new ArrayList<>();
 
-      //TODO: NP possible (have to write tests anyway)
-      while (currentNode != null && locationCache.get(currentNode) == 0) {
+      while (locationCache.get(currentNode) == 0) {
         CExpression inv = invMap.get(currentNode);
         String annotation = makeACSLAnnotation(inv);
         output.add(annotation);
@@ -228,8 +230,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
 
       String[] splitContent = fileContent.split("\\r?\\n");
       for (int i = 0; i < splitContent.length; i++) {
-        assert currentNode == null ? true : locationCache.get(currentNode) > i;
-        //TODO: NP possible (have to write tests anyway)
+        assert currentNode == null || locationCache.get(currentNode) > i;
         while (currentNode != null && locationCache.get(currentNode) == i + 1) {
           CExpression inv = invMap.get(currentNode);
           String annotation = makeACSLAnnotation(inv);
@@ -269,6 +270,13 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     out.close();
   }
 
+  /**
+   * Creates a name for the file containing the annotated code based on the original's name.
+   *
+   * @param oldFileName The name of the original source file.
+   * @return A name based on the given file name. The new name has the prefix "annotated" and
+   * ends in a timestamp to prevent duplicates.
+   */
   private String makeNameForAnnotatedFile(String oldFileName) {
     int indexOfFirstPeriod = oldFileName.indexOf('.');
     String nameWithoutExtension = oldFileName.substring(0, indexOfFirstPeriod);
