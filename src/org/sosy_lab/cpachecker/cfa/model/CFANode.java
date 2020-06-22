@@ -79,7 +79,7 @@ public class CFANode implements Comparable<CFANode>, Serializable {
         FileLocation.DUMMY,
         CFunctionType.NO_ARGS_VOID_FUNCTION,
         dummyName,
-            ImmutableList.of());
+        ImmutableList.of());
     nodeNumber = idGenerator.getFreshId();
   }
 
