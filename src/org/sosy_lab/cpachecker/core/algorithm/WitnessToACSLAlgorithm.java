@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.WitnessInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
@@ -271,12 +272,12 @@ public class WitnessToACSLAlgorithm implements Algorithm {
 
     File outFile = new File(Path.of(directory.toString(), newFileName).toUri());
     assert outFile.createNewFile() : String.format("File %s already exists!", outFile);
-    FileWriter out = new FileWriter(outFile);
-    for(String line : newContent) {
-      out.append(line.concat("\n"));
+    try (FileWriter out = new FileWriter(outFile)) {
+      for(String line : newContent) {
+        out.append(line.concat("\n"));
+      }
+      out.flush();
     }
-    out.flush();
-    out.close();
   }
 
   /**
