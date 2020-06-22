@@ -181,13 +181,6 @@ class Benchmark(benchexec.benchexec.BenchExec):
 
         return executor
 
-    def execute_benchmark(self, benchmark_file):
-        try:
-            return super().execute_benchmark(benchmark_file)
-        except Exception as e:
-            logging.error('%s', e)
-            return 1
-
     def check_existing_results(self, benchmark):
         if not self.config.reprocessResults:
             super(Benchmark, self).check_existing_results(benchmark)
