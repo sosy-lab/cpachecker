@@ -61,7 +61,7 @@ public class CallstackCPA extends AbstractCPA
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition) {
     if (cfa.getLoopStructure().isPresent()) {
-      LoopStructure loopStructure = cfa.getLoopStructure().get();
+      LoopStructure loopStructure = cfa.getLoopStructure().orElseThrow();
       Collection<Loop> artificialLoops = loopStructure.getLoopsForFunction(
           CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME);
 

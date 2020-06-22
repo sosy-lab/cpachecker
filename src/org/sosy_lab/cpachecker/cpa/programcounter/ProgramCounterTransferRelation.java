@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.programcounter;
 
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Collections;
@@ -64,12 +65,12 @@ public class ProgramCounterTransferRelation extends SingleEdgeTransferRelation {
             if (state.containsValue(value)) {
               state = ProgramCounterState.getStateForValue(value);
             } else {
-              return Collections.emptySet();
+              return ImmutableSet.of();
             }
           } else {
             state = state.remove(value);
             if (state.isBottom()) {
-              return Collections.emptySet();
+              return ImmutableSet.of();
             }
           }
         }
@@ -85,7 +86,7 @@ public class ProgramCounterTransferRelation extends SingleEdgeTransferRelation {
         break;
     }
     if (state == null || state.isBottom()) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
     return Collections.singleton(state);
   }

@@ -52,7 +52,7 @@ public class ProgramCounterCPA extends AbstractCPA {
     if (pNode instanceof SingleLoopHead) {
       singleLoopHead = (SingleLoopHead) pNode;
     } else if (cfa.getLoopStructure().isPresent()) {
-      LoopStructure loopStructure = cfa.getLoopStructure().get();
+      LoopStructure loopStructure = cfa.getLoopStructure().orElseThrow();
       if (loopStructure.getCount() == 1) {
         Loop singleLoop = Iterables.getOnlyElement(loopStructure.getAllLoops());
         if (singleLoop.getLoopHeads().size() == 1) {

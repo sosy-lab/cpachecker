@@ -111,7 +111,7 @@ public class CallstackTransferRelation extends SingleEdgeTransferRelation {
          *
          * Edges like this are introduced by the single loop transformation.
          */
-        return Collections.emptySet();
+        return ImmutableSet.of();
       }
       break;
     }

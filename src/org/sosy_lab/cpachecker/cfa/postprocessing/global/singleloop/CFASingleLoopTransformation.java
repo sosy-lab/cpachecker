@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cfa.postprocessing.global.singleloop;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.base.Predicates.not;
@@ -184,7 +185,7 @@ public class CFASingleLoopTransformation {
 
     // If the transformation is not necessary, return the original graph
     if (pInputCFA.getLoopStructure().isPresent()) {
-      LoopStructure loopStructure = pInputCFA.getLoopStructure().get();
+      LoopStructure loopStructure = pInputCFA.getLoopStructure().orElseThrow();
       if (loopStructure.getCount() == 0) {
         // no loops, nothing to do
         return pInputCFA;
@@ -1314,9 +1315,7 @@ public class CFASingleLoopTransformation {
       CDeclarationEdge declarationEdge = (CDeclarationEdge) pEdge;
       return new CDeclarationEdge(rawStatement, fileLocation, pNewPredecessor, pNewSuccessor, declarationEdge.getDeclaration());
     case FunctionCallEdge: {
-      if (!(pNewSuccessor instanceof FunctionEntryNode)) {
-        throw new IllegalArgumentException("The successor of a function call edge must be a function entry node.");
-      }
+      checkArgument((pNewSuccessor instanceof FunctionEntryNode), "The successor of a function call edge must be a function entry node.");
       CFunctionCallEdge functionCallEdge = (CFunctionCallEdge) pEdge;
       FunctionSummaryEdge oldSummaryEdge = functionCallEdge.getSummaryEdge();
       CFunctionSummaryEdge functionSummaryEdge =

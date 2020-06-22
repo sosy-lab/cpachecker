@@ -13,6 +13,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
@@ -63,7 +64,7 @@ class AcyclicGraph {
 
   private Iterable<CFAEdge> getContainedLeavingEdges(@Nullable CFANode pArg0) {
     if (pArg0 == null) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
     return getLeavingEdges(pArg0).filter(edge -> checkNullContainsEdge(edge)).transform(edge -> {
       if (edge instanceof FunctionCallEdge) {
