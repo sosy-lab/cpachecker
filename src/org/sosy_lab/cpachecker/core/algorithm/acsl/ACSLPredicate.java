@@ -1,5 +1,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+
 public abstract class ACSLPredicate {
 
   private boolean negated;
@@ -58,6 +61,8 @@ public abstract class ACSLPredicate {
   // TODO: All non-trivial implementations of isNegationOf are currently too weak
   public abstract boolean isNegationOf(ACSLPredicate other);
 
+  public abstract ExpressionTree<Object> toExpressionTree();
+
   private static class TRUE extends ACSLPredicate {
 
     private static final TRUE singleton = new TRUE();
@@ -94,6 +99,11 @@ public abstract class ACSLPredicate {
     @Override
     public boolean isNegationOf(ACSLPredicate other) {
       return other instanceof FALSE;
+    }
+
+    @Override
+    public ExpressionTree<Object> toExpressionTree() {
+      return ExpressionTrees.getTrue();
     }
   }
 
@@ -133,6 +143,11 @@ public abstract class ACSLPredicate {
     @Override
     public boolean isNegationOf(ACSLPredicate other) {
       return other instanceof TRUE;
+    }
+
+    @Override
+    public ExpressionTree<Object> toExpressionTree() {
+      return ExpressionTrees.getFalse();
     }
   }
 }

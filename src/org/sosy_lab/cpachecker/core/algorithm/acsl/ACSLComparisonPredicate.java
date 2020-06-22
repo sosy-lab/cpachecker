@@ -1,6 +1,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
 import com.google.common.base.Preconditions;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 
 public class ACSLComparisonPredicate extends ACSLPredicate {
 
@@ -84,5 +86,11 @@ public class ACSLComparisonPredicate extends ACSLPredicate {
   @Override
   public boolean isNegationOf(ACSLPredicate other) {
     return equalsExceptNegation(other, false);
+  }
+
+  @Override
+  public ExpressionTree<Object> toExpressionTree() {
+    //TODO
+    return LeafExpression.of(toString());
   }
 }

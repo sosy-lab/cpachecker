@@ -1,6 +1,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
 import com.google.common.base.Preconditions;
+import org.sosy_lab.cpachecker.util.expressions.And;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.Or;
 
 public class ACSLLogicalPredicate extends ACSLPredicate {
 
@@ -129,5 +132,24 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
   @Override
   public boolean isNegationOf(ACSLPredicate o) {
     return equalsExceptNegation(o, false);
+  }
+
+  @Override
+  public ExpressionTree<Object> toExpressionTree() {
+    ACSLPredicate purePredicate = toPureC();
+    if (equals(purePredicate)) {
+      ExpressionTree<Object> leftTree = left.toExpressionTree();
+      ExpressionTree<Object> rightTree = right.toExpressionTree();
+      switch (operator) {
+        case AND:
+          return And.of(leftTree, rightTree);
+        case OR:
+          return Or.of(leftTree, rightTree);
+        default:
+          throw new AssertionError("Pure predicate should contain AND or OR");
+      }
+    } else {
+      return purePredicate.toExpressionTree();
+    }
   }
 }

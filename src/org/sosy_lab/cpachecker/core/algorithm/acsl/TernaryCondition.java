@@ -1,5 +1,9 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
+import org.sosy_lab.cpachecker.util.expressions.And;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.Or;
+
 public class TernaryCondition extends ACSLPredicate {
 
   private final ACSLPredicate condition;
@@ -59,5 +63,13 @@ public class TernaryCondition extends ACSLPredicate {
   @Override
   public boolean isNegationOf(ACSLPredicate other) {
     return equalsExceptNegation(other, false);
+  }
+
+  @Override
+  public ExpressionTree<Object> toExpressionTree() {
+    ExpressionTree<Object> left = And.of(condition.toExpressionTree(), then.toExpressionTree());
+    ExpressionTree<Object> right =
+        And.of(condition.negate().toExpressionTree(), otherwise.toExpressionTree());
+    return Or.of(left, right);
   }
 }
