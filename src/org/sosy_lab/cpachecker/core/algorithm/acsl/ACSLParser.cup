@@ -1,6 +1,14 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.Reader;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Optional;
 import java_cup.runtime.Symbol;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -8,28 +16,65 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotationLocations;
+import org.sosy_lab.cpachecker.exceptions.CParserException;
+import org.sosy_lab.cpachecker.util.LiveVariables;
 
 parser code {:
 
     private ACSLScanner scanner;
-
     private Map<String, Behavior> behaviors;
+    private CFAWithACSLAnnotationLocations cfa;
+    private List<IASTFileLocation> orderedLocs;
 
-//TODO: Add CFA for scoping
-
-    parser(ACSLScanner pScanner) {
+    private parser(ACSLScanner pScanner, CFAWithACSLAnnotationLocations pCfa,
+      List<IASTFileLocation> pOrderedLocs) {
         super(pScanner);
         scanner = pScanner;
         behaviors = new HashMap<>();
+        cfa = pCfa;
+        orderedLocs = pOrderedLocs;
     }
 
-    public List<ACSLAnnotation> parseACSLAnnotations() throws Exception {
+    public static CFA parseACSLAnnotations(List<String> files, CFA pCfa) throws CParserException, IOException {
+      Comparator<IASTFileLocation> locationComparator =
+          (loc1, loc2) -> loc1.getNodeOffset() < loc2.getNodeOffset() ? -1 : 1;
+
+      for (String filename : files) {
+        Reader reader = new FileReader(new File(filename));
+        ACSLScanner scanner = new ACSLScanner(reader);
+        if (pCfa instanceof CFAWithACSLAnnotationLocations) {
+          CFAWithACSLAnnotationLocations cfaWithLocs = (CFAWithACSLAnnotationLocations) pCfa;
+
+          List<IASTFileLocation> orderedLocs = new ArrayList<>();
+          orderedLocs.addAll(cfaWithLocs.getCommentPositions().keySet());
+          Collections.sort(orderedLocs, locationComparator);
+          orderedLocs = FluentIterable.from(orderedLocs).filter(x -> x.getFileName().equals(filename)).toList();
+          List<ACSLAnnotation> annotations = new parser(scanner, cfaWithLocs, orderedLocs).parseACSLAnnotations();
+          for (int i = 0; i < orderedLocs.size(); i++) {
+            cfaWithLocs.getEdgesToAnnotations().put(cfaWithLocs.getCommentPositions().get(orderedLocs.get(i)), annotations.get(i));
+          }
+        } else {
+          throw new AssertionError("No location information available!");
+        }
+      }
+
+      return pCfa;
+    }
+
+    public List<ACSLAnnotation> parseACSLAnnotations() throws CParserException {
+      try {
         Symbol symbol = this.parse();
         if(symbol != null) {
             return (List<ACSLAnnotation>) symbol.value;
         } else {
             return ImmutableList.of();
         }
+      } catch (Exception e) {
+        throw new CParserException(e);
+      }
     }
 
     public void putBehavior(String id, Behavior b) {
@@ -38,6 +83,19 @@ parser code {:
 
     public Behavior getBehavior(String id) {
         return behaviors.get(id);
+    }
+
+    public List<IASTFileLocation> getLocs() {
+      return orderedLocs;
+    }
+
+    public CFAWithACSLAnnotationLocations getCFA() {
+      return cfa;
+    }
+
+    @Override
+    public ACSLScanner getScanner() {
+      return scanner;
     }
 :}
 

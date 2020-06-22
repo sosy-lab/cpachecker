@@ -17,7 +17,7 @@ import java.util.Queue;
 
 %{
     StringBuffer buf = new StringBuffer();
-
+    int currentAnnotation = -1;
     Queue<java_cup.runtime.Symbol> deq = new ArrayDeque<>(1);
 
     private Symbol symbol(int type) {
@@ -39,6 +39,10 @@ import java.util.Queue;
     private void addTokenToQueue(java_cup.runtime.Symbol sym) {
         deq.offer(sym);
     }
+
+    public int getCurrentAnnotation() {
+      return currentAnnotation;
+    }
 %}
 
 LineBreak   = \r|\n|\r\n
@@ -52,8 +56,10 @@ Identifier  = [_a-zA-Z][_a-zA-Z0-9]*
 %%
 
 <YYINITIAL> {
-   "//@"                {yybegin(SINGLE_LINE_ANNOTATION); return symbol(sym.NEXTCONTRACT);}
-   "/*@"                {yybegin(MULTI_LINE_ANNOTATION); return symbol(sym.NEXTCONTRACT);}
+   "//@"                {yybegin(SINGLE_LINE_ANNOTATION); currentAnnotation++;
+                        return symbol(sym.NEXTCONTRACT);}
+   "/*@"                {yybegin(MULTI_LINE_ANNOTATION);  currentAnnotation++;
+                        return symbol(sym.NEXTCONTRACT);}
    {LineBreak}          {/* do nothing */}
    .                    {/* do nothing */}
 }
