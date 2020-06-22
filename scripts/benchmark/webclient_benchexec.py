@@ -199,7 +199,7 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
                     )
                 else:
                     raise WebClientError(
-                        'Could not submit run %s, got error "%s"'.format(
+                        'Could not submit run {}, got error "{}"'.format(
                             run.identifier, e
                         )
                     )
