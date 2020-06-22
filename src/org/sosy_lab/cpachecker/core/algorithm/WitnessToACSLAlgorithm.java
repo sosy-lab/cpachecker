@@ -46,10 +46,12 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.Specification;
+import org.sosy_lab.cpachecker.core.algorithm.acsl.Invariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
@@ -75,6 +77,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
   private final KInductionInvariantGeneratorOptions kindOptions;
   private final TargetLocationProvider targetLocationProvider;
   private final ToCExpressionVisitor toCExpressionVisitor;
+  private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
   public WitnessToACSLAlgorithm(
       Configuration pConfig,
@@ -93,6 +96,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     config.inject(kindOptions);
     targetLocationProvider = new CachingTargetLocationProvider(pShutdownNotifier, logger, cfa);
     toCExpressionVisitor = new ToCExpressionVisitor(cfa.getMachineModel(), logger);
+    binaryExpressionBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
     KInductionInvariantGenerator invGen =
         KInductionInvariantGenerator.create(
             pConfig,
@@ -162,10 +166,8 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     }
 
     for (String file : files) {
-      HashMap<CFANode, Integer> locationCache = new HashMap<>();
-
       //Sort invariants by location
-      List<CFANode> sortedNodes = new ArrayList<>(invMap.size());
+      List<Invariant> sortedInvariants = new ArrayList<>(invMap.size());
       for (Entry<CFANode, CExpression> entry : invMap.entrySet()) {
         CFANode node = entry.getKey();
         if(!node.getFunction().getFileLocation().getFileName().equals(file)) {
@@ -186,22 +188,28 @@ public class WitnessToACSLAlgorithm implements Algorithm {
           }
           if(edge.getLineNumber() > 0) {
             location = edge.getLineNumber();
-            locationCache.put(node, location);
             break;
           }
         }
         boolean added = false;
-        for (int i = 0; i < sortedNodes.size(); i++) {
-          int otherLocation = sortedNodes.get(i).getLeavingEdge(0).getLineNumber();
-          if (location <= otherLocation) {
-            sortedNodes.add(i, node);
+        boolean merged = false;
+        Invariant currentInvariant = new Invariant(node, entry.getValue(), binaryExpressionBuilder, location);
+        for (int i = 0; i < sortedInvariants.size(); i++) {
+          Invariant other = sortedInvariants.get(i);
+          int otherLocation = other.getLocation();
+          if (location < otherLocation) {
+            sortedInvariants.add(i, currentInvariant);
             added = true;
             break;
           }
-          //TODO: If two annotations at same location: merge (check ACSL docs if necessary)
+          if(location == otherLocation) {
+            other.mergeWith(currentInvariant);
+            merged = true;
+            break;
+          }
         }
-        if (!added) {
-          sortedNodes.add(node);
+        if (!added && !merged) {
+          sortedInvariants.add(currentInvariant);
         }
       }
 
@@ -212,34 +220,32 @@ public class WitnessToACSLAlgorithm implements Algorithm {
         logger.logfUserException(Level.SEVERE, pE, "Could not read file %s", file);
       }
 
-      Iterator<CFANode> iterator = sortedNodes.iterator();
-      CFANode currentNode = iterator.next();
+      Iterator<Invariant> iterator = sortedInvariants.iterator();
+      Invariant currentInvariant = iterator.next();
 
       List<String> output = new ArrayList<>();
 
-      while (locationCache.get(currentNode) == 0) {
-        CExpression inv = invMap.get(currentNode);
-        String annotation = makeACSLAnnotation(inv);
+      while (currentInvariant.getLocation() == 0) {
+        String annotation = makeACSLAnnotation(currentInvariant);
         output.add(annotation);
         if (iterator.hasNext()) {
-          currentNode = iterator.next();
+          currentInvariant = iterator.next();
         } else {
-          currentNode = null;
+          currentInvariant = null;
         }
       }
 
       String[] splitContent = fileContent.split("\\r?\\n");
       for (int i = 0; i < splitContent.length; i++) {
-        assert currentNode == null || locationCache.get(currentNode) > i;
-        while (currentNode != null && locationCache.get(currentNode) == i + 1) {
-          CExpression inv = invMap.get(currentNode);
-          String annotation = makeACSLAnnotation(inv);
+        assert currentInvariant == null || currentInvariant.getLocation() > i;
+        while (currentInvariant != null && currentInvariant.getLocation() == i + 1) {
+          String annotation = makeACSLAnnotation(currentInvariant);
           String indentation = getIndentation(splitContent[i]);
           output.add(indentation.concat(annotation));
           if (iterator.hasNext()) {
-            currentNode = iterator.next();
+            currentInvariant = iterator.next();
           } else {
-            currentNode = null;
+            currentInvariant = null;
           }
         }
         output.add(splitContent[i]);
@@ -305,7 +311,11 @@ public class WitnessToACSLAlgorithm implements Algorithm {
   }
 
   //TODO: actually transform invariant to valid ACSL annotation
-  private String makeACSLAnnotation(CExpression pInv) {
-    return "//" + pInv.toASTString();
+  private String makeACSLAnnotation(Invariant inv) {
+    if(inv.isAtLoopStart()) {
+     return "/*@ loop invariant " + inv.getExpression().toASTString() + ";*/";
+    } else {
+      return "/*@ ensures " + inv.getExpression().toASTString() + ";*/";
+    }
   }
 }
