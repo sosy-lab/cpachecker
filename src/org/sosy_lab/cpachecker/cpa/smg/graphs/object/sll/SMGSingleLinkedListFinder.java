@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -135,8 +136,10 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
       Set<Long> typeSizesOfThisObject = new HashSet<>();
 
       for (SMGEdgePointsTo edge : SMGUtils.getPointerToThisObject(pObject, pSmg)) {
-        Set<SMGEdgeHasValue> hves =
-            pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(edge.getValue()));
+        SMGHasValueEdges hves =
+            pSmg.getHVEdges(
+                SMGEdgeHasValueFilter.valueFilter(edge.getValue())
+                    .filterBySize(pSmg.getSizeofPtrInBits()));
         for (SMGEdgeHasValue hve : hves) {
           typeSizesOfThisObject.add(hve.getSizeInBits());
         }
@@ -194,10 +197,13 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
         return;
       }
 
-      //TODO At the moment, we still demand that a value is found at prev or next.
+      // TODO At the moment, we still demand that a value is found at prev or next.
 
-      Set<SMGEdgeHasValue> nextObjectNextPointer =
-          pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(nfo));
+      SMGHasValueEdges nextObjectNextPointer =
+          pSmg.getHVEdges(
+              SMGEdgeHasValueFilter.objectFilter(nextObject)
+                  .filterAtOffset(nfo)
+                  .filterBySize(pSmg.getSizeofPtrInBits()));
 
       if (nextObjectNextPointer.size() != 1) {
         return;
@@ -285,8 +291,7 @@ public class SMGSingleLinkedListFinder extends SMGAbstractionFinder {
         /* Nothing besides the one link from the prev object pointer may
          * point to the next object in a sll
          */
-        Set<SMGEdgeHasValue> prevs =
-            pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
+        SMGHasValueEdges prevs = pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
 
         if (prevs.size() != 1) {
           return;

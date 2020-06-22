@@ -10,16 +10,8 @@ package org.sosy_lab.cpachecker.core;
 
 import static com.google.common.base.Verify.verifyNotNull;
 
-import com.google.common.base.Preconditions;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Optional;
-import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -75,14 +67,13 @@ import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.Property;
-import org.sosy_lab.cpachecker.util.SpecificationProperty;
 
 /**
  * Factory class for the three core components of CPAchecker:
@@ -184,14 +175,12 @@ public class CoreComponentsFactory {
   private boolean useMPIProcessAlgorithm = false;
 
   @Option(
-    secure = true,
-    name = "algorithm.termination",
-    description = "Use termination algorithm to prove (non-)termination.")
+      secure = true,
+      name = "algorithm.termination",
+      description =
+          "Use termination algorithm to prove (non-)termination. This needs the TerminationCPA as"
+              + " root CPA and an automaton CPA with termination_as_reach.spc in the tree of CPAs.")
   private boolean useTerminationAlgorithm = false;
-
-  private static final Path TERMINATION_SPEC_FILE =
-      Classes.getCodeLocation(CoreComponentsFactory.class)
-          .resolveSibling("config/specification/termination_as_reach.spc");
 
   @Option(
       secure = true,
@@ -340,20 +329,12 @@ public class CoreComponentsFactory {
   }
 
   public Algorithm createAlgorithm(
-      final ConfigurableProgramAnalysis cpa, final CFA cfa, final Specification pOrigSpecification)
+      final ConfigurableProgramAnalysis cpa, final CFA cfa, final Specification specification)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     logger.log(Level.FINE, "Creating algorithms");
 
     if (disableAnalysis) {
       return NoopAlgorithm.INSTANCE;
-    }
-
-    // TerminationAlgorithm requires hard coded specification.
-    final Specification specification;
-    if (useTerminationAlgorithm) {
-      specification = loadTerminationSpecification(cfa, pOrigSpecification);
-    } else {
-      specification = pOrigSpecification;
     }
 
     Algorithm algorithm;
@@ -365,7 +346,7 @@ public class CoreComponentsFactory {
       logger.log(Level.INFO, "Using validator for violation witnesses for termination");
       algorithm =
           new NonTerminationWitnessValidator(
-              cfa, config, logger, shutdownNotifier, pOrigSpecification.getSpecificationAutomata());
+              cfa, config, logger, shutdownNotifier, specification.getSpecificationAutomata());
     } else if(useProofCheckAlgorithmWithStoredConfig) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
       algorithm =
@@ -606,7 +587,7 @@ public class CoreComponentsFactory {
   }
 
   public ConfigurableProgramAnalysis createCPA(final CFA cfa, final Specification pSpecification)
-      throws InvalidConfigurationException, CPAException, InterruptedException {
+      throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
 
     if (useInterleavedAlgorithm
@@ -623,76 +604,6 @@ public class CoreComponentsFactory {
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }
 
-    // TerminationAlgorithm requires hard coded specification.
-    Specification specification;
-    if (useTerminationAlgorithm) {
-      specification = loadTerminationSpecification(cfa, pSpecification);
-    } else {
-      specification = pSpecification;
-    }
-
-    return cpaFactory.buildCPAs(cfa, specification, aggregatedReachedSets);
+    return cpaFactory.buildCPAs(cfa, pSpecification, aggregatedReachedSets);
   }
-
-  private Specification loadTerminationSpecification(CFA cfa, Specification originalSpecification)
-      throws InvalidConfigurationException, InterruptedException {
-    Preconditions.checkState(useTerminationAlgorithm);
-    boolean atMostWitnessOrTermSpec = true;
-
-    Optional<Path> witness = Optional.empty();
-    for (Path specFile : originalSpecification.getSpecFiles()) {
-      Path fileName = specFile.getFileName();
-      if (fileName != null && fileName.toString().endsWith(".graphml")) {
-        Preconditions.checkState(!witness.isPresent(), "More than one witness file.");
-        witness = Optional.of(specFile);
-      } else if (!specFile.equals(TERMINATION_SPEC_FILE)) {
-        atMostWitnessOrTermSpec = false;
-      }
-    }
-
-    if (!atMostWitnessOrTermSpec) {
-      throw new InvalidConfigurationException(
-          originalSpecification + "is not usable with termination analysis");
-    }
-
-    Preconditions.checkArgument(
-        originalSpecification.getProperties() == null
-            || originalSpecification.getProperties().isEmpty()
-            || onlyTerminationProperty(
-                originalSpecification.getProperties(),
-                cfa.getMainFunction().getFunctionName()),
-        "Non-termination property used.");
-
-    Collection<Path> specFiles;
-    if (witness.isPresent()) {
-      specFiles = new ArrayList<>(2);
-      specFiles.add(TERMINATION_SPEC_FILE);
-      specFiles.add(witness.orElseThrow());
-    } else {
-      specFiles = Collections.singletonList(TERMINATION_SPEC_FILE);
-    }
-
-    return Specification.fromFiles(
-        Collections.singleton(
-            new SpecificationProperty(
-                cfa.getMainFunction().getFunctionName(),
-                Property.CommonPropertyType.TERMINATION,
-                Optional.of(TERMINATION_SPEC_FILE.toString()))),
-        specFiles,
-        cfa,
-        config,
-        logger,
-        shutdownNotifier);
-  }
-
-  private boolean onlyTerminationProperty(Set<SpecificationProperty> pProperties, String main) {
-    for (SpecificationProperty prop : pProperties) {
-      if (!prop.getProperty().equals(Property.CommonPropertyType.TERMINATION)
-          || !prop.getEntryFunction().equals(main)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
 }

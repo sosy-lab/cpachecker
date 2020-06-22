@@ -68,8 +68,12 @@ class SMGJoinDllProgress
     }
 
     for (int i = 1; i < pLength; i++) {
-      SMGEdgeHasValue nextHveEdge = Iterables.getOnlyElement(pSMG.getHVEdges(
-          SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(pCandidate.getShape().getNfo())));
+      SMGEdgeHasValue nextHveEdge =
+          Iterables.getOnlyElement(
+              pSMG.getHVEdges(
+                  SMGEdgeHasValueFilter.objectFilter(nextObject)
+                      .filterAtOffset(pCandidate.getShape().getNfo())
+                      .filterBySize(pSMG.getSizeofPtrInBits())));
       nextObject = pSMG.getPointer(nextHveEdge.getValue()).getObject();
       if (nextObject.getKind() == SMGObjectKind.DLL) {
         return true;
@@ -81,6 +85,10 @@ class SMGJoinDllProgress
 
   @Override
   public String toString() {
-    return "SMGJoinDllProgress [candidates=" + candidates + ", candidateLength=" + candidateLength + "]";
+    return "SMGJoinDllProgress [candidates="
+        + candidates
+        + ", candidateLength="
+        + candidateLength
+        + "]";
   }
 }

@@ -83,11 +83,11 @@ def execute_benchmark(benchmark, output_handler):
 
     if benchmark.tool_name != _webclient.tool_name():
         logging.warning("The web client does only support %s.", _webclient.tool_name())
-        return
+        return 1
 
     if not _webclient:
         logging.warning("No valid URL of a VerifierCloud instance is given.")
-        return
+        return 1
 
     STOPPED_BY_INTERRUPT = False
     try:
@@ -102,13 +102,14 @@ def execute_benchmark(benchmark, output_handler):
             output_handler.output_before_run_set(runSet)
             try:
                 result_futures = _submitRunsParallel(runSet, benchmark, output_handler)
-
                 _handle_results(result_futures, output_handler, benchmark, runSet)
             except KeyboardInterrupt:
                 STOPPED_BY_INTERRUPT = True
                 output_handler.set_error("interrupted", runSet)
             output_handler.output_after_run_set(runSet)
-
+    except WebClientError as e:
+        logging.error("%s", e)
+        return 1
     finally:
         stop()
         output_handler.output_after_benchmark(STOPPED_BY_INTERRUPT)
@@ -187,25 +188,21 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
                         "Submitted run %s/%s", submissonCounter, len(runSet.runs)
                     )
 
-            except (HTTPError, WebClientError) as e:
+            except HTTPError as e:
                 output_handler.set_error("VerifierCloud problem", runSet)
-                body = (
-                    getattr(e.request, "body", None)
-                    if isinstance(e, HTTPError)
-                    else None
-                )
+                body = getattr(e.request, "body", None)
                 if body:
-                    logging.warning(
-                        'Could not submit run %s, got error "%s" for request with body "%s"',
-                        run.identifier,
-                        e,
-                        body[:200],
+                    raise WebClientError(
+                        'Could not submit run {}, got error "{}" for request with body "{}"'.format(
+                            run.identifier, e, body[:200]
+                        )
                     )
                 else:
-                    logging.warning(
-                        'Could not submit run %s, got error "%s"', run.identifier, e
+                    raise WebClientError(
+                        'Could not submit run {}, got error "{}"'.format(
+                            run.identifier, e
+                        )
                     )
-                return result_futures  # stop submitting runs
 
             finally:
                 submissonCounter += 1

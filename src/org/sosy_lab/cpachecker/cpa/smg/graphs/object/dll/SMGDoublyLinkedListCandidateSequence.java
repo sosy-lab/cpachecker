@@ -48,7 +48,12 @@ public class SMGDoublyLinkedListCandidateSequence extends SMGAbstractListCandida
 
     for (int i = 1; i < length; i++) {
 
-      SMGEdgeHasValue nextEdge = Iterables.getOnlyElement(pSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(prevObject).filterAtOffset(nfo)));
+      SMGEdgeHasValue nextEdge =
+          Iterables.getOnlyElement(
+              pSMG.getHVEdges(
+                  SMGEdgeHasValueFilter.objectFilter(prevObject)
+                      .filterAtOffset(nfo)
+                      .filterBySize(pSMG.getSizeofPtrInBits())));
       SMGObject nextObject = pSMG.getPointer(nextEdge.getValue()).getObject();
 
       if (nextObject == prevObject) {
@@ -69,7 +74,8 @@ public class SMGDoublyLinkedListCandidateSequence extends SMGAbstractListCandida
           new SMGJoinSubSMGsForAbstraction(pSMG, prevObject, nextObject, candidate, pSmgState);
 
       if(!join.isDefined()) {
-        throw new AssertionError("Unexpected join failure while abstracting longest mergeable sequence");
+        throw new AssertionError(
+            "Unexpected join failure while abstracting longest mergeable sequence");
       }
 
 //      SMGDebugTest.dumpPlot("afterAbstractionBeforeRemoval", pSmgState);
@@ -79,19 +85,29 @@ public class SMGDoublyLinkedListCandidateSequence extends SMGAbstractListCandida
       addPointsToEdges(pSMG, nextObject, newAbsObj, SMGTargetSpecifier.LAST);
       addPointsToEdges(pSMG, prevObject, newAbsObj, SMGTargetSpecifier.FIRST);
 
-      SMGEdgeHasValue prevObj1hve = Iterables.getOnlyElement(pSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(prevObject).filterAtOffset(pfo)));
-      SMGEdgeHasValue nextObj2hve = Iterables.getOnlyElement(pSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(nfo)));
+      SMGEdgeHasValue prevObj1hve =
+          Iterables.getOnlyElement(
+              pSMG.getHVEdges(
+                  SMGEdgeHasValueFilter.objectFilter(prevObject)
+                      .filterAtOffset(pfo)
+                      .filterBySize(pSMG.getSizeofPtrInBits())));
+      SMGEdgeHasValue nextObj2hve =
+          Iterables.getOnlyElement(
+              pSMG.getHVEdges(
+                  SMGEdgeHasValueFilter.objectFilter(nextObject)
+                      .filterAtOffset(nfo)
+                      .filterBySize(pSMG.getSizeofPtrInBits())));
 
       for (SMGObject obj : join.getNonSharedObjectsFromSMG1()) {
-        pSMG.removeHeapObjectAndEdges(obj);
+        pSMG.markHeapObjectDeletedAndRemoveEdges(obj);
       }
 
       for (SMGObject obj : join.getNonSharedObjectsFromSMG2()) {
-        pSMG.removeHeapObjectAndEdges(obj);
+        pSMG.markHeapObjectDeletedAndRemoveEdges(obj);
       }
 
-      pSMG.removeHeapObjectAndEdges(nextObject);
-      pSMG.removeHeapObjectAndEdges(prevObject);
+      pSMG.markHeapObjectDeletedAndRemoveEdges(nextObject);
+      pSMG.markHeapObjectDeletedAndRemoveEdges(prevObject);
       prevObject = newAbsObj;
 
       SMGEdgeHasValue nfoHve =
@@ -121,7 +137,11 @@ public class SMGDoublyLinkedListCandidateSequence extends SMGAbstractListCandida
 
   @Override
   public String toString() {
-    return "SMGDoublyLinkedListCandidateSequence [candidate=" + candidate + ", length=" + length + "]";
+    return "SMGDoublyLinkedListCandidateSequence [candidate="
+        + candidate
+        + ", length="
+        + length
+        + "]";
   }
 
   @Override

@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.smg;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -153,12 +152,6 @@ public class SMGTransferRelation
       }
       successors.add(checkAndSetErrorRelation(s));
     }
-    logger.log(
-        Level.ALL,
-        "state with id",
-        state.getId(),
-        "has successors with ids",
-        Collections2.transform(successors, UnmodifiableSMGState::getId));
     return successors;
   }
 
@@ -806,28 +799,55 @@ public class SMGTransferRelation
 
     List<SMGState> result = new ArrayList<>(4);
     CType rValueType = TypeUtils.getRealExpressionType(rValue);
-    for (SMGValueAndState valueAndState : readValueToBeAssiged(pNewState, cfaEdge, rValue)) {
-      SMGSymbolicValue value = valueAndState.getObject();
-      SMGState newState = valueAndState.getSmgState();
 
+    SMGExpressionEvaluator expEvaluator = new SMGExpressionEvaluator(logger, machineModel);
+    for (SMGExplicitValueAndState expValueAndState :
+        expEvaluator.evaluateExplicitValue(pNewState, cfaEdge, rValue)) {
+      SMGExplicitValue expValue = expValueAndState.getObject();
+      SMGState newState = expValueAndState.getSmgState();
       //TODO (  cast expression)
 
       //6.5.16.1 right operand is converted to type of assignment expression
       // 6.5.26 The type of an assignment expression is the type the left operand would have after lvalue conversion.
       rValueType = pLFieldType;
 
-      for (Pair<SMGState, SMGKnownSymbolicValue> currentNewStateWithMergedValue :
-          assignExplicitValueToSymbolicValue(newState, cfaEdge, value, rValue)) {
-        result.add(
-            expressionEvaluator.assignFieldToState(
-                currentNewStateWithMergedValue.getFirst(),
-                cfaEdge,
-                memoryOfField,
-                fieldOffset,
-                value,
-                rValueType));
+      if (!expValue.isUnknown()) {
+        SMGSymbolicValue symbolicValue = newState.getSymbolicOfExplicit(expValue);
+        if (symbolicValue != null) {
+
+          result.add(
+              expressionEvaluator.assignFieldToState(
+                  newState, cfaEdge, memoryOfField, fieldOffset, symbolicValue, rValueType));
+        } else {
+          for (SMGValueAndState valueAndState : readValueToBeAssiged(newState, cfaEdge, rValue)) {
+            SMGSymbolicValue value = valueAndState.getObject();
+            SMGState curState = valueAndState.getSmgState();
+
+            curState.putExplicit((SMGKnownSymbolicValue) value, (SMGKnownExpValue) expValue);
+            result.add(
+                expressionEvaluator.assignFieldToState(
+                    curState, cfaEdge, memoryOfField, fieldOffset, value, rValueType));
+          }
+        }
+      } else {
+        for (SMGValueAndState valueAndState : readValueToBeAssiged(newState, cfaEdge, rValue)) {
+          SMGSymbolicValue value = valueAndState.getObject();
+          SMGState curState = valueAndState.getSmgState();
+
+          // TODO (  cast expression)
+
+          // 6.5.16.1 right operand is converted to type of assignment expression
+          // 6.5.26 The type of an assignment expression is the type the left operand would have
+          // after lvalue conversion.
+          rValueType = pLFieldType;
+
+          result.add(
+              expressionEvaluator.assignFieldToState(
+                  curState, cfaEdge, memoryOfField, fieldOffset, value, rValueType));
+        }
       }
     }
+
 
     return result;
   }
@@ -976,8 +996,10 @@ public class SMGTransferRelation
       return ImmutableList.of(pNewState);
 
     } else if (pInitializer instanceof CDesignatedInitializer) {
-      throw new AssertionError("Error in handling initializer, designated Initializer " + pInitializer.toASTString()
-          + " should not appear at this point.");
+      throw new AssertionError(
+          "Error in handling initializer, designated Initializer "
+              + pInitializer.toASTString()
+              + " should not appear at this point.");
 
     } else {
       throw new UnrecognizedCodeException("Did not recognize Initializer", pInitializer);

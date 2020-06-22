@@ -128,7 +128,7 @@ class CmdLineArguments {
             @Override
             void handleArg(Map<String, String> properties, String arg) {
               if (SPECIFICATION_FILES_PATTERN.matcher(arg).matches()) {
-                arg = resolveSpecificationFileOrExit(arg);
+                arg = resolveSpecificationFileOrExit(arg).toString();
               }
               appendOptionValue(properties, getOption(), arg);
             }
@@ -361,10 +361,10 @@ class CmdLineArguments {
     }
   }
 
-  static String resolveSpecificationFileOrExit(String pSpecification) {
+  static Path resolveSpecificationFileOrExit(String pSpecification) {
     Path specFile = findFile(SPECIFICATION_FILES_TEMPLATE, pSpecification);
     if (specFile != null) {
-      return specFile.toString();
+      return specFile;
     }
     throw Output.fatalError(
         "Checking for property %s is currently not supported by CPAchecker.", pSpecification);

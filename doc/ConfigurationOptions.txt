@@ -62,8 +62,11 @@ rootDirectory = "."
 solver.boolector.furtherOptions = ""
 
 # The SAT solver used by Boolector.
-solver.boolector.satSolver = PICOSAT
-  enum:     [LINGELING, PICOSAT, MINISAT, CADICAL]
+solver.boolector.satSolver = CADICAL
+  enum:     [LINGELING, PICOSAT, MINISAT, CMS, CADICAL]
+
+# Counts all operations and interactions towards the SMT solver.
+solver.collectStatistics = false
 
 # Default rounding mode for floating point operations.
 solver.floatingPointRoundingMode = NEAREST_TIES_TO_EVEN
@@ -116,11 +119,15 @@ solver.smtinterpol.furtherOptions = []
 solver.solver = SMTINTERPOL
   enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4]
 
+# Sequentialize all solver actions to allow concurrent access!
+solver.synchronize = false
+
+# Use provers from a seperate context to solve queries. This allows more
+# parallelity when solving larger queries.
+solver.synchronized.useSeperateProvers = false
+
 # Log solver actions, this may be slow!
 solver.useLogger = false
-
-# Dump failed interpolation queries to this file in SMTLIB2 format
-solver.z3.dumpFailedInterpolationQueries = no default value
 
 # Activate replayable logging in Z3. The log can be given as an input to the
 # solver and replayed.
@@ -135,7 +142,7 @@ solver.z3.optimizationEngine = "basic"
   allowed values: [basic, farkas, symba]
 
 # Require proofs from SMT solver
-solver.z3.requireProofs = true
+solver.z3.requireProofs = false
 
 # Whether to use PhantomReferences for discarding Z3 AST
 solver.z3.usePhantomReferences = false
@@ -218,7 +225,9 @@ analysis.algorithm.proofCheckWithARGCMCStrategy = false
 # ConfigurableProgramAnalysisWithPropertyChecker
 analysis.algorithm.propertyCheck = false
 
-# Use termination algorithm to prove (non-)termination.
+# Use termination algorithm to prove (non-)termination. This needs the
+# TerminationCPA as root CPA and an automaton CPA with
+# termination_as_reach.spc in the tree of CPAs.
 analysis.algorithm.termination = false
 
 # collect undefined functions
@@ -2650,6 +2659,10 @@ cpa.smg.handleUnknownDereferenceAsSafe = false
 cpa.smg.handleUnknownFunctions = STRICT
   enum:     [STRICT, ASSUME_SAFE, ASSUME_EXTERNAL_ALLOCATED]
 
+# Perform merge SMGStates by SMGJoin on ends of code block. Works with
+# 'merge=JOIN'
+cpa.smg.joinOnBlockEnd = true
+
 # Memory allocation functions
 cpa.smg.memoryAllocationFunctions = {"malloc", "__kmalloc", "kmalloc", "realloc"}
 
@@ -3846,10 +3859,10 @@ slicing.conditionFile = "output/AssumptionAutomaton.txt"
 
 # path to condition files plus additional assumption guiding automaton when
 # condition itself is in propriertary format and not in witness format
-slicing.conditionFiles = [
+slicing.conditionFiles = {
           Paths.get("output/AssumptionAutomaton.txt"),
           Classes.getCodeLocation(ReducerExtractor.class)
-              .resolveSibling("config/specification/AssumptionGuidingAutomaton.spc")]
+              .resolveSibling("config/specification/AssumptionGuidingAutomaton.spc")}
 
 # Export the used slicing criteria to file
 slicing.exportCriteria.enable = false

@@ -12,9 +12,10 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableSet;
-import java.util.HashSet;
 import java.util.Set;
 import org.junit.Test;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdgeSet;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
@@ -151,34 +152,34 @@ public class SMGEdgeHasValueTest {
     SMGValue value2 = SMGKnownExpValue.valueOf(2);
 
     SMGEdgeHasValue hv11at0 = new SMGEdgeHasValue(mockTypeSize, 0, object1, value1);
-    SMGEdgeHasValue hv12at0 = new SMGEdgeHasValue(mockTypeSize, 0, object1, value2);
+    SMGEdgeHasValue hv12at4 = new SMGEdgeHasValue(mockTypeSize, 32, object1, value2);
     SMGEdgeHasValue hv21at0 = new SMGEdgeHasValue(mockTypeSize, 0, object2, value1);
-    SMGEdgeHasValue hv22at0 = new SMGEdgeHasValue(mockTypeSize, 0, object2, value2);
-    Set<SMGEdgeHasValue> allEdges = new HashSet<>();
-    allEdges.add(hv11at0);
-    allEdges.add(hv12at0);
-    allEdges.add(hv21at0);
-    allEdges.add(hv22at0);
+    SMGEdgeHasValue hv22at4 = new SMGEdgeHasValue(mockTypeSize, 32, object2, value2);
+    SMGHasValueEdges allEdges = new SMGHasValueEdgeSet();
+    allEdges = allEdges.addEdgeAndCopy(hv11at0);
+    allEdges = allEdges.addEdgeAndCopy(hv12at4);
+    allEdges = allEdges.addEdgeAndCopy(hv21at0);
+    allEdges = allEdges.addEdgeAndCopy(hv22at4);
 
-    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
+    SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter().filterWithoutSize();
 
     assertThat(filter.holdsFor(hv11at0)).isTrue();
-    assertThat(filter.holdsFor(hv12at0)).isTrue();
+    assertThat(filter.holdsFor(hv12at4)).isTrue();
     assertThat(filter.holdsFor(hv21at0)).isTrue();
-    assertThat(filter.holdsFor(hv22at0)).isTrue();
+    assertThat(filter.holdsFor(hv22at4)).isTrue();
 
     filter.filterByObject(object1);
 
     assertThat(filter.holdsFor(hv11at0)).isTrue();
-    assertThat(filter.holdsFor(hv12at0)).isTrue();
+    assertThat(filter.holdsFor(hv12at4)).isTrue();
     assertThat(filter.holdsFor(hv21at0)).isFalse();
-    assertThat(filter.holdsFor(hv22at0)).isFalse();
+    assertThat(filter.holdsFor(hv22at4)).isFalse();
 
     Set<SMGEdgeHasValue> filteredSet = ImmutableSet.copyOf(filter.filter(allEdges));
 
     assertThat(filteredSet).hasSize(2);
     assertThat(filteredSet).contains(hv11at0);
-    assertThat(filteredSet).contains(hv12at0);
+    assertThat(filteredSet).contains(hv12at4);
   }
 
   @Test
@@ -190,23 +191,23 @@ public class SMGEdgeHasValueTest {
     SMGValue value2 = SMGKnownExpValue.valueOf(2);
 
     SMGEdgeHasValue hv11at0 = new SMGEdgeHasValue(mockTypeSize, 0, object1, value1);
-    SMGEdgeHasValue hv12at0 = new SMGEdgeHasValue(mockTypeSize, 32, object1, value2);
+    SMGEdgeHasValue hv12at4 = new SMGEdgeHasValue(mockTypeSize, 32, object1, value2);
     SMGEdgeHasValue hv21at0 = new SMGEdgeHasValue(mockTypeSize, 0, object2, value1);
-    SMGEdgeHasValue hv22at0 = new SMGEdgeHasValue(mockTypeSize, 32, object2, value2);
-    Set<SMGEdgeHasValue> allEdges = new HashSet<>();
-    allEdges.add(hv11at0);
-    allEdges.add(hv12at0);
-    allEdges.add(hv21at0);
-    allEdges.add(hv22at0);
+    SMGEdgeHasValue hv22at4 = new SMGEdgeHasValue(mockTypeSize, 32, object2, value2);
+    SMGHasValueEdges allEdges = new SMGHasValueEdgeSet();
+    allEdges = allEdges.addEdgeAndCopy(hv11at0);
+    allEdges = allEdges.addEdgeAndCopy(hv12at4);
+    allEdges = allEdges.addEdgeAndCopy(hv21at0);
+    allEdges = allEdges.addEdgeAndCopy(hv22at4);
 
     SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
 
-    filter.filterAtOffset(0);
+    filter.filterAtOffset(0).filterWithoutSize();
 
     assertThat(filter.holdsFor(hv11at0)).isTrue();
-    assertThat(filter.holdsFor(hv12at0)).isFalse();
+    assertThat(filter.holdsFor(hv12at4)).isFalse();
     assertThat(filter.holdsFor(hv21at0)).isTrue();
-    assertThat(filter.holdsFor(hv22at0)).isFalse();
+    assertThat(filter.holdsFor(hv22at4)).isFalse();
 
     Set<SMGEdgeHasValue> filteredSet = ImmutableSet.copyOf(filter.filter(allEdges));
 
@@ -224,23 +225,23 @@ public class SMGEdgeHasValueTest {
     SMGValue value2 = SMGKnownExpValue.valueOf(2);
 
     SMGEdgeHasValue hv11at0 = new SMGEdgeHasValue(mockTypeSize, 0, object1, value1);
-    SMGEdgeHasValue hv12at0 = new SMGEdgeHasValue(mockTypeSize, 32, object1, value2);
+    SMGEdgeHasValue hv12at4 = new SMGEdgeHasValue(mockTypeSize, 32, object1, value2);
     SMGEdgeHasValue hv21at0 = new SMGEdgeHasValue(mockTypeSize, 0, object2, value1);
-    SMGEdgeHasValue hv22at0 = new SMGEdgeHasValue(mockTypeSize, 32, object2, value2);
-    Set<SMGEdgeHasValue> allEdges = new HashSet<>();
-    allEdges.add(hv11at0);
-    allEdges.add(hv12at0);
-    allEdges.add(hv21at0);
-    allEdges.add(hv22at0);
+    SMGEdgeHasValue hv22at4 = new SMGEdgeHasValue(mockTypeSize, 32, object2, value2);
+    SMGHasValueEdges allEdges = new SMGHasValueEdgeSet();
+    allEdges = allEdges.addEdgeAndCopy(hv11at0);
+    allEdges = allEdges.addEdgeAndCopy(hv12at4);
+    allEdges = allEdges.addEdgeAndCopy(hv21at0);
+    allEdges = allEdges.addEdgeAndCopy(hv22at4);
 
     SMGEdgeHasValueFilter filter = new SMGEdgeHasValueFilter();
 
     filter.filterHavingValue(value1);
 
     assertThat(filter.holdsFor(hv11at0)).isTrue();
-    assertThat(filter.holdsFor(hv12at0)).isFalse();
+    assertThat(filter.holdsFor(hv12at4)).isFalse();
     assertThat(filter.holdsFor(hv21at0)).isTrue();
-    assertThat(filter.holdsFor(hv22at0)).isFalse();
+    assertThat(filter.holdsFor(hv22at4)).isFalse();
 
     Set<SMGEdgeHasValue> filteredSet = ImmutableSet.copyOf(filter.filter(allEdges));
 
@@ -251,14 +252,14 @@ public class SMGEdgeHasValueTest {
     filter.filterNotHavingValue(value1);
 
     assertThat(filter.holdsFor(hv11at0)).isFalse();
-    assertThat(filter.holdsFor(hv12at0)).isTrue();
+    assertThat(filter.holdsFor(hv12at4)).isTrue();
     assertThat(filter.holdsFor(hv21at0)).isFalse();
-    assertThat(filter.holdsFor(hv22at0)).isTrue();
+    assertThat(filter.holdsFor(hv22at4)).isTrue();
 
     filteredSet = ImmutableSet.copyOf(filter.filter(allEdges));
 
     assertThat(filteredSet).hasSize(2);
-    assertThat(filteredSet).contains(hv22at0);
-    assertThat(filteredSet).contains(hv12at0);
+    assertThat(filteredSet).contains(hv22at4);
+    assertThat(filteredSet).contains(hv12at4);
   }
 }

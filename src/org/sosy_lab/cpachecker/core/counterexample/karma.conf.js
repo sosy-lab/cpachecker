@@ -12,6 +12,7 @@
 // Karma configuration
 // Generated on Fri Jun 29 2018 17:07:20 GMT+0530 (India Standard Time)
 var fs = require('fs');
+const isDocker = require('is-docker')();
 
 // Replace scripts tag from HTML file and generate testReport.html for testing:
 // Remove everything from the line with REPORT_CSS to the line after REPORT_JS
@@ -29,7 +30,7 @@ module.exports = function (config) {
 
     // frameworks to use
     // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
-    frameworks: ['jasmine'],
+    frameworks: ['jasmine', 'detectBrowsers'],
 
     // list of files / patterns to load in the browser
     files: [
@@ -72,9 +73,28 @@ module.exports = function (config) {
     plugins: [
       // other plugins
       'karma-htmlfile-reporter',
-      'karma-phantomjs-launcher',
-      'karma-jasmine'
+      'karma-firefox-launcher',
+      'karma-chrome-launcher',
+      'karma-jasmine',
+      'karma-detect-browsers'
     ],
+
+    detectBrowsers: {
+      enabled: true,
+      usePhantomJS: false,
+      preferHeadless: true,
+      // Start Chromium with the custom launcher instead and remove all browsers except for Chromium, Chrome and Firefox
+      postDetection: availableBrowsers => {
+        if (isDocker && availableBrowsers.includes("ChromiumHeadless")) {
+          availableBrowsers[availableBrowsers.indexOf("ChromiumHeadless")] = "ChromiumHeadlessNoSandbox";
+        }
+        return availableBrowsers.filter(browser =>
+          browser.includes("Chromium") ||
+          browser.includes("Chrome") ||
+          browser.includes("Firefox")
+        );
+      }
+    },
 
     // web server port
     port: 9876,
@@ -89,9 +109,14 @@ module.exports = function (config) {
     // enable / disable watching file and executing tests whenever any file changes
     autoWatch: false,
 
-    // start these browsers
-    // available browser launchers: https://npmjs.org/browse/keyword/karma-launcher
-    browsers: ['PhantomJS'],
+    // to make Chrome run in Docker container
+    // https://github.com/karma-runner/karma-chrome-launcher/issues/158
+    customLaunchers: {
+      ChromiumHeadlessNoSandbox: {
+        base: 'ChromiumHeadless',
+        flags: ['--no-sandbox']
+      }
+    },
 
     // Continuous Integration mode
     // if true, Karma captures browsers, runs the tests and exits

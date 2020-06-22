@@ -110,8 +110,10 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
   int size();
 
   /**
-   * Violation of some properties is determined by reached set itself, not by a single state. The
-   * example is race condition: it is required to have a couple of special states
+   * Detect whether this reached set contains a property violation.
+   *
+   * <p>In some cases (like checking for race conditions) this is not the same as checking each
+   * state individually for a property violation.
    *
    * @return Is any property violated
    */
@@ -119,6 +121,12 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
     return from(asCollection()).anyMatch(AbstractStates::isTargetState);
   }
 
+  /**
+   * Return the set of violated properties in this reached set, of {@link #hasViolatedProperties()}
+   * returns true.
+   *
+   * @return A set of violated properties, may be emtpy if no precise information is available.
+   */
   default Collection<Property> getViolatedProperties() {
     return from(asCollection())
         .filter(AbstractStates::isTargetState)
