@@ -147,6 +147,9 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     // Extract invariants as CExpressions and nodes
     for (ExpressionTreeLocationInvariant c : cands) {
       CFANode loc = c.getLocation();
+      if(loc instanceof FunctionExitNode) {
+        continue;
+      }
       Optional<? extends AAstNode> astNodeOptional = loc.getLeavingEdge(0).getRawAST();
 
       @SuppressWarnings("unchecked")
