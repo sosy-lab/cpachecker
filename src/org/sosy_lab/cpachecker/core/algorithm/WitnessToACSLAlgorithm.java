@@ -51,7 +51,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.Specification;
-import org.sosy_lab.cpachecker.core.algorithm.acsl.Invariant;
+import org.sosy_lab.cpachecker.core.algorithm.acsl.WitnessInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
@@ -167,7 +167,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
 
     for (String file : files) {
       //Sort invariants by location
-      List<Invariant> sortedInvariants = new ArrayList<>(invMap.size());
+      List<WitnessInvariant> sortedInvariants = new ArrayList<>(invMap.size());
       for (Entry<CFANode, CExpression> entry : invMap.entrySet()) {
         CFANode node = entry.getKey();
         if(!node.getFunction().getFileLocation().getFileName().equals(file)) {
@@ -193,9 +193,10 @@ public class WitnessToACSLAlgorithm implements Algorithm {
         }
         boolean added = false;
         boolean merged = false;
-        Invariant currentInvariant = new Invariant(node, entry.getValue(), binaryExpressionBuilder, location);
+        WitnessInvariant currentInvariant =
+            new WitnessInvariant(node, entry.getValue(), binaryExpressionBuilder, location);
         for (int i = 0; i < sortedInvariants.size(); i++) {
-          Invariant other = sortedInvariants.get(i);
+          WitnessInvariant other = sortedInvariants.get(i);
           int otherLocation = other.getLocation();
           if (location < otherLocation) {
             sortedInvariants.add(i, currentInvariant);
@@ -220,8 +221,8 @@ public class WitnessToACSLAlgorithm implements Algorithm {
         logger.logfUserException(Level.SEVERE, pE, "Could not read file %s", file);
       }
 
-      Iterator<Invariant> iterator = sortedInvariants.iterator();
-      Invariant currentInvariant = iterator.next();
+      Iterator<WitnessInvariant> iterator = sortedInvariants.iterator();
+      WitnessInvariant currentInvariant = iterator.next();
 
       List<String> output = new ArrayList<>();
 
@@ -311,7 +312,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
   }
 
   //TODO: actually transform invariant to valid ACSL annotation
-  private String makeACSLAnnotation(Invariant inv) {
+  private String makeACSLAnnotation(WitnessInvariant inv) {
     if(inv.isAtLoopStart()) {
      return "/*@ loop invariant " + inv.getExpression().toASTString() + ";*/";
     } else {

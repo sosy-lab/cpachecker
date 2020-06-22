@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class Invariant {
+public class WitnessInvariant {
 
   private int lineNumber;
   private CExpression exp;
@@ -40,13 +40,13 @@ public class Invariant {
   private List<CFANode> holdsFor;
   private final CBinaryExpressionBuilder builder;
 
-  public Invariant(CFANode node, CExpression pExpression, CBinaryExpressionBuilder pBuilder,
-                   int pLineNumber) {
+  public WitnessInvariant(CFANode node, CExpression pExpression, CBinaryExpressionBuilder pBuilder,
+                          int pLineNumber) {
     this(node, pExpression, pBuilder);
     lineNumber = pLineNumber;
   }
 
-  public Invariant(CFANode node, CExpression pExpression, CBinaryExpressionBuilder pBuilder) {
+  public WitnessInvariant(CFANode node, CExpression pExpression, CBinaryExpressionBuilder pBuilder) {
     if(node.getNumLeavingEdges() > 0) {
       lineNumber = node.getLeavingEdge(0).getFileLocation().getStartingLineNumber();
     } else {
@@ -75,7 +75,7 @@ public class Invariant {
     return holdsFor;
   }
 
-  public void mergeWith(Invariant other) throws UnrecognizedCodeException {
+  public void mergeWith(WitnessInvariant other) throws UnrecognizedCodeException {
     assert lineNumber == other.getLocation();
     if(!exp.equals(other.getExpression())) {
       //TODO: Find better way to merge expressions or change makeACSLAnnotation
