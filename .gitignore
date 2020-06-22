@@ -45,6 +45,11 @@ a.out
 /src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonScanner.java
 /src/org/sosy_lab/cpachecker/cpa/automaton/AutomatonSym.java
 
+# /src/org/sosy_lab/cpachecker/core/algorithm/acsl/
+/src/org/sosy_lab/cpachecker/core/algorithm/acsl/ACSLScanner.java
+/src/org/sosy_lab/cpachecker/core/algorithm/acsl/parser.java
+/src/org/sosy_lab/cpachecker/core/algorithm/acsl/sym.java
+
 # /src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/
 /src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/FormulaParser.java
 /src/org/sosy_lab/cpachecker/util/predicates/precisionConverter/FormulaScanner.java

@@ -1,0 +1,226 @@
+package org.sosy_lab.cpachecker.core.algorithm.acsl;
+
+import com.google.common.collect.ImmutableList;
+import java_cup.runtime.Symbol;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+
+parser code {:
+
+    private ACSLScanner scanner;
+
+    private Map<String, Behavior> behaviors;
+
+//TODO: Add CFA for scoping
+
+    parser(ACSLScanner pScanner) {
+        super(pScanner);
+        scanner = pScanner;
+        behaviors = new HashMap<>();
+    }
+
+    public List<ACSLAnnotation> parseACSLAnnotations() throws Exception {
+        Symbol symbol = this.parse();
+        if(symbol != null) {
+            return (List<ACSLAnnotation>) symbol.value;
+        } else {
+            return ImmutableList.of();
+        }
+    }
+
+    public void putBehavior(String id, Behavior b) {
+        behaviors.put(id, b);
+    }
+
+    public Behavior getBehavior(String id) {
+        return behaviors.get(id);
+    }
+:}
+
+scan with {: return scanner.getNext(); :}
+
+terminal TRUE, FALSE;
+terminal LBRACKET, RBRACKET;
+terminal AND, OR, IMP, EQV, XOR;
+terminal NEG;
+terminal EQ, NEQ, LEQ, GEQ, GT, LT;
+terminal BAND, BOR, BIMP, BEQV, BXOR;
+terminal BNEG, UPLUS, UMINUS, STAR, AMPERSAND;
+terminal SIZEOF;
+terminal PLUS, MINUS, TIMES, DIVIDE, MOD, LSHIFT, RSHIFT;
+terminal LPAREN, RPAREN;
+terminal SEMI;
+terminal REQ, ENS, ASS;
+terminal Integer LITERAL;
+terminal String STRING_LITERAL;
+terminal String IDENTIFIER;
+terminal NEXTCONTRACT;
+terminal LINVARIANT;
+terminal ASSERT, CHECK;
+terminal BEHAVIOR;
+terminal COLON;
+terminal QUESTION;
+terminal PRED_START;
+terminal FOR;
+terminal COMMA;
+terminal COMPLETE_BEHAVIORS, DISJOINT_BEHAVIORS;
+
+non terminal List<ACSLAnnotation> annotations;
+non terminal ACSLAnnotation annotation;
+non terminal FunctionContract fcontract;
+non terminal StatementContract scontract;
+non terminal ACSLLoopAnnotation loopannotation;
+non terminal ACSLAssertion assertion;
+non terminal ContractBuilder clauses;
+non terminal BehaviorBuilder behavior_body;
+non terminal Collection<RequiresClause> req_clauses;
+non terminal Collection<EnsuresClause> ens_clauses;
+non terminal Collection<AssumesClause> ass_clauses;
+non terminal Collection<Behavior> behaviors;
+non terminal Collection<CompletenessClause> completeness_clauses;
+non terminal RequiresClause req_clause;
+non terminal EnsuresClause ens_clause;
+non terminal AssumesClause ass_clause;
+non terminal LoopInvariant loop_clauses;
+non terminal CompletenessClause completeness_clause;
+non terminal Map<List<Behavior>, LoopInvariant> loop_behaviors;
+non terminal List<String> behavior_identifiers, identifiers;
+non terminal Behavior behavior;
+non terminal ACSLPredicate predicate;
+non terminal ACSLTerm term;
+non terminal BinaryOperator rel_op, log_op, arith_op, bit_op;
+non terminal UnaryOperator unary_op;
+
+precedence right QUESTION;
+precedence left EQV;
+precedence right IMP;
+precedence left OR;
+precedence left XOR;
+precedence left AND;
+precedence left BEQV;
+precedence right BIMP;
+precedence left BOR;
+precedence left BXOR;
+precedence left BAND;
+precedence nonassoc EQ, NEQ;
+precedence nonassoc LEQ, GEQ, GT, LT;
+precedence left LSHIFT, RSHIFT;
+precedence left PLUS, MINUS;
+precedence left TIMES, DIVIDE, MOD;
+precedence right NEG, BNEG, UPLUS, UMINUS, STAR, AMPERSAND, RPAREN;
+precedence left RBRACKET;
+
+annotations ::= annotations:as annotation:a {: as.add(a); RESULT = as; :}
+            | /* nothing */                 {: RESULT = new ArrayList<>(); :};
+annotation ::= fcontract:f {: RESULT = f; :}
+            | scontract:s           {:  RESULT = s; :}
+            | loopannotation:l {: RESULT = l; :}
+            | assertion:a {: RESULT = a; :};
+assertion ::= NEXTCONTRACT ASSERT predicate:p SEMI  {: RESULT = new ACSLAssertion(ACSLAssertion.AssertionKind.ASSERT, p); :}
+            | NEXTCONTRACT CHECK predicate:p SEMI   {: RESULT = new ACSLAssertion(ACSLAssertion.AssertionKind.CHECK, p); :};
+loopannotation ::= NEXTCONTRACT loop_clauses:c loop_behaviors:b {: RESULT = new ACSLLoopAnnotation(c, b); :}
+                | NEXTCONTRACT loop_behaviors:b                 {: RESULT = new ACSLLoopAnnotation(b); :}
+                | NEXTCONTRACT loop_clauses:c                   {: RESULT = new ACSLLoopAnnotation(c); :};
+fcontract ::= NEXTCONTRACT clauses:c                {: RESULT = c.build(); :};
+scontract ::= NEXTCONTRACT behavior_identifiers:i clauses:c
+                                                    {: List<Behavior> enclosingBehaviors = new ArrayList<>();
+                                                       for(String id : i) { enclosingBehaviors.add(parser.getBehavior(id)); }
+                                                       RESULT = StatementContract.fromFunctionContract(enclosingBehaviors, c.build()); :};
+behavior_identifiers ::= FOR identifiers:i COLON PRED_START {: RESULT = i; :};
+identifiers ::= identifiers:is COMMA IDENTIFIER:i    {: is.add(i); RESULT = is; :}
+            | IDENTIFIER:i      {: List<String> identifiers = new ArrayList<>();
+                                   identifiers.add(i); RESULT = identifiers; :};
+loop_behaviors ::= loop_behaviors:b behavior_identifiers:i loop_clauses:c   {: List<Behavior> holdsFor = new ArrayList<>(i.size());
+                                                                               for(String id : i) { holdsFor.add(parser.getBehavior(id)); }
+                                                                               b.put(holdsFor, c); RESULT = b; :}
+                | behavior_identifiers:i loop_clauses:c                     {: Map<List<Behavior>, LoopInvariant> loopBehaviors = new HashMap<>();
+                                                                               List<Behavior> holdsFor = new ArrayList<>(i.size());
+                                                                               for(String id : i) { holdsFor.add(parser.getBehavior(id)); }
+                                                                               loopBehaviors.put(holdsFor, c); RESULT = loopBehaviors; :};
+loop_clauses ::= loop_clauses:c LINVARIANT predicate:p SEMI {: RESULT = c.and(p); :}
+            | LINVARIANT predicate:p SEMI                   {: RESULT = new LoopInvariant(p); :};
+clauses ::= req_clauses:r ens_clauses:e behaviors:b completeness_clauses:c {: RESULT = new ContractBuilder().addAll(r).addAll(e).addAll(b).addAll(c); :};
+req_clauses ::=
+            req_clauses:c req_clause:r              {: c.add(r); RESULT = c; :}
+            | /* nothing */                         {: RESULT = new HashSet<>(); :};
+ens_clauses ::=
+            ens_clauses:c ens_clause:e              {: c.add(e); RESULT = c; :}
+            | /* nothing */                         {: RESULT = new HashSet<>(); :};
+behaviors ::=
+            behaviors:c behavior:b                  {: c.add(b); RESULT = c; :}
+            | /* nothing */                         {: RESULT = new HashSet<>(); :};
+behavior ::= BEHAVIOR IDENTIFIER:i COLON PRED_START behavior_body:bb   {: bb.setBehaviorName(i);
+                                                                          Behavior b = bb.build();
+                                                                          parser.putBehavior(i, b); RESULT = b; :};
+completeness_clauses ::= completeness_clauses:cs completeness_clause:c  {: cs.add(c); RESULT = cs; :}
+                        | /* nothing */                                 {: RESULT = new HashSet<>(); :};
+completeness_clause ::= COMPLETE_BEHAVIORS identifiers:i SEMI {: List<Behavior> behaviors = new ArrayList<>(i.size());
+                                                               for (String id : i) { behaviors.add(parser.getBehavior(id)); }
+                                                               RESULT = new CompletenessClause(behaviors, CompletenessClause.RelationKind.COMPLETE); :}
+                        //TODO:Use all current behaviors
+                        | COMPLETE_BEHAVIORS SEMI {: RESULT = new CompletenessClause(new ArrayList<Behavior>(0), CompletenessClause.RelationKind.COMPLETE); :}
+                        | DISJOINT_BEHAVIORS identifiers:i SEMI {: List<Behavior> behaviors = new ArrayList<>(i.size());
+                                                               for (String id : i) { behaviors.add(parser.getBehavior(id)); }
+                                                               RESULT = new CompletenessClause(behaviors, CompletenessClause.RelationKind.DISJOINT); :}
+                        // TODO:Use all current behaviors
+                        | DISJOINT_BEHAVIORS SEMI {: RESULT = new CompletenessClause(new ArrayList<Behavior>(0), CompletenessClause.RelationKind.DISJOINT); :};
+behavior_body ::= ass_clauses:a req_clauses:r ens_clauses:e
+                                                    {: RESULT = new BehaviorBuilder().addAll(a).addAll(r).addAll(e); :};
+ass_clauses ::=
+            ass_clauses:c ass_clause:a              {: c.add(a); RESULT = c; :}
+            | /* nothing */                         {: RESULT = new HashSet<>(); :};
+req_clause ::= REQ predicate:p SEMI {: RESULT = new RequiresClause(p); :};
+ens_clause ::= ENS predicate:p SEMI {: RESULT = new EnsuresClause(p); :};
+ass_clause ::= ASS predicate:p SEMI {: RESULT = new AssumesClause(p); :};
+predicate ::= PRED_START TRUE {: RESULT = ACSLPredicate.getTrue(); :}
+    | PRED_START FALSE {: RESULT = ACSLPredicate.getFalse(); :}
+	| predicate:p1 log_op:op predicate:p2 {: RESULT = new ACSLLogicalPredicate(p1, p2, op); :}
+	| PRED_START term:t1 rel_op:op term:t2 {: RESULT = new ACSLComparisonPredicate(t1, t2, op); :}
+	| PRED_START NEG predicate:p {: RESULT = p.negate(); :} %prec NEG
+	| PRED_START LPAREN predicate:p RPAREN {: RESULT = p; :}
+	| predicate:p1 QUESTION predicate:p2 COLON predicate:p3     {: RESULT = new TernaryCondition(p1, p2, p3); :};
+term ::= PRED_START term:t                              {: RESULT = t; :}
+        | LITERAL:l                                     {: RESULT = new IntegerLiteral(l); :}
+        | STRING_LITERAL:l                              {: RESULT = new StringLiteral(l); :}
+        | IDENTIFIER:i                                  {: RESULT = new Identifier(i); :}
+        | IDENTIFIER:i LBRACKET LITERAL:l RBRACKET      {: ACSLTerm t1 = new Identifier(i);
+                                                           ACSLTerm t2 = new IntegerLiteral(l);
+                                                           RESULT = new ArrayAccess(t1, t2); :}
+        | unary_op:op term:t                            {: RESULT = new ACSLUnaryTerm(t, op); :}
+        | SIZEOF LPAREN term:t RPAREN                   {: RESULT = new ACSLUnaryTerm(t, UnaryOperator.SIZEOF); :}
+        | LPAREN PRED_START IDENTIFIER:i RPAREN term:t  {: RESULT = new Cast(new Type(i), t); :}
+        | term:t1 arith_op:op term:t2                   {: RESULT = new ACSLBinaryTerm(t1, t2, op); :}
+        | term:t1 bit_op:op term:t2                     {: RESULT = new ACSLBinaryTerm(t1, t2, op); :}
+        | LPAREN term:t RPAREN                          {: RESULT = t; :};
+log_op ::= AND  {: RESULT = BinaryOperator.AND; :}
+        | OR    {: RESULT = BinaryOperator.OR; :}
+        | IMP   {: RESULT = BinaryOperator.IMP; :}
+        | EQV   {: RESULT = BinaryOperator.EQV; :}
+        | XOR   {: RESULT = BinaryOperator.XOR; :};
+rel_op ::= EQ   {: RESULT = BinaryOperator.EQ; :}
+        | NEQ   {: RESULT = BinaryOperator.NEQ; :}
+        | LEQ   {: RESULT = BinaryOperator.LEQ; :}
+        | GEQ   {: RESULT = BinaryOperator.GEQ; :}
+        | GT    {: RESULT = BinaryOperator.GT; :}
+        | LT    {: RESULT = BinaryOperator.LT; :};
+arith_op ::= PLUS       {: RESULT = BinaryOperator.PLUS; :}
+        | MINUS         {: RESULT = BinaryOperator.MINUS; :}
+        | STAR          {: RESULT = BinaryOperator.TIMES; :}    %prec TIMES
+        | DIVIDE        {: RESULT = BinaryOperator.DIVIDE; :}
+        | MOD           {: RESULT = BinaryOperator.MOD; :}
+        | LSHIFT        {: RESULT = BinaryOperator.LSHIFT; :}
+        | RSHIFT        {: RESULT = BinaryOperator.RSHIFT; :};
+bit_op ::= AMPERSAND    {: RESULT = BinaryOperator.BAND; :}     %prec BAND
+        | BOR           {: RESULT = BinaryOperator.BOR; :}
+        | BIMP          {: RESULT = BinaryOperator.BIMP; :}
+        | BEQV          {: RESULT = BinaryOperator.BEQV; :}
+        | BXOR          {: RESULT = BinaryOperator.BXOR; :};
+unary_op ::= BNEG       {: RESULT = UnaryOperator.BNEG; :}
+        | PLUS          {: RESULT = UnaryOperator.PLUS; :}      %prec UPLUS
+        | MINUS         {: RESULT = UnaryOperator.MINUS; :}     %prec UMINUS
+        | STAR          {: RESULT = UnaryOperator.POINTER_DEREF; :}
+        | AMPERSAND     {: RESULT = UnaryOperator.ADDRESS_OF; :};
