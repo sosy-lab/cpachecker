@@ -45,10 +45,12 @@ public class TernaryCondition extends ACSLPredicate {
   }
 
   private boolean equalsExceptNegation(Object o, boolean shouldNegationMatch) {
-    if(o instanceof TernaryCondition) {
+    if (o instanceof TernaryCondition) {
       TernaryCondition other = (TernaryCondition) o;
       if (shouldNegationMatch == (isNegated() == other.isNegated())) {
-        return condition.equals(other.condition) && then.equals(other.then) && otherwise.equals(other.otherwise);
+        return condition.equals(other.condition)
+            && then.equals(other.then)
+            && otherwise.equals(other.otherwise);
       }
     }
     return false;

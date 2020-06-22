@@ -10,14 +10,15 @@ public class StatementContract implements ACSLAnnotation {
   private List<Behavior> ownBehaviors;
   private List<CompletenessClause> completenessClauses;
 
-  //this should be a valid C expression
+  // this should be a valid C expression
   private ACSLPredicate predicateRepresentation;
 
-  public static StatementContract fromFunctionContract(List<Behavior> enclosing, FunctionContract fcontract) {
-    return new StatementContract(fcontract.getRequires(), fcontract.getEnsures(), enclosing, fcontract.getBehaviors(), fcontract.getCompletenessClauses());
-  }
-
-  public StatementContract(RequiresClause req, EnsuresClause ens, List<Behavior> enclosing, List<Behavior> own, List<CompletenessClause> pCompletenessClauses) {
+  public StatementContract(
+      RequiresClause req,
+      EnsuresClause ens,
+      List<Behavior> enclosing,
+      List<Behavior> own,
+      List<CompletenessClause> pCompletenessClauses) {
     requiresClause = req;
     ensuresClause = ens;
     enclosingBehaviors = enclosing;
@@ -26,6 +27,16 @@ public class StatementContract implements ACSLAnnotation {
     toPureC();
     makeRepresentation();
     predicateRepresentation = predicateRepresentation.simplify();
+  }
+
+  public static StatementContract fromFunctionContract(
+      List<Behavior> enclosing, FunctionContract fcontract) {
+    return new StatementContract(
+        fcontract.getRequires(),
+        fcontract.getEnsures(),
+        enclosing,
+        fcontract.getBehaviors(),
+        fcontract.getCompletenessClauses());
   }
 
   private void toPureC() {
@@ -47,9 +58,9 @@ public class StatementContract implements ACSLAnnotation {
 
   private void makeRepresentation() {
     ACSLPredicate left = ensuresClause.getPredicate();
-    if(left != ACSLPredicate.getTrue()) {
+    if (left != ACSLPredicate.getTrue()) {
       ACSLPredicate right = requiresClause.getPredicate();
-      if(right != ACSLPredicate.getTrue()) {
+      if (right != ACSLPredicate.getTrue()) {
         right.negate();
         predicateRepresentation = new ACSLLogicalPredicate(left, right, BinaryOperator.OR);
       } else {
@@ -58,24 +69,35 @@ public class StatementContract implements ACSLAnnotation {
     } else {
       predicateRepresentation = ACSLPredicate.getTrue();
     }
-    for(Behavior behavior : ownBehaviors) {
+    for (Behavior behavior : ownBehaviors) {
       ACSLPredicate behaviorRepresentation = behavior.getPredicateRepresentation();
-      predicateRepresentation = new ACSLLogicalPredicate(predicateRepresentation, behaviorRepresentation, BinaryOperator.AND);
+      predicateRepresentation =
+          new ACSLLogicalPredicate(
+              predicateRepresentation, behaviorRepresentation, BinaryOperator.AND);
     }
     ACSLPredicate enclosingDisjunction = ACSLPredicate.getFalse();
     ACSLPredicate enclosingConjunction = ACSLPredicate.getTrue();
-    for(Behavior behavior : enclosingBehaviors) {
+    for (Behavior behavior : enclosingBehaviors) {
       AssumesClause assumesClause = behavior.getAssumesClause();
-      enclosingConjunction = enclosingConjunction.and(assumesClause.getPredicate().getCopy().negate()).simplify();
+      enclosingConjunction =
+          enclosingConjunction.and(assumesClause.getPredicate().getCopy().negate()).simplify();
       enclosingDisjunction = enclosingDisjunction.or(assumesClause.getPredicate()).simplify();
     }
-    predicateRepresentation = new ACSLLogicalPredicate(enclosingDisjunction, predicateRepresentation, BinaryOperator.AND);
-    predicateRepresentation = new ACSLLogicalPredicate(predicateRepresentation, enclosingConjunction, BinaryOperator.OR);
+    predicateRepresentation =
+        new ACSLLogicalPredicate(enclosingDisjunction, predicateRepresentation, BinaryOperator.AND);
+    predicateRepresentation =
+        new ACSLLogicalPredicate(predicateRepresentation, enclosingConjunction, BinaryOperator.OR);
     ACSLPredicate completenessRepresentation = ACSLPredicate.getTrue();
-    for(CompletenessClause completenessClause : completenessClauses) {
-      completenessRepresentation = new ACSLLogicalPredicate(completenessRepresentation, completenessClause.getPredicateRepresentation(), BinaryOperator.AND);
+    for (CompletenessClause completenessClause : completenessClauses) {
+      completenessRepresentation =
+          new ACSLLogicalPredicate(
+              completenessRepresentation,
+              completenessClause.getPredicateRepresentation(),
+              BinaryOperator.AND);
     }
-    predicateRepresentation = new ACSLLogicalPredicate(predicateRepresentation, completenessRepresentation, BinaryOperator.AND);
+    predicateRepresentation =
+        new ACSLLogicalPredicate(
+            predicateRepresentation, completenessRepresentation, BinaryOperator.AND);
   }
 
   @Override

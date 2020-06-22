@@ -48,7 +48,7 @@ public class BehaviorBuilder {
   }
 
   public BehaviorBuilder addAll(Collection<? extends Object> clauses) {
-    for(Object clause : clauses) {
+    for (Object clause : clauses) {
       add(clause);
     }
     return this;
