@@ -1101,23 +1101,16 @@ public class CFASingleLoopTransformation {
     Map<CFANode, CFANode> newToOld = new LinkedHashMap<>();
     newToOld.put(pOldNode, pNewNode);
     CFAEdge oldEdge;
-    while (((oldEdge = removeNextEnteringEdge(pOldNode)) != null
-            && constantTrue(newToOld.put(oldEdge.getPredecessor(), oldEdge.getPredecessor())))
-        || ((oldEdge = removeNextLeavingEdge(pOldNode)) != null
-            && constantTrue(newToOld.put(oldEdge.getSuccessor(), oldEdge.getSuccessor())))) {
+    while ((oldEdge = removeNextEnteringEdge(pOldNode)) != null) {
+      newToOld.put(oldEdge.getPredecessor(), oldEdge.getPredecessor());
       CFAEdge newEdge = copyCFAEdgeWithNewNodes(oldEdge, newToOld);
       addToNodes(newEdge);
     }
-  }
-
-  /**
-   * Returns <code>true</code>, no matter what is passed.
-   *
-   * @param pParam this argument is ignored.
-   * @return <code>true</code>
-   */
-  private static boolean constantTrue(Object pParam) {
-    return true;
+    while ((oldEdge = removeNextLeavingEdge(pOldNode)) != null) {
+      newToOld.put(oldEdge.getSuccessor(), oldEdge.getSuccessor());
+      CFAEdge newEdge = copyCFAEdgeWithNewNodes(oldEdge, newToOld);
+      addToNodes(newEdge);
+    }
   }
 
   /**
