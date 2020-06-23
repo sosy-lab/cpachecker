@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
+
+# This file is part of SoSy-Lab Java-Project Template,
+# a collection of common files and build definitions for Java projects:
+# https://gitlab.com/sosy-lab/software/java-project-template
+#
+# SPDX-FileCopyrightText: 2015-2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: Google
+# SPDX-FileCopyrightText: LLVM Team
+#
+# SPDX-License-Identifier: NCSA
+
 # Script taken from https://github.com/google/google-java-format
 # Changed to use jar file as command.
 
 # DO NOT EDIT LOCALLY!
 # Keep this file synchronized with
 # https://gitlab.com/sosy-lab/software/java-project-template
-
-#
-#===- google-java-format-diff.py - google-java-format Diff Reformatter -----===#
-#
-#                     The LLVM Compiler Infrastructure
-#
-# This file is distributed under the University of Illinois Open Source
-# License. See LICENSE.TXT for details.
-#
-#===------------------------------------------------------------------------===#
 
 """
 google-java-format Diff Reformatter

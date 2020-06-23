@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.base.Joiner;
@@ -91,6 +76,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.core.specification.Property;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 import org.sosy_lab.cpachecker.cpa.automaton.CParserUtils.ParserTools;
@@ -101,8 +88,6 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.NumericIdProvider;
-import org.sosy_lab.cpachecker.util.Property;
-import org.sosy_lab.cpachecker.util.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMLTag;
@@ -139,7 +124,7 @@ public class AutomatonGraphmlParser {
   private static final String TOO_MANY_GRAPHS_ERROR_MESSAGE =
       "The witness file must describe exactly one witness automaton.";
 
-  private static final String ACCESS_ERROR_MESSAGE = "Error while accessing witness file: %s!";
+  
 
   private static final String INVALID_AUTOMATON_ERROR_MESSAGE =
       "The witness automaton provided is invalid!";
@@ -266,13 +251,12 @@ public class AutomatonGraphmlParser {
    * @throws InvalidConfigurationException if the configuration is invalid.
    * @return the automata representing the witnesses found in the file.
    */
-  public List<Automaton> parseAutomatonFile(Path pInputFile, Set<Property> pProperties)
+  public Automaton parseAutomatonFile(Path pInputFile, Set<Property> pProperties)
       throws InvalidConfigurationException, InterruptedException {
-    return AutomatonGraphmlParser
-        .<List<Automaton>, InvalidConfigurationException>handlePotentiallyGZippedInput(
-            MoreFiles.asByteSource(pInputFile),
-            inputStream -> parseAutomatonFile(inputStream, pProperties),
-            e -> new WitnessParseException(e));
+    return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
+        MoreFiles.asByteSource(pInputFile),
+        inputStream -> parseAutomatonFile(inputStream, pProperties),
+        e -> new WitnessParseException(e));
   }
 
   /**
@@ -284,7 +268,7 @@ public class AutomatonGraphmlParser {
    * @throws IOException if there occurs an IOException while reading from the stream.
    * @return the automata representing the witnesses found in the stream.
    */
-  private List<Automaton> parseAutomatonFile(InputStream pInputStream, Set<Property> pProperties)
+  private Automaton parseAutomatonFile(InputStream pInputStream, Set<Property> pProperties)
       throws InvalidConfigurationException, IOException, InterruptedException {
     final CParser cparser =
         CParser.Factory.getParser(
@@ -346,7 +330,7 @@ public class AutomatonGraphmlParser {
       }
     }
 
-    return ImmutableList.of(automaton);
+    return automaton;
   }
 
   /**
@@ -390,7 +374,7 @@ public class AutomatonGraphmlParser {
               stutterCondition,
               ImmutableList.of(),
               ImmutableList.of(),
-              ExpressionTrees.<AExpression>getTrue(),
+              ExpressionTrees.getTrue(),
               ImmutableList.of(),
               pState,
               pState.isViolationState(),
@@ -405,7 +389,7 @@ public class AutomatonGraphmlParser {
               AutomatonBoolExpr.TRUE,
               assertions,
               ImmutableList.of(),
-              ExpressionTrees.<AExpression>getTrue(),
+              ExpressionTrees.getTrue(),
               ImmutableList.of(),
               pState,
               true,
@@ -713,7 +697,7 @@ public class AutomatonGraphmlParser {
                   new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(transitionCondition)),
               ImmutableList.of(),
               ImmutableList.of(),
-              ExpressionTrees.<AExpression>getTrue(),
+              ExpressionTrees.getTrue(),
               ImmutableList.of(),
               pTransition.getSource(),
               sourceIsViolationNode,
@@ -1877,7 +1861,7 @@ public class AutomatonGraphmlParser {
                 nonChangingTransition,
                 ImmutableList.of(),
                 ImmutableList.of(),
-                ExpressionTrees.<AExpression>getTrue(),
+                ExpressionTrees.getTrue(),
                 ImmutableList.of(),
                 pTargetState,
                 pTargetState.isViolationState(),
@@ -2101,12 +2085,10 @@ public class AutomatonGraphmlParser {
 
   public static AutomatonGraphmlCommon.WitnessType getWitnessType(Path pPath)
       throws InvalidConfigurationException, InterruptedException {
-    return AutomatonGraphmlParser
-        .<AutomatonGraphmlCommon.WitnessType, InvalidConfigurationException>
-            handlePotentiallyGZippedInput(
-                MoreFiles.asByteSource(pPath),
-                inputStream -> getWitnessType(inputStream),
-                e -> new WitnessParseException(e));
+    return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
+        MoreFiles.asByteSource(pPath),
+        inputStream -> getWitnessType(inputStream),
+        e -> new WitnessParseException(e));
   }
 
   private static AutomatonGraphmlCommon.WitnessType getWitnessType(InputStream pInputStream)
@@ -2208,7 +2190,7 @@ public class AutomatonGraphmlParser {
       message = "Exception occurred, but details are unknown: " + pException.toString();
     }
     if (pException instanceof IOException) {
-      return String.format(ACCESS_ERROR_MESSAGE, message);
+      return String.format("Error while accessing witness file: %s!", message);
     }
     return message;
   }

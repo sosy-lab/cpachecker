@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: The Linux kernel authors
+//
+// SPDX-License-Identifier: GPL-2.0-only
+
 # 1 "/home/shchepetkov/tests/thomas/work/current--X--drivers/mtd/maps/physmap.ko--X--x1linux-3.11-rc1.tar.xz--X--32_7a/linux-3.11-rc1.tar.xz/csd_deg_dscv/12/dscv_tempdir/dscv/ri/32_7a/drivers/mtd/maps/physmap.o.c"
 # 1 "<command-line>"
 # 1 "/home/shchepetkov/tests/thomas/work/current--X--drivers/mtd/maps/physmap.ko--X--x1linux-3.11-rc1.tar.xz--X--32_7a/linux-3.11-rc1.tar.xz/csd_deg_dscv/12/dscv_tempdir/dscv/ri/32_7a/drivers/mtd/maps/physmap.o.c"

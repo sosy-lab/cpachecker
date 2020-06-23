@@ -121,11 +121,8 @@ public class AbstractDistanceMetric {
       }
     }
 
-    // TODO: Make sure that distances is not empty
-    if (distances.isEmpty()) {
-      // ERROR
-      return null;
-    }
+    // Make sure that distances is not empty
+    assert distances.size() != 0;
 
     int index = 0;
     int min_dist = distances.get(0);
@@ -181,13 +178,6 @@ public class AbstractDistanceMetric {
       }
     }
 
-    // DOUBLE CHECKING
-    for (BooleanFormula f : result) {
-      if (isDisj(f) || isConj(f)) {
-        //ln("SOMETHING WENT WRONG MY FRIEND");
-      }
-    }
-
     return result;
 
   }
@@ -232,7 +222,7 @@ public class AbstractDistanceMetric {
    * @return
    */
   private int calculatePredicateDistance(List<List<CFAEdge>> alignments, List<ARGState> ce_states, List<ARGState> pathsStates) {
-    // TODO: Make sure that the 2 lists are of the same size
+    assert alignments.get(0).size() == alignments.get(1).size();
     int distance = 0;
     List<List<ARGState>> stateAlignments = new ArrayList<>();
     stateAlignments.add(new ArrayList<>());
@@ -240,36 +230,40 @@ public class AbstractDistanceMetric {
     // ** NEW PREDICATE DISTANCE **
     // First find the eq. ARGStates and put them in a List
     // FOR THE COUNTEREXAMPLE
-    for (int i = 0; i < alignments.get(0).size(); i++) {
-      for (int j = 0; j < ce_states.size(); j++) {
-        if (alignments.get(0).get(i).getPredecessor()
-            .equals(AbstractStates.extractStateByType(ce_states.get(j), AbstractStateWithLocation.class)
+
+
+    for (CFAEdge alignedEdge : alignments.get(0)) {
+      for (ARGState ceState : ce_states) {
+        if (alignedEdge.getPredecessor()
+            .equals(AbstractStates.extractStateByType(ceState, AbstractStateWithLocation.class)
                 .getLocationNode())) {
           // stateAlignments.get(0).add(pathStates.get(j));
-          stateAlignments.get(0).add(ce_states.get(j));
+          stateAlignments.get(0).add(ceState);
           break;
         }
       }
     }
 
     // FOR THE SAFE PATH
-    for (int i = 0; i < alignments.get(1).size(); i++) {
-      for (int j = 0; j < pathsStates.size(); j++) {
-        if (alignments.get(1).get(i).getPredecessor()
-        .equals(AbstractStates.extractStateByType(pathsStates.get(j), AbstractStateWithLocation.class)
+    for (CFAEdge alignedEdge : alignments.get(1)) {
+      for (ARGState pathState : pathsStates) {
+        if (alignedEdge.getPredecessor()
+        .equals(AbstractStates.extractStateByType(pathState, AbstractStateWithLocation.class)
             .getLocationNode())) {
-          stateAlignments.get(1).add(pathsStates.get(j));
+          stateAlignments.get(1).add(pathState);
           break;
         }
       }
     }
 
     // TODO: HERE THE 2 LISTS IN THE STATE-ALIGNMENTS LIST SHOULD BE OF THE SAME LENGTH !
+    // TODO: assert !
 
     // THE alignments List has only 2 Lists with the same size
     for (int j = 0; j < stateAlignments.get(0).size(); j++) {
-      Set<BooleanFormula> pred_a = splitPredicates(AbstractStates.extractStateByType(stateAlignments.get(0).get(j), PredicateAbstractState.class).getPathFormula().getFormula());
-      Set<BooleanFormula> pred_b = splitPredicates(AbstractStates.extractStateByType(stateAlignments.get(1).get(j), PredicateAbstractState.class).getPathFormula().getFormula());
+      Set<BooleanFormula> pred_a = splitPredicates(AbstractStates.extractStateByType(stateAlignments.get(0).get(j), PredicateAbstractState.class).getAbstractionFormula().asFormula());
+      Set<BooleanFormula> pred_b = splitPredicates(AbstractStates.extractStateByType(stateAlignments.get(1).get(j), PredicateAbstractState.class).getAbstractionFormula().asFormula());
+
 
       for (BooleanFormula predicate : pred_a) {
         if (!pred_b.contains(predicate)) {
@@ -302,6 +296,9 @@ public class AbstractDistanceMetric {
     List<CFAEdge> safePath_1 = new ArrayList<>(safePath);
     List<CFAEdge> ce_2 = new ArrayList<>();
     List<CFAEdge> safePath_2 = new ArrayList<>();
+
+    // TODO: Event - Klasse benutzen und 1 Methode fuer beide Klassen fuer ALignments haben ?
+    // TODO: Refactor wie beim anderen Metric
 
     // MAKING ALIGNMENTS
     for (int i = 0; i < ce_1.size(); i++) {
@@ -340,13 +337,6 @@ public class AbstractDistanceMetric {
 
     for (int i = 0; i < flow.size(); i++) {
       if (flow.get(i).getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
-        //String[] code = flow.get(i).getCode().split("\\s*[()]\\s*");
-        /*if (code.length > 0) {
-          if (code[0].equals("__VERIFIER_assert")) {
-            clean_flow.add(flow.get(i));
-            return clean_flow;
-          }
-        }*/
         List<String> code = Splitter.onPattern("\\s*[()]\\s*").splitToList(flow.get(i).getCode());
         if (code.size() > 0) {
           if (code.get(0).equals("__VERIFIER_assert")) {

@@ -23,9 +23,10 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.explainer;
 
+// TODO: NEW CLASS FOR THAT ?
+//import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -56,7 +57,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.Specification;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NestingAlgorithm;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -78,6 +79,8 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.SolverException;
+
 @Options(prefix = "explainer")
 public class Explainer extends NestingAlgorithm implements Algorithm {
 
@@ -142,7 +145,7 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
     reached.setDelegate(currentReached);
 
     // All Targets
-    ImmutableList<ARGState> allTargets = FluentIterable.from(currentReached)
+    ImmutableList<ARGState> allTargets = from(currentReached)
         .transform(s -> AbstractStates.extractStateByType(s, ARGState.class))
         .filter(ARGState::isTarget)
         .toList();
@@ -159,22 +162,23 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
 
     FluentIterable<CounterexampleInfo> counterExamples =
         Optionals.presentInstances(
-            from(reached).filter(IS_TARGET_STATE)
+            from(reached).filter(AbstractStates::isTargetState)
                 .filter(ARGState.class)
                 .transform(ARGState::getCounterexampleInformation));
 
     ARGPath targetPath = counterExamples.get(0).getTargetPath();
+    //ARGPath targetPath = ARGUtils.getOnePathTo(allTargets.get(0));
 
 
     // Find All Safe Nodes
-    List<ARGState> safeLeafNodes = FluentIterable.from(currentReached)
+    List<ARGState> safeLeafNodes = from(currentReached)
         .transform(x -> AbstractStates.extractStateByType(x, ARGState.class))
         .filter(x -> x.getChildren().isEmpty())
         .filter(x -> !x.isTarget()).toList();
 
 
     //Find the Root Node
-    ARGState rootNode = FluentIterable.from(currentReached)
+    ARGState rootNode = from(currentReached)
         .transform(x -> AbstractStates.extractStateByType(x, ARGState.class))
         .filter(x -> x.getParents().isEmpty()).toList().get(0);
 
@@ -193,16 +197,15 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
     // HERE START **
 
     // TODO: I need this later
-    //ControlFLowDistanceMetric metric = new ControlFLowDistanceMetric();
+    ControlFLowDistanceMetric metric = new ControlFLowDistanceMetric();
     List<CFAEdge> closestSuccessfulExecution;
     // TODO: Bring that back to life
-    /*try {
+    try {
       // Compare all paths with the CE
-      //closestSuccessfulExecution = metric.startDistanceMetric(safePaths, targetPath);
+      closestSuccessfulExecution = metric.startDistanceMetric(safePaths, targetPath);
       // Generate the closest path to the CE with respect to the distance metric
       closestSuccessfulExecution = metric.startPathGenerator(safePaths, targetPath);
     } catch (SolverException pE) {}
-*/
 
 
     // create a SOLVER
@@ -221,9 +224,8 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
       //ln("EXECUTION COLLAPSED");
       return status;
     }
-    ExplainTool.ExplainDeltas(targetPath.getFullPath(), closestSuccessfulExecution, super.logger);
+    ExplainTool.ExplainDeltas(targetPath.getFullPath(), closestSuccessfulExecution, logger);
     return status;
-
   }
 
 

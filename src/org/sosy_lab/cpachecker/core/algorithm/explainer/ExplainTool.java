@@ -34,13 +34,11 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 public class ExplainTool {
 
   public static void ExplainDeltas(List<CFAEdge> counterexample, List<CFAEdge> closestExecution, LogManager logger) {
-    //ln("Explain Tool Started!");
+    logger.log(Level.INFO, "Explain Tool Started");
     counterexample = cleanPath(counterexample);
     closestExecution = cleanPath(closestExecution);
     List<CFAEdge> deltas_ce = new ArrayList<>();
     List<CFAEdge> deltas_sp = new ArrayList<>();
-    //List<CFAEdge> ce_cf = findBranches(counterexample);
-    //List<CFAEdge> sp_cf = findBranches(closestExecution);
 
     for (int i = 0; i < counterexample.size(); i++) {
       if (!closestExecution.contains(counterexample.get(i))) {
@@ -53,17 +51,14 @@ public class ExplainTool {
         deltas_sp.add(closestExecution.get(i));
       }
     }
-    //ln();
-    //ln();
-    //ln("COUNTEREXAMPLE DIFFERENCES");
+    logger.log(Level.INFO, "COUNTEREXAMPLE DIFFERENCES");
     for (int i = 0; i < deltas_ce.size(); i++) {
-      //ln(deltas_ce.get(i).getLineNumber() + ": " + deltas_ce.get(i).getDescription());
+      logger.log(Level.INFO, deltas_ce.get(i).getLineNumber() + ": " + deltas_ce.get(i).getDescription());
     }
-    //ln();
-    //ln("------------------------------------");
-    //ln("CLOSEST SUCCESSFUL EXECUTION DIFFERENCES");
+    logger.log(Level.INFO, "-------------------------------------------");
+    logger.log(Level.INFO, "CLOSEST SUCCESSFUL EXECUTION DIFFERENCES");
     for (int i = 0; i < deltas_sp.size(); i++) {
-      //ln(deltas_sp.get(i).getLineNumber() + ": " + deltas_sp.get(i).getDescription());
+      logger.log(Level.INFO,deltas_sp.get(i).getLineNumber() + ": " + deltas_sp.get(i).getDescription());
     }
 
 
@@ -86,13 +81,6 @@ public class ExplainTool {
 
     for (int i = 0; i < flow.size(); i++) {
       if (flow.get(i).getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
-        //String[] code = flow.get(i).getCode().split("\\s*[()]\\s*");
-        /*if (code.length > 0) {
-          if (code[0].equals("__VERIFIER_assert")) {
-            clean_flow.add(flow.get(i));
-            return clean_flow;
-          }
-        }*/
         List<String> code = Splitter.onPattern("\\s*[()]\\s*").splitToList(flow.get(i).getCode());
         if (code.size() > 0) {
           if (code.get(0).equals("__VERIFIER_assert")) {

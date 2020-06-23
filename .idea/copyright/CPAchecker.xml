@@ -1,6 +1,16 @@
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 <component name="CopyrightManager">
   <copyright>
-    <option name="notice" value=" CPAchecker is a tool for configurable software verification.&#10; This file is part of CPAchecker.&#10;&#10; Copyright (C) 2007-&amp;#36;today.year  Dirk Beyer&#10; All rights reserved.&#10;&#10; Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);&#10; you may not use this file except in compliance with the License.&#10; You may obtain a copy of the License at&#10;&#10;     http://www.apache.org/licenses/LICENSE-2.0&#10;&#10; Unless required by applicable law or agreed to in writing, software&#10; distributed under the License is distributed on an &quot;AS IS&quot; BASIS,&#10; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.&#10; See the License for the specific language governing permissions and&#10; limitations under the License.&#10;&#10;&#10; CPAchecker web page:&#10;   http://cpachecker.sosy-lab.org" />
+    <option name="notice" value="This file is part of CPAchecker,&#10;a tool for configurable software verification:&#10;https://cpachecker.sosy-lab.org&#10;&#10;SPDX-FileCopyrightText: &amp;#36;today.year Dirk Beyer &lt;https://www.sosy-lab.org&gt;&#10;&#10;SPDX-License-Identifier:&#32;Apache-2.0" />
     <option name="myName" value="CPAchecker" />
   </copyright>
 </component>

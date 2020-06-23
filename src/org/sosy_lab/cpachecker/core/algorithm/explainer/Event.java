@@ -29,6 +29,9 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class Event {
 
+  // TODO: Anstatt "distanceFromTheEnd -> pPath
+  // getDistance public -> es wird dann  das Distance berechnet
+
   private final int line;
   private final String statement;
   private final CFANode node;
