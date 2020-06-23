@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.dca.DCAState;
+import org.sosy_lab.cpachecker.cpa.overflow.OverflowState;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.cpa.slab.EdgeSet;
 import org.sosy_lab.cpachecker.cpa.slab.SLARGState;
@@ -313,13 +314,15 @@ public class SlicingAbstractionsUtils {
       startFormula = emptyPathFormulaWithSSAMap(pSolver.getFormulaManager().getBooleanFormulaManager().makeTrue(), pSSAMap, pPts);
     }
 
-    // Add precondition assumptions if any:
+    // Add assumptions if any:
     AbstractStateWithAssumptions other =
         AbstractStates.extractStateByType(stop, AbstractStateWithAssumptions.class);
     if (other != null) {
-      for (CExpression preassumption :
-          Iterables.filter(other.getPreconditionAssumptions(), CExpression.class)) {
-        startFormula = pPfmgr.makeAnd(startFormula, preassumption);
+      if (stop.isTarget() && other instanceof OverflowState) {
+        other = ((OverflowState) other).getParent();
+      }
+      for (CExpression assumption : Iterables.filter(other.getAssumptions(), CExpression.class)) {
+        startFormula = pPfmgr.makeAnd(startFormula, assumption);
       }
     }
 
