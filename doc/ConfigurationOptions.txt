@@ -1533,9 +1533,6 @@ cpa.constraints.resolveDefinites = true
 cpa.constraints.satCheckStrategy = AT_ASSUME
   enum:     [AT_ASSUME, AT_TARGET]
 
-# Try model of predecessor constraints state before running SMT solver
-cpa.constraints.useLastModel = true
-
 # Keep infeasible dummy states that allow for better debugging
 cpa.dca.refiner.keepInfeasibleStates = false
 

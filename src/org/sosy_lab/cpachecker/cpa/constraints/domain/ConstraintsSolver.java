@@ -79,12 +79,6 @@ public class ConstraintsSolver {
   )
   private boolean resolveDefinites = true;
 
-  @Option(
-      secure = true,
-      description = "Try model of predecessor constraints state before running SMT solver",
-      name = "useLastModel")
-  private boolean useLastModel = true;
-
   private ConstraintsCache cache;
   private Solver solver;
   private ProverEnvironment prover;
@@ -97,7 +91,6 @@ public class ConstraintsSolver {
   /** Table of id constraints set, id identifier assignment, formula * */
   private Map<Constraint, BooleanFormula> constraintFormulas = new HashMap<>();
 
-  private BooleanFormula literalForModel;
   private BooleanFormula literalForSingleAssignment;
 
   private ConstraintsStatistics stats;
@@ -114,7 +107,6 @@ public class ConstraintsSolver {
     solver = pSolver;
     formulaManager = pFormulaManager;
     booleanFormulaManager = formulaManager.getBooleanFormulaManager();
-    literalForModel = booleanFormulaManager.makeVariable("__M");
     literalForSingleAssignment = booleanFormulaManager.makeVariable("__A");
     converter = pConverter;
     locator = SymbolicIdentifierLocator.getInstance();
@@ -177,41 +169,15 @@ public class ConstraintsSolver {
             combineWithDefinites(constraintsAsFormulas, pConstraints);
         prover.push(definitesAndConstraints);
 
-        ImmutableList<ValueAssignment> newModelAsAssignment;
-        ImmutableList<ValueAssignment> modelAsAssignment = pConstraints.getModel();
-
-        boolean modelExists = !modelAsAssignment.isEmpty();
-        if (useLastModel && modelExists) {
-          try {
-            stats.timeForModelReuse.start();
-            BooleanFormula modelFormula =
-                modelAsAssignment
-                    .stream()
-                    .map(ValueAssignment::getAssignmentAsFormula)
-                    .collect(booleanFormulaManager.toConjunction());
-            modelFormula = createLiteralLabel(literalForModel, modelFormula);
-            prover.push(modelFormula);
-            unsat = prover.isUnsatWithAssumptions(
-                ImmutableList.of(literalForModel));
-            if (!unsat) {
-              stats.modelReuseSuccesses.inc();
-            }
-          } finally {
-            stats.timeForModelReuse.stop();
-          }
-        }
-
-        if (unsat == null || unsat) {
-          try {
-            stats.timeForSatCheck.start();
-            unsat = prover.isUnsat();
-          } finally {
-            stats.timeForSatCheck.stop();
-          }
+        try {
+          stats.timeForSatCheck.start();
+          unsat = prover.isUnsat();
+        } finally {
+          stats.timeForSatCheck.stop();
         }
 
         if (!unsat) {
-          newModelAsAssignment = prover.getModelAssignments();
+          ImmutableList<ValueAssignment> newModelAsAssignment = prover.getModelAssignments();
           pConstraints.setModel(newModelAsAssignment);
           cache.addSat(constraintsAsFormulas, newModelAsAssignment);
           // doing this while the complete formula is still on the prover environment stack is
