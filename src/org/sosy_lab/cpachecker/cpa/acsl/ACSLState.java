@@ -56,7 +56,7 @@ public class ACSLState implements AbstractState, ExpressionTreeReportingState {
       ACSLPredicate predicate = annotation.getPredicateRepresentation();
       representations.add(predicate.toExpressionTree());
     }
-    ExpressionTreeFactory factory = ExpressionTrees.newFactory();
+    ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
     return factory.and(representations);
   }
 
