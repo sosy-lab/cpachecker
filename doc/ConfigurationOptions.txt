@@ -1496,8 +1496,11 @@ cpa.congruence.useCachingPathFormulaManager = true
 # Whether to perform caching of constraint satisfiability results
 cpa.constraints.cache = true
 
-# Whether to use subset/superset caching
+# Whether to use subset caching
 cpa.constraints.cacheSubsets = true
+
+# Whether to use superset caching
+cpa.constraints.cacheSupersets = true
 
 # Type of less-or-equal operator to use
 cpa.constraints.lessOrEqualType = SUBSET
