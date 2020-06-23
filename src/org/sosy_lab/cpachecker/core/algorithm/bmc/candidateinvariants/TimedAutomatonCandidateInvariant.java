@@ -11,28 +11,48 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Streams;
+import com.google.common.collect.Sets;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
+import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TatoFormulaConverter;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TatoFormulaConverter.VariableType;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /** Candidate invariant that represents the formula encoding of a timed automaton network. */
-public enum TimedAutomatonCandidateInvariant implements CandidateInvariant {
-  INSTANCE;
+public class TimedAutomatonCandidateInvariant implements CandidateInvariant {
+  private final CFA cfa;
+  private Map<String, Integer> maxSSAIndexOfAction = new HashMap<>();
+  private Map<String, BooleanFormula> formulaByAutomata = new HashMap<>();
+  private Set<AbstractState> processedTargetStates = new HashSet<>();
+
+  private static TimedAutomatonCandidateInvariant instance;
+
+  public static TimedAutomatonCandidateInvariant getInstance(CFA pCFA) {
+    if (instance == null) {
+      instance = new TimedAutomatonCandidateInvariant(pCFA);
+    }
+    return instance;
+  }
+
+  private TimedAutomatonCandidateInvariant(CFA pCFA) {
+    cfa = pCFA;
+  }
 
   @Override
   public BooleanFormula getFormula(
@@ -44,11 +64,18 @@ public enum TimedAutomatonCandidateInvariant implements CandidateInvariant {
   public BooleanFormula getAssertion(
       Iterable<AbstractState> pReachedSet, FormulaManagerView pFMGR, PathFormulaManager pPFMGR)
       throws InterruptedException {
-    Map<String, BooleanFormula> formulaByAutomata = new HashMap<>();
     var targetStates = filterApplicable(pReachedSet).toList();
 
     if (targetStates.isEmpty()) {
       return pFMGR.getBooleanFormulaManager().makeTrue();
+    }
+
+    if (formulaByAutomata.isEmpty()) {
+      cfa.getAllFunctionNames()
+          .forEach(
+              automatonName ->
+                  formulaByAutomata.put(
+                      automatonName, pFMGR.getBooleanFormulaManager().makeFalse()));
     }
 
     // post-process each formula and build formula for each component automaton
@@ -69,10 +96,10 @@ public enum TimedAutomatonCandidateInvariant implements CandidateInvariant {
           getFormulaWithSyncConstraints(formula, pFMGR, allActionsOfAutomaton, automatonName, ssa);
 
       // add formula to formula that describes the component automaton
-      var automatonFormula =
-          formulaByAutomata.getOrDefault(
-              automatonName, pFMGR.getBooleanFormulaManager().makeFalse());
+      var automatonFormula = formulaByAutomata.get(automatonName);
       formulaByAutomata.put(automatonName, pFMGR.makeOr(formulaSynced, automatonFormula));
+
+      processedTargetStates.add(aState);
     }
 
     var pathEncoding = pFMGR.getBooleanFormulaManager().and(formulaByAutomata.values());
@@ -100,12 +127,12 @@ public enum TimedAutomatonCandidateInvariant implements CandidateInvariant {
           TatoFormulaConverter.getActionOccurenceVariableName(automatonName, action.getName());
       var localOccurenceCountVar =
           pFMGR.makeVariable(
-              TatoFormulaConverter.getIntegerVariableType(),
+              VariableType.INTEGER.getFormulaType(),
               localOccurenceCountVarName,
               ssa.getIndex(localOccurenceCountVarName));
       var globalOccurenceCountVar =
           pFMGR.makeVariableWithoutSSAIndex(
-              TatoFormulaConverter.getIntegerVariableType(), action + "#cnt");
+              VariableType.INTEGER.getFormulaType(), action.getName() + "#cnt");
       var actionOccurenceCountFormula =
           pFMGR.makeEqual(globalOccurenceCountVar, localOccurenceCountVar);
       formula = pFMGR.makeAnd(actionOccurenceCountFormula, formula);
@@ -115,11 +142,8 @@ public enum TimedAutomatonCandidateInvariant implements CandidateInvariant {
     var timeVariableName = TatoFormulaConverter.getTimeVariableNameForAutomaton(automatonName);
     var timeVariable =
         pFMGR.makeVariable(
-            TatoFormulaConverter.getDecimalVariableType(),
-            timeVariableName,
-            ssa.getIndex(timeVariableName));
-    var finalSyncAction =
-        pFMGR.makeVariable(TatoFormulaConverter.getDecimalVariableType(), "#final_sync");
+            VariableType.FLOAT.getFormulaType(), timeVariableName, ssa.getIndex(timeVariableName));
+    var finalSyncAction = pFMGR.makeVariable(VariableType.FLOAT.getFormulaType(), "#final_sync");
     var finalSyncConstraint = pFMGR.makeEqual(finalSyncAction, timeVariable);
     formula = pFMGR.makeAnd(finalSyncConstraint, formula);
 
@@ -132,7 +156,6 @@ public enum TimedAutomatonCandidateInvariant implements CandidateInvariant {
    */
   private BooleanFormula getGlobalSyncConstraint(
       Iterable<AbstractState> pTargetStates, FormulaManagerView pFMGR) {
-    Map<String, Integer> maxSSAIndexOfAction = new HashMap<>();
     for (AbstractState aState : pTargetStates) {
       var predicateState = AbstractStates.extractStateByType(aState, PredicateAbstractState.class);
       var ssa = predicateState.getPathFormula().getSsa();
@@ -144,41 +167,39 @@ public enum TimedAutomatonCandidateInvariant implements CandidateInvariant {
     }
 
     var result = pFMGR.getBooleanFormulaManager().makeTrue();
-    var allRelevantAutomata =
-        Streams.stream(pTargetStates)
-            .map(aState -> (TCFANode) AbstractStates.extractLocation(aState))
-            .map(tcfaNode -> tcfaNode.getAutomatonDeclaration())
-            .collect(Collectors.toSet());
-    for (var automaton : allRelevantAutomata) {
-      var actions = automaton.getActions();
+    for (var automaton : formulaByAutomata.keySet()) {
+      var automatonDelcaration =
+          (TaDeclaration) cfa.getAllFunctions().get(automaton).getFunctionDefinition();
+      var actionsOfAutomaton =
+          automatonDelcaration.getActions().stream()
+              .map(TaVariable::getName)
+              .collect(Collectors.toSet());
+      var actions = Sets.intersection(actionsOfAutomaton, maxSSAIndexOfAction.keySet());
       for (var action : actions) {
         for (int variableIndex = 0;
-            variableIndex <= maxSSAIndexOfAction.get(action.getName());
+            variableIndex <= maxSSAIndexOfAction.get(action);
             variableIndex++) {
           for (int numberOfOccurences = 0;
               numberOfOccurences <= variableIndex;
               numberOfOccurences++) {
             var countVarName =
-                TatoFormulaConverter.getActionOccurenceVariableName(
-                    automaton.getName(), action.getName());
+                TatoFormulaConverter.getActionOccurenceVariableName(automaton, action);
             var globalTimestampVarName = action + "#occurence#";
             var localTimestampVarName =
-                TatoFormulaConverter.getActionVariableName(automaton.getName(), action.getName());
+                TatoFormulaConverter.getActionVariableName(automaton, action);
 
             var countVar =
                 pFMGR.makeVariable(
-                    TatoFormulaConverter.getIntegerVariableType(), countVarName, variableIndex);
+                    VariableType.INTEGER.getFormulaType(), countVarName, variableIndex);
             var globalTimestampVar =
                 pFMGR.makeVariable(
-                    TatoFormulaConverter.getDecimalVariableType(),
+                    VariableType.FLOAT.getFormulaType(),
                     globalTimestampVarName + numberOfOccurences);
             var localTimestampVar =
                 pFMGR.makeVariable(
-                    TatoFormulaConverter.getDecimalVariableType(),
-                    localTimestampVarName,
-                    variableIndex);
+                    VariableType.FLOAT.getFormulaType(), localTimestampVarName, variableIndex);
             var occurenceFormula =
-                pFMGR.makeNumber(TatoFormulaConverter.getIntegerVariableType(), numberOfOccurences);
+                pFMGR.makeNumber(VariableType.INTEGER.getFormulaType(), numberOfOccurences);
 
             var countVarValueFormula = pFMGR.makeEqual(countVar, occurenceFormula);
             var timeStampsEqualFormula = pFMGR.makeEqual(globalTimestampVar, localTimestampVar);
@@ -198,11 +219,7 @@ public enum TimedAutomatonCandidateInvariant implements CandidateInvariant {
 
   @Override
   public void assumeTruth(ReachedSet pReachedSet) {
-    Iterable<AbstractState> targetStates = filterApplicable(pReachedSet).toList();
-    pReachedSet.removeAll(targetStates);
-    for (ARGState s : from(targetStates).filter(ARGState.class)) {
-      s.removeFromARG();
-    }
+    return;
   }
 
   @Override
@@ -217,6 +234,8 @@ public enum TimedAutomatonCandidateInvariant implements CandidateInvariant {
 
   @Override
   public FluentIterable<AbstractState> filterApplicable(Iterable<AbstractState> pStates) {
-    return from(pStates).filter(AbstractStates.IS_TARGET_STATE);
+    return from(pStates)
+        .filter(AbstractStates.IS_TARGET_STATE)
+        .filter(aState -> !processedTargetStates.contains(aState));
   }
 }

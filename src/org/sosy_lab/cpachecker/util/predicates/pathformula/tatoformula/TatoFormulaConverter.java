@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Optional;
@@ -21,7 +23,10 @@ import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFANode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -31,6 +36,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraint
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
@@ -40,6 +46,45 @@ import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
 public class TatoFormulaConverter extends CtoFormulaConverter {
+  /**
+   * This enum serves as uniform type interface in order to convert between c and formula types
+   * CTypes are not needed for timed automata and thus, methods in this class should use this enum
+   * instead.
+   */
+  public static class VariableType {
+    public static VariableType INTEGER =
+        new VariableType(FormulaType.getBitvectorTypeWithSize(128), CNumericTypes.INT);
+    public static VariableType FLOAT =
+        new VariableType(FormulaType.getFloatingPointType(15, 112), CNumericTypes.FLOAT);
+
+    private final FormulaType<?> formulaType;
+    private final CType cType;
+
+    VariableType(FormulaType<?> pFormulaType, CType pCType) {
+      formulaType = pFormulaType;
+      cType = pCType;
+    }
+
+    public FormulaType<?> getFormulaType() {
+      return formulaType;
+    }
+
+    public CType getCType() {
+      return cType;
+    }
+
+    public static VariableType fromCType(CType type) {
+      if (type instanceof CSimpleType) {
+        var simpleType = (CSimpleType) type;
+        if (simpleType.getType().equals(CBasicType.INT)) {
+          return INTEGER;
+        } else if (simpleType.getType().equals(CBasicType.FLOAT)) {
+          return FLOAT;
+        }
+      }
+      throw new AssertionError("Unknown c type");
+    }
+  }
 
   public TatoFormulaConverter(
       FormulaEncodingOptions pOptions,
@@ -87,21 +132,21 @@ public class TatoFormulaConverter extends CtoFormulaConverter {
     var declaration = ((TCFANode) initialEdge.getSuccessor()).getAutomatonDeclaration();
 
     var timeVariable = getCurrentTimeVariableFormula(function, ssa);
-    var decimalZero = fmgr.makeNumber(getDecimalVariableType(), 0);
+    var decimalZero = fmgr.makeNumber(VariableType.FLOAT.getFormulaType(), 0);
     var initialTimeGreaterZero = fmgr.makeGreaterOrEqual(timeVariable, decimalZero, true);
 
     var allClocksZero = bfmgr.makeTrue();
     for (var clockVariable : declaration.getClocks()) {
-      var variable = makeFreshVariable(clockVariable.getName(), getDecimalVariableType(), ssa);
+      var variable = makeFreshVariable(clockVariable.getName(), VariableType.FLOAT, ssa);
       var variableIsZero = fmgr.makeEqual(variable, decimalZero);
       allClocksZero = bfmgr.and(allClocksZero, variableIsZero);
     }
 
     var allActionCountsZero = bfmgr.makeTrue();
-    var integerZero = fmgr.makeNumber(getIntegerVariableType(), 0);
+    var integerZero = fmgr.makeNumber(VariableType.INTEGER.getFormulaType(), 0);
     for (var action : declaration.getActions()) {
       var occurenceVarName = getActionOccurenceVariableName(function, action.getName());
-      var occurenceVariable = makeVariable(occurenceVarName, getIntegerVariableType(), ssa);
+      var occurenceVariable = makeVariable(occurenceVarName, VariableType.INTEGER, ssa);
       allActionCountsZero =
           bfmgr.and(fmgr.makeEqual(occurenceVariable, integerZero), allActionCountsZero);
     }
@@ -119,10 +164,9 @@ public class TatoFormulaConverter extends CtoFormulaConverter {
   private BooleanFormula makeTimeUpdateFormula(final String function, final SSAMapBuilder ssa) {
     var oldTimeVariable = getCurrentTimeVariableFormula(function, ssa);
     var newTimeVariable =
-        makeFreshVariable(getTimeVariableNameForAutomaton(function), getDecimalVariableType(), ssa);
-    var deltaVariable =
-        makeConstant(generateNewDeltaVariableName(function), getDecimalVariableType());
-    var zero = fmgr.makeNumber(getDecimalVariableType(), 0);
+        makeFreshVariable(getTimeVariableNameForAutomaton(function), VariableType.FLOAT, ssa);
+    var deltaVariable = makeConstant(generateNewDeltaVariableName(function), VariableType.FLOAT);
+    var zero = fmgr.makeNumber(VariableType.FLOAT.getFormulaType(), 0);
 
     var deltaVarGreaterZero = fmgr.makeGreaterOrEqual(deltaVariable, zero, true);
     var timeStepFormula = fmgr.makePlus(oldTimeVariable, deltaVariable);
@@ -147,16 +191,8 @@ public class TatoFormulaConverter extends CtoFormulaConverter {
     return automatonName + "#action#" + actionName;
   }
 
-  public static FormulaType<?> getDecimalVariableType() {
-    return FormulaType.getFloatingPointType(15, 112);
-  }
-
-  public static FormulaType<?> getIntegerVariableType() {
-    return FormulaType.getBitvectorTypeWithSize(128);
-  }
-
   private Formula getCurrentTimeVariableFormula(final String function, final SSAMapBuilder ssa) {
-    return makeVariable(getTimeVariableNameForAutomaton(function), getDecimalVariableType(), ssa);
+    return makeVariable(getTimeVariableNameForAutomaton(function), VariableType.FLOAT, ssa);
   }
 
   /**
@@ -191,8 +227,7 @@ public class TatoFormulaConverter extends CtoFormulaConverter {
     // clock reset
     var resetFormula = bfmgr.makeTrue();
     for (var variableToReset : edge.getVariablesToReset()) {
-      var variableFormula =
-          makeFreshVariable(variableToReset.getName(), getDecimalVariableType(), ssa);
+      var variableFormula = makeFreshVariable(variableToReset.getName(), VariableType.FLOAT, ssa);
       var variableResetFormula =
           fmgr.makeEqual(variableFormula, getCurrentTimeVariableFormula(function, ssa));
       resetFormula = bfmgr.and(resetFormula, variableResetFormula);
@@ -206,16 +241,16 @@ public class TatoFormulaConverter extends CtoFormulaConverter {
     // sync formula
     if (edge.getAction().isPresent()) {
       var action = edge.getAction().get();
-      var one = fmgr.makeNumber(getIntegerVariableType(), 1);
+      var one = fmgr.makeNumber(VariableType.INTEGER.getFormulaType(), 1);
       var occurenceVarName = getActionOccurenceVariableName(function, action.getName());
-      var oldOccurenceVariable = makeVariable(occurenceVarName, getIntegerVariableType(), ssa);
-      var newOccurenceVariable = makeFreshVariable(occurenceVarName, getIntegerVariableType(), ssa);
+      var oldOccurenceVariable = makeVariable(occurenceVarName, VariableType.INTEGER, ssa);
+      var newOccurenceVariable = makeFreshVariable(occurenceVarName, VariableType.INTEGER, ssa);
       var occurenceUpdate =
           fmgr.makeEqual(newOccurenceVariable, fmgr.makePlus(oldOccurenceVariable, one));
       transitionFormula = bfmgr.and(occurenceUpdate, transitionFormula);
 
       var actionVarName = getActionVariableName(function, action.getName());
-      var actionVariable = makeFreshVariable(actionVarName, getDecimalVariableType(), ssa);
+      var actionVariable = makeFreshVariable(actionVarName, VariableType.FLOAT, ssa);
       var syncFormula =
           fmgr.makeEqual(actionVariable, getCurrentTimeVariableFormula(function, ssa));
       transitionFormula = bfmgr.and(syncFormula, transitionFormula);
@@ -231,40 +266,60 @@ public class TatoFormulaConverter extends CtoFormulaConverter {
   }
 
   /**
-   * Overwrites the method of CtoFormulaConverter but uses FormulaType as argument (CTypes are not
-   * needed/known). Since the SSA map requires CTypes, this method simply passes any CType as
+   * Overwrites the method of CtoFormulaConverter but uses VariableType as argument (CTypes are not
+   * needed/known). Since the SSA map requires CTypes, this method simply passes a matching CType as
    * arugments to the respective methods.
    */
-  protected Formula makeVariable(String name, FormulaType<?> type, SSAMapBuilder ssa) {
-    int useIndex = getIndex(name, CNumericTypes.INT, ssa);
-    return fmgr.makeVariable(type, name, useIndex);
+  protected Formula makeVariable(String name, VariableType type, SSAMapBuilder ssa) {
+    int useIndex = getIndex(name, type.getCType(), ssa);
+    return fmgr.makeVariable(type.getFormulaType(), name, useIndex);
   }
 
   /**
-   * Overwrites the method of CtoFormulaConverter but uses FormulaType as argument (CTypes are not
-   * needed/known). Since the SSA map requires CTypes, this method simply passes any CType as
+   * Overwrites the method of CtoFormulaConverter but uses VariableType as argument (CTypes are not
+   * needed/known). Since the SSA map requires CTypes, this method simply passes a matching CType as
    * arugments to the respective methods.
    */
-  protected Formula makeFreshVariable(String name, FormulaType<?> type, SSAMapBuilder ssa) {
+  protected Formula makeFreshVariable(String name, VariableType type, SSAMapBuilder ssa) {
     int useIndex;
 
     if (direction == AnalysisDirection.BACKWARD) {
-      useIndex = getIndex(name, CNumericTypes.INT, ssa);
+      useIndex = getIndex(name, type.getCType(), ssa);
     } else {
-      useIndex = makeFreshIndex(name, CNumericTypes.INT, ssa);
+      useIndex = makeFreshIndex(name, type.getCType(), ssa);
     }
 
-    Formula result = fmgr.makeVariable(type, name, useIndex);
+    Formula result = fmgr.makeVariable(type.getFormulaType(), name, useIndex);
 
     if (direction == AnalysisDirection.BACKWARD) {
-      makeFreshIndex(name, CNumericTypes.INT, ssa);
+      makeFreshIndex(name, type.getCType(), ssa);
     }
 
     return result;
   }
 
-  protected Formula makeConstant(String name, FormulaType<?> type) {
-    return fmgr.makeVariableWithoutSSAIndex(type, name);
+  protected Formula makeConstant(String name, VariableType type) {
+    return fmgr.makeVariableWithoutSSAIndex(type.getFormulaType(), name);
+  }
+
+  /*
+   * Override in order to handle CTypes
+   */
+  @Override
+  public BooleanFormula makeSsaUpdateTerm(
+      final String variableName,
+      final CType variableType,
+      final int oldIndex,
+      final int newIndex,
+      final PointerTargetSet pts)
+      throws InterruptedException {
+    checkArgument(oldIndex > 0 && newIndex > oldIndex);
+    var variableFormulaType = VariableType.fromCType(variableType).getFormulaType();
+
+    final Formula oldVariable = fmgr.makeVariable(variableFormulaType, variableName, oldIndex);
+    final Formula newVariable = fmgr.makeVariable(variableFormulaType, variableName, newIndex);
+
+    return fmgr.assignment(newVariable, oldVariable);
   }
 
   protected BooleanFormula makeFormulaFromCondition(
@@ -278,8 +333,7 @@ public class TatoFormulaConverter extends CtoFormulaConverter {
 
   protected BooleanFormula makeFormulaFromExpression(
       TaVariableExpression expression, String automatonName, SSAMapBuilder ssa) {
-    var variableFormula =
-        makeVariable(expression.getVariable().getName(), getDecimalVariableType(), ssa);
+    var variableFormula = makeVariable(expression.getVariable().getName(), VariableType.FLOAT, ssa);
     var timeVariableFormula = getCurrentTimeVariableFormula(automatonName, ssa);
     var differenceFormula = fmgr.makeMinus(timeVariableFormula, variableFormula);
     var constantFormula = makeFormulaFromNumber(expression.getConstant());
@@ -302,12 +356,11 @@ public class TatoFormulaConverter extends CtoFormulaConverter {
 
   protected Formula makeFormulaFromNumber(Number pNumber) {
     if (pNumber instanceof BigInteger) {
-      return fmgr.makeNumber(TatoFormulaConverter.getIntegerVariableType(), (BigInteger) pNumber);
+      return fmgr.makeNumber(VariableType.INTEGER.getFormulaType(), (BigInteger) pNumber);
     } else if (pNumber instanceof BigDecimal) {
       return fmgr.getFloatingPointFormulaManager()
           .makeNumber(
-              (BigDecimal) pNumber,
-              (FloatingPointType) TatoFormulaConverter.getDecimalVariableType());
+              (BigDecimal) pNumber, (FloatingPointType) VariableType.FLOAT.getFormulaType());
     } else {
       throw new AssertionError();
     }
