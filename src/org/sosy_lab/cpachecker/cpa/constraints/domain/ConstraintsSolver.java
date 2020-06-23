@@ -581,21 +581,12 @@ public class ConstraintsSolver {
     CacheResult getCachedResultOfSubset(Collection<BooleanFormula> pConstraints) {
       checkState(!pConstraints.isEmpty());
 
-      Set<Set<BooleanFormula>> containAllConstraints = null;
+      Set<Set<BooleanFormula>> containAllConstraints = new HashSet<>();
       for (BooleanFormula c : pConstraints) {
         Set<Set<BooleanFormula>> containC = ImmutableSet.copyOf(constraintContainedIn.get(c));
-        if (containAllConstraints == null) {
-          containAllConstraints = containC;
-        } else {
-          containAllConstraints = Sets.intersection(containAllConstraints, containC);
-        }
-
-        if (containAllConstraints.isEmpty()) {
-          return CacheResult.getUnknown();
-        }
+        containAllConstraints.addAll(containC);
       }
 
-      checkNotNull(containAllConstraints);
       int sizeOfQuery = pConstraints.size();
       for (Set<BooleanFormula> col : containAllConstraints) {
         CacheResult cachedResult = delegate.getCachedResult(col);
