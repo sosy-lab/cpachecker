@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CImaginaryLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
@@ -96,7 +97,7 @@ public class ExpressionToFormulaVisitor
       String pFunction,
       SSAMapBuilder pSsa,
       Constraints pConstraints,
-      Optional<FormulaType<?>> forceFormType) {
+      Optional<FormulaType<?>> pForceFormulaType) {
 
     conv = pCtoFormulaConverter;
     edge = pEdge;
@@ -104,7 +105,7 @@ public class ExpressionToFormulaVisitor
     ssa = pSsa;
     constraints = pConstraints;
     mgr = pFmgr;
-    forceFormulaType = forceFormType;
+    forceFormulaType = pForceFormulaType;
   }
 
   @Override
@@ -174,25 +175,9 @@ public class ExpressionToFormulaVisitor
     final CType returnType = exp.getExpressionType();
     final CType calculationType = exp.getCalculationType();
 
-    final ExpressionToFormulaVisitor newVisitor;
-    FormulaType<?> litFormType = determineLiteralFormulaType(exp, returnType);
-    if (forceFormulaType.isEmpty()) {
-      if (litFormType == null) {
-        newVisitor = this;
-      } else {
-        newVisitor =
-            new ExpressionToFormulaVisitor(
-                conv,
-                mgr,
-                edge,
-                function,
-                ssa,
-                constraints,
-                Optional.of(litFormType));
-      }
-    } else {
-      newVisitor = this;
-    }
+    Optional<FormulaType<?>> litFormType = determineLiteralFormulaType(exp, returnType);
+    final ExpressionToFormulaVisitor newVisitor =
+        new ExpressionToFormulaVisitor(conv, mgr, edge, function, ssa, constraints, litFormType);
 
     final Formula f1 = newVisitor.processOperand(exp.getOperand1(), calculationType, returnType);
     final Formula f2 = newVisitor.processOperand(exp.getOperand2(), calculationType, returnType);
@@ -1322,28 +1307,29 @@ public class ExpressionToFormulaVisitor
     return null;
   }
 
-  private FormulaType<?> determineLiteralFormulaType(CBinaryExpression exp, CType returnType)
+  private Optional<FormulaType<?>>
+      determineLiteralFormulaType(CBinaryExpression exp, CType returnType)
       throws UnrecognizedCodeException {
     if (!conv.options.useVariableClassification()) {
-      return null;
+      return Optional.empty();
     }
     CExpression op1 = exp.getOperand1();
     CExpression op2 = exp.getOperand2();
-    if (op1 instanceof CIntegerLiteralExpression) {
-      if (op2 instanceof CIntegerLiteralExpression) {
-        return FormulaType.IntegerType;
+    if (op1 instanceof CLiteralExpression && CTypes.isIntegerType(op1.getExpressionType())) {
+      if (op2 instanceof CLiteralExpression && CTypes.isIntegerType(op2.getExpressionType())) {
+        return Optional.of(FormulaType.IntegerType);
       } else {
         op2 = conv.makeCastFromArrayToPointerIfNecessary(op2, returnType);
         Formula f = toFormula(op2);
-        return mgr.getFormulaType(f);
+        return Optional.of(mgr.getFormulaType(f));
       }
     } else {
-      if (op2 instanceof CIntegerLiteralExpression) {
+      if (op2 instanceof CLiteralExpression && CTypes.isIntegerType(op2.getExpressionType())) {
         op1 = conv.makeCastFromArrayToPointerIfNecessary(op1, returnType);
         Formula f = toFormula(op1);
-        return mgr.getFormulaType(f);
+        return Optional.of(mgr.getFormulaType(f));
       } else {
-        return null;
+        return Optional.empty();
       }
     }
   }
@@ -1384,7 +1370,7 @@ public class ExpressionToFormulaVisitor
     return result;
   }
 
-  public Optional<FormulaType<?>> getForceFormType() {
+  public Optional<FormulaType<?>> getForceFormulaType() {
     return forceFormulaType;
   }
 }
