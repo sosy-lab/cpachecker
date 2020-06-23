@@ -298,8 +298,11 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
             @Override
             protected void handleOutput(String line) {
               checkNotNull(line);
-              logger.logf(Level.INFO, "%s output: %s", binaries.get(MPI_BIN), line);
-              super.getOutput().add(line); // optional
+              logger.logf(
+                  Level.INFO,
+                  "%s - %s",
+                  "scripts/" + MPI_PYTHON_MAIN_PATH.getFileName(),
+                  line);
             }
           };
 
@@ -344,8 +347,11 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
           result = subanalyisResult.getResult();
           verify(result == Result.TRUE || result == Result.FALSE);
-          logger
-              .logf(Level.WARNING, "Received result for analysis '%s': %s", entry.getKey(), result);
+          logger.logf(
+              Level.INFO,
+              "Received the results for analysis '%s': %s",
+              entry.getKey(),
+              result);
           results.put(entry.getKey(), subanalyisResult);
           break;
         }
