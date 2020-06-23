@@ -34,7 +34,7 @@ public class PathLengthCPA extends AbstractCPA
   }
 
   @Option(secure = true, description = "Initial maximum length of paths that will be explored.")
-  private int initialMaximumPathLength = 1;
+  private int initialMaximumPathLength = 5;
 
   @Option(
       secure = true,
@@ -44,7 +44,7 @@ public class PathLengthCPA extends AbstractCPA
   @Option(
       secure = true,
       description = "Maximum value that the maximum path length bound will be increased to.")
-  private int pathLengthUpperBound = 10;
+  private int pathLengthUpperBound = 50;
 
   private int maximumPathLength;
 
@@ -54,7 +54,8 @@ public class PathLengthCPA extends AbstractCPA
         initialMaximumPathLength >= 0,
         "Initial maximum path length must be greater or equal to zero");
     Preconditions.checkState(
-        pathLengthAdujstmentStep > 0, "Path length adjustment step must be greater than zero");
+        pathLengthAdujstmentStep >= 0,
+        "Path length adjustment step must be greater or equal to zero");
     Preconditions.checkState(
         pathLengthUpperBound >= initialMaximumPathLength,
         "Path length upper bound must be greater or equal to initial maximum path length");
@@ -72,6 +73,9 @@ public class PathLengthCPA extends AbstractCPA
 
   @Override
   public boolean adjustPrecision() {
+    if (pathLengthAdujstmentStep == 0) {
+      return false;
+    }
     if (maximumPathLength + pathLengthAdujstmentStep <= pathLengthUpperBound) {
       maximumPathLength += pathLengthAdujstmentStep;
       var transferRelation = (PathLengthTransferRelation) getTransferRelation();

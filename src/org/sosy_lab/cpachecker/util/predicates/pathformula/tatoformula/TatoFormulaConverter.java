@@ -52,9 +52,9 @@ public class TatoFormulaConverter extends CtoFormulaConverter {
    * instead.
    */
   public static class VariableType {
-    public static VariableType INTEGER =
+    public static final VariableType INTEGER =
         new VariableType(FormulaType.getBitvectorTypeWithSize(128), CNumericTypes.INT);
-    public static VariableType FLOAT =
+    public static final VariableType FLOAT =
         new VariableType(FormulaType.getFloatingPointType(15, 112), CNumericTypes.FLOAT);
 
     private final FormulaType<?> formulaType;

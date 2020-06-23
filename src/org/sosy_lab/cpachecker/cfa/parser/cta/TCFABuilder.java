@@ -184,7 +184,12 @@ class TCFABuilder {
         specification.invariant.transform(this::createVariableCondition);
 
     var result =
-        new TCFANode(stateName, invariant, moduleDeclaration, specification.isInitialState);
+        new TCFANode(
+            stateName,
+            invariant,
+            moduleDeclaration,
+            specification.isInitialState,
+            specification.isErrorState);
     nodesByName.put(stateName, result);
   }
 

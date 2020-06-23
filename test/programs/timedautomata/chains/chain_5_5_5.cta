@@ -14,12 +14,7 @@ MODULE Chain
     STATE s_2 { TRANS { SYNC l; RESET x; GOTO s_3; } }
     STATE s_3 { TRANS { GUARD x >= 4; SYNC r; GOTO s_4; } }
     STATE s_4 { TRANS { SYNC l; RESET x; GOTO s_5; } }
-    STATE s_5 { TRANS { GUARD x >= 4; SYNC r; GOTO s_6; } }
-    STATE s_6 { TRANS { SYNC l; RESET x; GOTO s_7; } }
-    STATE s_7 { TRANS { GUARD x >= 4; SYNC r; GOTO s_8; } }
-    STATE s_8 { TRANS { SYNC l; RESET x; GOTO s_9; } }
-    STATE s_9 { TRANS { GUARD x >= 4; SYNC r; GOTO s_10; } }
-    STATE s_10 { TRANS { SYNC fin; GOTO s_10; } }
+    STATE s_5 { TRANS { SYNC fin; GOTO s_5; } }
   }
 }
 MODULE ChainGroup
@@ -30,8 +25,14 @@ MODULE ChainGroup
     s_0:  SYNC;
     s_1:  SYNC;
     s_2:  SYNC;
+    s_3:  SYNC;
+    s_4:  SYNC;
+    s_5:  SYNC;
   INST proc1 FROM Chain WITH { fin AS fin; l AS s_0; r AS s_1; }
   INST proc2 FROM Chain WITH { fin AS fin; l AS s_1; r AS s_2; }
+  INST proc3 FROM Chain WITH { fin AS fin; l AS s_2; r AS s_3; }
+  INST proc4 FROM Chain WITH { fin AS fin; l AS s_3; r AS s_4; }
+  INST proc5 FROM Chain WITH { fin AS fin; l AS s_4; r AS s_5; }
 }
 MODULE ROOT System
 {
@@ -42,11 +43,6 @@ MODULE ROOT System
   INST group3 FROM ChainGroup WITH { fin AS fin; }
   INST group4 FROM ChainGroup WITH { fin AS fin; }
   INST group5 FROM ChainGroup WITH { fin AS fin; }
-  INST group6 FROM ChainGroup WITH { fin AS fin; }
-  INST group7 FROM ChainGroup WITH { fin AS fin; }
-  INST group8 FROM ChainGroup WITH { fin AS fin; }
-  INST group9 FROM ChainGroup WITH { fin AS fin; }
-  INST group10 FROM ChainGroup WITH { fin AS fin; }
   INITIAL start;
   AUTOMATON RunningState
   {

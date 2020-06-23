@@ -84,7 +84,7 @@ automatonDefinition
 	;
 
 stateDefinition
-	: STATE name=IDENTIFIER LBRACKET invariant=invariantDefinition? transitions+=transitionDefinition* RBRACKET
+	: STATE name=IDENTIFIER (LPAREN ERROR RPAREN)? LBRACKET invariant=invariantDefinition? transitions+=transitionDefinition* RBRACKET
 	;
 
 invariantDefinition

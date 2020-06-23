@@ -27,9 +27,9 @@ MODULE Process
       INV x <= a;
       TRANS
       {
-        SYNC is_pid_0;
+        SYNC set_pid_id;
         RESET x;
-        GOTO request;
+        GOTO wait;
       }
     }
     STATE wait
@@ -38,23 +38,20 @@ MODULE Process
       {
         GUARD x > b;
         SYNC is_pid_id;
-        RESET x;
         GOTO critical;
       }
       TRANS
       {
         GUARD x > b;
         SYNC is_pid_not_id;
-        RESET x;
         GOTO default;
       }
     }
-    STATE critical
+    STATE critical(ERROR)
     {
       TRANS
       {
         SYNC set_pid_0;
-        RESET x;
         GOTO default;
       }
     }
@@ -116,8 +113,8 @@ MODULE ROOT System
     is_not_2:  SYNC;
     set_2:     SYNC;
     set_0_p2:  SYNC;
-    a = 10:    CONST;
-    b = 15:    CONST;
+    a = 100:   CONST;
+    b = 0:     CONST;
   INST variable FROM Variable WITH
   {
     is_0_p1  AS is_0_p1;

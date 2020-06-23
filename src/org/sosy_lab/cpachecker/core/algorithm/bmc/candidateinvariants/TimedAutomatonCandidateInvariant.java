@@ -40,6 +40,7 @@ public class TimedAutomatonCandidateInvariant implements CandidateInvariant {
   private Map<String, Integer> maxSSAIndexOfAction = new HashMap<>();
   private Map<String, BooleanFormula> formulaByAutomata = new HashMap<>();
   private Set<AbstractState> processedTargetStates = new HashSet<>();
+  private Set<String> automataWithErrorLocations = new HashSet<>();
 
   private static TimedAutomatonCandidateInvariant instance;
 
@@ -52,6 +53,13 @@ public class TimedAutomatonCandidateInvariant implements CandidateInvariant {
 
   private TimedAutomatonCandidateInvariant(CFA pCFA) {
     cfa = pCFA;
+    automataWithErrorLocations =
+        cfa.getAllNodes().stream()
+            .filter(node -> node instanceof TCFANode)
+            .map(node -> (TCFANode) node)
+            .filter(node -> node.isErrorLocation())
+            .map(node -> node.getAutomatonDeclaration().getName())
+            .collect(Collectors.toSet());
   }
 
   @Override
@@ -234,8 +242,23 @@ public class TimedAutomatonCandidateInvariant implements CandidateInvariant {
 
   @Override
   public FluentIterable<AbstractState> filterApplicable(Iterable<AbstractState> pStates) {
-    return from(pStates)
-        .filter(AbstractStates.IS_TARGET_STATE)
-        .filter(aState -> !processedTargetStates.contains(aState));
+    return from(pStates).filter(this::isTargetState);
+  }
+
+  private boolean isTargetState(AbstractState aState) {
+    if (processedTargetStates.contains(aState)) {
+      return false;
+    }
+
+    var location = AbstractStates.extractLocation(aState);
+    if (!(location instanceof TCFANode)) {
+      return false;
+    }
+
+    var tcfaLocation = (TCFANode) location;
+    var automatonName = tcfaLocation.getAutomatonDeclaration().getName();
+    var hasAutomatonErrorStates = automataWithErrorLocations.contains(automatonName);
+
+    return !hasAutomatonErrorStates || tcfaLocation.isErrorLocation();
   }
 }

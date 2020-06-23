@@ -2787,13 +2787,13 @@ cpa.threading.useClonedFunctions = true
 cpa.threading.useLocalAccessLocks = true
 
 # Initial maximum length of paths that will be explored.
-cpa.timedautomata.initialMaximumPathLength = 1
+cpa.timedautomata.initialMaximumPathLength = 5
 
 # Amount of steps by which to increase the maximum explored path length.
 cpa.timedautomata.pathLengthAdujstmentStep = 1
 
 # Maximum value that the maximum path length bound will be increased to.
-cpa.timedautomata.pathLengthUpperBound = 10
+cpa.timedautomata.pathLengthUpperBound = 50
 
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"

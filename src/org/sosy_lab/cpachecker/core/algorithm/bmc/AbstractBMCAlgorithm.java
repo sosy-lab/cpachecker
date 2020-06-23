@@ -71,6 +71,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.Specification;
@@ -82,6 +83,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateI
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariantCombination;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SymbolicCandiateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TimedAutomatonCandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.AbstractInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.DoNothingInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantGenerator;
@@ -90,6 +92,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.LoopIterationBounding;
 import org.sosy_lab.cpachecker.core.interfaces.LoopIterationReportingState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
@@ -112,6 +115,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
 import org.sosy_lab.cpachecker.util.automaton.TestTargetLocationProvider;
+import org.sosy_lab.cpachecker.util.error.DummyErrorState;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -410,6 +414,15 @@ abstract class AbstractBMCAlgorithm
             if (candidateInvariant == TargetLocationCandidateInvariant.INSTANCE) {
               return AlgorithmStatus.UNSOUND_AND_PRECISE;
             }
+
+            if (candidateInvariant instanceof TimedAutomatonCandidateInvariant) {
+              // actual error states of timed automata are not representable,
+              // thus, its easier to use a dummy error state.
+              var errorState = new DummyErrorState(reachedSet.getFirstState());
+              reachedSet.add(errorState, new Precision() {});
+              return AlgorithmStatus.UNSOUND_AND_PRECISE;
+            }
+
             candidateInvariantIterator.remove();
           }
 
@@ -778,6 +791,9 @@ abstract class AbstractBMCAlgorithm
   private boolean checkBoundingAssertions(
       final ReachedSet pReachedSet, final ProverEnvironmentWithFallback prover)
       throws SolverException, InterruptedException {
+    if (cfa.getLanguage() == Language.CTA) {
+      return false; // soundness check is not supported for timed automata
+    }
     FluentIterable<AbstractState> stopStates = from(pReachedSet)
         .filter(IS_STOP_STATE)
         .filter(Predicates.not(IS_SLICED_STATE));

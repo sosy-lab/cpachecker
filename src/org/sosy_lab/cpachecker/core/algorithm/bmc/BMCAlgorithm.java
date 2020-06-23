@@ -184,13 +184,12 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   @Override
   protected CandidateGenerator getCandidateInvariants() {
-    if (getTargetLocations().isEmpty() || !cfa.getAllLoopHeads().isPresent()) {
+    if (cfa.getLanguage() == Language.CTA) {
+      return new StaticCandidateProvider(
+          Collections.singleton(TimedAutomatonCandidateInvariant.getInstance(cfa)));
+    } else if (getTargetLocations().isEmpty() || !cfa.getAllLoopHeads().isPresent()) {
       return CandidateGenerator.EMPTY_GENERATOR;
     } else {
-      if (cfa.getLanguage() == Language.CTA) {
-        return new StaticCandidateProvider(
-            Collections.singleton(TimedAutomatonCandidateInvariant.INSTANCE));
-      }
       return new StaticCandidateProvider(
           Collections.singleton(TargetLocationCandidateInvariant.INSTANCE));
     }

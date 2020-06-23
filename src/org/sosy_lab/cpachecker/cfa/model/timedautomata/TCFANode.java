@@ -18,6 +18,7 @@ public class TCFANode extends CFANode {
   private final String name;
   private final Optional<TaVariableCondition> invariant;
   private final boolean isInitialState;
+  private final boolean isErrorLocation;
 
   private static final long serialVersionUID = -7796108813615096804L;
 
@@ -25,11 +26,13 @@ public class TCFANode extends CFANode {
       String pName,
       Optional<TaVariableCondition> pInvariant,
       TaDeclaration pDeclaration,
-      boolean pIsInitialState) {
+      boolean pIsInitialState,
+      boolean pIsErrorLocation) {
     super(pDeclaration);
     name = pName;
     invariant = pInvariant;
     isInitialState = pIsInitialState;
+    isErrorLocation = pIsErrorLocation;
   }
 
   public String getName() {
@@ -46,5 +49,9 @@ public class TCFANode extends CFANode {
 
   public TaDeclaration getAutomatonDeclaration() {
     return (TaDeclaration) getFunction();
+  }
+
+  public boolean isErrorLocation() {
+    return isErrorLocation;
   }
 }

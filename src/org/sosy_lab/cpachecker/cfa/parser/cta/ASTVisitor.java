@@ -244,6 +244,7 @@ class ASTVisitor extends CTAGrammarParserBaseVisitor<SystemSpecification> {
           .name(pCtx.name.getText())
           .invariant(invariant)
           .isInitialState(isInitialState)
+          .isErrorState(pCtx.ERROR() != null)
           .build();
     }
   }

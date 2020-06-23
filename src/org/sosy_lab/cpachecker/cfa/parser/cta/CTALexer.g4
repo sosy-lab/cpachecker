@@ -136,6 +136,10 @@ RESET
 	: 'RESET'
 	;
 
+ERROR
+	: 'ERROR'
+	;
+
 QUESTIONMARK
 	: '?'
 	;

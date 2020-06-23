@@ -17,18 +17,24 @@ public class StateSpecification {
   public String name;
   public Optional<BooleanCondition> invariant;
   public boolean isInitialState;
+  public boolean isErrorState;
 
   private StateSpecification(
-      String pName, Optional<BooleanCondition> pInvariant, boolean pIsInitialState) {
+      String pName,
+      Optional<BooleanCondition> pInvariant,
+      boolean pIsInitialState,
+      boolean pIsErrorState) {
     name = pName;
     invariant = pInvariant;
     isInitialState = pIsInitialState;
+    isErrorState = pIsErrorState;
   }
 
   public static class Builder {
     private String name;
     private Optional<BooleanCondition> invariant;
     public boolean isInitialState;
+    public boolean isErrorState;
 
     public Builder name(String pName) {
       name = checkNotNull(pName);
@@ -47,11 +53,16 @@ public class StateSpecification {
       return this;
     }
 
+    public Builder isErrorState(boolean pIsErrorState) {
+      isErrorState = pIsErrorState;
+      return this;
+    }
+
     public StateSpecification build() {
       checkNotNull(name);
       checkNotNull(invariant);
 
-      return new StateSpecification(name, invariant, isInitialState);
+      return new StateSpecification(name, invariant, isInitialState, isErrorState);
     }
   }
 }
