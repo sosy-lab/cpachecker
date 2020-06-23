@@ -29,7 +29,6 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundState;
@@ -156,11 +155,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       BMCHelper.unroll(logger, pReachedSet, algorithm, cpa);
       stats.bmcPreparation.stop();
       shutdownNotifier.shutdownIfNecessary();
-
-      if (!from(pReachedSet).transformAndConcat(e -> ((ARGState) e).getCoveredByThis()).isEmpty()) {
-        throw new CPAException(
-            "Covered states exist in ARG, analysis result could be wrong.");
-      }
 
       logger.log(Level.FINE, "Collecting prefix, loop, and suffix formulas");
       if (maxLoopIterations == 1) {
