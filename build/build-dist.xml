@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 <!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
 <project name="dist" basedir=".">
 
@@ -10,7 +21,7 @@
     <target name="dist-windows" depends="jar">
         <property name="namezw" value="CPAchecker-${version}-windows"/>
         <zip destfile="${namezw}.zip" whenempty="fail">
-            <zipfileset dir="." includes="config/** doc/** scripts/*.bat scripts/*.sh scripts/*.txt cpachecker.jar *.md *.txt" prefix="${namezw}/"/>
+            <zipfileset dir="." includes="config/** doc/** LICENSES/* scripts/*.bat scripts/*.sh scripts/*.txt cpachecker.jar *.md *.txt LICENSE" prefix="${namezw}/"/>
             <zipfileset dir="." includes="lib/*.* lib/java/runtime/*.jar" excludes="lib/ivy*" prefix="${namezw}/"/>
             <zipfileset dir="." includes="lib/native/*win*/**" prefix="${namezw}/"/>
         </zip>
@@ -23,7 +34,7 @@
         <property name="namet" value="CPAchecker-${version}-unix"/>
         <tar destfile="${namet}.tar.bz2" compression="bzip2" longfile="posix">
             <tarfileset dir="."
-                includes="config/** doc/** cpachecker.jar *.md *.txt lib/*.* lib/java/runtime/* lib/python-benchmark/*"
+                includes="config/** doc/** LICENSES/* cpachecker.jar *.md *.txt LICENSE lib/*.* lib/java/runtime/* lib/python-benchmark/*"
                 excludes="lib/ivy*"
                 prefix="${namet}/"/>
             <tarfileset dir="scripts"
@@ -41,7 +52,7 @@
         <property name="namez" value="CPAchecker-${version}-unix"/>
         <zip destfile="${namez}.zip" whenempty="fail">
             <zipfileset dir="."
-                includes="config/** doc/** cpachecker.jar *.md *.txt lib/*.* lib/java/runtime/* lib/python-benchmark/*"
+                includes="config/** doc/** LICENSES/* cpachecker.jar *.md *.txt LICENSE lib/*.* lib/java/runtime/* lib/python-benchmark/*"
                 excludes="lib/ivy*"
                 prefix="${namez}/"/>
             <zipfileset dir="scripts"

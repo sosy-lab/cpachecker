@@ -1,3 +1,13 @@
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 CPAchecker Developing Instructions
 ==================================
 
@@ -123,10 +133,10 @@ Releasing a New Version
 -----------------------
 
 1. Preparations:
-   Update [`NEWS.txt`](../NEWS.txt) with notes for all important changes since the last
+   Update [`NEWS.md`](../NEWS.md) with notes for all important changes since the last
    CPAchecker release (i.e., new analyses and features, important changes to
    configuration etc.),
-   and ensure that [`Copyright.txt`](../Copyright.txt) and [`Authors.txt`](../Authors.txt) are up-to-date.
+   and ensure that [`Authors.md`](../Authors.md) are up-to-date.
 
 2. Define a new version by setting `version.base` in [`build.xml`](../build.xml) to the new value.
    The version tag is constructed as outlined below in Sect. "Release Tagging".

@@ -1,0 +1,171 @@
+This file contains copyright and license declarations
+of libraries shipped in the java/runtime/ subdirectory.
+It's main purpose is that the reuse tool picks up all licenses
+and adds them to the LICENSE folder,
+which helps when creating a CPAchecker release archive.
+
+## Animal Sniffer Annotations
+SPDX-FileCopyrightText: 2008 Kohsuke Kawaguchi and codehaus.org
+SPDX-License-Identifier: MIT
+
+## Antlr Runtime
+SPDX-FileCopyrightText: 2012-2017 The ANTLR Project
+SPDX-License-Identifier: BSD-3-Clause
+
+## Apache Felix Resolver (part of Eclipse libraries)
+SPDX-FileCopyrightText: The Apache Software Foundation
+SPDX-License-Identifier: Apache-2.0
+
+## Batik
+SPDX-FileCopyrightText: 1999-2020 The Apache Software Foundation
+SPDX-License-Identifier: Apache-2.0
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+This software contains code from the World Wide Web Consortium (W3C) for the 
+Document Object Model API (DOM API) and SVG Document Type Definition (DTD).
+
+This software contains code from the International Organisation for
+Standardization for the definition of character entities used in the software's
+documentation.
+
+This product includes images from the Tango Desktop Project
+(http://tango.freedesktop.org/).
+
+This product includes images from the Pasodoble Icon Theme
+(http://www.jesusda.com/projects/pasodoble).
+
+## Boolector
+SPDX-FileCopyrightText: 2007-2018 Armin Biere
+SPDX-FileCopyrightText: 2007-2009 Robert Brummayer
+SPDX-FileCopyrightText: 2012-2018 Aina Niemetz
+SPDX-FileCopyrightText: 2012-2018 Mathias Preiner
+SPDX-License-Identifier: MIT
+
+## Checker Framework Annotations
+SPDX-FileCopyrightText: 2009-2020 The Checker Framework developers
+SPDX-License-Identifier: MIT
+
+## CVC4
+SPDX-FileCopyrightText: 2009-2020 The CVC4 authors and contributors and their institutional affiliations
+SPDX-License-Identifier: LicenseRef-BSD-3-Clause-CVC4
+
+## Eclipse libraries
+SPDX-FileCopyrightText: 2000-2014 IBM Corporation and others
+SPDX-License-Identifier: EPL-1.0
+
+## Error Prone Annotations
+SPDX-License-Identifier: Apache-2.0
+SPDX-FileCopyrightText: The Error Prone authors
+
+## Guava
+SPDX-FileCopyrightText: The Guava authors
+SPDX-License-Identifier: Apache-2.0
+
+## ICU
+SPDX-FileCopyrightText: 1995-2011 International Business Machines Corporation and others
+SPDX-License-Identifier: ICU
+
+## J2ObjC Annotations
+SPDX-FileCopyrightText: Google Inc.
+SPDX-License-Identifier: Apache-2.0
+
+## JavaBDD
+SPDX-FileCopyrightText: 2003 John Whaley
+SPDX-License-Identifier: LGPL-2.1-or-later
+
+## JavaCUP Runtime
+SPDX-FileCopyrightText: 1996-2015 Scott Hudson, Frank Flannery, C. Scott Ananian, Michael Petter
+SPDX-License-Identifier: LicenseRef-CUP
+
+## JavaSMT
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+SPDX-License-Identifier: Apache-2.0
+
+## JDD
+SPDX-FileCopyrightText: 2002-2019 Arash Vahidi
+SPDX-License-Identifier: Zlib
+
+## jhoafparser
+SPDX-FileCopyrightText: 2014-2015 Joachim Klein <klein@tcs.inf.tu-dresden.de>, David Müller <david.mueller@tcs.inf.tu-dresden.de>
+SPDX-License-Identifier: LGPL-2.1-or-later
+
+## JNA
+SPDX-FileCopyrightText: The JNA authors
+SPDX-License-Identifier: Apache-2.0 OR LGPL-2.1-or-later
+
+## JSR305 Annotations
+SPDX-FileCopyrightText: The JSR305 authors
+SPDX-License-Identifier: Apache-2.0
+
+## libedit
+SPDX-FileCopyrightText: 1992, 1993 The Regents of the University of California
+SPDX-License-Identifier: BSD-3-Clause
+
+This code is derived from software contributed to Berkeley by
+Christos Zoulas of Cornell University.
+
+## libtinfo
+SPDX-FileCopyrightText: 1980, 1991, 1992, 1993 The Regents of the University of California
+SPDX-FileCopyrightText: 1994 X Consortium
+SPDX-FileCopyrightText: 1996-2018 Thomas E. Dickey
+SPDX-FileCopyrightText: 1998-2018 Free Software Foundation, Inc.
+SPDX-FileCopyrightText: 2001 Pradeep Padala
+SPDX-License-Identifier: BSD-3-Clause AND MIT AND X11
+
+## LLVM
+SPDX-FileCopyrightText: 2003-2017 University of Illinois at Urbana-Champaign
+SPDX-License-Identifier: NCSA
+
+## LLVM-J
+SPDX-FileCopyrightText: 2012 Kevin Kelly
+SPDX-FileCopyrightText: 2013 Richard Lincoln
+SPDX-FileCopyrightText: 2017 Marek Chalupa
+SPDX-FileCopyrightText: 2017-2020 Dirk Beyer <https://www.sosy-lab.org>
+SPDX-License-Identifier: LGPL-3.0-or-later AND MIT
+
+## MathSAT
+SPDX-FileCopyrightText: 2009-2020 Fondazione Bruno Kessler, Trento, Italy, University of Trento, Italy, and others
+SPDX-License-Identifier: LicenseRef-MathSAT-CPAchecker
+
+## MiniSat
+SPDX-FileCopyrightText: 2003-2006 Niklas Een
+SPDX-FileCopyrightText: 2003-2010 Niklas Sorensson
+SPDX-License-Identifier: MIT
+
+## OSGi Materials (part of Eclipse libraries)
+SPDX-FileCopyrightText: 2000-2006 OSGi Alliance
+SPDX-License-Identifier: Apache-2.0
+
+## PicoSAT
+SPDX-FileCopyrightText: 2006-2014 Armin Biere, Johannes Kepler University
+SPDX-License-Identifier: MIT
+
+## PJBDD
+SPDX-FileCopyrightText: 2018-2020 Dirk Beyer <https://www.sosy-lab.org>
+SPDX-License-Identifier: Apache-2.0
+
+## Princess
+SPDX-FileCopyrightText: Philipp Ruemmer
+SPDX-License-Identifier: LGPL-2.1-or-later
+
+## Scala Libraries
+SPDX-FileCopyrightText: 2002-2018 LAMP/EPFL and Lightbend, Inc.
+SPDX-License-Identifier: BSD-3-Clause AND Apache-2.0
+
+## SoSy-Lab Common
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+SPDX-License-Identifier: Apache-2.0
+
+## SpotBugs Annotations
+SPDX-FileCopyrightText: University of Maryland
+SPDX-License-Identifier: LGPL-2.1-or-later
+
+## Ultimate framework, LassoRanker, and SMTInterpol
+SPDX-FileCopyrightText: 2009-2020 University of Freiburg
+SPDX-License-Identifier: LGPL-3.0-or-later
+
+## Z3
+SPDX-FileCopyrightText: Microsoft Corporation
+SPDX-License-Identifier: MIT

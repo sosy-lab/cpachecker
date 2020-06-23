@@ -1,6 +1,14 @@
 # This is an auto-generated file, DO NOT EDIT!
 # Run ant to generate it.
 
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # Possible log levels in descending order 
 # (lower levels include higher ones):
 # OFF:      no logs published
@@ -46,6 +54,7 @@ output.path = "output/"
 # (except for the configuration file itself)
 rootDirectory = "."
 
+
 # Further options for Boolector in addition to the default options. Format: 
 # "Optionname=value" with ’,’ to seperate options. Optionname and value can
 # be found in BtorOption or Boolector C Api.Example:
@@ -53,8 +62,11 @@ rootDirectory = "."
 solver.boolector.furtherOptions = ""
 
 # The SAT solver used by Boolector.
-solver.boolector.satSolver = PICOSAT
-  enum:     [LINGELING, PICOSAT, MINISAT, CADICAL]
+solver.boolector.satSolver = CADICAL
+  enum:     [LINGELING, PICOSAT, MINISAT, CMS, CADICAL]
+
+# Counts all operations and interactions towards the SMT solver.
+solver.collectStatistics = false
 
 # Default rounding mode for floating point operations.
 solver.floatingPointRoundingMode = NEAREST_TIES_TO_EVEN
@@ -107,11 +119,15 @@ solver.smtinterpol.furtherOptions = []
 solver.solver = SMTINTERPOL
   enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4]
 
+# Sequentialize all solver actions to allow concurrent access!
+solver.synchronize = false
+
+# Use provers from a seperate context to solve queries. This allows more
+# parallelity when solving larger queries.
+solver.synchronized.useSeperateProvers = false
+
 # Log solver actions, this may be slow!
 solver.useLogger = false
-
-# Dump failed interpolation queries to this file in SMTLIB2 format
-solver.z3.dumpFailedInterpolationQueries = no default value
 
 # Activate replayable logging in Z3. The log can be given as an input to the
 # solver and replayed.
@@ -126,10 +142,15 @@ solver.z3.optimizationEngine = "basic"
   allowed values: [basic, farkas, symba]
 
 # Require proofs from SMT solver
-solver.z3.requireProofs = true
+solver.z3.requireProofs = false
 
 # Whether to use PhantomReferences for discarding Z3 AST
 solver.z3.usePhantomReferences = false
+
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
+#
+# SPDX-License-Identifier: Apache-2.0
 
 # Refiner that SlicingDelegatingRefiner should delegate to
 SlicingDelegatingRefiner.refiner = no default value
@@ -155,6 +176,10 @@ analysis.algorithm.CBMC = false
 # You need to specify a refiner with the cegar.refiner option.
 # Currently all refiner require the use of the ARGCPA.
 analysis.algorithm.CEGAR = false
+
+# use McMillan's interpolation-based model checking algorithm, works only
+# with PredicateCPA and large-block encoding
+analysis.algorithm.IMC = false
 
 # Use MPI for running analyses in new subprocesses. The resulting reachedset
 # is the one of the first analysis returning in time. All other mpi-processes
@@ -200,7 +225,9 @@ analysis.algorithm.proofCheckWithARGCMCStrategy = false
 # ConfigurableProgramAnalysisWithPropertyChecker
 analysis.algorithm.propertyCheck = false
 
-# Use termination algorithm to prove (non-)termination.
+# Use termination algorithm to prove (non-)termination. This needs the
+# TerminationCPA as root CPA and an automaton CPA with
+# termination_as_reach.spc in the tree of CPAs.
 analysis.algorithm.termination = false
 
 # collect undefined functions
@@ -1469,8 +1496,11 @@ cpa.congruence.useCachingPathFormulaManager = true
 # Whether to perform caching of constraint satisfiability results
 cpa.constraints.cache = true
 
-# Whether to use subset/superset caching
+# Whether to use subset caching
 cpa.constraints.cacheSubsets = true
+
+# Whether to use superset caching
+cpa.constraints.cacheSupersets = true
 
 # Type of less-or-equal operator to use
 cpa.constraints.lessOrEqualType = SUBSET
@@ -2632,6 +2662,10 @@ cpa.smg.handleUnknownDereferenceAsSafe = false
 cpa.smg.handleUnknownFunctions = STRICT
   enum:     [STRICT, ASSUME_SAFE, ASSUME_EXTERNAL_ALLOCATED]
 
+# Perform merge SMGStates by SMGJoin on ends of code block. Works with
+# 'merge=JOIN'
+cpa.smg.joinOnBlockEnd = true
+
 # Memory allocation functions
 cpa.smg.memoryAllocationFunctions = {"malloc", "__kmalloc", "kmalloc", "realloc"}
 
@@ -3193,6 +3227,12 @@ heuristicSelection.preAnalysisAlgorithmConfig = no default value
 
 # Configuration for programs containing recursion.
 heuristicSelection.recursionConfig = no default value
+
+# toggle deriving the interpolants from suffix formulas
+imc.deriveInterpolantFromSuffix = false
+
+# try using interpolation to verify programs with loops
+imc.interpolation = false
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
@@ -3822,10 +3862,10 @@ slicing.conditionFile = "output/AssumptionAutomaton.txt"
 
 # path to condition files plus additional assumption guiding automaton when
 # condition itself is in propriertary format and not in witness format
-slicing.conditionFiles = [
+slicing.conditionFiles = {
           Paths.get("output/AssumptionAutomaton.txt"),
           Classes.getCodeLocation(ReducerExtractor.class)
-              .resolveSibling("config/specification/AssumptionGuidingAutomaton.spc")]
+              .resolveSibling("config/specification/AssumptionGuidingAutomaton.spc")}
 
 # Export the used slicing criteria to file
 slicing.exportCriteria.enable = false

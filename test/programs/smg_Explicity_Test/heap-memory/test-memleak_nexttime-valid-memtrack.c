@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: The Predator authors
+//
+// SPDX-License-Identifier: GPL-3.0-only
+
 extern void __VERIFIER_error() __attribute__ ((__noreturn__));
 
 

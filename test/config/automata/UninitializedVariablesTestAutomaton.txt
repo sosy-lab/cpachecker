@@ -1,3 +1,11 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 OBSERVER AUTOMATON UninitializedVariablesTestAutomaton
 /* Queries the UninitializedVariablesCPA for errors and prints them.
  * Does not abort the checking (does not go to the error state).

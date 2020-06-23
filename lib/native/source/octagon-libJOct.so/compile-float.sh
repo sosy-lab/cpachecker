@@ -1,5 +1,13 @@
 #!/bin/sh
 
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # For building libJOct.so, you need the compiled octagon library.
 # To create this, download octagon library from http://www.di.ens.fr/~mine/oct/ and run
 # ./configure --with-num=float --disable-debug --disable-gmp --disable-prof --disable-ocaml

@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.constraints.domain;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -67,12 +52,11 @@ import org.sosy_lab.java_smt.api.SolverException;
 @Options(prefix = "cpa.constraints")
 public class ConstraintsSolver {
 
-  @Option(
-    secure = true,
-    description = "Whether to use subset/superset caching",
-    name = "cacheSubsets"
-  )
+  @Option(secure = true, description = "Whether to use subset caching", name = "cacheSubsets")
   private boolean cacheSubsets = true;
+
+  @Option(secure = true, description = "Whether to use superset caching", name = "cacheSupersets")
+  private boolean cacheSupersets = true;
 
   @Option(
       secure = true,
@@ -137,10 +121,12 @@ public class ConstraintsSolver {
     stats = pStats;
 
     if (doCaching) {
+      cache = new MatchingConstraintsCache();
       if (cacheSubsets) {
-        cache = new SubsetConstraintsCache();
-      } else {
-        cache = new MatchingConstraintsCache();
+        cache = new SubsetConstraintsCache(cache);
+      }
+      if (cacheSupersets) {
+        cache = new SupersetConstraintsCache(cache);
       }
     } else {
       cache = new DummyCache();
@@ -418,9 +404,11 @@ public class ConstraintsSolver {
 
   private class MatchingConstraintsCache implements ConstraintsCache {
 
+    // TODO This should use an immutable data structure as key, and not Collection but List/Set
     private Map<Collection<BooleanFormula>, CacheResult> cacheMap = new HashMap<>();
 
     @Override
+    @SuppressWarnings("CollectionUndefinedEquality") // TODO there is a bug here
     public CacheResult getCachedResult(Collection<BooleanFormula> pConstraints) {
       stats.cacheLookups.inc();
       stats.directCacheLookupTime.start();
@@ -454,9 +442,87 @@ public class ConstraintsSolver {
     }
   }
 
+  private class SupersetConstraintsCache implements ConstraintsCache {
+
+    private ConstraintsCache delegate;
+
+    /** Multimap that maps each constraint to all sets of constraints that it occurs in */
+    private Multimap<BooleanFormula, Set<BooleanFormula>> constraintContainedIn =
+        HashMultimap.create();
+
+    public SupersetConstraintsCache(final ConstraintsCache pDelegate) {
+      delegate = pDelegate;
+    }
+
+    @Override
+    public CacheResult getCachedResult(Collection<BooleanFormula> pConstraints) {
+      CacheResult res = delegate.getCachedResult(pConstraints);
+      if (!res.isSat() && !res.isUnsat()) {
+        try {
+          stats.supersetLookupTime.start();
+          res = getCachedResultOfSuperset(pConstraints);
+          if (res.isSat() || res.isUnsat()) {
+            stats.supersetCacheHits.inc();
+          }
+        } finally {
+          stats.supersetLookupTime.stop();
+        }
+      }
+      return res;
+    }
+
+    @Override
+    public void addSat(
+        Collection<BooleanFormula> pConstraints, ImmutableList<ValueAssignment> pModelAssignment) {
+      add(pConstraints);
+      delegate.addSat(pConstraints, pModelAssignment);
+    }
+
+    @Override
+    public void addUnsat(Collection<BooleanFormula> pConstraints) {
+      add(pConstraints);
+      delegate.addUnsat(pConstraints);
+    }
+
+    private void add(Collection<BooleanFormula> pConstraints) {
+      for (BooleanFormula c : pConstraints) {
+        constraintContainedIn.put(c, ImmutableSet.copyOf(pConstraints));
+      }
+    }
+
+    CacheResult getCachedResultOfSuperset(Collection<BooleanFormula> pConstraints) {
+      checkState(!pConstraints.isEmpty());
+
+      Set<Set<BooleanFormula>> containAllConstraints = null;
+      for (BooleanFormula c : pConstraints) {
+        Set<Set<BooleanFormula>> containC = ImmutableSet.copyOf(constraintContainedIn.get(c));
+        if (containAllConstraints == null) {
+          containAllConstraints = containC;
+        } else {
+          containAllConstraints = Sets.intersection(containAllConstraints, containC);
+        }
+
+        if (containAllConstraints.isEmpty()) {
+          return CacheResult.getUnknown();
+        }
+      }
+
+      checkNotNull(containAllConstraints);
+      int sizeOfQuery = pConstraints.size();
+      for (Set<BooleanFormula> col : containAllConstraints) {
+        CacheResult cachedResult = delegate.getCachedResult(col);
+        if (sizeOfQuery <= col.size() && cachedResult.isSat()) {
+          // currently considered collection is a superset of the queried collection
+          return cachedResult;
+        }
+      }
+      return CacheResult.getUnknown();
+    }
+  }
+
   private class SubsetConstraintsCache implements ConstraintsCache {
 
-    private MatchingConstraintsCache delegate;
+    private ConstraintsCache delegate;
 
     /**
      * Multimap that maps each constraint to all sets of constraints that it occurred in
@@ -464,8 +530,8 @@ public class ConstraintsSolver {
     private Multimap<BooleanFormula, Set<BooleanFormula>> constraintContainedIn =
         HashMultimap.create();
 
-    public SubsetConstraintsCache() {
-      delegate = new MatchingConstraintsCache();
+    public SubsetConstraintsCache(final ConstraintsCache pDelegate) {
+      delegate = pDelegate;
     }
 
     @Override
@@ -507,29 +573,16 @@ public class ConstraintsSolver {
     CacheResult getCachedResultOfSubset(Collection<BooleanFormula> pConstraints) {
       checkState(!pConstraints.isEmpty());
 
-      Set<Set<BooleanFormula>> containAllConstraints = null;
+      Set<Set<BooleanFormula>> containAllConstraints = new HashSet<>();
       for (BooleanFormula c : pConstraints) {
         Set<Set<BooleanFormula>> containC = ImmutableSet.copyOf(constraintContainedIn.get(c));
-        if (containAllConstraints == null) {
-          containAllConstraints = containC;
-        } else {
-          containAllConstraints = Sets.intersection(containAllConstraints, containC);
-        }
-
-        if (containAllConstraints.isEmpty()) {
-          return CacheResult.getUnknown();
-        }
+        containAllConstraints.addAll(containC);
       }
 
-      checkNotNull(containAllConstraints);
       int sizeOfQuery = pConstraints.size();
       for (Set<BooleanFormula> col : containAllConstraints) {
         CacheResult cachedResult = delegate.getCachedResult(col);
-        if (sizeOfQuery <= col.size() && cachedResult.isSat()) {
-          // currently considered collection is a superset of the queried collection
-          return cachedResult;
-
-        } else if (sizeOfQuery >= col.size() && cachedResult.isUnsat()) {
+        if (sizeOfQuery >= col.size() && cachedResult.isUnsat()) {
           // currently considered collection is a subset of the queried collection
           return cachedResult;
         }
