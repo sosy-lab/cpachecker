@@ -450,10 +450,6 @@ public class ConstraintsSolver {
     private Multimap<BooleanFormula, Set<BooleanFormula>> constraintContainedIn =
         HashMultimap.create();
 
-    public SupersetConstraintsCache() {
-      this(new MatchingConstraintsCache());
-    }
-
     public SupersetConstraintsCache(final ConstraintsCache pDelegate) {
       delegate = pDelegate;
     }
@@ -533,10 +529,6 @@ public class ConstraintsSolver {
      */
     private Multimap<BooleanFormula, Set<BooleanFormula>> constraintContainedIn =
         HashMultimap.create();
-
-    public SubsetConstraintsCache() {
-      this(new MatchingConstraintsCache());
-    }
 
     public SubsetConstraintsCache(final ConstraintsCache pDelegate) {
       delegate = pDelegate;
