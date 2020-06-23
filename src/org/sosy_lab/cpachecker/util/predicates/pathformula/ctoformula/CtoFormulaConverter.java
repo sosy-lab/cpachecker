@@ -751,6 +751,28 @@ public class CtoFormulaConverter {
         return efmgr.toIntegerFormula((BitvectorFormula) formula, signed);
       } else if (toType.isIntegerType()) {
         return efmgr.toIntegerFormula((BitvectorFormula) formula, false);
+      } else if (toType.isBitvectorType()) {
+        Predicate<CType> isSigned = t -> {
+          if (t instanceof CSimpleType) {
+            return machineModel.isSigned((CSimpleType) t);
+          }
+          if (t instanceof CBitFieldType) {
+            CBitFieldType bitFieldType = (CBitFieldType) t;
+            if (bitFieldType.getType() instanceof CSimpleType) {
+              return machineModel.isSigned(((CSimpleType) bitFieldType.getType()));
+            }
+          }
+          throw new AssertionError("Not a simple type: " + t);
+        };
+        int toSize = ((FormulaType.BitvectorType) toType).getSize();
+        int fromSize = ((FormulaType.BitvectorType) fromType).getSize();
+        if (fromSize > toSize) {
+          return efmgr.extract((BitvectorFormula) formula, toSize - 1, 0, isSigned.test(cType));
+        } else if (fromSize < toSize) {
+          assert fromSize < toSize;
+          return efmgr
+              .extend((BitvectorFormula) formula, (toSize - fromSize), isSigned.test(cType));
+        }
       } else {
         throw new AssertionError("Cannot cast given formula types!");
       }
