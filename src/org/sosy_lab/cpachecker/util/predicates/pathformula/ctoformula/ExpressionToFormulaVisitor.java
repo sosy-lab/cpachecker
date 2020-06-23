@@ -529,14 +529,18 @@ public class ExpressionToFormulaVisitor
   @Override
   public Formula visit(CCharLiteralExpression cExp) throws UnrecognizedCodeException {
     // we just take the byte value
-    FormulaType<?> t = conv.getFormulaTypeFromCType(cExp.getExpressionType());
+    FormulaType<?> t;
+    if (forceFormulaType.isPresent()) {
+      t = forceFormulaType.get();
+    } else {
+      t = conv.getFormulaTypeFromCType(cExp.getExpressionType());
+    }
     return mgr.makeNumber(t, cExp.getCharacter());
   }
 
   @Override
   public Formula visit(CIntegerLiteralExpression iExp) throws UnrecognizedCodeException {
     FormulaType<?> t;
-
     if (forceFormulaType.isPresent()) {
       t = forceFormulaType.get();
     } else {
