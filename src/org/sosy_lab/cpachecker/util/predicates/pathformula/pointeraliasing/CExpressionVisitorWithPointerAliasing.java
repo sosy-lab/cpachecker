@@ -158,7 +158,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
                                           final ErrorConditions errorConditions,
                                           final PointerTargetSetBuilder pts,
       final MemoryRegionManager regionMgr,
-      final Optional<FormulaType<?>> litFormType) {
+      final Optional<FormulaType<?>> forceFormulaType) {
 
     delegate =
         new ExpressionToFormulaVisitor(
@@ -168,7 +168,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
             function,
             ssa,
             constraints,
-            litFormType) {
+            forceFormulaType) {
           @Override
           protected Formula toFormula(CExpression e) throws UnrecognizedCodeException {
             // recursive application of pointer-aliasing.
@@ -247,9 +247,14 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     } else { // Unaliased location
       ret = conv.makeVariable(e.asUnaliasedLocation().getVariableName(), type, ssa);
     }
-    if (delegate.getForceFormType().isPresent()) {
+    if (delegate.getForceFormulaType().isPresent()) {
       ret =
-          conv.makeFormulaTypeCast(delegate.getForceFormType().get(), type, ret, ssa, constraints);
+          conv.makeFormulaTypeCast(
+              delegate.getForceFormulaType().get(),
+              type,
+              ret,
+              ssa,
+              constraints);
     }
     return ret;
   }
@@ -331,18 +336,24 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     final CType elementType = typeHandler.getSimplifiedType(e);
     final CExpression subscript = e.getSubscriptExpression();
     final CType subscriptType = typeHandler.getSimplifiedType(subscript);
-    final Formula index =
-        conv.makeFormulaTypeCast(
-            typeHandler.getPointerType(),
-            CPointerType.POINTER_TO_VOID,
-            conv.makeCast(
-                subscriptType,
-                CPointerType.POINTER_TO_VOID,
-                asValueFormula(subscript.accept(this), subscriptType),
-                constraints,
-                edge),
+    final CExpressionVisitorWithPointerAliasing visitor =
+        new CExpressionVisitorWithPointerAliasing(
+            conv,
+            edge,
+            function,
             ssa,
-            constraints);
+            constraints,
+            errorConditions,
+            pts,
+            regionMgr,
+            Optional.of(typeHandler.getPointerType()));
+    final Formula index =
+        conv.makeCast(
+            subscriptType,
+            CPointerType.POINTER_TO_VOID,
+            visitor.asValueFormula(subscript.accept(this), subscriptType),
+            constraints,
+            edge);
 
     final Formula coeff =
         conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.getSizeof(elementType));
