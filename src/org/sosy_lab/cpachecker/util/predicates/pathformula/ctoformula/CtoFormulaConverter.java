@@ -695,6 +695,12 @@ public class CtoFormulaConverter {
       Formula formula, Constraints constraints, CFAEdge edge) throws UnrecognizedCodeException {
     Formula result;
     if (formula instanceof BooleanFormula || formula instanceof IntegerFormula) {
+      if (!CTypes.isIntegerType(pToType)) {
+        assert (pToType instanceof CPointerType
+            && formula instanceof IntegerFormula
+            && options
+                .useIntegerAsPointerType()) : "Unwanted cast call! The formula needs to be converted to another FormulaType first.";
+      }
       result = formula;
     } else {
       result = makeCast0(pFromType, pToType, formula, edge);
