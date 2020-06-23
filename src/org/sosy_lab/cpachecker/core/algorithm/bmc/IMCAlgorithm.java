@@ -192,16 +192,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         if (pReachedSet.hasViolatedProperties()) {
           TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
         }
-        BooleanFormula forwardConditionFormula =
-            bfmgr.and(
-                prefixFormula.getFormula(),
-                loopFormula,
-                tailFormula,
-                getLoopHeadFormula(pReachedSet, maxLoopIterations).getFormula());
-        if (solver.isUnsat(forwardConditionFormula)) {
-          logger.log(Level.INFO, "The program cannot be further unrolled");
-          return AlgorithmStatus.SOUND_AND_PRECISE;
-        }
       }
 
       if (interpolation && maxLoopIterations > 1) {
