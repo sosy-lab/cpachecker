@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.test;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -29,7 +14,6 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Iterables;
 import com.google.common.truth.Truth;
 import java.util.Collection;
-import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -44,6 +28,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGOptions;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -94,15 +79,16 @@ public class SMGRegionsWithRegionsTest {
             0,
             HashBiMap.create());
 
-    final int intSize = 8 * MACHINE_MODEL_FOR_TESTING.getSizeofInt();
-    final int ptrSize = 8 * MACHINE_MODEL_FOR_TESTING.getSizeofPtr();
+    final int intSize =
+        MACHINE_MODEL_FOR_TESTING.getSizeofInt() * MACHINE_MODEL_FOR_TESTING.getSizeofCharInBits();
+    final int ptrSize = MACHINE_MODEL_FOR_TESTING.getSizeofPtrInBits();
 
     final int hfo = 0;
     final int nfo = 0;
     final int pfo = (linkage == SMGListLinkage.DOUBLY_LINKED) ? ptrSize : -1;
     dfo = (linkage == SMGListLinkage.DOUBLY_LINKED) ? 2 * ptrSize : ptrSize;
     subDfo = 0;
-    final int dataSize = intSize;
+    final int dataSize = ptrSize;
     final int subDataSize = intSize;
     regionSize = dfo + dataSize;
     subregionSize = subDataSize;
@@ -140,8 +126,7 @@ public class SMGRegionsWithRegionsTest {
 
     SMGListAbstractionTestHelpers.executeHeapAbstractionWithConsistencyChecks(state, smg);
 
-    Set<SMGEdgeHasValue> hvs =
-        smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(globalListPointer));
+    SMGHasValueEdges hvs = smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(globalListPointer));
     assertThat(hvs).hasSize(1);
 
     SMGEdgePointsTo pt = smg.getPointer(Iterables.getOnlyElement(hvs).getValue());
@@ -150,8 +135,11 @@ public class SMGRegionsWithRegionsTest {
     SMGListAbstractionTestHelpers.assertAbstractListSegmentAsExpected(
         abstractionResult, regionSize, LEVEL_ZERO, listKind, values.length);
 
-    Set<SMGEdgeHasValue> dataFieldSet =
-        smg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(abstractionResult).filterAtOffset(dfo));
+    SMGHasValueEdges dataFieldSet =
+        smg.getHVEdges(
+            SMGEdgeHasValueFilter.objectFilter(abstractionResult)
+                .filterAtOffset(dfo)
+                .filterWithoutSize());
     assertThat(dataFieldSet).hasSize(1);
     SMGEdgeHasValue dataField = Iterables.getOnlyElement(dataFieldSet);
     SMGValue dataValue = dataField.getValue();

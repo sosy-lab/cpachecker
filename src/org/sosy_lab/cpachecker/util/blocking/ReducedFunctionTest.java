@@ -1,32 +1,17 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.blocking;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.sosy_lab.cpachecker.cfa.model.CFANode.newDummyCFANode;
 
 import org.junit.Test;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 @SuppressWarnings("unused")
 public class ReducedFunctionTest {
@@ -64,21 +49,21 @@ public class ReducedFunctionTest {
 
   @Test
   public void testUltimate() {
-    ReducedNode entryNode = new ReducedNode(new CFANode("test"), false);
-    ReducedNode exitNode = new ReducedNode(new CFANode( "test"), false);
+    ReducedNode entryNode = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode exitNode = new ReducedNode(newDummyCFANode("test"), false);
 
-    ReducedNode n4 = new ReducedNode(new CFANode("loophead"), false);
-    ReducedNode n5 = new ReducedNode(new CFANode("test"), false);
-    ReducedNode n6 = new ReducedNode(new CFANode("test"), false);
-    ReducedNode n7 = new ReducedNode(new CFANode("test"), false);
-    ReducedNode n8 = new ReducedNode(new CFANode("test"), false);
-    ReducedNode n9 = new ReducedNode(new CFANode("test"), false);
-    ReducedNode n20 = new ReducedNode(new CFANode("test"), false);
-    ReducedNode n21 = new ReducedNode(new CFANode("test"), false);
-    ReducedNode n22 = new ReducedNode(new CFANode("test"), false);
-    ReducedNode n23 = new ReducedNode(new CFANode("test"), false);
-    ReducedNode n24 = new ReducedNode(new CFANode("test"), false);
-    ReducedNode n25 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n4 = new ReducedNode(newDummyCFANode("loophead"), false);
+    ReducedNode n5 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n6 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n7 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n8 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n9 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n20 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n21 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n22 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n23 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n24 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n25 = new ReducedNode(newDummyCFANode("test"), false);
 
     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 

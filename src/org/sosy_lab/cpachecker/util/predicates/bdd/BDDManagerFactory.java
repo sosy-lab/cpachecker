@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.bdd;
 
 import org.sosy_lab.common.configuration.Configuration;
@@ -28,8 +13,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.util.predicates.regions.CountingRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.SynchronizedRegionManager;
+import org.sosy_lab.cpachecker.util.predicates.regions.TimedRegionManager;
 
 /**
  * Factory for creating a RegionManager for one of the available BDD packages
@@ -59,6 +46,19 @@ public class BDDManagerFactory {
   @Option(secure = true, description = "sequentialize all accesses to the BDD library.")
   private boolean synchronizeLibraryAccess = false;
 
+  @Option(
+      secure = true,
+      description =
+          "Measure the time spent in the BDD library. "
+              + "The behaviour in case of concurrent accesses is undefined!")
+  private boolean measureLibraryAccess = false;
+
+  @Option(
+      secure = true,
+      description =
+          "Count accesses for the BDD library. " + "Counting works for concurrent accesses.")
+  private boolean countLibraryAccess = false;
+
   private final Configuration config;
   private final LogManager logger;
 
@@ -77,6 +77,12 @@ public class BDDManagerFactory {
       rmgr = new PJBDDRegionManager(config);
     } else {
       rmgr = new JavaBDDRegionManager(bddPackage, config, logger);
+    }
+    if (measureLibraryAccess) {
+      rmgr = new TimedRegionManager(rmgr);
+    }
+    if (countLibraryAccess) {
+      rmgr = new CountingRegionManager(rmgr);
     }
     if (synchronizeLibraryAccess) {
       rmgr = new SynchronizedRegionManager(rmgr);

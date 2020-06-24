@@ -1,33 +1,21 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2016  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.expressions;
 
 import com.google.common.base.Preconditions;
-
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -40,14 +28,8 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-
 public class ToFormulaVisitor
     extends CachingVisitor<AExpression, BooleanFormula, ToFormulaException> {
-
-  private static final CFANode DUMMY_NODE = new CFANode("dummy");
 
   private final FormulaManagerView formulaManagerView;
 
@@ -88,9 +70,13 @@ public class ToFormulaVisitor
     AExpression expression = pLeafExpression.getExpression();
     final CFAEdge edge;
     if (expression instanceof CExpression) {
-      edge = new CAssumeEdge("", FileLocation.DUMMY, DUMMY_NODE, DUMMY_NODE, (CExpression) expression, pLeafExpression.assumeTruth());
+      edge = new CAssumeEdge("", FileLocation.DUMMY,
+          new CFANode(CFunctionDeclaration.DUMMY), new CFANode(CFunctionDeclaration.DUMMY),
+          (CExpression) expression, pLeafExpression.assumeTruth());
     } else if (expression instanceof JExpression) {
-      edge = new JAssumeEdge("", FileLocation.DUMMY, DUMMY_NODE, DUMMY_NODE, (JExpression) expression, pLeafExpression.assumeTruth());
+      edge = new JAssumeEdge("", FileLocation.DUMMY,
+          new CFANode(CFunctionDeclaration.DUMMY), new CFANode(CFunctionDeclaration.DUMMY),
+          (JExpression) expression, pLeafExpression.assumeTruth());
     } else {
       throw new AssertionError("Unsupported expression type.");
     }

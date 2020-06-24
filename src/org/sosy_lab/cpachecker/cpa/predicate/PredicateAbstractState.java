@@ -1,35 +1,20 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.predicate;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-
+import java.io.Serializable;
+import java.util.Collection;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -45,9 +30,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-import java.io.Serializable;
-import java.util.Collection;
-
 /**
  * AbstractState for Symbolic Predicate Abstraction CPA
  */
@@ -56,13 +38,18 @@ public abstract class PredicateAbstractState
 
   private static final long serialVersionUID = -265763837277453447L;
 
-  public final static Predicate<AbstractState> CONTAINS_ABSTRACTION_STATE =
-      Predicates.compose(
-          PredicateAbstractState::isAbstractionState,
-          AbstractStates.toState(PredicateAbstractState.class));
+  public static boolean containsAbstractionState(AbstractState state) {
+    return AbstractStates.extractStateByType(state, PredicateAbstractState.class)
+        .isAbstractionState();
+  }
 
   public static PredicateAbstractState getPredicateState(AbstractState pState) {
     return checkNotNull(extractStateByType(pState, PredicateAbstractState.class));
+  }
+
+  public static BooleanFormula getBlockFormula(PredicateAbstractState pState) {
+    checkArgument(pState.isAbstractionState());
+    return pState.getAbstractionFormula().getBlockFormula().getFormula();
   }
 
   /**
@@ -240,6 +227,8 @@ public abstract class PredicateAbstractState
   }
 
   /**
+   * Mark this state as merged with another state.
+   *
    * @param pMergedInto the state that should be set as merged
    */
   void setMergedInto(PredicateAbstractState pMergedInto) {
@@ -295,11 +284,11 @@ public abstract class PredicateAbstractState
         }
       }*/
 
-      return new AbstractionState(pathFormula,
-          abstractionFormula, PathCopyingPersistentTreeMap.<CFANode, Integer> of());
+      return new AbstractionState(
+          pathFormula, abstractionFormula, PathCopyingPersistentTreeMap.of());
     }
-    return new NonAbstractionState(pathFormula, abstractionFormula,
-        PathCopyingPersistentTreeMap.<CFANode, Integer>of());
+    return new NonAbstractionState(
+        pathFormula, abstractionFormula, PathCopyingPersistentTreeMap.of());
   }
 
   @Override

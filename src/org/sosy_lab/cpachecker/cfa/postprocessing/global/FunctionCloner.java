@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa.postprocessing.global;
 
 import com.google.common.base.Optional;
@@ -160,7 +145,7 @@ class FunctionCloner implements CFAVisitor {
 
     final CFAEdge newEdge = cloneEdge(edge, start, end);
 
-    assert newEdge.getPredecessor() == start && newEdge.getSuccessor() == end;
+    assert newEdge.getPredecessor().equals(start) && newEdge.getSuccessor().equals(end);
 
     CFACreationUtils.addEdgeUnconditionallyToCFA(newEdge);
 
@@ -300,13 +285,13 @@ class FunctionCloner implements CFAVisitor {
     // clone correct type of node
     final CFANode newNode;
     if (node instanceof CLabelNode) {
-      newNode = new CLabelNode(newFunctionName, ((CLabelNode) node).getLabel());
+      newNode = new CLabelNode(cloneAst(node.getFunction()), ((CLabelNode) node).getLabel());
 
     } else if (node instanceof CFATerminationNode) {
-      newNode = new CFATerminationNode(newFunctionName);
+      newNode = new CFATerminationNode(cloneAst(node.getFunction()));
 
     } else if (node instanceof FunctionExitNode) {
-      newNode = new FunctionExitNode(newFunctionName);
+      newNode = new FunctionExitNode(cloneAst(node.getFunction()));
 
     } else if (node instanceof CFunctionEntryNode) {
       final CFunctionEntryNode n = (CFunctionEntryNode) node;
@@ -331,7 +316,7 @@ class FunctionCloner implements CFAVisitor {
 
     } else {
       assert node.getClass() == CFANode.class : "unhandled subclass for CFANode: " + node.getClass();
-      newNode = new CFANode(newFunctionName);
+      newNode = new CFANode(cloneAst(node.getFunction()));
     }
 
     // copy information from original node
@@ -423,7 +408,8 @@ class FunctionCloner implements CFAVisitor {
         for (CParameterDeclaration param : decl.getParameters()) {
           l.add(cloneAst(param));
         }
-        return new CFunctionDeclaration(loc, cloneType(decl.getType()), changeName(decl.getName()), l);
+        return new CFunctionDeclaration(
+            loc, cloneType(decl.getType()), changeName(decl.getName()), decl.getOrigName(), l);
 
       } else if (ast instanceof CComplexTypeDeclaration) {
         CComplexTypeDeclaration decl = (CComplexTypeDeclaration) ast;

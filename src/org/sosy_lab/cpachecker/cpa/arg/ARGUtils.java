@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
-*/
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -420,22 +405,23 @@ public class ARGUtils {
     return new ARGPath(states);
   }
 
-  private static final Predicate<CFANode> IS_RELEVANT_LOCATION =
-      pInput ->
-          pInput.isLoopStart()
-              || pInput instanceof FunctionEntryNode
-              || pInput instanceof FunctionExitNode;
+  private static final boolean isRelevantLocation(CFANode pInput) {
+    return pInput.isLoopStart()
+        || pInput instanceof FunctionEntryNode
+        || pInput instanceof FunctionExitNode;
+  }
 
-  private static final Predicate<Iterable<CFANode>> CONTAINS_RELEVANT_LOCATION =
-      nodes -> Iterables.any(nodes, IS_RELEVANT_LOCATION);
+  private static final boolean containsRelevantLocation(Iterable<CFANode> nodes) {
+    return Iterables.any(nodes, ARGUtils::isRelevantLocation);
+  }
 
   private static final Predicate<AbstractState> AT_RELEVANT_LOCATION =
-      Predicates.compose(CONTAINS_RELEVANT_LOCATION, AbstractStates::extractLocations);
+      Predicates.compose(ARGUtils::containsRelevantLocation, AbstractStates::extractLocations);
 
   @SuppressWarnings("unchecked")
   public static final Predicate<ARGState> RELEVANT_STATE =
       Predicates.or(
-          AbstractStates.IS_TARGET_STATE,
+          AbstractStates::isTargetState,
           AT_RELEVANT_LOCATION,
           pInput -> !pInput.wasExpanded(),
           ARGState::shouldBeHighlighted);
@@ -602,7 +588,7 @@ public class ARGUtils {
     ARGPath result = getPathFromBranchingInformation(root, arg, branchingInformation);
 
     checkArgument(
-        result.getLastState() == target, "ARG target path reached the wrong target state!");
+        result.getLastState().equals(target), "ARG target path reached the wrong target state!");
 
     return result;
   }
@@ -620,12 +606,12 @@ public class ARGUtils {
    * @return The children with covered states transparently replaced.
    */
   public static Collection<ARGState> getUncoveredChildrenView(final ARGState s) {
-    return new AbstractCollection<ARGState>() {
+    return new AbstractCollection<>() {
 
       @Override
       public Iterator<ARGState> iterator() {
 
-        return new UnmodifiableIterator<ARGState>() {
+        return new UnmodifiableIterator<>() {
           private final Iterator<ARGState> children = s.getChildren().iterator();
 
           @Override
@@ -1102,7 +1088,7 @@ public class ARGUtils {
           CFANode sumEdgeSuccessor = sumEdge.getSuccessor();
 
           // only continue if we do not meet the loophead again
-          if (sumEdgeSuccessor != loopHead) {
+          if (!sumEdgeSuccessor.equals(loopHead)) {
             nodesToHandle.offer(sumEdgeSuccessor);
           }
 
@@ -1133,7 +1119,7 @@ public class ARGUtils {
           handleMatchCase(sb, edge);
 
           // we are still in the loop, so we do not need to handle special cases
-          if (stillInLoop && edgeSuccessor != loopHead) {
+          if (stillInLoop && !edgeSuccessor.equals(loopHead)) {
             handleGotoNode(sb, edgeSuccessor, false);
 
             nodesToHandle.offer(edgeSuccessor);
@@ -1196,7 +1182,7 @@ public class ARGUtils {
                                                        CFANode loopHead, CFANode successor) throws IOException {
 
     // depending on successor add the transition for going out of the loop
-    if (successor == loopHead) {
+    if (successor.equals(loopHead)) {
       handleGotoArg(sb, intoLoopState);
     } else {
       handleGotoNode(sb, successor, false);
@@ -1301,7 +1287,7 @@ public class ARGUtils {
 
     // We should not claim that the counterexample is precise unless we have one unique path
     Set<ARGState> states = path.getStateSet();
-    if (states.stream().allMatch(s -> s.getParents().stream().allMatch(p -> states.contains(p)))) {
+    if (states.stream().allMatch(s -> states.containsAll(s.getParents()))) {
       CFAPathWithAssumptions assignments =
           CFAPathWithAssumptions.of(path, pCPA, pAssumptionToEdgeAllocator);
       if (!assignments.isEmpty()) {

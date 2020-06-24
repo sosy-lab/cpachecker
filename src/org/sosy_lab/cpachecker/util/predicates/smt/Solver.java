@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -226,9 +211,15 @@ public final class Solver implements AutoCloseable {
    * Load and instantiate an SMT solver. The returned instance should be closed by calling {@link
    * #close} when it is not used anymore.
    */
-  @SuppressWarnings("deprecation")
   public static Solver create(
       Configuration config, LogManager logger, ShutdownNotifier shutdownNotifier)
+      throws InvalidConfigurationException {
+    return new Solver(adjustConfigForSolver(config), logger, shutdownNotifier);
+  }
+
+  /** Adjust config by overriding defaults of some JavaSMT options */
+  @SuppressWarnings("deprecation")
+  public static Configuration adjustConfigForSolver(Configuration config)
       throws InvalidConfigurationException {
     if (!config.hasProperty(SOLVER_OPTION_NON_LINEAR_ARITHMETIC)) {
       // Set a default for solver.nonLinearArithmetic, because with JavaSMT's default CPAchecker
@@ -237,13 +228,12 @@ public final class Solver implements AutoCloseable {
       // solvers unfair, and at least small experiments showed no benefit in practice
       // (if non-linear arithmetic is useful, it would be better to use bitvectors than linear
       // approximation anyway).
-      config =
-          Configuration.builder()
-              .copyFrom(config)
-              .setOption(SOLVER_OPTION_NON_LINEAR_ARITHMETIC, "APPROXIMATE_ALWAYS")
-              .build();
+      return Configuration.builder()
+          .copyFrom(config)
+          .setOption(SOLVER_OPTION_NON_LINEAR_ARITHMETIC, "APPROXIMATE_ALWAYS")
+          .build();
     }
-    return new Solver(config, logger, shutdownNotifier);
+    return config;
   }
 
   /**
@@ -433,7 +423,7 @@ public final class Solver implements AutoCloseable {
       stored = new HashMap<>(stored);
     }
 
-    ProverOptions opts[];
+    ProverOptions[] opts;
     if (cacheUnsatCores) {
       opts = new ProverOptions[]{GENERATE_UNSAT_CORE};
     } else {

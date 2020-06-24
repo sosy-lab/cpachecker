@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.refinement;
 
 import com.google.common.collect.Lists;
@@ -45,14 +30,15 @@ public class PrefixSelector {
 
   public int obtainScoreForPrefixes(final List<InfeasiblePrefix> pPrefixes, final PrefixPreference pPreference) {
 
-    int defaultScore = Integer.MAX_VALUE;
-
     if (!classification.isPresent()) {
-      return defaultScore;
+      return Scorer.DEFAULT_SCORE;
     }
 
     Scorer scorer = factory.createScorer(pPreference);
-    return pPrefixes.stream().mapToInt(p -> scorer.computeScore(p)).min().orElse(defaultScore);
+    return pPrefixes.stream()
+        .mapToInt(p -> scorer.computeScore(p))
+        .min()
+        .orElse(Scorer.DEFAULT_SCORE);
   }
 
   private List<Comparator<InfeasiblePrefix>> createComparators(List<PrefixPreference> pPrefixPreference) {
@@ -156,6 +142,7 @@ public class PrefixSelector {
   }
 
   private interface Scorer {
+    static final int DEFAULT_SCORE = Integer.MAX_VALUE;
 
     int computeScore(final InfeasiblePrefix pPrefix);
 
@@ -170,7 +157,7 @@ public class PrefixSelector {
         public int computeScore(InfeasiblePrefix pPrefix) {
           int score = delegate.computeScore(pPrefix);
           if (score == Integer.MIN_VALUE) {
-            return Integer.MAX_VALUE;
+            return DEFAULT_SCORE;
           }
           return -score;
         }
@@ -191,7 +178,9 @@ public class PrefixSelector {
 
     @Override
     public int computeScore(final InfeasiblePrefix pPrefix) {
-      return classification.get().obtainDomainTypeScoreForVariables(pPrefix.extractSetOfIdentifiers(), loopStructure);
+      return classification
+          .orElseThrow()
+          .obtainDomainTypeScoreForVariables(pPrefix.extractSetOfIdentifiers(), loopStructure);
     }
   }
 
@@ -208,9 +197,13 @@ public class PrefixSelector {
 
     @Override
     public int computeScore(final InfeasiblePrefix pPrefix) {
-      int score = classification.get().obtainDomainTypeScoreForVariables(pPrefix.extractSetOfIdentifiers(), loopStructure);
+      int score =
+          classification
+              .orElseThrow()
+              .obtainDomainTypeScoreForVariables(pPrefix.extractSetOfIdentifiers(), loopStructure);
 
-      if(score != Integer.MAX_VALUE) {
+      // TODO next line looks like a bug. The score is either MAX_INT or ZERO afterwards.
+      if (score != DEFAULT_SCORE) {
         score = 0;
       }
 
@@ -254,7 +247,7 @@ public class PrefixSelector {
     public int computeScore(final InfeasiblePrefix pPrefix) {
       int count = 0;
       for (String variable : pPrefix.extractSetOfIdentifiers()) {
-        count = count + classification.get().getAssignedVariables().count(variable);
+        count = count + classification.orElseThrow().getAssignedVariables().count(variable);
       }
 
       return count;
@@ -273,7 +266,7 @@ public class PrefixSelector {
     public int computeScore(final InfeasiblePrefix pPrefix) {
       int count = 0;
       for (String variable : pPrefix.extractSetOfIdentifiers()) {
-        count = count + classification.get().getAssumedVariables().count(variable);
+        count = count + classification.orElseThrow().getAssumedVariables().count(variable);
       }
 
       return count;

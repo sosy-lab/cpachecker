@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2015  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import com.google.common.collect.Queues;
@@ -83,14 +68,16 @@ final class SMGConsistencyVerifier {
 
     // Verify that the value found in values is the one returned by getNullValue()
     if (SMGZeroValue.INSTANCE != null_value) {
-      pLogger.log(Level.SEVERE, "SMG inconsistent: null value in values set not returned by getNullValue()");
+      pLogger.log(
+          Level.SEVERE,
+          "SMG inconsistent: null value in values set not returned by getNullValue()");
       return false;
     }
 
     // Verify that NULL object has no value
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(SMGNullObject.INSTANCE);
 
-    if (! pSmg.getHVEdges(filter).isEmpty()) {
+    if (!pSmg.getHVEdges(filter).isEmpty()) {
       pLogger.log(Level.SEVERE, "SMG inconsistent: null object has some value");
       return false;
     }

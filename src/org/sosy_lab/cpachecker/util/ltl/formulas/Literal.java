@@ -1,30 +1,16 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.ltl.formulas;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Objects;
 import org.sosy_lab.cpachecker.util.ltl.LtlFormulaVisitor;
 
 public final class Literal implements LtlFormula {
@@ -58,11 +44,7 @@ public final class Literal implements LtlFormula {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((atom == null) ? 0 : atom.hashCode());
-    result = prime * result + (negated ? 1231 : 1237);
-    return result;
+    return Objects.hash(atom, negated);
   }
 
   @Override
@@ -73,21 +55,11 @@ public final class Literal implements LtlFormula {
     if (obj == null) {
       return false;
     }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof Literal)) {
       return false;
     }
     Literal other = (Literal) obj;
-    if (atom == null) {
-      if (other.atom != null) {
-        return false;
-      }
-    } else if (!atom.equals(other.atom)) {
-      return false;
-    }
-    if (negated != other.negated) {
-      return false;
-    }
-    return true;
+    return atom.equals(other.atom) && negated == other.negated;
   }
 
   public String getAtom() {

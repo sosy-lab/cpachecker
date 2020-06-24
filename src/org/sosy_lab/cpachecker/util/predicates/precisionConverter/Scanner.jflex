@@ -1,25 +1,34 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.precisionConverter;
 
-import java_cup.runtime.*;
+import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.ComplexSymbolFactory.Location;
+import java_cup.runtime.Symbol;
 
-@javax.annotation.Generated("JFlex")
-@SuppressWarnings(value = { "all", "cast", "FallThrough" })
-@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = {"DLS_DEAD_LOCAL_STORE"})
+@javax.annotation.processing.Generated("JFlex")
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings({"URF_UNREAD_FIELD", "DLS_DEAD_LOCAL_STORE"})
 %%
 
 %cup
 %class FormulaScanner
+%final
+%apiprivate
 %line
 %column
 
+%ctorarg ComplexSymbolFactory sf
+%init{
+  this.sf = sf;
+%init}
 %{
-  private ComplexSymbolFactory sf;
-
-  public FormulaScanner(java.io.Reader r, ComplexSymbolFactory sf) {
-    this(r);
-    this.sf = sf;
-  }
+  private final ComplexSymbolFactory sf;
   
   private Location getStartLocation() {
     return new Location("", yyline+1,yycolumn+1-yylength());
@@ -32,11 +41,7 @@ import java_cup.runtime.ComplexSymbolFactory.Location;
   private Symbol symbol(int sym, String name) {
     return sf.newSymbol(name, sym, getStartLocation(), getEndLocation(), name);
   }
-  
 %}
-%eofval{
-    return symbol("EOF", Symbol.EOF);
-%eofval}
 
 LineTerminator = \R
 WhiteSpace     = {LineTerminator} | [ \t\f]
@@ -48,9 +53,6 @@ Numeral = 0 | [1-9][0-9]*
 Decimal = {Numeral} "."  0* {Numeral}
 QuotedSymbol = "|" [^|]* "|"
 Symbol = {SMTLetter} {SMTLetterDigit}* 
-
-%state STRING
-
 
 %%
 

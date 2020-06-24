@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -31,24 +16,21 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.truth.Truth;
 import java.util.List;
-import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
-import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMGTest;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -75,9 +57,6 @@ public class SMGStateTest {
   private static final int mockSize16b = 16;
   private static final int mockSize8b = 8;
 
-  private final CFunctionType functionType = CFunctionType.functionTypeWithReturnType(CNumericTypes.UNSIGNED_LONG_INT);
-  private final CFunctionDeclaration functionDeclaration3 =
-      new CFunctionDeclaration(FileLocation.DUMMY, functionType, "main", ImmutableList.of());
   private CSimpleType unspecifiedType = new CSimpleType(false, false, CBasicType.UNSPECIFIED, false, false, true, false, false, false, false);
   private CType pointerType = new CPointerType(false, false, unspecifiedType);
   private static final MachineModel MM = MachineModel.LINUX32;
@@ -88,7 +67,7 @@ public class SMGStateTest {
 
     CLangSMG smg1 = new CLangSMG(MM);
 
-    smg1.addStackFrame(functionDeclaration3);
+    smg1.addStackFrame(CLangSMGTest.DUMMY_FUNCTION);
 
     for (int i = 0; i < 20; i++) {
       SMGCPA.getNewValue();
@@ -113,11 +92,11 @@ public class SMGStateTest {
     SMGEdgeHasValue l4fn = new SMGEdgeHasValue(ptrSize, 0, l4, value10);
     SMGEdgeHasValue l5fn = new SMGEdgeHasValue(ptrSize, 0, l5, value5);
 
-    SMGEdgeHasValue l1fp = new SMGEdgeHasValue(ptrSize, 4, l1, value5);
-    SMGEdgeHasValue l2fp = new SMGEdgeHasValue(ptrSize, 4, l2, value6);
-    SMGEdgeHasValue l3fp = new SMGEdgeHasValue(ptrSize, 4, l3, value7);
-    SMGEdgeHasValue l4fp = new SMGEdgeHasValue(ptrSize, 4, l4, value8);
-    SMGEdgeHasValue l5fp = new SMGEdgeHasValue(ptrSize, 4, l5, value9);
+    SMGEdgeHasValue l1fp = new SMGEdgeHasValue(ptrSize, 32, l1, value5);
+    SMGEdgeHasValue l2fp = new SMGEdgeHasValue(ptrSize, 32, l2, value6);
+    SMGEdgeHasValue l3fp = new SMGEdgeHasValue(ptrSize, 32, l3, value7);
+    SMGEdgeHasValue l4fp = new SMGEdgeHasValue(ptrSize, 32, l4, value8);
+    SMGEdgeHasValue l5fp = new SMGEdgeHasValue(ptrSize, 32, l5, value9);
 
     SMGEdgePointsTo l1t = new SMGEdgePointsTo(value6, l1, 0);
     SMGEdgePointsTo l2t = new SMGEdgePointsTo(value7, l2, 0);
@@ -197,9 +176,9 @@ public class SMGStateTest {
     SMGValue value12 = SMGKnownSymValue.valueOf(12);
     SMGValue value13 = SMGKnownSymValue.valueOf(13);
 
-    SMGObject dll = new SMGDoublyLinkedList(96, 0, 0, 4, 0, 0);
+    SMGObject dll = new SMGDoublyLinkedList(96, 0, 0, 32, 0, 0);
     SMGEdgeHasValue dllN = new SMGEdgeHasValue(ptrSize, 0, dll, value5);
-    SMGEdgeHasValue dllP = new SMGEdgeHasValue(ptrSize, 4, dll, value5);
+    SMGEdgeHasValue dllP = new SMGEdgeHasValue(ptrSize, 32, dll, value5);
     heap.addHeapObject(dll);
     heap.setValidity(dll, true);
     heap.addValue(value5);
@@ -221,13 +200,13 @@ public class SMGStateTest {
     SMGEdgeHasValue l3fn = new SMGEdgeHasValue(ptrSize, 0, l3, value9);
     SMGEdgeHasValue l4fn = new SMGEdgeHasValue(ptrSize, 0, l4, value10);
     SMGEdgeHasValue l5fn = new SMGEdgeHasValue(ptrSize, 0, l5, value11);
-    SMGEdgeHasValue dllSub = new SMGEdgeHasValue(ptrSize, 8, dll, value12);
+    SMGEdgeHasValue dllSub = new SMGEdgeHasValue(ptrSize, 64, dll, value12);
 
-    SMGEdgeHasValue l1fp = new SMGEdgeHasValue(ptrSize, 4, l1, value11);
-    SMGEdgeHasValue l2fp = new SMGEdgeHasValue(ptrSize, 4, l2, value12);
-    SMGEdgeHasValue l3fp = new SMGEdgeHasValue(ptrSize, 4, l3, value13);
-    SMGEdgeHasValue l4fp = new SMGEdgeHasValue(ptrSize, 4, l4, value8);
-    SMGEdgeHasValue l5fp = new SMGEdgeHasValue(ptrSize, 4, l5, value9);
+    SMGEdgeHasValue l1fp = new SMGEdgeHasValue(ptrSize, 32, l1, value11);
+    SMGEdgeHasValue l2fp = new SMGEdgeHasValue(ptrSize, 32, l2, value12);
+    SMGEdgeHasValue l3fp = new SMGEdgeHasValue(ptrSize, 32, l3, value13);
+    SMGEdgeHasValue l4fp = new SMGEdgeHasValue(ptrSize, 32, l4, value8);
+    SMGEdgeHasValue l5fp = new SMGEdgeHasValue(ptrSize, 32, l5, value9);
 
     SMGEdgePointsTo l1t = new SMGEdgePointsTo(value12, l1, 0);
     SMGEdgePointsTo l2t = new SMGEdgePointsTo(value13, l2, 0);
@@ -276,12 +255,12 @@ public class SMGStateTest {
     SMGState smg1State = new SMGState(logger, new SMGOptions(
         Configuration.defaultConfiguration()), heap, 0, HashBiMap.create());
 
-    smg1State.addStackFrame(functionDeclaration3);
+    smg1State.addStackFrame(CLangSMGTest.DUMMY_FUNCTION);
     SMGObject head = smg1State.addGlobalVariable(64, "head");
     smg1State.addPointsToEdge(head, 0, value5);
 
     smg1State.writeValue(head, 0, ptrSize, SMGKnownSymValue.valueOf(6));
-    smg1State.writeValue(head, 4, ptrSize, SMGKnownSymValue.valueOf(10));
+    smg1State.writeValue(head, 32, ptrSize, SMGKnownSymValue.valueOf(10));
 
     smg1State.performConsistencyCheck(SMGRuntimeCheck.NONE);
 
@@ -308,7 +287,6 @@ public class SMGStateTest {
     final long hfo = 0;
     final long nfo = 0;
     final long pfo = 32; // hidden nullified part
-    final long dfo = 64; // hidden nullified part
     final int minLength = 3;
     final int level = 0;
 
@@ -339,7 +317,7 @@ public class SMGStateTest {
     SMGOptions options = new SMGOptions(Configuration.defaultConfiguration());
     SMGState smg1State = new SMGState(logger, options, heap, 0, HashBiMap.create());
 
-    smg1State.addStackFrame(functionDeclaration3);
+    smg1State.addStackFrame(CLangSMGTest.DUMMY_FUNCTION);
     SMGObject head = smg1State.addGlobalVariable(model32.getSizeofPtrInBits(), "head");
     smg1State.writeValue(head, hfo, ptrSize, value6);
     smg1State.performConsistencyCheck(SMGRuntimeCheck.FORCED);
@@ -348,6 +326,7 @@ public class SMGStateTest {
 
     assertThat(valAndStates1).hasSize(1);
     SMGState newState = valAndStates1.get(0).getSmgState();
+    newState.pruneUnreachable();
     newState.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     UnmodifiableSMG newSMG = newState.getHeap();
@@ -356,21 +335,21 @@ public class SMGStateTest {
     // after materialisation prev and data edges should be present
     SMGEdgeHasValueFilter regFilter = SMGEdgeHasValueFilter.objectFilter(concreteRegion);
     SMGEdgeHasValue newNextField =
-        Iterables.getOnlyElement(newSMG.getHVEdges(regFilter.filterAtOffset(nfo)));
+        Iterables.getOnlyElement(
+            newSMG.getHVEdges(regFilter.filterAtOffset(nfo).filterWithoutSize()));
     SMGEdgeHasValue prevField =
-        Iterables.getOnlyElement(newSMG.getHVEdges(regFilter.filterAtOffset(pfo)));
-    SMGEdgeHasValue dataField =
-        Iterables.getOnlyElement(newSMG.getHVEdges(regFilter.filterAtOffset(dfo)));
+        Iterables.getOnlyElement(
+            newSMG.getHVEdges(regFilter.filterAtOffset(pfo).filterWithoutSize()));
 
     Truth.assertThat(newNextField.getSizeInBits()).isEqualTo(ptrSizeInBits);
-    Truth.assertThat(prevField.getSizeInBits()).isEqualTo(ptrSizeInBits);
-    Truth.assertThat(dataField.getSizeInBits()).isEqualTo(ptrSizeInBits);
+    Truth.assertThat(prevField.getSizeInBits()).isEqualTo(2 * ptrSizeInBits);
 
     // next of new region should point to new dll
     SMGObject newDll = newSMG.getPointer(newNextField.getValue()).getObject();
     SMGEdgeHasValueFilter newDllFilter = SMGEdgeHasValueFilter.objectFilter(newDll);
     SMGEdgeHasValue newDllPrevField =
-        Iterables.getOnlyElement(newSMG.getHVEdges(newDllFilter.filterAtOffset(pfo)));
+        Iterables.getOnlyElement(
+            newSMG.getHVEdges(newDllFilter.filterAtOffset(pfo).filterWithoutSize()));
 
     // assert that region points to dll and dll points back to region
     Truth.assertThat(newSMG.getPointer(newDllPrevField.getValue()).getObject())
@@ -379,7 +358,6 @@ public class SMGStateTest {
     Truth.assertThat(((SMGDoublyLinkedList) newDll).getMinimumLength())
         .isEqualTo(dll.getMinimumLength() - 1);
     Truth.assertThat(prevField.getValue()).isEqualTo(SMGZeroValue.INSTANCE);
-    Truth.assertThat(dataField.getValue()).isEqualTo(SMGZeroValue.INSTANCE);
   }
 
   @Test
@@ -414,7 +392,7 @@ public class SMGStateTest {
     SMGOptions options = new SMGOptions(Configuration.defaultConfiguration());
     SMGState smg1State = new SMGState(logger, options, heap, 0, HashBiMap.create());
 
-    smg1State.addStackFrame(functionDeclaration3);
+    smg1State.addStackFrame(CLangSMGTest.DUMMY_FUNCTION);
     SMGObject head = smg1State.addGlobalVariable(model32.getSizeofPtrInBits(), "head");
     smg1State.writeValue(head, 0, ptrSize, value6);
     smg1State.performConsistencyCheck(SMGRuntimeCheck.FORCED);
@@ -424,6 +402,7 @@ public class SMGStateTest {
 
     assertThat(valAndStates1).hasSize(1);
     SMGState newState = valAndStates1.get(0).getSmgState();
+    newState.pruneUnreachable();
     newState.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     UnmodifiableSMG newSMG = newState.getHeap();
@@ -432,11 +411,14 @@ public class SMGStateTest {
     // after materialisation also the next edge and the second data edge should be present
     SMGEdgeHasValueFilter regFilter = SMGEdgeHasValueFilter.objectFilter(concreteRegion);
     SMGEdgeHasValue dataFieldBeforeNext =
-        Iterables.getOnlyElement(newSMG.getHVEdges(regFilter.filterAtOffset(dfo1)));
+        Iterables.getOnlyElement(
+            newSMG.getHVEdges(regFilter.filterAtOffset(dfo1).filterWithoutSize()));
     SMGEdgeHasValue nextField =
-        Iterables.getOnlyElement(newSMG.getHVEdges(regFilter.filterAtOffset(nfo)));
+        Iterables.getOnlyElement(
+            newSMG.getHVEdges(regFilter.filterAtOffset(nfo).filterWithoutSize()));
     SMGEdgeHasValue dataFieldAfterNext =
-        Iterables.getOnlyElement(newSMG.getHVEdges(regFilter.filterAtOffset(dfo2)));
+        Iterables.getOnlyElement(
+            newSMG.getHVEdges(regFilter.filterAtOffset(dfo2).filterWithoutSize()));
 
     // assert that each field has the correct size
     Truth.assertThat(dataFieldBeforeNext.getSizeInBits()).isEqualTo(ptrSizeInBits);
@@ -459,79 +441,6 @@ public class SMGStateTest {
     Truth.assertThat(newSll).isInstanceOf(SMGSingleLinkedList.class);
     Truth.assertThat(((SMGSingleLinkedList) newSll).getMinimumLength())
         .isEqualTo(sll.getMinimumLength() - 1);
-  }
-
-  @Test
-  public void materialiseSllWithOverlappingNullifiedFieldsTest()
-      throws SMGInconsistentException, InvalidConfigurationException {
-
-    final int sizeInBits = 128;
-    final long hfo = 64;
-    final long dfo = -64; // data field offset
-    final long nfo = 0;
-    final int minLength = 3;
-    final int level = 0;
-
-    final MachineModel model64 = MachineModel.LINUX64;
-    final int ptrSizeInBits = model64.getSizeofPtrInBits();
-    CLangSMG heap = new CLangSMG(model64);
-
-    SMGSymbolicValue value6 = SMGKnownSymValue.valueOf(6);
-    heap.addValue(value6);
-
-    SMGSingleLinkedList sll = new SMGSingleLinkedList(sizeInBits, hfo, nfo, minLength, level);
-    heap.addHeapObject(sll);
-    heap.setValidity(sll, true);
-    heap.addPointsToEdge(new SMGEdgePointsTo(value6, sll, hfo, SMGTargetSpecifier.FIRST));
-
-    // add two overlapping fields with nullified data
-    heap.addHasValueEdge(
-        new SMGEdgeHasValue(sizeInBits - (int) (hfo + dfo), dfo, sll, SMGZeroValue.INSTANCE));
-    heap.addHasValueEdge(
-        new SMGEdgeHasValue(sizeInBits - (int) (hfo + nfo), nfo, sll, SMGZeroValue.INSTANCE));
-
-    SMGOptions options = new SMGOptions(Configuration.defaultConfiguration());
-    SMGState smgState = new SMGState(logger, options, heap, 0, HashBiMap.create());
-
-    smgState.addStackFrame(functionDeclaration3);
-    SMGObject head = smgState.addGlobalVariable(ptrSizeInBits, "head");
-    smgState.writeValue(head, 0, ptrSizeInBits, value6);
-    smgState.performConsistencyCheck(SMGRuntimeCheck.FORCED);
-
-    // trigger materialisation
-    List<SMGAddressValueAndState> valAndStates = smgState.getPointerFromValue(value6);
-    SMGState newState = valAndStates.get(0).getSmgState();
-    newState.performConsistencyCheck(SMGRuntimeCheck.FORCED);
-
-    UnmodifiableSMG newSMG = newState.getHeap();
-    SMGObject concreteRegion = newSMG.getObjectPointedBy(value6);
-
-    // get adapted HV-Edges
-    SMGEdgeHasValueFilter regFilter = SMGEdgeHasValueFilter.objectFilter(concreteRegion);
-    SMGEdgeHasValue dataFieldBeforeNext =
-        Iterables.getOnlyElement(newSMG.getHVEdges(regFilter.filterAtOffset(dfo)));
-    SMGEdgeHasValue nextField =
-        Iterables.getOnlyElement(newSMG.getHVEdges(regFilter.filterAtOffset(nfo)));
-
-    // data at nfo is not zero anymore -> overlap is not allowed anymore
-    Truth.assertThat(dataFieldBeforeNext.getSizeInBits()).isEqualTo(sizeInBits - ptrSizeInBits);
-    Truth.assertThat(nextField.getSizeInBits()).isEqualTo(ptrSizeInBits);
-
-    // next pointer of new region should point to new sll
-    Truth.assertThat(newSMG.isPointer(nextField.getValue())).isTrue();
-    SMGObject newSll = newSMG.getPointer(nextField.getValue()).getObject();
-
-    // assert that region points to sll
-    SMGValue sllAddress =
-        Iterables.getOnlyElement(
-                newSMG.getPtEdges(
-                    SMGEdgePointsToFilter.targetObjectFilter(newSll).filterAtTargetOffset(hfo)))
-            .getValue();
-    Truth.assertThat(nextField.getValue()).isEqualTo(sllAddress);
-    Truth.assertThat(dataFieldBeforeNext.getValue()).isEqualTo(SMGZeroValue.INSTANCE);
-    Truth.assertThat(newSll).isInstanceOf(SMGSingleLinkedList.class);
-    Truth.assertThat(((SMGSingleLinkedList) newSll).getMinimumLength())
-        .isEqualTo(sll.getMinimumLength() == 0 ? 0 : sll.getMinimumLength() - 1);
   }
 
   @SuppressWarnings("unchecked")
@@ -635,7 +544,7 @@ public class SMGStateTest {
     // Check the object values and assert it has only the written 16b value
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(pt.getObject());
 
-    Set<SMGEdgeHasValue> values_for_obj = state.getHVEdges(filter);
+    SMGHasValueEdges values_for_obj = state.getHVEdges(filter);
     assertThat(values_for_obj).hasSize(1);
     assertThat(values_for_obj).contains(hv);
 
@@ -697,7 +606,8 @@ public class SMGStateTest {
     state.performConsistencyCheck(SMGRuntimeCheck.FORCED);
 
     // Check the object values and assert it has only the written 16b value
-    Set<SMGEdgeHasValue> values_for_obj = state.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pt.getObject()));
+    SMGHasValueEdges values_for_obj =
+        state.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pt.getObject()));
     assertThat(values_for_obj).hasSize(1);
     assertThat(values_for_obj).contains(hv);
 
@@ -715,22 +625,14 @@ public class SMGStateTest {
         .contains(new SMGEdgeHasValue(4, 12, pt.getObject(), SMGZeroValue.INSTANCE));
 
     SMGEdgeHasValueFilter nullFilter =
-        SMGEdgeHasValueFilter.objectFilter(pt.getObject()).filterHavingValue(SMGZeroValue.INSTANCE);
-    Set<SMGEdgeHasValue> nulls_for_value = state.getHVEdges(nullFilter);
+        SMGEdgeHasValueFilter.objectFilter(pt.getObject())
+            .filterHavingValue(SMGZeroValue.INSTANCE)
+            .filterWithoutSize();
+    SMGHasValueEdges nulls_for_value = state.getHVEdges(nullFilter);
     assertThat(nulls_for_value).hasSize(2);
 
-    assertThat(
-            state.getHVEdges(
-                SMGEdgeHasValueFilter.objectFilter(pt.getObject())
-                    .filterHavingValue(SMGZeroValue.INSTANCE)
-                    .filterAtOffset(0)))
-        .hasSize(1);
-    assertThat(
-            state.getHVEdges(
-                SMGEdgeHasValueFilter.objectFilter(pt.getObject())
-                    .filterHavingValue(SMGZeroValue.INSTANCE)
-                    .filterAtOffset(12)))
-        .hasSize(1);
+    assertThat(state.getHVEdges(nullFilter.filterAtOffset(0))).hasSize(1);
+    assertThat(state.getHVEdges(nullFilter.filterAtOffset(12))).hasSize(1);
   }
 
   @Test

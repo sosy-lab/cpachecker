@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2015  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.ci;
 
 import com.google.common.base.Joiner;
@@ -33,6 +18,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -85,17 +71,11 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 
 // Note that this class is not complete yet. Most of the comments are just for me and my advisor, they will disappear later!
-public class CustomInstruction{
+public class CustomInstruction {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((ciEndNodes == null) ? 0 : ciEndNodes.hashCode());
-    result = prime * result + ((ciStartNode == null) ? 0 : ciStartNode.hashCode());
-    result = prime * result + ((inputVariables == null) ? 0 : inputVariables.hashCode());
-    result = prime * result + ((outputVariables == null) ? 0 : outputVariables.hashCode());
-    return result;
+    return Objects.hash(ciEndNodes, ciStartNode, inputVariables, outputVariables);
   }
 
   @Override
@@ -103,42 +83,14 @@ public class CustomInstruction{
     if (this == obj) {
       return true;
     }
-    if (obj == null) {
-      return false;
-    }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof CustomInstruction)) {
       return false;
     }
     CustomInstruction other = (CustomInstruction) obj;
-    if (ciEndNodes == null) {
-      if (other.ciEndNodes != null) {
-        return false;
-      }
-    } else if (!ciEndNodes.equals(other.ciEndNodes)) {
-      return false;
-    }
-    if (ciStartNode == null) {
-      if (other.ciStartNode != null) {
-        return false;
-      }
-    } else if (!ciStartNode.equals(other.ciStartNode)) {
-      return false;
-    }
-    if (inputVariables == null) {
-      if (other.inputVariables != null) {
-        return false;
-      }
-    } else if (!inputVariables.equals(other.inputVariables)) {
-      return false;
-    }
-    if (outputVariables == null) {
-      if (other.outputVariables != null) {
-        return false;
-      }
-    } else if (!outputVariables.equals(other.outputVariables)) {
-      return false;
-    }
-    return true;
+    return Objects.equals(ciEndNodes, other.ciEndNodes)
+        && Objects.equals(ciStartNode, other.ciStartNode)
+        && Objects.equals(inputVariables, other.inputVariables)
+        && Objects.equals(outputVariables, other.outputVariables);
   }
 
   private final CFANode ciStartNode;
@@ -210,8 +162,7 @@ public class CustomInstruction{
 
     if (!inputVariables.isEmpty()) {
       String last = inputVariables.get(inputVariables.size()-1);
-      for (int i=0; i<inputVariables.size(); i++) {
-        String variable = inputVariables.get(i);
+      for (String variable : inputVariables) {
         if (outputVariables.isEmpty() && variable.equals(last)) {
           sb.append(getAssignmentOfVariableToZero(variable, false));
 //          sb.append("= ");
@@ -227,8 +178,7 @@ public class CustomInstruction{
 
     if (!outputVariables.isEmpty()) {
       String last = outputVariables.get(outputVariables.size()-1);
-      for (int i=0; i<outputVariables.size(); i++) {
-        String variable = outputVariables.get(i);
+      for (String variable : outputVariables) {
         if (variable.equals(last)) {
           sb.append(" ");
           sb.append(getAssignmentOfVariableToZero(variable, true));
@@ -274,6 +224,7 @@ public class CustomInstruction{
       Integer.parseInt(var);
       isNumber = true;
     } catch (NumberFormatException ex) {
+      // ignored, no number
     }
 
     sb.append("(= ");
@@ -414,8 +365,7 @@ public class CustomInstruction{
 
     if (!inputVariables.isEmpty()) {
       String last = inputVariables.get(inputVariables.size()-1);
-      for (int i=0; i<inputVariables.size(); i++) {
-        String variable = inputVariables.get(i);
+      for (String variable : inputVariables) {
         if (outputVariables.isEmpty() && variable.equals(last)) {
           sb.append(getAssignmentOfVariableToZero(map.get(variable), false));
         } else {
@@ -428,8 +378,7 @@ public class CustomInstruction{
 
     if (!outputVariables.isEmpty()) {
       String last = outputVariables.get(outputVariables.size()-1);
-      for (int i=0; i<outputVariables.size(); i++) {
-        String variable = outputVariables.get(i);
+      for (String variable : outputVariables) {
         if (variable.equals(last)) {
           sb.append(" ");
           sb.append(getAssignmentOfVariableToZero(map.get(variable), true));
@@ -703,7 +652,7 @@ public class CustomInstruction{
   private void compareFunctionCallEdge(final CFunctionCallEdge ciEdge, final CFunctionCallEdge aciEdge,
       final Map<String,String> ciVarToAciVar) throws AppliedCustomInstructionParsingFailedException {
 
-    if(ciEdge.getSuccessor() != aciEdge.getSuccessor()) {
+    if (!Objects.equals(ciEdge.getSuccessor(), aciEdge.getSuccessor())) {
       throw new AppliedCustomInstructionParsingFailedException("Applied custom instruction calls different method than custom instruction.");
     }
 

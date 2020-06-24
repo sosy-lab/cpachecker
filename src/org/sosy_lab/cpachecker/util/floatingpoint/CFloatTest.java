@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.floatingpoint;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -28,6 +13,7 @@ import static com.google.common.truth.Truth.assertThat;
 import org.junit.Ignore;
 import org.junit.Test;
 
+@SuppressWarnings("deprecation")
 public class CFloatTest {
 
   /**
@@ -35,7 +21,6 @@ public class CFloatTest {
    * compiled using gcc in c11 compliance.
    */
 
-  @SuppressWarnings("deprecation")
   @Test
   public void infTest() {
     CFloat f_n1 = new CFloatNative("-1", CFloatNativeAPI.FP_TYPE_SINGLE);
@@ -82,7 +67,6 @@ public class CFloatTest {
     assertThat(inf_nf.subtract(inf_f).toString()).isEqualTo("-inf");
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   public void nanTest() {
     CFloat cf_f = new CFloatNative("0.0", CFloatNativeAPI.FP_TYPE_SINGLE);
@@ -117,7 +101,6 @@ public class CFloatTest {
     assertThat(cf_f.add(f_1).toString()).isEqualTo("-nan");
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   public void formatTest() {
     CFloat cf_f = new CFloatNative("71236.262625", CFloatNativeAPI.FP_TYPE_SINGLE);
@@ -169,7 +152,6 @@ public class CFloatTest {
     assertThat(cf_ld.toString()).isEqualTo("inf");
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   public void zeroTest() {
     CFloatNative zero = new CFloatNative("0.0", CFloatNativeAPI.FP_TYPE_DOUBLE);
@@ -190,7 +172,6 @@ public class CFloatTest {
     assertThat(zero.multiply(nZero).toString()).isEqualTo("-0.0");
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   public void additionTest() {
     CFloat ten = new CFloatImpl("10", CFloatNativeAPI.FP_TYPE_DOUBLE);
@@ -215,7 +196,6 @@ public class CFloatTest {
     assertThat(p.toString()).isEqualTo("42.0");
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   public void additionTest_With_Overflowing_Floats() {
     CFloat a = new CFloatNative("1.00000011920928955078125", CFloatNativeAPI.FP_TYPE_SINGLE);
@@ -263,7 +243,6 @@ public class CFloatTest {
         .isEqualTo("1.00000011920928955078125");
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   public void additionTest_With_Overflowing_Doubles() {
     CFloat a =
@@ -299,7 +278,6 @@ public class CFloatTest {
     assertThat(res.toString()).isEqualTo("1.000000000000000444089209850062616169452667236328125");
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   public void multiplicationTest() {
     CFloat a = new CFloatImpl("2", CFloatNativeAPI.FP_TYPE_SINGLE);
@@ -322,7 +300,6 @@ public class CFloatTest {
     assertThat(cRes.toString()).isEqualTo("162.0");
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   public void createTest() {
     CFloat a = new CFloatImpl("12345.0", CFloatNativeAPI.FP_TYPE_DOUBLE);
@@ -378,7 +355,6 @@ public class CFloatTest {
     assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString()).isEqualTo(b.toString());
   }
 
-  @SuppressWarnings({"deprecation"})
   @Test
   public void nativeAdditionTest() {
     CFloat a =
@@ -463,7 +439,6 @@ public class CFloatTest {
         .isEqualTo(0b11111111_11111111_11111111_11111111_11111111_11111111_11111111_11111111L);
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   public void subtractionOverflowTest() {
     CFloatWrapper wrapperA =
@@ -537,7 +512,6 @@ public class CFloatTest {
         .isEqualTo("-12345.0311279296875");
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   public void isZeroTest() {
     CFloat a = new CFloatImpl("0.0", CFloatNativeAPI.FP_TYPE_SINGLE);
@@ -558,7 +532,6 @@ public class CFloatTest {
     assertThat(a.isNegative()).isEqualTo(b.isNegative());
   }
 
-  @SuppressWarnings({"deprecation"})
   @Test
   public void divisionTest() {
     CFloat a = new CFloatImpl("4", CFloatNativeAPI.FP_TYPE_DOUBLE);
@@ -573,7 +546,6 @@ public class CFloatTest {
     assertThat(new CFloatNative(d.copyWrapper(), d.getType()).toString()).isEqualTo("12.5625");
   }
 
-  @SuppressWarnings({"deprecation"})
   @Test
   public void truncTest() {
     CFloat a = new CFloatImpl("-0.25", CFloatNativeAPI.FP_TYPE_SINGLE);
@@ -608,7 +580,6 @@ public class CFloatTest {
     assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString()).isEqualTo(b.toString());
   }
 
-  @SuppressWarnings({"deprecation"})
   @Test
   public void roundTest() {
     CFloat a = new CFloatImpl("2134.5625", CFloatNativeAPI.FP_TYPE_DOUBLE);
@@ -669,7 +640,6 @@ public class CFloatTest {
         .isEqualTo(b.copyWrapper().getMantissa() & b.getNormalizedMantissaMask());
   }
 
-  @SuppressWarnings({"deprecation"})
   @Test
   public void divisionTest_2() {
     CFloat a = new CFloatImpl("625", CFloatNativeAPI.FP_TYPE_DOUBLE);
@@ -729,7 +699,6 @@ public class CFloatTest {
         .isEqualTo(f.copyWrapper().getMantissa() & b.getNormalizedMantissaMask());
   }
 
-  @SuppressWarnings({"deprecation"})
   @Test
   public void divisionTest_3() {
     CFloat one = CFloatNativeAPI.ONE_DOUBLE;
@@ -762,7 +731,6 @@ public class CFloatTest {
     assertThat(new CFloatNative(a.copyWrapper(), a.getType()).toString()).isEqualTo(b.toString());
   }
 
-  @SuppressWarnings({"deprecation"})
   @Test
   public void toStringTest() {
     CFloat a = new CFloatImpl("2784365.34543", CFloatNativeAPI.FP_TYPE_SINGLE);
@@ -773,7 +741,6 @@ public class CFloatTest {
     assertThat(a.toString()).isEqualTo(b.toString());
   }
 
-  @SuppressWarnings({"deprecation"})
   @Test
   public void toStringTest_floatValueWithLeadingZero() {
     CFloat a = new CFloatImpl("0.6", CFloatNativeAPI.FP_TYPE_SINGLE);
@@ -784,7 +751,6 @@ public class CFloatTest {
     assertThat(a.toString()).isEqualTo(b.toString());
   }
 
-  @SuppressWarnings({"deprecation"})
   @Test
   public void toStringTest_negativeFloatValueWithLeadingZero() {
     CFloat a = new CFloatImpl("-0.6", CFloatNativeAPI.FP_TYPE_SINGLE);
@@ -795,7 +761,6 @@ public class CFloatTest {
     assertThat(a.toString()).isEqualTo(b.toString());
   }
 
-  @SuppressWarnings({"deprecation"})
   @Test
   @Ignore // known to fail
   public void toStringTest_doubleValueWithLeadingZero() {
@@ -807,7 +772,6 @@ public class CFloatTest {
     assertThat(a.toString()).isEqualTo(b.toString());
   }
 
-  @SuppressWarnings({"deprecation"})
   @Test
   @Ignore // known to fail
   public void toStringTest_negativeDoubleValueWithLeadingZero() {
@@ -818,7 +782,6 @@ public class CFloatTest {
     assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
     assertThat(a.toString()).isEqualTo(b.toString());
   }
-  @SuppressWarnings({"deprecation"})
   @Test
   @Ignore // known to fail
   public void toStringTest_longDoubleValueWithLeadingZero() {
@@ -830,7 +793,6 @@ public class CFloatTest {
     assertThat(a.toString()).isEqualTo(b.toString());
   }
 
-  @SuppressWarnings({"deprecation"})
   @Test
   @Ignore // known to fail
   public void toStringTest_negativeLongDoubleValueWithLeadingZero() {
@@ -842,7 +804,6 @@ public class CFloatTest {
     assertThat(a.toString()).isEqualTo(b.toString());
   }
 
-  @SuppressWarnings({"deprecation"})
   @Test
   public void toStringTest_floatValueWithZeroExponent() {
     CFloat a = new CFloatImpl("1.000001", CFloatNativeAPI.FP_TYPE_SINGLE);
@@ -853,7 +814,6 @@ public class CFloatTest {
     assertThat(a.toString()).isEqualTo(b.toString());
   }
 
-  @SuppressWarnings({"deprecation"})
   @Test
   public void toStringTest_doubleValueWithZeroExponent() {
     CFloat a = new CFloatImpl("1.000001", CFloatNativeAPI.FP_TYPE_DOUBLE);
@@ -863,7 +823,6 @@ public class CFloatTest {
     assertThat(a.copyWrapper().getMantissa()).isEqualTo(b.copyWrapper().getMantissa());
     assertThat(a.toString()).isEqualTo(b.toString());
   }
-  @SuppressWarnings({"deprecation"})
   @Test
   @Ignore // known to fail
   public void toStringTest_longDoubleValueWithZeroExponent() {
@@ -876,7 +835,6 @@ public class CFloatTest {
   }
 
 
-  @SuppressWarnings({"deprecation"})
   @Test
   public void castFloatToLongDoubleTest() {
     CFloat a = new CFloatImpl("893473.378465376", CFloatNativeAPI.FP_TYPE_SINGLE);
