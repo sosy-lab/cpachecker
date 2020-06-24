@@ -111,6 +111,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     // UNKNOWN = slfm.makeNilElement(heapValueFormulaType);
   }
 
+
   @Override
   public void handleMalloc(CExpression pMemoryLocation, CExpression pSize)
       throws Exception {
@@ -140,6 +141,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     return null;
   }
 
+
   @Override
   public void handleCalloc(CExpression pMemoryLocation, CExpression pNum, CExpression pSize)
       throws Exception {
@@ -149,12 +151,14 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     addToMemory(state.getHeap(), loc, num.multiply(size), true);
   }
 
+
   @Override
   public void handleAlloca(CExpression pMemoryLocation, CExpression pSize) throws Exception {
     Formula loc = getFormulaForExpression(pMemoryLocation, false);
     BigInteger size = getValueForCExpression(pSize, true);
     addToMemory(state.getStack(), loc, size);
   }
+
 
   @Override
   public SLStateError handleFree(CExpression pLocation)
@@ -170,6 +174,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     removeFromMemory(state.getHeap(), loc);
     return null;
   }
+
 
   @Override
   public void handleDeclaration(CVariableDeclaration pDecl) throws Exception {
@@ -219,6 +224,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     }
   }
 
+
   @Override
   public SLStateError handleDereference(CExpression pExp, CExpression pOffset) throws Exception {
     Formula loc = createFormula(pExp, pOffset, true);
@@ -231,6 +237,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     }
     return null;
   }
+
 
   @Override
   public SLStateError
@@ -333,15 +340,18 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
       return fLoc;
     }
     // Semantical check.
+    Formula match = null;
     for (Formula formulaOnHeap : pMemory.keySet()) {
       if (checkEquivalence(fLoc, formulaOnHeap, context)) {
-        if (pVal != null) {
-          pMemory.put(formulaOnHeap, pVal);
-        }
-        return formulaOnHeap;
+        match = formulaOnHeap;
+        break;
       }
     }
-    return null;
+    if (match != null && pVal != null) {
+      pMemory.put(match, pVal);
+    }
+
+    return match;
   }
 
   private void addToMemory(
@@ -487,6 +497,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     updateSSAMap(b.setIndex(name, type, index).build());
   }
 
+
   @Override
   public BigInteger getValueForCExpression(CExpression pExp, boolean usePredContext)
       throws Exception {
@@ -515,6 +526,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     return null;
   }
 
+
   @Override
   public Formula getFormulaForVariableName(String pVariable, boolean usePredContext) {
     PathFormula context = usePredContext ? getPredPathFormula() : state.getPathFormula();
@@ -523,11 +535,13 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     return pfm.makeFormulaForVariable(context, pVariable, type);
   }
 
+
   @Override
   public Formula getFormulaForDeclaration(CSimpleDeclaration pDecl) {
     CType type = pDecl.getType();
     return pfm.makeFormulaForVariable(state.getPathFormula(), pDecl.getQualifiedName(), type);
   }
+
 
   @Override
   public Formula getFormulaForExpression(CExpression pExp, boolean usePredContext)
@@ -536,21 +550,25 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     return pfm.expressionToFormula(context, pExp, edge);
   }
 
+
   @Override
   public PathFormula getPathFormula() {
     return state.getPathFormula();
   }
+
 
   @Override
   public PathFormula getPredPathFormula() {
     return predPathFormula;
   }
 
+
   @SuppressWarnings("deprecation")
   @Override
   public void updateSSAMap(SSAMap pMap) {
     state.setPathFormula(pfm.makeNewPathFormula(state.getPathFormula(), pMap)); // TODO
   }
+
 
   @Override
   public void setContext(SLState pState, CFAEdge pEdge) {
@@ -564,6 +582,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
       logger.log(Level.SEVERE, e.getMessage());
     }
   }
+
 
   @Override
   public void clearContext() {
