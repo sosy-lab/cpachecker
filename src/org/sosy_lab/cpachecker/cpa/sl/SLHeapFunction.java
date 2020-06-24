@@ -28,6 +28,7 @@ public enum SLHeapFunction {
   REALLOC("realloc"),
   CALLOC("calloc"),
   FREE("free"),
+  ALLOCA("alloca"),
   NONE("none");
 
   private final String fctName;

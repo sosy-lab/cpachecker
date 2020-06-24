@@ -20,6 +20,7 @@
 package org.sosy_lab.cpachecker.cpa.sl;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -75,6 +76,14 @@ public interface SLHeapDelegate {
       throws Exception;
 
   /**
+   * Allocates memory on the stack.
+   *
+   * @param pMemoryLocation - CExpression representing the memory location.
+   * @param pSize - size of memory range in bytes.
+   */
+  public void handleAlloca(CExpression pMemoryLocation, CExpression pSize) throws Exception;
+
+  /**
    * Checks if memory leaks occur caused by out of scope variable.
    *
    * @param pVar - The variable, that is no longer in scope.
@@ -90,9 +99,6 @@ public interface SLHeapDelegate {
 
   /**
    *
-   * @param pExp
-   * @return
-   * @throws Exception
    */
   default public SLStateError handleDereference(CExpression pExp) throws Exception {
     return handleDereference(pExp, null);
@@ -105,7 +111,7 @@ public interface SLHeapDelegate {
    *
    */
   public SLStateError
-      handleDereferenceAssignment(CExpression pLHS, CExpression pOffset, CExpression pRHS)
+      handleDereferenceAssignment(CExpression pLHS, CExpression pOffset, CRightHandSide pRHS)
           throws Exception;
 
   public void setContext(SLState pState, CFAEdge pEdge);
