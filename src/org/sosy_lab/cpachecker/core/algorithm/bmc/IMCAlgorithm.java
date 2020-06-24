@@ -65,7 +65,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private boolean interpolation = false;
 
   @Option(secure = true, description = "toggle deriving the interpolants from suffix formulas")
-  private boolean deriveInterpolantFromSuffix = false;
+  private boolean deriveInterpolantFromSuffix = true;
 
   private final ConfigurableProgramAnalysis cpa;
 
