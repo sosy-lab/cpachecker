@@ -66,11 +66,18 @@ public class TestTargetProvider implements Statistics {
     return edges;
   }
 
-  public static int getCurrentNumOfTestTargets() {
+  public static int getTotalNumberOfTestTargets() {
     if (instance == null) {
       return 0;
     }
     return instance.initialTestTargets.size();
+  }
+
+  public static int getNumberOfUncoveredTestTargets() {
+    if (instance == null) {
+      return 0;
+    }
+    return instance.uncoveredTargets.size();
   }
 
   public static Set<CFAEdge> getTestTargets(
