@@ -59,7 +59,6 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
-import org.sosy_lab.java_smt.api.IntegerFormulaManager;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SLFormulaManager;
@@ -73,7 +72,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
   private final PathFormulaManager pfm;
 
   private final FormulaManagerView fm;
-  private final IntegerFormulaManager ifm;
+  // private final IntegerFormulaManager ifm;
   private final SLFormulaManager slfm;
   private final BooleanFormulaManager bfm;
   private final BitvectorFormulaManager bvfm;
@@ -100,7 +99,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     pfm = pPfm;
     machineModel = pMachineModel;
     fm = solver.getFormulaManager();
-    ifm = fm.getIntegerFormulaManager();
+    // ifm = fm.getIntegerFormulaManager();
     slfm = fm.getSLFormulaManager();
     bfm = fm.getBooleanFormulaManager();
     bvfm = fm.getBitvectorFormulaManager();
@@ -419,7 +418,6 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     BooleanFormula formula = slfm.makeEmptyHeap(heapAddressFormulaType, heapValueFormulaType);
     for (Formula f : pHeap.keySet()) {
       Formula target = pHeap.get(f);
-      FormulaType t = fm.getFormulaType(target);
       BooleanFormula ptsTo = slfm.makePointsTo(f, target);
       formula = slfm.makeStar(formula, ptsTo);
     }
