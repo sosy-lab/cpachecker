@@ -74,6 +74,7 @@ configuration-plot:
     - "scripts/configViz.py > ConfigurationPlot.dot"
     - "dot -Tsvg ConfigurationPlot.dot -O"
   dependencies: []
+  needs: []
   artifacts:
     paths:
       - "ConfigurationPlot.dot.svg"
@@ -173,6 +174,7 @@ javascript-e2e-tests:
 check-format-python:
   stage: checks
   dependencies: []
+  needs: []
   image: python
   before_script:
     - pip install black
@@ -182,6 +184,7 @@ check-format-python:
 flake8:
   stage: checks
   dependencies: []
+  needs: []
   image: python
   before_script:
     - pip install flake8-awesome
