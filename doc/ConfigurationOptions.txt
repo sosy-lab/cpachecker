@@ -2786,14 +2786,28 @@ cpa.threading.useClonedFunctions = true
 # only reads and writes its own variables.
 cpa.threading.useLocalAccessLocks = true
 
+# Amount by which to increase the maximum unrolling step bound.
+cpa.timedautomata.encoding = ALWAYS_TRUE
+  enum:     [SHALLOW_SYNC_PATH, ALWAYS_TRUE]
+
+# Initial maximum unrolling steps that will be performed. A value less than
+# zero means infinity
+cpa.timedautomata.initialMaximumStepCount = 50
+
 # Initial maximum length of paths that will be explored.
-cpa.timedautomata.initialMaximumPathLength = 5
+cpa.timedautomata.pathlength.initialMaximumPathLength = 5
 
 # Amount of steps by which to increase the maximum explored path length.
-cpa.timedautomata.pathLengthAdujstmentStep = 1
+cpa.timedautomata.pathlength.pathLengthAdujstmentStep = 1
 
 # Maximum value that the maximum path length bound will be increased to.
-cpa.timedautomata.pathLengthUpperBound = 50
+cpa.timedautomata.pathlength.pathLengthUpperBound = 50
+
+# Amount by which to increase the maximum unrolling step bound.
+cpa.timedautomata.stepCountAdujstmentStep = 0
+
+# Maximum value that the unrolling step bound will reach.
+cpa.timedautomata.stepCountUpperBound = 50
 
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"

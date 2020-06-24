@@ -9,18 +9,25 @@
 package org.sosy_lab.cpachecker.cpa.timedautomata;
 
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class PathLengthState implements AbstractState {
-  private final int pathLength;
+public class TAUnrollingState implements AbstractState {
+  private final BooleanFormula formula;
+  private final int stepCount;
   private boolean reachedBound;
 
-  public PathLengthState(int pPathLength, boolean pReachedBound) {
-    pathLength = pPathLength;
+  public TAUnrollingState(BooleanFormula pFormula, int pStepCount, boolean pReachedBound) {
+    formula = pFormula;
+    stepCount = pStepCount;
     reachedBound = pReachedBound;
   }
 
-  public int getPathLength() {
-    return pathLength;
+  public BooleanFormula getFormula() {
+    return formula;
+  }
+
+  public int getStepCount() {
+    return stepCount;
   }
 
   public boolean didReachBound() {
