@@ -24,7 +24,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
-import java.nio.channels.ClosedByInterruptException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,8 +32,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
 import java.util.logging.Level;
 import javax.management.JMException;
 import javax.xml.transform.TransformerException;
@@ -44,7 +41,6 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
 import org.sosy_lab.common.configuration.AnnotatedValue;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -85,6 +81,7 @@ import org.sosy_lab.cpachecker.exceptions.CounterexampleAnalysisFailed;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionPredicate;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -180,128 +177,9 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private static class AlgorithmContext {
-    private enum REPETITIONMODE {
-      CONTINUE,
-      NOREUSE,
-      REUSEOWNPRECISION,
-      REUSEPREDPRECISION,
-      REUSEOWNANDPREDPRECISION,
-      REUSECPA_OWNPRECISION,
-      REUSECPA_PREDPRECISION,
-      REUSECPA_OWNANDPREDPRECISION;
-    }
 
-    private final Path configFile;
-    private int timeLimit;
-    private final REPETITIONMODE mode;
-    private final Timer timer;
 
-    private Algorithm algorithm;
-    private @Nullable ConfigurableProgramAnalysis cpa;
-    private Configuration config;
-    private ShutdownManager localShutdownManager;
-    private ReachedSet reached;
-    private double progress = -1.0;
 
-    private AlgorithmContext(
-        final AnnotatedValue<Path> pConfigFile, final Timer pTimer) {
-      configFile = pConfigFile.value();
-      timer = pTimer;
-      timeLimit = extractLimitFromAnnotation(pConfigFile.annotation());
-      mode = extractModeFromAnnotation(pConfigFile.annotation());
-    }
-
-    private int extractLimitFromAnnotation(final Optional<String> annotation) {
-      if (annotation.isPresent()) {
-        String str = annotation.orElseThrow();
-        if(str.contains("_")) {
-          try {
-            int limit = Integer.parseInt(str.substring(str.indexOf("_") + 1));
-            if (limit > 0) {
-              return limit;
-            }
-          } catch (NumberFormatException e) {
-            // ignored, invalid annotation
-          }
-        }
-      }
-      return DEFAULT_TIME_LIMIT;
-    }
-
-    private REPETITIONMODE extractModeFromAnnotation(final Optional<String> annotation) {
-      String val = "";
-      if (annotation.isPresent()) {
-        val = annotation.orElseThrow();
-        if (val.contains("_")) {
-          val = val.substring(0, val.indexOf("_"));
-        }
-        val = val.toLowerCase(Locale.ROOT);
-      }
-
-      switch (val) {
-        case "continue":
-          return REPETITIONMODE.CONTINUE;
-        case "reuse-own-precision":
-          return REPETITIONMODE.REUSEOWNPRECISION;
-        case "reuse-pred-precision":
-          return REPETITIONMODE.REUSEPREDPRECISION;
-        case "reuse-precisions":
-          return REPETITIONMODE.REUSEOWNANDPREDPRECISION;
-        case "reuse-cpa-own-precision":
-          return REPETITIONMODE.REUSECPA_OWNPRECISION;
-        case "reuse-cpa-pred-precision":
-          return REPETITIONMODE.REUSECPA_PREDPRECISION;
-        case "reuse-cpa-precisions":
-          return REPETITIONMODE.REUSECPA_OWNANDPREDPRECISION;
-        default:
-          return REPETITIONMODE.NOREUSE;
-      }
-    }
-
-    private boolean reuseCPA() {
-      return mode == REPETITIONMODE.CONTINUE
-          || mode == REPETITIONMODE.REUSECPA_OWNPRECISION
-          || mode == REPETITIONMODE.REUSECPA_PREDPRECISION
-          || mode == REPETITIONMODE.REUSECPA_OWNANDPREDPRECISION;
-    }
-
-    private boolean reusePrecision() {
-      return reuseOwnPrecision() || reusePredecessorPrecision();
-    }
-
-    private boolean reuseOwnPrecision() {
-      return mode == REPETITIONMODE.REUSEOWNPRECISION
-          || mode == REPETITIONMODE.REUSEOWNANDPREDPRECISION
-          || mode == REPETITIONMODE.REUSECPA_OWNPRECISION
-          || mode == REPETITIONMODE.REUSECPA_OWNANDPREDPRECISION;
-    }
-
-    private boolean reusePredecessorPrecision() {
-      return mode == REPETITIONMODE.REUSEPREDPRECISION
-          || mode == REPETITIONMODE.REUSEOWNANDPREDPRECISION
-          || mode == REPETITIONMODE.REUSECPA_PREDPRECISION
-          || mode == REPETITIONMODE.REUSECPA_OWNANDPREDPRECISION;
-    }
-
-    public void resetProgress() {
-      progress = -1.0;
-    }
-
-    public void adaptTimeLimit(final int newTimeLimit) {
-      timeLimit = Math.max(DEFAULT_TIME_LIMIT, newTimeLimit);
-    }
-
-    public void setProgress(final double pProgress) {
-      progress = pProgress;
-    }
-
-    public double getProgress() {
-      return progress;
-    }
-  }
-
-  private static final int DEFAULT_TIME_LIMIT = 10;
 
   @Option(
     secure = true,
@@ -467,16 +345,22 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
           Iterables.cycle(algorithmContexts).iterator();
       AlgorithmContext previousContext = null;
       AlgorithmContext currentContext = null;
+      Configuration currentConfig;
+      Pair<Algorithm, ShutdownManager> currentRun;
+      boolean analysisFinishedWithResult;
 
       while (!shutdownNotifier.shouldShutdown() && algorithmContextCycle.hasNext()) {
 
-        // retrieve context from last execution of current algorithm
-        previousContext = currentContext;
-        currentContext = algorithmContextCycle.next();
-        boolean analysisFinishedWithResult = false;
 
-        currentContext.timer.start();
-        try {
+        analysisFinishedWithResult = false;
+        currentRun = null;
+
+        previousContext = currentContext;
+        // retrieve context from last execution of current algorithm
+        currentContext = algorithmContextCycle.next(); // TODO adapt
+
+        currentContext.startTimer();
+        try { // TODO
 
           if (stats.noOfCurrentAlgorithm == stats.noOfAlgorithms) {
             stats.noOfCurrentAlgorithm = 1;
@@ -494,35 +378,33 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
             stats.noOfCurrentAlgorithm++;
           }
 
-          if (currentContext.config == null) {
-            readConfig(currentContext);
+          currentConfig =
+              currentContext.getAndCreateConfigIfNecessary(globalConfig, logger, shutdownNotifier);
 
-            // if configuration is still null, skip it in this iteration
-            if (currentContext.config == null) {
-              continue;
-            }
-          }
-
-          try {
-            createNextAlgorithm(currentContext, mainFunction, previousContext);
-
-          } catch (CPAException | InterruptedException | InvalidConfigurationException e) {
-            logger.logUserException(
-                Level.WARNING,
-                e,
-                "Problem during creation of analysis " + stats.noOfCurrentAlgorithm);
+          // if configuration is still null, skip it in this iteration
+          if (currentConfig == null) {
+            logger
+                .log(Level.WARNING, "Skip current analysis because no configuration is available.");
             continue;
           }
 
-          if (fReached instanceof HistoryForwardingReachedSet) {
-            ((HistoryForwardingReachedSet) fReached).saveCPA(currentContext.cpa);
+            currentRun = createNextAlgorithm(currentContext, mainFunction, previousContext);
+          if (currentRun == null) {
+            // TODO log message
+
+            continue;
           }
-          fReached.setDelegate(currentContext.reached);
+
+
+          if (fReached instanceof HistoryForwardingReachedSet) {
+            ((HistoryForwardingReachedSet) fReached).saveCPA(currentContext.getCPA());
+          }
+          fReached.setDelegate(currentContext.getReachedSet());
 
           shutdownNotifier.shutdownIfNecessary();
 
           logger.logf(Level.INFO, "Starting analysis %d ...", stats.noOfCurrentAlgorithm);
-          status = currentContext.algorithm.run(currentContext.reached);
+          status = currentRun.getFirst().run(currentContext.getReachedSet());
 
           if (status.wasPropertyChecked() != isPropertyChecked) {
             logger.logf(
@@ -532,7 +414,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
                 isPropertyChecked);
           }
 
-          if (from(currentContext.reached).anyMatch(AbstractStates::isTargetState)
+          if (from(currentContext.getReachedSet()).anyMatch(AbstractStates::isTargetState)
               && status.isPrecise()) {
             analysisFinishedWithResult = true;
             return status;
@@ -543,13 +425,13 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
                 "Analysis %d terminated, but result is unsound.",
                 stats.noOfCurrentAlgorithm);
 
-          } else if (currentContext.reached.hasWaitingState()) {
+          } else if (currentContext.getReachedSet().hasWaitingState()) {
             logger.logf(
                 Level.FINE,
                 "Analysis %d terminated but did not finish: There are still states to be processed.",
                 stats.noOfCurrentAlgorithm);
 
-          } else if (!(from(currentContext.reached).anyMatch(AbstractStates::isTargetState)
+          } else if (!(from(currentContext.getReachedSet()).anyMatch(AbstractStates::isTargetState)
               && !status.isPrecise())) {
             // sound analysis and completely finished, terminate
             analysisFinishedWithResult = true;
@@ -573,9 +455,8 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
           shutdownNotifier.shutdownIfNecessary();
 
         } finally {
-          if (currentContext.config != null) {
-            currentContext.localShutdownManager.getNotifier().unregister(logShutdownListener);
-            currentContext.localShutdownManager.requestShutdown("Analysis terminated.");
+          if (currentRun != null) {
+            tidyUpShutdownManager(currentRun.getSecond());
 
             if (!analysisFinishedWithResult
                 && !shutdownNotifier.shouldShutdown()
@@ -584,13 +465,17 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
               switch (intermediateStatistics) {
                 case PRINT:
                   stats.printIntermediateStatistics(
-                      System.out, Result.UNKNOWN, currentContext.reached);
+                      System.out,
+                      Result.UNKNOWN,
+                      currentContext.getReachedSet());
                   break;
                 case EXECUTE:
                   @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
                   final PrintStream dummyStream = new PrintStream(ByteStreams.nullOutputStream());
                   stats.printIntermediateStatistics(
-                      dummyStream, Result.UNKNOWN, currentContext.reached);
+                      dummyStream,
+                      Result.UNKNOWN,
+                      currentContext.getReachedSet());
                   break;
                 default: // do nothing
               }
@@ -601,30 +486,30 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
               stats.resetSubStatistics();
 
-              if (!currentContext.reuseCPA() && currentContext.cpa != null) {
-                CPAs.closeCpaIfPossible(currentContext.cpa, logger);
+              if (!currentContext.reuseCPA()) {
+                CPAs.closeCpaIfPossible(currentContext.getCPA(), logger);
               }
 
               if (adaptTimeLimits
-                  && currentContext.algorithm instanceof ProgressReportingAlgorithm) {
+                  && currentRun.getFirst() instanceof ProgressReportingAlgorithm) {
                 currentContext.setProgress(
-                    ((ProgressReportingAlgorithm) currentContext.algorithm).getProgress());
+                    ((ProgressReportingAlgorithm) currentRun.getFirst()).getProgress());
               }
 
-              CPAs.closeIfPossible(currentContext.algorithm, logger);
+              CPAs.closeIfPossible(currentRun.getFirst(), logger);
             }
           }
 
-          currentContext.timer.stop();
+          currentContext.stopTimer();
         }
       }
 
       for (AlgorithmContext context : algorithmContexts) {
         if (context != currentContext
             && context != null
-            && context.cpa != null
+            && context.getCPA() != null
             && context.reuseCPA()) {
-          CPAs.closeCpaIfPossible(context.cpa, logger);
+          CPAs.closeCpaIfPossible(context.getCPA(), logger);
         }
       }
 
@@ -648,55 +533,22 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private void readConfig(AlgorithmContext pContext) {
 
-    Path singleConfigFileName = pContext.configFile;
-    ConfigurationBuilder singleConfigBuilder = Configuration.builder();
-    singleConfigBuilder.copyFrom(globalConfig);
-    singleConfigBuilder.clearOption("compositionAlgorithm.configFiles");
-    singleConfigBuilder.clearOption("analysis.useCompositionAnalysis");
+  private void tidyUpShutdownManager(ShutdownManager pShutdownManager) {
+    pShutdownManager.getNotifier().unregister(logShutdownListener);
+    pShutdownManager.requestShutdown("Analysis terminated.");
 
-    try { // read config file
-      singleConfigBuilder.loadFromFile(singleConfigFileName);
-      logger.logf(
-          Level.INFO,
-          "Loading analysis %d from file %s ...",
-          stats.noOfCurrentAlgorithm,
-          singleConfigFileName);
-
-      pContext.config = singleConfigBuilder.build();
-
-    } catch (InvalidConfigurationException e) {
-      logger.logUserException(
-          Level.WARNING,
-          e,
-          "Skipping one analysis because the configuration file "
-              + singleConfigFileName.toString()
-              + " is invalid");
-
-    } catch (IOException e) {
-      String message =
-          "Skipping one analysis because the configuration file "
-              + singleConfigFileName.toString()
-              + " could not be read";
-      if (shutdownNotifier.shouldShutdown() && e instanceof ClosedByInterruptException) {
-        logger.log(Level.WARNING, message);
-      } else {
-        logger.logUserException(Level.WARNING, e, message);
-      }
-    }
   }
 
-  private void createNextAlgorithm(
+  private @Nullable Pair<Algorithm, ShutdownManager> createNextAlgorithm(
       final AlgorithmContext pCurrentContext,
       final CFANode pMainFunction,
-      final AlgorithmContext pPreviousContext)
-      throws InvalidConfigurationException, CPAException, InterruptedException {
+      final AlgorithmContext pPreviousContext) {
 
-    pCurrentContext.localShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
+    ShutdownManager localShutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
     List<ResourceLimit> limits = new ArrayList<>();
     try {
-      limits.add(ProcessCpuTimeLimit.fromNowOn(TimeSpan.ofSeconds(pCurrentContext.timeLimit)));
+      limits.add(ProcessCpuTimeLimit.fromNowOn(TimeSpan.ofSeconds(pCurrentContext.getTimeLimit())));
     } catch (JMException e) {
       logger.log(
           Level.SEVERE,
@@ -704,100 +556,125 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
           e);
     }
 
-    ResourceLimitChecker singleLimits =
-        new ResourceLimitChecker(pCurrentContext.localShutdownManager, limits);
+    ResourceLimitChecker singleLimits = new ResourceLimitChecker(localShutdownManager, limits);
     singleLimits.start();
-    pCurrentContext.localShutdownManager.getNotifier().register(logShutdownListener);
+    localShutdownManager.getNotifier().register(logShutdownListener);
 
-    AggregatedReachedSets aggregateReached = new AggregatedReachedSets();
-    CoreComponentsFactory localCoreComponents =
-        new CoreComponentsFactory(
-            pCurrentContext.config,
-            logger,
-            pCurrentContext.localShutdownManager.getNotifier(),
-            aggregateReached);
+    ConfigurableProgramAnalysis cpa = null;
+    try {
+      AggregatedReachedSets aggregateReached = new AggregatedReachedSets();
+      CoreComponentsFactory localCoreComponents =
+          new CoreComponentsFactory(
+              pCurrentContext.getConfig(),
+              logger,
+              localShutdownManager.getNotifier(),
+              aggregateReached);
 
-    boolean newReachedSet = false;
+      boolean newReachedSet = false;
 
-    if (pCurrentContext.reuseCPA()) {
-      if (pCurrentContext.cpa == null) {
-        // create cpa only once when not initialized, use global limits (i.e. shutdownNotifier)
-        CoreComponentsFactory globalCoreComponents =
-            new CoreComponentsFactory(
-                pCurrentContext.config, logger, shutdownNotifier, aggregateReached);
-        pCurrentContext.cpa = globalCoreComponents.createCPA(cfa, specification);
-        if (!pCurrentContext.reusePrecision()) {
-          // create reached set only once, continue analysis
+      if (pCurrentContext.reuseCPA()) {
+        cpa = pCurrentContext.getCPA();
+        if (cpa == null) {
+          // create cpa only once when not initialized, use global limits (i.e. shutdownNotifier)
+          CoreComponentsFactory globalCoreComponents =
+              new CoreComponentsFactory(
+                  pCurrentContext.getConfig(),
+                  logger,
+                  shutdownNotifier,
+                  aggregateReached);
+          cpa = globalCoreComponents.createCPA(cfa, specification);
+          pCurrentContext.setCPA(cpa);
+          if (!pCurrentContext.reusePrecision()) {
+            // create reached set only once, continue analysis
+            newReachedSet = true;
+          }
+        }
+
+      } else {
+        // do not reuse cpa, and, thus reached set
+        try {
+          cpa = localCoreComponents.createCPA(cfa, specification);
           newReachedSet = true;
+        } catch (InvalidConfigurationException e) {
+          pCurrentContext.setCPA(null);
+          tidyUpShutdownManager(localShutdownManager);
+          return null;
         }
       }
 
-    } else {
-      // do not reuse cpa, and, thus reached set
-      try {
-        pCurrentContext.cpa = localCoreComponents.createCPA(cfa, specification);
-        newReachedSet = true;
-      } catch (InvalidConfigurationException e) {
-        pCurrentContext.cpa = null;
-        throw e;
-      }
-    }
+      if (pCurrentContext.reusePrecision()) {
+        // start with new reached set each time, but precision from previous analysis if possible
+        List<ReachedSet> previousResults = new ArrayList<>(2);
+        FormulaManagerView fmgr = null;
 
-    if (pCurrentContext.reusePrecision()) {
-      // start with new reached set each time, but precision from previous analysis if possible
-      List<ReachedSet> previousResults = new ArrayList<>(2);
-      FormulaManagerView fmgr = null;
-
-      if (pCurrentContext.reuseOwnPrecision()) {
-        previousResults.add(pCurrentContext.reached);
-      }
-
-      if (pCurrentContext.reusePredecessorPrecision() && pPreviousContext != null) {
-        previousResults.add(pPreviousContext.reached);
-        PredicateCPA predCPA = CPAs.retrieveCPA(pPreviousContext.cpa, PredicateCPA.class);
-        if (predCPA != null) {
-          fmgr = predCPA.getSolver().getFormulaManager();
+        if (pCurrentContext.reuseOwnPrecision()) {
+          previousResults.add(pCurrentContext.getReachedSet());
         }
-      }
 
-      pCurrentContext.reached =
-          createInitialReachedSet(
-              pCurrentContext.cpa,
-              pMainFunction,
-              localCoreComponents,
-              previousResults,
-              fmgr,
-              pCurrentContext.config);
-    } else {
-      if (newReachedSet) {
-        pCurrentContext.reached =
+        if (pCurrentContext.reusePredecessorPrecision() && pPreviousContext != null) {
+          previousResults.add(pPreviousContext.getReachedSet());
+          PredicateCPA predCPA = CPAs.retrieveCPA(pPreviousContext.getCPA(), PredicateCPA.class);
+          if (predCPA != null) {
+            fmgr = predCPA.getSolver().getFormulaManager();
+          }
+        }
+
+        pCurrentContext.setReachedSet(
             createInitialReachedSet(
-                pCurrentContext.cpa,
+                pCurrentContext.getCPA(),
                 pMainFunction,
                 localCoreComponents,
-                null,
-                null,
-                pCurrentContext.config);
+                previousResults,
+                fmgr,
+                pCurrentContext.getConfig()));
+      } else {
+        if (newReachedSet) {
+          pCurrentContext.setReachedSet(
+              createInitialReachedSet(
+                  pCurrentContext.getCPA(),
+                  pMainFunction,
+                  localCoreComponents,
+                  null,
+                  null,
+                  pCurrentContext.getConfig()));
+        }
       }
-    }
 
-    // always create algorithm with new "local" shutdown manager
-    pCurrentContext.algorithm =
-        localCoreComponents.createAlgorithm(pCurrentContext.cpa, cfa, specification);
+      // always create algorithm with new "local" shutdown manager
+      Algorithm algorithm =
+          localCoreComponents.createAlgorithm(cpa, cfa, specification);
 
-    if (pCurrentContext.algorithm instanceof StatisticsProvider) {
-      ((StatisticsProvider) pCurrentContext.algorithm).collectStatistics(stats.getSubStatistics());
-    }
+      if (algorithm instanceof CompositionAlgorithm) {
+        // To avoid accidental infinitely-recursive nesting.
+        logger.log(Level.SEVERE, "Component analyses mus not be composition analyses themselves.");
+        tidyUpShutdownManager(localShutdownManager);
+        if (pCurrentContext.reuseCPA() && cpa != null) {
+          CPAs.closeCpaIfPossible(cpa, logger);
+        }
+        return null;
+      }
 
-    if (pCurrentContext.cpa instanceof StatisticsProvider) {
-      ((StatisticsProvider) pCurrentContext.cpa).collectStatistics(stats.getSubStatistics());
-    }
+      if (algorithm instanceof StatisticsProvider) {
+        ((StatisticsProvider) algorithm).collectStatistics(stats.getSubStatistics());
+      }
 
-    if (pCurrentContext.algorithm instanceof CompositionAlgorithm) {
-      // To avoid accidental infinitely-recursive nesting.
-      throw new InvalidConfigurationException(
-          "Component analyses mus not be composition analyses themselves.");
+      if (pCurrentContext.getCPA() instanceof StatisticsProvider) {
+        ((StatisticsProvider) pCurrentContext.getCPA()).collectStatistics(stats.getSubStatistics());
+      }
+
+      return Pair.of(algorithm, localShutdownManager);
+
+    } catch (CPAException | InterruptedException | InvalidConfigurationException e) {
+      tidyUpShutdownManager(localShutdownManager);
+      if (pCurrentContext.reuseCPA() && cpa != null) {
+        CPAs.closeCpaIfPossible(cpa, logger);
+      }
+      logger.logUserException(
+          Level.WARNING,
+          e,
+          "Problem during creation of analysis " + pCurrentContext.configToString());
     }
+    return null;
   }
 
   private ReachedSet createInitialReachedSet(
@@ -960,8 +837,8 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     boolean mayAdapt = true;
 
     for (AlgorithmContext context : pAlgorithmContexts) {
-      totalDistributableTimeBudget += context.timeLimit - DEFAULT_TIME_LIMIT;
-      totalRelativeProgress += (context.getProgress() / context.timeLimit);
+      totalDistributableTimeBudget += context.getTimeLimit() - AlgorithmContext.DEFAULT_TIME_LIMIT;
+      totalRelativeProgress += (context.getProgress() / context.getTimeLimit());
       mayAdapt &= context.getProgress() >= 0;
     }
 
@@ -972,10 +849,10 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     for (AlgorithmContext context : pAlgorithmContexts) {
       if (mayAdapt) {
         context.adaptTimeLimit(
-        DEFAULT_TIME_LIMIT
+            AlgorithmContext.DEFAULT_TIME_LIMIT
             + (int)
                 Math.round(
-                    ((context.getProgress() / context.timeLimit) / totalRelativeProgress)
+                    ((context.getProgress() / context.getTimeLimit()) / totalRelativeProgress)
                         * totalDistributableTimeBudget));
       }
       context.resetProgress();
