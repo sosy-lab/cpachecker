@@ -78,6 +78,11 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private final CFA cfa;
 
+  private PathFormula prefixFormula;
+  private BooleanFormula loopFormula;
+  private BooleanFormula tailFormula;
+  private BooleanFormula suffixFormula;
+
   public IMCAlgorithm(
       Algorithm pAlgorithm,
       ConfigurableProgramAnalysis pCPA,
@@ -114,6 +119,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = predCpa.getPathFormulaManager();
 
+    prefixFormula = pmgr.makeEmptyPathFormula();
+    loopFormula = bfmgr.makeTrue();
+    tailFormula = bfmgr.makeTrue();
+    suffixFormula = bfmgr.makeTrue();
   }
 
   @Override
@@ -143,9 +152,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
 
     logger.log(Level.FINE, "Performing interpolation-based model checking");
-    PathFormula prefixFormula = pmgr.makeEmptyPathFormula();
-    BooleanFormula loopFormula = bfmgr.makeTrue();
-    BooleanFormula tailFormula = bfmgr.makeTrue();
     do {
       int maxLoopIterations = CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
 
@@ -157,21 +163,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       shutdownNotifier.shutdownIfNecessary();
 
       logger.log(Level.FINE, "Collecting prefix, loop, and suffix formulas");
-      if (maxLoopIterations == 1) {
-        prefixFormula = getLoopHeadFormula(pReachedSet, maxLoopIterations - 1);
-      } else if (maxLoopIterations == 2) {
-        loopFormula = getLoopHeadFormula(pReachedSet, maxLoopIterations - 1).getFormula();
-      } else {
-        tailFormula =
-            bfmgr.and(
-                tailFormula,
-                getLoopHeadFormula(pReachedSet, maxLoopIterations - 1).getFormula());
-      }
-      BooleanFormula suffixFormula =
-          bfmgr.and(tailFormula, getErrorFormula(pReachedSet, maxLoopIterations - 1));
-      logger.log(Level.ALL, "The prefix is", prefixFormula.getFormula());
-      logger.log(Level.ALL, "The loop is", loopFormula);
-      logger.log(Level.ALL, "The suffix is", suffixFormula);
+      collectFormulas(pReachedSet, maxLoopIterations);
 
       BooleanFormula reachErrorFormula =
           bfmgr.and(prefixFormula.getFormula(), loopFormula, suffixFormula);
@@ -192,17 +184,31 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         logger.log(Level.FINE, "Computing fixed points by interpolation");
         try (InterpolatingProverEnvironment<?> itpProver =
             solver.newProverEnvironmentWithInterpolation()) {
-          if (reachFixedPointByInterpolation(
-              prefixFormula,
-              loopFormula,
-              suffixFormula,
-              itpProver)) {
+          if (reachFixedPointByInterpolation(itpProver)) {
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
         }
       }
     } while (adjustConditions());
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
+  }
+
+  private void collectFormulas(final ReachedSet pReachedSet, int maxLoopIterations)
+      throws InterruptedException {
+    if (maxLoopIterations == 1) {
+      prefixFormula = getLoopHeadFormula(pReachedSet, maxLoopIterations - 1);
+    } else if (maxLoopIterations == 2) {
+      loopFormula = getLoopHeadFormula(pReachedSet, maxLoopIterations - 1).getFormula();
+    } else {
+      tailFormula =
+          bfmgr.and(
+              tailFormula,
+              getLoopHeadFormula(pReachedSet, maxLoopIterations - 1).getFormula());
+    }
+    suffixFormula = bfmgr.and(tailFormula, getErrorFormula(pReachedSet, maxLoopIterations - 1));
+    logger.log(Level.ALL, "The prefix is", prefixFormula.getFormula());
+    logger.log(Level.ALL, "The loop is", loopFormula);
+    logger.log(Level.ALL, "The suffix is", suffixFormula);
   }
 
   private static boolean isLoopStart(AbstractState as) {
@@ -316,11 +322,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   /**
    * The method to iteratively compute fixed points by interpolation.
    *
-   * @param pPrefixPathFormula the prefix {@code PathFormula} with SSA map
-   *
-   * @param pLoopFormula the loop {@code BooleanFormula}
-   *
-   * @param pSuffixFormula the suffix {@code BooleanFormula}
+   * @param itpProver the prover with interpolation enabled
    *
    * @return {@code true} if a fixed point is reached, i.e., property is proved; {@code false} if
    *         the current over-approximation is unsafe.
@@ -328,23 +330,19 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @throws InterruptedException On shutdown request.
    *
    */
-  private <T> boolean reachFixedPointByInterpolation(
-      PathFormula pPrefixPathFormula,
-      BooleanFormula pLoopFormula,
-      BooleanFormula pSuffixFormula,
-      InterpolatingProverEnvironment<T> itpProver)
+  private <T> boolean reachFixedPointByInterpolation(InterpolatingProverEnvironment<T> itpProver)
       throws InterruptedException, SolverException {
-    BooleanFormula prefixFormula = pPrefixPathFormula.getFormula();
-    SSAMap prefixSsaMap = pPrefixPathFormula.getSsa();
+    BooleanFormula prefixBooleanFormula = prefixFormula.getFormula();
+    SSAMap prefixSsaMap = prefixFormula.getSsa();
     logger.log(Level.ALL, "The SSA map is", prefixSsaMap);
     BooleanFormula currentImage = bfmgr.makeFalse();
-    currentImage = bfmgr.or(currentImage, prefixFormula);
+    currentImage = bfmgr.or(currentImage, prefixBooleanFormula);
 
     List<T> formulaA = new ArrayList<>();
     List<T> formulaB = new ArrayList<>();
-    formulaB.add(itpProver.push(pSuffixFormula));
-    formulaA.add(itpProver.push(pLoopFormula));
-    formulaA.add(itpProver.push(prefixFormula));
+    formulaB.add(itpProver.push(suffixFormula));
+    formulaA.add(itpProver.push(loopFormula));
+    formulaA.add(itpProver.push(prefixBooleanFormula));
 
     while (itpProver.isUnsat()) {
       logger.log(Level.ALL, "The current image is", currentImage);
