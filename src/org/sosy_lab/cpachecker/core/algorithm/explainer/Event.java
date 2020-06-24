@@ -29,32 +29,25 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class Event {
 
-  // TODO: Anstatt "distanceFromTheEnd -> pPath
-  // getDistance public -> es wird dann  das Distance berechnet
-
   private final int line;
-  private final String statement;
+  private final CFAEdge execution;
   private final CFANode node;
-  private final int distanceFromTheEnd;
+  private final List<CFAEdge> path;
 
   public Event(CFAEdge pExecution, List<CFAEdge> pPath) {
     this.line = pExecution.getLineNumber();
-    this.statement = pExecution.getCode();
+    this.execution = pExecution;
     this.node = pExecution.getPredecessor();
-    this.distanceFromTheEnd = getDistanceFromTheEnd(pPath, pExecution);
+    this.path = pPath;
   }
 
-  private int getDistanceFromTheEnd(List<CFAEdge> pPath, CFAEdge pExecution) {
-    for (int i = 0; i < pPath.size(); i++) {
-      if (pPath.get(i) == pExecution) {
-        return (pPath.size() - i);
+  public int getDistanceFromTheEnd() {
+    for (int i = 0; i < path.size(); i++) {
+      if (path.get(i) == execution) {
+        return (path.size() - i);
       }
     }
     return 0;
-  }
-
-  int getDistanceFromTheEnd() {
-    return this.distanceFromTheEnd;
   }
 
   int getLine() {
@@ -62,7 +55,7 @@ public class Event {
   }
 
   String getStatement() {
-    return this.statement;
+    return this.execution.getCode();
   }
 
   CFANode getNode() {
@@ -72,7 +65,7 @@ public class Event {
 
   @Override
   public String toString() {
-    return "Line " + line + ": " + statement;
+    return "Line " + line + ": " + execution.getCode();
   }
 
 

@@ -200,14 +200,14 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
     ControlFLowDistanceMetric metric = new ControlFLowDistanceMetric();
     List<CFAEdge> closestSuccessfulExecution;
     // TODO: Bring that back to life
-    try {
+    /*try {
       // Compare all paths with the CE
       closestSuccessfulExecution = metric.startDistanceMetric(safePaths, targetPath);
       // Generate the closest path to the CE with respect to the distance metric
       closestSuccessfulExecution = metric.startPathGenerator(safePaths, targetPath);
     } catch (SolverException pE) {}
 
-
+*/
     // create a SOLVER
     Solver solver;
     PredicateCPA cpa = null;

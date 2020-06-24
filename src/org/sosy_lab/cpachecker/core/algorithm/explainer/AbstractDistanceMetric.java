@@ -31,14 +31,11 @@ import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -50,21 +47,8 @@ public class AbstractDistanceMetric {
     this.bfmgr = pBfmgr;
   }
 
-  /*private List<ARGState> cleanStates(List<ARGState> states) {
-    List<ARGState> result = new ArrayList<>();
-    for (ARGState state : states) {
-
-    }
-
-
-    return result;
-  }*/
-
   /**
    * Start Method
-   * @param safePaths
-   * @param counterexample
-   * @return
    */
   public List<CFAEdge> startDistanceMetric(List<ARGPath> safePaths, ARGPath counterexample) {
     List<CFAEdge> ce = cleanPath(counterexample);
@@ -74,41 +58,43 @@ public class AbstractDistanceMetric {
       paths.add(cleanPath(safePaths.get(i)));
     }
 
-    List<CFAEdge> closestSuccessfulExecution = comparePaths(ce, paths, counterexample.asStatesList(), safePaths);
-
-    ////ln(AbstractStates.extractLocation(state));
-    ////ln(AbstractStates.extractStateByType(state, AbstractStateWithLocation.class).getLocationNode());
+    List<CFAEdge> closestSuccessfulExecution =
+        comparePaths(ce, paths, counterexample.asStatesList(), safePaths);
 
     return closestSuccessfulExecution;
 
   }
 
   /**
-   *
    * @param ce := Counterexample
    * @param sp := Safe paths
-   * @return
    */
-  private List<CFAEdge> comparePaths(List<CFAEdge> ce, List<List<CFAEdge>> sp, List<ARGState> ce_states, List<ARGPath> pathsStates) {
+  private List<CFAEdge> comparePaths(
+      List<CFAEdge> ce,
+      List<List<CFAEdge>> sp,
+      List<ARGState> ce_states,
+      List<ARGPath> pathsStates) {
     // TODO: Make sure that the safe path list is not empty
     List<Integer> distances = new ArrayList<>();
     int weight_p = 1;
     int weight_unal = 2;
 
+
+    // "sp" here stands for "Safe Path"
     for (int i = 0; i < sp.size(); i++) {
       // Step 1: CREATE ALIGNMENTS
       List<List<CFAEdge>> alignments = createAlignments(ce, sp.get(i));
 
       // Step 2: Get Differences between Predicates
-      // TODO: ERROR: IS i THE RIGHT INDEX ?
-      int predicate_distance = calculatePredicateDistance(alignments, ce_states, pathsStates.get(i).asStatesList());
+      int predicate_distance =
+          calculatePredicateDistance(alignments, ce_states, pathsStates.get(i).asStatesList());
 
       // Step 3: Get Differences between Actions
-      // did that already in the step above ? TODO: Check that
       List<CFAEdge> better_choice = (sp.get(i).size() > ce.size()) ? sp.get(i) : ce;
       int unalignedStates = getNumberOfUnalignedStates(alignments, better_choice);
+
       // calculate the distance
-      int d = weight_p*predicate_distance + weight_unal*unalignedStates;
+      int d = weight_p * predicate_distance + weight_unal * unalignedStates;
       distances.add(d);
     }
 
@@ -133,10 +119,6 @@ public class AbstractDistanceMetric {
       }
     }
 
-    //ln(distances);
-    //ln("INDEX IS " + index);
-    //ln("MINIMUM DISTANCE IS " + min_dist);
-
     return sp.get(index);
   }
 
@@ -147,7 +129,7 @@ public class AbstractDistanceMetric {
     modulo.add(form);
     Set<BooleanFormula> temp;
     Iterator<BooleanFormula> iterator;
-    while(true) {
+    while (true) {
       iterator = modulo.iterator();
 
       if (iterator.hasNext()) {
@@ -208,9 +190,6 @@ public class AbstractDistanceMetric {
 
   /**
    * TODO: Do I really need this as extra Function ?
-   * @param alignments
-   * @param safePath
-   * @return
    */
   private int getNumberOfUnalignedStates(List<List<CFAEdge>> alignments, List<CFAEdge> safePath) {
     return Math.abs((alignments.get(0).size() - safePath.size()));
@@ -218,52 +197,56 @@ public class AbstractDistanceMetric {
 
   /**
    * Calculates the distance of the predicates
-   * @param alignments
-   * @return
    */
-  private int calculatePredicateDistance(List<List<CFAEdge>> alignments, List<ARGState> ce_states, List<ARGState> pathsStates) {
+  private int calculatePredicateDistance(
+      List<List<CFAEdge>> alignments,
+      List<ARGState> ce_states,
+      List<ARGState> pathsStates) {
     assert alignments.get(0).size() == alignments.get(1).size();
     int distance = 0;
     List<List<ARGState>> stateAlignments = new ArrayList<>();
     stateAlignments.add(new ArrayList<>());
     stateAlignments.add(new ArrayList<>());
-    // ** NEW PREDICATE DISTANCE **
-    // First find the eq. ARGStates and put them in a List
-    // FOR THE COUNTEREXAMPLE
 
+    // First find the ARGStates that are mapped to the equivalent CFANode
+    // and put them in a List
 
+    // COMPUTATIONS FOR THE COUNTEREXAMPLE
     for (CFAEdge alignedEdge : alignments.get(0)) {
       for (ARGState ceState : ce_states) {
         if (alignedEdge.getPredecessor()
             .equals(AbstractStates.extractStateByType(ceState, AbstractStateWithLocation.class)
                 .getLocationNode())) {
-          // stateAlignments.get(0).add(pathStates.get(j));
           stateAlignments.get(0).add(ceState);
           break;
         }
       }
     }
 
-    // FOR THE SAFE PATH
+    // COMPUTATIONS FOR THE SAFE PATH
     for (CFAEdge alignedEdge : alignments.get(1)) {
       for (ARGState pathState : pathsStates) {
         if (alignedEdge.getPredecessor()
-        .equals(AbstractStates.extractStateByType(pathState, AbstractStateWithLocation.class)
-            .getLocationNode())) {
+            .equals(AbstractStates.extractStateByType(pathState, AbstractStateWithLocation.class)
+                .getLocationNode())) {
           stateAlignments.get(1).add(pathState);
           break;
         }
       }
     }
 
-    // TODO: HERE THE 2 LISTS IN THE STATE-ALIGNMENTS LIST SHOULD BE OF THE SAME LENGTH !
-    // TODO: assert !
+    assert stateAlignments.get(0).size() == stateAlignments.get(1).size();
+    assert stateAlignments.get(0).size() == alignments.get(0).size();
+    assert stateAlignments.get(1).size() == alignments.get(1).size();
 
     // THE alignments List has only 2 Lists with the same size
     for (int j = 0; j < stateAlignments.get(0).size(); j++) {
-      Set<BooleanFormula> pred_a = splitPredicates(AbstractStates.extractStateByType(stateAlignments.get(0).get(j), PredicateAbstractState.class).getAbstractionFormula().asFormula());
-      Set<BooleanFormula> pred_b = splitPredicates(AbstractStates.extractStateByType(stateAlignments.get(1).get(j), PredicateAbstractState.class).getAbstractionFormula().asFormula());
-
+      Set<BooleanFormula> pred_a = splitPredicates(AbstractStates
+          .extractStateByType(stateAlignments.get(0).get(j), PredicateAbstractState.class)
+          .getAbstractionFormula().asFormula());
+      Set<BooleanFormula> pred_b = splitPredicates(AbstractStates
+          .extractStateByType(stateAlignments.get(1).get(j), PredicateAbstractState.class)
+          .getAbstractionFormula().asFormula());
 
       for (BooleanFormula predicate : pred_a) {
         if (!pred_b.contains(predicate)) {
@@ -276,19 +259,11 @@ public class AbstractDistanceMetric {
         }
       }
     }
-    //ln("DISTANCE IS: " + distance);
     return distance;
   }
 
-  /*private void createAlignments(ARGState state) {
-    AbstractStates.extractStateByType(state, AbstractStateWithLocation.class).getLocationNode();
-  }*/
-
   /**
    * Create Alignments between CE and Safe Path
-   * @param ce
-   * @param safePath
-   * @return
    */
   private List<List<CFAEdge>> createAlignments(List<CFAEdge> ce, List<CFAEdge> safePath) {
     // TODO: What about Loops ?
@@ -303,8 +278,10 @@ public class AbstractDistanceMetric {
     // MAKING ALIGNMENTS
     for (int i = 0; i < ce_1.size(); i++) {
       for (int j = 0; j < safePath_1.size(); j++) {
-        if (ce_1.get(i).getPredecessor().getNodeNumber() == safePath_1.get(j).getPredecessor().getNodeNumber()) {
-          if (ce_1.get(i).getSuccessor().getNodeNumber() != safePath_1.get(j).getSuccessor().getNodeNumber()) {
+        if (ce_1.get(i).getPredecessor().getNodeNumber() == safePath_1.get(j).getPredecessor()
+            .getNodeNumber()) {
+          if (ce_1.get(i).getSuccessor().getNodeNumber() != safePath_1.get(j).getSuccessor()
+              .getNodeNumber()) {
             ce_2.add(ce_1.get(i));
             safePath_2.add(safePath_1.get(j));
             // and delete them
@@ -316,7 +293,6 @@ public class AbstractDistanceMetric {
         }
       }
     }
-    //ln();
 
     List<List<CFAEdge>> result = new ArrayList<>();
     result.add(ce_2);
@@ -326,9 +302,10 @@ public class AbstractDistanceMetric {
   }
 
 
-  /** TODO: Code Duplicate with CF_Distance_Metric
+  /**
+   * TODO: Code Duplicate with CF_Distance_Metric
    * Filter the path to stop at the __Verifier__assert Node
-   * @param path
+   *
    * @return the new - clean of useless nodes - Path
    */
   private List<CFAEdge> cleanPath(ARGPath path) {
