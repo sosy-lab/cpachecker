@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm;
+package org.sosy_lab.cpachecker.core.algorithm.composition;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -58,6 +58,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
+import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.ProgressReportingAlgorithm;
 import org.sosy_lab.cpachecker.core.defaults.precision.ConfigurablePrecision;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -92,10 +94,10 @@ import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 
-@Options(prefix = "interleavedAlgorithm")
-public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
+@Options(prefix = "compositionAlgorithm")
+public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
-  private class InterleavedAlgorithmStatistics implements Statistics {
+  private class CompositionAlgorithmStatistics implements Statistics {
     private int noOfAlgorithms;
     private final Timer totalTimer;
     private final Collection<Statistics> currentSubStat;
@@ -103,7 +105,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
     private int noOfCurrentAlgorithm;
     private int noOfRounds = 1;
 
-    public InterleavedAlgorithmStatistics() {
+    public CompositionAlgorithmStatistics() {
       noOfAlgorithms = configFiles.size();
       totalTimer = new Timer();
       currentSubStat = new ArrayList<>();
@@ -115,7 +117,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
 
     @Override
     public @Nullable String getName() {
-      return "Interleaved Algorithm";
+      return "Composition Algorithm";
     }
 
     private void printIntermediateStatistics(
@@ -332,7 +334,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
   @Option(
     secure = true,
     description =
-        "print the statistics of each component of the interleaved algorithm"
+    "print the statistics of each component of the composition algorithm"
             + " directly after the component's computation is finished"
   )
   private  INTERMEDIATESTATSOPT intermediateStatistics = INTERMEDIATESTATSOPT.NONE;
@@ -340,7 +342,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
   @Option(
     secure = true,
     description =
-        "let each analysis part of the interleaved algorithm write output files"
+    "let each analysis part of the composition algorithm write output files"
             + " and not only the last one that is executed"
   )
   private boolean writeIntermediateOutputFiles = true;
@@ -358,7 +360,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
   @Option(
     secure = true,
     name = "propertyChecked",
-    description = "Enable when interleaved algorithm is used to check a specification"
+    description = "Enable when composition algorithm is used to check a specification"
   )
   private boolean isPropertyChecked = true;
 
@@ -376,9 +378,9 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
   private final ShutdownRequestListener logShutdownListener;
   private final ShutdownNotifier shutdownNotifier;
   private final Specification specification;
-  private final InterleavedAlgorithmStatistics stats;
+  private final CompositionAlgorithmStatistics stats;
 
-  public InterleavedAlgorithm(
+  public CompositionAlgorithm(
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
@@ -389,14 +391,14 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
 
     if (configFiles.isEmpty()) {
       throw new InvalidConfigurationException(
-          "Need at least one configuration for interleaved algorithm!");
+          "Need at least one configuration for composition algorithm!");
     }
     cfa = pCfa;
     globalConfig = pConfig;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     specification = checkNotNull(pSpecification);
-    stats = new InterleavedAlgorithmStatistics();
+    stats = new CompositionAlgorithmStatistics();
 
     logShutdownListener =
         reason ->
@@ -432,11 +434,11 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
   public AlgorithmStatus run(ReachedSet pReached) throws CPAException, InterruptedException {
     checkArgument(
         pReached instanceof ForwardingReachedSet,
-        "InterleavedAlgorithm needs ForwardingReachedSet");
+        "CompositionAlgorithm needs ForwardingReachedSet");
     checkArgument(
         pReached.size() <= 1,
-        "InterleavedAlgorithm does not support being called several times with the same reached set");
-    checkArgument(!pReached.isEmpty(), "InterleavedAlgorithm needs non-empty reached set");
+        "CompositionAlgorithm does not support being called several times with the same reached set");
+    checkArgument(!pReached.isEmpty(), "CompositionAlgorithm needs non-empty reached set");
 
     stats.totalTimer.start();
     try {
@@ -480,7 +482,8 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
             stats.noOfCurrentAlgorithm = 1;
             stats.noOfRounds++;
             logger.log(
-                Level.INFO, "InterleavedAlgorithm switches to the next interleave iteration...");
+                Level.INFO,
+                "CompositionAlgorithm switches to the next iteration...");
             if (adaptTimeLimits) {
               computeAndSetNewTimeLimits(algorithmContexts);
             }
@@ -524,7 +527,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
           if (status.wasPropertyChecked() != isPropertyChecked) {
             logger.logf(
                 Level.WARNING,
-                "Component algorithm and interleaved algorithm do not agree on property checking (%b, %b).",
+                "Component algorithm and composition algorithm do not agree on property checking (%b, %b).",
                 status.wasPropertyChecked(),
                 isPropertyChecked);
           }
@@ -625,7 +628,7 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
         }
       }
 
-      logger.log(Level.INFO, "Shutdown of interleaved algorithm, analysis not finished yet.");
+      logger.log(Level.INFO, "Shutdown of composition algorithm, analysis not finished yet.");
       return status;
 
     } catch (RuntimeException e2) {
@@ -650,8 +653,8 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
     Path singleConfigFileName = pContext.configFile;
     ConfigurationBuilder singleConfigBuilder = Configuration.builder();
     singleConfigBuilder.copyFrom(globalConfig);
-    singleConfigBuilder.clearOption("interleavedAlgorithm.configFiles");
-    singleConfigBuilder.clearOption("analysis.useInterleavedAnalyses");
+    singleConfigBuilder.clearOption("compositionAlgorithm.configFiles");
+    singleConfigBuilder.clearOption("analysis.useCompositionAnalysis");
 
     try { // read config file
       singleConfigBuilder.loadFromFile(singleConfigFileName);
@@ -790,10 +793,10 @@ public class InterleavedAlgorithm implements Algorithm, StatisticsProvider {
       ((StatisticsProvider) pCurrentContext.cpa).collectStatistics(stats.getSubStatistics());
     }
 
-    if (pCurrentContext.algorithm instanceof InterleavedAlgorithm) {
+    if (pCurrentContext.algorithm instanceof CompositionAlgorithm) {
       // To avoid accidental infinitely-recursive nesting.
       throw new InvalidConfigurationException(
-          "Interleaved analysis parts may not be interleaved analyses theirselves.");
+          "Component analyses mus not be composition analyses themselves.");
     }
   }
 
