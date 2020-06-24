@@ -21,6 +21,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -50,9 +51,9 @@ public class AlgorithmContext {
   private ReachedSet reached;
   private double progress = -1.0;
 
-  public AlgorithmContext(final AnnotatedValue<Path> pConfigFile, final Timer pTimer) {
+  public AlgorithmContext(final AnnotatedValue<Path> pConfigFile) {
     configFile = pConfigFile.value();
-    timer = pTimer;
+    timer = new Timer();
     timeLimit = extractLimitFromAnnotation(pConfigFile.annotation());
     mode = extractModeFromAnnotation(pConfigFile.annotation());
   }
@@ -216,6 +217,10 @@ public class AlgorithmContext {
 
   public void stopTimer() {
     timer.stop();
+  }
+
+  public TimeSpan getTotalTimeSpent() {
+    return timer.getSumTime();
   }
 
 }

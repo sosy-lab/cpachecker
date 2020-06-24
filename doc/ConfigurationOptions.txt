@@ -149,6 +149,7 @@ solver.z3.usePhantomReferences = false
 
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
+# SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -831,7 +832,7 @@ cinvariants.simplify = false
 # If adaptTimeLimits is set and all configurations support progress reports,
 # in each cycle the time limits per configuration are newly calculated based
 # on the progress
-compositionAlgorithm.adaptTimeLimits = false
+compositionAlgorithm.circular.adaptTimeLimits = false
 
 # where to store initial condition, when generated
 compositionAlgorithm.condition.file = "AssumptionAutomaton.txt"
@@ -858,6 +859,10 @@ compositionAlgorithm.intermediateStatistics = NONE
 
 # Enable when composition algorithm is used to check a specification
 compositionAlgorithm.propertyChecked = true
+
+# Qualified name for class which implements strategy that decides how to
+# compose given analyses
+compositionAlgorithm.strategy = no default value
 
 # let each analysis part of the composition algorithm write output files and
 # not only the last one that is executed

@@ -30,7 +30,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 import javax.management.JMException;
@@ -95,21 +94,13 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
   private class CompositionAlgorithmStatistics implements Statistics {
-    private int noOfAlgorithms;
     private final Timer totalTimer;
     private final Collection<Statistics> currentSubStat;
-    private final List<Timer> timersPerAlgorithm;
-    private int noOfCurrentAlgorithm;
-    private int noOfRounds = 1;
+    private int noOfRuns = 0;
 
     public CompositionAlgorithmStatistics() {
-      noOfAlgorithms = configFiles.size();
       totalTimer = new Timer();
       currentSubStat = new ArrayList<>();
-      timersPerAlgorithm = new ArrayList<>(noOfAlgorithms);
-      for (int i = 0; i < noOfAlgorithms; i++) {
-        timersPerAlgorithm.add(new Timer());
-      }
     }
 
     @Override
@@ -121,7 +112,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
         PrintStream pOut, Result pResult, ReachedSet pReached) {
 
       String text =
-          "Statistics for " + noOfRounds + ". execution of algorithm " + noOfCurrentAlgorithm;
+          "Statistics for " + noOfRuns + ". execution of composition algorithm";
       pOut.println(text);
       pOut.println(Strings.repeat("=", text.length()));
 
@@ -132,13 +123,10 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
 
-      pOut.println("Number of algorithms provided:    " + noOfAlgorithms);
-      pOut.println("Maximal number of repetitions:        " + noOfRounds);
+      pOut.println("Number of algorithms provided:    " + configFiles.size());
+      pOut.println("Number of composite analysis runs:        " + noOfRuns);
       pOut.println("Total time: " + totalTimer);
       pOut.println("Times per algorithm: ");
-      for (int i = 0; i < noOfAlgorithms; i++) {
-        pOut.println("Algorithm " + (i + 1) + ": " + timersPerAlgorithm.get(i));
-      }
 
       printSubStatistics(pOut, pResult, pReached);
     }
@@ -147,14 +135,10 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
         PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
       pOut.println();
       pOut.println(
-          "Statistics for the analysis part in round "
-              + noOfRounds
+          "Statistics for the component analysis in run "
+              + noOfRuns
               + " of "
-              + getName()
-              + " using algorithm "
-              + noOfCurrentAlgorithm
-              + " of "
-              + noOfAlgorithms);
+              + getName());
 
          for (Statistics s : currentSubStat) {
           StatisticsUtils.printStatistics(s, pOut, logger, pResult, pReached);
@@ -177,10 +161,6 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-
-
-
-
   @Option(
     secure = true,
     required = true,
@@ -196,14 +176,6 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
   )
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<AnnotatedValue<Path>> configFiles;
-
-  @Option(
-    secure = true,
-    description =
-        "If adaptTimeLimits is set and all configurations support progress reports, "
-            + "in each cycle the time limits per configuration are newly calculated based on the progress"
-  )
-  private boolean adaptTimeLimits = false;
 
   public enum INTERMEDIATESTATSOPT {
     EXECUTE, NONE, PRINT
@@ -250,6 +222,8 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path initialCondition = Paths.get("AssumptionAutomaton.txt");
 
+  private AlgorithmCompositionStrategy selectionStrategy; // TODO initialize, set up
+
   private final CFA cfa;
   private final Configuration globalConfig;
   private final LogManager logger;
@@ -278,12 +252,16 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     specification = checkNotNull(pSpecification);
     stats = new CompositionAlgorithmStatistics();
 
+    selectionStrategy =
+        AlgorithmCompositionStrategyBuilder
+            .buildStrategy(pConfig, logger, shutdownNotifier, cfa, specification);
+
     logShutdownListener =
         reason ->
             logger.logf(
                 Level.WARNING,
-                "Shutdown of analysis %d requested (%s).",
-                stats.noOfCurrentAlgorithm,
+            "Shutdown of analysis run %d requested (%s).",
+            stats.noOfRuns,
                 reason);
     if (generateInitialFalseCondition) {
       generateInitialFalseCondition();
@@ -326,13 +304,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       Iterable<CFANode> initialNodes = AbstractStates.extractLocations(pReached.getFirstState());
       CFANode mainFunction = Iterables.getOnlyElement(initialNodes);
 
-      List<AlgorithmContext> algorithmContexts = new ArrayList<>(configFiles.size());
-      for (int i = 0; i < configFiles.size(); i++) {
-        AnnotatedValue<Path> singleConfigFile = configFiles.get(i);
-        Timer timer = stats.timersPerAlgorithm.get(i);
-
-        algorithmContexts.add(new AlgorithmContext(singleConfigFile, timer));
-      }
+      selectionStrategy.initializeAlgorithmContexts(configFiles);
 
       AlgorithmStatus status;
       if (isPropertyChecked) {
@@ -341,43 +313,27 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
         status = AlgorithmStatus.NO_PROPERTY_CHECKED;
       }
 
-      Iterator<AlgorithmContext> algorithmContextCycle =
-          Iterables.cycle(algorithmContexts).iterator();
       AlgorithmContext previousContext = null;
       AlgorithmContext currentContext = null;
       Configuration currentConfig;
       Pair<Algorithm, ShutdownManager> currentRun;
       boolean analysisFinishedWithResult;
 
-      while (!shutdownNotifier.shouldShutdown() && algorithmContextCycle.hasNext()) {
-
+      while (!shutdownNotifier.shouldShutdown() && selectionStrategy.hasNextAlgorithm()) {
 
         analysisFinishedWithResult = false;
         currentRun = null;
 
         previousContext = currentContext;
         // retrieve context from last execution of current algorithm
-        currentContext = algorithmContextCycle.next(); // TODO adapt
+        currentContext = selectionStrategy.getNextAlgorithm();
+        currentContext.resetProgress();
+
+        Preconditions.checkState(currentContext != null, "Retrieved invalid algorithm context.");
 
         currentContext.startTimer();
-        try { // TODO
-
-          if (stats.noOfCurrentAlgorithm == stats.noOfAlgorithms) {
-            stats.noOfCurrentAlgorithm = 1;
-            stats.noOfRounds++;
-            logger.log(
-                Level.INFO,
-                "CompositionAlgorithm switches to the next iteration...");
-            if (adaptTimeLimits) {
-              computeAndSetNewTimeLimits(algorithmContexts);
-            }
-            for (AlgorithmContext tempContext : algorithmContexts) {
-              tempContext.resetProgress();
-            }
-          } else {
-            stats.noOfCurrentAlgorithm++;
-          }
-
+        stats.noOfRuns++;
+        try {
           currentConfig =
               currentContext.getAndCreateConfigIfNecessary(globalConfig, logger, shutdownNotifier);
 
@@ -390,8 +346,8 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
             currentRun = createNextAlgorithm(currentContext, mainFunction, previousContext);
           if (currentRun == null) {
-            // TODO log message
-
+            logger
+                .log(Level.WARNING, "Skip current analysis because analysis could not be set up.");
             continue;
           }
 
@@ -402,8 +358,11 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
           fReached.setDelegate(currentContext.getReachedSet());
 
           shutdownNotifier.shutdownIfNecessary();
-
-          logger.logf(Level.INFO, "Starting analysis %d ...", stats.noOfCurrentAlgorithm);
+          logger.logf(
+              Level.INFO,
+              "Starting component analysis %s in run %d ...",
+              currentContext.configToString(),
+              stats.noOfRuns);
           status = currentRun.getFirst().run(currentContext.getReachedSet());
 
           if (status.wasPropertyChecked() != isPropertyChecked) {
@@ -422,14 +381,16 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
           if (status.wasPropertyChecked() && !status.isSound()) {
             logger.logf(
                 Level.FINE,
-                "Analysis %d terminated, but result is unsound.",
-                stats.noOfCurrentAlgorithm);
+                "Analysis %s in run %d terminated, but result is unsound.",
+                currentContext.configToString(),
+                stats.noOfRuns);
 
           } else if (currentContext.getReachedSet().hasWaitingState()) {
             logger.logf(
                 Level.FINE,
-                "Analysis %d terminated but did not finish: There are still states to be processed.",
-                stats.noOfCurrentAlgorithm);
+                "Analysis %s in run %d terminated but did not finish: There are still states to be processed.",
+                currentContext.configToString(),
+                stats.noOfRuns);
 
           } else if (!(from(currentContext.getReachedSet()).anyMatch(AbstractStates::isTargetState)
               && !status.isPrecise())) {
@@ -446,11 +407,23 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
           }
 
           logger.logUserException(
-              Level.WARNING, e, "Analysis " + stats.noOfCurrentAlgorithm + " not completed.");
+              Level.WARNING,
+              e,
+              "Analysis "
+                  + currentContext.configToString()
+                  + "in run "
+                  + stats.noOfRuns
+                  + " not completed.");
 
         } catch (InterruptedException e) {
           logger.logUserException(
-              Level.FINE, e, "Analysis " + stats.noOfCurrentAlgorithm + " stopped.");
+              Level.FINE,
+              e,
+              "Analysis "
+                  + currentContext.configToString()
+                  + "in run "
+                  + stats.noOfRuns
+                  + " stopped.");
 
           shutdownNotifier.shutdownIfNecessary();
 
@@ -460,7 +433,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
             if (!analysisFinishedWithResult
                 && !shutdownNotifier.shouldShutdown()
-                && algorithmContextCycle.hasNext()) {
+                && selectionStrategy.hasNextAlgorithm()) {
 
               switch (intermediateStatistics) {
                 case PRINT:
@@ -490,8 +463,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
                 CPAs.closeCpaIfPossible(currentContext.getCPA(), logger);
               }
 
-              if (adaptTimeLimits
-                  && currentRun.getFirst() instanceof ProgressReportingAlgorithm) {
+              if (currentRun.getFirst() instanceof ProgressReportingAlgorithm) {
                 currentContext.setProgress(
                     ((ProgressReportingAlgorithm) currentRun.getFirst()).getProgress());
               }
@@ -504,14 +476,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
         }
       }
 
-      for (AlgorithmContext context : algorithmContexts) {
-        if (context != currentContext
-            && context != null
-            && context.getCPA() != null
-            && context.reuseCPA()) {
-          CPAs.closeCpaIfPossible(context.getCPA(), logger);
-        }
-      }
+      selectionStrategy.finalCleanUp(currentContext);
 
       logger.log(Level.INFO, "Shutdown of composition algorithm, analysis not finished yet.");
       return status;
@@ -594,6 +559,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
         // do not reuse cpa, and, thus reached set
         try {
           cpa = localCoreComponents.createCPA(cfa, specification);
+          pCurrentContext.setCPA(cpa);
           newReachedSet = true;
         } catch (InvalidConfigurationException e) {
           pCurrentContext.setCPA(null);
@@ -621,7 +587,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
         pCurrentContext.setReachedSet(
             createInitialReachedSet(
-                pCurrentContext.getCPA(),
+                cpa,
                 pMainFunction,
                 localCoreComponents,
                 previousResults,
@@ -631,7 +597,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
         if (newReachedSet) {
           pCurrentContext.setReachedSet(
               createInitialReachedSet(
-                  pCurrentContext.getCPA(),
+                  cpa,
                   pMainFunction,
                   localCoreComponents,
                   null,
@@ -831,36 +797,16 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     return trackedVariables;
   }
 
-  private void computeAndSetNewTimeLimits(final List<AlgorithmContext> pAlgorithmContexts) {
-    long totalDistributableTimeBudget = 0;
-    double totalRelativeProgress = 0.0;
-    boolean mayAdapt = true;
 
-    for (AlgorithmContext context : pAlgorithmContexts) {
-      totalDistributableTimeBudget += context.getTimeLimit() - AlgorithmContext.DEFAULT_TIME_LIMIT;
-      totalRelativeProgress += (context.getProgress() / context.getTimeLimit());
-      mayAdapt &= context.getProgress() >= 0;
-    }
-
-    if (totalDistributableTimeBudget <= pAlgorithmContexts.size() || totalRelativeProgress <= 0) {
-      mayAdapt = false;
-    }
-
-    for (AlgorithmContext context : pAlgorithmContexts) {
-      if (mayAdapt) {
-        context.adaptTimeLimit(
-            AlgorithmContext.DEFAULT_TIME_LIMIT
-            + (int)
-                Math.round(
-                    ((context.getProgress() / context.getTimeLimit()) / totalRelativeProgress)
-                        * totalDistributableTimeBudget));
-      }
-      context.resetProgress();
-    }
-  }
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(stats);
+    if (selectionStrategy instanceof StatisticsProvider) {
+      ((StatisticsProvider) selectionStrategy).collectStatistics(pStatsCollection);
+    }
+    if (selectionStrategy instanceof Statistics) {
+      pStatsCollection.add((Statistics) selectionStrategy);
+    }
   }
 }
