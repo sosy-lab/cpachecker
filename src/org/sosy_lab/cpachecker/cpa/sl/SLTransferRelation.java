@@ -50,13 +50,14 @@ import org.sosy_lab.cpachecker.cpa.sl.SLState.SLStateError;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
 
 public class SLTransferRelation
     extends ForwardingTransferRelation<Collection<SLState>, SLState, Precision> {
 
   private final LogManager logger;
 
-
+  private final Solver solver;
   private final SLVisitor slVisitor;
   private final SLHeapDelegate memDel;
 
@@ -66,6 +67,7 @@ public class SLTransferRelation
       PathFormulaManager pPfm,
       MachineModel pMachineModel) {
     logger = pLogger;
+    solver = pSolver;
     memDel = new SLHeapDelegateImpl(logger, pSolver, pMachineModel, pPfm);
     slVisitor = new SLVisitor(memDel);
   }
@@ -119,8 +121,19 @@ public class SLTransferRelation
     } catch (Exception e) {
       logger.log(Level.SEVERE, e.getMessage());
     }
-    return ImmutableList
-        .of(state);
+
+    ProverEnvironment prover = solver.newProverEnvironment();
+    boolean unsat = false;
+    try {
+      prover.addConstraint(state.getPathFormula().getFormula());
+      unsat = prover.isUnsat();
+    } catch (Exception e) {
+      logger.log(Level.SEVERE, e.getMessage());
+    }
+    if(unsat) {
+      return Collections.emptyList();
+    }
+    return ImmutableList.of(state);
   }
 
   @Override
@@ -188,8 +201,7 @@ public class SLTransferRelation
 
   @Override
   protected Set<SLState> handleBlankEdge(BlankEdge pCfaEdge) {
-    return Collections
-        .singleton(state);
+    return Collections.singleton(state);
   }
 
 

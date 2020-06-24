@@ -117,6 +117,13 @@ public class SLVisitor implements CAstNodeVisitor<SLStateError, Exception> {
   public SLStateError visit(CFunctionCallExpression pIastFunctionCallExpression) throws Exception {
     CIdExpression fctExp = (CIdExpression) pIastFunctionCallExpression.getFunctionNameExpression();
     final List<CExpression> params = pIastFunctionCallExpression.getParameterExpressions();
+    for (CExpression param : params) {
+      SLStateError error = param.accept(this);
+      if (error != null) {
+        return error;
+      }
+    }
+
     switch (SLHeapFunction.get(fctExp.getName())) {
       case MALLOC:
         if (curLHS == null) {
@@ -140,6 +147,10 @@ public class SLVisitor implements CAstNodeVisitor<SLStateError, Exception> {
 
       case FREE:
         return heapDelegate.handleFree(params.get(0));
+
+      case ALLOCA:
+        heapDelegate.handleAlloca(curLHS, params.get(0));
+        break;
       default:
         break;
     }
@@ -218,7 +229,7 @@ public class SLVisitor implements CAstNodeVisitor<SLStateError, Exception> {
     }
     CExpression arrayExp = pIastArraySubscriptExpression.getArrayExpression();
     if (curLHS == pIastArraySubscriptExpression) {
-      return heapDelegate.handleDereferenceAssignment(arrayExp, subscriptExp, (CExpression) curRHS);
+      return heapDelegate.handleDereferenceAssignment(arrayExp, subscriptExp, curRHS);
     } else {
       return heapDelegate.handleDereference(arrayExp, subscriptExp);
     }
@@ -229,7 +240,7 @@ public class SLVisitor implements CAstNodeVisitor<SLStateError, Exception> {
     if (pIastFieldReference.isPointerDereference()) {
       CExpression e = pIastFieldReference.getFieldOwner();
       if (curLHS == pIastFieldReference) {
-        return heapDelegate.handleDereferenceAssignment(e, null, (CExpression) curRHS);
+        return heapDelegate.handleDereferenceAssignment(e, null, curRHS);
       } else {
         return heapDelegate.handleDereference(e);
       }
@@ -261,7 +272,7 @@ public class SLVisitor implements CAstNodeVisitor<SLStateError, Exception> {
 
 
     if (curLHS == pPointerExpression) { // is assignment?
-      return heapDelegate.handleDereferenceAssignment(operand, null, (CExpression) curRHS);
+      return heapDelegate.handleDereferenceAssignment(operand, null, curRHS);
     } else {
       return heapDelegate.handleDereference(operand, null);
     }

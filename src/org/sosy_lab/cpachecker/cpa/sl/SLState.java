@@ -195,6 +195,14 @@ public class SLState implements AbstractState, Targetable, AbstractQueryableStat
     return inScopePtrs;
   }
 
+  public void addInScopePtr(CSimpleDeclaration pPtr) {
+    inScopePtrs.add(pPtr);
+  }
+
+  public void removeInScopePtr(CSimpleDeclaration pPtr) {
+    inScopePtrs.remove(pPtr);
+  }
+
   public void setPathFormula(PathFormula pFormula) {
     pathFormula = pFormula;
   }
