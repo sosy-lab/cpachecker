@@ -28,6 +28,8 @@ variables:
       - "ConfigurationChecks.html"
       - "hs_err_pid*.log"
     when: always
+    reports:
+      junit: "output/configuration-checks/TESTS-TestSuites.xml"
 
 configuration-checks:jdk-11:
   <<: *configuration-checks
@@ -220,9 +222,15 @@ deploy-docker:
 # No coverage is computed for CPAchecker
 unit-tests:jdk-11:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
+  artifacts:
+    reports:
+      junit: "output/junit/TESTS-TestSuites.xml"
 
 unit-tests:jdk-14:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
+  artifacts:
+    reports:
+      junit: "output/junit/TESTS-TestSuites.xml"
 
 
 # Disable some checks because they are not used for CPAchecker
