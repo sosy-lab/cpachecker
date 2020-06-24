@@ -21,6 +21,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -66,6 +67,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   @Option(secure = true, description = "toggle deriving the interpolants from suffix formulas")
   private boolean deriveInterpolantFromSuffix = true;
+
+  @Option(secure = true, description = "toggle collecting formulas by traversing ARG")
+  private boolean collectFormulasByTraversingARG = false;
 
   private final ConfigurableProgramAnalysis cpa;
 
@@ -193,7 +197,39 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
 
+  /**
+   * A helper method to collect formulas needed by IMC algorithm. Four formulas are collected:
+   * prefix, loop, tail, and suffix. Prefix formula describes all paths from the initial state to
+   * the first LH. Loop formula describes all paths from the first LH to the second LH. Tail formula
+   * describes all paths from the second LH to the second last LH. Suffix formula is the conjunction
+   * of the tail formula and the block formulas at target states. The original implementation relies
+   * on {@link CFANode} to detect syntactic loops, but it turns out that abstraction states are not
+   * always at syntactic LHs. Therefore, a new implementation which directly traverses ARG is under
+   * development.
+   *
+   * @param pReachedSet Abstract Reachability Graph
+   *
+   * @param maxLoopIterations The upper bound of unrolling times
+   *
+   * @throws InterruptedException On shutdown request.
+   *
+   */
   private void collectFormulas(final ReachedSet pReachedSet, int maxLoopIterations)
+      throws InterruptedException {
+    if (collectFormulasByTraversingARG) {
+      collectFormulasByTraversingARG(pReachedSet, maxLoopIterations);
+    } else {
+      collectFormulasBySyntacticLoop(pReachedSet, maxLoopIterations);
+    }
+  }
+
+  private void collectFormulasByTraversingARG(final ReachedSet pReachedSet, int maxLoopIterations) {
+    logger.log(Level.ALL, pReachedSet);
+    logger.log(Level.ALL, maxLoopIterations);
+
+  }
+
+  private void collectFormulasBySyntacticLoop(final ReachedSet pReachedSet, int maxLoopIterations)
       throws InterruptedException {
     if (maxLoopIterations == 1) {
       prefixFormula = getLoopHeadFormula(pReachedSet, maxLoopIterations - 1);
@@ -209,24 +245,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(Level.ALL, "The prefix is", prefixFormula.getFormula());
     logger.log(Level.ALL, "The loop is", loopFormula);
     logger.log(Level.ALL, "The suffix is", suffixFormula);
-  }
-
-  private static boolean isLoopStart(AbstractState as) {
-    return AbstractStates.extractStateByType(as, LocationState.class)
-        .getLocationNode()
-        .isLoopStart();
-  }
-
-  private static FluentIterable<AbstractState> getLoopStart(final ReachedSet pReachedSet) {
-    return from(pReachedSet).filter(IMCAlgorithm::isLoopStart);
-  }
-
-  private static FluentIterable<AbstractState> getLoopHeadEncounterState(
-      final FluentIterable<AbstractState> pFluentIterable,
-      final int numEncounterLoopHead) {
-    return pFluentIterable.filter(
-        e -> AbstractStates.extractStateByType(e, LoopBoundState.class).getDeepestIteration()
-            - 1 == numEncounterLoopHead);
   }
 
   /**
@@ -265,6 +283,24 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
                   .getBlockFormula());
     }
     return formulaToLoopHeads;
+  }
+
+  private static boolean isLoopStart(AbstractState as) {
+    return AbstractStates.extractStateByType(as, LocationState.class)
+        .getLocationNode()
+        .isLoopStart();
+  }
+
+  private static FluentIterable<AbstractState> getLoopStart(final ReachedSet pReachedSet) {
+    return from(pReachedSet).filter(IMCAlgorithm::isLoopStart);
+  }
+
+  private static FluentIterable<AbstractState> getLoopHeadEncounterState(
+      final FluentIterable<AbstractState> pFluentIterable,
+      final int numEncounterLoopHead) {
+    return pFluentIterable.filter(
+        e -> AbstractStates.extractStateByType(e, LoopBoundState.class).getDeepestIteration()
+            - 1 == numEncounterLoopHead);
   }
 
   /**
