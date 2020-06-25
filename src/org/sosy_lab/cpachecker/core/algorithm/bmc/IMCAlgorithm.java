@@ -82,11 +82,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private final CFA cfa;
 
-  private PathFormula prefixFormula;
-  private BooleanFormula loopFormula;
-  private BooleanFormula tailFormula;
-  private BooleanFormula suffixFormula;
-
   public IMCAlgorithm(
       Algorithm pAlgorithm,
       ConfigurableProgramAnalysis pCPA,
@@ -122,11 +117,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     pmgr = predCpa.getPathFormulaManager();
-
-    prefixFormula = pmgr.makeEmptyPathFormula();
-    loopFormula = bfmgr.makeTrue();
-    tailFormula = bfmgr.makeTrue();
-    suffixFormula = bfmgr.makeTrue();
   }
 
   @Override
@@ -167,10 +157,16 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       shutdownNotifier.shutdownIfNecessary();
 
       logger.log(Level.FINE, "Collecting prefix, loop, and suffix formulas");
-      collectFormulas(pReachedSet, maxLoopIterations);
+      PartitionedFormulas formulas = collectFormulas(pReachedSet, maxLoopIterations);
+      logger.log(Level.ALL, "The prefix is", formulas.prefixFormula.getFormula());
+      logger.log(Level.ALL, "The loop is", formulas.loopFormula);
+      logger.log(Level.ALL, "The suffix is", formulas.suffixFormula);
 
       BooleanFormula reachErrorFormula =
-          bfmgr.and(prefixFormula.getFormula(), loopFormula, suffixFormula);
+          bfmgr.and(
+              formulas.prefixFormula.getFormula(),
+              formulas.loopFormula,
+              formulas.suffixFormula);
       if (maxLoopIterations == 1) {
         reachErrorFormula = bfmgr.or(reachErrorFormula, getErrorFormula(pReachedSet, -1));
       }
@@ -188,7 +184,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         logger.log(Level.FINE, "Computing fixed points by interpolation");
         try (InterpolatingProverEnvironment<?> itpProver =
             solver.newProverEnvironmentWithInterpolation()) {
-          if (reachFixedPointByInterpolation(itpProver)) {
+          if (reachFixedPointByInterpolation(itpProver, formulas)) {
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
         }
@@ -198,14 +194,18 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   /**
-   * A helper method to collect formulas needed by IMC algorithm. Four formulas are collected:
-   * prefix, loop, tail, and suffix. Prefix formula describes all paths from the initial state to
-   * the first LH. Loop formula describes all paths from the first LH to the second LH. Tail formula
-   * describes all paths from the second LH to the second last LH. Suffix formula is the conjunction
-   * of the tail formula and the block formulas at target states. The original implementation relies
-   * on {@link CFANode} to detect syntactic loops, but it turns out that abstraction states are not
-   * always at syntactic LHs. Therefore, a new implementation which directly traverses ARG is under
-   * development.
+   * A helper method to collect formulas needed by IMC algorithm. Three formulas are collected:
+   * prefix, loop, and suffix. Prefix formula describes all paths from the initial state to the
+   * first LH. Loop formula describes all paths from the first LH to the second LH. Suffix formula
+   * is the conjunction of the all paths from the second LH to the second last LH and the block
+   * formulas at target states. The second LH to the second last LH was stored in a formula called
+   * tail formula before, in order to save the effort to compute the conjunction in every unrolling
+   * iteration. However, to make the code easier to understand, the tail formula is not stored in
+   * {@link PartitionedFormulas} now. Considering the conjunction is only a syntactic operation, and
+   * the unrolling numbers are typically not large, this trade-off between efficiency and
+   * readability should be acceptable. The original implementation relies on {@link CFANode} to
+   * detect syntactic loops, but it turns out that abstraction states are not always at syntactic
+   * LHs. Therefore, a new implementation which directly traverses ARG is under development.
    *
    * @param pReachedSet Abstract Reachability Graph
    *
@@ -214,37 +214,44 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @throws InterruptedException On shutdown request.
    *
    */
-  private void collectFormulas(final ReachedSet pReachedSet, int maxLoopIterations)
+  private PartitionedFormulas collectFormulas(final ReachedSet pReachedSet, int maxLoopIterations)
       throws InterruptedException {
     if (collectFormulasByTraversingARG) {
-      collectFormulasByTraversingARG(pReachedSet, maxLoopIterations);
+      return collectFormulasByTraversingARG(pReachedSet, maxLoopIterations);
     } else {
-      collectFormulasBySyntacticLoop(pReachedSet, maxLoopIterations);
+      return collectFormulasBySyntacticLoop(pReachedSet, maxLoopIterations);
     }
   }
 
-  private void collectFormulasByTraversingARG(final ReachedSet pReachedSet, int maxLoopIterations) {
+  private PartitionedFormulas
+      collectFormulasByTraversingARG(final ReachedSet pReachedSet, int maxLoopIterations) {
     logger.log(Level.ALL, pReachedSet);
     logger.log(Level.ALL, maxLoopIterations);
-
+    return new PartitionedFormulas(
+        pmgr.makeEmptyPathFormula(),
+        bfmgr.makeTrue(),
+        bfmgr.makeTrue());
   }
 
-  private void collectFormulasBySyntacticLoop(final ReachedSet pReachedSet, int maxLoopIterations)
+  private PartitionedFormulas collectFormulasBySyntacticLoop(
+      final ReachedSet pReachedSet,
+      int maxLoopIterations)
       throws InterruptedException {
-    if (maxLoopIterations == 1) {
-      prefixFormula = getLoopHeadFormula(pReachedSet, maxLoopIterations - 1);
-    } else if (maxLoopIterations == 2) {
-      loopFormula = getLoopHeadFormula(pReachedSet, maxLoopIterations - 1).getFormula();
-    } else {
-      tailFormula =
-          bfmgr.and(
-              tailFormula,
-              getLoopHeadFormula(pReachedSet, maxLoopIterations - 1).getFormula());
+    BooleanFormula loopFormula = bfmgr.makeTrue();
+    BooleanFormula tailFormula = bfmgr.makeTrue();
+    BooleanFormula suffixFormula = bfmgr.makeTrue();
+
+    PathFormula prefixFormula = getLoopHeadFormula(pReachedSet, 0);
+    if (maxLoopIterations > 1) {
+      loopFormula = getLoopHeadFormula(pReachedSet, 1).getFormula();
+    }
+    if (maxLoopIterations > 2) {
+      for (int k = 2; k < maxLoopIterations; ++k) {
+        tailFormula = bfmgr.and(tailFormula, getLoopHeadFormula(pReachedSet, k).getFormula());
+      }
     }
     suffixFormula = bfmgr.and(tailFormula, getErrorFormula(pReachedSet, maxLoopIterations - 1));
-    logger.log(Level.ALL, "The prefix is", prefixFormula.getFormula());
-    logger.log(Level.ALL, "The loop is", loopFormula);
-    logger.log(Level.ALL, "The suffix is", suffixFormula);
+    return new PartitionedFormulas(prefixFormula, loopFormula, suffixFormula);
   }
 
   /**
@@ -366,18 +373,20 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @throws InterruptedException On shutdown request.
    *
    */
-  private <T> boolean reachFixedPointByInterpolation(InterpolatingProverEnvironment<T> itpProver)
+  private <T> boolean reachFixedPointByInterpolation(
+      InterpolatingProverEnvironment<T> itpProver,
+      PartitionedFormulas formulas)
       throws InterruptedException, SolverException {
-    BooleanFormula prefixBooleanFormula = prefixFormula.getFormula();
-    SSAMap prefixSsaMap = prefixFormula.getSsa();
+    BooleanFormula prefixBooleanFormula = formulas.prefixFormula.getFormula();
+    SSAMap prefixSsaMap = formulas.prefixFormula.getSsa();
     logger.log(Level.ALL, "The SSA map is", prefixSsaMap);
     BooleanFormula currentImage = bfmgr.makeFalse();
     currentImage = bfmgr.or(currentImage, prefixBooleanFormula);
 
     List<T> formulaA = new ArrayList<>();
     List<T> formulaB = new ArrayList<>();
-    formulaB.add(itpProver.push(suffixFormula));
-    formulaA.add(itpProver.push(loopFormula));
+    formulaB.add(itpProver.push(formulas.suffixFormula));
+    formulaA.add(itpProver.push(formulas.loopFormula));
     formulaA.add(itpProver.push(prefixBooleanFormula));
 
     while (itpProver.isUnsat()) {
@@ -403,5 +412,24 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   protected CandidateGenerator getCandidateInvariants() {
     throw new AssertionError(
         "Class IMCAlgorithm does not support this function. It should not be called.");
+  }
+
+  /**
+   * This class wraps three formulas used in IMC algorithm in order to avoid long parameter lists.
+   */
+  private static class PartitionedFormulas {
+
+    private final PathFormula prefixFormula;
+    private final BooleanFormula loopFormula;
+    private final BooleanFormula suffixFormula;
+
+    public PartitionedFormulas(
+        PathFormula pPrefixFormula,
+        BooleanFormula pLoopFormula,
+        BooleanFormula pSuffixFormula) {
+      prefixFormula = pPrefixFormula;
+      loopFormula = pLoopFormula;
+      suffixFormula = pSuffixFormula;
+    }
   }
 }
