@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public interface TAFormulaEncoding {
-  BooleanFormula getInitialFormula(CFANode initialNode);
+  BooleanFormula getInitialFormula(CFANode initialNode, int stepCount);
 
   Collection<BooleanFormula> buildSuccessorFormulas(
       BooleanFormula predecessor, int stepCount, CFAEdge edge);

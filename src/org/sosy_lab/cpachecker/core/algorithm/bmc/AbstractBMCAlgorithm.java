@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
+import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
@@ -107,6 +108,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.targetreachability.ReachabilityState;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetCPA;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetTransferRelation;
+import org.sosy_lab.cpachecker.cpa.timedautomata.TAUnrollingCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -337,12 +339,19 @@ abstract class AbstractBMCAlgorithm
     }
     invariantGeneratorHeadStart = invariantGeneratorHeadStartStrategy.createFor(this);
 
-    @SuppressWarnings("resource")
-    PredicateCPA predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, BMCAlgorithm.class);
-    solver = predCpa.getSolver();
+    if (pCFA.getLanguage() == Language.CTA) {
+      @SuppressWarnings("resource")
+      TAUnrollingCPA taCpa = CPAs.retrieveCPAOrFail(cpa, TAUnrollingCPA.class, BMCAlgorithm.class);
+      solver = taCpa.getSolver();
+      pmgr = null;
+    } else {
+      @SuppressWarnings("resource")
+      PredicateCPA predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, BMCAlgorithm.class);
+      solver = predCpa.getSolver();
+      pmgr = predCpa.getPathFormulaManager();
+    }
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
-    pmgr = predCpa.getPathFormulaManager();
     abstractionStrategy = new PredicateAbstractionStrategy(cfa.getVarClassification());
   }
 
@@ -390,6 +399,7 @@ abstract class AbstractBMCAlgorithm
         if (from(reachedSet)
             .filter(HAS_ABSTRACT_PARENT)
             .filter(not(IS_TARGET_STATE)) // target states may be abstraction states
+            .filter(instanceOf(PredicateAbstractState.class))
             .anyMatch(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)) {
 
           logger.log(Level.WARNING, "BMC algorithm does not work with abstractions. Could not check for satisfiability!");

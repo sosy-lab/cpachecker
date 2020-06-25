@@ -93,7 +93,7 @@ public class TAUnrollingCPA
   @Override
   public AbstractState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    var initialFormula = encoding.getInitialFormula(pNode);
+    var initialFormula = encoding.getInitialFormula(pNode, 0);
     return new TAUnrollingState(initialFormula, 0, maximumStepCount <= 0);
   }
 
@@ -149,5 +149,9 @@ public class TAUnrollingCPA
     }
 
     blockedByBound.forEach(pReachedSet::reAddToWaitlist);
+  }
+
+  public Solver getSolver() {
+    return solver;
   }
 }

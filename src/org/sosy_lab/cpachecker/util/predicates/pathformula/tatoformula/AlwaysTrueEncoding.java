@@ -24,7 +24,7 @@ public class AlwaysTrueEncoding implements TAFormulaEncoding {
   }
 
   @Override
-  public BooleanFormula getInitialFormula(CFANode pInitialNode) {
+  public BooleanFormula getInitialFormula(CFANode pInitialNode, int pStepCount) {
     return fmgr.getBooleanFormulaManager().makeTrue();
   }
 

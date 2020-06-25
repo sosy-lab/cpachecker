@@ -19,7 +19,8 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 public class TAFormulaEncodingProvider {
   private static enum Encoding {
     SHALLOW_SYNC_PATH,
-    ALWAYS_TRUE
+    ALWAYS_TRUE,
+    TRANSITION_RELATION
   }
 
   @Option(
@@ -35,6 +36,8 @@ public class TAFormulaEncodingProvider {
     switch (encoding) {
       case SHALLOW_SYNC_PATH:
         return new ShallowSyncPathEncoding(pFmgr, pCFA);
+      case TRANSITION_RELATION:
+        return new TransitionRelationEncoding(pFmgr, pCFA);
       case ALWAYS_TRUE:
         return new AlwaysTrueEncoding(pFmgr);
       default:

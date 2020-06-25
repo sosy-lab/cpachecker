@@ -83,6 +83,7 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.timedautomata.TAUnrollingCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -159,12 +160,19 @@ public class BMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     config = pConfig;
     cfa = pCFA;
 
-    @SuppressWarnings("resource")
-    PredicateCPA predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, BMCAlgorithm.class);
-    solver = predCpa.getSolver();
+    if (pCFA.getLanguage() == Language.CTA) {
+      @SuppressWarnings("resource")
+      TAUnrollingCPA taCpa = CPAs.retrieveCPAOrFail(cpa, TAUnrollingCPA.class, BMCAlgorithm.class);
+      solver = taCpa.getSolver();
+      pmgr = null;
+    } else {
+      @SuppressWarnings("resource")
+      PredicateCPA predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, BMCAlgorithm.class);
+      solver = predCpa.getSolver();
+      pmgr = predCpa.getPathFormulaManager();
+    }
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
-    pmgr = predCpa.getPathFormulaManager();
     MachineModel machineModel = pCFA.getMachineModel();
 
     assignmentToPathAllocator = new AssignmentToPathAllocator(config, shutdownNotifier, pLogger, machineModel);

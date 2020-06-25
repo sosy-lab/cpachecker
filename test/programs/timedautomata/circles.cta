@@ -1,0 +1,99 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+// 
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+// 
+// SPDX-License-Identifier: Apache-2.0
+
+MODULE Process
+{
+  INPUT
+    request:       SYNC;
+    act:           SYNC;
+    
+  INITIAL s0;
+  AUTOMATON Process
+  {
+    STATE s0
+    {
+      TRANS
+      {
+        SYNC request;
+        GOTO s1;
+      }
+    }
+    STATE s1
+    {
+      TRANS
+      {
+        SYNC act;
+        GOTO s2;
+      }
+    }
+    STATE s2(ERROR)
+    {
+      TRANS
+      {
+        SYNC request;
+        GOTO s3;
+      }
+    }
+    STATE s3
+    {
+      TRANS
+      {
+        SYNC act;
+        GOTO s0;
+      }
+    }
+  }
+}
+MODULE Master
+{
+  INPUT
+    req_1:   SYNC;
+    req_2:   SYNC;
+    act_1:   SYNC;
+    act_2:   SYNC;
+
+  INITIAL s_1;
+  AUTOMATON Master
+  {
+    STATE s_1
+    {
+      TRANS { SYNC act_1; GOTO s_1; }
+      TRANS { SYNC req_2; GOTO s_2; }
+    }
+    STATE s_2
+    {
+      TRANS { SYNC act_2; GOTO s_2; }
+      TRANS { SYNC req_1; GOTO s_1; }
+    }
+  }
+}
+MODULE ROOT System
+{
+  LOCAL
+    req_1:   SYNC;
+    req_2:   SYNC;
+    act_1:   SYNC;
+    act_2:   SYNC;
+  INST m FROM Master WITH
+  {
+    req_1   AS req_1;
+    req_2   AS req_2;
+    act_1   AS act_1;
+    act_2   AS act_2;
+  }
+  INST process_1 FROM Process WITH
+  {
+    request   AS req_1;
+    act       AS act_1;
+  }
+  INST process_2 FROM Process WITH
+  {
+    request   AS req_2;
+    act       AS act_2;
+  }
+}
