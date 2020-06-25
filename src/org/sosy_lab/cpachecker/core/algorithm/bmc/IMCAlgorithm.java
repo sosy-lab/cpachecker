@@ -237,11 +237,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       final ReachedSet pReachedSet,
       int maxLoopIterations)
       throws InterruptedException {
+    PathFormula prefixFormula = getLoopHeadFormula(pReachedSet, 0);
     BooleanFormula loopFormula = bfmgr.makeTrue();
     BooleanFormula tailFormula = bfmgr.makeTrue();
-    BooleanFormula suffixFormula = bfmgr.makeTrue();
-
-    PathFormula prefixFormula = getLoopHeadFormula(pReachedSet, 0);
     if (maxLoopIterations > 1) {
       loopFormula = getLoopHeadFormula(pReachedSet, 1).getFormula();
     }
@@ -250,7 +248,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         tailFormula = bfmgr.and(tailFormula, getLoopHeadFormula(pReachedSet, k).getFormula());
       }
     }
-    suffixFormula = bfmgr.and(tailFormula, getErrorFormula(pReachedSet, maxLoopIterations - 1));
+    BooleanFormula suffixFormula =
+        bfmgr.and(tailFormula, getErrorFormula(pReachedSet, maxLoopIterations - 1));
     return new PartitionedFormulas(prefixFormula, loopFormula, suffixFormula);
   }
 
