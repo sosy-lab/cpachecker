@@ -1,26 +1,11 @@
-/*
- * CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2016  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -58,7 +43,7 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
  * <p>A dependence graph G = (V, E) is a directed graph. His nodes V are CFA edges of the program.
  * Given two nodes i and j, if j is a dependence of i, a directed edge (j, i) from j to i is in E.
  */
-public class DependenceGraph implements Serializable {
+public final class DependenceGraph implements Serializable {
 
   private static final long serialVersionUID = -6721168496945584302L;
 
@@ -208,7 +193,7 @@ public class DependenceGraph implements Serializable {
     return Objects.hash(nodes, adjacencyMatrix);
   }
 
-  private static class ImmutableNodeMap implements Serializable {
+  private static final class ImmutableNodeMap implements Serializable {
 
     private static final long serialVersionUID = 4311993821719514171L;
 
@@ -267,7 +252,7 @@ public class DependenceGraph implements Serializable {
     }
   }
 
-  static class NodeMap {
+  static final class NodeMap {
     private Table<CFAEdge, Optional<MemoryLocation>, DGNode> nodesForEdges =
         HashBasedTable.create();
     private Set<DGNode> specialNodes = new HashSet<>();

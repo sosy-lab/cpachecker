@@ -1,3 +1,11 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # This is a Docker image for running the Javascript end-to-end tests.
 # It should be pushed to registry.gitlab.com/sosy-lab/software/cpachecker/test
 # and will be used by CI as declared in .gitlab-ci.yml.

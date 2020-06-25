@@ -1,4 +1,15 @@
 <?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="2 GB" cpuCores="1">
 
@@ -9,11 +20,11 @@
 
   <requiredfiles>../programs/cpalien/cpalien-headers.h</requiredfiles>
 
-  <tasks name="cpalien-okay">
+  <tasks name="cpalien">
     <includesfile>../programs/cpalien/cpalien.set</includesfile>
     <option name="-smg"/>
     <option name="-preprocess" />
-    <propertyfile>../programs/cpalien/ALL.prp</propertyfile>
+    <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 
   <tasks name="HeapMemSafety">
@@ -31,7 +42,7 @@
   <tasks name="ExtAllocMemSafety">
     <includesfile>../programs/smg_External_Allocation_Test/ExtAlloc.set</includesfile>
     <option name="-smg"/>
-    <propertyfile>../programs/smg_External_Allocation_Test/ALL.prp</propertyfile>
+    <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
   </tasks>
 
   <columns>

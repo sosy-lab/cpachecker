@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.arg.counterexamples;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -103,6 +88,14 @@ public final class CEXExportOptions {
   private PathTemplate errorPathAutomatonGraphmlFile =
       PathTemplate.ofFormatString("Counterexample.%d.graphml");
 
+  @Option(
+      secure = true,
+      name = "dot",
+      description = "export counterexample to file as Dot/Graphviz automaton")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate errorPathAutomatonDotFile =
+      PathTemplate.ofFormatString("Counterexample.%d.dot");
+
   @Option(secure = true, description = "Export extended witness in addition to regular witness")
   private boolean exportExtendedWitness = false;
 
@@ -117,6 +110,14 @@ public final class CEXExportOptions {
   @Option(secure = true, name = "harness", description = "export test harness to file as code")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate testHarnessFile = PathTemplate.ofFormatString("Counterexample.%d.harness.c");
+
+  @Option(
+      secure = true,
+      name = "exportTestCase",
+      description = "export test case that represents the counterexample. Further options can be"
+          + " set with options 'testcase.*'"
+  )
+  private boolean exportTest = false;
 
   @Option(
       secure = true,
@@ -148,7 +149,8 @@ public final class CEXExportOptions {
         && getSourceFile() == null
         && getTestHarnessFile() == null
         && getWitnessFile() == null
-        && getExtendedWitnessFile() == null;
+        && getExtendedWitnessFile() == null
+        && !exportTest;
   }
 
   @Nullable
@@ -216,11 +218,23 @@ public final class CEXExportOptions {
   }
 
   @Nullable
+  PathTemplate getWitnessDotFile() {
+    if (!exportErrorPath) {
+      return null;
+    }
+    return exportWitness ? errorPathAutomatonDotFile : null;
+  }
+
+  @Nullable
   PathTemplate getExtendedWitnessFile() {
     if (!exportErrorPath) {
       return null;
     }
     return exportExtendedWitness ? extendedWitnessFile : null;
+  }
+
+  boolean exportToTest() {
+    return exportTest;
   }
 
   public boolean dumpAllFoundErrorPaths() {

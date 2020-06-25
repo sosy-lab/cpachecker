@@ -1,29 +1,15 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkState;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.HashMap;
@@ -33,6 +19,7 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -43,9 +30,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 
 final class SMGJoinSubSMGs {
   static private boolean performChecks = false;
-  static public void performChecks(boolean pValue) {
-    performChecks = pValue;
-  }
 
   private SMGJoinStatus status;
   private boolean defined = false;
@@ -106,8 +90,17 @@ final class SMGJoinSubSMGs {
 
     int prevLevel = pLevelMap.get(SMGJoinLevel.valueOf(pObj1.getLevel(), pObj2.getLevel()));
 
-    for (SMGEdgeHasValue hvIn1 : inputSMG1.getHVEdges(filterOnSMG1)) {
-      filterOnSMG2.filterAtOffset(hvIn1.getOffset());
+    SMGHasValueEdges hvEdgesIn1 = inputSMG1.getHVEdges(filterOnSMG1);
+    SMGHasValueEdges hvEdgesIn2 = inputSMG2.getHVEdges(filterOnSMG2);
+    boolean edgesAreAdded = false;
+    if (!hvEdgesIn1.isEmpty() && hvEdgesIn1.equals(hvEdgesIn2) && pObj1.equals(pNewObject)) {
+      // Fast copy edges
+      destSMG.addHasValueEdges(hvEdgesIn1);
+      edgesAreAdded = true;
+    }
+
+    for (SMGEdgeHasValue hvIn1 : hvEdgesIn1) {
+      filterOnSMG2.filterAtOffset(hvIn1.getOffset()).filterWithoutSize();
       SMGEdgeHasValue hvIn2 = Iterables.getOnlyElement(inputSMG2.getHVEdges(filterOnSMG2));
 
       int value1Level = getValueLevel(pObj1, hvIn1.getValue(), inputSMG1);
@@ -125,8 +118,24 @@ final class SMGJoinSubSMGs {
         return;
       }
 
-      SMGJoinValues joinValues = new SMGJoinValues(status, inputSMG1, inputSMG2, destSMG,
-          mapping1, mapping2, levelMap, hvIn1.getValue(), hvIn2.getValue(), lDiff, identicalInputSmg, value1Level, value2Level, prevLevel, pSmgState1, pSmgState2);
+      SMGJoinValues joinValues =
+          new SMGJoinValues(
+              status,
+              inputSMG1,
+              inputSMG2,
+              destSMG,
+              mapping1,
+              mapping2,
+              levelMap,
+              hvIn1.getValue(),
+              hvIn2.getValue(),
+              lDiff,
+              identicalInputSmg,
+              value1Level,
+              value2Level,
+              prevLevel,
+              pSmgState1,
+              pSmgState2);
       status = joinValues.getStatus();
 
       /* If the join of the values is not defined and can't be
@@ -143,23 +152,24 @@ final class SMGJoinSubSMGs {
 
       if (joinValues.isDefined()) {
 
-        SMGEdgeHasValue newHV;
         if (hvIn1.getObject().equals(pNewObject)
             && joinValues.getValue().equals(hvIn1.getValue())) {
-          newHV = hvIn1;
+          if (!edgesAreAdded) {
+            destSMG.addHasValueEdge(hvIn1);
+          }
         } else {
-          newHV =
+          SMGEdgeHasValue newHV =
               new SMGEdgeHasValue(
-                  hvIn1.getSizeInBits(),
-                  hvIn1.getOffset(),
-                  pNewObject,
-                  joinValues.getValue());
+                  hvIn1.getSizeInBits(), hvIn1.getOffset(), pNewObject, joinValues.getValue());
+          if (edgesAreAdded) {
+            destSMG.removeHasValueEdge(hvIn1);
+          }
+          destSMG.addHasValueEdge(newHV);
         }
 
-        destSMG.addHasValueEdge(newHV);
-
-        if(joinValues.subSmgHasAbstractionsCandidates()) {
-          valueAbstractionCandidates.put(joinValues.getValue(), joinValues.getAbstractionCandidates());
+        if (joinValues.subSmgHasAbstractionsCandidates()) {
+          valueAbstractionCandidates.put(
+              joinValues.getValue(), joinValues.getAbstractionCandidates());
         }
       } else {
         allValuesDefined = false;
@@ -257,9 +267,10 @@ final class SMGJoinSubSMGs {
 
   public boolean isDefined() {
     if (!defined) {
-      Preconditions.checkState(
+      checkState(
           status == SMGJoinStatus.INCOMPARABLE,
-          "Join of SubSMGs not defined, but status is " + status);
+          "Join of SubSMGs not defined, but status is %s",
+          status);
     }
     return defined;
   }

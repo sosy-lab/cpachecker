@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import java.util.ArrayList;
@@ -29,6 +14,7 @@ import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
@@ -73,7 +59,7 @@ public class CFADeclarationMover {
   private void handleDeclarationsInFunction(FunctionEntryNode startNode, MutableCFA cfa) {
     CFAEdge firstRealFunctionEdge = startNode.getLeavingEdge(0);
     List<CFAEdge> secondRealFunctionEdge = new ArrayList<>();
-    String functionName = startNode.getFunctionName();
+    AFunctionDeclaration function = startNode.getFunction();
 
     // all Blank -or Declarationedges are valid before we insert the moved declarations
     // if we would not take this order, there could be some problems with initializing
@@ -96,7 +82,7 @@ public class CFADeclarationMover {
     if (!declarations.isEmpty()) {
       // create declaration end edge, no need to add it as leaving edge to the actNode
       // this will be done in the end
-      CFANode tmpNode = new CFANode(functionName);
+      CFANode tmpNode = new CFANode(function);
       cfa.addNode(tmpNode);
       CFAEdge declEndEdge = new BlankEdge("End of Declarations", FileLocation.DUMMY, actNode, tmpNode, "End of Declarations");
       tmpNode.addEnteringEdge(declEndEdge);
@@ -117,7 +103,7 @@ public class CFADeclarationMover {
 
     // insert declarations into the desired destination
     for (CFAEdge decl : declarations) {
-      CFANode middleNode = new CFANode(functionName);
+      CFANode middleNode = new CFANode(function);
       cfa.addNode(middleNode);
       moveDeclEdgeToNewLocation((CDeclarationEdge) decl, actNode, middleNode);
       actNode = middleNode;
