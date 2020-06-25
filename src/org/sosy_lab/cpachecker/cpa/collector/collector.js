@@ -48,6 +48,12 @@ else{document.addEventListener("load",start, false);}
 
 window.addEventListener('load',slide,false);
 
+// Initialize Google pretiffy code
+/*$(document).ready(function () {
+  PR.prettyPrint();
+  });
+  */
+
 function slide(){
     slider = document.getElementById("myRange");
     document.getElementById("myRange").max = maxStep+1;
@@ -365,6 +371,11 @@ function addToolTip(){
             });
             message = "<span class=\" bold \">ARG_ID: </span><span class=\"standard\">" + node.index + "</span>";
             message += "<br> <span class=\" bold \">Label: </span><span class=\"standard\">" + node.label + "</span>";
+            message += "<br> <span class=\" bold \">State created at step: </span><span class=\"standard\">" + node.intervalStart + "</span>";
+            message += "<br> <span class=\" bold \">Node Type: </span><span class=\"standard\">" + node.type + "</span>";
+            if(node.intervalStop != ""){
+            message += "<br> <span class=\" bold \">Merged at step: </span><span class=\"standard\">" + node.intervalStop + "</span>";
+              }
         }
         showToolTipBox(d3.event, message);
     }).on("mouseout", function () {

@@ -67,7 +67,7 @@ html, body {
     background: #838383;
     padding: 20px;
     width: 250px;
-    min-width: 150px;
+    min-width: 25px;
     overflow: auto;
     color: white;
     white-space: nowrap;
@@ -116,11 +116,11 @@ footer {
     flex: none;
     background: #535353;
     color: white;
-    padding: 10px;
+    padding: 6px;
 }
 .footer img.logo {
     float: left;
-    height: 20px;
+    height: 12px;
     margin-left:10px;
 }
 
@@ -303,9 +303,7 @@ text {
 
 .show {display: block;}
 
-.slidecontainer {
-    width: 100%;
-}
+
 .slider {
     -webkit-appearance: none;
     width: 100%;
@@ -344,7 +342,7 @@ text {
     top: 10px;
     left: 10px;
     z-index: 1;
-    width: 200px;
+    width: 300px;
     background-color: #2EE59D;
     display: inline-block;
     border-radius: 6px;
@@ -396,13 +394,48 @@ text {
 
 .sourceContent tr:nth-child(odd) td pre.prettyprint {
     background-color: #c6dce7;
+    color: darkblue;
 }
 
 .sourceContent tr:nth-child(even) td pre.prettyprint {
     background-color: #a8cfe2;
+    color: darkblue;
 }
 
 .marked-source-line {
    /* background-color: #df80ff !important;*/
     background-color: darkblue !important;
+    color: white !important;
+}
+
+.slidecontainer {
+  width: 100%;
+}
+.slidecontainer input {
+  width: 100%;
+  margin: 0;
+}
+.slidecontainer .ticks {
+  display: flex;
+  justify-content: space-between;
+  height: 6px;
+  margin: -1em 12px 0.5em 12px;
+  font: 10px sans-serif;
+  counter-reset: count -1;
+}
+.slidecontainer .ticks > div {
+  height: 100%;
+  width: 3px;
+  background: darkgrey;
+  counter-increment: count 1;
+}
+.slidecontainer .ticks > div:nth-child(5n - 4) {
+  height: 200%;
+}
+.slidecontainer .ticks > div:nth-child(5n - 4)::before {
+  display: block;
+  content: counter(count,decimal);
+  transform: translate(-50%, 100%);
+  text-align: center;
+  width: 16px;
 }

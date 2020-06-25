@@ -146,6 +146,10 @@ public class CollectorStatistics implements Statistics {
           insertJs(bwhtml);
         } else if (line2.contains("SOURCE_CONTENT")) {
           insertSources(bwhtml);
+        } else if (line2.contains("SLIDER_TICKS")) {
+            for (int i = 0; i<= cNodes.size(); i++){
+              bwhtml.write("<div></div>");
+              }
         }
 
         else {
@@ -279,7 +283,7 @@ public class CollectorStatistics implements Statistics {
         ARGState entryARG2 = myA2.getARGState();
         boolean destroyed2 = entryARG2.isDestroyed();
 
-        ARGStateView myAM = ((CollectorState) entry).getMyARGmerged();
+        ARGStateView myAM = ((CollectorState) entry).getARGStateView();
         int ID3 = myAM.getStateId();
         int myID3 = myAM.getMyStateId();
         ARGState entryARG = ((CollectorState) entry).getARGState();
@@ -316,7 +320,7 @@ public class CollectorStatistics implements Statistics {
           if (parents1 != null) {
             int parentID = getParentsId(parents1);
             Map<String, Object> edgeValue1 = createExtraEdge(
-                parentID, ID1, type);
+                parentID, ID1, type, myAM.getCount());
             cEdges.put(myID1, edgeValue1);
           }
         }
@@ -352,7 +356,7 @@ public class CollectorStatistics implements Statistics {
           if (parents2 != null) {
             int parentID = getParentsId(parents2);
             Map<String, Object> edgeValue2 = createExtraEdge(
-                parentID, ID2, type);
+                parentID, ID2, type, myAM.getCount());
             cEdges.put(myID2, edgeValue2);
           }
         }
@@ -509,7 +513,8 @@ public class CollectorStatistics implements Statistics {
   private Map<String, Object> createExtraEdge(
       int parentStateId,
       int childStateId,
-      String type) {
+      String type,
+      int interval) {
     Map<String, Object> argEdge = new HashMap<>();
 
     argEdge.put("source", parentStateId);
@@ -517,7 +522,7 @@ public class CollectorStatistics implements Statistics {
     argEdge.put("mergetype", type);
 
     argEdge.put("type", "dummy type");
-    argEdge.put("label", "merge edge");
+    argEdge.put("label", "merged at step: "+ interval);
     return argEdge;
   }
 

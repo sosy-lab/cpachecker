@@ -179,7 +179,7 @@ public class CollectorState extends AbstractSingleWrapperState implements Grapha
     return myARG2;
   }
 
-  public ARGStateView getMyARGmerged() {
+  public ARGStateView getARGStateView() {
     return myARGmerged;
   }
 

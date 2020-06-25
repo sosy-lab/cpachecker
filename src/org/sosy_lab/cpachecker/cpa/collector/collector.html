@@ -45,11 +45,14 @@
         <button onclick="reset()" class="button">Reset ARG GRAPH</button>
         <button onclick="removenode()" class="button" value="PREV"  id="removenode">PREV</button>
         <button onclick="nextStep()" class="button" value="NEXT"  id="shownode">NEXT</button>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Computation step: <span id="demo"></span>
         <br />
         <br />
         <div class="slidecontainer">
-            <input type="range" min="0" max="100" value="0" class="slider" id="myRange">
-            <p> <b>Computation step: <span id="demo"></span></b></p>
+            <input type="range" min="0" max="100" value="0" class="slider" id="myRange" />
+            <div class='ticks'>
+                <!--SLIDER_TICKS-->
+            </div>
         </div>
     </div>
 
@@ -91,6 +94,10 @@
 <!-- <script src="https://github.com/RickStrahl/jquery-resizable/blob/master/src/jquery-resizable.js"></script> -->
 <script src="https://www.sosy-lab.org/lib/d3js/5.4.0/d3.min.js"></script>
 <script src="https://www.sosy-lab.org/lib/dagre-d3/0.5.0/dagre-d3.min.js"></script>
+<script src="https://www.sosy-lab.org/lib/google-code-prettify/2018-04-29-453bd5f/prettify.js" integrity="sha384-KlbExXRJYYILJYRAJR121vJXgBDx+puqf1yjznMcTt7C5njwQajOLFwk6pMafFnX"
+        crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://www.sosy-lab.org/lib/google-code-prettify/2018-04-29-453bd5f/prettify.css" integrity="sha384-tGeLopS7aWCwgeqg+ah7c+iI19JU3teQPshyaQVybvOMRravAVLscwoeT4HPsfoW"
+      crossorigin="anonymous">
 <script>
     <!-- COLLECTOR_JS -->
 </script>
