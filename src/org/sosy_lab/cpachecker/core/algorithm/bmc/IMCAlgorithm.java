@@ -165,13 +165,12 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       logger.log(Level.ALL, "The suffix is", formulas.suffixFormula);
 
       BooleanFormula reachErrorFormula =
-          bfmgr.and(
-              formulas.prefixFormula.getFormula(),
-              formulas.loopFormula,
-              formulas.suffixFormula);
-      if (maxLoopIterations == 1) {
-        reachErrorFormula = bfmgr.or(reachErrorFormula, getErrorFormula(pReachedSet, -1));
-      }
+          bfmgr.or(
+              bfmgr.and(
+                  formulas.prefixFormula.getFormula(),
+                  formulas.loopFormula,
+                  formulas.suffixFormula),
+              formulas.errorBeforeLoopFormula);
       if (!solver.isUnsat(reachErrorFormula)) {
         logger.log(Level.FINE, "A target state is reached by BMC");
         return AlgorithmStatus.UNSOUND_AND_PRECISE;
@@ -236,11 +235,15 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     BooleanFormula loopFormula = bfmgr.makeTrue();
     BooleanFormula tailFormula = bfmgr.makeTrue();
     BooleanFormula targetFormula = bfmgr.makeFalse();
+    BooleanFormula errorBeforeLoopFormula = bfmgr.makeFalse();
     boolean initialized = false;
     for (AbstractState targetState : AbstractStates.getTargetStates(pReachedSet).toList()) {
       List<ARGState> abstractionStates = getAbstractionStatesToRoot(targetState);
       if (isErrorBeforeLoopStart(abstractionStates)) {
-        continue;
+        errorBeforeLoopFormula =
+            bfmgr.or(
+                errorBeforeLoopFormula,
+                getPredicateAbstractionBlockFormula(targetState).getFormula());
       }
       if (!initialized) {
         prefixFormula = getPredicateAbstractionBlockFormula(abstractionStates.get(1));
@@ -263,7 +266,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return new PartitionedFormulas(
         prefixFormula,
         loopFormula,
-        bfmgr.and(tailFormula, targetFormula));
+        bfmgr.and(tailFormula, targetFormula),
+        errorBeforeLoopFormula);
   }
 
   private List<ARGState> getAbstractionStatesToRoot(AbstractState pTargetState) {
@@ -299,7 +303,11 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
     BooleanFormula suffixFormula =
         bfmgr.and(tailFormula, getErrorFormula(pReachedSet, maxLoopIterations - 1));
-    return new PartitionedFormulas(prefixFormula, loopFormula, suffixFormula);
+    return new PartitionedFormulas(
+        prefixFormula,
+        loopFormula,
+        suffixFormula,
+        getErrorFormula(pReachedSet, -1));
   }
 
   /**
@@ -456,20 +464,25 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   /**
    * This class wraps three formulas used in IMC algorithm in order to avoid long parameter lists.
+   * In addition, it also stores the disjunction of block formulas for the target states before the
+   * loop.
    */
   private static class PartitionedFormulas {
 
     private final PathFormula prefixFormula;
     private final BooleanFormula loopFormula;
     private final BooleanFormula suffixFormula;
+    private final BooleanFormula errorBeforeLoopFormula;
 
     public PartitionedFormulas(
         PathFormula pPrefixFormula,
         BooleanFormula pLoopFormula,
-        BooleanFormula pSuffixFormula) {
+        BooleanFormula pSuffixFormula,
+        BooleanFormula pErrorBeforeLoopFormula) {
       prefixFormula = pPrefixFormula;
       loopFormula = pLoopFormula;
       suffixFormula = pSuffixFormula;
+      errorBeforeLoopFormula = pErrorBeforeLoopFormula;
     }
   }
 }
