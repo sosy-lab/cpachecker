@@ -1,11 +1,26 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2015  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -24,11 +39,9 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.Random;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -389,11 +402,10 @@ enum CexTraceAnalysisDirection {
 
     AbstractState lastState = pAbstractionStates.get(loopLevelsToStatesMap.size()-1);
     AbstractState actState = pAbstractionStates.get(loopLevelsToStatesMap.size());
-    @Nullable CFANode actCFANode = AbstractStates.extractLocation(actState);
+    CFANode actCFANode = AbstractStates.extractLocation(actState);
 
     Iterator<CFANode> it = actLevelStack.descendingIterator();
     while (it.hasNext()) {
-      checkNotNull(actCFANode, "node may be null and code needs to be fixed");
       CFANode lastLoopNode = it.next();
 
       // check if the functions match, if yes we can simply check if the node
@@ -446,7 +458,7 @@ enum CexTraceAnalysisDirection {
       argState = argState.getParents().iterator().next();
 
       // the function does not return to the wanted function we can skip the search here
-      if (Objects.equals(argState, lastState.getParents().iterator().next())) {
+      if (argState == lastState.getParents().iterator().next()) {
         return null;
       }
 

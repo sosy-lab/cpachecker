@@ -1,11 +1,3 @@
-# This file is part of SoSy-Lab Java-Project Template,
-# a collection of common files and build definitions for Java projects:
-# https://gitlab.com/sosy-lab/software/java-project-template
-#
-# SPDX-FileCopyrightText: 2018-2020 Dirk Beyer <https://www.sosy-lab.org>
-#
-# SPDX-License-Identifier: Apache-2.0
-
 # DO NOT EDIT LOCALLY!
 # Keep this file synchronized with
 # https://gitlab.com/sosy-lab/software/java-project-template
@@ -31,7 +23,6 @@ build-dependencies:
   stage: dependencies
   dependencies: []
   script: "ant build-dependencies"
-  interruptible: true
   cache:
     key: "$CI_JOB_NAME"
     paths:
@@ -46,25 +37,27 @@ build-dependencies:
 .build: &build
   stage: build
   script: "ant $ANT_PROPS_BUILD jar"
-  interruptible: true
   artifacts:
     paths:
       - "bin/"
       - "*.jar"
 
+build:jdk-8:
+  <<: *build
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-8
+
 build:jdk-11:
   <<: *build
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
-build:jdk-14:
+build:jdk-12:
   <<: *build
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-14
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-12
 
 
 # For checks that need the binaries
 .binary_check: &binary_check
   stage: checks
-  interruptible: true
 
 # For checks that only need the source code, not the binaries
 .source_check: &source_check
@@ -73,20 +66,23 @@ build:jdk-14:
     - build-dependencies
   needs:
     - build-dependencies
-  interruptible: true
 
 
 .build-project-ecj: &build-project-ecj
   <<: *source_check
   script: "ant $ANT_PROPS_BUILD build-project-ecj"
 
+build-project-ecj:jdk-8:
+  <<: *build-project-ecj
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-8
+
 build-project-ecj:jdk-11:
   <<: *build-project-ecj
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
-build-project-ecj:jdk-14:
+build-project-ecj:jdk-12:
   <<: *build-project-ecj
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-14
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-12
 
 
 check-format:
@@ -144,6 +140,16 @@ spotbugs:
     reports:
       junit: "junit/TESTS-TestSuites.xml"
 
+unit-tests:jdk-8:
+  <<: *unit-tests
+  dependencies:
+    - build-dependencies
+    - build:jdk-8
+  needs:
+    - build-dependencies
+    - build:jdk-8
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-8
+
 unit-tests:jdk-11:
   <<: *unit-tests
   dependencies:
@@ -154,15 +160,15 @@ unit-tests:jdk-11:
     - build:jdk-11
   image: ${CI_REGISTRY_IMAGE}/test:jdk-11
 
-unit-tests:jdk-14:
+unit-tests:jdk-12:
   <<: *unit-tests
   dependencies:
     - build-dependencies
-    - build:jdk-14
+    - build:jdk-12
   needs:
     - build-dependencies
-    - build:jdk-14
-  image: ${CI_REGISTRY_IMAGE}/test:jdk-14
+    - build:jdk-12
+  image: ${CI_REGISTRY_IMAGE}/test:jdk-12
 
 
 refaster:
@@ -178,7 +184,6 @@ refaster:
     - 'cd -'
   script:
     - 'ant refaster -Drefaster.rule.file=rule.refaster'
-  interruptible: true
   cache:
     key: "$CI_JOB_NAME"
     paths:
@@ -193,18 +198,6 @@ refaster:
     variables:
       - $REFASTER_REPO_REVISION == null # required for job
       - $REFASTER_VERSION == null # required for job
-
-
-# check license declarations etc.
-reuse:
-  stage: checks
-  dependencies: []
-  needs: []
-  image:
-    name: fsfe/reuse:latest
-    entrypoint: [""]
-  script:
-    - reuse lint
 
 
 deploy-coverage:
@@ -253,24 +246,28 @@ deploy-gh-pages:
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
-  variables:
-    EXTRA_ARGS: ""
   script:
     - mkdir -p /root/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-    - /kaniko/executor --dockerfile $CI_PROJECT_DIR/$DOCKERFILE --destination $CI_REGISTRY_IMAGE$IMAGE $EXTRA_ARGS
+    - /kaniko/executor --dockerfile $CI_PROJECT_DIR/$DOCKERFILE --destination $CI_REGISTRY_IMAGE/$IMAGE
   only:
     - schedules
     - web
+
+build-docker:test:jdk-8:
+  extends: .build-docker
+  variables:
+    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-8
+    IMAGE: test:jdk-8
 
 build-docker:test:jdk-11:
   extends: .build-docker
   variables:
     DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-11
-    IMAGE: /test:jdk-11
+    IMAGE: test:jdk-11
 
-build-docker:test:jdk-14:
+build-docker:test:jdk-12:
   extends: .build-docker
   variables:
-    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-14
-    IMAGE: /test:jdk-14
+    DOCKERFILE: build/gitlab-ci.Dockerfile.jdk-12
+    IMAGE: test:jdk-12

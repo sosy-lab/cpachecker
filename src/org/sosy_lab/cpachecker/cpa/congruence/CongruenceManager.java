@@ -1,12 +1,3 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-// SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
-//
-// SPDX-License-Identifier: Apache-2.0
-
 package org.sosy_lab.cpachecker.cpa.congruence;
 
 import com.google.common.collect.ImmutableSet;
@@ -206,7 +197,7 @@ public class CongruenceManager implements
     Optional<ABEAbstractedState<CongruenceState>> sibling =
         findSibling(states, fullState, out);
     if (sibling.isPresent()) {
-      out = join(sibling.orElseThrow().cast(), out);
+      out = join(sibling.get().cast(), out);
     }
     return out;
   }
@@ -325,7 +316,8 @@ public class CongruenceManager implements
       Template template = e.getKey();
       Congruence congruence = e.getValue();
       Optional<Congruence> smallerCongruence = a.get(template);
-      if (!smallerCongruence.isPresent() || smallerCongruence.orElseThrow() != congruence) {
+      if (!smallerCongruence.isPresent()
+          || smallerCongruence.get() != congruence) {
         return false;
       }
     }
@@ -361,7 +353,7 @@ public class CongruenceManager implements
             // Empty.
             return Optional.empty();
           }
-          a = aState.getGeneratingState().orElseThrow().getBackpointerState();
+          a = aState.getGeneratingState().get().getBackpointerState();
         }
       } else {
         ABEIntermediateState<CongruenceState> iState = a.asIntermediate();

@@ -1,12 +1,3 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-// SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
-//
-// SPDX-License-Identifier: Apache-2.0
-
 package org.sosy_lab.cpachecker.cpa.formulaslicing;
 
 import com.google.common.base.Preconditions;
@@ -97,8 +88,8 @@ public class FormulaSlicingManager implements StatisticsProvider {
     statistics = new FormulaSlicingStatistics(pPathFormulaManager, pSolver);
     Preconditions.checkState(pCfa.getLiveVariables().isPresent() &&
       pCfa.getLoopStructure().isPresent());
-    liveVariables = pCfa.getLiveVariables().orElseThrow();
-    loopStructure = pCfa.getLoopStructure().orElseThrow();
+    liveVariables = pCfa.getLiveVariables().get();
+    loopStructure = pCfa.getLoopStructure().get();
   }
 
   public Collection<? extends SlicingState> getAbstractSuccessors(
@@ -160,9 +151,9 @@ public class FormulaSlicingManager implements StatisticsProvider {
 
         // Perform slicing, there is a relevant "to-merge" element.
         Optional<SlicingAbstractedState> slicingOut =
-            performSlicing(iState, oldState.orElseThrow());
+            performSlicing(iState, oldState.get());
         if (slicingOut.isPresent()) {
-          out = slicingOut.orElseThrow();
+          out = slicingOut.get();
         } else {
           return Optional.empty();
         }
@@ -519,7 +510,7 @@ public class FormulaSlicingManager implements StatisticsProvider {
             // Empty.
             return Optional.empty();
           }
-          a = aState.getGeneratingState().orElseThrow().getAbstractParent();
+          a = aState.getGeneratingState().get().getAbstractParent();
         }
       } else {
         SlicingIntermediateState iState = a.asIntermediate();

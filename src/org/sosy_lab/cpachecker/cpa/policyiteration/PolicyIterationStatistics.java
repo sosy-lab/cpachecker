@@ -1,12 +1,3 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-// SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
-//
-// SPDX-License-Identifier: Apache-2.0
-
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import com.google.common.collect.HashMultiset;
@@ -76,7 +67,7 @@ public class PolicyIterationStatistics implements Statistics {
     printStats(out, templateUpdateStats, "updates for given template on a given location");
     printStats(out, mergeUpdateStats, "merges of abstract states on a given location");
 
-    out.printf("Number of loop heads: %d%n", cfa.getAllLoopHeads().orElseThrow().size());
+    out.printf("Number of loop heads: %d%n", cfa.getAllLoopHeads().get().size());
     printTimer(out, linearizationTimer, "formula linearization");
   }
 

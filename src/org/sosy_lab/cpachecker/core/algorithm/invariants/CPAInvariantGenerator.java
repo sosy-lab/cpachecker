@@ -1,17 +1,33 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2014  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.core.algorithm.invariants;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -41,6 +57,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -51,7 +68,6 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -109,7 +125,6 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
 
   private volatile boolean programIsSafe = false;
 
-  @SuppressWarnings("UnnecessaryAnonymousClass") // ShutdownNotifier needs a strong reference
   private final ShutdownRequestListener shutdownListener = new ShutdownRequestListener() {
 
     @Override
@@ -308,13 +323,12 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
         }
       }
 
-      if (!taskReached.hasViolatedProperties()
-          && !from(taskReached).anyMatch(CPAInvariantGenerator::hasAssumption)) {
+      if (!taskReached.hasViolatedProperties() && !from(taskReached).anyMatch(HAS_ASSUMPTIONS)) {
         // program is safe (waitlist is empty, algorithm was sound, no target states present)
         logger.log(Level.INFO, SAFE_MESSAGE);
         programIsSafe = true;
         if (shutdownOnSafeNotifier.isPresent()) {
-          shutdownOnSafeNotifier.orElseThrow().requestShutdown(SAFE_MESSAGE);
+          shutdownOnSafeNotifier.get().requestShutdown(SAFE_MESSAGE);
         }
       }
 
@@ -324,9 +338,13 @@ public class CPAInvariantGenerator extends AbstractInvariantGenerator implements
     }
   }
 
-  private static final boolean hasAssumption(AbstractState state) {
-    AssumptionStorageState assumption =
-        AbstractStates.extractStateByType(state, AssumptionStorageState.class);
-    return assumption != null && !assumption.isStopFormulaTrue() && !assumption.isAssumptionTrue();
-  }
+
+  private final Predicate<AbstractState> HAS_ASSUMPTIONS =
+      state -> {
+        AssumptionStorageState assumption =
+            AbstractStates.extractStateByType(state, AssumptionStorageState.class);
+        return assumption != null
+            && !assumption.isStopFormulaTrue()
+            && !assumption.isAssumptionTrue();
+      };
 }

@@ -1,11 +1,26 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2018  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.core.algorithm.bmc.pdr;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -13,8 +28,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterAncestors;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.isTrivialSelfLoop;
+import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
-import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -52,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.AbstractionBasedLifting;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.AbstractionBasedLifting.LiftingAbstractionFailureStrategy;
@@ -88,7 +104,6 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -294,7 +309,7 @@ public class PdrAlgorithm implements Algorithm {
         Optional<AlgorithmStatus> initialPushResult =
             initialPush(candidateGenerator, bmcReachedSet, frameSet);
         if (initialPushResult.isPresent()) {
-          return initialPushResult.orElseThrow();
+          return initialPushResult.get();
         }
 
         while (candidateGenerator.hasCandidatesAvailable()) {
@@ -335,7 +350,7 @@ public class PdrAlgorithm implements Algorithm {
             Optional<AlgorithmStatus> candidateConfirmationResult =
                 handleConfirmedCandidates(candidateGenerator, frameSet, rawBmcReachedSet);
             if (candidateConfirmationResult.isPresent()) {
-              return candidateConfirmationResult.orElseThrow();
+              return candidateConfirmationResult.get();
             }
           }
 
@@ -343,7 +358,7 @@ public class PdrAlgorithm implements Algorithm {
           Optional<AlgorithmStatus> strengthenResult =
               strengthen(candidateGenerator, frameSet, pTransitionRelation);
           if (strengthenResult.isPresent()) {
-            return strengthenResult.orElseThrow();
+            return strengthenResult.get();
           }
         }
 
@@ -426,7 +441,11 @@ public class PdrAlgorithm implements Algorithm {
       TotalTransitionRelation pTransitionRelation)
       throws InterruptedException, SolverException, CPAException {
 
-    for (CandidateInvariant rootCandidateInvariant : pCandidateGenerator) {
+    Iterator<CandidateInvariant> rootInvariantIterator = pCandidateGenerator.iterator();
+
+    while (rootInvariantIterator.hasNext()) {
+
+      CandidateInvariant rootCandidateInvariant = rootInvariantIterator.next();
 
       FrontierExtensionResult frontierExtensionResult = null;
       while (frontierExtensionResult == null || !frontierExtensionResult.isSuccessful()) {
@@ -544,13 +563,13 @@ public class PdrAlgorithm implements Algorithm {
                 prover,
                 invariants,
                 pTransitionRelation,
-                obligation.getBlockedConcreteCti().orElseThrow(),
+                obligation.getBlockedConcreteCti().get(),
                 invariantAbstraction,
                 liftingForConcreteCheck);
         if (concreteResult.isSuccessful()) {
           // If the concrete check is successful, the abstraction was spurious
           // and we have a consecution abstraction failure. (CAF)
-          assert implies(prover, invariants, obligation.getBlockedConcreteCti().orElseThrow());
+          assert implies(prover, invariants, obligation.getBlockedConcreteCti().get());
           if (mustRefineOnConsecutionAbstractionFailure(obligation)) {
             // CAF-case 1: If we exceeded the threshold for spurious transitions
             // or are in frame zero, we perform consecution refinement:
@@ -593,7 +612,7 @@ public class PdrAlgorithm implements Algorithm {
               obligation.find(o -> o != obligation && o.getBlockedConcreteCti().isPresent());
           if (nextLAF.isPresent()) {
             // If there is another spurious transition on the trace, we need to refine it.
-            ProofObligation next = nextLAF.orElseThrow();
+            ProofObligation next = nextLAF.get();
             next = next.addSpuriousTransition();
             forceEagerLiftingRefinement.add(next);
             proofObligations.offer(next);
@@ -989,7 +1008,10 @@ public class PdrAlgorithm implements Algorithm {
     if (!cfa.getLoopStructure().isPresent()) {
       return loopHeads.stream();
     }
-    return cfa.getLoopStructure().orElseThrow().getAllLoops().stream()
+    return cfa.getLoopStructure()
+        .get()
+        .getAllLoops()
+        .stream()
         .filter(loop -> !isTrivialSelfLoop(loop))
         .map(Loop::getLoopHeads)
         .flatMap(Collection::stream)
@@ -999,12 +1021,11 @@ public class PdrAlgorithm implements Algorithm {
 
   private boolean checkAbstractionFree(ReachedSet pBmcReachedSet) {
     Optional<AbstractState> abstractionState =
-        from(pBmcReachedSet).stream()
+        from(pBmcReachedSet)
+            .stream()
             .skip(1) // first state of reached is always an abstraction state, so skip it
-            .filter(
-                Predicates.not(
-                    AbstractStates::isTargetState)) // target states may be abstraction states
-            .filter(PredicateAbstractState::containsAbstractionState)
+            .filter(IS_TARGET_STATE.negate()) // target states may be abstraction states
+            .filter(PredicateAbstractState.CONTAINS_ABSTRACTION_STATE)
             .findAny();
     if (abstractionState.isPresent()) {
       logger.log(
@@ -1132,8 +1153,8 @@ public class PdrAlgorithm implements Algorithm {
       logger.log(Level.INFO, "Error found, creating error path");
 
       Set<ARGState> targetStates =
-          from(pReachedSet).filter(AbstractStates::isTargetState).filter(ARGState.class).toSet();
-      Set<ARGState> redundantStates = filterAncestors(targetStates, AbstractStates::isTargetState);
+          from(pReachedSet).filter(IS_TARGET_STATE).filter(ARGState.class).toSet();
+      Set<ARGState> redundantStates = filterAncestors(targetStates, IS_TARGET_STATE);
       redundantStates.forEach(
           state -> {
             state.removeFromARG();

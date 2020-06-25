@@ -1,11 +1,26 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2014  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -689,9 +704,11 @@ class ASTConverter {
    */
   public JStatement convert(final SuperConstructorInvocation sCI) {
 
-    final IMethodBinding binding = sCI.resolveConstructorBinding();
+    IMethodBinding binding = sCI.resolveConstructorBinding();
 
-    if (binding != null) {
+    boolean canBeResolved = binding != null;
+
+    if (canBeResolved) {
       scope.registerClass(binding.getDeclaringClass());
     }
 
@@ -702,7 +719,7 @@ class ASTConverter {
     String name;
     String simpleName;
 
-    if (binding != null) {
+    if (canBeResolved) {
       name = NameConverter.convertName(binding);
       simpleName = binding.getName();
     } else {
@@ -715,7 +732,7 @@ class ASTConverter {
 
     if (declaration == null) {
 
-      if (binding != null) {
+      if (canBeResolved) {
 
         ModifierBean mb = ModifierBean.getModifiers(binding);
 
@@ -731,7 +748,7 @@ class ASTConverter {
 
     JExpression functionName;
 
-    if (binding != null) {
+    if (canBeResolved) {
       functionName =
           new JIdExpression(getFileLocation(sCI), convert(binding.getReturnType()), name,
               declaration);
@@ -868,14 +885,15 @@ class ASTConverter {
     }
   }
 
-  private JAstNode convert(final SuperMethodInvocation e) {
+  private JAstNode convert(SuperMethodInvocation e) {
 
-    final IMethodBinding methodBinding = e.resolveMethodBinding();
+    boolean canBeResolved = e.resolveMethodBinding() != null;
+
     JClassOrInterfaceType declaringClassType = null;
 
-    if (methodBinding != null) {
-      declaringClassType = (JClassOrInterfaceType) convert(methodBinding.getDeclaringClass());
-      scope.registerClass(methodBinding.getDeclaringClass());
+    if (canBeResolved) {
+      declaringClassType = (JClassOrInterfaceType) convert(e.resolveMethodBinding().getDeclaringClass());
+      scope.registerClass(e.resolveMethodBinding().getDeclaringClass());
     }
 
     @SuppressWarnings("unchecked")
@@ -891,6 +909,13 @@ class ASTConverter {
     JExpression methodName = convertExpressionWithoutSideEffects(e.getName());
 
     JMethodDeclaration declaration = null;
+
+    ModifierBean mb = null;
+
+    if (canBeResolved) {
+      mb = ModifierBean.getModifiers(e.resolveMethodBinding());
+    }
+
 
     if (methodName instanceof JIdExpression) {
       JIdExpression idExpression = (JIdExpression) methodName;
@@ -908,21 +933,14 @@ class ASTConverter {
 
     if (declaration == null) {
 
-      if (methodBinding != null) {
-        ModifierBean mb = ModifierBean.getModifiers(methodBinding);
-        declaration =
-            scope.createExternMethodDeclaration(
-                convertMethodType(methodBinding),
-                methodName.toASTString(),
-                methodBinding.getName(),
-                VisibilityModifier.PUBLIC,
-                mb.isFinal(),
-                mb.isAbstract(),
-                mb.isStatic(),
-                mb.isNative(),
-                mb.isSynchronized(),
-                mb.isStrictFp(),
-                declaringClassType);
+      if (canBeResolved) {
+        declaration = scope.createExternMethodDeclaration(
+            convertMethodType(e.resolveMethodBinding()),
+            methodName.toASTString(),
+            e.resolveMethodBinding().getName(),
+            VisibilityModifier.PUBLIC, mb.isFinal(), mb.isAbstract(),
+            mb.isStatic(), mb.isNative(),
+            mb.isSynchronized(), mb.isStrictFp(), declaringClassType);
 
       } else {
         declaration = JMethodDeclaration.createUnresolvedMethodDeclaration();
@@ -932,7 +950,7 @@ class ASTConverter {
       JMethodInvocationExpression miv =
           new JMethodInvocationExpression(getFileLocation(e), convert(e.resolveTypeBinding()), methodName, params, declaration);
 
-    if (methodBinding != null) {
+      if (canBeResolved) {
 
         JType type = miv.getDeclaringType();
 
@@ -1136,10 +1154,12 @@ class ASTConverter {
       return createJArrayLengthExpression(e);
     }
 
-    boolean canBeResolved = e.resolveFieldBinding() != null;
+    IVariableBinding fieldBinding = e.resolveFieldBinding();
+
+    boolean canBeResolved = fieldBinding != null;
 
     if (canBeResolved) {
-      scope.registerClass(e.resolveFieldBinding().getDeclaringClass());
+      scope.registerClass(fieldBinding.getDeclaringClass());
     }
 
     JAstNode identifier = convertExpressionWithoutSideEffects(e.getName());
@@ -1191,15 +1211,16 @@ class ASTConverter {
 
   private JAstNode convert(ClassInstanceCreation cIC) {
 
-    final IMethodBinding binding = cIC.resolveConstructorBinding();
+    IMethodBinding binding = cIC.resolveConstructorBinding();
 
+    boolean canBeResolved = binding != null;
     final AnonymousClassDeclaration anonymousDeclaration = cIC.getAnonymousClassDeclaration();
 
     if (anonymousDeclaration != null) {
       scope.addAnonymousClassDeclaration(anonymousDeclaration);
     }
 
-    if (binding != null) {
+    if (canBeResolved) {
       scope.registerClass(binding.getDeclaringClass());
     }
 
@@ -1636,11 +1657,12 @@ class ASTConverter {
 
   private JAstNode convert(MethodInvocation mi) {
 
-    final IMethodBinding methodBinding = mi.resolveMethodBinding();
-    final ModifierBean mb = methodBinding != null ? ModifierBean.getModifiers(methodBinding) : null;
+    IMethodBinding methodBinding = mi.resolveMethodBinding();
+    boolean canBeResolved = methodBinding != null;
+
     JClassOrInterfaceType declaringClassType = null;
 
-    if (methodBinding != null) {
+    if (canBeResolved) {
       ITypeBinding declaringClass = methodBinding.getDeclaringClass();
       declaringClassType = (JClassOrInterfaceType) convert(declaringClass);
       scope.registerClass(declaringClass);
@@ -1661,8 +1683,14 @@ class ASTConverter {
     JMethodDeclaration declaration = null;
     JExpression referencedVariableName = null;
 
-    if (mb != null && !mb.isStatic) {
-      referencedVariableName = convertExpressionWithoutSideEffects(mi.getExpression());
+    ModifierBean mb = null;
+
+    if (canBeResolved) {
+      mb = ModifierBean.getModifiers(methodBinding);
+
+      if (!mb.isStatic) {
+        referencedVariableName = convertExpressionWithoutSideEffects(mi.getExpression());
+      }
     }
 
 
@@ -1681,8 +1709,7 @@ class ASTConverter {
 
     if (declaration == null) {
 
-      if (methodBinding != null) {
-        assert mb != null;
+      if (canBeResolved) {
         declaration = scope.createExternMethodDeclaration(
             convertMethodType(methodBinding),
             methodName.toASTString(),

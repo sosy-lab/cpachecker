@@ -1,11 +1,26 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2014  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.util;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -61,6 +76,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -69,7 +85,6 @@ import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.livevar.LiveVariablesCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
@@ -92,7 +107,7 @@ public class LiveVariables {
    * then has storageType auto: for live variables we need to consider them
    * as one).
    */
-  public static final Equivalence<ASimpleDeclaration> LIVE_DECL_EQUIVALENCE = new Equivalence<>() {
+  public static final Equivalence<ASimpleDeclaration> LIVE_DECL_EQUIVALENCE = new Equivalence<ASimpleDeclaration>() {
 
     @Override
     protected boolean doEquivalent(ASimpleDeclaration pA, ASimpleDeclaration pB) {
@@ -152,6 +167,7 @@ public class LiveVariables {
     private final ImmutableSet<ASimpleDeclaration> allVariables;
 
     private AllVariablesAsLiveVariables(CFA cfa, List<Pair<ADeclaration, String>> globalsList) {
+      super();
       checkNotNull(cfa);
       checkNotNull(globalsList);
 
@@ -297,7 +313,7 @@ public class LiveVariables {
         .toSet();
   }
 
-  /** Return set of all variables which are alive at at least one node. */
+  /** @return iterable of all variables which are alive at at least one node. */
   public Set<ASimpleDeclaration> getAllLiveVariables() {
     return from(liveVariables.values())
         .append(globalVariables)
@@ -421,8 +437,7 @@ public class LiveVariables {
 
     // create live variables
     if (parts.isPresent()) {
-      liveVariables =
-          addLiveVariablesFromCFA(cfa, logger, parts.orElseThrow(), config.evaluationStrategy);
+      liveVariables = addLiveVariablesFromCFA(cfa, logger, parts.get(), config.evaluationStrategy);
     }
 
     if (limitChecker != null) {
@@ -477,11 +492,9 @@ public class LiveVariables {
     final Collection<FunctionEntryNode> functionHeads;
     switch (evaluationStrategy) {
       case FUNCTION_WISE:
-        functionHeads = pCfa.getAllFunctionHeads();
-        break;
+        functionHeads = pCfa.getAllFunctionHeads(); break;
       case GLOBAL:
-        functionHeads = Collections.singleton(pCfa.getMainFunction());
-        break;
+        functionHeads = Collections.singleton(pCfa.getMainFunction()); break;
       default:
         throw new AssertionError("Unhandled case statement: " +
             evaluationStrategy);
@@ -501,7 +514,7 @@ public class LiveVariables {
     }
 
     if(loopStructure.isPresent()){
-      LoopStructure structure = loopStructure.orElseThrow();
+      LoopStructure structure = loopStructure.get();
       ImmutableCollection<Loop> loops = structure.getAllLoops();
 
       for (Loop l : loops) {

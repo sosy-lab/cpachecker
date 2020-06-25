@@ -1,16 +1,30 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ * CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2018  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.cpa.slicing;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -59,7 +73,7 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 import org.sosy_lab.cpachecker.util.slicing.Slicer;
-import org.sosy_lab.cpachecker.util.slicing.SlicerFactory;
+import org.sosy_lab.cpachecker.util.slicing.StaticSlicer;
 
 /**
  * Refiner for {@link SlicingPrecision}. Precision refinement is done through program slicing [1].
@@ -161,7 +175,16 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
             fullSlicingPrecision, Predicates.instanceOf(SlicingPrecision.class));
 
     ShutdownNotifier shutdownNotifier = slicingCPA.getShutdownNotifier();
-    Slicer slicer = new SlicerFactory().create(logger, shutdownNotifier, config, cfa);
+    Slicer slicer =
+        new StaticSlicer(
+            logger,
+            shutdownNotifier,
+            config,
+            cfa.getDependenceGraph()
+                .orElseThrow(
+                    () ->
+                        new InvalidConfigurationException("Dependence graph of CFA " + "missing")),
+            cfa);
 
     return new SlicingRefiner(
         pathExtractor,
@@ -341,26 +364,27 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   private Set<CFAEdge> getSlice(ARGPath pPath) throws InterruptedException {
     List<CFAEdge> innerEdges = pPath.getInnerEdges();
 
-    Set<CFAEdge> cexConstraints =
-        innerEdges.stream()
+    List<CFAEdge> cexConstraints =
+        innerEdges
+            .stream()
             .filter(Predicates.instanceOf(CAssumeEdge.class))
-            .collect(Collectors.toSet());
+            .collect(Collectors.toList());
 
     List<CFAEdge> criteriaEdges = new ArrayList<>(1);
     if (takeEagerSlice) {
-      criteriaEdges.addAll(cexConstraints);
+      criteriaEdges = cexConstraints;
     }
     CFANode finalNode = AbstractStates.extractLocation(pPath.getLastState());
     List<CFAEdge> edgesToTarget =
         CFAUtils.enteringEdges(finalNode).filter(innerEdges::contains).toList();
     criteriaEdges.addAll(edgesToTarget);
 
-    Set<CFAEdge> relevantEdges = slicer.getSlice(cfa, criteriaEdges).getRelevantEdges();
+    Set<CFAEdge> relevantEdges = slicer.getRelevantEdges(cfa, criteriaEdges);
 
     if (addCexConstraintsToSlice) {
       // this must always be added _after_ adding the slices, otherwise
       // slices may be incomplete
-      relevantEdges = Sets.union(relevantEdges, ImmutableSet.copyOf(cexConstraints));
+      relevantEdges.addAll(cexConstraints);
     }
 
     return relevantEdges;

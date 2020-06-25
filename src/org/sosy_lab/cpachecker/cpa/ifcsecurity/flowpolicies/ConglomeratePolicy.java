@@ -1,15 +1,30 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2015  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity.flowpolicies;
 
 import java.io.Serializable;
-import java.util.NavigableSet;
+import java.util.SortedSet;
 import java.util.TreeSet;
 
 /**
@@ -19,8 +34,10 @@ import java.util.TreeSet;
 public class ConglomeratePolicy<E extends Comparable<? super E>> implements Serializable{
 
   private static final long serialVersionUID = 4589552203012815677L;
-  /** Internal Variable: allowed information flows relation */
-  private NavigableSet<Edge<E>> edges = new TreeSet<>();
+  /**
+   * Internal Variable: allowed information flows relation
+   */
+  private SortedSet<Edge<E>> edges=new TreeSet<>();
 
   /**
    * Constructs an empty Security Policy
@@ -75,14 +92,13 @@ public class ConglomeratePolicy<E extends Comparable<? super E>> implements Seri
 
   /**
    * Returns all Allowed Information Flow Relations.
-   *
    * @return All allowed information flows relation.
    */
-  public NavigableSet<Edge<E>> getEdges() {
+  public SortedSet<Edge<E>> getEdges(){
     return edges;
   }
 
-  protected void setEdges(NavigableSet<Edge<E>> pEdges) {
+  protected void setEdges(SortedSet<Edge<E>> pEdges) {
     edges = pEdges;
   }
 

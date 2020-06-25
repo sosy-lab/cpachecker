@@ -1,11 +1,26 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2014  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -86,11 +101,11 @@ public final class InterpolationManager {
   private final Timer feasiblityCheckTimer = new Timer();
   private final Timer maximisationTimer = new Timer();
   private int reusedFormulasOnSolverStack = 0;
-  final Timer findingCommonVariablesTimer = new Timer();
-  final Timer buildingLatticeNamesAndLatticeTypesTimer = new Timer();
-  final Timer renamingTimer = new Timer();
-  final Timer buildingAbstractionsTimer = new Timer();
-  final Timer initialVariableExtractionTimer = new Timer();
+  protected final Timer findingCommonVariablesTimer = new Timer();
+  protected final Timer buildingLatticeNamesAndLatticeTypesTimer = new Timer();
+  protected final Timer renamingTimer = new Timer();
+  protected final Timer buildingAbstractionsTimer = new Timer();
+  protected final Timer initialVariableExtractionTimer = new Timer();
   final Timer interpolationTimer = new Timer();
 
   public void printStatistics(StatisticsWriter w0) {
@@ -217,7 +232,7 @@ public final class InterpolationManager {
       + "forward and backward directions return valid interpolants. "
       + "We can either choose one of the directions, fallback to the other "
       + "if one does not succeed, or even combine the interpolants.")
-  private SeqInterpolationStrategy sequentialStrategy = SeqInterpolationStrategy.FWD;
+  private SeqInterpolationStrategy sequentialStrategy = SeqInterpolationStrategy.FWD_FALLBACK;
 
   @Option(secure=true, description="dump all interpolation problems")
   private boolean dumpInterpolationProblems = false;
@@ -1068,9 +1083,8 @@ public final class InterpolationManager {
     }
   }
 
-  @SuppressWarnings("MixedMutabilityReturnType")
-  private <T> List<BooleanFormula> createDSAInterpolants(
-      List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
+  private <T> List<BooleanFormula> createDSAInterpolants(List<Triple<BooleanFormula, AbstractState,
+      T>> formulasWithStatesAndGroupdIds)
       throws InvalidConfigurationException, SolverException, InterruptedException {
     List<BooleanFormula> myInterpolants;
     dsaAnalysisTimer.start();

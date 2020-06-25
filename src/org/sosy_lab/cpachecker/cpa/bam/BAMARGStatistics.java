@@ -1,11 +1,26 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2018  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.cpa.bam;
 
 import static com.google.common.collect.FluentIterable.from;
@@ -13,7 +28,6 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.collect.Collections2;
 import java.io.PrintStream;
 import java.util.Collection;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -22,11 +36,11 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -157,7 +171,7 @@ public class BAMARGStatistics extends ARGStatistics {
 
     } catch (MissingBlockException e) {
       final Collection<ARGState> targetStates =
-          Collections2.filter(frontierStates, AbstractStates::isTargetState);
+          Collections2.filter(frontierStates, AbstractStates.IS_TARGET_STATE);
 
       if (pResult.equals(Result.FALSE) && !targetStates.isEmpty()) {
         // fallback: if there is a missing block and we have a target state,
@@ -181,7 +195,7 @@ public class BAMARGStatistics extends ARGStatistics {
     //   "Last state %s of reachedset with root %s is not in target states %s",
     //   pReached.getLastState(), pReached.getFirstState(), targets);
     ARGReachedSet pMainReachedSet =
-        new ARGReachedSet((ReachedSet) pReached, cpa, 0 /* irrelevant number */);
+        new ARGReachedSet((ReachedSet) pReached, (ARGCPA) cpa, 0 /* irrelevant number */);
     // assertion disabled, because it happens with interrupts from user or on timeouts.
     // assert pMainReachedSet.asReachedSet().asCollection().containsAll(frontierStates)
     //   : "The following states are frontier states, but not part of the reachedset: "
@@ -239,9 +253,9 @@ public class BAMARGStatistics extends ARGStatistics {
     if (argState != null && argState.isTarget()) {
       Optional<CounterexampleInfo> cex = argState.getCounterexampleInformation();
       com.google.common.base.Optional<BackwardARGState> matchingState =
-          from(targets).firstMatch(t -> Objects.equals(t.getARGState(), argState));
+          from(targets).firstMatch(t -> t.getARGState() == argState);
       if (cex.isPresent() && matchingState.isPresent()) {
-        matchingState.get().addCounterexampleInformation(cex.orElseThrow());
+        matchingState.get().addCounterexampleInformation(cex.get());
       }
     }
   }

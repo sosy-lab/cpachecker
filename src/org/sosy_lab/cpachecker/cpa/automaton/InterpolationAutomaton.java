@@ -1,11 +1,22 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2019  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -208,7 +219,7 @@ public class InterpolationAutomaton {
         ARGState pCurrentState, ARGState pChildState, String pNextItpState) {
       Optional<CFAEdge> singleEdgeOpt = handleSingleEdge(pCurrentState, pChildState, pNextItpState);
       if (singleEdgeOpt.isPresent()) {
-        return ImmutableList.of(singleEdgeOpt.orElseThrow());
+        return ImmutableList.of(singleEdgeOpt.get());
       } else {
         // aggregateBasicBlocks is enabled!
         throw new UnsupportedOperationException(
@@ -225,7 +236,7 @@ public class InterpolationAutomaton {
         String buechiExpression =
             Joiner.on("; ")
                 .join(Collections2.transform(dcaState.getAssumptions(), AExpression::toASTString));
-        addEdgeToTransition(singleEdgeOpt.orElseThrow(), pNextItpState, buechiExpression);
+        addEdgeToTransition(singleEdgeOpt.get(), pNextItpState, buechiExpression);
       }
       return singleEdgeOpt;
     }
@@ -259,8 +270,7 @@ public class InterpolationAutomaton {
           stream.reduce((x, y) -> new AutomatonBoolExpr.And(x, y));
       verify(boolExprOpt.isPresent());
       AutomatonTransition transition =
-          new AutomatonTransition.Builder(boolExprOpt.orElseThrow(), sinkState.getStateName())
-              .build();
+          new AutomatonTransition.Builder(boolExprOpt.get(), sinkState.getStateName()).build();
 
       transitions.add(transition);
       return ImmutableList.copyOf(transitions);

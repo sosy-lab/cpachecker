@@ -1,11 +1,22 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2019  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package org.sosy_lab.cpachecker.util;
 
 import com.google.common.collect.HashMultimap;
@@ -15,6 +26,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -30,6 +42,7 @@ import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
+import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
@@ -40,7 +53,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -86,7 +98,7 @@ public class WitnessInvariantsExtractor {
       ShutdownNotifier pShutdownNotifier,
       Path pPathToWitnessFile)
       throws InvalidConfigurationException, CPAException, InterruptedException {
-    this.config = pConfig;
+    this.config = generateLocalConfiguration(pConfig);
     this.logger = pLogger;
     this.cfa = pCFA;
     this.shutdownNotifier = pShutdownNotifier;
@@ -114,11 +126,11 @@ public class WitnessInvariantsExtractor {
       CFA pCFA,
       ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException, CPAException {
-    this.config = pConfig;
+    this.config = generateLocalConfiguration(pConfig);
     this.logger = pLogger;
     this.cfa = pCFA;
     this.shutdownNotifier = pShutdownNotifier;
-    this.automatonAsSpec = Specification.fromAutomata(ImmutableList.of(pAutomaton));
+    this.automatonAsSpec = buildSpecification(pAutomaton);
     analyzeWitness();
   }
 
@@ -133,7 +145,9 @@ public class WitnessInvariantsExtractor {
             "analysis.programNames",
             "cpa.callstack.skipRecursion",
             "cpa.callstack.skipVoidRecursion",
-            "cpa.callstack.skipFunctionPointerRecursion");
+            "cpa.callstack.skipFunctionPointerRecursion",
+            "witness.strictChecking",
+            "witness.checkProgramHash");
     for (String copyOption : copyOptions) {
       configBuilder.copyOptionFromIfPresent(pConfig, copyOption);
     }
@@ -151,14 +165,19 @@ public class WitnessInvariantsExtractor {
         shutdownNotifier);
   }
 
+  private Specification buildSpecification(Automaton pAutomaton) {
+    List<Automaton> automata = new ArrayList<>(1);
+    automata.add(pAutomaton);
+    return Specification.fromAutomata(automata);
+  }
+
   private void analyzeWitness() throws InvalidConfigurationException, CPAException {
-    Configuration localConfig = generateLocalConfiguration(config);
-    ReachedSetFactory reachedSetFactory = new ReachedSetFactory(localConfig, logger);
+    ReachedSetFactory reachedSetFactory = new ReachedSetFactory(config, logger);
     reachedSet = reachedSetFactory.create();
-    CPABuilder builder = new CPABuilder(localConfig, logger, shutdownNotifier, reachedSetFactory);
+    CPABuilder builder = new CPABuilder(config, logger, shutdownNotifier, reachedSetFactory);
     ConfigurableProgramAnalysis cpa =
         builder.buildCPAs(cfa, automatonAsSpec, new AggregatedReachedSets());
-    CPAAlgorithm algorithm = CPAAlgorithm.create(cpa, logger, localConfig, shutdownNotifier);
+    CPAAlgorithm algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
     CFANode rootNode = cfa.getMainFunction();
     StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
     try {
@@ -173,7 +192,7 @@ public class WitnessInvariantsExtractor {
   }
 
   /**
-   * Extracts the invariants with their corresponding CFA location from {@link
+   * Extracts the invariants with their corresponding CFA location from {@link:
    * WitnessInvariantsExtractor#reachedSet}. For two invariants at the same CFA location the
    * conjunction is applied for the two invariants.
    *
@@ -214,7 +233,7 @@ public class WitnessInvariantsExtractor {
   }
 
   /**
-   * Extracts the invariants from {@link WitnessInvariantsExtractor#reachedSet} and stores it in
+   * Extracts the invariants from {@link: WitnessInvariantsExtractor#reachedSet} and stores it in
    * {@code pCandidates}. The invariants are regarded as candidates that can hold at several CFA
    * locations. Therefore, {@code pCandidateGroupLocations} is used that groups CFANodes by using a
    * groupID. For two invariants that are part of the same group the conjunction is applied for the

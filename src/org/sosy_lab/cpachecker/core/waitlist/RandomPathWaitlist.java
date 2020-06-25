@@ -1,11 +1,26 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2014  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.core.waitlist;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -31,7 +46,7 @@ import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 @SuppressFBWarnings(
     value = "BC_BAD_CAST_TO_CONCRETE_COLLECTION",
     justification = "warnings is only because of casts introduced by generics")
-@SuppressWarnings({"checkstyle:IllegalType", "JdkObsolete"})
+@SuppressWarnings("checkstyle:IllegalType")
 public class RandomPathWaitlist extends AbstractWaitlist<LinkedList<AbstractState>> {
 
   private static final long serialVersionUID = 1L;
@@ -40,6 +55,7 @@ public class RandomPathWaitlist extends AbstractWaitlist<LinkedList<AbstractStat
   private int successorsOfParent;
   private transient @Nullable CFANode parent;
 
+  @SuppressWarnings("JdkObsolete")
   protected RandomPathWaitlist() {
     super(new LinkedList<>());
     successorsOfParent = 0;
@@ -86,7 +102,7 @@ public class RandomPathWaitlist extends AbstractWaitlist<LinkedList<AbstractStat
   private void readObject(ObjectInputStream s) throws IOException, ClassNotFoundException {
     s.defaultReadObject();
     Integer nodeNumber = (Integer) s.readObject();
-    CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().orElseThrow();
+    CFAInfo cfaInfo = GlobalInfo.getInstance().getCFAInfo().get();
     parent = nodeNumber == null ? null : cfaInfo.getNodeByNodeNumber(nodeNumber);
   }
 }

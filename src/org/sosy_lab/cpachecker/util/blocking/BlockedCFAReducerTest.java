@@ -1,15 +1,29 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2014  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.util.blocking;
 
 import static com.google.common.truth.Truth.assertThat;
-import static org.sosy_lab.cpachecker.cfa.model.CFANode.newDummyCFANode;
 
 import com.google.common.io.CharStreams;
 import java.io.BufferedWriter;
@@ -21,6 +35,7 @@ import org.junit.Test;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 @SuppressWarnings("unused")
 public class BlockedCFAReducerTest {
@@ -44,15 +59,15 @@ public class BlockedCFAReducerTest {
 
   @Test
   public void testApplySequenceRule_SimpleSequence() {
-    ReducedNode entryNode = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode exitNode = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode entryNode = new ReducedNode(new CFANode("test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode("test"), false);
     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 
-    ReducedNode n1 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n2 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n3 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n4 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n5 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n1 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n2 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n3 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n4 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n5 = new ReducedNode(new CFANode("test"), false);
 
     funct.addEdge(entryNode, n1);
     funct.addEdge(n1, n2);
@@ -67,21 +82,23 @@ public class BlockedCFAReducerTest {
 
   @Test
   public void testApplySequenceRule_ForLoop() {
-    ReducedNode entryNode = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode exitNode = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode entryNode = new ReducedNode(new CFANode("test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode("test"), false);
     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 
-    ReducedNode n1 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n2 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n3 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n4 = new ReducedNode(newDummyCFANode("loophead"), false);
+    ReducedNode n1 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n2 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n3 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n4 = new ReducedNode(new CFANode("loophead"), false);
     n4.getWrapped().setLoopStart();
-    ReducedNode n5 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n6 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n7 = new ReducedNode(newDummyCFANode("test"), false);
 
-    ReducedNode n8 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n9 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n5 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n6 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n7 = new ReducedNode(new CFANode("test"), false);
+
+    ReducedNode n8 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n9 = new ReducedNode(new CFANode("test"), false);
+
 
     funct.addEdge(entryNode, n1);
     funct.addEdge(n1, n2);
@@ -106,26 +123,26 @@ public class BlockedCFAReducerTest {
 
   @Test
   public void testAllRules_ForLoopWithSequence_reduce() {
-    ReducedNode entryNode = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode exitNode = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode entryNode = new ReducedNode(new CFANode("test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode("test"), false);
     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 
-    ReducedNode n4 = new ReducedNode(newDummyCFANode("loophead"), false);
+    ReducedNode n4 = new ReducedNode(new CFANode("loophead"), false);
     n4.getWrapped().setLoopStart();
 
-    ReducedNode n5 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n6 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n7 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n5 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n6 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n7 = new ReducedNode(new CFANode("test"), false);
 
-    ReducedNode n8 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n9 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n8 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n9 = new ReducedNode(new CFANode("test"), false);
 
-    ReducedNode n20 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n21 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n22 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n23 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n24 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n25 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n20 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n21 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n22 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n23 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n24 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n25 = new ReducedNode(new CFANode("test"), false);
 
     funct.addEdge(entryNode, n4);
 
@@ -158,29 +175,29 @@ public class BlockedCFAReducerTest {
 
   @Test
   public void testAllRules_ForLoopWithSequence() {
-    ReducedNode entryNode = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode exitNode = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode entryNode = new ReducedNode(new CFANode("test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode("test"), false);
     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 
-    ReducedNode n1 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n2 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n3 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n4 = new ReducedNode(newDummyCFANode("loophead"), false);
+    ReducedNode n1 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n2 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n3 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n4 = new ReducedNode(new CFANode("loophead"), false);
     n4.getWrapped().setLoopStart();
-    ReducedNode n5 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n6 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n7 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n5 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n6 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n7 = new ReducedNode(new CFANode("test"), false);
 
-    ReducedNode n8 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n9 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n8 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n9 = new ReducedNode(new CFANode("test"), false);
 
-    ReducedNode n20 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n21 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n22 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n23 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n24 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n25 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n26 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n20 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n21 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n22 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n23 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n24 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n25 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n26 = new ReducedNode(new CFANode("test"), false);
 
     funct.addEdge(entryNode, n1);
     funct.addEdge(n1, n2);
@@ -219,10 +236,10 @@ public class BlockedCFAReducerTest {
 
   @Test
   public void testAllRules_ForLoopWithSequence2() {
-    ReducedNode entryNode = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode exitNode = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n4 = new ReducedNode(newDummyCFANode("loophead"), false);
-    ReducedNode n6 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode entryNode = new ReducedNode(new CFANode("test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n4 = new ReducedNode(new CFANode("loophead"), false);
+    ReducedNode n6 = new ReducedNode(new CFANode("test"), false);
     n4.getWrapped().setLoopStart();
 
     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
@@ -248,11 +265,11 @@ public class BlockedCFAReducerTest {
 
   @Test
   public void testAllRules_ForLoopWithSequence3() {
-    ReducedNode entryNode = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode exitNode = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n4 = new ReducedNode(newDummyCFANode("loophead"), false);
-    ReducedNode n6 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n10 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode entryNode = new ReducedNode(new CFANode("test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n4 = new ReducedNode(new CFANode("loophead"), false);
+    ReducedNode n6 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n10 = new ReducedNode(new CFANode("test"), false);
     n4.getWrapped().setLoopStart();
 
     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
@@ -281,22 +298,23 @@ public class BlockedCFAReducerTest {
 
   @Test
   public void testApplySequenceRule_RepeatUntilLoop() {
-    ReducedNode entryNode = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode exitNode = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode entryNode = new ReducedNode(new CFANode("test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode("test"), false);
     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 
-    ReducedNode n1 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n2 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n3 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n4 = new ReducedNode(newDummyCFANode("loophead"), false);
+    ReducedNode n1 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n2 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n3 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n4 = new ReducedNode(new CFANode("loophead"), false);
     n4.getWrapped().setLoopStart();
 
-    ReducedNode n5 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n6 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n7 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n5 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n6 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n7 = new ReducedNode(new CFANode("test"), false);
 
-    ReducedNode n8 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n9 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n8 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n9 = new ReducedNode(new CFANode("test"), false);
+
 
     funct.addEdge(entryNode, n1);
     funct.addEdge(n1, n2);
@@ -312,7 +330,8 @@ public class BlockedCFAReducerTest {
     funct.addEdge(n8, n9);
     funct.addEdge(n9, exitNode);
 
-    while (reducer.applySequenceRule(funct)) {}
+    do  {
+    } while (reducer.applySequenceRule(funct));
 
     assertThat(funct.getNumOfActiveNodes()).isEqualTo(3);
     assertThat(funct.getNumEnteringEdges(n4)).isEqualTo(2);
@@ -320,14 +339,14 @@ public class BlockedCFAReducerTest {
 
   @Test
   public void testApplySequenceRule_RepeatUntilLoop2() {
-    ReducedNode entryNode = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode exitNode = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode entryNode = new ReducedNode(new CFANode("test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode("test"), false);
     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 
-    ReducedNode n5 = new ReducedNode(newDummyCFANode("loophead"), false);
+    ReducedNode n5 = new ReducedNode(new CFANode("loophead"), false);
     n5.getWrapped().setLoopStart();
-    ReducedNode n8 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n9 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n8 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n9 = new ReducedNode(new CFANode("test"), false);
 
     funct.addEdge(entryNode, n5);
     funct.addEdge(n5, n8);
@@ -346,10 +365,10 @@ public class BlockedCFAReducerTest {
 
   @Test
   public void testApplySequenceRule_RepeatUntilLoop3() {
-    ReducedNode entryNode = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode exitNode = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n4 = new ReducedNode(newDummyCFANode("loophead"), false);
-    ReducedNode n7 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode entryNode = new ReducedNode(new CFANode("test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n4 = new ReducedNode(new CFANode("loophead"), false);
+    ReducedNode n7 = new ReducedNode(new CFANode("test"), false);
     n4.getWrapped().setLoopStart();
 
     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
@@ -370,17 +389,17 @@ public class BlockedCFAReducerTest {
 
   @Test
   public void testApplySequenceRule_IfBranch() {
-    ReducedNode entryNode = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode exitNode = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode entryNode = new ReducedNode(new CFANode("test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode("test"), false);
 
-    ReducedNode n2 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n3 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n4 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n5 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n6 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n7 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n8 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n9 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n2 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n3 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n4 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n5 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n6 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n7 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n8 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n9 = new ReducedNode(new CFANode("test"), false);
 
     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 
@@ -405,13 +424,13 @@ public class BlockedCFAReducerTest {
 
   @Test
   public void testApplyReductionSequences_IfBranch() {
-    ReducedNode entryNode = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode exitNode = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode entryNode = new ReducedNode(new CFANode("test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode("test"), false);
 
-    ReducedNode n2 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n3 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n4 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n1000 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n2 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n3 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n4 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n1000 = new ReducedNode(new CFANode("test"), false);
 
     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 
@@ -435,13 +454,13 @@ public class BlockedCFAReducerTest {
 
   @Test
   public void testApplyChoiceRule_IfBranch_NoChange() {
-    ReducedNode entryNode = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode exitNode = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode entryNode = new ReducedNode(new CFANode("test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode("test"), false);
 
-    ReducedNode n2 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n3 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n4 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n5 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n2 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n3 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n4 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n5 = new ReducedNode(new CFANode("test"), false);
 
     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 
@@ -452,18 +471,19 @@ public class BlockedCFAReducerTest {
     funct.addEdge(n4, n5);
     funct.addEdge(n5, exitNode);
 
-    while (reducer.applyChoiceRule(funct)) {}
+    do  {
+    } while (reducer.applyChoiceRule(funct));
 
     assertThat(funct.getNumOfActiveNodes()).isEqualTo(6);
   }
 
   @Test
   public void testApplyChoiceRule_IfBranch_Change() {
-    ReducedNode entryNode = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode exitNode = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode entryNode = new ReducedNode(new CFANode("test"), false);
+    ReducedNode exitNode = new ReducedNode(new CFANode("test"), false);
 
-    ReducedNode n2 = new ReducedNode(newDummyCFANode("test"), false);
-    ReducedNode n3 = new ReducedNode(newDummyCFANode("test"), false);
+    ReducedNode n2 = new ReducedNode(new CFANode("test"), false);
+    ReducedNode n3 = new ReducedNode(new CFANode("test"), false);
 
     ReducedFunction funct = new ReducedFunction(entryNode, exitNode);
 
@@ -472,7 +492,8 @@ public class BlockedCFAReducerTest {
     funct.addEdge(n2, n3);
     funct.addEdge(n3, exitNode);
 
-    while (reducer.applyChoiceRule(funct)) {}
+    do  {
+    } while (reducer.applyChoiceRule(funct));
 
     assertThat(funct.getNumOfActiveNodes()).isEqualTo(4);
   }

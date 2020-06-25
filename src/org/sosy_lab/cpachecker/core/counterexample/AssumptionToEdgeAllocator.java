@@ -1,11 +1,26 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2014  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.core.counterexample;
 
 import com.google.common.base.Joiner;
@@ -361,7 +376,7 @@ public class AssumptionToEdgeAllocator {
         CExpression op1 = binExp.getOperand1();
         CExpression op2 = binExp.getOperand2();
 
-        ImmutableList.Builder<AExpressionStatement> result = ImmutableList.builder();
+        List<AExpressionStatement> result = new ArrayList<>();
         if (op1 instanceof CLeftHandSide) {
           result.addAll(handleAssignment(pCFAEdge, (CLeftHandSide) op1, pConcreteState));
         }
@@ -369,7 +384,7 @@ public class AssumptionToEdgeAllocator {
         if (op2 instanceof CLeftHandSide) {
           result.addAll(handleAssignment(pCFAEdge, (CLeftHandSide) op2, pConcreteState));
         }
-        return result.build();
+        return result;
       }
     }
   }
@@ -412,11 +427,11 @@ public class AssumptionToEdgeAllocator {
     if (parameterDeclarations.isEmpty()) {
       return ImmutableList.of();
     }
-    ImmutableList.Builder<AExpressionStatement> result = ImmutableList.builder();
+    List<AExpressionStatement> result = new ArrayList<>(parameterDeclarations.size());
     for (AParameterDeclaration parameterDeclaration : parameterDeclarations) {
       result.addAll(handleDeclaration(parameterDeclaration, functionName, pConcreteState));
     }
-    return result.build();
+    return result;
   }
 
   private List<AExpressionStatement> handleAssignment(CFAEdge pCFAEdge, CLeftHandSide pLeftHandSide, ConcreteState pConcreteState) {
@@ -551,7 +566,7 @@ public class AssumptionToEdgeAllocator {
     boolean equalTypes = leftType.equals(rightType);
 
     FluentIterable<Class<? extends CType>> acceptedTypes =
-        FluentIterable.from(Collections.singleton(CSimpleType.class));
+        FluentIterable.from(Collections.<Class<? extends CType>>singleton(CSimpleType.class));
     acceptedTypes = acceptedTypes.append(
           Arrays.asList(
               CArrayType.class,
@@ -2058,7 +2073,7 @@ public class AssumptionToEdgeAllocator {
 
     private final CCastExpression castExpression;
 
-    CastedExplicitValueLiteral(CLiteralExpression pValueLiteral, CCastExpression exp) {
+    protected CastedExplicitValueLiteral(CLiteralExpression pValueLiteral, CCastExpression exp) {
       super(pValueLiteral);
       castExpression = exp;
     }

@@ -1,15 +1,28 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2015  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.cpa.threading;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.THREAD_JOIN;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.extractParamName;
 import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.getLockId;
@@ -18,7 +31,7 @@ import static org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation.is
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
-import java.util.LinkedHashSet;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -118,7 +131,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
 
   public ThreadingState removeThreadAndCopy(String id) {
     Preconditions.checkNotNull(id);
-    checkState(threads.containsKey(id), "leaving non-existing thread: %s", id);
+    Preconditions.checkState(threads.containsKey(id), "leaving non-existing thread: " + id);
     return withThreads(threads.removeAndCopy(id));
   }
 
@@ -135,7 +148,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
   }
 
   Set<Integer> getThreadNums() {
-    Set<Integer> result = new LinkedHashSet<>();
+    Set<Integer> result = new HashSet<>();
     for (ThreadState ts : threads.values()) {
       result.add(ts.getNum());
     }
@@ -156,22 +169,14 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
   public ThreadingState addLockAndCopy(String threadId, String lockId) {
     Preconditions.checkNotNull(lockId);
     Preconditions.checkNotNull(threadId);
-    checkArgument(
-        threads.containsKey(threadId),
-        "blocking non-existant thread: %s with lock: %s",
-        threadId,
-        lockId);
+    Preconditions.checkArgument(threads.containsKey(threadId), "blocking non-existant thread: " + threadId + " with lock: " + lockId);
     return withLocks(locks.putAndCopy(lockId, threadId));
   }
 
   public ThreadingState removeLockAndCopy(String threadId, String lockId) {
     Preconditions.checkNotNull(threadId);
     Preconditions.checkNotNull(lockId);
-    checkArgument(
-        threads.containsKey(threadId),
-        "unblocking non-existant thread: %s with lock: %s",
-        threadId,
-        lockId);
+    Preconditions.checkArgument(threads.containsKey(threadId), "unblocking non-existant thread: " + threadId + " with lock: " + lockId);
     return withLocks(locks.removeAndCopy(lockId));
   }
 
@@ -392,7 +397,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
     }
   }
 
-  /** See {@link #activeThread}. */
+  /** @see #activeThread */
   public ThreadingState setActiveThread(String pActiveThread) {
     return new ThreadingState(threads, locks, pActiveThread, threadIdsForWitness);
   }
@@ -422,8 +427,8 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
 
   ThreadingState removeThreadIdForWitness(String threadId) {
     Preconditions.checkNotNull(threadId);
-    checkArgument(
-        threadIdsForWitness.containsKey(threadId), "removing non-existant thread: %s", threadId);
+    Preconditions.checkArgument(
+        threadIdsForWitness.containsKey(threadId), "removing non-existant thread: " + threadId);
     return withThreadIdsForWitness(threadIdsForWitness.removeAndCopy(threadId));
   }
 }

@@ -1,17 +1,31 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2018  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package org.sosy_lab.cpachecker.core.algorithm.termination;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.Sets;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -55,25 +69,25 @@ public class ClassVariables {
   }
 
   public ImmutableSet<CVariableDeclaration> getGlobalDeclarations() {
-    return visitor.globalDeclarations.build();
+    return ImmutableSet.copyOf(visitor.globalDeclarations);
   }
 
   public ImmutableSetMultimap<String, CVariableDeclaration> getLocalDeclarations() {
-    return visitor.localDeclarations.build();
+    return ImmutableSetMultimap.copyOf(visitor.localDeclarations);
   }
 
   private static final class DeclarationCollectionCFAVisitor extends DefaultCFAVisitor {
 
-    private final ImmutableSet.Builder<CVariableDeclaration> globalDeclarations =
-        ImmutableSet.builder();
+    private final Set<CVariableDeclaration> globalDeclarations = Sets.newLinkedHashSet();
 
-    private final ImmutableSetMultimap.Builder<String, CVariableDeclaration> localDeclarations =
-        ImmutableSetMultimap.builder();
+    private final Multimap<String, CVariableDeclaration> localDeclarations =
+        MultimapBuilder.hashKeys().linkedHashSetValues().build();
 
     private DeclarationCollectionCFAVisitor() {}
 
     @Override
     public TraversalProcess visitNode(CFANode pNode) {
+
       if (pNode instanceof CFunctionEntryNode) {
         String functionName = pNode.getFunctionName();
         List<CParameterDeclaration> parameters =
@@ -81,7 +95,7 @@ public class ClassVariables {
         parameters
             .stream()
             .map(CParameterDeclaration::asVariableDeclaration)
-            .forEach(decl -> localDeclarations.put(functionName, decl));
+            .forEach(localDeclarations.get(functionName)::add);
       }
       return TraversalProcess.CONTINUE;
     }

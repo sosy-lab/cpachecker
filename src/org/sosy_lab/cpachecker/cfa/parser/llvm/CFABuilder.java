@@ -1,15 +1,31 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ * CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2017  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.cfa.parser.llvm;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -23,12 +39,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.OptionalInt;
+import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -134,7 +150,7 @@ public class CFABuilder {
   private int basicBlockId;
   protected NavigableMap<String, FunctionEntryNode> functions;
 
-  protected TreeMultimap<String, CFANode> cfaNodes;
+  protected SortedSetMultimap<String, CFANode> cfaNodes;
   protected List<Pair<ADeclaration, String>> globalDeclarations;
 
   public CFABuilder(final LogManager pLogger, final MachineModel pMachineModel) {
@@ -252,8 +268,8 @@ public class CFABuilder {
 
       // create the basic blocks and instructions of the function.
       // A basic block is mapped to a pair <entry node, exit node>
-      NavigableMap<Integer, BasicBlockInfo> basicBlocks = new TreeMap<>();
-      CLabelNode entryBB = iterateOverBasicBlocks(currFunc, en, basicBlocks, pFileName);
+      SortedMap<Integer, BasicBlockInfo> basicBlocks = new TreeMap<>();
+      CLabelNode entryBB = iterateOverBasicBlocks(currFunc, en, funcName, basicBlocks, pFileName);
 
       // add the edge from the entry of the function to the first
       // basic block
@@ -310,7 +326,8 @@ public class CFABuilder {
   private CLabelNode iterateOverBasicBlocks(
       final Function pFunction,
       final FunctionEntryNode pEntryNode,
-      final NavigableMap<Integer, BasicBlockInfo> pBasicBlocks,
+      final String pFuncName,
+      final SortedMap<Integer, BasicBlockInfo> pBasicBlocks,
       final String pFileName)
       throws LLVMException {
     if (pFunction.countBasicBlocks() == 0) {
@@ -320,14 +337,14 @@ public class CFABuilder {
     CLabelNode entryBB = null;
     for (BasicBlock block : pFunction) {
       // process this basic block
-      CLabelNode label = new CLabelNode(pEntryNode.getFunction(), getBBName(block));
-      addNode(pEntryNode.getFunctionName(), label);
+      CLabelNode label = new CLabelNode(pFuncName, getBBName(block));
+      addNode(pFuncName, label);
       if (entryBB == null) {
         entryBB = label;
       }
 
       BasicBlockInfo bbi =
-          handleInstructions(pEntryNode.getExitNode(), pEntryNode.getFunction(), block, pFileName);
+          handleInstructions(pEntryNode.getExitNode(), pFuncName, block, pFileName);
       pBasicBlocks.put(block.hashCode(), new BasicBlockInfo(label, bbi.getExitNode()));
 
       // add an edge from label to the first node
@@ -348,7 +365,7 @@ public class CFABuilder {
   /** Add branching edges between first and last nodes of basic blocks. */
   private void addJumpsBetweenBasicBlocks(
       final Function pFunction,
-      final NavigableMap<Integer, BasicBlockInfo> pBasicBlocks,
+      final SortedMap<Integer, BasicBlockInfo> pBasicBlocks,
       final String pFileName)
       throws LLVMException {
     // for every basic block, get the last instruction and
@@ -420,7 +437,7 @@ public class CFABuilder {
               new CBinaryExpression(
                   comparisonLhs.getFileLocation(),
                   CNumericTypes.BOOL,
-                  compType,
+                  CNumericTypes.BOOL,
                   comparisonLhs,
                   comparisonRhs,
                   BinaryOperator.EQUALS);
@@ -435,7 +452,7 @@ public class CFABuilder {
                   true);
           addEdge(jumpEdge);
 
-          CFANode nextNode = newNode(brNode.getFunction());
+          CFANode nextNode = newNode(brNode.getFunctionName());
           CAssumeEdge toNextCaseEdge =
               new CAssumeEdge(
                   comparisonExp.toASTString(),
@@ -462,26 +479,26 @@ public class CFABuilder {
     }
   }
 
-  private CFANode newNode(AFunctionDeclaration func) {
-    CFANode nd = new CFANode(func);
-    addNode(func.getName(), nd);
+  private CFANode newNode(String funcName) {
+    CFANode nd = new CFANode(funcName);
+    addNode(funcName, nd);
+
     return nd;
   }
 
   /** Create a chain of nodes and edges corresponding to one basic block. */
   private BasicBlockInfo handleInstructions(
       final FunctionExitNode exitNode,
-      final AFunctionDeclaration pFunction,
+      final String funcName,
       final BasicBlock pItem,
       final String pFileName)
       throws LLVMException {
     assert pItem.getFirstInstruction() != null; // empty BB not supported
-    final String funcName = pFunction.getName();
 
     Value lastI = pItem.getLastInstruction();
     assert lastI != null;
 
-    CFANode prevNode = newNode(pFunction);
+    CFANode prevNode = newNode(funcName);
     CFANode firstNode = prevNode;
     CFANode curNode = null;
 
@@ -491,7 +508,7 @@ public class CFABuilder {
 
       } else if (i.isSelectInst()) {
         CDeclaration decl = (CDeclaration) getAssignedVarDeclaration(i, funcName, null, pFileName);
-        curNode = newNode(pFunction);
+        curNode = newNode(funcName);
         addEdge(
             new CDeclarationEdge(
                 decl.toASTString(), decl.getFileLocation(), prevNode, curNode, decl));
@@ -514,8 +531,8 @@ public class CFABuilder {
         CStatement falseAssignment =
             (CStatement) getAssignStatement(i, falseValue, funcName, pFileName).get(0);
 
-        CFANode trueNode = newNode(pFunction);
-        CFANode falseNode = newNode(pFunction);
+        CFANode trueNode = newNode(funcName);
+        CFANode falseNode = newNode(funcName);
         CAssumeEdge trueBranch =
             new CAssumeEdge(
                 conditionForElse.toASTString(),
@@ -536,7 +553,7 @@ public class CFABuilder {
         addEdge(falseBranch);
 
         prevNode = trueNode;
-        trueNode = newNode(pFunction);
+        trueNode = newNode(funcName);
         CStatementEdge trueAssign =
             new CStatementEdge(
                 trueAssignment.toASTString(),
@@ -547,7 +564,7 @@ public class CFABuilder {
         addEdge(trueAssign);
 
         prevNode = falseNode;
-        falseNode = newNode(pFunction);
+        falseNode = newNode(funcName);
         CStatementEdge falseAssign =
             new CStatementEdge(
                 falseAssignment.toASTString(),
@@ -557,7 +574,7 @@ public class CFABuilder {
                 falseNode);
         addEdge(falseAssign);
 
-        curNode = newNode(pFunction);
+        curNode = newNode(funcName);
         BlankEdge trueMeet =
             new BlankEdge("", falseAssignment.getFileLocation(), trueNode, curNode, "");
         addEdge(trueMeet);
@@ -573,7 +590,7 @@ public class CFABuilder {
         // process this basic block
         List<CAstNode> expressions = visitInstruction(i, funcName, pFileName);
         if (expressions == null) {
-          curNode = newNode(pFunction);
+          curNode = newNode(funcName);
           addEdge(new BlankEdge(i.toString(), FileLocation.DUMMY, prevNode, curNode, "noop"));
           prevNode = curNode;
           continue;
@@ -583,7 +600,7 @@ public class CFABuilder {
           FileLocation exprLocation = expr.getFileLocation();
           // build an edge with this expression over it
           if (expr instanceof CDeclaration) {
-            curNode = newNode(pFunction);
+            curNode = newNode(funcName);
             addEdge(
                 new CDeclarationEdge(
                     expr.toASTString(), exprLocation, prevNode, curNode, (CDeclaration) expr));
@@ -593,14 +610,14 @@ public class CFABuilder {
                 new CReturnStatementEdge(
                     i.toString(), (CReturnStatement) expr, exprLocation, prevNode, exitNode));
           } else if (i.isUnreachableInst()) {
-            curNode = new CFATerminationNode(pFunction);
+            curNode = new CFATerminationNode(funcName);
             addNode(funcName, curNode);
             addEdge(new BlankEdge(i.toString(), exprLocation, prevNode, curNode, "unreachable"));
             // don't continue in that block after an `undef` statement
             break;
 
           } else {
-            curNode = newNode(pFunction);
+            curNode = newNode(funcName);
             addEdge(
                 new CStatementEdge(
                     expr.toASTString() + i.toString(),
@@ -1165,26 +1182,9 @@ public class CFABuilder {
     FileLocation location = getLocation(pItem, pFileName);
     if (pItem.isConstantInt()) {
       BigInteger constantValue = BigInteger.valueOf(pItem.constIntGetSExtValue());
-
-      if (pExpectedType instanceof CSimpleType) {
-        CSimpleType castType = (CSimpleType) pExpectedType;
-
-        if (castType.getType().equals(CBasicType.INT)) {
-          assert machineModel.getMinimalIntegerValue(castType).compareTo(constantValue) <= 0;
-          assert machineModel.getMaximalIntegerValue(castType).compareTo(constantValue) >= 0;
-          return new CIntegerLiteralExpression(
-              getLocation(pItem, pFileName), pExpectedType, constantValue);
-        }
-      }
-
-      // if the expected type is no integer type and we have to cast the literal,
-      // just use the largest available value.
-      // Since llvm-j only provides us a 'long' value for Value#constIntGetSExtValue,
-      // we can always use a signed long long and don't have to consider using an unsigned long long
-      CExpression literalExpression =
-          new CIntegerLiteralExpression(
-              getLocation(pItem, pFileName), CNumericTypes.SIGNED_LONG_LONG_INT, constantValue);
-      return castToExpectedType(literalExpression, pExpectedType, location);
+      CType type = getTypeForInteger(constantValue);
+      return new CIntegerLiteralExpression(
+          getLocation(pItem, pFileName), type, constantValue);
 
     } else if (pItem.isConstantPointerNull()) {
       return new CCastExpression(location, pExpectedType,
@@ -1240,6 +1240,25 @@ public class CFABuilder {
     }
   }
 
+  private CType getTypeForInteger(BigInteger pConstantValue) throws LLVMException{
+    // While clang-3.9 translates C integers larger than 'signed long long int' to negative values,
+    // literals of arbitrary size can be given in LLVM when written by hand,
+    // so we use the largest types available in C and throw an exception if the values are too large.
+    if (machineModel.getMaximalIntegerValue(CNumericTypes.SIGNED_LONG_LONG_INT).compareTo(pConstantValue) < 0) {
+      if (machineModel.getMaximalIntegerValue(CNumericTypes.UNSIGNED_LONG_LONG_INT).compareTo(pConstantValue) < 0) {
+        throw new LLVMException("Value not representable in CPAchecker's CFA representation of LLVM (too large): " + pConstantValue);
+      }
+
+      return CNumericTypes.UNSIGNED_LONG_LONG_INT;
+    }
+
+    if (machineModel.getMinimalIntegerValue(CNumericTypes.SIGNED_LONG_LONG_INT).compareTo(pConstantValue) > 0) {
+      throw new LLVMException("Value not representable in CPAchecker's CFA representation of LLVM (too small): " + pConstantValue);
+    }
+
+    return CNumericTypes.SIGNED_LONG_LONG_INT;
+  }
+
   private CExpression getNull(final FileLocation pLocation) {
     // it's safe to assume integer as type for a constant NULL
     return new CIntegerLiteralExpression(pLocation, CNumericTypes.INT, BigInteger.ZERO);
@@ -1284,7 +1303,7 @@ public class CFABuilder {
     CInitializer init;
     CType canonicalType = pExpectedType.getCanonicalType();
     if (canonicalType instanceof CArrayType) {
-      int length = ((CArrayType) canonicalType).getLengthAsInt().orElseThrow();
+      int length = ((CArrayType) canonicalType).getLengthAsInt().getAsInt();
       CType elementType = ((CArrayType) canonicalType).getType().getCanonicalType();
       CInitializer zeroInitializer = getZeroInitializer(pForElement, elementType, pFileName);
       List<CInitializer> initializers = Collections.nCopies(length, zeroInitializer);
@@ -1328,7 +1347,7 @@ public class CFABuilder {
       CArrayType arrayType = (CArrayType) typeConverter.getCType(pAggregateValue.typeOf());
       OptionalInt maybeArrayLength = arrayType.getLengthAsInt();
       assert maybeArrayLength.isPresent() : "Constant array has non-constant length";
-      return maybeArrayLength.orElseThrow();
+      return maybeArrayLength.getAsInt();
     } else if (aggregateType instanceof CCompositeType) {
       return ((CCompositeType) aggregateType).getMembers().size();
     } else {
@@ -1610,8 +1629,7 @@ public class CFABuilder {
     assert !pFuncDef.isDeclaration();
 
     String functionName = pFuncDef.getValueName();
-    CFunctionDeclaration functionDeclaration = functionDeclarations.get(functionName);
-    FunctionExitNode functionExit = new FunctionExitNode(functionDeclaration);
+    FunctionExitNode functionExit = new FunctionExitNode(functionName);
     addNode(functionName, functionExit);
 
     // Function type
@@ -1632,6 +1650,7 @@ public class CFABuilder {
       returnVar = Optional.of(returnVarDecl);
     }
 
+    CFunctionDeclaration functionDeclaration = functionDeclarations.get(functionName);
     FunctionEntryNode entry =
         new CFunctionEntryNode(
             getLocation(pFuncDef, pFileName), functionDeclaration, functionExit, returnVar);
@@ -1686,9 +1705,8 @@ public class CFABuilder {
     /* if this is and expression starting with &,
      * just remove the & */
     if (expr instanceof CUnaryExpression
-        && ((CUnaryExpression) expr).getOperator() == UnaryOperator.AMPER) {
-      return ((CUnaryExpression) expr).getOperand();
-    }
+        && ((CUnaryExpression) expr).getOperator() == UnaryOperator.AMPER)
+        return ((CUnaryExpression) expr).getOperand();
 
     return new CPointerExpression(fileLocation, derefType, expr);
   }

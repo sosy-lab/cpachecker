@@ -1,11 +1,26 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2014  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -29,6 +44,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -548,7 +564,7 @@ public class PredicateAbstractionManager {
           }
 
           if (an.getLocationId().isPresent()) {
-            if (location.getNodeNumber() != an.getLocationId().orElseThrow()) {
+            if (location.getNodeNumber() != an.getLocationId().getAsInt()) {
               candidateIterator.remove();
               continue;
             }
@@ -1224,22 +1240,25 @@ public class PredicateAbstractionManager {
   // Creating AbstractionPredicates
 
   /**
-   * Extract all atoms from a formula and create predicates for them. If instead a single predicate
-   * should be created for the whole formula, call {@link #getPredicateFor(BooleanFormula)} instead.
+   * Extract all atoms from a formula and create predicates for them.
+   * If instead a single predicate should be created for the whole formula,
+   * call {@link #getPredicateFor(BooleanFormula)} instead.
    *
    * @param pFormula The formula with the atoms (with SSA indices).
    * @return A (possibly empty) collection of AbstractionPredicates without duplicates.
    */
-  public ImmutableSet<AbstractionPredicate> getPredicatesForAtomsOf(BooleanFormula pFormula) {
+  public Set<AbstractionPredicate> getPredicatesForAtomsOf(BooleanFormula pFormula) {
     if (bfmgr.isFalse(pFormula)) {
       return ImmutableSet.of(amgr.makeFalsePredicate());
     }
 
     Set<BooleanFormula> atoms = fmgr.extractAtoms(pFormula, splitItpAtoms);
 
-    ImmutableSet<AbstractionPredicate> preds =
-        Collections3.transformedImmutableSetCopy(
-            atoms, atom -> amgr.makePredicate(fmgr.uninstantiate(atom)));
+    Set<AbstractionPredicate> preds = new LinkedHashSet<>(atoms.size());
+
+    for (BooleanFormula atom : atoms) {
+      preds.add(amgr.makePredicate(fmgr.uninstantiate(atom)));
+    }
 
     amgr.reorderPredicates();
     return preds;

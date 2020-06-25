@@ -1,11 +1,26 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2014  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.base.Joiner;
@@ -76,8 +91,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
-import org.sosy_lab.cpachecker.core.specification.Property;
-import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 import org.sosy_lab.cpachecker.cpa.automaton.CParserUtils.ParserTools;
@@ -88,6 +101,8 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.NumericIdProvider;
+import org.sosy_lab.cpachecker.util.Property;
+import org.sosy_lab.cpachecker.util.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMLTag;
@@ -124,7 +139,7 @@ public class AutomatonGraphmlParser {
   private static final String TOO_MANY_GRAPHS_ERROR_MESSAGE =
       "The witness file must describe exactly one witness automaton.";
 
-  
+  private static final String ACCESS_ERROR_MESSAGE = "Error while accessing witness file: %s!";
 
   private static final String INVALID_AUTOMATON_ERROR_MESSAGE =
       "The witness automaton provided is invalid!";
@@ -168,16 +183,6 @@ public class AutomatonGraphmlParser {
         "Enforce strict validity checks regarding the witness format, such as checking for the presence of required fields."
   )
   private boolean strictChecking = true;
-
-  @Option(
-      secure = true,
-      description = "This option can be used to ensure that no correctness witnesses are checked.")
-  private boolean noCorrectnessValidation = false;
-
-  @Option(
-      secure = true,
-      description = "This option can be used to ensure that no violation witnesses are checked.")
-  private boolean noViolationValidation = false;
 
   @Option(secure=true, description="File for exporting the witness automaton in DOT format.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
@@ -251,12 +256,13 @@ public class AutomatonGraphmlParser {
    * @throws InvalidConfigurationException if the configuration is invalid.
    * @return the automata representing the witnesses found in the file.
    */
-  public Automaton parseAutomatonFile(Path pInputFile, Set<Property> pProperties)
+  public List<Automaton> parseAutomatonFile(Path pInputFile, Set<Property> pProperties)
       throws InvalidConfigurationException, InterruptedException {
-    return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
-        MoreFiles.asByteSource(pInputFile),
-        inputStream -> parseAutomatonFile(inputStream, pProperties),
-        e -> new WitnessParseException(e));
+    return AutomatonGraphmlParser
+        .<List<Automaton>, InvalidConfigurationException>handlePotentiallyGZippedInput(
+            MoreFiles.asByteSource(pInputFile),
+            inputStream -> parseAutomatonFile(inputStream, pProperties),
+            e -> new WitnessParseException(e));
   }
 
   /**
@@ -268,7 +274,7 @@ public class AutomatonGraphmlParser {
    * @throws IOException if there occurs an IOException while reading from the stream.
    * @return the automata representing the witnesses found in the stream.
    */
-  private Automaton parseAutomatonFile(InputStream pInputStream, Set<Property> pProperties)
+  private List<Automaton> parseAutomatonFile(InputStream pInputStream, Set<Property> pProperties)
       throws InvalidConfigurationException, IOException, InterruptedException {
     final CParser cparser =
         CParser.Factory.getParser(
@@ -284,13 +290,6 @@ public class AutomatonGraphmlParser {
             shutdownNotifier);
 
     AutomatonGraphmlParserState graphMLParserState = setupGraphMLParser(pInputStream, pProperties);
-
-    WitnessType graphType = graphMLParserState.getWitnessType();
-    if ((noCorrectnessValidation && graphType.equals(WitnessType.CORRECTNESS_WITNESS))
-        || (noViolationValidation && graphType.equals(WitnessType.VIOLATION_WITNESS))) {
-      throw new IOException(
-          String.format("Checking for %s is disabled in current configuration", graphType));
-    }
 
     // Parse the transitions
     parseTransitions(cparser, graphMLParserState);
@@ -330,7 +329,7 @@ public class AutomatonGraphmlParser {
       }
     }
 
-    return automaton;
+    return ImmutableList.of(automaton);
   }
 
   /**
@@ -374,7 +373,7 @@ public class AutomatonGraphmlParser {
               stutterCondition,
               ImmutableList.of(),
               ImmutableList.of(),
-              ExpressionTrees.getTrue(),
+              ExpressionTrees.<AExpression>getTrue(),
               ImmutableList.of(),
               pState,
               pState.isViolationState(),
@@ -389,7 +388,7 @@ public class AutomatonGraphmlParser {
               AutomatonBoolExpr.TRUE,
               assertions,
               ImmutableList.of(),
-              ExpressionTrees.getTrue(),
+              ExpressionTrees.<AExpression>getTrue(),
               ImmutableList.of(),
               pState,
               true,
@@ -526,7 +525,7 @@ public class AutomatonGraphmlParser {
       String resultFunctionName =
           getFunction(
                   pGraphMLParserState, thread, pTransition.getExplicitAssumptionResultFunction())
-              .orElseThrow();
+              .get();
       conditionTransformations.add(
           condition ->
               and(condition, new AutomatonBoolExpr.MatchFunctionCallStatement(resultFunctionName)));
@@ -535,7 +534,7 @@ public class AutomatonGraphmlParser {
     // Add a source-code guard for specified function exits
     if (pTransition.getFunctionExit().isPresent()) {
       String function =
-          getFunction(pGraphMLParserState, thread, pTransition.getFunctionExit()).orElseThrow();
+          getFunction(pGraphMLParserState, thread, pTransition.getFunctionExit()).get();
       conditionTransformations.add(condition -> and(condition, getFunctionExitMatcher(function)));
     }
 
@@ -543,7 +542,7 @@ public class AutomatonGraphmlParser {
     Function<AutomatonBoolExpr, AutomatonBoolExpr> applyMatchFunctionEntry = Function.identity();
     if (pTransition.getFunctionEntry().isPresent()) {
       String function =
-          getFunction(pGraphMLParserState, thread, pTransition.getFunctionEntry()).orElseThrow();
+          getFunction(pGraphMLParserState, thread, pTransition.getFunctionEntry()).get();
       applyMatchFunctionEntry = condition -> and(condition, getFunctionCallMatcher(function));
       conditionTransformations.add(applyMatchFunctionEntry);
     }
@@ -608,8 +607,7 @@ public class AutomatonGraphmlParser {
           and(
               transitionConditionWithoutFunctionEntry,
               getFunctionPointerAssumeCaseMatcher(
-                  getFunction(pGraphMLParserState, thread, pTransition.getFunctionEntry())
-                      .orElseThrow(),
+                  getFunction(pGraphMLParserState, thread, pTransition.getFunctionEntry()).get(),
                   pTransition.getTarget().isSinkState()));
       transitions.add(
           createAutomatonSinkTransition(
@@ -697,7 +695,7 @@ public class AutomatonGraphmlParser {
                   new AutomatonBoolExpr.MatchAnySuccessorEdgesBoolExpr(transitionCondition)),
               ImmutableList.of(),
               ImmutableList.of(),
-              ExpressionTrees.getTrue(),
+              ExpressionTrees.<AExpression>getTrue(),
               ImmutableList.of(),
               pTransition.getSource(),
               sourceIsViolationNode,
@@ -871,19 +869,17 @@ public class AutomatonGraphmlParser {
       GraphMLThread pThread,
       Optional<String> pFunctionName)
       throws WitnessParseException {
-    if (!pFunctionName.isPresent()
-        || !cfa.getAllFunctionNames().contains(pFunctionName.orElseThrow())) {
+    if (!pFunctionName.isPresent() || !cfa.getAllFunctionNames().contains(pFunctionName.get())) {
       return pFunctionName;
     }
     Optional<String> functionName =
-        pGraphmlParserState.getFunctionForThread(pThread, pFunctionName.orElseThrow());
+        pGraphmlParserState.getFunctionForThread(pThread, pFunctionName.get());
     if (functionName.isPresent()) {
       return functionName;
     }
     throw new WitnessParseException(
         String.format(
-            "Unable to assign function <%s> to thread <%s>.",
-            pFunctionName.orElseThrow(), pThread));
+            "Unable to assign function <%s> to thread <%s>.", pFunctionName.get(), pThread));
   }
 
   /**
@@ -898,15 +894,14 @@ public class AutomatonGraphmlParser {
       Optional<Predicate<FileLocation>> offsetMatcherPredicate =
           pTransition.getOffsetMatcherPredicate();
       if (offsetMatcherPredicate.isPresent()) {
-        locationMatcherPredicate =
-            locationMatcherPredicate.and(offsetMatcherPredicate.orElseThrow());
+        locationMatcherPredicate = locationMatcherPredicate.and(offsetMatcherPredicate.get());
       }
     }
     if (matchOriginLine) {
       Optional<Predicate<FileLocation>> lineMatcherPredicate =
           pTransition.getLineMatcherPredicate();
       if (lineMatcherPredicate.isPresent()) {
-        locationMatcherPredicate = locationMatcherPredicate.and(lineMatcherPredicate.orElseThrow());
+        locationMatcherPredicate = locationMatcherPredicate.and(lineMatcherPredicate.get());
       }
     }
     return locationMatcherPredicate;
@@ -947,17 +942,17 @@ public class AutomatonGraphmlParser {
           logger.log(
               Level.WARNING,
               "Trying to return from function",
-              functionExit.orElseThrow(),
+              functionExit.get(),
               "although no function is on the stack.");
         } else {
           newStack = new ArrayDeque<>(newStack);
           String oldFunction = newStack.pop();
-          if (!oldFunction.equals(functionExit.orElseThrow())) {
+          if (!oldFunction.equals(functionExit.get())) {
             logger.log(
                 Level.WARNING,
                 String.format(
                     "Trying to return from function %s, but current function on call stack is %s",
-                    functionExit.orElseThrow(), oldFunction));
+                    functionExit.get(), oldFunction));
           } else if (newStack.isEmpty()) {
             pGraphMLParserState.releaseFunctions(thread);
           }
@@ -966,7 +961,7 @@ public class AutomatonGraphmlParser {
       // Now enter the new function
       if (functionEntry.isPresent()) {
         newStack = new ArrayDeque<>(newStack);
-        newStack.push(functionEntry.orElseThrow());
+        newStack.push(functionEntry.get());
       }
     }
     // Store the stack in its state after the edge is applied
@@ -975,7 +970,7 @@ public class AutomatonGraphmlParser {
     // If the edge enters and exits the same function, assume this function for this edge only
     if (functionEntry.isPresent()
         && functionEntry.equals(functionExit)
-        && (newStack.isEmpty() || !newStack.peek().equals(functionExit.orElseThrow()))) {
+        && (newStack.isEmpty() || !newStack.peek().equals(functionExit.get()))) {
       newStack = new ArrayDeque<>(newStack);
     }
     return newStack;
@@ -1001,7 +996,7 @@ public class AutomatonGraphmlParser {
 
     Optional<AutomatonAction> threadAssignment = pTransition.getThreadAssignment();
     if (threadAssignment.isPresent()) {
-      actionBuilder.add(threadAssignment.orElseThrow());
+      actionBuilder.add(threadAssignment.get());
     }
     return actionBuilder.build();
   }
@@ -1183,7 +1178,7 @@ public class AutomatonGraphmlParser {
     }
 
     return new AutomatonBoolExpr.MatchLocationDescriptor(
-        cfa.getMainFunction(), pMatcherPredicate.orElseThrow());
+        cfa.getMainFunction(), pMatcherPredicate.get());
   }
 
   /**
@@ -1422,7 +1417,7 @@ public class AutomatonGraphmlParser {
     Optional<GraphMLTransition.GraphMLThread> thread = getThread(pTransition, pNumericThreadIdProvider);
     Optional<AutomatonAction> threadIdAssignment =
         thread.isPresent()
-            ? Optional.of(getThreadIdAssignment(thread.orElseThrow().getId()))
+            ? Optional.of(getThreadIdAssignment(thread.get().getId()))
             : Optional.empty();
 
     GraphMLTransition transition =
@@ -1501,7 +1496,7 @@ public class AutomatonGraphmlParser {
         message =
             String.format(
                 "The state with id <%s> does not exist, but is referenced in the transition <%s>",
-                pStateId, transitionToString(pReference.orElseThrow()));
+                pStateId, transitionToString(pReference.get()));
       } else {
         message = String.format("The state with if <%s> does not exist.", pStateId);
       }
@@ -1551,7 +1546,7 @@ public class AutomatonGraphmlParser {
       String witnessTypeToParse = witnessTypeText.iterator().next().trim();
       Optional<WitnessType> parsedGraphType = WitnessType.tryParse(witnessTypeToParse);
       if (parsedGraphType.isPresent()) {
-        witnessType = parsedGraphType.orElseThrow();
+        witnessType = parsedGraphType.get();
       } else {
         witnessType = WitnessType.VIOLATION_WITNESS;
         logger.log(
@@ -1717,7 +1712,7 @@ public class AutomatonGraphmlParser {
       if (pExplicitScope.isPresent() || !pFunctionStack.isEmpty()) {
         final String functionName;
         if (pExplicitScope.isPresent()) {
-          functionName = pExplicitScope.orElseThrow();
+          functionName = pExplicitScope.get();
         } else {
           functionName = pFunctionStack.peek();
         }
@@ -1861,7 +1856,7 @@ public class AutomatonGraphmlParser {
                 nonChangingTransition,
                 ImmutableList.of(),
                 ImmutableList.of(),
-                ExpressionTrees.getTrue(),
+                ExpressionTrees.<AExpression>getTrue(),
                 ImmutableList.of(),
                 pTargetState,
                 pTargetState.isViolationState(),
@@ -1917,7 +1912,7 @@ public class AutomatonGraphmlParser {
 
           Optional<AutomatonSafetyProperty> violatedProperty = other.getOptionalViolatedPropertyDescription();
           if (violatedProperty.isPresent()) {
-            violatedPropDesc = violatedProperty.orElseThrow().toString();
+            violatedPropDesc = violatedProperty.get().toString();
           }
 
           if (!violatedPropDesc.isEmpty()) {
@@ -2085,10 +2080,12 @@ public class AutomatonGraphmlParser {
 
   public static AutomatonGraphmlCommon.WitnessType getWitnessType(Path pPath)
       throws InvalidConfigurationException, InterruptedException {
-    return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
-        MoreFiles.asByteSource(pPath),
-        inputStream -> getWitnessType(inputStream),
-        e -> new WitnessParseException(e));
+    return AutomatonGraphmlParser
+        .<AutomatonGraphmlCommon.WitnessType, InvalidConfigurationException>
+            handlePotentiallyGZippedInput(
+                MoreFiles.asByteSource(pPath),
+                inputStream -> getWitnessType(inputStream),
+                e -> new WitnessParseException(e));
   }
 
   private static AutomatonGraphmlCommon.WitnessType getWitnessType(InputStream pInputStream)
@@ -2120,7 +2117,7 @@ public class AutomatonGraphmlParser {
       String witnessTypeToParse = graphTypeText.iterator().next().trim();
       Optional<WitnessType> parsedWitnessType = WitnessType.tryParse(witnessTypeToParse);
       if (parsedWitnessType.isPresent()) {
-        graphType = parsedWitnessType.orElseThrow();
+        graphType = parsedWitnessType.get();
       } else {
         throw new WitnessParseException("Witness type not recognized: " + witnessTypeToParse);
       }
@@ -2190,7 +2187,7 @@ public class AutomatonGraphmlParser {
       message = "Exception occurred, but details are unknown: " + pException.toString();
     }
     if (pException instanceof IOException) {
-      return String.format("Error while accessing witness file: %s!", message);
+      return String.format(ACCESS_ERROR_MESSAGE, message);
     }
     return message;
   }
@@ -2222,13 +2219,13 @@ public class AutomatonGraphmlParser {
 
   /** return a nice {@link Iterable} wrapping the interface {@link NodeList}. */
   private static Iterable<Node> asIterable(final NodeList pNodeList) {
-    return new Iterable<>() {
+    return new Iterable<Node>() {
 
       private Integer length = null;
 
       @Override
       public Iterator<Node> iterator() {
-        return new Iterator<>() {
+        return new Iterator<Node>() {
 
           private int index = 0;
 

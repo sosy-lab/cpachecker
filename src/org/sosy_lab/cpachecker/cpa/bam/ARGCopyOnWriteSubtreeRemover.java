@@ -1,11 +1,26 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2017  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.cpa.bam;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -21,7 +36,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -142,13 +156,12 @@ public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
 
     // last iteration, most inner block for refinement
     // This heuristics works best on test_locks-examples, otherwise they have exponential blowup.
-    if (doPrecisionRefinementForMostInnerBlock
-        && Objects.equals(currentCutState, lastRelevantNode)) {
+    if (doPrecisionRefinementForMostInnerBlock && currentCutState == lastRelevantNode) {
       return true;
     }
 
     // this is the important case: lazy refinement expects a new precision at this place.
-    if (Objects.equals(currentCutState, cutState)) {
+    if (currentCutState == cutState) {
       return true;
     }
 

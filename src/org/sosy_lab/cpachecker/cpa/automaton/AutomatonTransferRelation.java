@@ -1,11 +1,26 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2014  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Predicates.instanceOf;
@@ -19,6 +34,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -134,7 +150,7 @@ public class AutomatonTransferRelation implements TransferRelation {
    * <p>If the state is a NonDet-State multiple following states may be returned. If the only
    * following state is BOTTOM an empty set is returned.
    */
-  private ImmutableSet<AutomatonState> getFollowStates(
+  private Collection<AutomatonState> getFollowStates(
       AutomatonState state,
       List<AbstractState> otherElements,
       CFAEdge edge,
@@ -163,7 +179,7 @@ public class AutomatonTransferRelation implements TransferRelation {
       }
     }
 
-    ImmutableSet.Builder<AutomatonState> lSuccessors = ImmutableSet.builderWithExpectedSize(2);
+    Collection<AutomatonState> lSuccessors = Sets.newLinkedHashSetWithExpectedSize(2);
     AutomatonExpressionArguments exprArgs = new AutomatonExpressionArguments(state, state.getVars(), otherElements, edge, logger);
     boolean edgeMatched = false;
     int failedMatches = 0;
@@ -295,7 +311,7 @@ public class AutomatonTransferRelation implements TransferRelation {
           // add nothing
         }
       }
-      return lSuccessors.build();
+      return lSuccessors;
     } else {
       // stay in same state, no transitions to be executed here (no transition matched)
       AutomatonState stateNewCounters =
@@ -319,6 +335,9 @@ public class AutomatonTransferRelation implements TransferRelation {
     return result;
   }
 
+  /* (non-Javadoc)
+   * @see org.sosy_lab.cpachecker.core.interfaces.TransferRelation#strengthen(org.sosy_lab.cpachecker.core.interfaces.AbstractState, java.util.Iterable, org.sosy_lab.cpachecker.cfa.model.CFAEdge, org.sosy_lab.cpachecker.core.interfaces.Precision)
+   */
   @Override
   public Collection<AutomatonState> strengthen(
       AbstractState pElement,
@@ -378,7 +397,7 @@ public class AutomatonTransferRelation implements TransferRelation {
             new BlankEdge(
                 firstEdgeOfThread.getRawStatement(),
                 pthreadCreateEdge.getFileLocation(),
-                new CFANode(pthreadCreateEdge.getPredecessor().getFunction()),
+                new CFANode(pthreadCreateEdge.getPredecessor().getFunctionName()),
                 firstEdgeOfThread.getSuccessor(),
                 "Function start dummy edge");
         Collection<AutomatonState> newStates =

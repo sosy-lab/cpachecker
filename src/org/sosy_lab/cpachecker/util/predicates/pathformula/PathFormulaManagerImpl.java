@@ -1,22 +1,37 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2014  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -35,14 +50,12 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
@@ -264,15 +277,12 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Override
   public PathFormula makeAnd(PathFormula pPathFormula, CExpression pAssumption)
       throws CPATransferException, InterruptedException {
-    CFunctionDeclaration dummyFunction =
-        new CFunctionDeclaration(
-            FileLocation.DUMMY, CFunctionType.NO_ARGS_VOID_FUNCTION, "dummy", ImmutableList.of());
     CAssumeEdge fakeEdge =
         new CAssumeEdge(
             pAssumption.toASTString(),
             FileLocation.DUMMY,
-            new CFANode(dummyFunction),
-            new CFANode(dummyFunction),
+            new CFANode("dummy"),
+            new CFANode("dummy"),
             pAssumption,
             true);
     return converter.makeAnd(pPathFormula, fakeEdge, ErrorConditions.dummyInstance(bfmgr));
@@ -439,7 +449,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       if (childrenOnPath.size() > 1) {
         if (childrenOnPath.size() > 2) {
           // can't create branching formula
-          if (from(childrenOnPath).anyMatch(AbstractStates::isTargetState)) {
+          if (from(childrenOnPath).anyMatch(AbstractStates.IS_TARGET_STATE)) {
             // We expect this situation of one of the children is a target state created by PredicateCPA.
             continue;
           } else {
@@ -451,7 +461,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         FluentIterable<CFAEdge> outgoingEdges =
             from(childrenOnPath).transform(pathElement::getEdgeToChild);
         if (!outgoingEdges.allMatch(Predicates.instanceOf(AssumeEdge.class))) {
-          if (from(childrenOnPath).anyMatch(AbstractStates::isTargetState)) {
+          if (from(childrenOnPath).anyMatch(AbstractStates.IS_TARGET_STATE)) {
             // We expect this situation of one of the children is a target state created by PredicateCPA.
             continue;
           } else {
@@ -504,25 +514,24 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   /**
-   * Extract the information about the branching predicates created by {@link
-   * #buildBranchingFormula(Set)} from a satisfying assignment.
+   * Extract the information about the branching predicates created by
+   * {@link #buildBranchingFormula(Set)} from a satisfying assignment.
    *
-   * <p>A map is created that stores for each ARGState (using its element id as the map key) which
-   * edge was taken (the positive or the negated one).
+   * A map is created that stores for each ARGState (using its element id as
+   * the map key) which edge was taken (the positive or the negated one).
    *
    * @param model A satisfying assignment that should contain values for branching predicates.
    * @return A map from ARG state id to a boolean value indicating direction.
    */
   @Override
-  public ImmutableMap<Integer, Boolean> getBranchingPredicateValuesFromModel(
-      Iterable<ValueAssignment> model) {
+  public Map<Integer, Boolean> getBranchingPredicateValuesFromModel(Iterable<ValueAssignment> model) {
     // Do not use fmgr here, this fails if a separate solver is used for interpolation.
     if (!model.iterator().hasNext()) {
       logger.log(Level.WARNING, "No satisfying assignment given by solver!");
       return ImmutableMap.of();
     }
 
-    ImmutableMap.Builder<Integer, Boolean> preds = ImmutableMap.builder();
+    Map<Integer, Boolean> preds = new HashMap<>();
     for (ValueAssignment entry : model) {
       String canonicalName = entry.getName();
 
@@ -533,11 +542,14 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
           // no NumberFormatException because of RegExp match earlier
           Integer nodeId = Integer.parseInt(name);
-          preds.put(nodeId, (Boolean) entry.getValue()); // fails on duplicate key
+
+          assert !preds.containsKey(nodeId);
+
+          preds.put(nodeId, (Boolean)entry.getValue());
         }
       }
     }
-    return preds.build();
+    return preds;
   }
 
   @Override

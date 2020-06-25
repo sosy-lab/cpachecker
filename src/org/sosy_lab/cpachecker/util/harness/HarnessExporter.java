@@ -1,11 +1,26 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2016  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.util.harness;
 
 import static org.sosy_lab.cpachecker.util.harness.PredefinedTypes.getCanonicalType;
@@ -112,11 +127,6 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
-import org.sosy_lab.cpachecker.util.testcase.ExpressionTestValue;
-import org.sosy_lab.cpachecker.util.testcase.InitializerTestValue;
-import org.sosy_lab.cpachecker.util.testcase.TestValue;
-import org.sosy_lab.cpachecker.util.testcase.TestVector;
-import org.sosy_lab.cpachecker.util.testcase.TestVector.TargetTestVector;
 
 @Options(prefix = "testHarnessExport")
 public class HarnessExporter {
@@ -169,11 +179,11 @@ public class HarnessExporter {
       codeAppender.appendln("extern void exit(int __status) __attribute__ ((__noreturn__));");
 
       // implement error-function
-      CFAEdge edgeToTarget = testVector.orElseThrow().getEdgeToTarget();
+      CFAEdge edgeToTarget = testVector.get().edgeToTarget;
       Optional<AFunctionDeclaration> errorFunction =
           getErrorFunction(edgeToTarget, externalFunctions);
       if (errorFunction.isPresent()) {
-        codeAppender.append(errorFunction.orElseThrow());
+        codeAppender.append(errorFunction.get());
         codeAppender.appendln(" {");
         codeAppender.appendln("  fprintf(stderr, \"" + ERR_MSG + "\\n\");");
         codeAppender.appendln("  exit(107);");
@@ -191,10 +201,10 @@ public class HarnessExporter {
       // implement actual harness
       TestVector vector =
           completeExternalFunctions(
-              testVector.orElseThrow().getVector(),
+              testVector.get().testVector,
               errorFunction.isPresent()
                   ? FluentIterable.from(externalFunctions)
-                      .filter(Predicates.not(Predicates.equalTo(errorFunction.orElseThrow())))
+                      .filter(Predicates.not(Predicates.equalTo(errorFunction.get())))
                   : externalFunctions);
       codeAppender.append(vector);
     } else {
@@ -279,7 +289,7 @@ public class HarnessExporter {
     return ImmutableMultimap.of();
   }
 
-  public Optional<TargetTestVector> extractTestVector(
+  private Optional<TargetTestVector> extractTestVector(
       final ARGState pRootState,
       final Predicate<? super ARGState> pIsRelevantState,
       final BiPredicate<ARGState, ARGState> pIsRelevantEdge,
@@ -310,8 +320,8 @@ public class HarnessExporter {
               if (parentLoc.hasEdgeTo(childLoc)) {
                 CFAEdge edge = parentLoc.getEdgeTo(childLoc);
                 Optional<State> nextState = computeNextState(previous, child, edge, pValueMap);
-                if (nextState.isPresent() && visited.add(nextState.orElseThrow())) {
-                  stack.push(nextState.orElseThrow());
+                if (nextState.isPresent() && visited.add(nextState.get())) {
+                  stack.push(nextState.get());
                   lastEdgeStack.push(edge);
                 }
               }
@@ -516,7 +526,7 @@ public class HarnessExporter {
         for (AExpression assumption : automatonState.getAssumptions()) {
           Optional<AExpression> value = getOther(assumption, pLeftHandSide);
           if (value.isPresent()) {
-            AExpression v = castIfNecessary(pLeftHandSide.getExpressionType(), value.orElseThrow());
+            AExpression v = castIfNecessary(pLeftHandSide.getExpressionType(), value.get());
             return Optional.of(new State(pChild, pUpdate.apply(v).apply(pPrevious.testVector)));
           }
         }
@@ -530,7 +540,7 @@ public class HarnessExporter {
                 .transform(AExpressionStatement::getExpression)) {
           Optional<AExpression> value = getOther(assumption, pLeftHandSide);
           if (value.isPresent()) {
-            AExpression v = castIfNecessary(pLeftHandSide.getExpressionType(), value.orElseThrow());
+            AExpression v = castIfNecessary(pLeftHandSide.getExpressionType(), value.get());
             return Optional.of(new State(pChild, pUpdate.apply(v).apply(pPrevious.testVector)));
           }
         }
@@ -910,5 +920,40 @@ public class HarnessExporter {
     public static State of(ARGState pARGState, TestVector pTestVector) {
       return new State(pARGState, pTestVector);
     }
+  }
+
+  private static class TargetTestVector {
+
+    private final CFAEdge edgeToTarget;
+
+    private final TestVector testVector;
+
+    public TargetTestVector(CFAEdge pEdgeToTarget, TestVector pTestVector) {
+      edgeToTarget = Objects.requireNonNull(pEdgeToTarget);
+      testVector = Objects.requireNonNull(pTestVector);
+    }
+
+    @Override
+    public String toString() {
+      return testVector.toString();
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(edgeToTarget, testVector);
+    }
+
+    @Override
+    public boolean equals(Object pObj) {
+      if (pObj == this) {
+        return true;
+      }
+      if (pObj instanceof TargetTestVector) {
+        TargetTestVector other = (TargetTestVector) pObj;
+        return edgeToTarget.equals(other.edgeToTarget) && testVector.equals(other.testVector);
+      }
+      return false;
+    }
+
   }
 }

@@ -1,14 +1,30 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2018  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.core.algorithm.bmc.pdr;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.END_STATE_FILTER;
+import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.getLocationPredicate;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
@@ -132,11 +148,13 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
     currentEndStates =
         filterIterationsUpTo(reachedSet.getReachedSet(), desiredK)
             .filter(
-                state ->
-                    BMCHelper.isEndState(state)
-                        || (BMCHelper.hasMatchingLocation(state, loopHeads)
-                            && !Iterables.isEmpty(
-                                filterIteration(Collections.singleton(state), desiredK))))
+                END_STATE_FILTER.or(
+                        getLocationPredicate(loopHeads)
+                            .and(
+                                state ->
+                                    !Iterables.isEmpty(
+                                        filterIteration(Collections.singleton(state), desiredK))))
+                    ::test)
             .toSet();
     currentVariables = null;
     lastK = desiredK;
@@ -212,7 +230,9 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
       throw new IllegalArgumentException(
           String.format("Minimum (%d) not lower than maximum (%d)", pMinIt, pMaxIt));
     }
-    checkArgument(pMinIt >= 0, "Minimum must not be lower than 0 but is %s", pMinIt);
+    if (pMinIt < 0) {
+      throw new IllegalArgumentException("Minimum must not be lower than 0 but is " + pMinIt);
+    }
     int min = pMinIt;
     int max = pMaxIt;
     Set<CFANode> startLocations = loopHeads;
@@ -409,11 +429,11 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
         OptionalInt index = pair.getSecond();
         Object value = valueAssignment.getValue();
         if (index.isPresent()
-            && index.orElseThrow() == 1
+            && index.getAsInt() == 1
             && value instanceof Number
             && (actualName.equals(TotalTransitionRelation.getLocationVariableName())
                 || (variables.containsKey(actualName)
-                    && !inputs.get(actualName).contains(index.orElseThrow())))) {
+                    && !inputs.get(actualName).contains(index.getAsInt())))) {
           BooleanFormula assignment = fmgr.uninstantiate(valueAssignment.getAssignmentAsFormula());
           ModelValue modelValue =
               new ModelValue(
@@ -454,7 +474,7 @@ class PartialTransitionRelation implements Comparable<PartialTransitionRelation>
         // a) those that have an SSA index and are contained in our list of input variables and
         // b) those that have no SSA index and are not known as actual variables,
         // such as __ADDRESS_OF:
-        if ((index.isPresent() && inputs.get(actualName).contains(index.orElseThrow()))
+        if ((index.isPresent() && inputs.get(actualName).contains(index.getAsInt()))
             || (!index.isPresent() && !pVariables.containsKey(actualName))) {
           inputAssignments = bfmgr.and(inputAssignments, valueAssignment.getAssignmentAsFormula());
         }

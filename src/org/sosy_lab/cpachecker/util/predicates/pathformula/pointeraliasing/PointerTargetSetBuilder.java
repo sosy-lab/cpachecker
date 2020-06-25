@@ -1,11 +1,26 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2014  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Predicates.not;
@@ -22,9 +37,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.NavigableSet;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
@@ -278,17 +291,6 @@ public interface PointerTargetSetBuilder {
         }
       }
 
-      // Add alignment constraint
-      // For incomplete types, better not add constraints (imprecise) than a wrong one (unsound).
-      if (!type.isIncomplete()) {
-        constraints.addConstraint(
-            formulaManager.makeModularCongruence(
-                newBaseFormula,
-                formulaManager.makeNumber(typeHandler.getPointerType(), 0L),
-                typeHandler.getAlignof(type),
-                false));
-      }
-
       final int typeSize =
           type.isIncomplete() ? options.defaultAllocationSize() : typeHandler.getSizeof(type);
       final Formula typeSizeF = formulaManager.makeNumber(pointerType, typeSize);
@@ -378,7 +380,7 @@ public interface PointerTargetSetBuilder {
             addTargets(
                 base,
                 memberDeclaration.getType(),
-                offset.orElseThrow(),
+                offset.getAsLong(),
                 containerOffset + properOffset,
                 field);
           }
@@ -390,7 +392,7 @@ public interface PointerTargetSetBuilder {
                     newRegion,
                     memberDeclaration.getType(),
                     compositeType,
-                    offset.orElseThrow(),
+                    offset.getAsLong(),
                     containerOffset + properOffset,
                     targets,
                     fields);
@@ -412,7 +414,7 @@ public interface PointerTargetSetBuilder {
       }
 
       final PersistentSortedMap<String, PersistentList<PointerTarget>> oldTargets = targets;
-      for (final Map.Entry<String, CType> baseEntry : bases.entrySet()) {
+      for (final PersistentSortedMap.Entry<String, CType> baseEntry : bases.entrySet()) {
         addTargets(baseEntry.getKey(), baseEntry.getValue(), 0, 0, field);
       }
       fields = fields.putAndCopy(field, true);
@@ -492,7 +494,7 @@ public interface PointerTargetSetBuilder {
                 break;
               }
             }
-          } while (!Objects.equals(current, currentChain.get(currentChain.size() - 1)));
+          } while (current != currentChain.get(currentChain.size() - 1));
 
           boolean useful = false;
           for (int i = currentChain.size() - 1; i >= 0; i--) {

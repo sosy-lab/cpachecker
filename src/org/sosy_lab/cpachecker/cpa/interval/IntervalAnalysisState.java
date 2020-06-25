@@ -1,15 +1,29 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2017  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.cpa.interval;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
+import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ComparisonChain;
 import java.io.Serializable;
@@ -232,8 +246,10 @@ public class IntervalAnalysisState
     return true;
   }
 
-  /** Returns the set of tracked variables by this state. */
-  public Map<String, Interval> getIntervalMap() {
+  /**
+   * @return the set of tracked variables by this state
+   */
+  public Map<String,Interval> getIntervalMap() {
     return intervals;
   }
 
@@ -276,6 +292,9 @@ public class IntervalAnalysisState
     return rebuildState;
   }
 
+  /* (non-Javadoc)
+   * @see java.lang.Object#equals(java.lang.Object)
+   */
   @Override
   public boolean equals(Object other) {
     if (this == other) {
@@ -289,11 +308,17 @@ public class IntervalAnalysisState
     return false;
   }
 
+  /* (non-Javadoc)
+   * @see java.lang.Object#hashCode()
+   */
   @Override
   public int hashCode() {
     return intervals.hashCode();
   }
 
+  /* (non-Javadoc)
+   * @see java.lang.Object#toString()
+   */
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
@@ -411,7 +436,7 @@ public class IntervalAnalysisState
     for (Interval i : intervals.values()) {
       long high = i.getHigh() == null ? 0 : i.getHigh();
       long low = i.getLow() == null ? 0 : i.getLow();
-      checkArgument(low <= high, "LOW greater than HIGH: %s", i);
+      Preconditions.checkArgument(low <= high, "LOW greater than HIGH:" + i);
       absDistance = absDistance.add(BigInteger.valueOf(high).subtract(BigInteger.valueOf(low)));
     }
     return new IntervalPseudoPartitionKey(intervals.size(), absDistance.negate());

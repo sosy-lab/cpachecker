@@ -1,14 +1,30 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ * CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2014  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 
 import java.util.Objects;
+
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -33,23 +49,25 @@ public abstract class BinarySymbolicExpression extends SymbolicExpression {
    */
   private Type expressionType;
 
-  BinarySymbolicExpression(
+  protected BinarySymbolicExpression(
       SymbolicExpression pOperand1,
       SymbolicExpression pOperand2,
       Type pExpressionType,
-      Type pCalculationType) {
+      Type pCalculationType
+  ) {
     operand1 = pOperand1;
     operand2 = pOperand2;
     expressionType = pExpressionType;
     calculationType = pCalculationType;
   }
 
-  BinarySymbolicExpression(
+  protected BinarySymbolicExpression(
       SymbolicExpression pOperand1,
       SymbolicExpression pOperand2,
       Type pExpressionType,
       Type pCalculationType,
-      MemoryLocation pRepresentedLocation) {
+      MemoryLocation pRepresentedLocation
+  ) {
 
     super(pRepresentedLocation);
     operand1 = pOperand1;
@@ -81,8 +99,7 @@ public abstract class BinarySymbolicExpression extends SymbolicExpression {
   }
 
   @Override
-  @SuppressWarnings("EqualsGetClass") // on purpose, case-class structure with single equals()
-  public final boolean equals(Object pObj) {
+  public boolean equals(Object pObj) {
     if (this == pObj) {
       return true;
     }
@@ -98,14 +115,14 @@ public abstract class BinarySymbolicExpression extends SymbolicExpression {
   }
 
   @Override
-  public final int hashCode() {
+  public int hashCode() {
     return super.hashCode() + Objects.hash(getClass(), operand1, operand2, expressionType);
   }
 
   @Override
   public String getRepresentation() {
     if (getRepresentedLocation().isPresent()) {
-      return getRepresentedLocation().orElseThrow().toString();
+      return getRepresentedLocation().get().toString();
 
     } else {
       return "(" + operand1.getRepresentation() + " " + getOperationString()

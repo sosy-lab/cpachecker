@@ -1,11 +1,26 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2014  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -117,14 +132,11 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
 
 /**
- * Builder to traverse AST. Known Limitations:
- *
- * <ul>
- *   <li>K&R style function definitions not implemented
- *   <li>Inlined assembler code is ignored
- * </ul>
+ * Builder to traverse AST.
+ * Known Limitations:
+ * -- K&R style function definitions not implemented
+ * -- Inlined assembler code is ignored
  */
-@SuppressWarnings({"InvalidBlockTag", "MissingSummary"}) // for @category
 class CFAFunctionBuilder extends ASTVisitor {
 
   // Data structure for maintaining our scope stack in a function
@@ -436,7 +448,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
 
     final FileLocation fileloc = astCreator.getLocation(declaration);
-    final FunctionExitNode returnNode = new FunctionExitNode(fdef);
+    final FunctionExitNode returnNode = new FunctionExitNode(nameOfFunction);
 
     final FunctionEntryNode startNode =
         new CFunctionEntryNode(fileloc, fdef, returnNode, scope.getReturnVariable());
@@ -711,7 +723,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       labelName = localLabel.getName();
     }
 
-    CLabelNode labelNode = new CLabelNode(cfa.getFunction(), labelName);
+    CLabelNode labelNode = new CLabelNode(cfa.getFunctionName(), labelName);
     locStack.push(labelNode);
 
     if (localLabel == null) {
@@ -896,7 +908,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         addToCFA(blankEdge);
       }
       CFANode nextNode = loopNextStack.pop();
-      assert nextNode.equals(locStack.peek());
+      assert nextNode == locStack.peek();
     }
     return PROCESS_CONTINUE;
   }
@@ -933,7 +945,7 @@ class CFAFunctionBuilder extends ASTVisitor {
    */
   private CFANode newCFANode() {
     assert cfa != null;
-    CFANode nextNode = new CFANode(cfa.getFunction());
+    CFANode nextNode = new CFANode(cfa.getFunctionName());
     return nextNode;
   }
 
@@ -1110,7 +1122,6 @@ class CFAFunctionBuilder extends ASTVisitor {
     assert condition != null;
 
     return buildConditionTree(
-        condition.getRawSignature(),
         condition,
         fileLocation,
         rootNode,
@@ -1126,7 +1137,6 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   /** @category conditions */
   private Optional<CExpression> buildConditionTree(
-      String pRawSignature,
       IASTExpression condition,
       final FileLocation fileLocation,
       CFANode rootNode,
@@ -1143,7 +1153,6 @@ class CFAFunctionBuilder extends ASTVisitor {
     if (condition instanceof IASTUnaryExpression
           && ((IASTUnaryExpression)condition).getOperator() == IASTUnaryExpression.op_bracketedPrimary) {
       return buildConditionTree(
-          pRawSignature,
           ((IASTUnaryExpression) condition).getOperand(),
           fileLocation,
           rootNode,
@@ -1160,7 +1169,6 @@ class CFAFunctionBuilder extends ASTVisitor {
     } else if (condition instanceof IASTUnaryExpression
         && ((IASTUnaryExpression) condition).getOperator() == IASTUnaryExpression.op_not) {
       buildConditionTree(
-          pRawSignature,
           ((IASTUnaryExpression) condition).getOperand(),
           fileLocation,
           rootNode,
@@ -1183,7 +1191,6 @@ class CFAFunctionBuilder extends ASTVisitor {
       CFANode innerNode = newCFANode();
       pInnerNodes.add(innerNode);
       buildConditionTree(
-          pRawSignature,
           ((IASTBinaryExpression) condition).getOperand1(),
           fileLocation,
           rootNode,
@@ -1196,7 +1203,6 @@ class CFAFunctionBuilder extends ASTVisitor {
           flippedThenElse,
           pInnerNodes);
       buildConditionTree(
-          pRawSignature,
           ((IASTBinaryExpression) condition).getOperand2(),
           fileLocation,
           innerNode,
@@ -1219,7 +1225,6 @@ class CFAFunctionBuilder extends ASTVisitor {
       CFANode innerNode = newCFANode();
       pInnerNodes.add(innerNode);
       buildConditionTree(
-          pRawSignature,
           ((IASTBinaryExpression) condition).getOperand1(),
           fileLocation,
           rootNode,
@@ -1232,7 +1237,6 @@ class CFAFunctionBuilder extends ASTVisitor {
           flippedThenElse,
           pInnerNodes);
       buildConditionTree(
-          pRawSignature,
           ((IASTBinaryExpression) condition).getOperand2(),
           fileLocation,
           innerNode,
@@ -1250,7 +1254,6 @@ class CFAFunctionBuilder extends ASTVisitor {
     } else {
       return Optional.of(
           buildConditionTreeLeaf(
-              pRawSignature,
               condition,
               fileLocation,
               rootNode,
@@ -1267,7 +1270,6 @@ class CFAFunctionBuilder extends ASTVisitor {
 
   /** Handle a leaf node of a condition tree, i.e. the most primitive part of a condition. */
   private CExpression buildConditionTreeLeaf(
-      String rawSignature,
       IASTExpression condition,
       final FileLocation fileLocation,
       CFANode rootNode,
@@ -1281,6 +1283,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       Set<CFANode> pInnerNodes)
       throws AssertionError {
 
+    String rawSignature = condition.getRawSignature();
     final CExpression exp = astCreator.convertExpressionWithoutSideEffects(condition);
     rootNode = handleAllSideEffects(rootNode, fileLocation, rawSignature, true);
     exp.accept(checkBinding);
@@ -1307,11 +1310,10 @@ class CFAFunctionBuilder extends ASTVisitor {
         // so the "else" branch won't be connected to the rest of the CFA
         return CIntegerLiteralExpression.ONE;
 
-      case NORMAL:
-        break;
-
       default:
         throw new AssertionError();
+
+    case NORMAL:
     }
 
     if (furtherThenComputation) {
@@ -1349,7 +1351,6 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
 
     addConditionEdges(
-        rawSignature,
         expression,
         rootNode,
         thenNodeForLastThen,
@@ -1367,7 +1368,6 @@ class CFAFunctionBuilder extends ASTVisitor {
    * @category conditions
    */
   private void addConditionEdges(
-      String pRawSignature,
       CExpression condition,
       CFANode rootNode,
       CFANode thenNode,
@@ -1375,23 +1375,10 @@ class CFAFunctionBuilder extends ASTVisitor {
       FileLocation fileLocation,
       boolean pIsSwapped,
       Set<CFANode> pInnerNodes) {
-    final String trueSignature;
-    final String falseSignature;
-    if (pIsSwapped) {
-      falseSignature = pRawSignature;
-      if (pRawSignature.startsWith("!(")) {
-        trueSignature = pRawSignature.substring(2, pRawSignature.length()-1);
-      } else {
-        trueSignature = "!(" + pRawSignature + ")";
-      }
-    } else {
-      trueSignature = pRawSignature;
-      falseSignature = "!(" + pRawSignature + ")";
-    }
     // edge connecting condition with thenNode
     final CAssumeEdge trueEdge =
         new CAssumeEdge(
-            trueSignature,
+            condition.toASTString(),
             fileLocation,
             rootNode,
             thenNode,
@@ -1404,7 +1391,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     // edge connecting condition with elseNode
     final CAssumeEdge falseEdge =
         new CAssumeEdge(
-            falseSignature,
+            "!(" + condition.toASTString() + ")",
             fileLocation,
             rootNode,
             elseNode,
@@ -1508,7 +1495,7 @@ class CFAFunctionBuilder extends ASTVisitor {
         fileloc, prevNode, loopStartNode, "continue");
     addToCFA(blankEdge);
 
-    CFANode nextNode = new CFANode(cfa.getFunction());
+    CFANode nextNode = new CFANode(cfa.getFunctionName());
     locStack.push(nextNode);
   }
 
@@ -1567,9 +1554,9 @@ class CFAFunctionBuilder extends ASTVisitor {
     final CFANode lastNodeInLoop = locStack.pop();
 
     // loopEnd is the Node before "counter++;"
-    assert loopEnd.equals(loopStartStack.peek());
-    assert postLoopNode.equals(loopNextStack.peek());
-    assert postLoopNode.equals(locStack.peek());
+    assert loopEnd == loopStartStack.peek();
+    assert postLoopNode == loopNextStack.peek();
+    assert postLoopNode == locStack.peek();
     loopStartStack.pop();
     loopNextStack.pop();
 
@@ -1583,7 +1570,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     if (iterationExpression != null) {
       createEdgeForExpression(iterationExpression, fileLocation, loopEnd, loopStart);
     } else {
-      assert loopEnd.equals(loopStart);
+      assert loopEnd == loopStart;
     }
 
     postLoopNode.addOutOfScopeVariables(scope.getVariablesOfMostLocalScope());
@@ -1703,7 +1690,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     loopNextStack.push(postSwitchNode);
     locStack.push(postSwitchNode);
 
-    locStack.push(new CFANode(cfa.getFunction()));
+    locStack.push(new CFANode(cfa.getFunctionName()));
 
     switchDefaultStack.push(null);
     switchDefaultFileLocationStack.push(null);
@@ -1719,8 +1706,8 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     switchExprStack.pop();
 
-    assert postSwitchNode.equals(loopNextStack.peek());
-    assert postSwitchNode.equals(locStack.peek());
+    assert postSwitchNode == loopNextStack.peek();
+    assert postSwitchNode == locStack.peek();
     assert switchExprStack.size() == switchCaseStack.size();
 
     loopNextStack.pop();
@@ -1829,14 +1816,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       case NORMAL:
         assert ASTOperatorConverter.isBooleanExpression(exp);
         addConditionEdges(
-            exp.toASTString(),
-            exp,
-            rootNode,
-            caseNode,
-            notCaseNode,
-            fileLocation,
-            false,
-            ImmutableSet.of());
+            exp, rootNode, caseNode, notCaseNode, fileLocation, false, ImmutableSet.of());
         nextCaseStartsAtNode = notCaseNode;
         break;
 
@@ -1893,14 +1873,7 @@ class CFAFunctionBuilder extends ASTVisitor {
               "either both conditions can be evaluated or not, but mixed is not allowed";
 
       final CFANode intermediateNode = newCFANode();
-      // FIXME: the raw signature given to `addConditionEdges` is wrong in both cases below.
-      // In case of same variable-name declarations in multiple block scopes,
-      // the ASTString does not represent the raw signature of the switch-case,
-      // because CPAchecker adds variable suffixes to distinguish the different variables.
-      // We currently have no way to get the correct rawSignature of the switch-expression
-      // and we can't just strip the suffix because it may be part of the original variable name.
       addConditionEdges(
-          firstExp.toASTString(),
           firstExp,
           rootNode,
           intermediateNode,
@@ -1909,7 +1882,6 @@ class CFAFunctionBuilder extends ASTVisitor {
           false,
           Collections.singleton(intermediateNode));
       addConditionEdges(
-          secondExp.toASTString(),
           secondExp,
           intermediateNode,
           caseNode,
@@ -1932,7 +1904,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     // hack: use label node to mark node as reachable
     // (otherwise the following edges won't get added because it has
     // no incoming edges
-    CLabelNode caseNode = new CLabelNode(cfa.getFunction(), "__switch__default__");
+    CLabelNode caseNode = new CLabelNode(cfa.getFunctionName(), "__switch__default__");
 
     // Update switchDefaultStack with the new node
     final CFANode oldDefaultNode = switchDefaultStack.pop();
@@ -2052,27 +2024,9 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     FileLocation lastExpLocation = astCreator.getLocation(lastExp);
     prevNode = handleAllSideEffects(prevNode, lastExpLocation, lastExp.getRawSignature(), true);
-
-    if (exp == null) {
-      if (tempVar != null) {
-        throw parseContext.parseError("invalid expression type", lastExp);
-      }
-      return prevNode;
-    }
-
     CStatement stmt = null;
     if (tempVar != null) {
-      if (exp instanceof CAssignment) {
-        CFANode lastNode = newCFANode();
-        CFAEdge edge =
-            new CStatementEdge(
-                exp.toASTString(), (CStatement) exp, lastExpLocation, prevNode, lastNode);
-        addToCFA(edge);
-        prevNode = lastNode;
-        stmt = createStatement(lastExpLocation, tempVar, ((CAssignment) exp).getLeftHandSide());
-      } else {
-        stmt = createStatement(lastExpLocation, tempVar, (CRightHandSide) exp);
-      }
+      stmt = createStatement(lastExpLocation, tempVar, (CRightHandSide)exp);
     } else if (exp instanceof CStatement) {
       stmt = (CStatement)exp;
     } else if (!(exp instanceof CRightHandSide)) {
@@ -2247,13 +2201,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       // Thus we reuse the condition expression returned by createConditionEdges,
       // if possible.
       if (condition.isPresent()) {
-        createEdgesForTernaryOperatorBranch(
-            condition.orElseThrow(),
-            condExp.getLogicalConditionExpression(),
-            lastNode,
-            fileLocation,
-            thenNode,
-            tempVar);
+        createEdgesForTernaryOperatorBranch(condition.get(), condExp.getLogicalConditionExpression(), lastNode, fileLocation, thenNode, tempVar);
       } else {
         createEdgesForTernaryOperatorBranch(condExp.getLogicalConditionExpression(), lastNode, fileLocation, thenNode, tempVar);
       }

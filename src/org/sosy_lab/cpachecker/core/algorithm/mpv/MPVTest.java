@@ -1,11 +1,22 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2018  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 package org.sosy_lab.cpachecker.core.algorithm.mpv;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -15,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -172,15 +184,18 @@ public class MPVTest {
     return builder.build();
   }
 
-  private List<AbstractSingleProperty> parseResult(CPAcheckerResult result) {
+  private List<AbstractSingleProperty> parseResult(CPAcheckerResult result)
+      throws UnsupportedEncodingException {
     // Get property names with their results based on 'printResult'
     ImmutableList.Builder<AbstractSingleProperty> builder = ImmutableList.builder();
     ByteArrayOutputStream outputStreamResults = new ByteArrayOutputStream();
     @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for results
-    PrintStream printStreamResults = new PrintStream(outputStreamResults, true, DEFAULT_CHARSET);
+    PrintStream printStreamResults =
+        new PrintStream(outputStreamResults, true, DEFAULT_CHARSET.name());
     result.printResult(printStreamResults);
 
-    for (String line : Splitter.on("\n").split(outputStreamResults.toString(DEFAULT_CHARSET))) {
+    for (String line :
+        Splitter.on("\n").split(outputStreamResults.toString(DEFAULT_CHARSET.name()))) {
       Matcher matcher = PROPERTY_RESULT_PATTERN.matcher(line);
       if (matcher.find()) {
         String name = matcher.group(1);
@@ -195,11 +210,12 @@ public class MPVTest {
     // Get additional parameters for properties from statistics
     ByteArrayOutputStream outputStreamStats = new ByteArrayOutputStream();
     @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
-    PrintStream printStreamStats = new PrintStream(outputStreamStats, true, DEFAULT_CHARSET);
+    PrintStream printStreamStats = new PrintStream(outputStreamStats, true, DEFAULT_CHARSET.name());
     result.printStatistics(printStreamStats);
 
     AbstractSingleProperty currentProperty = null;
-    for (String line : Splitter.on("\n").split(outputStreamStats.toString(DEFAULT_CHARSET))) {
+    for (String line :
+        Splitter.on("\n").split(outputStreamStats.toString(DEFAULT_CHARSET.name()))) {
       Matcher matcher = PROPERTY_PATTERN.matcher(line);
       if (matcher.find()) {
         String name = matcher.group(1);
@@ -258,7 +274,8 @@ public class MPVTest {
   }
 
   private void checkResults(
-      TestResults actualResults, String[][] idealResults, Result overallExpectedResult) {
+      TestResults actualResults, String[][] idealResults, Result overallExpectedResult)
+      throws UnsupportedEncodingException {
     actualResults.assertIs(overallExpectedResult);
     List<AbstractSingleProperty> propertiesResults = parseResult(actualResults.getCheckerResult());
     if (overallExpectedResult.equals(Result.NOT_YET_STARTED)) {
