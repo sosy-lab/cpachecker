@@ -316,11 +316,11 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   /**
    * A helper method to get the block formula at the specified loop head location. Typically it
-   * expects zero or one loop head state in ARG, because multi-loop programs are excluded in the
-   * beginning. In this case, it returns a false path formula if there is no loop head, or the path
-   * formula at the unique loop head. However, an exception is caused by the pattern
-   * "{@code ERROR: goto ERROR;}". Under this situation, it returns the disjunction of the path
-   * formulas to each loop head state.
+   * expects zero or one loop head state in ARG with the specified encountering number, because
+   * multi-loop programs are excluded in the beginning. In this case, it returns a false block
+   * formula if there is no loop head, or the block formula at the unique loop head. However, an
+   * exception is caused by the pattern "{@code ERROR: goto ERROR;}". Under this situation, it
+   * returns the disjunction of the block formulas to each loop head state.
    *
    * @param pReachedSet Abstract Reachability Graph
    *
@@ -348,8 +348,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return formulaToLoopHeads;
   }
 
-  private static boolean isLoopStart(AbstractState as) {
-    return AbstractStates.extractStateByType(as, LocationState.class)
+  private static boolean isLoopStart(AbstractState pState) {
+    return AbstractStates.extractStateByType(pState, LocationState.class)
         .getLocationNode()
         .isLoopStart();
   }
@@ -358,24 +358,27 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return from(pReachedSet).filter(IMCAlgorithm::isLoopStart);
   }
 
+  private static boolean isLoopHeadEncounterTime(AbstractState pState, int numEncounterLoopHead) {
+    return AbstractStates.extractStateByType(pState, LoopBoundState.class).getDeepestIteration()
+        - 1 == numEncounterLoopHead;
+  }
+
   private static FluentIterable<AbstractState> getLoopHeadEncounterState(
       final FluentIterable<AbstractState> pFluentIterable,
       final int numEncounterLoopHead) {
-    return pFluentIterable.filter(
-        e -> AbstractStates.extractStateByType(e, LoopBoundState.class).getDeepestIteration()
-            - 1 == numEncounterLoopHead);
+    return pFluentIterable.filter(e -> isLoopHeadEncounterTime(e, numEncounterLoopHead));
   }
 
   /**
-   * A helper method to get the block formula at the specified error locations. It uses
-   * {@code checkState} to ensure that there is a unique loop head location.
+   * A helper method to get the block formula at the specified error locations.
    *
    * @param pReachedSet Abstract Reachability Graph
    *
-   * @param numEncounterLoopHead The encounter times of the loop head location
+   * @param numEncounterLoopHead The times to encounter LH before reaching the error
    *
    * @return A {@code BooleanFormula} of the disjunction of block formulas at every error location
-   *         if they exist; {@code False} if there is no error location.
+   *         if they exist; {@code False} if there is no error location with the specified encounter
+   *         times.
    *
    */
   private BooleanFormula getErrorFormula(ReachedSet pReachedSet, int numEncounterLoopHead) {
