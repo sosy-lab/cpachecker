@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2015  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
 import com.google.common.primitives.ImmutableIntArray;
@@ -57,7 +42,7 @@ public class WellScopedInterpolation<T> extends AbstractTreeInterpolation<T> {
    * <p>The wellscoped interpolants at E->F and G->F do not contradict each other (transivitely).
    * This example shows that the idea of the paper "wellscoped interpolants" should not be used.
    *
-   * <pre>
+   * <pre>{@code
    * digraph tree {
    *   A [label="(and (= c@3 0)\n(= nondet@2 main::n@3)\n(not (< main::n@3 1))\n(not (< 31 main::n@3))\n(= c@4 0))"];
    *   B [label="(and (= main::n@3 apply::n_p_@2)\n(= c@4 c_p_apply@2))"];
@@ -77,7 +62,7 @@ public class WellScopedInterpolation<T> extends AbstractTreeInterpolation<T> {
    *   C->B [label="(not (= apply::n_p_@2 1))"];
    *   G->F [label="(not (= h::n_p_@2 0))"];
    * }
-   * </pre>
+   * }</pre>
    */
   public WellScopedInterpolation(
       LogManager pLogger,

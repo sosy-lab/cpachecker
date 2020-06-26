@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import com.google.common.collect.FluentIterable;
@@ -56,7 +41,7 @@ public class InvariantStrengthenings {
   private static class NoAbstraction<S extends CandidateInvariant>
       implements InvariantStrengthening<S, S> {
 
-    private static NoAbstraction<CandidateInvariant> INSTANCE = new NoAbstraction<>();
+    private static final NoAbstraction<CandidateInvariant> INSTANCE = new NoAbstraction<>();
 
     private NoAbstraction() {}
 
@@ -111,7 +96,7 @@ public class InvariantStrengthenings {
       pProver.pop(); // Pop the big violation disjunction
 
       if (pAssertedInvariants.isPresent()) {
-        pProver.push(pAssertedInvariants.get()); // Put the invariants back on the stack
+        pProver.push(pAssertedInvariants.orElseThrow()); // Put the invariants back on the stack
       }
 
       // Find the relevant literals for each disjunct
@@ -191,7 +176,7 @@ public class InvariantStrengthenings {
       }
       pProver.pop(); // Pop the candidate assertion
       if (pAssertedInvariants.isPresent()) {
-        pProver.push(pAssertedInvariants.get()); // Put the invariants back on the stack
+        pProver.push(pAssertedInvariants.orElseThrow()); // Put the invariants back on the stack
       }
 
       while (!restored) {
@@ -216,7 +201,7 @@ public class InvariantStrengthenings {
               SymbolicCandiateInvariant.makeSymbolicInvariant(
                   pInvariant.getApplicableLocations(),
                   pInvariant.getStateFilter(),
-                  cti.get().getFormula(pFmgr),
+                  cti.orElseThrow().getFormula(pFmgr),
                   pFmgr);
           pProver.push(pAssertCti.assertCandidate(assertableCti));
 
@@ -330,7 +315,7 @@ public class InvariantStrengthenings {
   }
 
   public static <T extends CandidateInvariant> InvariantStrengthening<T, T> unsatCoreBasedStrengthening() {
-    return new InvariantStrengthening<T, T>() {
+    return new InvariantStrengthening<>() {
 
       @SuppressWarnings("unchecked")
       @Override

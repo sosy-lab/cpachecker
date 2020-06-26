@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util;
 
 import static com.google.common.base.Predicates.equalTo;
@@ -36,7 +21,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.graph.Traverser;
 import java.util.Optional;
 import java.util.Set;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
@@ -124,7 +109,7 @@ public final class AbstractStates {
                         .filter(notNull());
   }
 
-  public static CFANode extractLocation(AbstractState pState) {
+  public static @Nullable CFANode extractLocation(AbstractState pState) {
     AbstractStateWithLocation e = extractStateByType(pState, AbstractStateWithLocation.class);
     return e == null ? null : e.getLocationNode();
   }
@@ -146,9 +131,6 @@ public final class AbstractStates {
   public static Iterable<CFAEdge> getOutgoingEdges(AbstractState pState) {
     return extractStateByType(pState, AbstractStateWithLocations.class).getOutgoingEdges();
   }
-
-  public static final Function<AbstractState, CFANode> EXTRACT_LOCATION =
-      AbstractStates::extractLocation;
 
   public static Iterable<AbstractState> filterLocation(Iterable<AbstractState> pStates, CFANode pLoc) {
     if (pStates instanceof LocationMappedReachedSet) {
@@ -180,10 +162,8 @@ public final class AbstractStates {
   }
 
   public static FluentIterable<AbstractState> getTargetStates(final UnmodifiableReachedSet pReachedSet) {
-    return from(pReachedSet).filter(AbstractStates.IS_TARGET_STATE);
+    return from(pReachedSet).filter(AbstractStates::isTargetState);
   }
-
-  public static final Predicate<AbstractState> IS_TARGET_STATE = AbstractStates::isTargetState;
 
   public static boolean hasAssumptions(AbstractState as) {
     AssumptionStorageState assumption = extractStateByType(as, AssumptionStorageState.class);

@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -40,9 +25,9 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -168,7 +153,7 @@ public class GraphUtils {
       List<ARGState> subList = pStates.subList(startIndex, pStates.size());
       Set<ARGState> excludeSet = new HashSet<>(pStates);
       if (pExcludeStates.isPresent()) {
-        excludeSet.addAll(pExcludeStates.get());
+        excludeSet.addAll(pExcludeStates.orElseThrow());
       }
       excludeSet.removeAll(subList);
       ImmutableSet<StronglyConnectedComponent> SCCs =
@@ -184,7 +169,7 @@ public class GraphUtils {
                 .map(x -> pStates.indexOf(x.getRootNode()))
                 .reduce((x, y) -> x.compareTo(y) <= 0 ? x : y)
                 .map(pStates::get)
-                .get();
+                .orElseThrow();
 
         blockedSet.clear();
         blockedMap.clear();
@@ -212,7 +197,7 @@ public class GraphUtils {
       List<List<ARGState>> pAllCycles,
       Optional<Set<ARGState>> pExcludeSet) {
 
-    if (pExcludeSet.isPresent() && pExcludeSet.get().contains(pCurrentState)) {
+    if (pExcludeSet.isPresent() && pExcludeSet.orElseThrow().contains(pCurrentState)) {
       // Do not regard nodes which were deliberately put into a set of excluded states
       return false;
     }
@@ -306,7 +291,7 @@ public class GraphUtils {
 
     for (ARGState state : pARGStates) {
       if (pExcludeStates.isPresent()) {
-        if (pExcludeStates.get().contains(state)) {
+        if (pExcludeStates.orElseThrow().contains(state)) {
           continue;
         }
       }
@@ -333,9 +318,8 @@ public class GraphUtils {
     pIndex++;
     pDfsStack.push(pState);
 
-    for (Iterator<ARGState> iterator = pState.getChildren().iterator(); iterator.hasNext(); ) {
-      ARGState sucessorState = iterator.next();
-      if (pExcludeStates.isPresent() && pExcludeStates.get().contains(sucessorState)) {
+    for (ARGState sucessorState : pState.getChildren()) {
+      if (pExcludeStates.isPresent() && pExcludeStates.orElseThrow().contains(sucessorState)) {
         continue;
       }
       if (!pStateIndex.containsKey(sucessorState)) {
@@ -360,7 +344,7 @@ public class GraphUtils {
       do {
         s = pDfsStack.pop();
         scc.addNode(s);
-      } while (pState != s);
+      } while (!Objects.equals(pState, s));
       pSCCs.add(scc);
     }
   }

@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -171,7 +156,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     if(!variableClassification.isPresent()) {
       return new BnBRegionManager(variableClassification, ImmutableMultimap.of(), typeHandler);
     }
-    VariableClassification var = variableClassification.get();
+    VariableClassification var = variableClassification.orElseThrow();
     Multimap<CCompositeType, String> relevant = var.getRelevantFields();
     Multimap<CCompositeType, String> addressed = var.getAddressedFields();
 
@@ -386,8 +371,11 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * @return Whether the variable declaration is addressed or not.
    */
   private boolean isAddressedVariable(CDeclaration var) {
-    return !variableClassification.isPresent() ||
-        variableClassification.get().getAddressedVariables().contains(var.getQualifiedName());
+    return !variableClassification.isPresent()
+        || variableClassification
+            .orElseThrow()
+            .getAddressedVariables()
+            .contains(var.getQualifiedName());
   }
 
   /**
@@ -491,7 +479,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           fields.add(CompositeField.of(compositeType, memberDeclaration));
           MemoryRegion newRegion = regionMgr.makeMemoryRegion(compositeType, memberDeclaration);
           addValueImportConstraints(
-              fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, offset.getAsLong())),
+              fmgr.makePlus(address, fmgr.makeNumber(voidPointerFormulaType, offset.orElseThrow())),
               newBaseName,
               memberType,
               fields,
@@ -613,7 +601,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
       final CType elementType = checkIsSimplified(arrayType.getType());
       final OptionalInt length = arrayType.getLengthAsInt();
       if (length.isPresent()) {
-        final int l = Math.min(length.getAsInt(), options.maxArrayLength());
+        final int l = Math.min(length.orElseThrow(), options.maxArrayLength());
         for (int i = 0; i < l; i++) {
           final CLeftHandSide newLhs = new CArraySubscriptExpression(
                                              lhs.getFileLocation(),
@@ -1344,7 +1332,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   @Override
   protected Formula makeNondet(
       String pVarName, CType pType, SSAMapBuilder pSsa, Constraints pConstraints) {
-    return super.makeNondet(pVarName, pType, pSsa, pConstraints);
+    return super.makeNondet(pVarName, typeHandler.simplifyType(pType), pSsa, pConstraints);
   }
 
   /** {@inheritDoc} */

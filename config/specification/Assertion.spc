@@ -1,3 +1,11 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 OBSERVER AUTOMATON AssertionAutomaton
 // This automaton detects assertions that may fail
 // (i.e., a function call to __assert_fail).
@@ -19,6 +27,10 @@ STATE USEFIRST Init :
 
    MATCH {__VERIFIER_error($?)} && !CHECK(location, "functionName==__VERIFIER_error")
    -> PRINT "WARNING: Function __VERIFIER_error() is ignored by this specification. If you want to check for reachability of __VERIFIER_error, pass '-spec sv-comp-reachability' as parameter."
+      GOTO Init;
+
+  MATCH {reach_error($?)}
+   -> PRINT "WARNING: Function reach_error() is ignored by this specification. If you want to check for reachability of reach_error, pass '-spec sv-comp-reachability' as parameter."
       GOTO Init;
 
 END AUTOMATON

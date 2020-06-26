@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: The sqlite project
+#
+# SPDX-License-Identifier: blessing
+
 shell.c - Memory Leak
 entryfunction: do_meta_command
 FOSSIL-SHA1-ID: cb9c15431c53b13b70d006d8c47741ebc1caaca3

@@ -1,3 +1,13 @@
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 Logging in CPAchecker
 =====================
 
@@ -51,7 +61,7 @@ with the following semantics and use cases:
   any more and needs to abort. In most parts of the code,
   an exception is thrown instead, so this level is normally *not* used.
   Furthermore, problems that are severe in some circumstances
-  may not be severe in under circumstances (such as when the analysis
+  may not be severe in other circumstances (such as when the analysis
   is used only as an auxiliary analysis),
   and thus the decision whether a problem is severe or not
   may belong to some outer layer of code.

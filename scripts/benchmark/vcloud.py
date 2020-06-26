@@ -1,31 +1,11 @@
-"""
-CPAchecker is a tool for configurable software verification.
-This file is part of CPAchecker.
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
 
-Copyright (C) 2007-2014  Dirk Beyer
-All rights reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-
-CPAchecker web page:
-  http://cpachecker.sosy-lab.org
-"""
-
-# prepare for Python 3
-from __future__ import absolute_import, division, print_function, unicode_literals
-
-import collections
 import sys
 
 sys.dont_write_bytecode = True  # prevent creation of .pyc files
@@ -35,7 +15,6 @@ import logging
 import os
 import shutil
 import subprocess
-import time
 
 from benchexec.model import MEMLIMIT, TIMELIMIT, CORELIMIT
 import benchexec.util
@@ -100,7 +79,7 @@ def execute_benchmark(benchmark, output_handler):
         ant = subprocess.Popen(
             ["ant", "resolve-benchmark-dependencies"],
             cwd=_ROOT_DIR,
-            shell=util.is_windows(),
+            shell=util.is_windows(),  # noqa: S602
         )
         ant.communicate()
         ant.wait()
@@ -135,13 +114,15 @@ def execute_benchmark(benchmark, output_handler):
             cmdLine.extend(["--master", benchmark.config.cloudMaster])
         if benchmark.config.zipResultFiles:
             cmdLine.extend(["--zip-result-files", str(benchmark.config.zipResultFiles)])
+        if benchmark.config.cgroupAccess:
+            cmdLine.extend(["--cgroupAccess", str(benchmark.config.cgroupAccess)])
         if benchmark.config.debug:
             cmdLine.extend(["--print-new-files", "true"])
 
-        walltime_before = time.time()
+        start_time = benchexec.util.read_local_time()
 
         cloud = subprocess.Popen(
-            cmdLine, stdin=subprocess.PIPE, shell=util.is_windows()
+            cmdLine, stdin=subprocess.PIPE, shell=util.is_windows()  # noqa: S602
         )
         try:
             cloud.communicate(cloudInput.encode("utf-8"))
@@ -149,8 +130,7 @@ def execute_benchmark(benchmark, output_handler):
             stop()
         returnCode = cloud.wait()
 
-        walltime_after = time.time()
-        usedWallTime = walltime_after - walltime_before
+        end_time = benchexec.util.read_local_time()
 
         if returnCode:
             if STOPPED_BY_INTERRUPT:
@@ -161,9 +141,10 @@ def execute_benchmark(benchmark, output_handler):
                 output_handler.set_error(errorMsg)
     else:
         returnCode = 0
-        usedWallTime = None
+        start_time = None
+        end_time = None
 
-    handleCloudResults(benchmark, output_handler, usedWallTime)
+    handleCloudResults(benchmark, output_handler, start_time, end_time)
 
     return returnCode
 
@@ -178,8 +159,8 @@ def formatEnvironment(environment):
     return ";".join(k + "=" + v for k, v in environment.get("newEnv", {}).items())
 
 
-def toTabList(l):
-    return "\t".join(map(str, l))
+def toTabList(items):
+    return "\t".join(map(str, items))
 
 
 def getCloudInput(benchmark):
@@ -265,7 +246,7 @@ def getBenchmarkDataForCloud(benchmark):
             # we assume, that VCloud-client only splits its input at tabs,
             # so we can use all other chars for the info, that is needed to run the tool.
             argString = json.dumps(cmdline)
-            assert not "\t" in argString  # cannot call toTabList(), if there is a tab
+            assert "\t" not in argString  # cannot call toTabList(), if there is a tab
 
             log_file = os.path.relpath(run.log_file, benchmark.log_folder)
             if os.path.exists(run.identifier):
@@ -294,6 +275,7 @@ def getToolDataForCloud(benchmark):
     logging.debug("Working dir: " + workingDir)
 
     toolpaths = benchmark.required_files()
+    validToolpaths = set()
     for file in toolpaths:
         if not os.path.exists(file):
             sys.exit(
@@ -301,11 +283,19 @@ def getToolDataForCloud(benchmark):
                     os.path.normpath(file)
                 )
             )
+        if os.path.isdir(file) and not os.listdir(file):
+            # VCloud can not handle empty directories, lets ignore them
+            logging.warning(
+                "Empty directory '%s', ignoring directory for cloud execution.",
+                os.path.normpath(file),
+            )
+        else:
+            validToolpaths.add(file)
 
-    return (workingDir, toolpaths)
+    return (workingDir, validToolpaths)
 
 
-def handleCloudResults(benchmark, output_handler, usedWallTime):
+def handleCloudResults(benchmark, output_handler, start_time, end_time):
 
     outputDir = benchmark.log_folder
     if not os.path.isdir(outputDir) or not os.listdir(outputDir):
@@ -318,6 +308,11 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
     # Write worker host informations in xml
     parseAndSetCloudWorkerHostInformation(outputDir, output_handler, benchmark)
 
+    if start_time and end_time:
+        usedWallTime = (end_time - start_time).total_seconds()
+    else:
+        usedWallTime = None
+
     # write results in runs and handle output after all runs are done
     executedAllRuns = True
     runsProducedErrorOutput = False
@@ -326,7 +321,7 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
             output_handler.output_for_skipping_run_set(runSet)
             continue
 
-        output_handler.output_before_run_set(runSet)
+        output_handler.output_before_run_set(runSet, start_time=start_time)
 
         for run in runSet.runs:
             dataFile = run.log_file + ".data"
@@ -342,6 +337,7 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
                         e,
                     )
                     output_handler.all_created_files.add(dataFile)
+                    output_handler.set_error("missing results", runSet)
                     executedAllRuns = False
                 else:
                     output_handler.output_before_run(run)
@@ -349,6 +345,7 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
                     output_handler.output_after_run(run)
             else:
                 logging.warning("No results exist for file %s.", run.identifier)
+                output_handler.set_error("missing results", runSet)
                 executedAllRuns = False
 
             if os.path.exists(run.log_file + ".stdError"):
@@ -367,7 +364,9 @@ def handleCloudResults(benchmark, output_handler, usedWallTime):
             ):
                 shutil.move(vcloudFilesDirectory, benchexecFilesDirectory)
 
-        output_handler.output_after_run_set(runSet, walltime=usedWallTime)
+        output_handler.output_after_run_set(
+            runSet, walltime=usedWallTime, end_time=end_time
+        )
 
     output_handler.output_after_benchmark(STOPPED_BY_INTERRUPT)
 
