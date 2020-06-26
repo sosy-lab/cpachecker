@@ -3232,7 +3232,7 @@ imc.collectFormulasByTraversingARG = false
 imc.deriveInterpolantFromSuffix = true
 
 # try using interpolation to verify programs with loops
-imc.interpolation = false
+imc.interpolation = true
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
