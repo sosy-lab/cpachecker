@@ -30,6 +30,8 @@ public interface Property {
     DEADLOCK("G ! deadlock"),
 
     TERMINATION("F end"),
+
+    ASSERT("G assert"),
     ;
 
     private final String representation;
