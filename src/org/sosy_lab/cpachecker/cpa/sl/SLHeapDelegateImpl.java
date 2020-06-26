@@ -150,8 +150,8 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
   }
 
   @Override
-  public void handleAlloca(CExpression pMemoryLocation, CExpression pSize) throws Exception {
-    Formula loc = getFormulaForExpression(pMemoryLocation, false);
+  public void handleAlloca(CIdExpression pMemoryLocation, CExpression pSize) throws Exception {
+    Formula loc = getFormulaForExpression(createSymbolicLocation(pMemoryLocation), false);
     BigInteger size = getValueForCExpression(pSize, true);
     addToMemory(state.getStack(), loc, size);
   }
@@ -450,10 +450,13 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
   }
 
   private CExpression createSymbolicLocation(CSimpleDeclaration pDecl) {
-
     CIdExpression e = new CIdExpression(FileLocation.DUMMY, pDecl);
-    CType t = new CPointerType(false, false, pDecl.getType());
-    return new CUnaryExpression(FileLocation.DUMMY, t, e, UnaryOperator.AMPER);
+    return createSymbolicLocation(e);
+  }
+
+  private CExpression createSymbolicLocation(CIdExpression pExp) {
+    CType t = new CPointerType(false, false, pExp.getExpressionType());
+    return new CUnaryExpression(FileLocation.DUMMY, t, pExp, UnaryOperator.AMPER);
   }
 
   private Formula createFormula(CExpression pExp, CExpression pOffset, boolean usePredContext)
