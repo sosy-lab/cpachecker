@@ -65,7 +65,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   @Option(secure = true, description = "try using interpolation to verify programs with loops")
-  private boolean interpolation = false;
+  private boolean interpolation = true;
 
   @Option(secure = true, description = "toggle deriving the interpolants from suffix formulas")
   private boolean deriveInterpolantFromSuffix = true;
