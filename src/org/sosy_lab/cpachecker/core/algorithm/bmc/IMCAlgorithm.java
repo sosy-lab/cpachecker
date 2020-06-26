@@ -240,32 +240,36 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     BooleanFormula tailFormula = bfmgr.makeTrue();
     BooleanFormula targetFormula = bfmgr.makeFalse();
     BooleanFormula errorBeforeLoopFormula = bfmgr.makeFalse();
-    boolean initialized = false;
-    for (AbstractState targetState : AbstractStates.getTargetStates(pReachedSet).toList()) {
-      List<ARGState> abstractionStates = getAbstractionStatesToRoot(targetState);
-      if (isErrorBeforeLoopStart(abstractionStates)) {
-        errorBeforeLoopFormula =
-            bfmgr.or(
-                errorBeforeLoopFormula,
-                getPredicateAbstractionBlockFormula(targetState).getFormula());
+    for (AbstractState targetStateBeforeLoop : getTargetStatesBeforeLoop(pReachedSet)) {
+      errorBeforeLoopFormula =
+          bfmgr.or(
+              errorBeforeLoopFormula,
+              getPredicateAbstractionBlockFormula(targetStateBeforeLoop).getFormula());
+    }
+    if (!AbstractStates.getTargetStates(pReachedSet)
+        .filter(e -> !isTargetStateBeforeLoopStart(e))
+        .isEmpty()) {
+      List<AbstractState> targetStatesAfterLoop = getTargetStatesAfterLoop(pReachedSet);
+      // Initialize prefix, loop, and tail using the first target state after the loop
+      // Assumption: every target state after the loop has the same abstraction-state path to root
+      List<ARGState> abstractionStates = getAbstractionStatesToRoot(targetStatesAfterLoop.get(0));
+      prefixFormula = getPredicateAbstractionBlockFormula(abstractionStates.get(1));
+      if (abstractionStates.size() > 3) {
+        loopFormula = getPredicateAbstractionBlockFormula(abstractionStates.get(2)).getFormula();
       }
-      if (!initialized) {
-        prefixFormula = getPredicateAbstractionBlockFormula(abstractionStates.get(1));
-        if (abstractionStates.size() > 3) {
-          loopFormula = getPredicateAbstractionBlockFormula(abstractionStates.get(2)).getFormula();
+      if (abstractionStates.size() > 4) {
+        for (int i = 3; i < abstractionStates.size() - 1; ++i) {
+          tailFormula =
+              bfmgr.and(
+                  tailFormula,
+                  getPredicateAbstractionBlockFormula(abstractionStates.get(i)).getFormula());
         }
-        if (abstractionStates.size() > 4) {
-          for (int i = 3; i < abstractionStates.size() - 1; ++i) {
-            tailFormula =
-                bfmgr.and(
-                    tailFormula,
-                    getPredicateAbstractionBlockFormula(abstractionStates.get(i)).getFormula());
-          }
-        }
-        initialized = true;
       }
-      targetFormula =
-          bfmgr.or(targetFormula, getPredicateAbstractionBlockFormula(targetState).getFormula());
+      // Collect target formulas from each target state
+      for (AbstractState targetState : targetStatesAfterLoop) {
+        targetFormula =
+            bfmgr.or(targetFormula, getPredicateAbstractionBlockFormula(targetState).getFormula());
+      }
     }
     return new PartitionedFormulas(
         prefixFormula,
@@ -274,17 +278,29 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         errorBeforeLoopFormula);
   }
 
-  private List<ARGState> getAbstractionStatesToRoot(AbstractState pTargetState) {
+  private static boolean isTargetStateBeforeLoopStart(AbstractState pTargetState) {
+    return getAbstractionStatesToRoot(pTargetState).size() == 2;
+  }
+
+  private static List<AbstractState> getTargetStatesBeforeLoop(final ReachedSet pReachedSet) {
+    return AbstractStates.getTargetStates(pReachedSet)
+        .filter(IMCAlgorithm::isTargetStateBeforeLoopStart)
+        .toList();
+  }
+
+  private static List<AbstractState> getTargetStatesAfterLoop(final ReachedSet pReachedSet) {
+    return AbstractStates.getTargetStates(pReachedSet)
+        .filter(e -> !isTargetStateBeforeLoopStart(e))
+        .toList();
+  }
+
+  private static List<ARGState> getAbstractionStatesToRoot(AbstractState pTargetState) {
     return from(ARGUtils.getOnePathTo((ARGState) pTargetState).asStatesList())
         .filter(e -> PredicateAbstractState.containsAbstractionState(e))
         .toList();
   }
 
-  private boolean isErrorBeforeLoopStart(List<ARGState> pAbstractionStates) {
-    return pAbstractionStates.size() == 2;
-  }
-
-  private PathFormula getPredicateAbstractionBlockFormula(AbstractState pState) {
+  private static PathFormula getPredicateAbstractionBlockFormula(AbstractState pState) {
     return PredicateAbstractState.getPredicateState(pState)
         .getAbstractionFormula()
         .getBlockFormula();
