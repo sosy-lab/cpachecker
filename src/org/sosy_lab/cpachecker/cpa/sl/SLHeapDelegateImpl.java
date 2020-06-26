@@ -333,15 +333,17 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
       return fLoc;
     }
     // Semantical check.
+    Formula match = null;
     for (Formula formulaOnHeap : pMemory.keySet()) {
       if (checkEquivalence(fLoc, formulaOnHeap, context)) {
-        if (pVal != null) {
-          pMemory.put(formulaOnHeap, pVal);
-        }
-        return formulaOnHeap;
+        match = formulaOnHeap;
+        break;
       }
     }
-    return null;
+    if (match != null && pVal != null) {
+      pMemory.put(match, pVal);
+    }
+    return match;
   }
 
   private void addToMemory(
