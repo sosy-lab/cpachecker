@@ -204,9 +204,13 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * iteration. However, to make the code easier to understand, the tail formula is not stored in
    * {@link PartitionedFormulas} now. Considering the conjunction is only a syntactic operation, and
    * the unrolling numbers are typically not large, this trade-off between efficiency and
-   * readability should be acceptable. The original implementation relies on {@link CFANode} to
-   * detect syntactic loops, but it turns out that abstraction states are not always at syntactic
-   * LHs. Therefore, a new implementation which directly traverses ARG is under development.
+   * readability should be acceptable. Two subroutines to collect formulas are available: one
+   * syntactic and the other semantic. The old implementation relies on {@link CFANode} to detect
+   * syntactic loops, but it turns out that syntactic LHs are not always abstraction states, and
+   * hence it might not always collect block formulas from abstraction states. To solve this
+   * mismatch, a new implementation which directly traverses ARG was developed, and it guarantees to
+   * collect block formulas from abstraction states. The new method can be enabled by setting
+   * {@code imc.collectFormulasByTraversingARG=true}.
    *
    * @param pReachedSet Abstract Reachability Graph
    *
@@ -465,7 +469,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   /**
    * This class wraps three formulas used in IMC algorithm in order to avoid long parameter lists.
    * In addition, it also stores the disjunction of block formulas for the target states before the
-   * loop.
+   * loop. Therefore, a BMC query is the disjunction of 1) the conjunction of prefix, loop, and
+   * suffix and 2) the errors before the loop. Note that prefixFormula is a {@link PathFormula} as
+   * we need its {@link SSAMap} to update the SSA indices of derived interpolants.
    */
   private static class PartitionedFormulas {
 
