@@ -8,9 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.interfaces;
 
-import com.google.common.collect.ImmutableSet;
 import java.util.List;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.AReturnStatement;
 
@@ -37,25 +35,4 @@ public interface AbstractStateWithAssumptions extends AbstractState {
    * @return A (possibly empty list) of expressions.
    */
   List<? extends AExpression> getAssumptions();
-
-  /**
-   * Get a set of assumptions that should hold in the previous (=parent) state,
-   * that means before the edge to this state is evaluated.
-   * For implementors, the same requirements hold as for
-   * {@link AbstractStateWithAssumptions#getAssumptions()}
-   * @return A (possibly empty list) of expressions.
-   */
-  default Set<? extends AExpression> getPreconditionAssumptions() {
-    return ImmutableSet.of();
-  }
-
-  /**
-   * Get the states for which the assumptions from {@link
-   * AbstractStateWithAssumptions#getPreconditionAssumptions()} should hold.
-   *
-   * @return a path formula (may be null)
-   */
-  default Set<AbstractState> getStatesForPreconditions() {
-    return ImmutableSet.of();
-  }
 }

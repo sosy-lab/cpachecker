@@ -46,17 +46,22 @@ public class ARGToAutomatonConverterTest extends AbstractTranslationTest {
   private final String program;
   private final Configuration config;
   private final boolean verdict;
+  private final boolean forOverflow;
   private final Path automatonPath;
   private final ARGToAutomatonConverter converter;
 
   public ARGToAutomatonConverterTest(
-      @SuppressWarnings("unused") String pTestLabel, String pProgram, boolean pVerdict)
+      @SuppressWarnings("unused") String pTestLabel,
+      String pProgram,
+      boolean pVerdict,
+      boolean pForOverflow)
       throws IOException, InvalidConfigurationException {
     filePrefix = "automaton";
     program = pProgram;
     verdict = pVerdict;
+    forOverflow = pForOverflow;
     automatonPath = newTempFile();
-    String propfile = "split-callstack.properties";
+    String propfile = forOverflow ? "split--overflow.properties" : "split-callstack.properties";
     ConfigurationBuilder configBuilder =
         TestDataTools.configurationForTest()
             .loadFromResource(ARGToAutomatonConverterTest.class, propfile)
@@ -75,13 +80,20 @@ public class ARGToAutomatonConverterTest extends AbstractTranslationTest {
     b.add(simpleTask("main.c", true));
     b.add(simpleTask("main2.c", false));
     b.add(simpleTask("functionreturn.c", false));
+    b.add(simpleTaskForOverflow("overflow.c", false));
+    b.add(simpleTaskForOverflow("no_overflow.c", true));
 
     return b.build();
   }
 
   private static Object[] simpleTask(String program, boolean verdict) {
     String label = String.format("SimpleTest(%s is %s)", program, verdict);
-    return new Object[] {label, program, verdict};
+    return new Object[] {label, program, verdict, false};
+  }
+
+  private static Object[] simpleTaskForOverflow(String program, boolean verdict) {
+    String label = String.format("SimpleTestForOverflow(%s is %s)", program, verdict);
+    return new Object[] {label, program, verdict, true};
   }
 
   @Test
@@ -98,6 +110,9 @@ public class ARGToAutomatonConverterTest extends AbstractTranslationTest {
 
     for (String analysis :
         ImmutableList.of("predicateAnalysis.properties", "valueAnalysis.properties")) {
+      if (forOverflow) {
+        break;
+      }
       // test whether C program still gives correct verdict with joint automaton:
       Configuration reConfig =
           TestDataTools.configurationForTest()
@@ -136,6 +151,26 @@ public class ARGToAutomatonConverterTest extends AbstractTranslationTest {
         fullVerdict = fullVerdict && partialVerdict.equals(Result.TRUE);
       }
       assertThat(fullVerdict).isEqualTo(verdict);
+    }
+
+    if (forOverflow) {
+      Configuration overflowConfig =
+          TestDataTools.configurationForTest()
+              .loadFromResource(ARGToAutomatonConverterTest.class, "split--overflow.properties")
+              .build();
+      TestResults results = null;
+      try {
+        resetCFANodeCounter();
+        results = CPATestRunner.run(overflowConfig, fullPath.toString());
+      } catch (NoClassDefFoundError | UnsatisfiedLinkError e) {
+        throw new AssertionError(e);
+      }
+      assertThat(results).isNotNull();
+      if (verdict) {
+        results.assertIsSafe();
+      } else {
+        results.assertIsUnsafe();
+      }
     }
   }
 

@@ -149,6 +149,7 @@ solver.z3.usePhantomReferences = false
 
 # SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
 # SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
+# SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -463,11 +464,11 @@ analysis.unknownAsTrue = false
 # certain restrictions.
 analysis.unknownIfUnrestrictedProgram = false
 
+# select an analysis from a set of analyses after unknown result
+analysis.useCompositionAnalysis = false
+
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
-
-# start different analyses interleaved and continue after unknown result
-analysis.useInterleavedAnalyses = false
 
 # add loop-structure information to CFA.
 analysis.useLoopStructure = true
@@ -827,6 +828,45 @@ cinvariants.prefix = no default value
 
 # Attempt to simplify the invariant before exporting [may be very expensive].
 cinvariants.simplify = false
+
+# If adaptTimeLimits is set and all configurations support progress reports,
+# in each cycle the time limits per configuration are newly calculated based
+# on the progress
+compositionAlgorithm.circular.adaptTimeLimits = false
+
+# where to store initial condition, when generated
+compositionAlgorithm.condition.file = "AssumptionAutomaton.txt"
+
+# list of files with configurations to use, which are optionally suffixed
+# according to one of the followig schemes:either ::MODE or ::MODE_LIMIT,
+# where MODE and LIMIT are place holders.MODE may take one of the following
+# values continue (i.e., continue analysis with same CPA and reached set),
+# reuse-precision (i.e., reuse the aggregation of the precisions from the
+# previous analysis run), noreuse (i.e., start from scratch).LIMIT is a
+# positive integer number specifying the time limit of the analysis in each
+# round.If no (correct) limit is given a default limit is used.
+compositionAlgorithm.configFiles = no default value
+
+# Whether or not to create an initial condition, that excludes no paths,
+# before first analysis is run.Required when first analysis uses condition
+# from conditional model checking
+compositionAlgorithm.initCondition = false
+
+# print the statistics of each component of the composition algorithm
+# directly after the component's computation is finished
+compositionAlgorithm.intermediateStatistics = NONE
+  enum:     [EXECUTE, NONE, PRINT]
+
+# Enable when composition algorithm is used to check a specification
+compositionAlgorithm.propertyChecked = true
+
+# Qualified name for class which implements strategy that decides how to
+# compose given analyses
+compositionAlgorithm.strategy = no default value
+
+# let each analysis part of the composition algorithm write output files and
+# not only the last one that is executed
+compositionAlgorithm.writeIntermediateOutputFiles = true
 
 # configuration of the residual program generator
 conditional.verifier.generatorConfig = no default value
@@ -1496,8 +1536,11 @@ cpa.congruence.useCachingPathFormulaManager = true
 # Whether to perform caching of constraint satisfiability results
 cpa.constraints.cache = true
 
-# Whether to use subset/superset caching
+# Whether to use subset caching
 cpa.constraints.cacheSubsets = true
+
+# Whether to use superset caching
+cpa.constraints.cacheSupersets = true
 
 # Type of less-or-equal operator to use
 cpa.constraints.lessOrEqualType = SUBSET
@@ -1529,9 +1572,6 @@ cpa.constraints.resolveDefinites = true
 # When to check the satisfiability of constraints
 cpa.constraints.satCheckStrategy = AT_ASSUME
   enum:     [AT_ASSUME, AT_TARGET]
-
-# Try model of predecessor constraints state before running SMT solver
-cpa.constraints.useLastModel = true
 
 # Keep infeasible dummy states that allow for better debugging
 cpa.dca.refiner.keepInfeasibleStates = false
@@ -3237,41 +3277,6 @@ imc.interpolation = true
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
 
-# If adaptTimeLimits is set and all configurations support progress reports,
-# in each cycle the time limits per configuration are newly calculated based
-# on the progress
-interleavedAlgorithm.adaptTimeLimits = false
-
-# where to store initial condition, when generated
-interleavedAlgorithm.condition.file = "AssumptionAutomaton.txt"
-
-# list of files with configurations to use, which are optionally suffixed
-# according to one of the followig schemes:either ::MODE or ::MODE_LIMIT,
-# where MODE and LIMIT are place holders.MODE may take one of the following
-# values continue (i.e., continue analysis with same CPA and reached set),
-# reuse-precision (i.e., reuse the aggregation of the precisions from the
-# previous analysis run), noreuse (i.e., start from scratch).LIMIT is a
-# positive integer number specifying the time limit of the analysis in each
-# round.If no (correct) limit is given a default limit is used.
-interleavedAlgorithm.configFiles = no default value
-
-# Whether or not to create an initial condition, that excludes no paths,
-# before first analysis is run.Required when first analysis uses condition
-# from conditional model checking
-interleavedAlgorithm.initCondition = false
-
-# print the statistics of each component of the interleaved algorithm
-# directly after the component's computation is finished
-interleavedAlgorithm.intermediateStatistics = NONE
-  enum:     [EXECUTE, NONE, PRINT]
-
-# Enable when interleaved algorithm is used to check a specification
-interleavedAlgorithm.propertyChecked = true
-
-# let each analysis part of the interleaved algorithm write output files and
-# not only the last one that is executed
-interleavedAlgorithm.writeIntermediateOutputFiles = true
-
 # Configuration file for the K-Induction algorithm for checking candidates on
 # invariance.
 invariantChecker.kInductionConfig = "config/bmc-invgen.properties"
@@ -4052,6 +4057,10 @@ testcase.generate.parallel = false
 # display all test targets and non-covered test targets in statistics
 testcase.inStats = false
 
+# defines how progress is computed
+testcase.progress = RELATIVE_TOTAL
+  enum:     [ABSOLUTE, RELATIVE_TOTAL]
+
 # when generating tests covering error call stop as soon as generated one
 # test case and report false (only possible in combination with error call
 # property specification
@@ -4097,6 +4106,9 @@ undefinedFunctionsCollector.externAllocFunction = "external_alloc"
 
 # export undefined functions as C file
 undefinedFunctionsCollector.stubsFile = "stubs.c"
+
+# select an analysis from a set of analyses after unknown result
+useCompositionAnalysis = false
 
 # File for exporting the witness automaton in DOT format.
 witness.automatonDumpFile = no default value
