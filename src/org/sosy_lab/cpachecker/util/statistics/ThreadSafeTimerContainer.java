@@ -100,10 +100,8 @@ public class ThreadSafeTimerContainer extends AbstractStatValue {
 
   private long eval(Function<Timer, Long> f, BiFunction<Long, Long, Long> acc) {
     long currentInterval = 0;
-    synchronized (activeTimers) {
-      for (Timer timer : activeTimers.values()) {
-        currentInterval = acc.apply(currentInterval, f.apply(timer));
-      }
+    for (Timer timer : activeTimers.values()) {
+      currentInterval = acc.apply(currentInterval, f.apply(timer));
     }
     return currentInterval;
   }
@@ -118,7 +116,9 @@ public class ThreadSafeTimerContainer extends AbstractStatValue {
   }
 
   long sumTime() {
-    return sumTime + eval(t -> convert(t.getSumTime()), Math::addExact);
+    synchronized (activeTimers) {
+      return sumTime + eval(t -> convert(t.getSumTime()), Math::addExact);
+    }
   }
 
   /**
@@ -127,7 +127,9 @@ public class ThreadSafeTimerContainer extends AbstractStatValue {
    */
   public TimeSpan getMaxTime() {
     cleanupReferences();
-    return export(Math.max(maxTime, eval(t -> convert(t.getMaxTime()), Math::max)));
+    synchronized (activeTimers) {
+      return export(Math.max(maxTime, eval(t -> convert(t.getMaxTime()), Math::max)));
+    }
   }
 
   /**
@@ -136,7 +138,9 @@ public class ThreadSafeTimerContainer extends AbstractStatValue {
    */
   public int getNumberOfIntervals() {
     cleanupReferences();
-    return (int) (numberOfIntervals + eval(t -> (long)t.getNumberOfIntervals(), Math::addExact));
+    synchronized (activeTimers) {
+      return (int) (numberOfIntervals + eval(t -> (long) t.getNumberOfIntervals(), Math::addExact));
+    }
   }
 
   /**

@@ -58,25 +58,39 @@ class MPIMain:
         self.rank = self.comm.Get_rank()
 
     def setup_logger(self):
+        """
+        This sets up a logger such that debug and info messages are logged to
+        stdout, whereas messages of level warning and higher (critical, error, etc.)
+        get logged to stderr. The default log-level is set to normal.
+        """
         global logger
+
+        class InfoFilter(logging.Filter):
+            def filter(self, rec):  # noqa: A003
+                return rec.levelno in (logging.DEBUG, logging.INFO)
 
         if logger is None:
             logger = logging.getLogger(__name__)
 
-        log_handler = logging.StreamHandler(stream=sys.stderr)
-        log_handler.setLevel(logging.DEBUG)
-        log_handler.setFormatter(
-            logging.Formatter(
-                fmt="%(asctime)s - Rank {} - %(levelname)s:  %(message)s".format(
-                    self.rank
-                ),
-                datefmt="%Y-%d-%m %I:%M:%S",
-            )
+        logging_format = logging.Formatter(
+            fmt="Rank {} - %(levelname)s:  %(message)s".format(self.rank),
         )
-        logger.addHandler(log_handler)
+
+        log_handler_stdout = logging.StreamHandler(stream=sys.stdout)
+        log_handler_stdout.setLevel(logging.DEBUG)
+        log_handler_stdout.addFilter(InfoFilter())
+        log_handler_stdout.setFormatter(logging_format)
+
+        log_handler_stderr = logging.StreamHandler(stream=sys.stderr)
+        log_handler_stderr.setLevel(logging.WARNING)
+        log_handler_stderr.setFormatter(logging_format)
+
+        logger.addHandler(log_handler_stdout)
+        logger.addHandler(log_handler_stderr)
+        logger.setLevel(logging.INFO)
 
     def parse_input_args(self, argv):
-        # TODO: use optparse for parsing input
+        # TODO: use argsparse for parsing input
         try:
             logger.debug("Input of user args: %s", str(argv))
             opts, args = getopt.getopt(argv, "di:w", ["input="])

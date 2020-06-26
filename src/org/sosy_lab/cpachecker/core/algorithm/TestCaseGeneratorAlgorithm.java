@@ -58,6 +58,11 @@ import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 @Options(prefix = "testcase")
 public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, StatisticsProvider {
 
+  public enum ProgressComputation {
+    ABSOLUTE,
+    RELATIVE_TOTAL
+  }
+
   @Option(
     secure = true,
     name = "inStats",
@@ -67,6 +72,9 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
   @Option(secure = true,  description = "when generating tests covering error call stop as soon as generated one test case and report false (only possible in combination with error call property specification")
   private boolean reportCoveredErrorCallAsError = false;
+
+  @Option(secure = true, name = "progress", description = "defines how progress is computed")
+  private ProgressComputation progressType = ProgressComputation.RELATIVE_TOTAL;
 
   private final Algorithm algorithm;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
@@ -303,6 +311,13 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
   @Override
   public double getProgress() {
-    return progress / Math.max(1, TestTargetProvider.getCurrentNumOfTestTargets());
+    switch (progressType) {
+      case ABSOLUTE:
+        return progress;
+      case RELATIVE_TOTAL:
+        return progress / Math.max(1, TestTargetProvider.getTotalNumberOfTestTargets());
+      default:
+        throw new AssertionError("Unhandled progress computation type: " + progressType);
+    }
   }
 }

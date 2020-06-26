@@ -46,6 +46,8 @@ public class ConstraintsStatistics implements Statistics {
   public StatCounter directCacheHits = new StatCounter("Direct cache hits");
   public StatTimer subsetLookupTime = new StatTimer(StatKind.SUM, "Subset cache lookup time");
   public StatCounter subsetCacheHits = new StatCounter("Subset cache hits");
+  public StatTimer supersetLookupTime = new StatTimer(StatKind.SUM, "Superset cache lookup time");
+  public StatCounter supersetCacheHits = new StatCounter("Superset cache hits");
 
   public StatInt constraintNumberBeforeAdj =
       new StatInt(StatKind.SUM, "Constraints before refinement in state");
@@ -95,6 +97,9 @@ public class ConstraintsStatistics implements Statistics {
         // Subset constraints solver cache
         .putIf(subsetLookupTime.getUpdateCount() > 0, subsetCacheHits)
         .putIf(subsetLookupTime.getUpdateCount() > 0, subsetLookupTime)
+        // Superset constraints solver cache
+        .putIf(supersetLookupTime.getUpdateCount() > 0, supersetCacheHits)
+        .putIf(supersetLookupTime.getUpdateCount() > 0, supersetLookupTime)
         .spacer() // Constraints state simplifier
         .putIf(trivialRemovalTime.getUpdateCount() > 0, removedTrivial)
         .putIf(trivialRemovalTime.getUpdateCount() > 0, trivialRemovalTime)
