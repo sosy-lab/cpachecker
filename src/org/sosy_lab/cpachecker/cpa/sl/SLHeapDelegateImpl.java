@@ -506,7 +506,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
       if (!env.isUnsat()) {
         List<ValueAssignment> assignments = env.getModelAssignments();
         for (ValueAssignment a : assignments) {
-          if (a.getKey().toString().equals(dummyVarName)) {
+          if (a.getName().equals(dummyVarName)) {
             return (BigInteger) a.getValue();
           }
         }
