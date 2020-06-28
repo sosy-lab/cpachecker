@@ -74,7 +74,10 @@ public class AbstractDistanceMetric {
       List<List<CFAEdge>> sp,
       List<ARGState> ce_states,
       List<ARGPath> pathsStates) {
-    // TODO: Make sure that the safe path list is not empty
+
+    // Make sure that the safe path list is not empty
+    assert sp.size() != 0;
+
     List<Integer> distances = new ArrayList<>();
     int weight_p = 1;
     int weight_unal = 2;
@@ -189,7 +192,7 @@ public class AbstractDistanceMetric {
   }
 
   /**
-   * TODO: Do I really need this as extra Function ?
+   * Calculate the Number of Unaligned States
    */
   private int getNumberOfUnalignedStates(List<List<CFAEdge>> alignments, List<CFAEdge> safePath) {
     return Math.abs((alignments.get(0).size() - safePath.size()));
@@ -273,8 +276,6 @@ public class AbstractDistanceMetric {
     List<CFAEdge> safePath_2 = new ArrayList<>();
 
     // TODO: Event - Klasse benutzen und 1 Methode fuer beide Klassen fuer ALignments haben ?
-    // TODO: Refactor wie beim anderen Metric
-
     // MAKING ALIGNMENTS
     for (int i = 0; i < ce_1.size(); i++) {
       for (int j = 0; j < safePath_1.size(); j++) {
@@ -284,10 +285,8 @@ public class AbstractDistanceMetric {
               .getNodeNumber()) {
             ce_2.add(ce_1.get(i));
             safePath_2.add(safePath_1.get(j));
-            // and delete them
-            ce_1.remove(i);
+            // remove the aligned Node
             safePath_1.remove(j);
-            i = i - 1;
             break;
           }
         }

@@ -41,6 +41,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 import javax.naming.ConfigurationException;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownManager;
@@ -89,7 +90,6 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
   private Path secondStepConfig;
 
 
-
   private Algorithm secondStepAlgorithm;
 
   private final ExplainerAlgorithmStatistics stats;
@@ -109,12 +109,10 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet)
       throws CPAException, InterruptedException {
-    //ln("Explainer Algorithm runs !!!");
 
     ForwardingReachedSet reached = (ForwardingReachedSet) reachedSet;
     Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> secondAlg = null;
     ReachedSet currentReached;
-
 
     try {
       ShutdownManager shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
@@ -123,10 +121,9 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
     } catch (IOException pE) {
 
     } catch (InvalidConfigurationException pE) {
-      } catch (InterruptedException pE) {
-      } catch (CPAException pE) {
-      }
-
+    } catch (InterruptedException pE) {
+    } catch (CPAException pE) {
+    }
 
 
     currentReached = secondAlg.getThird();
@@ -141,7 +138,6 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
       status = secondStepAlgorithm.run(currentReached);
       i++;
     }
-    //ln("NUMBER OF LOOPS: " + i);
     reached.setDelegate(currentReached);
 
     // All Targets
@@ -149,16 +145,10 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
         .transform(s -> AbstractStates.extractStateByType(s, ARGState.class))
         .filter(ARGState::isTarget)
         .toList();
-
-
     if (allTargets.isEmpty()) {
-      //ln("RESULT = TRUE, " + "NO TARGETS FOUND");
       return status;
     }
 
-    // Get the path to the Counterexample
-    //ARGState targetState = allTargets.get(0);
-    //ARGPath targetPath = ARGUtils.getOnePathTo(allTargets.get(0));
 
     FluentIterable<CounterexampleInfo> counterExamples =
         Optionals.presentInstances(
@@ -167,7 +157,6 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
                 .transform(ARGState::getCounterexampleInformation));
 
     ARGPath targetPath = counterExamples.get(0).getTargetPath();
-    //ARGPath targetPath = ARGUtils.getOnePathTo(allTargets.get(0));
 
 
     // Find All Safe Nodes
@@ -182,53 +171,53 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
         .transform(x -> AbstractStates.extractStateByType(x, ARGState.class))
         .filter(x -> x.getParents().isEmpty()).toList().get(0);
 
-    //ln(AbstractStates.extractStateByType(targetState, PredicateAbstractState.class).getPathFormula());
-
     Collection<ARGState> statesOnPathTo = null;
 
 
     List<ARGPath> safePaths = new ArrayList<>();
-    for (ARGState safeLeaf: safeLeafNodes) {
+    for (ARGState safeLeaf : safeLeafNodes) {
       statesOnPathTo = ARGUtils.getAllStatesOnPathsTo(safeLeaf);
       // path reconstruction
       safePaths = createPath(statesOnPathTo, rootNode);
     }
 
-    // HERE START **
 
     // TODO: I need this later
     ControlFLowDistanceMetric metric = new ControlFLowDistanceMetric();
-    List<CFAEdge> closestSuccessfulExecution;
+    List<CFAEdge> closestSuccessfulExecution = null;
     // TODO: Bring that back to life
-    /*try {
+    try {
       // Compare all paths with the CE
       closestSuccessfulExecution = metric.startDistanceMetric(safePaths, targetPath);
       // Generate the closest path to the CE with respect to the distance metric
-      closestSuccessfulExecution = metric.startPathGenerator(safePaths, targetPath);
-    } catch (SolverException pE) {}
+      //closestSuccessfulExecution = metric.startPathGenerator(safePaths, targetPath);
+    } catch (SolverException pE) {
+    }
 
-*/
+
+
     // create a SOLVER
     Solver solver;
     PredicateCPA cpa = null;
     try {
-      cpa = CPAs.retrieveCPAOrFail(secondAlg.getSecond(), PredicateCPA.class, ConfigurationException.class);
-    } catch (InvalidConfigurationException pE) {}
+      cpa = CPAs.retrieveCPAOrFail(secondAlg.getSecond(), PredicateCPA.class,
+          ConfigurationException.class);
+    } catch (InvalidConfigurationException pE) {
+    }
     solver = cpa.getSolver();
     BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
 
-    AbstractDistanceMetric metric2 = new AbstractDistanceMetric(bfmgr);
-    closestSuccessfulExecution = metric2.startDistanceMetric(safePaths, targetPath);
+    //AbstractDistanceMetric metric2 = new AbstractDistanceMetric(bfmgr);
+    //closestSuccessfulExecution = metric2.startDistanceMetric(safePaths, targetPath);
 
     if (closestSuccessfulExecution == null) {
-      //ln("EXECUTION COLLAPSED");
+      // EXECUTION COLLAPSED
+      logger.log(Level.INFO, "NO SUCCESSFUL EXECUTION WAS FOUND");
       return status;
     }
     ExplainTool.ExplainDeltas(targetPath.getFullPath(), closestSuccessfulExecution, logger);
     return status;
   }
-
-
 
 
   private List<ARGPath> createPath(Collection<ARGState> pStatesOnPathTo, ARGState root) {
@@ -242,10 +231,8 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
     for (int i = 0; i < pathNodes.size(); i++) {
       currentPathNumber++;
       finished = false;
-      currentNode = pathNodes.get(currentPathNumber).get(pathNodes.get(currentPathNumber).size() -1);
-      /*ln("--------------------- ");
-      ln(currentNode);
-      ln("");*/
+      currentNode =
+          pathNodes.get(currentPathNumber).get(pathNodes.get(currentPathNumber).size() - 1);
       while (!finished) {
         // FINISH THE CONSTRUCTION OF A WHOLE PATH
         List<ARGState> children = new ArrayList<>(currentNode.getChildren());
@@ -265,7 +252,6 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
         } else {
           ARGPath targetPath = new ARGPath(pathNodes.get(currentPathNumber));
           paths.add(targetPath);
-          //ln("This is my target now " + targetPath.toString());
           finished = true;
         }
 
@@ -274,9 +260,9 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
     return paths;
   }
 
-  private List<ARGState> filterChildren(List<ARGState> children, Collection<ARGState> safeNodes){
+  private List<ARGState> filterChildren(List<ARGState> children, Collection<ARGState> safeNodes) {
     List<ARGState> result = new ArrayList<>();
-    for (ARGState child: children) {
+    for (ARGState child : children) {
       if (safeNodes.contains(child)) {
         result.add(child);
       }
@@ -292,7 +278,6 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
       throws InvalidConfigurationException, CPAException, IOException, InterruptedException {
     AggregatedReachedSets aggregateReached;
     if (currentReached != null) {
-      //ln("NEW REACHEDSET");
       aggregateReached = new AggregatedReachedSets(Collections.singleton(currentReached));
     } else {
       aggregateReached = new AggregatedReachedSets();
