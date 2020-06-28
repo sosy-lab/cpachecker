@@ -287,7 +287,8 @@ final class EdgeDefUseData {
 
       CSimpleDeclaration declaration = pIastIdExpression.getDeclaration();
 
-      if (declaration instanceof CVariableDeclaration) {
+      if (declaration instanceof CVariableDeclaration
+          || declaration instanceof CParameterDeclaration) {
 
         MemoryLocation memLoc = MemoryLocation.valueOf(declaration.getQualifiedName());
         Set<MemoryLocation> set = (mode == Mode.USE ? uses : defs);
@@ -316,6 +317,11 @@ final class EdgeDefUseData {
 
     @Override
     public Void visit(CFunctionDeclaration pDecl) throws EdgeDefUseDataException {
+
+      for (CParameterDeclaration declaration : pDecl.getParameters()) {
+        declaration.accept(this);
+      }
+
       return null;
     }
 
@@ -402,6 +408,8 @@ final class EdgeDefUseData {
       for (CExpression expression : paramExpressions) {
         expression.accept(this);
       }
+
+      pIastFunctionCallStatement.getFunctionCallExpression().getDeclaration().accept(this);
 
       return null;
     }
