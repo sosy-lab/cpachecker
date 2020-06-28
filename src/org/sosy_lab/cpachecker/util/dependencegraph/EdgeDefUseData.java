@@ -61,9 +61,20 @@ final class EdgeDefUseData {
   private final ImmutableSet<MemoryLocation> defs;
   private final ImmutableSet<MemoryLocation> uses;
 
-  private EdgeDefUseData(ImmutableSet<MemoryLocation> pDefs, ImmutableSet<MemoryLocation> pUses) {
+  private final ImmutableSet<CExpression> unknownDefs;
+  private final ImmutableSet<CExpression> unknownUses;
+
+  private EdgeDefUseData(
+      ImmutableSet<MemoryLocation> pDefs,
+      ImmutableSet<MemoryLocation> pUses,
+      ImmutableSet<CExpression> pUnknownDefs,
+      ImmutableSet<CExpression> pUnknownUses) {
+
     defs = pDefs;
     uses = pUses;
+
+    unknownDefs = pUnknownDefs;
+    unknownUses = pUnknownUses;
   }
 
   public ImmutableSet<MemoryLocation> getDefs() {
@@ -74,9 +85,17 @@ final class EdgeDefUseData {
     return uses;
   }
 
-  public static EdgeDefUseData extract(CFAEdge edge) {
+  public ImmutableSet<CExpression> getUnknownDefs() {
+    return unknownDefs;
+  }
 
-    Optional<? extends AAstNode> optAstNode = edge.getRawAST().toJavaUtil();
+  public ImmutableSet<CExpression> getUnknownUses() {
+    return unknownUses;
+  }
+
+  public static EdgeDefUseData extract(CFAEdge pEdge) {
+
+    Optional<? extends AAstNode> optAstNode = pEdge.getRawAST().toJavaUtil();
 
     if (optAstNode.isPresent()) {
 
@@ -91,16 +110,23 @@ final class EdgeDefUseData {
         ImmutableSet<MemoryLocation> defs = ImmutableSet.copyOf(collector.defs);
         ImmutableSet<MemoryLocation> uses = ImmutableSet.copyOf(collector.uses);
 
-        return new EdgeDefUseData(defs, uses);
+        ImmutableSet<CExpression> unknownDefs = ImmutableSet.copyOf(collector.unknownDefs);
+        ImmutableSet<CExpression> unknownUses = ImmutableSet.copyOf(collector.unknownUses);
+
+        return new EdgeDefUseData(defs, uses, unknownDefs, unknownUses);
       }
     }
 
-    return new EdgeDefUseData(ImmutableSet.of(), ImmutableSet.of());
+    return new EdgeDefUseData(
+        ImmutableSet.of(), ImmutableSet.of(), ImmutableSet.of(), ImmutableSet.of());
   }
 
   @Override
   public String toString() {
-    return String.format("[defs: %s, uses: %s]", defs.toString(), uses.toString());
+
+    return String.format(
+        "[defs: %s, uses: %s, unknown-defs: %s, unknown-uses: %s]",
+        defs.toString(), uses.toString(), unknownDefs.toString(), unknownUses.toString());
   }
 
   private static final class EdgeDefUseDataException extends RuntimeException {
@@ -112,6 +138,9 @@ final class EdgeDefUseData {
     private final Set<MemoryLocation> defs;
     private final Set<MemoryLocation> uses;
 
+    private final Set<CExpression> unknownDefs;
+    private final Set<CExpression> unknownUses;
+
     private Mode mode;
 
     private Collector() {
@@ -120,6 +149,9 @@ final class EdgeDefUseData {
 
       defs = new HashSet<>();
       uses = new HashSet<>();
+
+      unknownDefs = new HashSet<>();
+      unknownUses = new HashSet<>();
     }
 
     @Override
@@ -301,7 +333,15 @@ final class EdgeDefUseData {
     @Override
     public Void visit(CPointerExpression pPointerExpression) throws EdgeDefUseDataException {
 
+      Mode prev = mode;
+
+      mode = Mode.USE;
       pPointerExpression.getOperand().accept(this);
+
+      mode = prev;
+
+      Set<CExpression> unknownSet = (mode == Mode.USE ? unknownUses : unknownDefs);
+      unknownSet.add(pPointerExpression);
 
       return null;
     }
