@@ -186,13 +186,13 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
     ControlFLowDistanceMetric metric = new ControlFLowDistanceMetric();
     List<CFAEdge> closestSuccessfulExecution = null;
     // TODO: Bring that back to life
-    try {
+    /*try {
       // Compare all paths with the CE
       closestSuccessfulExecution = metric.startDistanceMetric(safePaths, targetPath);
       // Generate the closest path to the CE with respect to the distance metric
       //closestSuccessfulExecution = metric.startPathGenerator(safePaths, targetPath);
     } catch (SolverException pE) {
-    }
+    }*/
 
 
 
@@ -207,8 +207,8 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
     solver = cpa.getSolver();
     BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
 
-    //AbstractDistanceMetric metric2 = new AbstractDistanceMetric(bfmgr);
-    //closestSuccessfulExecution = metric2.startDistanceMetric(safePaths, targetPath);
+    AbstractDistanceMetric metric2 = new AbstractDistanceMetric(bfmgr);
+    closestSuccessfulExecution = metric2.startDistanceMetric(safePaths, targetPath);
 
     if (closestSuccessfulExecution == null) {
       // EXECUTION COLLAPSED

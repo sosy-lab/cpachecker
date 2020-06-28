@@ -30,7 +30,6 @@ import org.sosy_lab.cpachecker.core.algorithm.CounterexampleStoreAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.InterleavedAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
@@ -44,6 +43,7 @@ import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorith
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.composition.CompositionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.explainer.Explainer;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
@@ -144,9 +144,11 @@ public class CoreComponentsFactory {
       description="Use McMillan's Impact algorithm for lazy interpolation")
   private boolean useImpactAlgorithm = false;
 
-  @Option(secure = true, name = "useInterleavedAnalyses",
-      description = "start different analyses interleaved and continue after unknown result")
-    private boolean useInterleavedAlgorithm = false;
+  @Option(
+    secure = true,
+    name = "useCompositionAnalysis",
+    description = "select an analysis from a set of analyses after unknown result")
+  private boolean useCompositionAlgorithm = false;
 
   @Option(secure = true, name = "useTestCaseGeneratorAlgorithm",
       description = "generate test cases for covered test targets")
@@ -376,9 +378,9 @@ public class CoreComponentsFactory {
     } else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
       algorithm = RestartAlgorithm.create(config, logger, shutdownNotifier, specification, cfa);
-    } else if (useInterleavedAlgorithm) {
-      logger.log(Level.INFO, "Using Interleaved Algorithm");
-      algorithm = new InterleavedAlgorithm(config, logger, shutdownNotifier, specification, cfa);
+    } else if (useCompositionAlgorithm) {
+      logger.log(Level.INFO, "Using Composition Algorithm");
+      algorithm = new CompositionAlgorithm(config, logger, shutdownNotifier, specification, cfa);
 
     } else if (useImpactAlgorithm) {
       algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
@@ -580,7 +582,7 @@ public class CoreComponentsFactory {
   public ReachedSet createReachedSet() {
     ReachedSet reached = reachedSetFactory.create();
 
-    if (useInterleavedAlgorithm
+    if (useCompositionAlgorithm
         || useRestartingAlgorithm
         || useHeuristicSelectionAlgorithm
         || useParallelAlgorithm
@@ -605,7 +607,7 @@ public class CoreComponentsFactory {
       throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
 
-    if (useInterleavedAlgorithm
+    if (useCompositionAlgorithm
         || useRestartingAlgorithm
         || useHeuristicSelectionAlgorithm
         || useParallelAlgorithm
