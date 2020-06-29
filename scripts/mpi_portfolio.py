@@ -90,9 +90,8 @@ class MPIMain:
         logger.setLevel(logging.INFO)
 
     def parse_input_args(self, argv):
-        # TODO: use argsparse for parsing input
+        # TODO: use argparse for parsing input
         try:
-            logger.debug("Input of user args: %s", str(argv))
             opts, args = getopt.getopt(argv, "di:w", ["input="])
         except getopt.GetoptError:
             logger.error(
@@ -116,26 +115,24 @@ class MPIMain:
             elif opt in ("-w"):
                 logger.setLevel(logging.WARNING)
 
+        logger.debug("Input of user args: %s", str(argv))
+
         self.main_node_network_config = self.input_args.get("network_settings")
         if self.main_node_network_config is not None:
-            aws_main_ip = os.environ.get("AWS_BATCH_JOB_MAIN_NODE_PRIVATE_IPV4_ADDRESS")
-            if (
-                aws_main_ip is not None
-                and self.main_node_network_config["main_node_ipv4_address"]
-                != aws_main_ip
-            ):
+            main_node_ip = self.main_node_network_config.get("main_node_ipv4_address")
+            logger.debug("main node ip address: %s", main_node_ip)
+
+            aws_env_ip = os.environ.get("AWS_BATCH_JOB_MAIN_NODE_PRIVATE_IPV4_ADDRESS")
+            if aws_env_ip is not None and aws_env_ip != main_node_ip:
                 # Two different ip addresses received for the main node
-                logger.critical("Inconsistent ip addresses for main node received.")
-                logger.debug(
-                    "aws_main_ip: '%s', main_node_network_...: '%s'",
-                    aws_main_ip,
-                    self.main_node_network_config["main_node_ipv4_address"],
-                )
-                sys.exit(2)
+                raise ValueError("Inconsistent ip addresses for main node received.")
 
             self.replace_escape_chars(self.main_node_network_config)
 
-        logger.debug(json.dumps(self.input_args, sort_keys=True, indent=4))
+        logger.debug(
+            "Printing the formatted input: \n%s)",
+            json.dumps(self.input_args, sort_keys=True, indent=4),
+        )
 
     def print_self_info(self):
         """Print an info about the proccesor name, the rank of the executed process, and
@@ -240,16 +237,16 @@ class MPIMain:
                             ),
                         ),
                     ]
-                    logger.warning("Command for scp: %s", scp_cmd)
+                    logger.debug("Command for scp: %s", scp_cmd)
                     scp_proc = subprocess.run(scp_cmd)
-                    logger.warning(
+                    logger.info(
                         "Process for copying the output back to the main node "
                         "completed with status code %d",
                         scp_proc.returncode,
                     )
 
             else:
-                logger.warning(
+                logger.debug(
                     "The current process is executed on the main node. The result "
                     "files are already in the correct place."
                 )
@@ -259,7 +256,7 @@ def main():
     mpi = MPIMain(sys.argv[1:])
     mpi.print_self_info()
     if len(mpi.input_args) == 0:
-        logger.warning("No input received. Aborting with status code 0")
+        logger.warning("No input received. Exiting with status code 0")
         sys.exit(0)
 
     mpi.prepare_cmdline()
@@ -267,7 +264,7 @@ def main():
         mpi.execute_verifier()
         mpi.push_results_to_master()
     else:
-        logger.warning("Nothing to run. Exiting with status 0")
+        logger.warning("Nothing to run. Exiting with status code 0")
     sys.exit(0)
 
 
