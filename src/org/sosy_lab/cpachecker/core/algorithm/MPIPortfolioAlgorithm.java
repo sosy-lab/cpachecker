@@ -389,7 +389,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
         logger.log(Level.INFO, Joiner.on("\n\n").join(subanalysisLog));
 
         logger.log(Level.WARNING, "-------------------- END SUBANALYSIS LOG --------------------");
-        return AlgorithmStatus.SOUND_AND_IMPRECISE;
+        return AlgorithmStatus.SOUND_AND_PRECISE;
       }
 
     } catch (IOException e) {
