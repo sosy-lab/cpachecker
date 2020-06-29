@@ -191,8 +191,7 @@ public class SLVisitor implements CAstNodeVisitor<SLStateError, Exception> {
   @Override
   public SLStateError visit(CStringLiteralExpression pIastStringLiteralExpression)
       throws Exception {
-    throw new UnsupportedOperationException(
-        CStringLiteralExpression.class.getSimpleName() + "is not implemented yet.");
+    return null;
   }
 
   @Override
