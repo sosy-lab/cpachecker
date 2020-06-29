@@ -171,12 +171,13 @@ public class CPAcheckerResult {
         return Optional.of(new CPAcheckerResult(Result.TRUE));
       } else if (property.startsWith("FALSE. Property violation")) {
         if (property.contains("(")) {
-          // TODO: add violationPropertyDescription if there is one
-          return Optional.of(new CPAcheckerResult(Result.FALSE, ""));
+          String propertyDesc =
+              property.substring(property.indexOf("(") + 1, property.indexOf(")"));
+          return Optional.of(new CPAcheckerResult(Result.FALSE, propertyDesc));
         }
         return Optional.of(new CPAcheckerResult(Result.FALSE));
       } else {
-        verify(pResult.equals("UNKNOWN, incomplete analysis."));
+        verify(property.equals("UNKNOWN, incomplete analysis."));
         return Optional.of(new CPAcheckerResult(Result.UNKNOWN));
       }
     }
