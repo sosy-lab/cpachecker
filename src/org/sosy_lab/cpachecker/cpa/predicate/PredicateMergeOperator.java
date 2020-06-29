@@ -33,12 +33,19 @@ public class PredicateMergeOperator implements MergeOperator {
   private final PredicateStatistics statistics;
   private final TimerWrapper totalMergeTimer;
 
+  private boolean mergeAbstractionStates;
+
   public PredicateMergeOperator(
-      LogManager pLogger, PathFormulaManager pPfmgr, PredicateStatistics pStatistics) {
+      LogManager pLogger,
+      PathFormulaManager pPfmgr,
+      PredicateStatistics pStatistics,
+      boolean pMergeAbstractionStates) {
     logger = pLogger;
     formulaManager = pPfmgr;
     statistics = pStatistics;
     totalMergeTimer = statistics.totalMergeTime.getNewTimer();
+
+    mergeAbstractionStates = pMergeAbstractionStates;
   }
 
   @Override
@@ -51,6 +58,13 @@ public class PredicateMergeOperator implements MergeOperator {
     // this will be the merged element
     PredicateAbstractState merged;
 
+    if (mergeAbstractionStates) {
+      logger.log(
+          Level.WARNING,
+          "Merging two abstractions states with the same abstraction predecessor is still under development:"
+              + "Rolling back to the original merge.");
+      mergeAbstractionStates = false;
+    }
     if (elem1.isAbstractionState() || elem2.isAbstractionState()) {
       // we don't merge if this is an abstraction location
       merged = elem2;

@@ -2227,6 +2227,10 @@ cpa.predicate.memoryFreeFunctionName = "free"
 cpa.predicate.merge = "ABE"
   allowed values: [SEP, ABE]
 
+# merge two abstraction states if their preceeding abstraction states are the
+# same
+cpa.predicate.merge.mergeAbstractionStatesWithSamePredecessor = false
+
 # Set of functions that should be considered as giving a non-deterministic
 # return value. If you specify this option, the default values are not added
 # automatically to the list, so you need to specify them explicitly if you
