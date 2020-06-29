@@ -61,20 +61,20 @@ final class EdgeDefUseData {
   private final ImmutableSet<MemoryLocation> defs;
   private final ImmutableSet<MemoryLocation> uses;
 
-  private final ImmutableSet<CExpression> unknownDefs;
-  private final ImmutableSet<CExpression> unknownUses;
+  private final ImmutableSet<CExpression> pointeeDefs;
+  private final ImmutableSet<CExpression> pointeeUses;
 
   private EdgeDefUseData(
       ImmutableSet<MemoryLocation> pDefs,
       ImmutableSet<MemoryLocation> pUses,
-      ImmutableSet<CExpression> pUnknownDefs,
-      ImmutableSet<CExpression> pUnknownUses) {
+      ImmutableSet<CExpression> pPointeeDefs,
+      ImmutableSet<CExpression> pPointeeUses) {
 
     defs = pDefs;
     uses = pUses;
 
-    unknownDefs = pUnknownDefs;
-    unknownUses = pUnknownUses;
+    pointeeDefs = pPointeeDefs;
+    pointeeUses = pPointeeUses;
   }
 
   public ImmutableSet<MemoryLocation> getDefs() {
@@ -85,12 +85,12 @@ final class EdgeDefUseData {
     return uses;
   }
 
-  public ImmutableSet<CExpression> getUnknownDefs() {
-    return unknownDefs;
+  public ImmutableSet<CExpression> getPointeeDefs() {
+    return pointeeDefs;
   }
 
-  public ImmutableSet<CExpression> getUnknownUses() {
-    return unknownUses;
+  public ImmutableSet<CExpression> getPointeeUses() {
+    return pointeeUses;
   }
 
   public static EdgeDefUseData extract(CFAEdge pEdge) {
@@ -110,10 +110,10 @@ final class EdgeDefUseData {
         ImmutableSet<MemoryLocation> defs = ImmutableSet.copyOf(collector.defs);
         ImmutableSet<MemoryLocation> uses = ImmutableSet.copyOf(collector.uses);
 
-        ImmutableSet<CExpression> unknownDefs = ImmutableSet.copyOf(collector.unknownDefs);
-        ImmutableSet<CExpression> unknownUses = ImmutableSet.copyOf(collector.unknownUses);
+        ImmutableSet<CExpression> pointeeDefs = ImmutableSet.copyOf(collector.pointeeDefs);
+        ImmutableSet<CExpression> pointeeUses = ImmutableSet.copyOf(collector.pointeeUses);
 
-        return new EdgeDefUseData(defs, uses, unknownDefs, unknownUses);
+        return new EdgeDefUseData(defs, uses, pointeeDefs, pointeeUses);
       }
     }
 
@@ -125,8 +125,8 @@ final class EdgeDefUseData {
   public String toString() {
 
     return String.format(
-        "[defs: %s, uses: %s, unknown-defs: %s, unknown-uses: %s]",
-        defs.toString(), uses.toString(), unknownDefs.toString(), unknownUses.toString());
+        "[defs: %s, uses: %s, pointee-defs: %s, pointee-uses: %s]",
+        defs.toString(), uses.toString(), pointeeDefs.toString(), pointeeUses.toString());
   }
 
   private static final class EdgeDefUseDataException extends RuntimeException {
@@ -138,8 +138,8 @@ final class EdgeDefUseData {
     private final Set<MemoryLocation> defs;
     private final Set<MemoryLocation> uses;
 
-    private final Set<CExpression> unknownDefs;
-    private final Set<CExpression> unknownUses;
+    private final Set<CExpression> pointeeDefs;
+    private final Set<CExpression> pointeeUses;
 
     private Mode mode;
 
@@ -150,8 +150,8 @@ final class EdgeDefUseData {
       defs = new HashSet<>();
       uses = new HashSet<>();
 
-      unknownDefs = new HashSet<>();
-      unknownUses = new HashSet<>();
+      pointeeDefs = new HashSet<>();
+      pointeeUses = new HashSet<>();
     }
 
     @Override
@@ -340,8 +340,8 @@ final class EdgeDefUseData {
 
       mode = prev;
 
-      Set<CExpression> unknownSet = (mode == Mode.USE ? unknownUses : unknownDefs);
-      unknownSet.add(pPointerExpression);
+      Set<CExpression> pointeeSet = (mode == Mode.USE ? pointeeUses : pointeeDefs);
+      pointeeSet.add(pPointerExpression);
 
       return null;
     }
