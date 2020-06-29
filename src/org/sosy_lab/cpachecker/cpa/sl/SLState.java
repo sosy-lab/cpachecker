@@ -61,6 +61,7 @@ public class SLState implements AbstractState, Targetable, AbstractQueryableStat
   private final Map<Formula, BigInteger> allocationSizes;
   private final Set<CSimpleDeclaration> inScopePtrs;
   private final Set<CVariableDeclaration> declarations;
+  private final Map<String, Set<Formula>> allocas;
 
   private final Set<SLStateError> errors = new HashSet<>();
 
@@ -72,6 +73,7 @@ public class SLState implements AbstractState, Targetable, AbstractQueryableStat
       Map<Formula, BigInteger> pAllocationSizes,
       Set<CSimpleDeclaration> pInScopePtrs,
       Set<CVariableDeclaration> pDeclarations,
+      Map<String, Set<Formula>> pAllocas,
       SLStateError pError) {
     pathFormula = pPathFormula;
     heap = pHeap;
@@ -79,6 +81,7 @@ public class SLState implements AbstractState, Targetable, AbstractQueryableStat
     allocationSizes = pAllocationSizes;
     inScopePtrs = pInScopePtrs;
     declarations = pDeclarations;
+    allocas = pAllocas;
     if (pError != null) {
       errors.add(pError);
     }
@@ -93,6 +96,7 @@ public class SLState implements AbstractState, Targetable, AbstractQueryableStat
         new HashMap<>(),
         new HashSet<>(),
         new HashSet<>(),
+        new HashMap<>(),
         null);
   }
 
@@ -179,6 +183,7 @@ public class SLState implements AbstractState, Targetable, AbstractQueryableStat
             new HashMap<>(allocationSizes),
             new HashSet<>(inScopePtrs),
             new HashSet<>(declarations),
+            new HashMap<>(allocas),
         null);
     return s;
   }
@@ -195,6 +200,10 @@ public class SLState implements AbstractState, Targetable, AbstractQueryableStat
     return inScopePtrs;
   }
 
+  public Map<String, Set<Formula>> getAllocas() {
+    return allocas;
+  }
+
   public void addInScopePtr(CSimpleDeclaration pPtr) {
     inScopePtrs.add(pPtr);
   }
@@ -205,5 +214,13 @@ public class SLState implements AbstractState, Targetable, AbstractQueryableStat
 
   public void setPathFormula(PathFormula pFormula) {
     pathFormula = pFormula;
+  }
+
+  public void addAlloca(Formula pLoc, String pCaller) {
+    if (!allocas.containsKey(pCaller)) {
+      allocas.put(pCaller, new HashSet<>());
+    }
+    allocas.get(pCaller).add(pLoc);
+
   }
 }

@@ -20,7 +20,7 @@
 package org.sosy_lab.cpachecker.cpa.sl;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -82,7 +82,9 @@ public interface SLHeapDelegate {
    * @param pMemoryLocation - CExpression representing the memory location.
    * @param pSize - size of memory range in bytes.
    */
-  public void handleAlloca(CIdExpression pMemoryLocation, CExpression pSize) throws Exception;
+  public void
+      handleAlloca(CFunctionCallExpression pMemoryLocation, CExpression pSize)
+      throws Exception;
 
   /**
    * Checks if memory leaks occur caused by out of scope variable.
@@ -115,10 +117,11 @@ public interface SLHeapDelegate {
       handleDereferenceAssignment(CExpression pLHS, CExpression pOffset, CRightHandSide pRHS)
           throws Exception;
 
-  public void setContext(SLState pState, CFAEdge pEdge);
+  public void handleFunctionReturn(String pCallee);
+
+  public void setContext(SLState pState, CFAEdge pEdge, String pFunctionScope);
 
   public void clearContext();
 
   public PathFormula getPathFormula();
-
 }

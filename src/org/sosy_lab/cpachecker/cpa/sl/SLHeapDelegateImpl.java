@@ -23,6 +23,7 @@ import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
@@ -80,6 +81,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
   private SLState state;
   private PathFormula predPathFormula;
   private CFAEdge edge;
+  private String functionName;
 
   private final BitvectorType heapAddressFormulaType;
   private final BitvectorType heapValueFormulaType;
@@ -150,10 +152,13 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
   }
 
   @Override
-  public void handleAlloca(CIdExpression pMemoryLocation, CExpression pSize) throws Exception {
-    Formula loc = getFormulaForExpression(createSymbolicLocation(pMemoryLocation), false);
+  public void
+      handleAlloca(CFunctionCallExpression pMemoryLocation, CExpression pSize)
+      throws Exception {
+    Formula loc = getFormulaForExpression(pMemoryLocation, true);
     BigInteger size = getValueForCExpression(pSize, true);
     addToMemory(state.getStack(), loc, size);
+    state.addAlloca(loc, functionName);
   }
 
   @Override
@@ -492,6 +497,16 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     updateSSAMap(b.setIndex(name, type, index).build());
   }
 
+  private void releaseAllocas(String pCallee) {
+    Map<String, Set<Formula>> allocas = state.getAllocas();
+    if (allocas.containsKey(pCallee)) {
+      for (Formula alloca : allocas.get(pCallee)) {
+        removeFromMemory(state.getStack(), alloca);
+      }
+    }
+
+  }
+
   @Override
   public BigInteger getValueForCExpression(CExpression pExp, boolean usePredContext)
       throws Exception {
@@ -535,7 +550,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
   }
 
   @Override
-  public Formula getFormulaForExpression(CExpression pExp, boolean usePredContext)
+  public Formula getFormulaForExpression(CRightHandSide pExp, boolean usePredContext)
       throws UnrecognizedCodeException {
     PathFormula context = usePredContext ? getPredPathFormula() : state.getPathFormula();
     return pfm.expressionToFormula(context, pExp, edge);
@@ -558,10 +573,11 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
   }
 
   @Override
-  public void setContext(SLState pState, CFAEdge pEdge) {
+  public void setContext(SLState pState, CFAEdge pEdge, String pFunctionName) {
     state = pState;
     edge = pEdge;
     predPathFormula = state.getPathFormula();
+    functionName = pFunctionName;
     try {
       PathFormula pathFormula = pfm.makeAnd(getPredPathFormula(), pEdge);
       state.setPathFormula(pathFormula);
@@ -575,6 +591,11 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     state = null;
     predPathFormula = null;
     edge = null;
+    functionName = null;
+  }
 
+  @Override
+  public void handleFunctionReturn(String pCallee) {
+    releaseAllocas(pCallee);
   }
 }

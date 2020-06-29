@@ -149,7 +149,7 @@ public class SLVisitor implements CAstNodeVisitor<SLStateError, Exception> {
         return heapDelegate.handleFree(params.get(0));
 
       case ALLOCA:
-        heapDelegate.handleAlloca((CIdExpression) curLHS, params.get(0));
+        heapDelegate.handleAlloca(pIastFunctionCallExpression, params.get(0));
         break;
       default:
         break;

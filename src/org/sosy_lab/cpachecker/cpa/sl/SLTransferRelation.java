@@ -30,6 +30,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
@@ -77,7 +78,7 @@ public class SLTransferRelation
       setInfo(AbstractState pAbstractState, Precision pAbstractPrecision, CFAEdge pCfaEdge) {
     super.setInfo(pAbstractState, pAbstractPrecision, pCfaEdge);
     state = state.copyWithoutErrors();
-    memDel.setContext(state, pCfaEdge);
+    memDel.setContext(state, pCfaEdge, functionName);
   }
 
   @Override
@@ -156,8 +157,9 @@ public class SLTransferRelation
       CFunctionCall pSummaryExpr,
       String pCallerFunctionName)
       throws CPATransferException {
-    // TODO Auto-generated method stub. Not yet implemented.
-    // return super.handleFunctionReturnEdge(pCfaEdge, pFnkCall, pSummaryExpr, pCallerFunctionName);
+    CIdExpression idExp = (CIdExpression) pSummaryExpr.getFunctionCallExpression().getFunctionNameExpression();
+    String callee = idExp.getName();
+    memDel.handleFunctionReturn(callee);
     return Collections
         .singleton(state);
   }
