@@ -159,18 +159,20 @@ class MPIMain:
                 "Starting new CPAchecker instance performing the analysis: %s",
                 self.analysis_param[ANALYSIS],
             )
-            logger.info("Executing cmd: %s", cmdline)
-            # Redirect all output from the errorstream in the child CPAchecker
-            # instances, such that the output log stays consistent
+
             if not os.path.exists(self.analysis_param[OUTPUT_PATH]):
                 os.makedirs(self.analysis_param[OUTPUT_PATH])
 
-            outputfile = open(self.analysis_param[LOGFILE], "w+")
-            process = subprocess.run(
-                cmdline, stdout=outputfile, stderr=subprocess.STDOUT,
-            )
-            outputfile.close()
-            logger.warning("Process returned with status code %d", process.returncode)
+            logger.info("Executing cmd: %s", cmdline)
+            with open(self.analysis_param[LOGFILE], "w+") as outputfile:
+                # Redirect all output from the errorstream to stdout, such that the
+                # output log stays consistent in the child CPAchecker instances
+                process = subprocess.run(
+                    cmdline, stdout=outputfile, stderr=subprocess.STDOUT,
+                )
+                logger.warning(
+                    "Process returned with status code %d", process.returncode,
+                )
 
     def prepare_cmdline(self):
         logger.info("Running analysis with number: %d", self.rank)
