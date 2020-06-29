@@ -23,9 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.explainer;
 
-// TODO: NEW CLASS FOR THAT ?
-//import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
-
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
@@ -183,17 +180,17 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
 
 
     // TODO: I need this later
-    ControlFLowDistanceMetric metric = new ControlFLowDistanceMetric();
+    ControlFLowDistanceMetric metric =
+        new ControlFLowDistanceMetric(new DistanceCalculationHelper());
     List<CFAEdge> closestSuccessfulExecution = null;
     // TODO: Bring that back to life
     /*try {
       // Compare all paths with the CE
-      closestSuccessfulExecution = metric.startDistanceMetric(safePaths, targetPath);
+      //closestSuccessfulExecution = metric.startDistanceMetric(safePaths, targetPath);
       // Generate the closest path to the CE with respect to the distance metric
       //closestSuccessfulExecution = metric.startPathGenerator(safePaths, targetPath);
     } catch (SolverException pE) {
     }*/
-
 
 
     // create a SOLVER
@@ -207,7 +204,8 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
     solver = cpa.getSolver();
     BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
 
-    AbstractDistanceMetric metric2 = new AbstractDistanceMetric(bfmgr);
+    AbstractDistanceMetric metric2 =
+        new AbstractDistanceMetric(bfmgr, new DistanceCalculationHelper(bfmgr));
     closestSuccessfulExecution = metric2.startDistanceMetric(safePaths, targetPath);
 
     if (closestSuccessfulExecution == null) {
@@ -335,11 +333,3 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
   }
 
 }
-// #######################################################################################################################################
-// #######################################################################################################################################
-// #######################################################################################################################################
-// #######################################################################################################################################
-// #######################################################################################################################################
-// #######################################################################################################################################
-// #######################################################################################################################################
-// #######################################################################################################################################

@@ -61,6 +61,11 @@ public class ExplainTool {
       logger.log(Level.INFO,deltas_sp.get(i).getLineNumber() + ": " + deltas_sp.get(i).getDescription());
     }
 
+    /*logger.log(Level.INFO, "------------------------------------------------------------------------------");
+    for (CFAEdge edge : closestExecution) {
+      logger.log(Level.INFO, edge);
+    }*/
+
 
 
   }

@@ -41,21 +41,24 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class AbstractDistanceMetric {
 
-  private BooleanFormulaManagerView bfmgr;
+  //private BooleanFormulaManagerView bfmgr;
+  private DistanceCalculationHelper distanceHelper;
 
-  public AbstractDistanceMetric(BooleanFormulaManagerView pBfmgr) {
-    this.bfmgr = pBfmgr;
+  // TODO: Remove bfmgr
+  public AbstractDistanceMetric(BooleanFormulaManagerView pBfmgr, DistanceCalculationHelper pDistanceCalculationHelper) {
+    //this.bfmgr = pBfmgr;
+    this.distanceHelper = pDistanceCalculationHelper;
   }
 
   /**
    * Start Method
    */
   public List<CFAEdge> startDistanceMetric(List<ARGPath> safePaths, ARGPath counterexample) {
-    List<CFAEdge> ce = cleanPath(counterexample);
+    List<CFAEdge> ce = distanceHelper.cleanPath(counterexample);
     List<List<CFAEdge>> paths = new ArrayList<>();
     // clean the paths from useless Statements
     for (int i = 0; i < safePaths.size(); i++) {
-      paths.add(cleanPath(safePaths.get(i)));
+      paths.add(distanceHelper.cleanPath(safePaths.get(i)));
     }
 
     List<CFAEdge> closestSuccessfulExecution =
@@ -111,7 +114,8 @@ public class AbstractDistanceMetric {
     }
 
     // Make sure that distances is not empty
-    assert distances.size() != 0;
+    // TODO: This assert doesn't work - Ask Thomas
+    assert distances.size() > 0;
 
     int index = 0;
     int min_dist = distances.get(0);
@@ -125,7 +129,7 @@ public class AbstractDistanceMetric {
     return sp.get(index);
   }
 
-  private Set<BooleanFormula> splitPredicates(BooleanFormula form) {
+  /*private Set<BooleanFormula> splitPredicates(BooleanFormula form) {
     BooleanFormula current;
     Set<BooleanFormula> result = new HashSet<>();
     Set<BooleanFormula> modulo = new HashSet<>();
@@ -189,7 +193,7 @@ public class AbstractDistanceMetric {
     }
 
     return false;
-  }
+  }*/
 
   /**
    * Calculate the Number of Unaligned States
@@ -244,10 +248,10 @@ public class AbstractDistanceMetric {
 
     // THE alignments List has only 2 Lists with the same size
     for (int j = 0; j < stateAlignments.get(0).size(); j++) {
-      Set<BooleanFormula> pred_a = splitPredicates(AbstractStates
+      Set<BooleanFormula> pred_a = distanceHelper.splitPredicates(AbstractStates
           .extractStateByType(stateAlignments.get(0).get(j), PredicateAbstractState.class)
           .getAbstractionFormula().asFormula());
-      Set<BooleanFormula> pred_b = splitPredicates(AbstractStates
+      Set<BooleanFormula> pred_b = distanceHelper.splitPredicates(AbstractStates
           .extractStateByType(stateAlignments.get(1).get(j), PredicateAbstractState.class)
           .getAbstractionFormula().asFormula());
 
@@ -269,7 +273,6 @@ public class AbstractDistanceMetric {
    * Create Alignments between CE and Safe Path
    */
   private List<List<CFAEdge>> createAlignments(List<CFAEdge> ce, List<CFAEdge> safePath) {
-    // TODO: What about Loops ?
     List<CFAEdge> ce_1 = new ArrayList<>(ce);
     List<CFAEdge> safePath_1 = new ArrayList<>(safePath);
     List<CFAEdge> ce_2 = new ArrayList<>();
@@ -306,7 +309,7 @@ public class AbstractDistanceMetric {
    * Filter the path to stop at the __Verifier__assert Node
    *
    * @return the new - clean of useless nodes - Path
-   */
+   *//*
   private List<CFAEdge> cleanPath(ARGPath path) {
     List<CFAEdge> flow = path.getFullPath();
     List<CFAEdge> clean_flow = new ArrayList<>();
@@ -324,6 +327,6 @@ public class AbstractDistanceMetric {
       clean_flow.add(flow.get(i));
     }
     return clean_flow;
-  }
+  }*/
 
 }

@@ -38,16 +38,19 @@ import java.util.Set;
 
 public class ControlFLowDistanceMetric {
 
-  public ControlFLowDistanceMetric() {
+  private DistanceCalculationHelper distanceHelper;
+
+  public ControlFLowDistanceMetric(DistanceCalculationHelper pDistanceCalculationHelper) {
+    this.distanceHelper = pDistanceCalculationHelper;
   }
 
   List<CFAEdge> startDistanceMetric(List<ARGPath> safePaths, ARGPath counterexample)
       throws SolverException, InterruptedException {
-    List<CFAEdge> ce = cleanPath(counterexample);
+    List<CFAEdge> ce = distanceHelper.cleanPath(counterexample);
     // find all Branches in Counterexample
     List<CFAEdge> branches_ce = findBranches(ce);
     // compare all the paths with their distance
-    List<CFAEdge> closest_suc_path = comparePaths(branches_ce, convertPathsToEdges(safePaths));
+    List<CFAEdge> closest_suc_path = comparePaths(branches_ce, distanceHelper.convertPathsToEdges(safePaths));
     return closest_suc_path;
   }
 
@@ -60,7 +63,7 @@ public class ControlFLowDistanceMetric {
    */
   List<CFAEdge> startPathGenerator(List<ARGPath> safePaths, ARGPath counterexample)
       throws SolverException, InterruptedException {
-    List<CFAEdge> ce = cleanPath(counterexample);
+    List<CFAEdge> ce = distanceHelper.cleanPath(counterexample);
     // find all Branches in Counterexample
     List<CFAEdge> branches_ce = findBranches(ce);
     // auto path generator
@@ -71,7 +74,7 @@ public class ControlFLowDistanceMetric {
     if (suc_path_generated == null) {
       final_generated_path = null;
     } else if (suc_path_generated.isEmpty()) {
-      return comparePaths(branches_ce, convertPathsToEdges(safePaths));
+      return comparePaths(branches_ce, distanceHelper.convertPathsToEdges(safePaths));
     } else if (suc_path_generated.size() == 1) {
       final_generated_path = suc_path_generated.get(0);
     } else if (suc_path_generated.size() > 1) {
@@ -92,13 +95,12 @@ public class ControlFLowDistanceMetric {
     List<List<CFAEdge>> safe_path_branches_list = new ArrayList<>();
 
     if (safePaths.isEmpty()) {
-      //ln("THERE ARE NO SAFE PATHS");
       return null;
     }
 
     // find all branches in safe paths
     for (int i = 0; i < safePaths.size(); i++) {
-      safe_path_branches_list.add(findBranches(cleanPath(safePaths.get(i))));
+      safe_path_branches_list.add(findBranches(distanceHelper.cleanPath(safePaths.get(i))));
     }
 
     // create Events for the counterexample
@@ -222,6 +224,7 @@ public class ControlFLowDistanceMetric {
     List<Event> pEvents1 = new ArrayList<>();
 
     // TODO: LinkedList guengstiger ?
+    //  This alignment is slightly different from the other one
     // 1 - Set mit allen aligned Events -> set.containes ?
     // Oder Event.aligned boolean ?
     // MAKING ALIGNMENTS
@@ -344,18 +347,6 @@ public class ControlFLowDistanceMetric {
       currentPath = paths.get(i);
       edge_now = currentPath.get(currentPath.size() - 1);
 
-      /*Set<CFANode> visited = new HashSet<>();
-      Deque<CFAEdge> waitlist = new ArrayDeque<>();
-      waitlist.add(current.getLast());
-      while (!waitlist.isEmpty()) {
-        CFAEdge edge_now = waitlist.pop();
-        if (visited.contains(edge_now)) {
-          continue;
-        }   // do what you do
-        // ...
-        visited.add(edge_now);
-      }*/
-
       Set<CFANode> visited = new HashSet<>();
       Deque<CFAEdge> waitList = new ArrayDeque<>();
       waitList.add(edge_now);
@@ -378,24 +369,6 @@ public class ControlFLowDistanceMetric {
         visited.add(successor);
       }
     }
-
-
-      /*while (!finish) {
-        CFANode successor = edge_now.getSuccessor();
-        if (successor.getNumLeavingEdges() == 1) {
-          currentPath.add(successor.getLeavingEdge(0));
-          edge_now = successor.getLeavingEdge(0);
-        } else if (successor.getNumLeavingEdges() == 2) {
-          List<CFAEdge> extra = new ArrayList<>(currentPath);
-          extra.add(successor.getLeavingEdge(1));
-          paths.add(extra);
-          currentPath.add(successor.getLeavingEdge(0));
-          edge_now = successor.getLeavingEdge(0);
-        } else if (successor.getNumLeavingEdges() == 0) {
-          finish = true;
-        }
-      }
-    }*/
 
     List<List<CFAEdge>> final_list = new ArrayList<>();
     for (int i = 0; i < paths.size(); i++) {
@@ -423,7 +396,7 @@ public class ControlFLowDistanceMetric {
    * Filter the path to stop at the __Verifier__assert Node
    *
    * @return the new - clean of useless nodes - Path
-   */
+   *//*
   private List<CFAEdge> cleanPath(ARGPath path) {
     List<CFAEdge> flow = path.getFullPath();
     List<CFAEdge> clean_flow = new ArrayList<>();
@@ -441,13 +414,13 @@ public class ControlFLowDistanceMetric {
       clean_flow.add(flow.get(i));
     }
     return clean_flow;
-  }
+  }*/
 
   /**
    * Filter the path to stop at the __Verifier__assert Node
    *
    * @return the new - clean of useless nodes - Path
-   */
+   *//*
   private List<CFAEdge> cleanPath(List<CFAEdge> path) {
     List<CFAEdge> flow = path;
     List<CFAEdge> clean_flow = new ArrayList<>();
@@ -465,16 +438,16 @@ public class ControlFLowDistanceMetric {
       clean_flow.add(flow.get(i));
     }
     return clean_flow;
-  }
+  }*/
 
   /**
    * Convert a list of ARGPaths to a List<List<CFAEdges>>
-   */
+   *//*
   private List<List<CFAEdge>> convertPathsToEdges(List<ARGPath> paths) {
     List<List<CFAEdge>> result = new ArrayList<>();
     for (int i = 0; i < paths.size(); i++) {
       result.add(paths.get(i).getFullPath());
     }
     return result;
-  }
+  }*/
 }
