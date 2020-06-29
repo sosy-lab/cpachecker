@@ -1490,7 +1490,7 @@ public class CtoFormulaConverter {
    */
   public final Formula buildTermFromPathFormula(
       PathFormula pFormula,
-      CExpression expr,
+      CRightHandSide expr,
       CFAEdge edge)
       throws UnrecognizedCodeException {
 

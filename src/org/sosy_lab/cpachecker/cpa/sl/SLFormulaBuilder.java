@@ -21,6 +21,7 @@ package org.sosy_lab.cpachecker.cpa.sl;
 
 import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
@@ -65,7 +66,8 @@ public interface SLFormulaBuilder {
    *        (e.g. RHS).
    * @return Formula - the formula representing the given @Expression.
    */
-  public Formula getFormulaForExpression(CExpression pExp, boolean usePredContext) throws Exception;
+  public Formula getFormulaForExpression(CRightHandSide pExp, boolean usePredContext)
+      throws Exception;
 
   PathFormula getPathFormula();
 
