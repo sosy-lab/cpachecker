@@ -206,22 +206,25 @@ class MPIMain:
                 "already in their correct location."
             )
         else:
-            # Get the local ip adress and compare it with the address from the main node
+            # Compare the local ip adress with the main node ip.
             # If they differ, create an ssh-connection and push all result files to the
-            # main node. Otherwise, do nothing.
-            hostname = socket.gethostname()
-            local_ip_address = socket.gethostbyname(hostname)
+            # main node. Otherwise, the process is already executed on the main node, so
+            # the result files are already in the correct place.
+            main_node_ip_address = self.main_node_network_config.get(
+                "main_node_ipv4_address"
+            )
+            local_ip_address = socket.gethostbyname(os.environ.get("USER"))
+            logger.debug("Local ip address: %s ", local_ip_address)
             if (
-                local_ip_address
-                != self.main_node_network_config["main_node_ipv4_address"]
+                main_node_ip_address is not None
+                and main_node_ip_address != local_ip_address
             ):
                 output = os.path.abspath(self.analysis_param[OUTPUT_PATH])
                 if not os.path.exists(output):
                     logger.warning(
                         "Found no output that can be copied to the main node"
-                        "Exiting with code 0."
+                        "Skipping this step."
                     )
-                    sys.exit(0)
                 else:
                     logger.info("Copying result files via scp to the main-node")
                     scp_cmd = [
@@ -230,7 +233,7 @@ class MPIMain:
                         output,
                         "{}@{}:{}".format(
                             self.main_node_network_config["user_name_main_node"],
-                            self.main_node_network_config["main_node_ipv4_address"],
+                            main_node_ip_address,
                             os.path.join(
                                 self.main_node_network_config[
                                     "project_location_main_node"
