@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
+import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -37,9 +38,7 @@ final class SimplePointerAnalysis {
     List<CFAEdge> edges = new ArrayList<>();
 
     for (CFANode node : pCfa.getAllNodes()) {
-      for (CFAEdge edge : CFAUtils.leavingEdges(node)) {
-        edges.add(edge);
-      }
+      Iterables.addAll(edges, CFAUtils.leavingEdges(node));
     }
 
     return edges;
