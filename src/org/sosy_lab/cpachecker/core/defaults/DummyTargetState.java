@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.core.defaults;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Partitionable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 
@@ -20,7 +22,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
  * reachable states, but need to have a target state in the resulting reached set in order to signal
  * a found property violation.
  */
-public final class DummyTargetState implements AbstractState, Targetable {
+public final class DummyTargetState implements AbstractState, Targetable, Partitionable {
 
   private final ImmutableSet<Property> properties;
 
@@ -45,6 +47,24 @@ public final class DummyTargetState implements AbstractState, Targetable {
   }
 
   @Override
+  public int hashCode() {
+    return properties.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (!(obj instanceof DummyTargetState)) {
+      return false;
+    }
+
+    DummyTargetState other = (DummyTargetState) obj;
+    return (properties.equals(other.properties));
+  }
+
+  @Override
   public boolean isTarget() {
     return true;
   }
@@ -52,5 +72,10 @@ public final class DummyTargetState implements AbstractState, Targetable {
   @Override
   public Set<Property> getViolatedProperties() {
     return properties;
+  }
+
+  @Override
+  public @Nullable Object getPartitionKey() {
+    return this;
   }
 }
