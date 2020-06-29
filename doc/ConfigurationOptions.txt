@@ -1962,6 +1962,11 @@ cpa.predicate.abstractions.file = "abstractions.txt"
 # (signature, not name!).
 cpa.predicate.addRangeConstraintsForNondet = false
 
+# Allow the given extern functions and interpret them as pure functions
+# although the predicate analysis does not support their semantics and this
+# can produce wrong results.
+cpa.predicate.allowedUnsupportedFunctions = {}
+
 # Check satisfiability for plain conjunction of edge and assumptions.
 cpa.predicate.assumptionStrengtheningSatCheck = false
 
