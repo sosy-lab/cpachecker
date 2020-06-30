@@ -116,7 +116,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
     if (numberProcesses <= 1) {
       String numNodesEnv = System.getenv("AWS_BATCH_JOB_NUM_NODES");
-      if (!numNodesEnv.isEmpty()) {
+      if (numNodesEnv != null && !numNodesEnv.isEmpty()) {
         logger.logf(
             Level.INFO,
             "Env variable 'AWS_BATCH_JOB_NUM_NODES' found with value '%s'. Continuing using this value.",
