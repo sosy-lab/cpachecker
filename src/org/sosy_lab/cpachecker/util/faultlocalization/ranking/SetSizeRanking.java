@@ -53,7 +53,7 @@ public class SetSizeRanking implements FaultRanking {
     double sum = results.getLikelihoodMap().values().stream().mapToDouble(Double::valueOf).sum();
 
     for (Fault fault : result) {
-      fault.addInfo(FaultInfo.rankInfo("The set has a size of " + results.getLikelihoodMap().get(fault).intValue(), results.getLikelihoodMap().get(fault)/sum));
+      fault.addInfo(FaultInfo.rankInfo("The set has a size of " + fault.size() + ".", results.getLikelihoodMap().get(fault)/sum));
     }
 
     return results.getRankedList();

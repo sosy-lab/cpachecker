@@ -306,7 +306,6 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
 
     //Memoization
     if (useMem && memorize.containsKey(plainInterpolant)) {
-      if(memorize.containsKey(plainInterpolant))
       memoizationCalls.inc();
       if(memorize.get(plainInterpolant).contains(-i-1)) {
         return false;
