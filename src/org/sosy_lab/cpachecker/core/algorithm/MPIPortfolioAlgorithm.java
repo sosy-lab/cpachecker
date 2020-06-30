@@ -219,7 +219,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
   private ImmutableMap<String, Object> createCommand(int pIndex)
       throws InvalidConfigurationException {
 
-    String subprocess_timelimit = "90s"; // arbitrary value for now
+    String subprocess_timelimit = "750s"; // arbitrary value for now
     Path subprocess_config = configFiles.get(pIndex);
     Path subprocess_output_basedir = Path.of("output", "output_portfolio-analysis_" + pIndex);
     Path subprocess_logfile = Path.of("logfile_portfolio-analysis_" + pIndex + ".log");
