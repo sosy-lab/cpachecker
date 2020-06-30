@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.base.Verify.verify;
 import static java.util.function.Predicate.not;
 
@@ -116,7 +117,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
     if (numberProcesses <= 1) {
       String numNodesEnv = System.getenv("AWS_BATCH_JOB_NUM_NODES");
-      if (numNodesEnv != null && !numNodesEnv.isEmpty()) {
+      if (!isNullOrEmpty(numNodesEnv)) {
         logger.logf(
             Level.INFO,
             "Env variable 'AWS_BATCH_JOB_NUM_NODES' found with value '%s'. Continuing using this value.",
