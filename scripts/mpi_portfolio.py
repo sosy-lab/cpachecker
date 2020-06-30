@@ -10,14 +10,20 @@
 
 import ast
 import copy
+from enum import Enum
 import getopt
 import json
 import logging
 from mpi4py import MPI
 import os
+import signal
 import socket
 import subprocess
 import sys
+import threading
+
+# MPI message tags
+tags = Enum("Status", "READY DONE")
 
 ANALYSIS = "analysis"
 CMDLINE = "cmd"
@@ -25,6 +31,7 @@ OUTPUT_PATH = "output"
 LOGFILE = "logfile"
 
 logger = None
+mpi = None
 
 
 class MPIMain:
@@ -40,6 +47,10 @@ class MPIMain:
     analysis_param = {}
 
     run_subanalysis = False
+    process = None
+    shutdown_requested = False
+    mpi_listener_thread = None
+    event_listener = None
 
     main_node_network_config = None
 
@@ -47,6 +58,7 @@ class MPIMain:
         self.setup_mpi()
         self.setup_logger()
         self.parse_input_args(argv)
+        self.setup_mpi_listener_thread()
 
     def setup_mpi(self):
         # Name of the processor
@@ -73,7 +85,8 @@ class MPIMain:
             logger = logging.getLogger(__name__)
 
         logging_format = logging.Formatter(
-            fmt="Rank {} - %(levelname)s:  %(message)s".format(self.rank),
+            fmt="Rank {} - %(asctime)s - %(levelname)-9s %(message)s".format(self.rank),
+            datefmt="%H:%M:%S",
         )
 
         log_handler_stdout = logging.StreamHandler(stream=sys.stdout)
@@ -134,6 +147,67 @@ class MPIMain:
             json.dumps(self.input_args, sort_keys=True, indent=4),
         )
 
+    def setup_mpi_listener_thread(self):
+        # TODO: Use multiprocessing instead of threading
+        # In python, Threads apparently do not run in parallel. Instead, only
+        # one thread is being executed in a ThreadPool at any given time t.
+        # For more information, see
+        # https://medium.com/contentsquare-engineering-blog/multithreading-vs-multiprocessing-in-python-ece023ad55a
+        self.event_listener = threading.Event()
+        self.mpi_listener_thread = threading.Thread(
+            name="mpi_listener", target=self.mpi_broadcast_listener, args=(self.event_listener, 1)
+        )
+        self.mpi_listener_thread.setDaemon(True)
+        self.mpi_listener_thread.start()
+
+    def mpi_broadcast_listener(self, event_listener, wait_time):
+        logger.debug("Setting up mpi_broadcast_listener")
+        probe = False
+        while not self.event_listener.isSet():
+            self.event_listener.wait(timeout=wait_time)
+            # TODO: I have not found a proper way to interrupt an MPI-recv command,
+            # hence the current implemenatation polls periodically for new
+            # messages
+            probe = self.comm.iprobe(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG)
+            if probe:
+                self.interrupt_mpi_listener()
+            logger.debug("event set? %s", event_listener.isSet())
+
+        if probe:
+            status = MPI.Status()
+            data = self.comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
+            tag = status.Get_tag()
+            source = status.Get_source()
+            logger.info(
+                "RECEIVING: Process %d received msg from process %d with tag '%s': %s",
+                self.rank,
+                source,
+                tags(tag).name,
+                data
+            )
+            self.shutdown_processes()
+
+    def broadcast_except_to_self(self, data, tag):
+        for i in range(0, self.size):
+            if self.rank != i:
+                self.comm.send(data, dest=i, tag=tag)
+
+    def publish_completion_of_subprocess(self):
+        data = ["subanalysis", "finished"]  # input is not yet used
+        logger.info("SENDING: Process %d broadcasts msg: %s", self.rank, data)
+        self.broadcast_except_to_self(data, tags.DONE.value)
+        self.interrupt_mpi_listener()
+        self.mpi_listener_thread.join()
+
+    def interrupt_mpi_listener(self):
+        self.event_listener.set()
+
+    def shutdown_processes(self):
+        self.shutdown_requested = True
+        logger.debug("Sending signal to shutdown processes")
+        if self.process is not None and self.process.poll() is None:
+            self.process.send_signal(signal.SIGINT)
+
     def print_self_info(self):
         """Print an info about the proccesor name, the rank of the executed process, and
         the number of total processes."""
@@ -155,7 +229,7 @@ class MPIMain:
             )
             sys.exit(0)
         else:
-            logger.warning(
+            logger.info(
                 "Starting new CPAchecker instance performing the analysis: %s",
                 self.analysis_param[ANALYSIS],
             )
@@ -165,22 +239,34 @@ class MPIMain:
 
             logger.info("Executing cmd: %s", cmdline)
             with open(self.analysis_param[LOGFILE], "w+") as outputfile:
+
                 # Redirect all output from the errorstream to stdout, such that the
                 # output log stays consistent in the child CPAchecker instances
-                process = subprocess.run(
-                    cmdline, stdout=outputfile, stderr=subprocess.STDOUT,
+                self.process = subprocess.Popen(
+                    cmdline,
+                    stdout=outputfile,
+                    stderr=subprocess.STDOUT,
                 )
-                logger.warning(
-                    "Process returned with status code %d", process.returncode,
-                )
+                try:
+                    self.process.communicate()
+                except KeyboardInterrupt:
+                    mpi.interrupt_mpi_listener()
+
+            logger.info(
+                "Process returned with status code %d", self.process.returncode,
+            )
+            if not self.shutdown_requested:
+                self.shutdown_requested = True
+                self.publish_completion_of_subprocess()
+                logger.debug("Rank %d is about to shut itself down", self.rank)
 
     def prepare_cmdline(self):
-        logger.info("Running analysis with number: %d", self.rank)
+        logger.debug("Running analysis with number: %d", self.rank)
         analysis_args = None
         if self.rank <= len(self.input_args) - 1:
             analysis_args = self.input_args.get("Analysis_{}".format(self.rank))
         if analysis_args is None:
-            logger.warning("No arguments for the analysis found.")
+            logger.info("No arguments for the analysis found.")
         else:
             self.analysis_param = copy.deepcopy(analysis_args)
             self.replace_escape_chars(self.analysis_param)
@@ -257,6 +343,13 @@ class MPIMain:
                 )
 
 
+def handle_signal(signum, frame):
+    mpi.interrupt_mpi_listener()
+    mpi.shutdown_processes()
+
+signal.signal(signal.SIGINT, handle_signal)
+signal.signal(signal.SIGTERM, handle_signal)
+
 def main():
     mpi = MPIMain(sys.argv[1:])
     mpi.print_self_info()
@@ -269,7 +362,7 @@ def main():
         mpi.execute_verifier()
         mpi.push_results_to_master()
     else:
-        logger.warning("Nothing to run. Exiting with status code 0")
+        logger.info("Nothing to run. Exiting with status code 0")
     sys.exit(0)
 
 
