@@ -249,7 +249,8 @@ public class PredicateCPA
             logger,
             pathFormulaManager,
             statistics,
-            mergeAbstractionStates);
+            mergeAbstractionStates,
+            predicateManager);
       default:
         throw new InternalError("Update list of allowed merge operators");
     }
