@@ -55,12 +55,12 @@ abstract class ReachDefAnalysis<V, N, E> {
     return variableDefStacks.computeIfAbsent(pVariable, key -> new ArrayDeque<>());
   }
 
-  protected final Iterable<Def<V, E>> getDefStackIterator(V pVariable) {
+  protected final Iterable<Def<V, E>> iterateDefsNewestFirst(V pVariable) {
     Iterator<Def<V, E>> iterator = getDefStack(pVariable).iterator();
     return () -> Iterators.unmodifiableIterator(iterator);
   }
 
-  protected final Iterable<Def<V, E>> getDefQueueIterator(V pVariable) {
+  protected final Iterable<Def<V, E>> iterateDefsOldestFirst(V pVariable) {
     Iterator<Def<V, E>> descIterator = getDefStack(pVariable).descendingIterator();
     return () -> Iterators.unmodifiableIterator(descIterator);
   }
