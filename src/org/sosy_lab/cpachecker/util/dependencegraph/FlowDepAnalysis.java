@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
@@ -107,7 +108,7 @@ abstract class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode,
     for (CExpression expression : edgeDefUseData.getPointeeDefs()) {
 
       Set<MemoryLocation> possibleDefs = getPossiblePointees(callEdge, expression);
-      assert possibleDefs != null && possibleDefs.size() > 0 : "No possible pointees";
+      assert possibleDefs != null && !possibleDefs.isEmpty() : "No possible pointees";
       defs.addAll(possibleDefs);
 
       if (possibleDefs.size() > 1) {
@@ -132,7 +133,7 @@ abstract class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode,
     for (CExpression expression : edgeDefUseData.getPointeeUses()) {
 
       Set<MemoryLocation> possibleUses = getPossiblePointees(callEdge, expression);
-      assert possibleUses != null && possibleUses.size() > 0 : "No possible pointees";
+      assert possibleUses != null && !possibleUses.isEmpty() : "No possible pointees";
       uses.addAll(possibleUses);
     }
 
@@ -149,7 +150,7 @@ abstract class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode,
     for (CExpression expression : edgeDefUseData.getPointeeDefs()) {
 
       Set<MemoryLocation> possibleDefs = getPossiblePointees(pEdge, expression);
-      assert possibleDefs != null && possibleDefs.size() > 0 : "No possible pointees";
+      assert possibleDefs != null && !possibleDefs.isEmpty() : "No possible pointees";
       defs.addAll(possibleDefs);
 
       if (possibleDefs.size() > 1) {
@@ -170,7 +171,7 @@ abstract class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode,
     for (CExpression expression : edgeDefUseData.getPointeeUses()) {
 
       Set<MemoryLocation> possibleUses = getPossiblePointees(pEdge, expression);
-      assert possibleUses != null && possibleUses.size() > 0 : "No possible pointees";
+      assert possibleUses != null && !possibleUses.isEmpty() : "No possible pointees";
       uses.addAll(possibleUses);
     }
 
@@ -192,7 +193,7 @@ abstract class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode,
   private Set<MemoryLocation> getEdgeUses(CFAEdge pEdge) {
 
     if (pEdge instanceof CFunctionCallEdge) {
-      return Set.of();
+      return ImmutableSet.of();
     } else if (pEdge instanceof CFunctionSummaryEdge) {
       return getSummaryEdgeUses((CFunctionSummaryEdge) pEdge);
     } else {

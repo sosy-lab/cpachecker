@@ -310,7 +310,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
       for (CExpression expr : defUseData.getPointeeDefs()) {
         Set<MemoryLocation> possibleDefs = ReachingDefUtils.possiblePointees(expr, pPointerState);
-        assert possibleDefs != null && possibleDefs.size() > 0 : "No possible pointees";
+        assert possibleDefs != null && !possibleDefs.isEmpty() : "No possible pointees";
         for (MemoryLocation defVar : possibleDefs) {
           if (!defVar.getFunctionName().equals(funcName)) {
             funcDefs.add(defVar);
@@ -320,7 +320,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
       for (CExpression expr : defUseData.getPointeeUses()) {
         Set<MemoryLocation> possibleUse = ReachingDefUtils.possiblePointees(expr, pPointerState);
-        assert possibleUse != null && possibleUse.size() > 0 : "No possible pointees";
+        assert possibleUse != null && !possibleUse.isEmpty() : "No possible pointees";
         for (MemoryLocation useVar : possibleUse) {
           if (!useVar.getFunctionName().equals(funcName)) {
             funcUses.add(useVar);
