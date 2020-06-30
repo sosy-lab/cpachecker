@@ -25,6 +25,8 @@ import threading
 # MPI message tags
 tags = Enum("Status", "READY DONE")
 
+MPI_PROBE_INTERVAL = 1
+
 ANALYSIS = "analysis"
 CMDLINE = "cmd"
 OUTPUT_PATH = "output"
@@ -155,7 +157,9 @@ class MPIMain:
         # https://medium.com/contentsquare-engineering-blog/multithreading-vs-multiprocessing-in-python-ece023ad55a
         self.event_listener = threading.Event()
         self.mpi_listener_thread = threading.Thread(
-            name="mpi_listener", target=self.mpi_broadcast_listener, args=(self.event_listener, 1)
+            name="mpi_listener",
+            target=self.mpi_broadcast_listener,
+            args=(self.event_listener, MPI_PROBE_INTERVAL),
         )
         self.mpi_listener_thread.setDaemon(True)
         self.mpi_listener_thread.start()
@@ -183,7 +187,7 @@ class MPIMain:
                 self.rank,
                 source,
                 tags(tag).name,
-                data
+                data,
             )
             self.shutdown_processes()
 
@@ -243,9 +247,7 @@ class MPIMain:
                 # Redirect all output from the errorstream to stdout, such that the
                 # output log stays consistent in the child CPAchecker instances
                 self.process = subprocess.Popen(
-                    cmdline,
-                    stdout=outputfile,
-                    stderr=subprocess.STDOUT,
+                    cmdline, stdout=outputfile, stderr=subprocess.STDOUT,
                 )
                 try:
                     self.process.communicate()
@@ -347,8 +349,10 @@ def handle_signal(signum, frame):
     mpi.interrupt_mpi_listener()
     mpi.shutdown_processes()
 
+
 signal.signal(signal.SIGINT, handle_signal)
 signal.signal(signal.SIGTERM, handle_signal)
+
 
 def main():
     mpi = MPIMain(sys.argv[1:])
