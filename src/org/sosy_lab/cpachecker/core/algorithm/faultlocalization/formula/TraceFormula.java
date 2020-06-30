@@ -88,9 +88,9 @@ public class TraceFormula {
     private String ignore = "";
 
     //Usage: If a variable is contained in the post-condition it may be useful to ignore it in the pre-condition
-    @Option(secure=true, name="ban",
+    @Option(secure=true, name="disable",
         description="do not create selectors for this variables (separate by commas)")
-    private String ban = "";
+    private String disable = "";
 
     @Option(
         secure = true,
@@ -112,12 +112,16 @@ public class TraceFormula {
       return filter;
     }
 
-    public String getBan() {
-      return ban;
+    public String getDisable() {
+      return disable;
     }
 
     public String getIgnore() {
       return ignore;
+    }
+
+    public boolean isReduceSelectors() {
+      return reduceSelectors;
     }
   }
 
@@ -233,7 +237,10 @@ public class TraceFormula {
     if (options.reduceSelectors) {
       Map<String, List<Selector>> friends =
           getSelectors().stream()
-              .collect(Collectors.groupingBy(s -> s.correspondingEdge().getDescription()));
+              .collect(Collectors.groupingBy(s ->
+                  s.correspondingEdge().getFileLocation().getStartingLineInOrigin() + " " +
+                  s.correspondingEdge().getDescription() + " " +
+                  s.correspondingEdge().getEdgeType()));
       friends.forEach(
           (e, v) -> {
             Selector first = v.remove(0);
@@ -293,19 +300,19 @@ public class TraceFormula {
       }
     }
 
-    // disable banned selectors
-    if (!options.ban.isEmpty()) {
-      List<String> banned = Splitter.on(",").splitToList(options.ban);
+    // disable selectors
+    if (!options.disable.isEmpty()) {
+      List<String> disabled = Splitter.on(",").splitToList(options.disable);
       for (int i = 0; i < entries.size(); i++) {
         String formulaString = entries.atoms.get(i).toString();
         Selector selector = entries.selectors.get(i);
-        for (String ban : banned) {
-          if (ban.contains("::")) {
-            if (formulaString.contains(ban)) {
+        for (String dable : disabled) {
+          if (dable.contains("::")) {
+            if (formulaString.contains(dable)) {
               selector.disable();
             }
           } else {
-            if (formulaString.contains("::" + ban)) {
+            if (formulaString.contains("::" + dable)) {
               selector.disable();
             }
           }
@@ -373,16 +380,22 @@ public class TraceFormula {
     private Map<Formula, Integer> variableToIndexMap;
     private List<BooleanFormula> preCondition;
     private List<String> ignore;
+    private List<String> filter;
     private SSAMap preConditionMap;
 
     AlternativePrecondition(){
       variableToIndexMap = new HashMap<>();
       preCondition = new ArrayList<>();
       preConditionMap = SSAMap.emptySSAMap();
-      if(options.ignore.isEmpty()){
+      if(options.ignore.isBlank()){
         ignore = ImmutableList.of();
       } else {
         ignore = Splitter.on(",").splitToList(options.ignore);
+      }
+      if(options.filter.isBlank()){
+        filter = ImmutableList.of();
+      } else {
+        filter = Splitter.on(",").splitToList(options.filter);
       }
     }
 
@@ -391,8 +404,8 @@ public class TraceFormula {
       Map<String, Formula> formulaVariables = fmgr.extractVariables(formula);
       Set<String> uninstantiatedVariables = fmgr.extractVariables(fmgr.uninstantiate(formula)).keySet();
       SSAMap toMerge = currentMap;
-      //First check if variable is in desired scope, then check if formula is accepted.
-      if(formula.toString().contains(options.filter + "::") && isAccepted(formula, currentMap, edge, formulaVariables)){
+      // check if formula is accepted.
+      if(isAccepted(formula, currentMap, edge, formulaVariables)){
         // remove all other elements from SSAMap if formula is a declaration not using other variables (e.g. int a = 5; int[] d = {1,2,3})
         for (String variable : toMerge.allVariables()) {
           if (!uninstantiatedVariables.contains(variable)) {
@@ -424,6 +437,8 @@ public class TraceFormula {
       if(!pEdge.getEdgeType().equals(CFAEdgeType.DeclarationEdge)){
         return false;
       }
+
+      //check if variable is ignored
       for (String ign : ignore) {
         if(ign.contains("::")){
           if(formula.toString().contains(ign + "@")) {
@@ -435,6 +450,19 @@ public class TraceFormula {
           }
         }
       }
+
+      //check if variable is in desired scope
+      boolean filtered = false;
+      for (String f : filter) {
+        if (formula.toString().contains(f+"::")){
+          filtered = true;
+          break;
+        }
+      }
+      if(!filtered) {
+        return false;
+      }
+
       //only accept declarations like int a = 2; and not int b = a + 2;
       //int a[] = {3,4,5} will be accepted too (that's why we filter __ADDRESS_OF_)
       if(variables.entrySet().stream().filter(v -> !v.getKey().contains("__ADDRESS_OF_")).count() != 1){

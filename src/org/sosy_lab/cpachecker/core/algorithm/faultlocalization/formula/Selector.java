@@ -41,6 +41,7 @@ public class Selector extends FaultContribution implements AbstractTraceElement 
   private CFAEdge edge;
   private BooleanFormula formula;
   private BooleanFormula selectorFormula;
+  private BooleanFormula edgeFormula;
   private FormulaContext context;
   private int index;
 
@@ -57,7 +58,7 @@ public class Selector extends FaultContribution implements AbstractTraceElement 
   }
 
   private Selector(
-      int pUniqueIndex, BooleanFormula pFormula, CFAEdge pEdge, FormulaContext pContext) {
+      int pUniqueIndex, BooleanFormula pSelectorFormula, BooleanFormula pEdgeFormula, CFAEdge pEdge, FormulaContext pContext) {
     super(pEdge);
     if (pEdge == null) {
       name = "S" + pUniqueIndex + ": unknown reference";
@@ -65,8 +66,9 @@ public class Selector extends FaultContribution implements AbstractTraceElement 
       name = ("S" + pUniqueIndex + ": " + pEdge).replace("\t", " ");
     }
     index = pUniqueIndex;
-    formula = pFormula;
-    selectorFormula = pFormula;
+    formula = pSelectorFormula;
+    selectorFormula = pSelectorFormula;
+    edgeFormula = pEdgeFormula;
     context = pContext;
     edge = pEdge;
   }
@@ -112,11 +114,12 @@ public class Selector extends FaultContribution implements AbstractTraceElement 
     }
 
     s = new Selector(
-        maxIndex,
+            maxIndex,
             pContext
                 .getSolver()
                 .getFormulaManager()
                 .makeVariable(FormulaType.BooleanType, "S" + maxIndex),
+            pFormula,
             pEdge,
             pContext);
     selectors.put(pFormula.toString(), s);
@@ -126,6 +129,10 @@ public class Selector extends FaultContribution implements AbstractTraceElement 
 
   public int getIndex() {
     return index;
+  }
+
+  public BooleanFormula getEdgeFormula() {
+    return edgeFormula;
   }
 
   /**

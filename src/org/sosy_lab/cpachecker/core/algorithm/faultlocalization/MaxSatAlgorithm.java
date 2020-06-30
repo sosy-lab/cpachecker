@@ -54,7 +54,7 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface, Sta
   //Statistics
   private StatTimer totalTime = new StatTimer(StatKind.SUM, "Total time to find all subsets");
   private StatCounter unsatCalls = new StatCounter("Total calls to sat solver");
-
+  private StatCounter savedCalls = new StatCounter("Total calls prevented by subset check");
   @Override
   public Set<Fault> run(FormulaContext pContext, TraceFormula tf)
       throws CPATransferException, InterruptedException, SolverException, VerifyException {
@@ -117,15 +117,18 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface, Sta
         Fault copy = new Fault(new HashSet<>(result));
         copy.remove(s);
         if (!isSubsetOrSupersetOf(copy, pHardSet)) {
+          unsatCalls.inc();
           if (solver.isUnsat(bmgr.and(composedFormula, softSetFormula(copy)))) {
             changed = true;
             result.remove(s);
             break;
           }
+        } else {
+          savedCalls.inc();
         }
       }
     } while (changed);
-    return new Fault(result);
+    return result;
   }
 
   private boolean isSubsetOrSupersetOf(Fault pSet, Set<Fault> pHardSet) {
@@ -163,7 +166,8 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface, Sta
   public void printStatistics(
       PrintStream out, Result result, UnmodifiableReachedSet reached) {
     StatisticsWriter w0 = StatisticsWriter.writingStatisticsTo(out);
-    w0.put("Total time", totalTime).put("Total calls to solver", unsatCalls);
+    w0.put("Total time", totalTime).put("Total calls to solver", unsatCalls)
+    .put("Total calls saved", savedCalls);
   }
 
   @Override

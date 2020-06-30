@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.Splitter;
 import com.google.common.base.VerifyException;
 import com.google.common.collect.FluentIterable;
 import java.io.PrintStream;
@@ -33,6 +34,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -55,6 +57,7 @@ import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.MaxSatAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.SingleUnsatCoreAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.ExpressionConverter;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula.TraceFormulaOptions;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.rankings.CallHierarchyRanking;
@@ -72,6 +75,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
@@ -83,6 +87,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -106,6 +111,14 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
   @Option(secure=true, name="maintainhierarchy",
       description="sort by call order")
   private boolean maintainCallHierarchy = false;
+
+  @Option(secure=true, name="memoization",
+      description="memorize interpolants") //can decrease runtime
+  private boolean memoization = false;
+
+  @Option(secure=true, name="ban",
+      description="ban faults with certain variables")
+  private String ban = "";
 
   public FaultLocalizationAlgorithm(
       final Algorithm pStoreAlgorithm,
@@ -143,7 +156,7 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
         faultAlgorithm = new MaxSatAlgorithm();
         break;
       case "ERRINV":
-        faultAlgorithm = new ErrorInvariantsAlgorithm(pShutdownNotifier, pConfig, logger);
+        faultAlgorithm = new ErrorInvariantsAlgorithm(pShutdownNotifier, pConfig, logger, memoization);
         break;
       default:
         faultAlgorithm = new SingleUnsatCoreAlgorithm();
@@ -158,7 +171,22 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
       maintainCallHierarchy = false;
       correctConfiguration = false;
     }
-    if (!options.getBan().isBlank() && algorithmType.equals("ERRINV")) {
+    if (!algorithmType.equals("ERRINV") && memoization) {
+      logger.log(Level.SEVERE, "The option memoization will be ignored since the error invariants algorithm is not selected");
+      memoization = false;
+      correctConfiguration = false;
+    }
+    if (algorithmType.equals("ERRINV") && !ban.isBlank()) {
+      logger.log(Level.SEVERE, "The option ban will be ignored since the error invariants algorithm is not selected");
+      ban = "";
+      correctConfiguration = false;
+    }
+    if (!algorithmType.equals("MAXSAT") && options.isReduceSelectors()) {
+      logger.log(Level.SEVERE, "The option reduceselectors will be ignored since MAX-SAT is not selected");
+      ban = "";
+      correctConfiguration = false;
+    }
+    if (!options.getDisable().isBlank() && algorithmType.equals("ERRINV")) {
       logger.log(Level.SEVERE, "The option ban will be ignored because it is not applicable on the error invariants algorithm");
       correctConfiguration = false;
     }
@@ -263,6 +291,10 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
         }
       }
 
+      if(!algorithmType.equals("ERRINV")) {
+        ban(errorIndicators);
+      }
+
       InformationProvider.searchForAdditionalInformation(errorIndicators, edgeList);
       FaultLocalizationInfo info;
       if (maintainCallHierarchy && algorithmType.equals("ERRINV")) {
@@ -290,6 +322,33 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
           Level.INFO, "The counterexample is spurious. Calculating interpolants is not possible.");
     } finally{
       context.getSolver().close();
+    }
+  }
+
+  /**
+   * Ban all faults containing certain variables defined in the option ban.
+   * @param pErrorIndicators result set
+   */
+  private void ban(Set<Fault> pErrorIndicators) {
+    List<String> banned = Splitter.on(",").splitToList(ban);
+    Set<Fault> copy = new HashSet<>(pErrorIndicators);
+    for (Fault errorIndicator : copy) {
+      for (FaultContribution faultContribution : errorIndicator) {
+        BooleanFormula curr = ((Selector)faultContribution).getEdgeFormula();
+        for (String b: banned) {
+          if (b.contains("::")){
+            if (curr.toString().contains(b + "@")){
+              pErrorIndicators.remove(errorIndicator);
+              break;
+            }
+          } else {
+            if (curr.toString().contains("::"+b +"@")){
+              pErrorIndicators.remove(errorIndicator);
+              break;
+            }
+          }
+        }
+      }
     }
   }
 

@@ -403,19 +403,20 @@ with considerably less effort */
                         for (var j = 0; j < $rootScope.errorPath.length; j++) {
                                 var element = $rootScope.errorPath[j];
                                 if (element.faults.includes(i)) {
-										fInfo["errPathIds"].push(j);
-										var valDict = {};
-										var allValues = $rootScope.errorPath[j].valDict;
-										for (variable in allValues) {
-											if (fInfo.reason.search("::"+variable) != -1) {
-												var markedVariable = '<p style="color:red">' + variable + '</p>';
-												var markedValue = '<p style="color:red">' + allValues[variable] + '</p>';
-												valDict[markedVariable] = markedValue;
-											} else {
-												valDict[variable] = allValues[variable];
-											}
-										}
-										fInfo["valDict"] = valDict;
+                                        // TODO: implement the table in the Java-Backend for better and more reliable results
+                                        fInfo["errPathIds"].push(j);
+                                        var valDict = {};
+                                        var allValues = $rootScope.errorPath[j].valDict;
+                                        for (variable in allValues) {
+                                                if (fInfo.reason.search("::"+variable) != -1) {
+                                                        var markedVariable = '<p style="color:red">' + variable + '</p>';
+                                                        var markedValue = '<p style="color:red">' + allValues[variable] + '</p>';
+                                                        valDict[markedVariable] = markedValue;
+                                                } else {
+                                                        valDict[variable] = allValues[variable];
+                                                }
+                                        }
+                                        fInfo["valDict"] = valDict;
                                 }
 				fInfo["lines"] = getLinesOfFault(fInfo);
                         }

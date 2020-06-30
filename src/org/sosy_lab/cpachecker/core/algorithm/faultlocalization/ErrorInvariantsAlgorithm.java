@@ -25,12 +25,12 @@ package org.sosy_lab.cpachecker.core.algorithm.faultlocalization;
 
 import com.google.common.base.Splitter;
 import com.google.common.base.VerifyException;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -77,24 +77,29 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
   private FormulaContext formulaContext;
   //(commented out, needed for flowsensitive traceformula)private CFA cfa;
   //private boolean useImproved;
+  private boolean useMem;
 
   //Memorize already processed interpolants to minimize solver calls
-  private Map<MemorizeInterpolant, Boolean> memorize = new HashMap<>();
+  private Multimap<BooleanFormula, Integer> memorize;
 
   private StatTimer totalTime = new StatTimer(StatKind.SUM, "Total time for ErrInv");
   private StatCounter searchCalls = new StatCounter("Search calls");
   private StatCounter solverCalls = new StatCounter("Solver calls");
+  private StatCounter memoizationCalls = new StatCounter("Saved calls through memoization");
 
   public ErrorInvariantsAlgorithm(
       ShutdownNotifier pShutdownNotifier,
       Configuration pConfiguration,
-      LogManager pLogger
+      LogManager pLogger,
+      boolean pUseMem
       //CFA pCfa,
       //boolean pImproved
       ) {
     shutdownNotifier = pShutdownNotifier;
     config = pConfiguration;
     logger = pLogger;
+    useMem = pUseMem;
+    memorize = ArrayListMultimap.create();
     //cfa = pCfa;
     //useImproved = pImproved;
   }
@@ -105,6 +110,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
    */
   private List<BooleanFormula> getInterpolants()
       throws CPAException, InterruptedException, InvalidConfigurationException {
+    solverCalls.inc();
     InterpolationManager interpolationManager =
         new InterpolationManager(
             formulaContext.getManager(),
@@ -167,8 +173,8 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
         }
       }
     }
-
-    //transform error trace into report format
+    totalTime.stop();
+    //transform error trace to report format
     return createFaults(abstractTrace);
   }
 
@@ -227,13 +233,14 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
         faults.add(f);
       }
     }
+
     String abstractErrorTrace = abstractTrace.stream().map(e -> "-" + e).collect(Collectors.joining("\n"));
     logger.log(Level.INFO, "Abstract error trace:\n"+abstractErrorTrace);
     return faults;
   }
 
   /**
-   * Some interpolants (eg arrays) may have an unreadable format.
+   * Some interpolants (e.g. arrays) may have an unreadable format.
    * Since most of the users will be confused by the internal representation we reduce
    * the information to only the relevant one.
    * @param fmgr formula manager to instantiate and uninstantiate formulas
@@ -296,11 +303,17 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
     int n = errorTrace.traceSize();
     BooleanFormula plainInterpolant = fmgr.uninstantiate(interpolant);
-    MemorizeInterpolant currInterpolant = new MemorizeInterpolant(plainInterpolant, i);
 
     //Memoization
-    if (memorize.containsKey(currInterpolant)) {
-      return memorize.get(currInterpolant);
+    if (useMem && memorize.containsKey(plainInterpolant)) {
+      if(memorize.containsKey(plainInterpolant))
+      memoizationCalls.inc();
+      if(memorize.get(plainInterpolant).contains(-i-1)) {
+        return false;
+      }
+      if(memorize.get(plainInterpolant).contains(i+1)) {
+        return true;
+      }
     }
 
     // shift the interpolant to the correct time stamp
@@ -311,7 +324,6 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
             MapsDifference.collectMapsDifferenceTo(new ArrayList<>()));
     BooleanFormula shiftedInterpolant = fmgr.instantiate(plainInterpolant, shift);
 
-    solverCalls.inc();
     BooleanFormula firstFormula =
         bmgr.implication(
             bmgr.and(errorTrace.getPreCondition(), errorTrace.slice(i)), shiftedInterpolant);
@@ -319,8 +331,14 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
             bmgr.and(shiftedInterpolant, errorTrace.slice(i, n), errorTrace.getPostCondition());
 
     try {
+      //isValid
+      solverCalls.inc();
+      //isUnsat
+      solverCalls.inc();
       boolean isValid = isValid(firstFormula) && solver.isUnsat(secondFormula);
-      memorize.put(currInterpolant, isValid);
+      if(useMem) {
+        memorize.put(plainInterpolant, isValid?i+1:-i-1);
+      }
       return isValid;
     } catch (SolverException | InterruptedException pE) {
       throw new AssertionError("first and second formula have to be solvable for the solver");
@@ -343,7 +361,9 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
       PrintStream out, Result result, UnmodifiableReachedSet reached) {
     StatisticsWriter w0 = StatisticsWriter.writingStatisticsTo(out);
     w0.put("Total time", totalTime)
-        .put("Search calls", searchCalls).put("Solver calls", solverCalls);
+        .put("Search calls", searchCalls)
+        .put("Solver calls", solverCalls)
+        .put("Memoization calls", memoizationCalls);
   }
 
   @Override
@@ -389,43 +409,6 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     @Override
     public int compareTo(Interval pInterval) {
       return Integer.compare(start, pInterval.start);
-    }
-  }
-
-  /** Stores interpolants and positions that are already evaluateddd*/
-  private static class MemorizeInterpolant {
-    private BooleanFormula interpolant;
-    private int position;
-
-    private MemorizeInterpolant(BooleanFormula pInterpolant, int pPosition){
-      interpolant = pInterpolant;
-      position = pPosition;
-    }
-
-    @Override
-    public boolean equals(Object pO) {
-      if (this == pO) {
-        return true;
-      }
-      if (!(pO instanceof MemorizeInterpolant)) {
-        return false;
-      }
-      MemorizeInterpolant memorizeInterpolant = (MemorizeInterpolant) pO;
-      return position == memorizeInterpolant.position &&
-          Objects.equals(interpolant, memorizeInterpolant.interpolant);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(interpolant, position);
-    }
-
-    @Override
-    public String toString() {
-      return "MemorizeInterpolant{" +
-          "interpolant=" + interpolant +
-          ", position=" + position +
-          '}';
     }
   }
 }

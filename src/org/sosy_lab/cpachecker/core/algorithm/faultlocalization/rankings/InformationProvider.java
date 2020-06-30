@@ -66,7 +66,7 @@ public class InformationProvider {
           }
         }
       }
-
+      // CPAchecker transforms the description of edges of source code like i++ to i = i + 1
       if (description.contains("=")) {
         List<String> operands = Splitter.on("=").splitToList(description);
         if (operands.size() == 2) {
