@@ -78,7 +78,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
   @Option(secure = true, required = true, description = "Number of processes to be used by MPI.")
   private int numberProcesses;
 
-  @Option(description = "File containing the ip adresses to be used by MPI.")
+  @Option(description = "File containing the ip addresses to be used by MPI.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path hostfile;
 
@@ -114,11 +114,8 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     subanalysesOutputPaths = new HashMap<>();
     subanalysesLogfilePaths = new HashMap<>();
 
-    logger.logf(Level.INFO, "Number of specified processes: %d", numberProcesses);
-
-    if (numberProcesses == 0) {
+    if (numberProcesses <= 1) {
       String numNodesEnv = System.getenv("AWS_BATCH_JOB_NUM_NODES");
-      logger.logf(Level.INFO, "Value env variable NUM_NODES: %s", numNodesEnv);
       if (!numNodesEnv.isEmpty()) {
         logger.logf(
             Level.INFO,
@@ -135,7 +132,8 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
         numberProcesses = 1;
         logger.logf(
             Level.INFO,
-            "No number was specified for the amount of processes to be started by MPI. Taking %d as default value.",
+            "No information about the amount of available processes for MPI was found. "
+                + "Taking %d as default value.",
             numberProcesses);
       }
     }
@@ -186,17 +184,21 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       if (hostfile != null) {
         Map<String, String> networkSettings = new HashMap<>();
 
-        String mainNodeIPAdress = null;
+        String mainNodeIPAddress = null;
         try {
-          mainNodeIPAdress = InetAddress.getByName(System.getProperty("user.name")).getHostAddress();
+          mainNodeIPAddress =
+              InetAddress.getByName(System.getProperty("user.name")).getHostAddress();
         } catch (IOException e) {
-          logger.logf(
+          logger.log(
               Level.WARNING,
               "Could not retrieve the ip address from the main node. Proceeding without it.");
+          logger.logDebugException(
+              e,
+              "Failed to retrieve the ip address of the main node from PATH.");
         }
 
-        if (mainNodeIPAdress != null) {
-          networkSettings.put("main_node_ipv4_address", mainNodeIPAdress);
+        if (mainNodeIPAddress != null) {
+          networkSettings.put("main_node_ipv4_address", mainNodeIPAddress);
         }
         networkSettings.put("user_name_main_node", System.getProperty("user.name"));
         networkSettings.put("project_location_main_node", System.getProperty("user.dir"));

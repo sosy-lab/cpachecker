@@ -3389,7 +3389,7 @@ merge = "JOIN"
 # List of property-files to be run by the subprocesses.
 mpiAlgorithm.configFiles = no default value
 
-# File containing the ip adresses to be used by MPI.
+# File containing the ip addresses to be used by MPI.
 mpiAlgorithm.hostfile = no default value
 
 # Number of processes to be used by MPI.

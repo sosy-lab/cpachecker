@@ -206,7 +206,7 @@ class MPIMain:
                 "already in their correct location."
             )
         else:
-            # Compare the local ip adress with the main node ip.
+            # Compare the local ip address with the main node ip.
             # If they differ, create an ssh-connection and push all result files to the
             # main node. Otherwise, the process is already executed on the main node, so
             # the result files are already in the correct place.
