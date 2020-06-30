@@ -13,6 +13,8 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -63,8 +65,8 @@ abstract class ReachDefAnalysis<V, N, E> {
     return () -> Iterators.unmodifiableIterator(descIterator);
   }
 
-  protected final Def<V, E> getReachDef(V pVariable) {
-    return getDefStack(pVariable).peek();
+  protected Collection<Def<V, E>> getReachDefs(V pVariable) {
+    return Collections.singleton(getDefStack(pVariable).peek());
   }
 
   protected final void insertCombiner(N pNode, V pVariable) {
@@ -97,8 +99,7 @@ abstract class ReachDefAnalysis<V, N, E> {
 
     // update successor's combiners
     for (Def.Combiner<V, E> combiner : nodeDefCombiners.get(graph.getSuccessor(pEdge))) {
-      Def<V, E> def = getReachDef(combiner.getVariable());
-      if (def != null) {
+      for (Def<V, E> def : getReachDefs(combiner.getVariable())) {
         combiner.add(def);
       }
     }
