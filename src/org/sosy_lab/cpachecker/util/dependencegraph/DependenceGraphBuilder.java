@@ -29,6 +29,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ForwardingTable;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
@@ -61,7 +62,9 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -69,6 +72,8 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
@@ -87,8 +92,10 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.flowdep.FlowDependenceState;
 import org.sosy_lab.cpachecker.cpa.flowdep.FlowDependenceState.FlowDependence;
+import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
@@ -99,6 +106,7 @@ import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.DependenceTy
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.NodeMap;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomFrontiers;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
+import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -127,11 +135,10 @@ public class DependenceGraphBuilder implements StatisticsProvider {
   private final StatTimer controlDependenceTimer = new StatTimer("Time for control deps.");
 
   @Option(
-    secure = true,
-    description =
-        "File to export dependence graph to. If `null`, dependence"
-            + " graph will not be exported as dot."
-  )
+      secure = true,
+      description =
+          "File to export dependence graph to. If `null`, dependence"
+              + " graph will not be exported as dot.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportDot = Paths.get("DependenceGraph.dot");
 
@@ -274,7 +281,113 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     return ImmutableList.copyOf(declEdges);
   }
 
+  // TODO reimplement foreign defs-uses computation
+  private void addForeignDefsUses(
+      PointerState pPointerState,
+      Map<AFunctionDeclaration, Set<MemoryLocation>> pForeignDefs,
+      Map<AFunctionDeclaration, Set<MemoryLocation>> pForeignUses) {
+
+    List<CFAEdge> edges = new ArrayList<>();
+    for (CFANode node : cfa.getAllNodes()) {
+      Iterables.addAll(edges, CFAUtils.allLeavingEdges(node));
+    }
+
+    Map<AFunctionDeclaration, List<CFunctionSummaryEdge>> summaryEdges = new HashMap<>();
+    for (CFAEdge edge : edges) {
+      if (edge instanceof CFunctionSummaryEdge) {
+        CFunctionSummaryEdge summaryEdge = (CFunctionSummaryEdge) edge;
+        AFunctionDeclaration function = summaryEdge.getPredecessor().getFunction();
+        summaryEdges.computeIfAbsent(function, key -> new ArrayList<>()).add(summaryEdge);
+      }
+    }
+
+    for (CFAEdge edge : edges) {
+      AFunctionDeclaration function = edge.getPredecessor().getFunction();
+      String funcName = function.getQualifiedName();
+      Set<MemoryLocation> funcDefs = pForeignDefs.computeIfAbsent(function, key -> new HashSet<>());
+      Set<MemoryLocation> funcUses = pForeignUses.computeIfAbsent(function, key -> new HashSet<>());
+      EdgeDefUseData defUseData = EdgeDefUseData.extract(edge);
+
+      for (CExpression expr : defUseData.getPointeeDefs()) {
+        Set<MemoryLocation> possibleDefs = ReachingDefUtils.possiblePointees(expr, pPointerState);
+        assert possibleDefs != null && possibleDefs.size() > 0 : "No possible pointees";
+        for (MemoryLocation defVar : possibleDefs) {
+          if (!defVar.getFunctionName().equals(funcName)) {
+            funcDefs.add(defVar);
+          }
+        }
+      }
+
+      for (CExpression expr : defUseData.getPointeeUses()) {
+        Set<MemoryLocation> possibleUse = ReachingDefUtils.possiblePointees(expr, pPointerState);
+        assert possibleUse != null && possibleUse.size() > 0 : "No possible pointees";
+        for (MemoryLocation useVar : possibleUse) {
+          if (!useVar.getFunctionName().equals(funcName)) {
+            funcUses.add(useVar);
+          }
+        }
+      }
+    }
+
+    boolean changed = true;
+    while (changed) {
+      changed = false;
+
+      for (Map.Entry<AFunctionDeclaration, List<CFunctionSummaryEdge>> entry :
+          summaryEdges.entrySet()) {
+
+        AFunctionDeclaration callingFunc = entry.getKey();
+        String callingFuncName = callingFunc.getQualifiedName();
+        Set<MemoryLocation> callingFuncDefs =
+            pForeignDefs.computeIfAbsent(callingFunc, key -> new HashSet<>());
+        Set<MemoryLocation> callingFuncUses =
+            pForeignUses.computeIfAbsent(callingFunc, key -> new HashSet<>());
+
+        for (CFunctionSummaryEdge summaryEdge : entry.getValue()) {
+
+          AFunctionDeclaration calledFunc = summaryEdge.getFunctionEntry().getFunction();
+          Set<MemoryLocation> calledFuncDefs =
+              pForeignDefs.computeIfAbsent(calledFunc, key -> new HashSet<>());
+
+          for (MemoryLocation defVar : calledFuncDefs) {
+            if (!defVar.getFunctionName().equals(callingFuncName)) {
+              if (callingFuncDefs.add(defVar)) {
+                changed = true;
+              }
+            }
+          }
+
+          Set<MemoryLocation> calledFuncUses =
+              pForeignUses.computeIfAbsent(calledFunc, key -> new HashSet<>());
+
+          for (MemoryLocation useVar : calledFuncUses) {
+            if (!useVar.getFunctionName().equals(callingFuncName)) {
+              if (callingFuncUses.add(useVar)) {
+                changed = true;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   private void addFlowDependencesNew() {
+
+    PointerState pointerState = null;
+    try {
+      pointerState = SimplePointerAnalysis.run(cfa);
+    } catch (CPATransferException | InterruptedException ex) {
+      // TODO exception handling
+      logger.logUserException(Level.INFO, ex, "");
+    }
+
+    PointerState finalPointerState = pointerState;
+
+    Map<AFunctionDeclaration, Set<MemoryLocation>> foreignDefs = new HashMap<>();
+    Map<AFunctionDeclaration, Set<MemoryLocation>> foreignUses = new HashMap<>();
+
+    addForeignDefsUses(finalPointerState, foreignDefs, foreignUses);
 
     List<CFAEdge> globalEdges = getGlobalDeclarationEdges(cfa);
     Map<String, CFAEdge> functionDeclarations = new HashMap<>();
@@ -312,22 +425,52 @@ public class DependenceGraphBuilder implements StatisticsProvider {
               DependenceGraphBuilder::iterateSuccessors,
               DependenceGraphBuilder::iteratePredecessors);
 
-      FlowDepAnalysis.DependenceConsumer depConsumer =
-          (edge, dependent, variable) -> {
-            addDependence(
-                getDGNode(edge, Optional.empty()),
-                getDGNode(dependent, Optional.empty()),
-                DependenceType.FLOW);
-            flowDepCount.value++;
-          };
-
       new FlowDepAnalysis(
-              Dominance.createDomTraversable(domTree),
-              Dominance.createDomFrontiers(domTree),
-              entryNode,
-              globalEdges,
-              depConsumer)
-          .run();
+          Dominance.createDomTraversable(domTree),
+          Dominance.createDomFrontiers(domTree),
+          entryNode,
+          globalEdges) {
+
+        @Override
+        protected Set<MemoryLocation> getPossiblePointees(CFAEdge pEdge, CExpression pExpression) {
+          return ReachingDefUtils.possiblePointees(pExpression, finalPointerState);
+        }
+
+        @Override
+        protected Set<MemoryLocation> getForeignDefs(AFunctionDeclaration pFunction) {
+          return foreignDefs.get(pFunction);
+        }
+
+        @Override
+        protected Set<MemoryLocation> getForeignUses(AFunctionDeclaration pFunction) {
+          return foreignUses.get(pFunction);
+        }
+
+        @Override
+        protected void onDependence(CFAEdge pDefEdge, CFAEdge pUseEdge, MemoryLocation pCause) {
+
+          if (pDefEdge.equals(pUseEdge)) {
+            return;
+          }
+
+          Optional<MemoryLocation> defEdgeCause = Optional.empty();
+          Optional<MemoryLocation> useEdgeCause = Optional.empty();
+
+          if (pDefEdge instanceof CFunctionCallEdge || pDefEdge instanceof CFunctionReturnEdge) {
+            defEdgeCause = Optional.of(pCause);
+          }
+
+          if (pUseEdge instanceof CFunctionCallEdge || pUseEdge instanceof CFunctionReturnEdge) {
+            useEdgeCause = Optional.of(pCause);
+          }
+
+          addDependence(
+              getDGNode(pDefEdge, defEdgeCause),
+              getDGNode(pUseEdge, useEdgeCause),
+              DependenceType.FLOW);
+          flowDepCount.value++;
+        }
+      }.run();
 
       flowDependenceNumber.setNextValue(flowDepCount.value);
     }
