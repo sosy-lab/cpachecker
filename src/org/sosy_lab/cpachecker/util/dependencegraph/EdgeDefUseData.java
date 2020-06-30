@@ -93,6 +93,17 @@ final class EdgeDefUseData {
     return pointeeUses;
   }
 
+  private static EdgeDefUseData createEdgeDefUseData(Collector pCollector) {
+
+    ImmutableSet<MemoryLocation> defs = ImmutableSet.copyOf(pCollector.defs);
+    ImmutableSet<MemoryLocation> uses = ImmutableSet.copyOf(pCollector.uses);
+
+    ImmutableSet<CExpression> pointeeDefs = ImmutableSet.copyOf(pCollector.pointeeDefs);
+    ImmutableSet<CExpression> pointeeUses = ImmutableSet.copyOf(pCollector.pointeeUses);
+
+    return new EdgeDefUseData(defs, uses, pointeeDefs, pointeeUses);
+  }
+
   public static EdgeDefUseData extract(CFAEdge pEdge) {
 
     Optional<? extends AAstNode> optAstNode = pEdge.getRawAST().toJavaUtil();
@@ -107,18 +118,20 @@ final class EdgeDefUseData {
         Collector collector = new Collector();
         cAstNode.accept(collector);
 
-        ImmutableSet<MemoryLocation> defs = ImmutableSet.copyOf(collector.defs);
-        ImmutableSet<MemoryLocation> uses = ImmutableSet.copyOf(collector.uses);
-
-        ImmutableSet<CExpression> pointeeDefs = ImmutableSet.copyOf(collector.pointeeDefs);
-        ImmutableSet<CExpression> pointeeUses = ImmutableSet.copyOf(collector.pointeeUses);
-
-        return new EdgeDefUseData(defs, uses, pointeeDefs, pointeeUses);
+        return createEdgeDefUseData(collector);
       }
     }
 
     return new EdgeDefUseData(
         ImmutableSet.of(), ImmutableSet.of(), ImmutableSet.of(), ImmutableSet.of());
+  }
+
+  public static EdgeDefUseData extract(CExpression pExpression) {
+
+    Collector collector = new Collector();
+    pExpression.accept(collector);
+
+    return createEdgeDefUseData(collector);
   }
 
   @Override
