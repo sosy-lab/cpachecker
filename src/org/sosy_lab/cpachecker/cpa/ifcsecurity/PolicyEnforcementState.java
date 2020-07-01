@@ -1,18 +1,33 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2014  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.cpa.ifcsecurity;
 
 import java.io.Serializable;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.NavigableSet;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
@@ -48,10 +63,9 @@ LatticeAbstractState<PolicyEnforcementState<E>>, Graphable, AbstractQueryableSta
    */
   private Map<Variable,E> allowedsecurityclassmapping=new TreeMap<>();
   /**
-   * Internal Variable: Mapping between Variable and the Security Levels actually contained in the
-   * information
+   * Internal Variable: Mapping between Variable and the Security Levels actually contained in the information
    */
-  private Map<Variable, NavigableSet<E>> contentsecurityclasslevels = new TreeMap<>();
+  private Map<Variable,SortedSet<E>> contentsecurityclasslevels= new TreeMap<> ();
   /**
    * Internal Variable: Mapping between Variable and whether it is a global Variable
    */
@@ -80,12 +94,12 @@ LatticeAbstractState<PolicyEnforcementState<E>>, Graphable, AbstractQueryableSta
 
       //Check Violation
       if(this.isCheckthis()){
-        for (Entry<Variable, NavigableSet<E>> entry : this.contentsecurityclasslevels.entrySet()) {
+        for(Entry<Variable, SortedSet<E>> entry: this.contentsecurityclasslevels.entrySet()){
             Variable var=entry.getKey();
 //          if(this.isglobal.containsKey(var)){
 //            if(this.isglobal.get(var).equals(true)){
               E sink=this.allowedsecurityclassmapping.get(var);
-          NavigableSet<E> source = entry.getValue();
+              SortedSet<E> source = entry.getValue();
               Edge<E> edge=new Edge<>(sink,source);
               if(!this.policy.getEdges().contains(edge)){
                 return true;
@@ -98,7 +112,7 @@ LatticeAbstractState<PolicyEnforcementState<E>>, Graphable, AbstractQueryableSta
       for(Variable var: this.immediatecheck){
         if(this.allowedsecurityclassmapping.containsKey(var) && this.contentsecurityclasslevels.containsKey(var)){
           E sink=this.allowedsecurityclassmapping.get(var);
-          NavigableSet<E> source = this.contentsecurityclasslevels.get(var);
+          SortedSet<E> source=this.contentsecurityclasslevels.get(var);
           Edge<E> edge=new Edge<>(sink,source);
           if (!this.policy.getEdges().contains(edge)) {
             return true;
@@ -132,10 +146,10 @@ LatticeAbstractState<PolicyEnforcementState<E>>, Graphable, AbstractQueryableSta
     sb.append("\\n");
     sb.append("[Content-Level]=");
     sb.append("\\n");
-    for (Entry<Variable, NavigableSet<E>> entry : contentsecurityclasslevels.entrySet()) {
+    for(Entry<Variable, SortedSet<E>> entry:contentsecurityclasslevels.entrySet()){
       Variable key=entry.getKey();
       @SuppressWarnings("unchecked")
-      NavigableSet<SecurityClasses> value2 = (NavigableSet<SecurityClasses>) entry.getValue();
+      SortedSet<SecurityClasses> value2=(SortedSet<SecurityClasses>)  entry.getValue();
       SecurityClasses value=(SecurityClasses) allowedsecurityclassmapping.get(key);
       if(!(ignoreany && value.equals(PredefinedPolicies.UNIMPORTANT))){
         sb.append("("+key+","+value2+"), ");
@@ -156,13 +170,13 @@ LatticeAbstractState<PolicyEnforcementState<E>>, Graphable, AbstractQueryableSta
 
   @Override
   public boolean shouldBeHighlighted() {
-    // Highlight all potential Security Leak
-    for (Entry<Variable, NavigableSet<E>> entry : this.contentsecurityclasslevels.entrySet()) {
+    //Highlight all potential Security Leak
+    for(Entry<Variable, SortedSet<E>> entry: this.contentsecurityclasslevels.entrySet()){
       Variable var=entry.getKey();
 //    if(this.isglobal.containsKey(var)){
 //      if(this.isglobal.get(var).equals(true)){
         E sink=this.allowedsecurityclassmapping.get(var);
-      NavigableSet<E> source = entry.getValue();
+        SortedSet<E> source=entry.getValue();
         Edge<E> edge=new Edge<>(sink,source);
         if(!this.policy.getEdges().contains(edge)){
           return true;
@@ -173,7 +187,7 @@ LatticeAbstractState<PolicyEnforcementState<E>>, Graphable, AbstractQueryableSta
 //      if(this.isglobal.containsKey(var)){
 //        if(this.isglobal.get(var).equals(true)){
 //          E sink=this.allowedsecurityclassmapping.get(var);
-//          NavigableSet<E> source=this.contentsecurityclasslevels.get(var);
+//          SortedSet<E> source=this.contentsecurityclasslevels.get(var);
 //          Edge edge=new Edge(sink,source);
 //          if(!(this.policy.getEdges().contains(edge))){
 //            return true;
@@ -221,11 +235,11 @@ LatticeAbstractState<PolicyEnforcementState<E>>, Graphable, AbstractQueryableSta
       //Strongest Post Condition
       PolicyEnforcementState<E> merge=this;
       for(Entry<Variable, E> entry: pOther.allowedsecurityclassmapping.entrySet()){
-        // (NavigableSet<Variable>)
-        Variable var = entry.getKey();
-        NavigableSet<E> deps = pOther.contentsecurityclasslevels.get(var);
+        //(SortedSet<Variable>)
+        Variable var=entry.getKey();
+        SortedSet<E> deps = pOther.contentsecurityclasslevels.get(var);
         E initialmap=entry.getValue();
-        NavigableSet<E> ndeps = new TreeSet<>();
+        SortedSet<E> ndeps =new TreeSet<>();
         if(this.allowedsecurityclassmapping.containsKey(var)){
           assert(merge.allowedsecurityclassmapping.containsKey(var));
           assert(merge.contentsecurityclasslevels.containsKey(var));
@@ -270,9 +284,9 @@ LatticeAbstractState<PolicyEnforcementState<E>>, Graphable, AbstractQueryableSta
     }
 
     result.contentsecurityclasslevels=new TreeMap<>();
-    for (Entry<Variable, NavigableSet<E>> entry : this.contentsecurityclasslevels.entrySet()) {
+    for(Entry<Variable, SortedSet<E>> entry :this.contentsecurityclasslevels.entrySet()){
       Variable key=entry.getKey();
-      NavigableSet<E> val = entry.getValue();
+      SortedSet<E> val=entry.getValue();
       result.contentsecurityclasslevels.put(key, val);
     }
 
@@ -292,7 +306,7 @@ LatticeAbstractState<PolicyEnforcementState<E>>, Graphable, AbstractQueryableSta
 //    return checkthis;
 //  }
 //
-//  protected Map<Variable,NavigableSet<E>> getcontentsecurityclasslevels(){
+//  protected Map<Variable,SortedSet<E>> getcontentsecurityclasslevels(){
 //    return contentsecurityclasslevels;
 //  }
 
@@ -326,12 +340,13 @@ LatticeAbstractState<PolicyEnforcementState<E>>, Graphable, AbstractQueryableSta
     allowedsecurityclassmapping = pAllowedsecurityclassmapping;
   }
 
-  public Map<Variable, NavigableSet<E>> getContentsecurityclasslevels() {
+
+  public Map<Variable, SortedSet<E>> getContentsecurityclasslevels() {
     return contentsecurityclasslevels;
   }
 
-  protected void setContentsecurityclasslevels(
-      Map<Variable, NavigableSet<E>> pContentsecurityclasslevels) {
+
+  protected void setContentsecurityclasslevels(Map<Variable, SortedSet<E>> pContentsecurityclasslevels) {
     contentsecurityclasslevels = pContentsecurityclasslevels;
   }
 
@@ -350,7 +365,8 @@ LatticeAbstractState<PolicyEnforcementState<E>>, Graphable, AbstractQueryableSta
     return immediatecheck;
   }
 
-  protected void setImmediatecheck(NavigableSet<Variable> pImmediatecheck) {
+
+  protected void setImmediatecheck(SortedSet<Variable> pImmediatecheck) {
     immediatecheck = pImmediatecheck;
   }
 

@@ -1,17 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-
-<!--
-This file is part of CPAchecker,
-a tool for configurable software verification:
-https://cpachecker.sosy-lab.org
-
-SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-
-SPDX-License-Identifier: Apache-2.0
--->
-
 <!-- vim: set tabstop=8 shiftwidth=4 expandtab filetype=ant : -->
-<project name="Base script for parser generation" default="generate-parser" basedir="." xmlns:if="ant:if" xmlns:unless="ant:unless">
+<project name="Base script for parser generation" default="generate-parser" basedir=".">
     <!-- basedir should be the "CPAchecker" directory -->
     <dirname property="dir.base" file="${ant.file.imported}"/>
     <property name="dir.src" location="${dir.base}/src" />
@@ -20,7 +9,7 @@ SPDX-License-Identifier: Apache-2.0
     <!-- the following properties will be used as default
          if the importing file does not overwrite them -->
     <property name="scanner.source" value="Scanner.jflex"/>
-    <!-- <property name="skeleton.source" value=""/> -->
+    <property name="skeleton.source" value="skeleton.nested"/>
     <property name="parser.source" value="parser.cup"/>
 
     <path id="parser.generator.path">
@@ -59,12 +48,7 @@ SPDX-License-Identifier: Apache-2.0
     </condition>
 
     <target name="generate-scanner" unless="scanner.uptodate" description="Generate automaton scanner">
-        <jflex file="${dir.parser}/${scanner.source}" destdir="${dir.src}" skel="${dir.parser}/${skeleton.source}" if:set="skeleton.source"/>
-        <jflex file="${dir.parser}/${scanner.source}" destdir="${dir.src}" unless:set="skeleton.source"/>
-        <replace file="${dir.parser}/${scanner.target}.java"
-            token="@SuppressWarnings(&quot;FallThrough&quot;)"
-            value="@SuppressWarnings({&quot;FallThrough&quot;, &quot;all&quot;, &quot;cast&quot;})"
-        />
+        <jflex file="${dir.parser}/${scanner.source}" destdir="${dir.src}" skel="${dir.parser}/${skeleton.source}"/>
     </target>
 
     <target name="generate-parser" depends="generate-scanner" unless="parser.uptodate" description="Generate automaton parser">
@@ -78,13 +62,7 @@ SPDX-License-Identifier: Apache-2.0
         />
 
         <!-- place a more general suppressWarnings-tag in front of the generated class -->
-        <property name="annotation" value="@javax.annotation.processing.Generated(&quot;CUP&quot;)${line.separator}"/>
-        <replace file="${dir.parser}/${parser.target}.java"
-            token="@SuppressWarnings({&quot;rawtypes&quot;})"
-            value="${annotation}@SuppressWarnings({&quot;all&quot;, &quot;cast&quot;, &quot;rawtypes&quot;, &quot;unchecked&quot;} )${line.separator}@edu.umd.cs.findbugs.annotations.SuppressFBWarnings({&quot;EI_EXPOSE_REP&quot;, &quot;MS_PKGPROTECT&quot;, &quot;SIC_INNER_SHOULD_BE_STATIC&quot;})"/>
-        <replace file="${dir.parser}/${symbols.target}.java"
-            token="public interface "
-            value="${annotation}public interface "
-        />
+        <property name="annotation" value="@javax.annotation.processing.Generated(&quot;CUP&quot;)${line.separator}@SuppressWarnings(value = {&quot;all&quot;, &quot;cast&quot;, &quot;rawtypes&quot;, &quot;unchecked&quot;} )${line.separator}@edu.umd.cs.findbugs.annotations.SuppressFBWarnings(value = {&quot;EI_EXPOSE_REP&quot;, &quot;MS_PKGPROTECT&quot;, &quot;SIC_INNER_SHOULD_BE_STATIC&quot;})"/>
+        <replace file="${dir.parser}/${parser.target}.java" token="@SuppressWarnings({&quot;rawtypes&quot;})" value="${annotation}"/>
     </target>
 </project>

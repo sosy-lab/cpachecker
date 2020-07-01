@@ -1,11 +1,31 @@
-# This file is part of CPAchecker,
-# a tool for configurable software verification:
-# https://cpachecker.sosy-lab.org
-#
-# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-#
-# SPDX-License-Identifier: Apache-2.0
+"""
+CPAchecker is a tool for configurable software verification.
+This file is part of CPAchecker.
 
+Copyright (C) 2007-2014  Dirk Beyer
+All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+
+CPAchecker web page:
+  http://cpachecker.sosy-lab.org
+"""
+
+# prepare for Python 3
+from __future__ import absolute_import, division, print_function, unicode_literals
+
+import collections
 import sys
 
 sys.dont_write_bytecode = True  # prevent creation of .pyc files
@@ -15,6 +35,7 @@ import logging
 import os
 import shutil
 import subprocess
+import time
 
 from benchexec.model import MEMLIMIT, TIMELIMIT, CORELIMIT
 import benchexec.util
@@ -79,7 +100,7 @@ def execute_benchmark(benchmark, output_handler):
         ant = subprocess.Popen(
             ["ant", "resolve-benchmark-dependencies"],
             cwd=_ROOT_DIR,
-            shell=util.is_windows(),  # noqa: S602
+            shell=util.is_windows(),
         )
         ant.communicate()
         ant.wait()
@@ -122,7 +143,7 @@ def execute_benchmark(benchmark, output_handler):
         start_time = benchexec.util.read_local_time()
 
         cloud = subprocess.Popen(
-            cmdLine, stdin=subprocess.PIPE, shell=util.is_windows()  # noqa: S602
+            cmdLine, stdin=subprocess.PIPE, shell=util.is_windows()
         )
         try:
             cloud.communicate(cloudInput.encode("utf-8"))
@@ -159,8 +180,8 @@ def formatEnvironment(environment):
     return ";".join(k + "=" + v for k, v in environment.get("newEnv", {}).items())
 
 
-def toTabList(items):
-    return "\t".join(map(str, items))
+def toTabList(l):
+    return "\t".join(map(str, l))
 
 
 def getCloudInput(benchmark):
@@ -246,7 +267,7 @@ def getBenchmarkDataForCloud(benchmark):
             # we assume, that VCloud-client only splits its input at tabs,
             # so we can use all other chars for the info, that is needed to run the tool.
             argString = json.dumps(cmdline)
-            assert "\t" not in argString  # cannot call toTabList(), if there is a tab
+            assert not "\t" in argString  # cannot call toTabList(), if there is a tab
 
             log_file = os.path.relpath(run.log_file, benchmark.log_folder)
             if os.path.exists(run.identifier):

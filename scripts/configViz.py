@@ -1,12 +1,28 @@
 #!/usr/bin/env python3
 
-# This file is part of CPAchecker,
-# a tool for configurable software verification:
-# https://cpachecker.sosy-lab.org
-#
-# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-#
-# SPDX-License-Identifier: Apache-2.0
+"""
+CPAchecker is a tool for configurable software verification.
+This file is part of CPAchecker.
+
+Copyright (C) 2007-2017  Dirk Beyer
+All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+
+CPAchecker web page:
+  http://cpachecker.sosy-lab.org
+"""
 
 import argparse
 import os
@@ -37,7 +53,7 @@ class Node:
     def __init__(self, name):
         self.name = name
         self.childrenToType = collectChildren(name)  # collect types of children
-        self.children = set(self.childrenToType.keys())
+        self.children = set([c for c in self.childrenToType.keys()])
         for c in self.children:
             assert c in self.childrenToType
         self.parents = []  # filled later
@@ -77,28 +93,28 @@ def getFilenamesFromLine(line):
         fname = line.split()[1]
     else:
         m = re.search(
-            r"^[a-zA-Z\.]*(config|Config|terminatingStatements)(?:Files|)\s*=\s*(.*)\s*",
+            "^[a-zA-Z\.]*(config|Config|terminatingStatements)(?:Files|)\s*=\s*(.*)\s*",
             line,
         )
-        if m is not None:
+        if m != None:
             fname = m.group(2)
             typ = EdgeType.SPECIAL
             if fname in ["true", "false"]:
                 fname = None  # ignore some options with unusual name
         else:
-            m = re.search(r"^specification\s*=\s*(.*)\s*", line)
-            if m is not None:
+            m = re.search("^specification\s*=\s*(.*)\s*", line)
+            if m != None:
                 fname = m.group(1)
                 typ = EdgeType.SPECIFICATION
     if not fname:
-        return ([], typ)
+        return (list(), typ)
     fnames = [name.strip().split("::")[0] for name in fname.split(",")]
     assert all(fnames), line
     return (fnames, typ)
 
 
 def collectChildren(filename):
-    children = {}
+    children = dict()
     try:
         multilineBuffer = ""
         for line in open(filename, "r"):
@@ -141,9 +157,9 @@ def collectChildren(filename):
 def listFiles(paths):
     """recursively traverse the given path and collect all files"""
     for path in paths:
-        for root, _subFolders, files in os.walk(path):
+        for root, subFolders, files in os.walk(path):
             for item in files:
-                if "README" not in item:  # filter unwanted files
+                if not "README" in item:  # filter unwanted files
                     yield os.path.normpath(os.path.join(root, item))
 
 
@@ -168,7 +184,7 @@ def writeDot(
 
     if clusterNodes or clusterKeywords:
         categoryMapping = defaultdict(dict)
-        unclustered = []
+        unclustered = list()
         for name, node in sorted(allNodesDict.items()):
             if clusterNodes:
                 categoryMapping[normPath(os.path.dirname(node.name))][name] = node
@@ -222,7 +238,7 @@ def writeDot(
                     % (normPath(filename), normPath(childDependencyNodes[child].name))
                 )
         for parent in v.parents:
-            if parent not in nodes and parent in parentDependencyNodes:
+            if not parent in nodes and parent in parentDependencyNodes:
                 out.write(
                     '"%s" -> "%s" [style="dashed" color="grey"];\n'
                     % (normPath(parentDependencyNodes[parent].name), normPath(filename))
@@ -250,24 +266,24 @@ def normPath(f):
 
 
 def determineDependencies(nodes, showChildDependencies, showParentDependencies):
-    childDependencyNodes = {}
+    childDependencyNodes = dict()
     if showChildDependencies:
-        childDependencyNodes = {
-            childNode.name: childNode
+        childDependencyNodes = dict(
+            (childNode.name, childNode)
             for k, v in nodes.items()
             for childNode in v.childNodes
             if childNode.name not in nodes
-        }
-    parentDependencyNodes = {}
+        )
+    parentDependencyNodes = dict()
     if showParentDependencies:
-        parentDependencyNodes = {
-            parentNode.name: parentNode
+        parentDependencyNodes = dict(
+            (parentNode.name, parentNode)
             for k, v in nodes.items()
             for parentNode in v.parentNodes
             if parentNode.name not in nodes
-        }
+        )
 
-    allNodesDict = {}
+    allNodesDict = dict()
     allNodesDict.update(nodes)
     allNodesDict.update(childDependencyNodes)
     allNodesDict.update(parentDependencyNodes)
@@ -289,11 +305,11 @@ def determineNode(node, dependencyNode=False):
     color = determineColor(node)
 
     tooltip = ""
-    if content is not None:
+    if content != None:
         tooltip = 'tooltip = "%s"' % content
 
     style = ""
-    if color is not None:
+    if color != None:
         style = 'style=filled fillcolor="%s"' % color
     if dependencyNode:
         style = 'style="setlinewidth(3),rounded" color="%s"' % color
@@ -469,7 +485,7 @@ def componentsSanityCheck(nodes):
 
 
 def transitiveReductionCheck(nodes):
-    wlist = [node for name, node in nodes.items()]  # type is list of node names
+    wlist = [node for name, node in nodes.items()]  # type: list of node names
 
     def filterChildren(node):  # returns generator over Node objects
         return (
@@ -480,24 +496,24 @@ def transitiveReductionCheck(nodes):
         )
 
     def specificationOptionEqual(first, second):
-        firstspecs = {
+        firstspecs = set(
             c.name
             for c in first.childNodes
             if first.childrenToType[c.name] == EdgeType.SPECIFICATION
-        }
-        secondspecs = {
+        )
+        secondspecs = set(
             c.name
             for c in second.childNodes
             if second.childrenToType[c.name] == EdgeType.SPECIFICATION
-        }
+        )
         return firstspecs == secondspecs
 
     while wlist:
-        current = wlist.pop()  # type is node name
-        reach = {}  # key is reached element, value is by whom it was reached
+        current = wlist.pop()  # type: node name
+        reach = dict()  # key is reached element, value is by whom it was reached
         for c in filterChildren(current):
             reach[c] = current
-        wlist2 = list(filterChildren(current))  # type is list of Node objects
+        wlist2 = [c for c in filterChildren(current)]  # type: list of Node objects
         while wlist2:
             current2 = wlist2.pop()
             for c in filterChildren(current2):
@@ -532,22 +548,22 @@ if __name__ == "__main__":
     componentsSanityCheck(nodes)
     transitiveReductionCheck(nodes)
 
-    children = []
-    if args.root is not None:
+    children = list()
+    if args.root != None:
         for root in args.root:
             if root not in nodes:
                 log("Root file '%s' not found." % root)
             else:
                 children.extend(getTransitiveChildren(root, nodes))
-    nodesFromRoot = {k: v for k, v in nodes.items() if k in children}
+    nodesFromRoot = dict((k, v) for k, v in nodes.items() if k in children)
 
     nodesFromDepend = {}
-    if args.depend is not None:
+    if args.depend != None:
         if args.depend not in nodes:
             log("Depend file '%s' not found." % args.depend)
         else:
             parents = getTransitiveParents(args.depend, nodes)
-            nodesFromDepend = {k: v for k, v in nodes.items() if k in parents}
+            nodesFromDepend = dict((k, v) for k, v in nodes.items() if k in parents)
 
     # if any option is set, use its output
     if nodesFromRoot:
@@ -557,17 +573,17 @@ if __name__ == "__main__":
     elif nodesFromDepend:
         nodes = nodesFromDepend
 
-    if args.filter is not None:
-        nodes = {
-            k: v
+    if args.filter != None:
+        nodes = dict(
+            (k, v)
             for k, v in nodes.items()
             if any(f.lower() in k.lower() for f in args.filter)
-        }
+        )
 
-    if args.exclude is not None:
-        nodes = {
-            k: v for k, v in nodes.items() if not any(f in k for f in args.exclude)
-        }
+    if args.exclude != None:
+        nodes = dict(
+            (k, v) for k, v in nodes.items() if not any(f in k for f in args.exclude)
+        )
 
     # write dot-output
     out = sys.stdout  # open("configViz.dot","w")

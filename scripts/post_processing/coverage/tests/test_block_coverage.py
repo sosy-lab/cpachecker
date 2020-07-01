@@ -1,26 +1,24 @@
 #!/usr/bin/python3
 
-# This file is part of CPAchecker,
-# a tool for configurable software verification:
-# https://cpachecker.sosy-lab.org
-#
-# SPDX-FileCopyrightText: 2017 Rodrigo Castano
-# SPDX-FileCopyrightText: 2017-2020 Dirk Beyer <https://www.sosy-lab.org>
-#
-# SPDX-License-Identifier: Apache-2.0
-
 import logging
 import os
 import os.path
 import shutil
+import sys
 import time
 import unittest
 import unittest.mock
-from unittest.mock import patch
+from io import StringIO
+from unittest.mock import MagicMock, call, patch
 
 import post_processing.coverage.generate_coverage as generate_coverage
 
 script_path = os.path.dirname(os.path.realpath(__file__))
+
+
+def gen_files_in_dir(dir):
+    for f in os.listdir(dir):
+        yield os.path.join(dir, f)
 
 
 class TestCoverage(unittest.TestCase):
@@ -35,12 +33,18 @@ class TestCoverage(unittest.TestCase):
     temp_folder = os.path.join(script_path, "temp_folder")
 
     def setUp(self):
-        shutil.rmtree(self.temp_folder, ignore_errors=True)
+        try:
+            shutil.rmtree(self.temp_folder)
+        except:
+            pass
         self.logger = logging.getLogger()
         self.logger.setLevel(logging.INFO)
 
     def tearDown(self):
-        shutil.rmtree(self.temp_folder, ignore_errors=True)
+        try:
+            shutil.rmtree(self.temp_folder)
+        except:
+            pass
 
 
 class TestCoverageWhile(TestCoverage):
@@ -48,7 +52,7 @@ class TestCoverageWhile(TestCoverage):
         instance = os.path.join(self.aux_root, "while.c")
         aa_file = os.path.join(self.aux_root, os.pardir, "true_aa.spc")
         start_time = time.time()
-        with patch.object(self.logger, "info"):
+        with patch.object(self.logger, "info") as mock_info:
             c = generate_coverage.FixPointOnCoveredLines(
                 instance=instance,
                 output_dir=self.temp_folder,
@@ -63,8 +67,8 @@ class TestCoverageWhile(TestCoverage):
             )
             lines_covered, lines_to_cover = c.collect_coverage()
 
-        self.assertEqual(lines_covered, {12, 13})
-        self.assertEqual(lines_to_cover, {12, 13, 14, 15, 16})
+        self.assertEqual(lines_covered, set([3, 4]))
+        self.assertEqual(lines_to_cover, set([3, 4, 5, 6, 7]))
 
 
 class TestCoverageIf(TestCoverage):
@@ -72,7 +76,7 @@ class TestCoverageIf(TestCoverage):
         instance = os.path.join(self.aux_root, "if.c")
         aa_file = os.path.join(self.aux_root, os.pardir, "true_aa.spc")
         start_time = time.time()
-        with patch.object(self.logger, "info"):
+        with patch.object(self.logger, "info") as mock_info:
             c = generate_coverage.FixPointOnCoveredLines(
                 instance=instance,
                 output_dir=self.temp_folder,
@@ -87,8 +91,8 @@ class TestCoverageIf(TestCoverage):
             )
             lines_covered, lines_to_cover = c.collect_coverage()
 
-        self.assertEqual(lines_covered, {12, 13})
-        self.assertEqual(lines_to_cover, {12, 13, 14, 15, 16})
+        self.assertEqual(lines_covered, set([3, 4]))
+        self.assertEqual(lines_to_cover, set([3, 4, 5, 6, 7]))
 
 
 class TestCoverageSwitch(TestCoverage):
@@ -96,7 +100,7 @@ class TestCoverageSwitch(TestCoverage):
         instance = os.path.join(self.aux_root, "switch.c")
         aa_file = os.path.join(self.aux_root, os.pardir, "true_aa.spc")
         start_time = time.time()
-        with patch.object(self.logger, "info"):
+        with patch.object(self.logger, "info") as mock_info:
             c = generate_coverage.FixPointOnCoveredLines(
                 instance=instance,
                 output_dir=self.temp_folder,
@@ -111,10 +115,10 @@ class TestCoverageSwitch(TestCoverage):
             )
             lines_covered, lines_to_cover = c.collect_coverage()
 
-        self.assertEqual(lines_covered, {12, 13, 14, 17, 18, 23, 24, 25})
+        self.assertEqual(lines_covered, set([3, 4, 5, 8, 9, 14, 15, 16]))
         self.assertEqual(
             lines_to_cover,
-            {12, 13, 14, 15, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30},
+            set([3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]),
         )
 
 
@@ -123,7 +127,7 @@ class TestCoverageWhileWithCall(TestCoverage):
         instance = os.path.join(self.aux_root, "while_with_call.c")
         aa_file = os.path.join(self.aux_root, os.pardir, "true_aa.spc")
         start_time = time.time()
-        with patch.object(self.logger, "info"):
+        with patch.object(self.logger, "info") as mock_info:
             c = generate_coverage.FixPointOnCoveredLines(
                 instance=instance,
                 output_dir=self.temp_folder,
@@ -138,8 +142,8 @@ class TestCoverageWhileWithCall(TestCoverage):
             )
             lines_covered, lines_to_cover = c.collect_coverage()
 
-        self.assertEqual(lines_covered, {13, 14})
-        self.assertEqual(lines_to_cover, {13, 14, 15, 16, 17, 18, 23, 24, 25, 26})
+        self.assertEqual(lines_covered, set([4, 5]))
+        self.assertEqual(lines_to_cover, set([4, 5, 6, 7, 8, 9, 14, 15, 16, 17]))
 
 
 class TestCoverageMultilineSwitchExpression(TestCoverage):
@@ -147,7 +151,7 @@ class TestCoverageMultilineSwitchExpression(TestCoverage):
         instance = os.path.join(self.aux_root, "multiline_switch.c")
         aa_file = os.path.join(self.aux_root, os.pardir, "true_aa.spc")
         start_time = time.time()
-        with patch.object(self.logger, "info"):
+        with patch.object(self.logger, "info") as mock_info:
             c = generate_coverage.FixPointOnCoveredLines(
                 instance=instance,
                 output_dir=self.temp_folder,
@@ -163,9 +167,42 @@ class TestCoverageMultilineSwitchExpression(TestCoverage):
             lines_covered, lines_to_cover = c.collect_coverage()
 
         self.assertEqual(
-            lines_covered, {12, 13, 14, 15, 16, 17, 23, 24, 25, 26, 27, 32, 33, 34}
+            lines_covered, set([3, 4, 5, 6, 7, 8, 14, 15, 16, 17, 18, 23, 24, 25])
         )
-        self.assertEqual(lines_to_cover, set(range(12, 40)) - {22})
+        self.assertEqual(
+            lines_to_cover,
+            set(
+                [
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12,
+                    14,
+                    15,
+                    16,
+                    17,
+                    18,
+                    19,
+                    20,
+                    21,
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28,
+                    29,
+                    30,
+                ]
+            ),
+        )
 
 
 class TestCoverageMultilineSwitchExpressionAndCall(TestCoverage):
@@ -173,7 +210,7 @@ class TestCoverageMultilineSwitchExpressionAndCall(TestCoverage):
         instance = os.path.join(self.aux_root, "multiline_switch_and_call.c")
         aa_file = os.path.join(self.aux_root, os.pardir, "true_aa.spc")
         start_time = time.time()
-        with patch.object(self.logger, "info"):
+        with patch.object(self.logger, "info") as mock_info:
             c = generate_coverage.FixPointOnCoveredLines(
                 instance=instance,
                 output_dir=self.temp_folder,
@@ -191,9 +228,44 @@ class TestCoverageMultilineSwitchExpressionAndCall(TestCoverage):
         # evaluated even though line 4 cannot be reached.
         self.assertEqual(
             lines_covered,
-            {12, 13, 16, 17, 18, 19, 20, 21, 27, 28, 29, 30, 31, 36, 37, 38},
+            set([3, 4, 7, 8, 9, 10, 11, 12, 18, 19, 20, 21, 22, 27, 28, 29]),
         )
-        self.assertEqual(lines_to_cover, {12, 13} | (set(range(16, 44)) - {26}))
+        self.assertEqual(
+            lines_to_cover,
+            set(
+                [
+                    3,
+                    4,
+                    7,
+                    8,
+                    9,
+                    10,
+                    11,
+                    12,
+                    13,
+                    14,
+                    15,
+                    16,
+                    18,
+                    19,
+                    20,
+                    21,
+                    22,
+                    23,
+                    24,
+                    25,
+                    26,
+                    27,
+                    28,
+                    29,
+                    30,
+                    31,
+                    32,
+                    33,
+                    34,
+                ]
+            ),
+        )
 
 
 if __name__ == "__main__":

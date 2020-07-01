@@ -1,11 +1,26 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2018  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.test;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -13,17 +28,19 @@ import static com.google.common.truth.Truth.assertThat;
 
 import com.google.common.collect.Iterables;
 import com.google.common.truth.Truth;
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGRuntimeCheck;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -178,7 +195,8 @@ public final class SMGListAbstractionTestHelpers {
     // to prevent ambiguity, existing links must be deleted before the new linking
     deleteLinksOfObjects(pSmg, pAddresses, pNfo, pPfo);
 
-    int ptrSize = pSmg.getSizeofPtrInBits();
+    CType ptrType = pSmg.getMachineModel().getPointerEquivalentSimpleType();
+    BigInteger ptrSize = pSmg.getMachineModel().getSizeofInBits(ptrType);
     final SMGValue firstAddress = pAddresses[0];
     if (!pSmg.isPointer(firstAddress)) {
       throw new IllegalArgumentException(
@@ -306,11 +324,8 @@ public final class SMGListAbstractionTestHelpers {
     for (SMGValue address : pAddresses) {
       SMGObject object = pSmg.getObjectPointedBy(address);
       for (int offset : new int[] {pNfo, pPfo}) {
-        SMGHasValueEdges set =
-            pSmg.getHVEdges(
-                SMGEdgeHasValueFilter.objectFilter(object)
-                    .filterAtOffset(offset)
-                    .filterBySize(pSmg.getSizeofPtrInBits()));
+        Set<SMGEdgeHasValue> set =
+            pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(object).filterAtOffset(offset));
         for (SMGEdgeHasValue hv : set) {
           pSmg.removeHasValueEdge(hv);
         }
@@ -389,7 +404,7 @@ public final class SMGListAbstractionTestHelpers {
             pSmg, pSublists.length, pNodeSize, pHfo, pNfo, pPfo, minLengths, level, pLinkage);
     addPointersToRegionsOnHeap(pSmg, regions, addresses, 0);
     addPointersToListsOnHeap(pSmg, sublists, subaddresses, pHfo, SMGTargetSpecifier.FIRST);
-    addFieldsToObjectsOnHeap(pSmg, regions, subaddresses, pSmg.getSizeofPtrInBits(), pDfo);
+    addFieldsToObjectsOnHeap(pSmg, regions, subaddresses, pDataSize, pDfo);
     SMGValue[] values = joinValuesPerList(pSublists);
     addFieldsToObjectsOnHeap(pSmg, sublists, values, pDataSize, pDfo);
     return linkObjectsOnHeap(pSmg, addresses, pHfo, pNfo, pPfo, pCircularity, pLinkage);
@@ -421,8 +436,11 @@ public final class SMGListAbstractionTestHelpers {
   }
 
   static SMGRegion addGlobalListPointerToSMG(CLangSMG pSmg, SMGValue pHeadAddress, String pLabel) {
-    SMGRegion globalVar = new SMGRegion(pSmg.getSizeofPtrInBits(), pLabel);
-    SMGEdgeHasValue hv = new SMGEdgeHasValue(pSmg.getSizeofPtrInBits(), 0, globalVar, pHeadAddress);
+    SMGRegion globalVar = new SMGRegion(8 * pSmg.getMachineModel().getSizeofPtr(), pLabel);
+    CSimpleType ptrType = pSmg.getMachineModel().getPointerEquivalentSimpleType();
+    SMGEdgeHasValue hv =
+        new SMGEdgeHasValue(
+            pSmg.getMachineModel().getSizeofInBits(ptrType), 0, globalVar, pHeadAddress);
     pSmg.addGlobalObject(globalVar);
     pSmg.addHasValueEdge(hv);
     return globalVar;
@@ -434,7 +452,6 @@ public final class SMGListAbstractionTestHelpers {
         new SMGAbstractionManager(LogManager.createTestLogManager(), pSmg, pState);
     pState.performConsistencyCheck(SMGRuntimeCheck.FORCED);
     manager.execute();
-    pState.pruneUnreachable();
     pState.performConsistencyCheck(SMGRuntimeCheck.FORCED);
   }
 
@@ -456,10 +473,7 @@ public final class SMGListAbstractionTestHelpers {
     if (allValuesEqual) {
       SMGEdgeHasValue hv =
           Iterables.getOnlyElement(
-              pSmg.getHVEdges(
-                  SMGEdgeHasValueFilter.objectFilter(pObject)
-                      .filterAtOffset(pDfo)
-                      .filterWithoutSize()));
+              pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject).filterAtOffset(pDfo)));
       if (pValues.length > 0) {
         Truth.assertThat(hv.getValue()).isEqualTo(pValues[0]);
       }
@@ -474,10 +488,7 @@ public final class SMGListAbstractionTestHelpers {
     if (onlyNonEmptySublists && allValuesEqualInUnionOfSublists) {
       SMGEdgeHasValue hv =
           Iterables.getOnlyElement(
-              pSmg.getHVEdges(
-                  SMGEdgeHasValueFilter.objectFilter(pSubobject)
-                      .filterAtOffset(pDfo)
-                      .filterWithoutSize()));
+              pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pSubobject).filterAtOffset(pDfo)));
       Truth.assertThat(hv.getValue()).isEqualTo(pSublists[0][0]);
     }
   }

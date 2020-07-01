@@ -1,11 +1,26 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2017  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -13,10 +28,8 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.getPr
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -43,7 +56,6 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.dca.DCAState;
-import org.sosy_lab.cpachecker.cpa.overflow.OverflowState;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.cpa.slab.EdgeSet;
 import org.sosy_lab.cpachecker.cpa.slab.SLARGState;
@@ -67,25 +79,24 @@ public class SlicingAbstractionsUtils {
   private SlicingAbstractionsUtils() {}
 
   /**
-   * Calculate parent abstraction states for a given abstraction state and the corresponding
-   * non-abstraction states that lie between them.
+   * Calculate parent abstraction states for a given abstraction state
+   * and the corresponding non-abstraction states that lie between them.
    *
    * @param originState The (abstraction) state for which to calculate the incoming segment
-   * @return A mapping of (abstraction) states to a list of (non-abstraction) states via which
-   *     originState can be reached from the corresponding key
+   * @return A mapping of (abstraction) states to a list of (non-abstraction) states
+   *         via which originState can be reached from the corresponding key
    */
-  public static Map<ARGState, PersistentList<ARGState>> calculateIncomingSegments(
-      ARGState originState) {
+  public static Map<ARGState, List<ARGState>> calculateIncomingSegments(ARGState originState) {
     checkArgument(isAbstractionState(originState));
 
-    final Map<ARGState, PersistentList<ARGState>> result = new TreeMap<>();
+    final Map<ARGState, List<ARGState>> result = new TreeMap<>();
     final List<ARGState> startAbstractionStates = calculateStartStates(originState);
 
     // This looks a bit expensive, but we cannot simply write this method like calculateOutgoingSegments!
     // Because of the way we build our ARG, we can be sure that a block has only one starting
     // abstraction state, but there could be several abstraction states to end at.
     for (ARGState s : startAbstractionStates) {
-      Map<ARGState, PersistentList<ARGState>> outgoing = calculateOutgoingSegments(s);
+      Map<ARGState, List<ARGState>> outgoing = calculateOutgoingSegments(s);
       if (outgoing.containsKey(originState)) {
          result.put(s,outgoing.get(originState));
       }
@@ -137,22 +148,20 @@ public class SlicingAbstractionsUtils {
   }
 
   /**
-   * Calculate child abstraction states for a given abstraction state and the corresponding
-   * non-abstraction states that lie between them.
-   *
+   * Calculate child abstraction states for a given abstraction state
+   * and the corresponding non-abstraction states that lie between them.
    * @param originState The (abstraction) state from which to start
-   * @return A mapping of (abstraction) states to a list of (non-abstraction) states which can be
-   *     reached from originState
+   * @return A mapping of (abstraction) states to a list of (non-abstraction) states
+   *         which can be reached from originState
    */
-  public static ImmutableMap<ARGState, PersistentList<ARGState>> calculateOutgoingSegments(
-      ARGState originState) {
+  public static Map<ARGState, List<ARGState>> calculateOutgoingSegments(ARGState originState) {
     checkArgument(isAbstractionState(originState));
 
     // Used data structures:
     final Collection<ARGState> outgoingStates = originState.getChildren();
     final Deque<ARGState> waitlist = new ArrayDeque<>();
     final Map<ARGState, PersistentList<ARGState>> frontier = new TreeMap<>();
-    final Map<ARGState, PersistentList<ARGState>> segmentMap = new TreeMap<>();
+    final Map<ARGState, List<ARGState>> segmentMap = new TreeMap<>();
     final Collection<ARGState> reachableNonAbstractionStates = nonAbstractionReach(originState);
 
     // prepare initial state
@@ -216,7 +225,7 @@ public class SlicingAbstractionsUtils {
       for (ARGState child : currentState.getChildren()) {
         if (isAbstractionState(child)) {
           if (segmentMap.containsKey(child)) {
-            PersistentList<ARGState> storedStateList = segmentMap.get(child);
+            PersistentList<ARGState> storedStateList = (PersistentList<ARGState>) segmentMap.get(child);
             for (ARGState s : currentStateList.reversed()) {
               if (!storedStateList.contains(s)) {
                 storedStateList = storedStateList.with(s);
@@ -235,7 +244,13 @@ public class SlicingAbstractionsUtils {
     }
 
     // Now we need to reverse the segments so that they are in correct order:
-    return ImmutableMap.copyOf(Maps.transformValues(segmentMap, segment -> segment.reversed()));
+    for (Map.Entry<ARGState,List<ARGState>> entry : segmentMap.entrySet()) {
+      ARGState key = entry.getKey();
+      List<ARGState> segment = entry.getValue();
+      segmentMap.put(key, ((PersistentList<ARGState>) segment).reversed());
+    }
+
+    return segmentMap;
   }
 
   private static Collection<ARGState> nonAbstractionReach(ARGState pOriginState) {
@@ -261,31 +276,21 @@ public class SlicingAbstractionsUtils {
   }
 
   /**
-   * Create a path formula for a part of the ARG.
-   *
    * @param start The (abstraction) state to start at
-   * @param stop The (abstraction) state to end at (has to be reachable via non-abstraction states
-   *     from start!)
-   * @param pSSAMap The SSAMap to start with (needed e.g. for building sequences of PathFormulas,
-   *     see {@link SlicingAbstractionsBlockFormulaStrategy}
+   * @param stop The (abstraction) state to end at
+   *        (has to be reachable via non-abstraction states from start!)
+   * @param pSSAMap The SSAMap to start with
+   *        (needed e.g. for building sequences of PathFormulas, see {@link SlicingAbstractionsBlockFormulaStrategy}
    * @param pSolver solver object that provides the formula manager
    * @param pPfmgr {@link PathFormulaManager} for making PathFormulas from {@link CFAEdge}s
-   * @param withInvariants whether to include the abstraction formulas of start and stop (with the
-   *     right SSA indices)
+   * @param withInvariants whether to include the abstraction formulas of start and stop (with the right SSA indices)
    * @return generated PathFormula
    * @throws CPATransferException building the {@link PathFormula} from {@link CFAEdge}s failed
-   * @throws InterruptedException building the {@link PathFormula} from {@link CFAEdge}s got
-   *     interrupted
+   * @throws InterruptedException building the {@link PathFormula} from {@link CFAEdge}s got interrupted
    */
-  public static PathFormula buildPathFormula(
-      ARGState start,
-      ARGState stop,
-      SSAMap pSSAMap,
-      PointerTargetSet pPts,
-      Solver pSolver,
-      PathFormulaManager pPfmgr,
-      boolean withInvariants)
-      throws CPATransferException, InterruptedException {
+  public static PathFormula buildPathFormula(ARGState start, ARGState stop,
+      SSAMap pSSAMap, PointerTargetSet pPts, Solver pSolver, PathFormulaManager pPfmgr, boolean withInvariants)
+          throws CPATransferException, InterruptedException {
     List<ARGState> segmentList = SlicingAbstractionsUtils.calculateOutgoingSegments(start).get(stop);
     if (segmentList == null) {
       segmentList = ImmutableList.of();
@@ -314,15 +319,13 @@ public class SlicingAbstractionsUtils {
       startFormula = emptyPathFormulaWithSSAMap(pSolver.getFormulaManager().getBooleanFormulaManager().makeTrue(), pSSAMap, pPts);
     }
 
-    // Add assumptions if any:
+    // Add precondition assumptions if any:
     AbstractStateWithAssumptions other =
         AbstractStates.extractStateByType(stop, AbstractStateWithAssumptions.class);
     if (other != null) {
-      if (stop.isTarget() && other instanceof OverflowState) {
-        other = ((OverflowState) other).getParent();
-      }
-      for (CExpression assumption : Iterables.filter(other.getAssumptions(), CExpression.class)) {
-        startFormula = pPfmgr.makeAnd(startFormula, assumption);
+      for (CExpression preassumption :
+          Iterables.filter(other.getPreconditionAssumptions(), CExpression.class)) {
+        startFormula = pPfmgr.makeAnd(startFormula, preassumption);
       }
     }
 
@@ -502,13 +505,11 @@ public class SlicingAbstractionsUtils {
    */
   public static void copyEdges(ARGState forkedState, ARGState originalState, ARGReachedSet pReached) {
 
-    final Map<ARGState, PersistentList<ARGState>> outgoingSegmentMap =
-        calculateOutgoingSegments(originalState);
-    final Map<ARGState, PersistentList<ARGState>> incomingSegmentMap =
-        calculateIncomingSegments(originalState);
+    final Map<ARGState,List<ARGState>> outgoingSegmentMap = calculateOutgoingSegments(originalState);
+    final Map<ARGState,List<ARGState>> incomingSegmentMap = calculateIncomingSegments(originalState);
 
     // copy the outgoing edges:
-    for (Map.Entry<ARGState, PersistentList<ARGState>> entry : outgoingSegmentMap.entrySet()) {
+    for (Map.Entry<ARGState, List<ARGState>> entry : outgoingSegmentMap.entrySet()) {
       ARGState endState = entry.getKey();
       List<ARGState> intermediateStateList = entry.getValue();
       copyEdge(intermediateStateList, originalState, endState, forkedState, endState, pReached);
@@ -519,7 +520,7 @@ public class SlicingAbstractionsUtils {
     }
 
     // copy the incoming edges:
-    for (Map.Entry<ARGState, PersistentList<ARGState>> entry : incomingSegmentMap.entrySet()) {
+    for (Map.Entry<ARGState, List<ARGState>> entry : incomingSegmentMap.entrySet()) {
       ARGState startState = entry.getKey();
       List<ARGState> intermediateStateList = entry.getValue();
       copyEdge(intermediateStateList, startState, originalState, startState, forkedState, pReached);
@@ -608,7 +609,7 @@ public class SlicingAbstractionsUtils {
     for (int i = -1 ; i < abstractionStatesTrace.size()-1; i++) {
        ARGState first = (i==-1) ? root : abstractionStatesTrace.get(i);
        ARGState second = abstractionStatesTrace.get(i+1);
-      if (!SlicingAbstractionsUtils.calculateOutgoingSegments(first).containsKey(second)) {
+       if (!SlicingAbstractionsUtils.calculateOutgoingSegments(first).keySet().contains(second)) {
          return true;
        }
     }

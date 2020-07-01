@@ -1,11 +1,26 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2017  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.cpa.smg.graphs.object.dll;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -21,7 +36,6 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGTargetSpecifier;
 import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -103,7 +117,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
       return;
     }
 
-    SMGHasValueEdges hvesOfObject = pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject));
+    Set<SMGEdgeHasValue> hvesOfObject = pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject));
 
     if (hvesOfObject.size() < 2) {
       return;
@@ -126,7 +140,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
       SMGObject nextObject = nextPointerEdge.getObject();
 
-      SMGHasValueEdges nextObjectHves =
+      Set<SMGEdgeHasValue> nextObjectHves =
           pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject));
 
       if (nextObjectHves.size() < 2) {
@@ -180,13 +194,10 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
           continue;
         }
 
-        // TODO At the moment, we still demand that a pointer is found at prev or next.
+        //TODO At the moment, we still demand that a pointer is found at prev or next.
 
-        SMGHasValueEdges prevObjectprevPointer =
-            pSmg.getHVEdges(
-                SMGEdgeHasValueFilter.objectFilter(pObject)
-                    .filterAtOffset(pfo)
-                    .filterBySize(pSmg.getSizeofPtrInBits()));
+        Set<SMGEdgeHasValue> prevObjectprevPointer =
+            pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObject).filterAtOffset(pfo));
 
         if (prevObjectprevPointer.size() != 1) {
           continue;
@@ -253,25 +264,17 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
         return;
       }
 
-      // TODO At the moment, we still demand that a pointer is found at prev or next.
+      //TODO At the moment, we still demand that a pointer is found at prev or next.
 
-      SMGHasValueEdges nextObjectNextField =
-          pSmg.getHVEdges(
-              SMGEdgeHasValueFilter.objectFilter(nextObject)
-                  .filterAtOffset(nfo)
-                  .filterBySize(pSmg.getSizeofPtrInBits()));
+      Set<SMGEdgeHasValue> nextObjectNextField =
+          pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(nfo));
 
       if(nextObjectNextField.size() != 1) {
         return;
       }
 
       SMGEdgeHasValue nfoField = Iterables.getOnlyElement(nextObjectNextField);
-      SMGEdgeHasValue pfoField =
-          Iterables.getOnlyElement(
-              pSmg.getHVEdges(
-                  SMGEdgeHasValueFilter.objectFilter(nextObject)
-                      .filterAtOffset(pfo)
-                      .filterBySize(pSmg.getSizeofPtrInBits())));
+      SMGEdgeHasValue pfoField = Iterables.getOnlyElement(pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(pfo)));
 
       if (!pSmg.isPointer(nfoField.getValue())) {
         return;
@@ -330,10 +333,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
 
     SMGValue prevValue =
         Iterables.getOnlyElement(
-                pSmg.getHVEdges(
-                    SMGEdgeHasValueFilter.objectFilter(nextObject)
-                        .filterAtOffset(pfo)
-                        .filterWithoutSize()))
+                pSmg.getHVEdges(SMGEdgeHasValueFilter.objectFilter(nextObject).filterAtOffset(pfo)))
             .getValue();
 
     nonSharedValues1.remove(prevValue);
@@ -361,7 +361,7 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
         }
       } else if (startObject.getKind() == SMGObjectKind.DLL
           && pte.getTargetSpecifier() == SMGTargetSpecifier.LAST) {
-        SMGHasValueEdges prevs = pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
+        Set<SMGEdgeHasValue> prevs = pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
 
         if(prevs.size() != 1) {
           return;
@@ -379,14 +379,16 @@ public class SMGDoublyLinkedListFinder extends SMGAbstractionFinder {
         }
       } else if (nextObject.getKind() == SMGObjectKind.DLL
           && pte.getTargetSpecifier() == SMGTargetSpecifier.FIRST) {
-        SMGHasValueEdges prevs = pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
+        Set<SMGEdgeHasValue> prevs =
+            pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
 
         if (prevs.size() != 1) {
           return;
         }
       } else if (nextObject.getKind() == SMGObjectKind.REG
           && !hasToBeLastInSequence) {
-        SMGHasValueEdges hves = pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
+        Set<SMGEdgeHasValue> hves =
+            pSmg.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pte.getValue()));
 
         /* If we want to continue abstracting in this sequence there may be only these two edges, and the edges from the subSmg.*/
         int count = 0;

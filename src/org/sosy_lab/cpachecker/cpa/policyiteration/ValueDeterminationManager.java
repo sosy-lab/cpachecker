@@ -1,12 +1,3 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-// SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
-//
-// SPDX-License-Identifier: Apache-2.0
-
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import com.google.common.collect.HashBasedTable;
@@ -56,6 +47,7 @@ public class ValueDeterminationManager {
   private final TemplateToFormulaConversionManager templateToFormulaConversionManager;
 
   /** Constants */
+  private static final String BOUND_VAR_NAME = "BOUND_[%s]_[%s]";
   private static final String VISIT_PREFIX = "[%d]_";
 
   public ValueDeterminationManager(
@@ -117,10 +109,13 @@ public class ValueDeterminationManager {
    * @param mergedState Newly created state
    * @param updated Set of updates templates for the {@code stateWithUpdates}
    * @param useUniquePrefix Flag on whether to use a unique prefix for each policy
-   *     <p>The abstract state associated with the <code>focusedNode</code> is the <b>new</b> state,
-   *     with <code>updated</code> applied.
-   * @return Global constraint for value determination and table <code>
-   *     {@code (template + location) -> formula}</code> denoting the abstract value.
+   *
+   * The abstract state associated with the <code>focusedNode</code>
+   * is the <b>new</b> state, with <code>updated</code> applied.
+   *
+   * @return Global constraint for value determination and
+   * table <code>(template + location) -> formula</code> denoting the abstract
+   * value.
    */
   private ValueDeterminationConstraints valueDeterminationFormula(
       PolicyAbstractedState newState,
@@ -369,11 +364,12 @@ public class ValueDeterminationManager {
   }
 
   /**
-   * Return variable name representing the bound in the abstract domain for the given template for
-   * the given state.
+   * @return Variable name representing the bound in the abstract domain
+   * for the given template for the given state.
    */
   private String absDomainVarName(int locId, Template template) {
-    return String.format("BOUND_[%s]_[%s]", locId, template.toString());
+    return String.format(
+        BOUND_VAR_NAME, locId, template.toString());
   }
 
 }

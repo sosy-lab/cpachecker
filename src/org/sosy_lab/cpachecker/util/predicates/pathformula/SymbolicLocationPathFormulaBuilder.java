@@ -1,11 +1,26 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2017  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -19,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
@@ -136,8 +152,8 @@ public class SymbolicLocationPathFormulaBuilder extends DefaultPathFormulaBuilde
 
   public CFAEdge makeProgramCounterAssumption(CFAEdge cfaEdge) throws UnrecognizedCodeException {
 
-    CFANode predecessorNode = cfaEdge.getPredecessor();
-    CFANode successorNode = cfaEdge.getSuccessor();
+    CFANode predecessorNode = ((AbstractCFAEdge) cfaEdge).getPredecessor();
+    CFANode successorNode = ((AbstractCFAEdge) cfaEdge).getSuccessor();
 
     // Build assertion %pc == rightHandSide:
     CExpression rightHandSide =
@@ -159,13 +175,13 @@ public class SymbolicLocationPathFormulaBuilder extends DefaultPathFormulaBuilde
 
   public CFAEdge makeProgramCounterAssignment(CFAEdge cfaEdge) {
 
-    CFANode predecessorNode = cfaEdge.getPredecessor();
-    CFANode successorNode = cfaEdge.getSuccessor();
+    CFANode predecessorNode = ((AbstractCFAEdge) cfaEdge).getPredecessor();
+    CFANode successorNode = ((AbstractCFAEdge) cfaEdge).getSuccessor();
 
     // Build assignment %pc = rightHandSide:
     CExpression rightHandSide =
         CIntegerLiteralExpression.createDummyLiteral(
-            cfaEdge.getSuccessor().getNodeNumber(), CNumericTypes.SIGNED_INT);
+            ((AbstractCFAEdge) cfaEdge).getSuccessor().getNodeNumber(), CNumericTypes.SIGNED_INT);
     CAssignment pcTransfer =
         new CExpressionAssignmentStatement(
             FileLocation.DUMMY, getPcAsLeftHandSide(), rightHandSide);

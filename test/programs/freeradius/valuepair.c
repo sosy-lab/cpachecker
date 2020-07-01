@@ -1,7 +1,3 @@
-// SPDX-FileCopyrightText: 2000-2006 The FreeRADIUS server project
-//
-// SPDX-License-Identifier: GPL-2.0-or-later
-
 /*
  * valuepair.c	Functions to handle VALUE_PAIRs
  *

@@ -1,11 +1,26 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2018  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.collect.FluentIterable.from;
@@ -784,8 +799,7 @@ public class ARGToAutomatonConverter {
     final Multimap<CallstackState, CallstackState> callstacks = LinkedHashMultimap.create();
     final Map<CallstackState, CallstackState> inverseCallstacks = new LinkedHashMap<>();
     final Multimap<CallstackState, ARGState> callstackToLeaves = LinkedHashMultimap.create();
-    final Multimap<CallstackState, ARGState> callstackToLeafWithParentAssumptions =
-        LinkedHashMultimap.create();
+    final Multimap<CallstackState, ARGState> callstackToLeafWithPreAssumptions = LinkedHashMultimap.create();
     for (ARGState leaf : pLeaves) {
       CallstackState callstack = AbstractStates.extractStateByType(leaf, CallstackState.class);
       Preconditions.checkNotNull(callstack);
@@ -797,12 +811,10 @@ public class ARGToAutomatonConverter {
         callstack = callstack.getPreviousState();
       }
       callstackToLeaves.put(callstack, leaf);
-      for (ARGState parent : leaf.getParents()) {
-        if (AbstractStates.asIterable(parent)
-            .filter(AbstractStateWithAssumptions.class)
-            .anyMatch(x -> !x.getAssumptions().isEmpty())) {
-          callstackToLeafWithParentAssumptions.put(callstack, leaf);
-        }
+      if (AbstractStates.projectToType(
+              AbstractStates.asIterable(leaf), AbstractStateWithAssumptions.class)
+          .anyMatch(x -> !x.getPreconditionAssumptions().isEmpty())) {
+        callstackToLeafWithPreAssumptions.put(callstack, leaf);
       }
       CallstackState prev = callstack.getPreviousState();
       while (prev != null) {
@@ -828,16 +840,15 @@ public class ARGToAutomatonConverter {
     while (!waitlist.isEmpty()) {
       final CallstackState elem = waitlist.removeFirst();
       boolean useAll = false;
-      ImmutableSet.Builder<AExpression> assumptionsBuilder = ImmutableSet.builder();
-      for (ARGState leaf : callstackToLeafWithParentAssumptions.get(elem)) {
-        for (ARGState parent : leaf.getParents()) {
-          for (AbstractStateWithAssumptions state :
-              AbstractStates.asIterable(parent).filter(AbstractStateWithAssumptions.class)) {
-            assumptionsBuilder.addAll(state.getAssumptions());
-          }
-        }
+      Set<AExpression> assumptions = new HashSet<>();
+      for (ARGState leaf : callstackToLeafWithPreAssumptions.get(elem)) {
+        AbstractStates.projectToType(
+                AbstractStates.asIterable(leaf), AbstractStateWithAssumptions.class)
+            .stream()
+            .map(x -> x.getPreconditionAssumptions())
+            .flatMap(Collection::stream)
+            .forEach(assumptions::add);
       }
-      Set<AExpression> assumptions = assumptionsBuilder.build();
       final List<AutomatonTransition> transitions = new ArrayList<>();
       for (ARGState leaf : callstackToLeaves.get(elem)) {
         if (assumptions.isEmpty()) {

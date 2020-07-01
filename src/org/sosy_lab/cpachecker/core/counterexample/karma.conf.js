@@ -1,18 +1,8 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2018 Lokesh Nandanwar
-// SPDX-FileCopyrightText: 2018-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
 // Refer doc/JavascriptTesting for quikstart guide
 
 // Karma configuration
 // Generated on Fri Jun 29 2018 17:07:20 GMT+0530 (India Standard Time)
 var fs = require('fs');
-const isDocker = require('is-docker')();
 
 // Replace scripts tag from HTML file and generate testReport.html for testing:
 // Remove everything from the line with REPORT_CSS to the line after REPORT_JS
@@ -30,7 +20,7 @@ module.exports = function (config) {
 
     // frameworks to use
     // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
-    frameworks: ['jasmine', 'detectBrowsers'],
+    frameworks: ['jasmine'],
 
     // list of files / patterns to load in the browser
     files: [
@@ -73,28 +63,9 @@ module.exports = function (config) {
     plugins: [
       // other plugins
       'karma-htmlfile-reporter',
-      'karma-firefox-launcher',
-      'karma-chrome-launcher',
-      'karma-jasmine',
-      'karma-detect-browsers'
+      'karma-phantomjs-launcher',
+      'karma-jasmine'
     ],
-
-    detectBrowsers: {
-      enabled: true,
-      usePhantomJS: false,
-      preferHeadless: true,
-      // Start Chromium with the custom launcher instead and remove all browsers except for Chromium, Chrome and Firefox
-      postDetection: availableBrowsers => {
-        if (isDocker && availableBrowsers.includes("ChromiumHeadless")) {
-          availableBrowsers[availableBrowsers.indexOf("ChromiumHeadless")] = "ChromiumHeadlessNoSandbox";
-        }
-        return availableBrowsers.filter(browser =>
-          browser.includes("Chromium") ||
-          browser.includes("Chrome") ||
-          browser.includes("Firefox")
-        );
-      }
-    },
 
     // web server port
     port: 9876,
@@ -109,14 +80,9 @@ module.exports = function (config) {
     // enable / disable watching file and executing tests whenever any file changes
     autoWatch: false,
 
-    // to make Chrome run in Docker container
-    // https://github.com/karma-runner/karma-chrome-launcher/issues/158
-    customLaunchers: {
-      ChromiumHeadlessNoSandbox: {
-        base: 'ChromiumHeadless',
-        flags: ['--no-sandbox']
-      }
-    },
+    // start these browsers
+    // available browser launchers: https://npmjs.org/browse/keyword/karma-launcher
+    browsers: ['PhantomJS'],
 
     // Continuous Integration mode
     // if true, Karma captures browsers, runs the tests and exits

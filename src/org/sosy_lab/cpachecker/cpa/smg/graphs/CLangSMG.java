@@ -1,14 +1,30 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2018  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.ImmutableLongArray;
@@ -156,8 +172,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     }
 
     if (CLangSMG.performChecks() && global_objects.containsKey(pObject.getLabel())) {
-      throw new IllegalArgumentException(
-          "Global object with label [" + pObject.getLabel() + "] already in the SMG");
+      throw new IllegalArgumentException("Global object with label [" + pObject.getLabel() + "] already in the SMG");
     }
 
     global_objects = global_objects.putAndCopy(pObject.getLabel(), pObject);
@@ -181,8 +196,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   public void addStackObject(SMGRegion pObject) {
     super.addObject(pObject);
     CLangStackFrame top = stack_objects.peek();
-    Preconditions.checkArgument(
-        !top.hasVariable(pObject.getLabel()), "object with same label cannot be added twice");
+    Preconditions.checkArgument(!top.hasVariable(pObject.getLabel()), "object with same label cannot be added twice");
     stack_objects = stack_objects.popAndCopy().pushAndCopy(top.addStackVariable(pObject.getLabel(), pObject));
   }
 
@@ -218,7 +232,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     CLangStackFrame frame = stack_objects.peek();
     stack_objects = stack_objects.popAndCopy();
     for (SMGObject object : frame.getAllObjects()) {
-      markObjectDeletedAndRemoveEdges(object);
+      removeObjectAndEdges(object);
     }
 
     if (CLangSMG.performChecks()) {
@@ -273,8 +287,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
         if (isObjectValid(object) && !isObjectExternallyAllocated(object)) {
           unreachableObjects.add(object);
         }
-        markHeapObjectDeletedAndRemoveEdges(object);
-        removeObject(object);
+        removeHeapObjectAndEdges(object);
       }
     }
     return unreachableObjects;
@@ -323,15 +336,12 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     while (!workqueue.isEmpty()) {
       SMGObject obj = workqueue.pop();
       if (seenObjects.add(obj)) {
-        // traverse on valid objects only
-        if (isObjectValid(obj)) {
-          for (SMGEdgeHasValue outbound : getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj))) {
-            SMGObject pointedObject = getObjectPointedBy(outbound.getValue());
-            if (pointedObject != null) {
-              workqueue.add(pointedObject);
-            }
-            seenValues.add(outbound.getValue());
+        for (SMGEdgeHasValue outbound : getHVEdges(SMGEdgeHasValueFilter.objectFilter(obj))) {
+          SMGObject pointedObject = getObjectPointedBy(outbound.getValue());
+          if (pointedObject != null) {
+            workqueue.add(pointedObject);
           }
+          seenValues.add(outbound.getValue());
         }
       }
     }
@@ -363,7 +373,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
 
     for (SMGEdgeHasValue hvedge : getHVEdges()) {
       MemoryLocation memloc = resolveMemLoc(hvedge);
-      SMGHasValueEdges edge = getHVEdgeFromMemoryLocation(memloc);
+      Set<SMGEdgeHasValue> edge = getHVEdgeFromMemoryLocation(memloc);
 
       if (!edge.isEmpty()) {
         result.put(memloc, edge.iterator().next().getValue());
@@ -458,20 +468,20 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     }
   }
 
-  public final void markHeapObjectDeletedAndRemoveEdges(SMGObject pObject) {
+  final public void removeHeapObjectAndEdges(SMGObject pObject) {
     heap_objects = heap_objects.removeAndCopy(pObject);
-    markObjectDeletedAndRemoveEdges(pObject);
+    removeObjectAndEdges(pObject);
   }
 
-  private SMGHasValueEdges getHVEdgeFromMemoryLocation(MemoryLocation pLocation) {
+  private Set<SMGEdgeHasValue> getHVEdgeFromMemoryLocation(MemoryLocation pLocation) {
     SMGObject objectAtLocation = getObjectFromMemoryLocation(pLocation);
     if (objectAtLocation == null) {
-      return new SMGHasValueEdgeSet();
+      return ImmutableSet.of();
     }
 
     SMGEdgeHasValueFilter filter = SMGEdgeHasValueFilter.objectFilter(objectAtLocation);
     if (pLocation.isReference()) {
-      filter.filterAtOffset(pLocation.getOffset()).filterWithoutSize();
+      filter.filterAtOffset(pLocation.getOffset());
     }
 
     // Remember, edges may overlap with different types
@@ -527,7 +537,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     for (int i = 0; i < offsets.length(); i++) {
       final long offset = offsets.get(i);
 
-      SMGHasValueEdges hves =
+      Set<SMGEdgeHasValue> hves =
           getHVEdges(SMGEdgeHasValueFilter.objectFilter(object).filterAtOffset(offset));
       if (hves.isEmpty()) {
         return Optional.empty();
@@ -628,7 +638,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     SMGObject obj = global_objects.get(pVariable);
     if (obj != null) {
       global_objects = global_objects.removeAndCopy(pVariable);
-      markObjectDeletedAndRemoveEdges(obj);
+      removeObjectAndEdges(obj);
     }
   }
 
@@ -666,7 +676,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
    */
   private SMGStateInformation createStateInfo(SMGObject pObj) {
 
-    SMGHasValueEdges hves = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj));
+    Set<SMGEdgeHasValue> hves = getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj));
     Set<SMGEdgePointsTo> ptes = getPtEdges(SMGEdgePointsToFilter.targetObjectFilter(pObj));
     Set<SMGEdgePointsTo> resultPtes = new LinkedHashSet<>(ptes);
 
@@ -695,7 +705,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
     SMGObject reg = frame.getVariable(variableName);
     SMGStateInformation info = createInfo ? createStateInfo(reg) : null; // lazy
     stack_objects = stack_objects.replace(f -> f == frame, frame.removeVariable(variableName));
-    markObjectDeletedAndRemoveEdges(reg);
+    removeObjectAndEdges(reg);
     return info;
   }
 
@@ -721,14 +731,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
   }
 
   private void rememberEdges(SMGStateInformation pForgottenInformation) {
-    SMGHasValueEdges forgottenHvEdges = pForgottenInformation.getHvEdges();
-    SMGHasValueEdges toAddHvEdges = new SMGHasValueEdgeSet();
-    for (SMGEdgeHasValue edge : forgottenHvEdges) {
-      if (!getHVEdges().contains(edge)) {
-        toAddHvEdges = toAddHvEdges.addEdgeAndCopy(edge);
-      }
-    }
-    for (SMGEdgeHasValue edge : toAddHvEdges) {
+    for(SMGEdgeHasValue edge : Sets.difference(pForgottenInformation.getHvEdges(), getHVEdges())) {
       addHasValueEdge(edge);
     }
 

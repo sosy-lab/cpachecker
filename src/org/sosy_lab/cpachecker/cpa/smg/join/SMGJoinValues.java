@@ -1,11 +1,26 @@
-// This file is part of CPAchecker,
-// a tool for configurable software verification:
-// https://cpachecker.sosy-lab.org
-//
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
-//
-// SPDX-License-Identifier: Apache-2.0
-
+/*
+ *  CPAchecker is a tool for configurable software verification.
+ *  This file is part of CPAchecker.
+ *
+ *  Copyright (C) 2007-2018  Dirk Beyer
+ *  All rights reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
+ */
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -20,7 +35,6 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGUtils;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMG;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -471,8 +485,7 @@ final class SMGJoinValues {
     SMGEdgePointsTo pointedToTargetEdge = Iterables.getOnlyElement(pointedToTarget);
 
     /*Fields of optional objects must have one pointer.*/
-    SMGHasValueEdges fieldsOfTarget =
-        pInputSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget));
+    Set<SMGEdgeHasValue> fieldsOfTarget = pInputSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget));
 
     if (fieldsOfTarget.isEmpty()) {
       return Pair.of(false, true);
@@ -642,7 +655,7 @@ final class SMGJoinValues {
       return pLevelMap.get(SMGJoinLevel.valueOf(pLevelV1, pLevelV2));
     } else {
 
-      SMGHasValueEdges edges =
+      Set<SMGEdgeHasValue> edges =
           pInputSMG1.getHVEdges(SMGEdgeHasValueFilter.valueFilter(pDisplacedValue));
 
       SMGObject sourceObject = edges.iterator().next().getObject();
@@ -727,8 +740,7 @@ final class SMGJoinValues {
     SMGEdgePointsTo pointedToTargetEdge = Iterables.getOnlyElement(pointedToTarget);
 
     /*Fields of optional objects must have one pointer.*/
-    SMGHasValueEdges fieldsOfTarget =
-        pInputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget));
+    Set<SMGEdgeHasValue> fieldsOfTarget = pInputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget));
 
     if (fieldsOfTarget.isEmpty()) {
       return Pair.of(false, true);
@@ -945,11 +957,8 @@ final class SMGJoinValues {
 
     SMGValue nextPointer;
 
-    SMGHasValueEdges hvesNp =
-        newInputSMG1.getHVEdges(
-            SMGEdgeHasValueFilter.objectFilter(pTarget)
-                .filterAtOffset(nf)
-                .filterBySize(newDestSMG.getSizeofPtrInBits()));
+    Set<SMGEdgeHasValue> hvesNp =
+        newInputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget).filterAtOffset(nf));
 
     if(hvesNp.isEmpty()) {
       // Edge lost due to join fields, should be zero
@@ -1099,45 +1108,36 @@ final class SMGJoinValues {
     // Algorithm 9 from FIT-TR-2012-04, line 11
     SMGEdgeHasValue newHve = new SMGEdgeHasValue(nfSize, nf, list, newAdressFromDLS);
 
-    if (!pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(list)).overlapsWith(newHve)) {
+    if (pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(list).filterAtOffset(nf).filterHavingValue(newAdressFromDLS)).isEmpty()) {
       pDestSMG.addHasValueEdge(newHve);
-    } else {
-      for (SMGEdgeHasValue currentValue :
-          pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(list)).getOverlapping(newHve)) {
-        if (!currentValue.getValue().equals(newAdressFromDLS)) {
-          return Pair.of(false, false);
-        }
-      }
     }
 
     if (smgState1.getAddress(pTarget, hfo, SMGTargetSpecifier.FIRST) == null) {
       long nfSize2 = getSize(pTarget, nfo, newInputSMG1);
       SMGEdgeHasValue newHve2 = new SMGEdgeHasValue(nfSize2, nfo, list, newAdressFromDLS);
-      if (!pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(list)).overlapsWith(newHve2)) {
-        pDestSMG.addHasValueEdge(newHve2);
-      }
+      pDestSMG.addHasValueEdge(newHve2);
     }
 
     if (pTarget.getKind() == SMGObjectKind.DLL
         && smgState1.getAddress(pTarget, hfo, SMGTargetSpecifier.LAST) == null) {
       long nfSize2 = getSize(pTarget, pfo, newInputSMG1);
       SMGEdgeHasValue newHve2 = new SMGEdgeHasValue(nfSize2, pfo, list, newAdressFromDLS);
-      if (!pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(list)).overlapsWith(newHve2)) {
-        pDestSMG.addHasValueEdge(newHve2);
-      }
+      pDestSMG.addHasValueEdge(newHve2);
     }
 
     return Pair.of(true, true);
   }
 
   private long getSize(SMGObject pTarget, long pNf, UnmodifiableSMG pInputSMG1) {
-    SMGHasValueEdges oldNfEdge =
-        pInputSMG1.getHVEdges(
-            SMGEdgeHasValueFilter.objectFilter(pTarget).filterAtOffset(pNf).filterWithoutSize());
+    Set<SMGEdgeHasValue> oldNfEdge =
+        pInputSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget).filterAtOffset(pNf));
 
     if (oldNfEdge.isEmpty()) {
       return new SMGEdgeHasValue(
-              pInputSMG1.getSizeofPtrInBits(), pNf, pTarget, SMGZeroValue.INSTANCE)
+              pInputSMG1.getMachineModel().getSizeofPtrInBits(),
+              pNf,
+              pTarget,
+              SMGZeroValue.INSTANCE)
           .getSizeInBits();
     } else {
       return Iterables.getOnlyElement(oldNfEdge).getSizeInBits();
@@ -1202,11 +1202,8 @@ final class SMGJoinValues {
         return Pair.of(false, true);
     }
 
-    SMGHasValueEdges npHves =
-        newInputSMG2.getHVEdges(
-            SMGEdgeHasValueFilter.objectFilter(pTarget)
-                .filterAtOffset(nf)
-                .filterBySize(newInputSMG2.getSizeofPtrInBits()));
+    Set<SMGEdgeHasValue> npHves =
+        newInputSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pTarget).filterAtOffset(nf));
 
     SMGValue nextPointer;
 
@@ -1349,32 +1346,21 @@ final class SMGJoinValues {
     long nfSize = getSize(pTarget, nf, newInputSMG2);
     SMGEdgeHasValue newHve = new SMGEdgeHasValue(nfSize, nf, list, newAdressFromDLS);
 
-    if (!pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(list)).overlapsWith(newHve)) {
+    if (pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(list).filterAtOffset(nf).filterHavingValue(newAdressFromDLS)).isEmpty()) {
       pDestSMG.addHasValueEdge(newHve);
-    } else {
-      for (SMGEdgeHasValue currentValue :
-          pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(list)).getOverlapping(newHve)) {
-        if (!currentValue.getValue().equals(newAdressFromDLS)) {
-          return Pair.of(false, false);
-        }
-      }
     }
 
     if (smgState2.getAddress(pTarget, hfo, SMGTargetSpecifier.FIRST) == null) {
       long nfSize2 = getSize(pTarget, nfo, newInputSMG2);
       SMGEdgeHasValue newHve2 = new SMGEdgeHasValue(nfSize2, nfo, list, newAdressFromDLS);
-      if (!pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(list)).overlapsWith(newHve2)) {
-        pDestSMG.addHasValueEdge(newHve2);
-      }
+      pDestSMG.addHasValueEdge(newHve2);
     }
 
     if (pTarget.getKind() == SMGObjectKind.DLL
         && smgState2.getAddress(pTarget, hfo, SMGTargetSpecifier.LAST) == null) {
       long nfSize2 = getSize(pTarget, nfo, newInputSMG2);
       SMGEdgeHasValue newHve2 = new SMGEdgeHasValue(nfSize2, pfo, list, newAdressFromDLS);
-      if (!pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(list)).overlapsWith(newHve2)) {
-        pDestSMG.addHasValueEdge(newHve2);
-      }
+      pDestSMG.addHasValueEdge(newHve2);
     }
 
     return Pair.of(true, true);
@@ -1470,18 +1456,15 @@ final class SMGJoinValues {
           }
         }
 
-        SMGEdgeHasValue newEdge =
-            new SMGEdgeHasValue(hve.getSizeInBits(), hve.getOffset(), listCopy, newVal);
-        if (!pDestSMG
-            .getHVEdges(SMGEdgeHasValueFilter.objectFilter(listCopy))
-            .overlapsWith(newEdge)) {
+        if (pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(listCopy).filterAtOffset(hve.getOffset())).isEmpty()) {
           if (!pDestSMG.getValues().contains(newVal)) {
             pDestSMG.addValue(newVal);
           }
           if (!pMapping.containsKey(subDlsValue)) {
             pMapping.map(subDlsValue, newVal);
           }
-          pDestSMG.addHasValueEdge(newEdge);
+          pDestSMG.addHasValueEdge(
+              new SMGEdgeHasValue(hve.getSizeInBits(), hve.getOffset(), listCopy, newVal));
         }
       }
     }
@@ -1560,12 +1543,7 @@ final class SMGJoinValues {
         }
       }
 
-      if (pDestSMG
-          .getHVEdges(
-              SMGEdgeHasValueFilter.objectFilter(newObj)
-                  .filterAtOffset(hve.getOffset())
-                  .filterWithoutSize())
-          .isEmpty()) {
+      if (pDestSMG.getHVEdges(SMGEdgeHasValueFilter.objectFilter(newObj).filterAtOffset(hve.getOffset())).isEmpty()) {
         if (!pDestSMG.getValues().contains(newVal)) {
           pDestSMG.addValue(newVal);
         }
