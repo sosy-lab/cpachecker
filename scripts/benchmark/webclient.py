@@ -1,29 +1,10 @@
-"""
-CPAchecker is a tool for configurable software verification.
-This file is part of CPAchecker.
-
-Copyright (C) 2007-2014  Dirk Beyer
-All rights reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-
-CPAchecker web page:
-  http://cpachecker.sosy-lab.org
-"""
-
-# prepare for Python 3
-from __future__ import absolute_import, division, print_function, unicode_literals
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
 
 import sys
 
@@ -57,8 +38,10 @@ from benchexec.util import get_files
 
 try:
     import sseclient  # @UnresolvedImport
-except:
-    pass
+
+    HAS_SSECLIENT = True
+except ImportError:
+    HAS_SSECLIENT = False
 
 """
 This module provides helpers for accessing the web interface of the VerifierCloud.
@@ -116,7 +99,7 @@ class WebClientError(Exception):
 
 
 class PollingResultDownloader:
-    def __init__(self, web_interface, result_poll_interval, unfinished_runs={}):
+    def __init__(self, web_interface, result_poll_interval, unfinished_runs=None):
         self._unfinished_runs = set()
         self._unfinished_runs_lock = threading.Lock()
         self._web_interface = web_interface
@@ -172,7 +155,7 @@ class PollingResultDownloader:
         self._state_poll_executor.shutdown(wait=True)
 
 
-try:
+if HAS_SSECLIENT:
 
     class ShouldReconnectSeeClient(sseclient.SSEClient):
         def __init__(
@@ -344,10 +327,6 @@ try:
             self._state_receive_executor.shutdown(wait=wait)
 
 
-except:
-    pass
-
-
 class RunResultFuture(Future):
     def __init__(self, web_interface, run_id):
         super().__init__()
@@ -357,10 +336,7 @@ class RunResultFuture(Future):
     def cancel(self):
         canceled = super().cancel()
         if canceled:
-            try:
-                self._web_interface._stop_run(self._run_id)
-            except:
-                logging.warning("Stopping of run %s failed", self._run_id)
+            self._web_interface._stop_run(self._run_id)
 
         return canceled
 
@@ -445,14 +421,14 @@ class WebInterface:
         self._executor = ThreadPoolExecutor(thread_count)
         self._thread_local = threading.local()
         self._hash_code_cache = {}
-        self._group_id = str(random.randint(0, 1000000))
+        self._group_id = str(random.randint(0, 1000000))  # noqa: S311
         self._read_hash_code_cache()
         self._resolved_tool_revision(revision)
         self._tool_name = self._request_tool_name()
 
-        try:
+        if HAS_SSECLIENT:
             self._result_downloader = SseResultDownloader(self, result_poll_interval)
-        except:
+        else:
             self._result_downloader = PollingResultDownloader(
                 self, result_poll_interval
             )
@@ -473,8 +449,8 @@ class WebInterface:
             os.makedirs(directory, exist_ok=True)
             with tempfile.NamedTemporaryFile(dir=directory, delete=False) as tmpFile:
                 for (path, mTime), hashValue in self._hash_code_cache.items():
-                    line = (path + "\t" + mTime + "\t" + hashValue + "\n").encode()
-                    tmpFile.write(line)
+                    line = path + "\t" + mTime + "\t" + hashValue + "\n"
+                    tmpFile.write(line.encode())
 
                 os.renames(tmpFile.name, HASH_CODE_CACHE_PATH)
         except OSError as e:
@@ -582,8 +558,8 @@ class WebInterface:
         priority="IDLE",
         user_pwd=None,
         revision=None,
-        result_files_patterns=[],
-        required_files=[],
+        result_files_patterns=(),
+        required_files=(),
     ):
         """
         Submits a single run to the VerifierCloud.
@@ -994,19 +970,11 @@ class WebInterface:
                     exception,
                 )
 
-                # client error
-                # if type(exception) is HTTPError and exception.response and  \
-                #    400 <= exception.response.status_code and exception.response.status_code <= 499:
-
                 if attempts < 10:
                     self._download_attempts[run_id] = attempts + 1
                     self._download_result_async(run_id)
                 else:
                     self._run_failed(run_id)
-
-                # else:
-                #    # retry t
-                #    self._download_result_async(run_id)
 
         if run_id not in self._downloading_result_futures.values():
             # result is not downloaded
@@ -1080,7 +1048,7 @@ class WebInterface:
         data=None,
         headers=None,
         files=None,
-        expectedStatusCodes=[200],
+        expectedStatusCodes=(200,),
         user_pwd=None,
     ):
         url = self._web_interface_url + path
@@ -1183,7 +1151,7 @@ def handle_result(
     handle_run_info=_handle_run_info,
     handle_host_info=_handle_host_info,
     handle_special_files=_handle_special_files,
-    result_files_patterns=["*"],
+    result_files_patterns=("*"),
 ):
     """
     Parses the given result ZIP archive: Extract meta information

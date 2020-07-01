@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2015  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.collect.FluentIterable.from;
@@ -50,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
@@ -61,6 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.Automata;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -83,15 +68,12 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
 public final class BMCHelper {
 
-  public static final Predicate<AbstractState> END_STATE_FILTER =
-      s -> {
-        ARGState argState = AbstractStates.extractStateByType(s, ARGState.class);
-        return argState != null && argState.getChildren().isEmpty();
-      };
-
-  private BMCHelper() {
-
+  public static boolean isEndState(AbstractState s) {
+    ARGState argState = AbstractStates.extractStateByType(s, ARGState.class);
+    return argState != null && argState.getChildren().isEmpty();
   }
+
+  private BMCHelper() {}
 
   public static BooleanFormula assertAt(
       Iterable<AbstractState> pStates,
@@ -275,10 +257,6 @@ public final class BMCHelper {
     }).toSet();
   }
 
-  public static FluentIterable<AbstractState> filterEndStates(Iterable<AbstractState> pStates) {
-    return FluentIterable.from(pStates).filter(END_STATE_FILTER::test);
-  }
-
   public static FluentIterable<AbstractState> filterIterationsBetween(
       Iterable<AbstractState> pStates, int pMinIt, int pMaxIt, Set<CFANode> pLoopHeads) {
     Objects.requireNonNull(pLoopHeads);
@@ -334,14 +312,13 @@ public final class BMCHelper {
      * to the previous iteration instead of the one it starts.
      */
 
-    return !AbstractStates.IS_TARGET_STATE.apply(state)
-            && getLocationPredicate(pLoopHeads).test(state)
+    return !AbstractStates.isTargetState(state) && hasMatchingLocation(state, pLoopHeads)
         ? pIteration + 1
         : pIteration;
   }
 
-  public static Predicate<AbstractState> getLocationPredicate(Set<CFANode> pLocations) {
-    return state -> from(AbstractStates.extractLocations(state)).anyMatch(pLocations::contains);
+  public static boolean hasMatchingLocation(AbstractState state, Set<CFANode> pLocations) {
+    return from(AbstractStates.extractLocations(state)).anyMatch(pLocations::contains);
   }
 
   public static Set<ARGState> filterAncestors(
