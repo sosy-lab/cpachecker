@@ -426,6 +426,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
               DependenceGraphBuilder::iteratePredecessors);
 
       new FlowDepAnalysis(
+          domTree,
           Dominance.createDomTraversable(domTree),
           Dominance.createDomFrontiers(domTree),
           entryNode,

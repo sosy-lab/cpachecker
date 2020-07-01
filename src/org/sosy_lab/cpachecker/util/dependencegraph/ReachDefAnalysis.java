@@ -27,6 +27,8 @@ import java.util.Set;
 abstract class ReachDefAnalysis<V, N, E> {
 
   private final Graph<N, E> graph;
+
+  private final Dominance.DomTree<N> domTree;
   private final Dominance.DomTraversable<N> domTraversable;
   private final Dominance.DomFrontiers<N> domFrontiers;
 
@@ -36,10 +38,13 @@ abstract class ReachDefAnalysis<V, N, E> {
 
   protected ReachDefAnalysis(
       Graph<N, E> pGraph,
+      Dominance.DomTree<N> pDomTree,
       Dominance.DomTraversable<N> pDomTraversable,
       Dominance.DomFrontiers<N> pDomFrontiers) {
 
     graph = pGraph;
+
+    domTree = pDomTree;
     domTraversable = pDomTraversable;
     domFrontiers = pDomFrontiers;
 
@@ -238,7 +243,20 @@ abstract class ReachDefAnalysis<V, N, E> {
     }
   }
 
+  private void registerDefs() {
+
+    for (N node : domTree) {
+      for (E edge : graph.getLeavingEdges(node)) {
+        for (V varDef : getEdgeDefs(edge)) {
+          variableDefEdges.put(varDef, edge);
+        }
+      }
+    }
+  }
+
   public void run() {
+
+    registerDefs();
     insertCombiners(domFrontiers);
     traverseDomTree(domTraversable);
   }

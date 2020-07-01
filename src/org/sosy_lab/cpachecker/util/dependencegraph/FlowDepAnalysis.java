@@ -44,12 +44,13 @@ abstract class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode,
   private final Multimap<CFAEdge, MemoryLocation> maybeDefs;
 
   protected FlowDepAnalysis(
+      Dominance.DomTree<CFANode> pDomTree,
       Dominance.DomTraversable<CFANode> pDomTraversable,
       Dominance.DomFrontiers<CFANode> pDomFrontiers,
       FunctionEntryNode pEntryNode,
       List<CFAEdge> pGlobalEdges) {
 
-    super(SingleFunctionGraph.INSTANCE, pDomTraversable, pDomFrontiers);
+    super(SingleFunctionGraph.INSTANCE, pDomTree, pDomTraversable, pDomFrontiers);
 
     entryNode = pEntryNode;
     globalEdges = pGlobalEdges;
