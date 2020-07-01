@@ -64,17 +64,22 @@ final class EdgeDefUseData {
   private final ImmutableSet<CExpression> pointeeDefs;
   private final ImmutableSet<CExpression> pointeeUses;
 
+  private final boolean partialDefs;
+
   private EdgeDefUseData(
       ImmutableSet<MemoryLocation> pDefs,
       ImmutableSet<MemoryLocation> pUses,
       ImmutableSet<CExpression> pPointeeDefs,
-      ImmutableSet<CExpression> pPointeeUses) {
+      ImmutableSet<CExpression> pPointeeUses,
+      boolean pPartialDefs) {
 
     defs = pDefs;
     uses = pUses;
 
     pointeeDefs = pPointeeDefs;
     pointeeUses = pPointeeUses;
+
+    partialDefs = pPartialDefs;
   }
 
   public ImmutableSet<MemoryLocation> getDefs() {
@@ -93,6 +98,10 @@ final class EdgeDefUseData {
     return pointeeUses;
   }
 
+  public boolean hasPartialDefs() {
+    return partialDefs;
+  }
+
   private static EdgeDefUseData createEdgeDefUseData(Collector pCollector) {
 
     ImmutableSet<MemoryLocation> defs = ImmutableSet.copyOf(pCollector.defs);
@@ -101,7 +110,7 @@ final class EdgeDefUseData {
     ImmutableSet<CExpression> pointeeDefs = ImmutableSet.copyOf(pCollector.pointeeDefs);
     ImmutableSet<CExpression> pointeeUses = ImmutableSet.copyOf(pCollector.pointeeUses);
 
-    return new EdgeDefUseData(defs, uses, pointeeDefs, pointeeUses);
+    return new EdgeDefUseData(defs, uses, pointeeDefs, pointeeUses, pCollector.partialDefs);
   }
 
   public static EdgeDefUseData extract(CFAEdge pEdge) {
@@ -123,7 +132,7 @@ final class EdgeDefUseData {
     }
 
     return new EdgeDefUseData(
-        ImmutableSet.of(), ImmutableSet.of(), ImmutableSet.of(), ImmutableSet.of());
+        ImmutableSet.of(), ImmutableSet.of(), ImmutableSet.of(), ImmutableSet.of(), false);
   }
 
   public static EdgeDefUseData extract(CExpression pExpression) {
@@ -154,9 +163,13 @@ final class EdgeDefUseData {
     private final Set<CExpression> pointeeDefs;
     private final Set<CExpression> pointeeUses;
 
+    private boolean partialDefs;
+
     private Mode mode;
 
     private Collector() {
+
+      partialDefs = false;
 
       mode = Mode.USE;
 
@@ -316,6 +329,10 @@ final class EdgeDefUseData {
 
       mode = prev;
 
+      if (mode == Mode.DEF) {
+        partialDefs = true;
+      }
+
       return null;
     }
 
@@ -323,6 +340,10 @@ final class EdgeDefUseData {
     public Void visit(CFieldReference pIastFieldReference) throws EdgeDefUseDataException {
 
       pIastFieldReference.getFieldOwner().accept(this);
+
+      if (mode == Mode.DEF) {
+        partialDefs = true;
+      }
 
       return null;
     }

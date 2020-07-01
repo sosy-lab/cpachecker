@@ -211,8 +211,16 @@ abstract class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode,
 
       reachDefs.add(def);
 
-      Optional<CFAEdge> edge = def.getEdge();
-      if (!edge.isPresent() || !maybeDefs.get(edge.orElseThrow()).contains(pVariable)) {
+      Optional<CFAEdge> optEdge = def.getEdge();
+      if (optEdge.isPresent()) {
+
+        CFAEdge edge = optEdge.orElseThrow();
+        if (!maybeDefs.get(edge).contains(pVariable)
+            && !EdgeDefUseData.extract(edge).hasPartialDefs()) {
+          break;
+        }
+
+      } else {
         break;
       }
     }
