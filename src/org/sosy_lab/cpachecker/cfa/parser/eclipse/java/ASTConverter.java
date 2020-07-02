@@ -1095,7 +1095,7 @@ class ASTConverter {
    * @param pType the type to get all subclasses of
    * @return all sub classes/implementing classes of the given class or interface.
    */
-  private List<JType> getSubClasses(JType pType) {
+  public static List<JType> getSubClasses(JType pType) {
 
     // Do not return immutable list!
     if (pType instanceof JSimpleType) {

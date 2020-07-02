@@ -22,9 +22,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
+import org.eclipse.jdt.core.dom.ArrayAccess;
 import org.eclipse.jdt.core.dom.AssertStatement;
 import org.eclipse.jdt.core.dom.Assignment;
 import org.eclipse.jdt.core.dom.Block;
@@ -131,7 +133,7 @@ class CFAMethodBuilder extends ASTVisitor {
   private final Deque<CFANode> switchCaseStack = new ArrayDeque<>();
 
   // Data structure for handling try catch throw
-  private final List<JSimpleDeclaration> throwables = new ArrayList<>();
+  private final Map<JSimpleDeclaration, CFANode> throwables = new HashMap<>();
 
   // Data structures for label , continue , break
   private final Map<String, CLabelNode> labelMap = new HashMap<>();
@@ -287,7 +289,7 @@ class CFAMethodBuilder extends ASTVisitor {
    @Override
   public boolean visit(final SingleVariableDeclaration sd) {
 
-    assert (!locStack.isEmpty()) : "not in a methods's scope";
+    assert (!locStack.isEmpty()) : sd + " not in a methods's scope";
 
     CFANode prevNode = locStack.pop();
 
@@ -853,7 +855,7 @@ class CFAMethodBuilder extends ASTVisitor {
     }
 
     locStack.push(lastNode);
-    return SKIP_CHILDREN;
+    return VISIT_CHILDREN;
   }
 
 
@@ -1753,69 +1755,33 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     FileLocation fileloc = astCreator.getFileLocation(pCatchClauseNode);
 
-    CFANode prevNode = locStack.pop();
-
-    CFANode postIfNode = new CFANode(cfa.getFunction());
-
-    cfaNodes.add(postIfNode);
-    locStack.push(postIfNode);
-
-    CFANode thenNode = new CFANode(cfa.getFunction());
-    cfaNodes.add(thenNode);
-    locStack.push(thenNode);
-
-    CFANode elseNode;
-
-    elseNode = postIfNode;
-
-    JDeclaration jDeclaration = astCreator.convert(pCatchClauseNode.getException());
-
-    // TODO Only first throwable of the list is taken into account. Need to create an || expression
-    JSimpleDeclaration thrown = throwables.get(0);
-    JIdExpression jIdExpressionOfThrown =
-        new JIdExpression(thrown.getFileLocation(), thrown.getType(), thrown.getName(), thrown);
-
-    final JExpression instanceOfExpression =
-        astCreator.createInstanceOfExpression(
-            jIdExpressionOfThrown, (JClassOrInterfaceType) jDeclaration.getType(), fileloc);
-
-    createConditionEdges(instanceOfExpression, fileloc, prevNode, thenNode, elseNode);
-
-    return VISIT_CHILDREN;
-  }
-
-  @Override
-  public void endVisit(CatchClause node) {
-    final CFANode prevNode = locStack.pop();
-    final CFANode nextNode = locStack.peek();
-
-    if (isReachableNode(prevNode)) {
-
-      for (CFAEdge prevEdge : CFAUtils.allEnteringEdges(prevNode).toList()) {
-
-        boolean isBlankEdge =
-            (prevEdge instanceof BlankEdge) && prevEdge.getDescription().isEmpty();
-
-        if (isBlankEdge) {
-
-          // the only entering edge is a BlankEdge, so we delete this edge and prevNode
-
-          CFANode prevPrevNode = prevEdge.getPredecessor();
-          assert prevPrevNode.getNumLeavingEdges() == 1;
-          prevNode.removeEnteringEdge(prevEdge);
-          prevPrevNode.removeLeavingEdge(prevEdge);
-
-          BlankEdge blankEdge =
-              new BlankEdge("", prevEdge.getFileLocation(), prevPrevNode, nextNode, "");
-          addToCFA(blankEdge);
-        }
-      }
-
-      if (prevNode.getNumEnteringEdges() > 0) {
-        BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, prevNode, nextNode, "");
+    JDeclaration jDeclarationOfCaughtException =
+        astCreator.convert(pCatchClauseNode.getException());
+    for (Map.Entry<JSimpleDeclaration, CFANode> throwable : throwables.entrySet()) {
+      final List<JType> subClassesOfCaughtException =
+          ASTConverter.getSubClasses(jDeclarationOfCaughtException.getType());
+      final JSimpleDeclaration throwableJSimpleDeclaration = throwable.getKey();
+      if (subClassesOfCaughtException.contains(throwableJSimpleDeclaration.getType())) {
+        throwables.remove(throwable.getKey());
+        CFANode catchNode = new CFANode(cfa.getFunction());
+        cfaNodes.add(catchNode);
+        BlankEdge blankEdge =
+            new BlankEdge(
+                pCatchClauseNode.toString(),
+                fileloc,
+                throwable.getValue(),
+                catchNode,
+                pCatchClauseNode.toString());
         addToCFA(blankEdge);
+        locStack.remove();
+        locStack.push(catchNode);
+        return VISIT_CHILDREN;
+      } else {
+        logger.log(Level.WARNING, "Unnecessary catch clause: ", pCatchClauseNode.toString());
+
       }
     }
+    return SKIP_CHILDREN;
   }
 
   @Override
@@ -1832,9 +1798,14 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     BlankEdge blankEdge =
         new BlankEdge(pThrowStatement.toString(), fileloc, prevNode, throwNode, "throw");
     addToCFA(blankEdge);
-    throwables.add(scope.lookupVariable(pThrowStatement.getExpression().toString()));
 
     return VISIT_CHILDREN;
+  }
+
+  @Override
+  public void endVisit(ThrowStatement pThrowStatement){
+    JSimpleDeclaration thrown = scope.lookupVariable(pThrowStatement.getExpression().toString());
+    throwables.put(thrown, locStack.peek());
   }
 
   @Override
