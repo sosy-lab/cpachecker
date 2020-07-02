@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN"
+        "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="20 s" hardtimelimit="30 s" memlimit="500 MB" cpuCores="1">
+
+
+    <rundefinition name="valueAnalysis-java-NoCegar-RTT">
+        <option name="-valueAnalysis-java-NoCegar-RTT"/>
+        <tasks>
+            <propertyfile>../programs/java/Misc/assert.prp</propertyfile>
+            <includesfile>../programs/java/Pack6.set</includesfile>
+        </tasks>
+    </rundefinition>
+
+
+</benchmark>
