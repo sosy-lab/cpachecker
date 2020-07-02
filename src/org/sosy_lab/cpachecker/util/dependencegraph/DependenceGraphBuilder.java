@@ -282,6 +282,13 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     return ImmutableList.copyOf(declEdges);
   }
 
+  private boolean isForeignMemoryLocation(
+      MemoryLocation pMemoryLocation, AFunctionDeclaration pFunction) {
+
+    return !pMemoryLocation.isOnFunctionStack()
+        || !pMemoryLocation.getFunctionName().equals(pFunction.getQualifiedName());
+  }
+
   // TODO reimplement foreign defs-uses computation
   private void addForeignDefsUses(
       PointerState pPointerState,
@@ -304,7 +311,6 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
     for (CFAEdge edge : edges) {
       AFunctionDeclaration function = edge.getPredecessor().getFunction();
-      String funcName = function.getQualifiedName();
       Set<MemoryLocation> funcDefs = pForeignDefs.computeIfAbsent(function, key -> new HashSet<>());
       Set<MemoryLocation> funcUses = pForeignUses.computeIfAbsent(function, key -> new HashSet<>());
       EdgeDefUseData defUseData = EdgeDefUseData.extract(edge);
@@ -313,17 +319,17 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         Set<MemoryLocation> possibleDefs = ReachingDefUtils.possiblePointees(expr, pPointerState);
         assert possibleDefs != null && !possibleDefs.isEmpty() : "No possible pointees";
         for (MemoryLocation defVar : possibleDefs) {
-          if (!defVar.getFunctionName().equals(funcName)) {
+          if (isForeignMemoryLocation(defVar, function)) {
             funcDefs.add(defVar);
           }
         }
       }
 
       for (CExpression expr : defUseData.getPointeeUses()) {
-        Set<MemoryLocation> possibleUse = ReachingDefUtils.possiblePointees(expr, pPointerState);
-        assert possibleUse != null && !possibleUse.isEmpty() : "No possible pointees";
-        for (MemoryLocation useVar : possibleUse) {
-          if (!useVar.getFunctionName().equals(funcName)) {
+        Set<MemoryLocation> possibleUses = ReachingDefUtils.possiblePointees(expr, pPointerState);
+        assert possibleUses != null && !possibleUses.isEmpty() : "No possible pointees";
+        for (MemoryLocation useVar : possibleUses) {
+          if (isForeignMemoryLocation(useVar, function)) {
             funcUses.add(useVar);
           }
         }
@@ -338,7 +344,6 @@ public class DependenceGraphBuilder implements StatisticsProvider {
           summaryEdges.entrySet()) {
 
         AFunctionDeclaration callingFunc = entry.getKey();
-        String callingFuncName = callingFunc.getQualifiedName();
         Set<MemoryLocation> callingFuncDefs =
             pForeignDefs.computeIfAbsent(callingFunc, key -> new HashSet<>());
         Set<MemoryLocation> callingFuncUses =
@@ -351,7 +356,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
               pForeignDefs.computeIfAbsent(calledFunc, key -> new HashSet<>());
 
           for (MemoryLocation defVar : calledFuncDefs) {
-            if (!defVar.getFunctionName().equals(callingFuncName)) {
+            if (isForeignMemoryLocation(defVar, callingFunc)) {
               if (callingFuncDefs.add(defVar)) {
                 changed = true;
               }
@@ -362,7 +367,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
               pForeignUses.computeIfAbsent(calledFunc, key -> new HashSet<>());
 
           for (MemoryLocation useVar : calledFuncUses) {
-            if (!useVar.getFunctionName().equals(callingFuncName)) {
+            if (isForeignMemoryLocation(useVar, callingFunc)) {
               if (callingFuncUses.add(useVar)) {
                 changed = true;
               }
