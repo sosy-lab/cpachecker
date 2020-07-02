@@ -259,7 +259,7 @@ class EclipseJavaParser implements JavaParser {
    *
    * @param entryFunctionPath path to entry method
    * @return Array with first element being absolute path to class, second element relative path and
-   * third element entry method
+   *     third element entry method
    */
   private String getAbsolutePathToEntryFunction(String entryFunctionPath) throws JParserException {
     if (entryFunctionPath.endsWith(JAVA_SOURCE_FILE_EXTENSION)) {
@@ -274,8 +274,14 @@ class EclipseJavaParser implements JavaParser {
     if (mainClassAbsolutePath.isEmpty()) {
       mainClassAbsolutePath = findMethodInPathList(javaClassPaths, entryFunctionPath);
     }
-    return mainClassAbsolutePath.orElseThrow(() -> new
-        JParserException("Could not find entry point"));
+    String finalEntryFunctionPath = entryFunctionPath;
+    return mainClassAbsolutePath.orElseThrow(
+        () ->
+            new JParserException(
+                "Could not find entry point. JavaClassPaths: "
+                    + javaClassPaths
+                    + " EntryFunctionPath: "
+                    + finalEntryFunctionPath));
   }
 
   private Optional<String> findMethodInPathList(List<Path> pPathList, String pMainFunctionPath) {
