@@ -67,6 +67,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
@@ -241,7 +242,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     return () -> Iterators.filter(iterator, pFilter);
   }
 
-  static Iterable<CFANode> iteratePredecessors(CFANode pNode) {
+  private static Iterable<CFANode> iteratePredecessors(CFANode pNode) {
 
     return createNodeIterable(
         pNode,
@@ -250,7 +251,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         node -> !(node instanceof FunctionExitNode));
   }
 
-  static Iterable<CFANode> iterateSuccessors(CFANode pNode) {
+  private static Iterable<CFANode> iterateSuccessors(CFANode pNode) {
 
     return createNodeIterable(
         pNode,
@@ -512,6 +513,29 @@ public class DependenceGraphBuilder implements StatisticsProvider {
               // if not control-dependent on itself
               if (!dependentNode.equals(branchNode)) {
                     dependentEdges.add(dependentEdge);
+              }
+            }
+          }
+        }
+      }
+
+      // for every node N that is not post-dominated by the exit node:
+      //   make all leaving edges of N depend on all assume edges in the function
+      for (int id = 0; id < domTree.getNodeCount(); id++) {
+        if (domTree.getParent(id) == Dominance.UNDEFINED) {
+          CFANode dependentNode = domTree.getNode(id);
+          if (!dependentNode.equals(entryNode.getExitNode())) {
+            for (CFANode otherNode : domTree) {
+              for (CFAEdge edge : CFAUtils.leavingEdges(otherNode)) {
+                if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+                  for (CFAEdge dependentEdge : CFAUtils.allLeavingEdges(dependentNode)) {
+                    addDependence(
+                        getDGNode(edge, Optional.empty()),
+                        getDGNode(dependentEdge, Optional.empty()),
+                        DependenceType.CONTROL);
+                    controlDepCount++;
+                  }
+                }
               }
             }
           }
