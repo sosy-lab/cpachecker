@@ -35,6 +35,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
@@ -42,6 +44,7 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.cdt.core.dom.ast.ASTVisitor;
 import org.eclipse.cdt.core.dom.ast.IASTASMDeclaration;
+import org.eclipse.cdt.core.dom.ast.IASTComment;
 import org.eclipse.cdt.core.dom.ast.IASTDeclaration;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.eclipse.cdt.core.dom.ast.IASTFunctionDefinition;
@@ -54,6 +57,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ParseResult;
+import org.sosy_lab.cpachecker.cfa.ParseResultWithCommentLocations;
 import org.sosy_lab.cpachecker.cfa.ast.ADeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
@@ -64,6 +68,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.parser.Parsers.EclipseCParserOptions;
@@ -96,6 +101,10 @@ class CFABuilder extends ASTVisitor {
 
   // Data structure for checking amount of initializations per global variable
   private final Set<String> globalInitializedVariables = new HashSet<>();
+
+  // Data structures for mapping ACSL annotations to CFA edges
+  private List<IASTFileLocation> acslCommentPositions = new ArrayList<>();
+  private Map<IASTFileLocation, CFAEdge> edgesForAnnotations = new HashMap<>();
 
   private final List<Path> parsedFiles = new ArrayList<>();
 
@@ -167,6 +176,13 @@ class CFABuilder extends ASTVisitor {
         Triple.of(new ArrayList<IASTFunctionDefinition>(), staticVariablePrefix, fileScope));
 
     ast.accept(this);
+
+    for (IASTComment comment : ast.getComments()) {
+      String commentString = String.valueOf(comment.getComment());
+      if (commentString.startsWith("/*@") || commentString.startsWith("//@")) {
+        acslCommentPositions.add(comment.getFileLocation());
+      }
+    }
 
     shutdownNotifier.shutdownIfNecessary();
   }
@@ -374,7 +390,25 @@ class CFABuilder extends ASTVisitor {
       throw new CParserException("Invalid C code because of undefined identifiers mentioned above.");
     }
 
-    ParseResult result = new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles);
+
+
+    for (IASTFileLocation loc : acslCommentPositions) {
+      int smallestDiff = 0;
+      for (Entry<String, CFANode> entry : cfaNodes.entries()) {
+        CFANode node = entry.getValue();
+        for (int i = 0; i < node.getNumEnteringEdges(); i++) {
+          CFAEdge edge = node.getEnteringEdge(i);
+          int offset = edge.getFileLocation().getNodeOffset();
+          int diff = offset - (loc.getNodeOffset() + loc.getNodeLength());
+          if (diff >= 0 && (diff < smallestDiff || edgesForAnnotations.get(loc) == null)) {
+            edgesForAnnotations.put(loc, edge);
+            smallestDiff = diff;
+          }
+        }
+      }
+    }
+
+    ParseResult result = new ParseResultWithCommentLocations(cfas, cfaNodes, globalDecls, parsedFiles, edgesForAnnotations);
 
     return result;
   }

@@ -95,6 +95,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLParser;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.threading.ThreadingTransferRelation;
@@ -455,7 +456,11 @@ public class CFACreator {
         throw new AssertionError();
       }
 
-      return createCFA(c, mainFunction);
+      CFA cfa = createCFA(c, mainFunction);
+
+      cfa = ACSLParser.parseACSLAnnotations(sourceFiles, cfa);
+
+      return cfa;
 
     } finally {
       stats.totalTime.stop();
@@ -580,6 +585,16 @@ public class CFACreator {
 
     final ImmutableCFA immutableCFA = cfa.makeImmutableCFA(varClassification, depGraph);
 
+    final CFA result;
+
+    if (pParseResult instanceof ParseResultWithCommentLocations) {
+      result =
+          new CFAWithACSLAnnotationLocations(
+              immutableCFA, ((ParseResultWithCommentLocations) pParseResult).getCommentLocations());
+    } else {
+      result = immutableCFA;
+    }
+
     // check the super CFA starting at the main function
     stats.checkTime.start();
     assert CFACheck.check(mainFunction, null, machineModel);
@@ -591,12 +606,12 @@ public class CFACreator {
         || ((serializeCfaFile != null) && serializeCfa)
         || (exportCfaPixelFile != null)
         || (exportCfaToCFile != null && exportCfaToC)) {
-      exportCFAAsync(immutableCFA);
+      exportCFAAsync(result);
     }
 
-    logger.log(Level.FINE, "DONE, CFA for", immutableCFA.getNumberOfFunctions(), "functions created.");
+    logger.log(Level.FINE, "DONE, CFA for", result.getNumberOfFunctions(), "functions created.");
 
-    return immutableCFA;
+    return result;
   }
 
   private void instrumentCfa(MutableCFA pCfa) throws InvalidConfigurationException {
