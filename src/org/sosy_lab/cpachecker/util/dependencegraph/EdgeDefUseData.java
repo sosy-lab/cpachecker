@@ -310,9 +310,6 @@ final class EdgeDefUseData {
     @Override
     public Void visit(CAddressOfLabelExpression pAddressOfLabelExpression)
         throws EdgeDefUseDataException {
-
-      pAddressOfLabelExpression.accept(this);
-
       return null;
     }
 
