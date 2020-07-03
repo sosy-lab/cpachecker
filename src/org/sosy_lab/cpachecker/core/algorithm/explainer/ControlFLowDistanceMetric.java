@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.explainer;
 
-import com.google.common.base.Splitter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -36,9 +35,15 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.java_smt.api.SolverException;
 import java.util.Set;
 
+/**
+ * This Class contains 2 different Techniques but
+ * through the same distance metric
+ * Technique 1: ControlFlow Metric
+ * Technique 2: Closest Successful Execution Generator
+ */
 public class ControlFLowDistanceMetric {
 
-  private DistanceCalculationHelper distanceHelper;
+  private final DistanceCalculationHelper distanceHelper;
 
   public ControlFLowDistanceMetric(DistanceCalculationHelper pDistanceCalculationHelper) {
     this.distanceHelper = pDistanceCalculationHelper;
@@ -50,7 +55,8 @@ public class ControlFLowDistanceMetric {
     // find all Branches in Counterexample
     List<CFAEdge> branches_ce = findBranches(ce);
     // compare all the paths with their distance
-    List<CFAEdge> closest_suc_path = comparePaths(branches_ce, distanceHelper.convertPathsToEdges(safePaths));
+    List<CFAEdge> closest_suc_path =
+        comparePaths(branches_ce, distanceHelper.convertPathsToEdges(safePaths));
     return closest_suc_path;
   }
 
@@ -67,21 +73,21 @@ public class ControlFLowDistanceMetric {
     // find all Branches in Counterexample
     List<CFAEdge> branches_ce = findBranches(ce);
     // auto path generator
-    List<List<CFAEdge>> suc_path_generated = pathGenerator(branches_ce, ce);
+    List<List<CFAEdge>> successfulGeneratedPath = pathGenerator(branches_ce, ce);
 
-    // check the number of the suc_path_generated
-    List<CFAEdge> final_generated_path = null;
-    if (suc_path_generated == null) {
-      final_generated_path = null;
-    } else if (suc_path_generated.isEmpty()) {
+    // check the number of the successfulGeneratedPath
+    List<CFAEdge> finalGeneratedPath = null;
+    if (successfulGeneratedPath == null) {
+      finalGeneratedPath = null;
+    } else if (successfulGeneratedPath.isEmpty()) {
       return comparePaths(branches_ce, distanceHelper.convertPathsToEdges(safePaths));
-    } else if (suc_path_generated.size() == 1) {
-      final_generated_path = suc_path_generated.get(0);
-    } else if (suc_path_generated.size() > 1) {
-      final_generated_path = comparePaths(branches_ce, suc_path_generated);
+    } else if (successfulGeneratedPath.size() == 1) {
+      finalGeneratedPath = successfulGeneratedPath.get(0);
+    } else if (successfulGeneratedPath.size() > 1) {
+      finalGeneratedPath = comparePaths(branches_ce, successfulGeneratedPath);
     }
 
-    return final_generated_path;
+    return finalGeneratedPath;
 
   }
 
@@ -104,26 +110,26 @@ public class ControlFLowDistanceMetric {
     }
 
     // create Events for the counterexample
-    List<Event> ce_events = new ArrayList<>();
+    List<Event> ceEvents = new ArrayList<>();
     for (int i = 0; i < ce.size(); i++) {
-      ce_events.add(new Event(ce.get(i), ce));
+      ceEvents.add(new Event(ce.get(i), ce));
     }
 
-    // create Events for all the safe paths
-    List<List<Event>> sp_events = new ArrayList<>();
+    // create Events for all the Safe Paths
+    List<List<Event>> safeEvents = new ArrayList<>();
     for (int i = 0; i < safe_path_branches_list.size(); i++) {
       List<Event> events = new ArrayList<>();
       for (int j = 0; j < safe_path_branches_list.get(i).size(); j++) {
         events.add(new Event(safe_path_branches_list.get(i).get(j), safePaths.get(i)));
       }
-      sp_events.add(events);
+      safeEvents.add(events);
     }
 
     // compute the distances
     // The number of events equals here the number of safe paths
     List<List<Event>> distances = new ArrayList<>();
-    for (List<Event> events : sp_events) {
-      distances.add(distance(ce_events, events));
+    for (List<Event> events : safeEvents) {
+      distances.add(distance(ceEvents, events));
     }
 
     // get rid of useless safe paths with distance = 0
@@ -142,13 +148,18 @@ public class ControlFLowDistanceMetric {
 
   }
 
+  /**
+   * Get rid of safe paths with distance = 0
+   *
+   * @return the safe paths with distance != 0
+   */
   private List<List<Event>> getUsefulSafePaths(
       List<List<Event>> pDistances,
-      List<List<CFAEdge>> safepaths) {
+      List<List<CFAEdge>> safePaths) {
     for (int i = 0; i < pDistances.size(); i++) {
       if (pDistances.get(i).size() == 0) {
         pDistances.remove(i);
-        safepaths.remove(i);
+        safePaths.remove(i);
       }
     }
     return pDistances;
@@ -195,7 +206,6 @@ public class ControlFLowDistanceMetric {
     Deque<Event> closest = new ArrayDeque<>(pClosest);
     Deque<Event> current = new ArrayDeque<>(pCurrent);
 
-    // Stream ?
     int closest_distance = 0;
     for (Event event : closest) {
       closest_distance += event.getDistanceFromTheEnd();
@@ -212,41 +222,39 @@ public class ControlFLowDistanceMetric {
   /**
    * Find the distance between all safe paths and the counterexample
    *
-   * @param pCe_events the events of the counterexample
-   * @param pEvents    the events of all the safe paths
-   * @return the Distance := List of events that are alligned but have a different outcome
+   * @param pCEevents   the events of the counterexample
+   * @param pSafeEvents the events of all the safe paths
+   * @return the Distance := List of events that are aligned but have a different outcome
    */
-  private List<Event> distance(List<Event> pCe_events, List<Event> pEvents) {
+  private List<Event> distance(List<Event> pCEevents, List<Event> pSafeEvents) {
     List<Event> deltas = new ArrayList<>();
     // wait list for the events to be aligned
-    List<Event> eventsWaitList = new ArrayList<>(pEvents);
-    List<Event> pCe_events1 = new ArrayList<>();
-    List<Event> pEvents1 = new ArrayList<>();
+    List<Event> eventsWaitList = new ArrayList<>(pSafeEvents);
+    List<Event> ceAlignedEvents = new ArrayList<>();
+    List<Event> safeAlignedEvents = new ArrayList<>();
 
-    // TODO: LinkedList guengstiger ?
-    //  This alignment is slightly different from the other one
-    // 1 - Set mit allen aligned Events -> set.containes ?
-    // Oder Event.aligned boolean ?
     // MAKING ALIGNMENTS
-    for (int i = 0; i < pCe_events.size(); i++) {
+    for (int i = 0; i < pCEevents.size(); i++) {
       for (int j = 0; j < eventsWaitList.size(); j++) {
-        if (pCe_events.get(i).getNode().getNodeNumber() == eventsWaitList.get(j).getNode()
+        if (pCEevents.get(i).getNode().getNodeNumber() == eventsWaitList.get(j).getNode()
             .getNodeNumber()) {
-          pCe_events1.add(pCe_events.get(i));
-          pEvents1.add(eventsWaitList.get(j));
-          // remove the aligned events from the waitlist
+          ceAlignedEvents.add(pCEevents.get(i));
+          safeAlignedEvents.add(eventsWaitList.get(j));
+          // remove the aligned events from the wait-list
           eventsWaitList.remove(j);
           break;
         }
       }
     }
 
-    for (int i = 0; i < pCe_events1.size(); i++) {
-      for (int j = 0; j < pEvents1.size(); j++) {
-        if (pCe_events1.get(i).getLine() == pEvents1.get(j).getLine()) {
-          if (!pCe_events1.get(i).getStatement().equals(pEvents1.get(j).getStatement())) {
-            deltas.add(pCe_events1.get(i));
-            pEvents1.remove(j);
+    // Find Differences - Distance Calculation in the form of a List of Events
+    for (int i = 0; i < ceAlignedEvents.size(); i++) {
+      for (int j = 0; j < safeAlignedEvents.size(); j++) {
+        if (ceAlignedEvents.get(i).getLine() == safeAlignedEvents.get(j).getLine()) {
+          if (!ceAlignedEvents.get(i).getStatement()
+              .equals(safeAlignedEvents.get(j).getStatement())) {
+            deltas.add(ceAlignedEvents.get(i));
+            safeAlignedEvents.remove(j);
             break;
           }
         }
@@ -272,50 +280,52 @@ public class ControlFLowDistanceMetric {
     return branches;
   }
 
-
   /**
    * Auto generator of the closest successful safe path
    *
-   * @param pBranches_ce the control flow of the counterexample
+   * @param pBranchesCE the control flow of the counterexample
+   * @param ce          the actual counterexample path as List of CFAEdges
+   * @return the new Generated Path (maybe more than one found)
    */
-  private List<List<CFAEdge>> pathGenerator(List<CFAEdge> pBranches_ce, List<CFAEdge> ce) {
-    if (pBranches_ce.isEmpty() || ce.isEmpty()) {
+  private List<List<CFAEdge>> pathGenerator(List<CFAEdge> pBranchesCE, List<CFAEdge> ce) {
+    if (pBranchesCE.isEmpty() || ce.isEmpty()) {
       return null;
     }
 
     // Get the last branch of the counterexample - the one closer to the Error -
-    CFAEdge b_last = pBranches_ce.get(pBranches_ce.size() - 1);
-    // change the flow of b_last
-    int edges = b_last.getPredecessor().getNumLeavingEdges();
+    CFAEdge lastBranch = pBranchesCE.get(pBranchesCE.size() - 1);
+    // change the flow of lastBranch
+    int edges = lastBranch.getPredecessor().getNumLeavingEdges();
 
     if (edges != 2) {
       return null;
     }
 
     CFAEdge diff;
-    if (b_last.equals(b_last.getPredecessor().getLeavingEdge(0))) {
-      diff = b_last.getPredecessor().getLeavingEdge(1);
+    if (lastBranch.equals(lastBranch.getPredecessor().getLeavingEdge(0))) {
+      diff = lastBranch.getPredecessor().getLeavingEdge(1);
     } else {
-      diff = b_last.getPredecessor().getLeavingEdge(0);
+      diff = lastBranch.getPredecessor().getLeavingEdge(0);
     }
 
-    return buildNewPath(ce, b_last, diff);
+    return buildNewPath(ce, lastBranch, diff);
   }
 
 
   /**
    * Building the closest to the target successful safe path
-   * @param ce List of the CFAEdges of the counterexample
-   * @param b_last the last branch of the Counterexample
-   * @param diff the leaving edge of b_last that is the one that we want to explore
+   *
+   * @param ce         List of the CFAEdges of the counterexample
+   * @param lastBranch the last branch of the Counterexample
+   * @param diff       the leaving edge of lastBranch that is the one that we want to explore
    * @return all the feasible safe paths that were built
    */
-  private List<List<CFAEdge>> buildNewPath(List<CFAEdge> ce, CFAEdge b_last, CFAEdge diff) {
-    assert b_last.getEdgeType().equals(CFAEdgeType.AssumeEdge);
+  private List<List<CFAEdge>> buildNewPath(List<CFAEdge> ce, CFAEdge lastBranch, CFAEdge diff) {
+    assert lastBranch.getEdgeType().equals(CFAEdgeType.AssumeEdge);
     List<CFAEdge> result = new ArrayList<>();
     // start building the new path
     for (CFAEdge pCFAEdge : ce) {
-      if (b_last.equals(pCFAEdge)) {
+      if (lastBranch.equals(pCFAEdge)) {
         result.add(diff);
         break;
       }
@@ -332,24 +342,25 @@ public class ControlFLowDistanceMetric {
   }
 
   /**
-   * @param lastState the last safe state
+   * Finds all outgoing paths from the last branch
+   *
+   * @param current the current Path
+   * @return all the found (feasible) Paths
    */
   private List<List<CFAEdge>> findAllPaths(List<CFAEdge> current) {
     List<List<CFAEdge>> paths = new ArrayList<>();
     paths.add(current);
     // is the last
     List<CFAEdge> currentPath = paths.get(0);
-    CFAEdge edge_now;
-    boolean finish = false;
+    CFAEdge currentEdge;
 
     for (int i = 0; i < paths.size(); i++) {
-      finish = false;
       currentPath = paths.get(i);
-      edge_now = currentPath.get(currentPath.size() - 1);
+      currentEdge = currentPath.get(currentPath.size() - 1);
 
       Set<CFANode> visited = new HashSet<>();
       Deque<CFAEdge> waitList = new ArrayDeque<>();
-      waitList.add(edge_now);
+      waitList.add(currentEdge);
 
       while (!waitList.isEmpty()) {
         CFANode successor = waitList.pop().getSuccessor();
@@ -370,13 +381,14 @@ public class ControlFLowDistanceMetric {
       }
     }
 
-    List<List<CFAEdge>> final_list = new ArrayList<>();
+    // Feasibility Check
+    List<List<CFAEdge>> finalList = new ArrayList<>();
     for (int i = 0; i < paths.size(); i++) {
       if (!isTarget(paths.get(i))) {
-        final_list.add(paths.get(i));
+        finalList.add(paths.get(i));
       }
     }
-    return final_list;
+    return finalList;
   }
 
   /**
@@ -390,64 +402,4 @@ public class ControlFLowDistanceMetric {
     }
     return false;
   }
-
-
-  /**
-   * Filter the path to stop at the __Verifier__assert Node
-   *
-   * @return the new - clean of useless nodes - Path
-   *//*
-  private List<CFAEdge> cleanPath(ARGPath path) {
-    List<CFAEdge> flow = path.getFullPath();
-    List<CFAEdge> clean_flow = new ArrayList<>();
-
-    for (int i = 0; i < flow.size(); i++) {
-      if (flow.get(i).getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
-        List<String> code = Splitter.onPattern("\\s*[()]\\s*").splitToList(flow.get(i).getCode());
-        if (code.size() > 0) {
-          if (code.get(0).equals("__VERIFIER_assert")) {
-            clean_flow.add(flow.get(i));
-            return clean_flow;
-          }
-        }
-      }
-      clean_flow.add(flow.get(i));
-    }
-    return clean_flow;
-  }*/
-
-  /**
-   * Filter the path to stop at the __Verifier__assert Node
-   *
-   * @return the new - clean of useless nodes - Path
-   *//*
-  private List<CFAEdge> cleanPath(List<CFAEdge> path) {
-    List<CFAEdge> flow = path;
-    List<CFAEdge> clean_flow = new ArrayList<>();
-
-    for (int i = 0; i < flow.size(); i++) {
-      if (flow.get(i).getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
-        List<String> code = Splitter.onPattern("\\s*[()]\\s*").splitToList(flow.get(i).getCode());
-        if (code.size() > 0) {
-          if (code.get(0).equals("__VERIFIER_assert")) {
-            clean_flow.add(flow.get(i));
-            return clean_flow;
-          }
-        }
-      }
-      clean_flow.add(flow.get(i));
-    }
-    return clean_flow;
-  }*/
-
-  /**
-   * Convert a list of ARGPaths to a List<List<CFAEdges>>
-   *//*
-  private List<List<CFAEdge>> convertPathsToEdges(List<ARGPath> paths) {
-    List<List<CFAEdge>> result = new ArrayList<>();
-    for (int i = 0; i < paths.size(); i++) {
-      result.add(paths.get(i).getFullPath());
-    }
-    return result;
-  }*/
 }

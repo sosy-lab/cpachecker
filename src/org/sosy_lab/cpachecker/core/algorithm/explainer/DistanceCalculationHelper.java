@@ -20,13 +20,16 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
+/**
+ * This class contains various methods that are essential for
+ * the calculation of the distance between 2 Executions
+ */
 public class DistanceCalculationHelper {
 
   private BooleanFormulaManagerView bfmgr;
 
   /**
    * For the Alignments Distance Metric
-   * @param pBooleanFormulaManagerView
    */
   public DistanceCalculationHelper(BooleanFormulaManagerView pBooleanFormulaManagerView) {
     this.bfmgr = pBooleanFormulaManagerView;
@@ -40,7 +43,6 @@ public class DistanceCalculationHelper {
   }
 
   /**
-   * TODO: Code Duplicate with CF_Distance_Metric
    * Filter the path to stop at the __Verifier__assert Node
    *
    * @return the new - clean of useless nodes - Path
@@ -71,21 +73,21 @@ public class DistanceCalculationHelper {
    */
   public List<CFAEdge> cleanPath(List<CFAEdge> path) {
     List<CFAEdge> flow = path;
-    List<CFAEdge> clean_flow = new ArrayList<>();
+    List<CFAEdge> filteredEdges = new ArrayList<>();
 
     for (int i = 0; i < flow.size(); i++) {
       if (flow.get(i).getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
         List<String> code = Splitter.onPattern("\\s*[()]\\s*").splitToList(flow.get(i).getCode());
         if (code.size() > 0) {
           if (code.get(0).equals("__VERIFIER_assert")) {
-            clean_flow.add(flow.get(i));
-            return clean_flow;
+            filteredEdges.add(flow.get(i));
+            return filteredEdges;
           }
         }
       }
-      clean_flow.add(flow.get(i));
+      filteredEdges.add(flow.get(i));
     }
-    return clean_flow;
+    return filteredEdges;
   }
 
   /**
@@ -99,6 +101,12 @@ public class DistanceCalculationHelper {
     return result;
   }
 
+  /**
+   * Checks if a BooleanFormula can be further splitted through "toConjunctionArgs"
+   *
+   * @param f the BooleanFormula
+   * @return True if yes, otherwise False
+   */
   public boolean isConj(BooleanFormula f) {
     Set<BooleanFormula> after = bfmgr.toConjunctionArgs(f, true);
     if (after.size() >= 2) {
@@ -111,6 +119,12 @@ public class DistanceCalculationHelper {
   }
 
 
+  /**
+   * Checks if a BooleanFormula can be further splitted through the "toDisjunctionArgs" Method
+   *
+   * @param f the BooleanFormula
+   * @return True, if yes, otherwise False
+   */
   public boolean isDisj(BooleanFormula f) {
     Set<BooleanFormula> after = bfmgr.toDisjunctionArgs(f, true);
     if (after.size() >= 2) {
@@ -123,6 +137,11 @@ public class DistanceCalculationHelper {
     return false;
   }
 
+  /**
+   * Splits a coupled BooleanFormula to a Set of individual BooleanFormulas
+   *
+   * @return the same BooleanFormula but splitted in pieces
+   */
   public Set<BooleanFormula> splitPredicates(BooleanFormula form) {
     BooleanFormula current;
     Set<BooleanFormula> result = new HashSet<>();

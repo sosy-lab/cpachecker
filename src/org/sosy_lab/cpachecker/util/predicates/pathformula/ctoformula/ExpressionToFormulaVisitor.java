@@ -554,7 +554,7 @@ public class ExpressionToFormulaVisitor
     if (functionNameExpression instanceof CIdExpression) {
       functionName = ((CIdExpression)functionNameExpression).getName();
 
-      final String isUnsupported = CtoFormulaConverter.isUnsupportedFunction(functionName);
+      final String isUnsupported = conv.isUnsupportedFunction(functionName);
       if (isUnsupported != null) {
         throw new UnsupportedCodeException(isUnsupported, edge, e);
       }

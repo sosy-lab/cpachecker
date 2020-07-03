@@ -27,6 +27,10 @@ import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
+/**
+ * The Control Flow Distance is represented through a List/Set of Events
+ * The Event class makes easier the representation of the Differences between two Executions
+ */
 public class Event {
 
   private final int line;
@@ -41,6 +45,9 @@ public class Event {
     this.path = pPath;
   }
 
+  /**
+   * Calculates how far is this Event from the Target
+   */
   public int getDistanceFromTheEnd() {
     for (int i = 0; i < path.size(); i++) {
       if (path.get(i) == execution) {

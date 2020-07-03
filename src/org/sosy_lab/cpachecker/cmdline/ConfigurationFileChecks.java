@@ -124,6 +124,7 @@ public class ConfigurationFileChecks {
           "limits.time.cpu::required",
           "limits.time.cpu.thread",
           "log.consoleLevel",
+          "log.truncateSize",
           "memorysafety.config",
           "memorycleanup.config",
           "overflow.config",
