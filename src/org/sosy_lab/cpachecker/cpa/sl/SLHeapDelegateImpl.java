@@ -27,7 +27,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.Rational;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -134,7 +133,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     final Formula oldLoc = getFormulaForExpression(pOldMemoryLocation, true);
     final BigInteger size = getValueForCExpression(pSize, true);
 
-    Formula f = checkAllocation(state.getHeap(), oldLoc, null, true);
+    Formula f = checkHeapAllocation(oldLoc, true);
     if (f == null) {
       logger.log(Level.SEVERE, "REALLOC() failed - address not allocated.");
       return SLStateError.INVALID_READ;
@@ -167,11 +166,11 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
   public SLStateError handleFree(CExpression pLocation)
       throws Exception {
     Formula loc =
-        checkAllocation(state.getHeap(), getFormulaForExpression(pLocation, true), null, true);
+        checkHeapAllocation(getFormulaForExpression(pLocation, true), true);
     if (loc == null) {
       return SLStateError.INVALID_FREE;
     }
-    if (state.getAllocationSizes().get(loc) == null) {
+    if (state.getAllocationSizes().get(loc) == null) { // TODO can this be null?
       return SLStateError.INVALID_FREE;
     }
     removeFromMemory(state.getHeap(), loc);
@@ -226,11 +225,11 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
         val = getFormulaForExpression(((CInitializerExpression) init).getExpression(), true);
         updateMemory(state.getStack(), f, val);
       } else if (init instanceof CInitializerList) {
-        // TODO
-        // CInitializerList iList = (CInitializerList) init;
-        // for (CInitializer i : iList.getInitializers()) {
-        //
-        // }
+        CInitializerList iList = (CInitializerList) init;
+        for (CInitializer i : iList.getInitializers()) {
+          val = getFormulaForExpression(((CInitializerExpression) i).getExpression(), true);
+          updateMemory(state.getStack(), f, val);
+        }
       }
     }
   }
@@ -277,12 +276,18 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
 
     for (int i = 0; i < machineModel.getSizeof(type).intValueExact(); i++) {
       final Formula f = fm.makePlus(loc, fm.makeNumber(loc, Rational.of(i)));
-      final Formula match = checkAllocation(f, val, true);
-      if (match == null) {
-        return SLStateError.INVALID_WRITE;
+      Formula match = checkHeapAllocation(f, true);
+      if (match != null) {
+        updateMemory(state.getHeap(), match, val);
+        return null;
+      }
+      match = checkStackAllocation(f, true);
+      if (match != null) {
+        updateMemory(state.getStack(), match, val);
+        return null;
       }
     }
-    return null;
+    return SLStateError.INVALID_WRITE;
   }
 
 
@@ -308,7 +313,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
 
     loc = getFormulaForVariableName(pDecl.getQualifiedName(), false);
     // check heap ptr alias
-    Formula match = checkAllocation(state.getHeap(), loc, null, false);
+    Formula match = checkHeapAllocation(loc, false);
     if (match != null) {
       // Check if a copy of the dropped heap pointer exists.
       for (CSimpleDeclaration ptr : state.getInScopePtrs()) {
@@ -334,46 +339,30 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     }
   }
 
-  private Formula checkAllocation(Formula fLoc, Formula pVal, boolean usePredContext) {
-    Timer timer = new Timer();
-    timer.start();
-    Formula res = checkAllocation(state.getHeap(), fLoc, pVal, usePredContext);
-    if (res == null) {
-      res = checkAllocation(state.getStack(), fLoc, pVal, usePredContext);
-    }
-    timer.stop();
-    logger.log(Level.INFO, "Solvingtime_old: " + timer.toString());
+  private Formula checkHeapAllocation(Formula fLoc, boolean usePredContext) {
+    return checkAllocation(state.getHeap(), fLoc, usePredContext);
+  }
 
-    return res;
+  private Formula checkStackAllocation(Formula fLoc, boolean usePredContext) {
+    return checkAllocation(state.getStack(), fLoc, usePredContext);
   }
 
   private Formula checkAllocation(
       Map<Formula, Formula> pMemory,
       Formula fLoc,
-      Formula pVal,
       boolean usePredContext) {
     PathFormula context = usePredContext ? getPredPathFormula() : getPathFormula();
     // Syntactical check for performance.
     if (pMemory.containsKey(fLoc)) {
-      if (pVal != null) {
-        pMemory.put(fLoc, pVal);
-      }
       return fLoc;
     }
     // Semantical check.
-    Formula match = null;
     for (Formula formulaOnHeap : pMemory.keySet()) {
       if (checkEquivalence(fLoc, formulaOnHeap, context)) {
-        match = formulaOnHeap;
-        break;
+        return formulaOnHeap;
       }
     }
-    if (match != null && pVal != null) {
-      assert pVal instanceof BitvectorFormula;
-      divideValueIntoBytes((BitvectorFormula) pVal);
-      pMemory.put(match, pVal);
-    }
-    return match;
+    return null;
   }
 
   private void addToMemory(
@@ -402,6 +391,17 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
 
   private void updateMemory(Map<Formula, Formula> pMemory, Formula pLoc, Formula pVal) {
     pMemory.put(pLoc, pVal);
+    assert pVal instanceof BitvectorFormula;
+    BitvectorFormula[] bytes = divideValueIntoBytes((BitvectorFormula) pVal);
+    assert bytes.length == state.getAllocationSizes().get(pLoc).longValueExact();
+    for (int i = 0; i < bytes.length; i++) {
+      Formula f = pLoc;
+      if(i > 0) {
+        f = fm.makePlus(pLoc, fm.makeNumber(pLoc, Rational.of(i)));
+      }
+      pMemory.put(f, bytes[i]);
+    }
+
   }
 
   // private void updateMemory(Formula pLoc, Formula pVal) {
