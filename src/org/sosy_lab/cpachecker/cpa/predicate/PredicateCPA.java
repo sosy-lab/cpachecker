@@ -294,10 +294,13 @@ public class PredicateCPA
 
   @Override
   public AbstractState getInitialState(CFANode node, StateSpacePartition pPartition) {
-    return PredicateAbstractState.mkAbstractionState(
+    PredicateAbstractState initialState =
+        PredicateAbstractState.mkAbstractionState(
         pathFormulaManager.makeEmptyPathFormula(),
         predicateManager.makeTrueAbstractionFormula(null),
         PathCopyingPersistentTreeMap.of());
+    initialState.setPreviousAbstractionState(initialState);
+    return initialState;
   }
 
   @Override
