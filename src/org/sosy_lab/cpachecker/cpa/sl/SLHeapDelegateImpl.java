@@ -393,7 +393,6 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     pMemory.put(pLoc, pVal);
     assert pVal instanceof BitvectorFormula;
     BitvectorFormula[] bytes = divideValueIntoBytes((BitvectorFormula) pVal);
-    assert bytes.length == state.getAllocationSizes().get(pLoc).longValueExact();
     for (int i = 0; i < bytes.length; i++) {
       Formula f = pLoc;
       if(i > 0) {
