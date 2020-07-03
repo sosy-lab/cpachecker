@@ -93,10 +93,8 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.flowdep.FlowDependenceState;
 import org.sosy_lab.cpachecker.cpa.flowdep.FlowDependenceState.FlowDependence;
-import org.sosy_lab.cpachecker.cpa.pointer2.PointerState;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
@@ -107,7 +105,6 @@ import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.DependenceTy
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.NodeMap;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomFrontiers;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
-import org.sosy_lab.cpachecker.util.reachingdef.ReachingDefUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -170,7 +167,8 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     varClassification = pVarClassification;
   }
 
-  public DependenceGraph build() throws InvalidConfigurationException {
+  public DependenceGraph build()
+      throws InvalidConfigurationException, InterruptedException, CPAException {
     dependenceGraphConstructionTimer.start();
     nodes = new NodeMap();
     adjacencyMatrix = HashBasedTable.create();
@@ -291,7 +289,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
   // TODO reimplement foreign defs-uses computation
   private void addForeignDefsUses(
-      PointerState pPointerState,
+      GlobalPointerState pPointerState,
       Map<AFunctionDeclaration, Set<MemoryLocation>> pForeignDefs,
       Map<AFunctionDeclaration, Set<MemoryLocation>> pForeignUses) {
 
@@ -316,7 +314,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
       EdgeDefUseData defUseData = EdgeDefUseData.extract(edge);
 
       for (CExpression expr : defUseData.getPointeeDefs()) {
-        Set<MemoryLocation> possibleDefs = ReachingDefUtils.possiblePointees(expr, pPointerState);
+        Set<MemoryLocation> possibleDefs = pPointerState.getPossiblePointees(edge, expr);
         assert possibleDefs != null && !possibleDefs.isEmpty() : "No possible pointees";
         for (MemoryLocation defVar : possibleDefs) {
           if (isForeignMemoryLocation(defVar, function)) {
@@ -326,7 +324,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
       }
 
       for (CExpression expr : defUseData.getPointeeUses()) {
-        Set<MemoryLocation> possibleUses = ReachingDefUtils.possiblePointees(expr, pPointerState);
+        Set<MemoryLocation> possibleUses = pPointerState.getPossiblePointees(edge, expr);
         assert possibleUses != null && !possibleUses.isEmpty() : "No possible pointees";
         for (MemoryLocation useVar : possibleUses) {
           if (isForeignMemoryLocation(useVar, function)) {
@@ -378,22 +376,15 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     }
   }
 
-  private void addFlowDependencesNew() {
+  private void addFlowDependencesNew() throws InterruptedException, CPAException {
 
-    PointerState pointerState = null;
-    try {
-      pointerState = SimplePointerAnalysis.run(cfa);
-    } catch (CPATransferException | InterruptedException ex) {
-      // TODO exception handling
-      logger.logUserException(Level.INFO, ex, "");
-    }
-
-    PointerState finalPointerState = pointerState;
+    GlobalPointerState pointerState =
+        GlobalPointerState.createFlowSensitive(cfa, logger, shutdownNotifier);
 
     Map<AFunctionDeclaration, Set<MemoryLocation>> foreignDefs = new HashMap<>();
     Map<AFunctionDeclaration, Set<MemoryLocation>> foreignUses = new HashMap<>();
 
-    addForeignDefsUses(finalPointerState, foreignDefs, foreignUses);
+    addForeignDefsUses(pointerState, foreignDefs, foreignUses);
 
     List<CFAEdge> globalEdges = getGlobalDeclarationEdges(cfa);
     Map<String, CFAEdge> functionDeclarations = new HashMap<>();
@@ -440,7 +431,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
         @Override
         protected Set<MemoryLocation> getPossiblePointees(CFAEdge pEdge, CExpression pExpression) {
-          return ReachingDefUtils.possiblePointees(pExpression, finalPointerState);
+          return pointerState.getPossiblePointees(pEdge, pExpression);
         }
 
         @Override
