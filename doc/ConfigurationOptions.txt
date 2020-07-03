@@ -1962,6 +1962,11 @@ cpa.predicate.abstractions.file = "abstractions.txt"
 # (signature, not name!).
 cpa.predicate.addRangeConstraintsForNondet = false
 
+# Allow the given extern functions and interpret them as pure functions
+# although the predicate analysis does not support their semantics and this
+# can produce wrong results.
+cpa.predicate.allowedUnsupportedFunctions = {}
+
 # Check satisfiability for plain conjunction of edge and assumptions.
 cpa.predicate.assumptionStrengtheningSatCheck = false
 
@@ -2221,6 +2226,10 @@ cpa.predicate.memoryFreeFunctionName = "free"
 # which merge operator to use for predicate cpa (usually ABE should be used)
 cpa.predicate.merge = "ABE"
   allowed values: [SEP, ABE]
+
+# merge two abstraction states if their preceeding abstraction states are the
+# same
+cpa.predicate.merge.mergeAbstractionStatesWithSamePredecessor = false
 
 # Set of functions that should be considered as giving a non-deterministic
 # return value. If you specify this option, the default values are not added
@@ -3383,12 +3392,8 @@ merge = "JOIN"
 # List of property-files to be run by the subprocesses.
 mpiAlgorithm.configFiles = no default value
 
-# File containing the ip adresses to be used by MPI.
+# File containing the ip addresses to be used by MPI.
 mpiAlgorithm.hostfile = no default value
-
-# Ip adress of the main node. Used by the CPAchecker child instances for
-# writing their results back to the output directory of the main node.
-mpiAlgorithm.mainNodeIPAdress = no default value
 
 # Number of processes to be used by MPI.
 mpiAlgorithm.numberProcesses = no default value

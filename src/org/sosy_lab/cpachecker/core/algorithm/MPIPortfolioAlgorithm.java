@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.base.Verify.verify;
 import static java.util.function.Predicate.not;
 
@@ -78,14 +79,9 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
   @Option(secure = true, required = true, description = "Number of processes to be used by MPI.")
   private int numberProcesses;
 
-  @Option(description = "File containing the ip adresses to be used by MPI.")
+  @Option(description = "File containing the ip addresses to be used by MPI.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path hostfile;
-
-  @Option(
-    description = "Ip adress of the main node. Used by the CPAchecker child instances for "
-        + "writing their results back to the output directory of the main node.")
-  private String mainNodeIPAdress;
 
   private final Configuration globalConfig;
   private final LogManager logger;
@@ -119,6 +115,32 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     subanalysesOutputPaths = new HashMap<>();
     subanalysesLogfilePaths = new HashMap<>();
 
+    if (numberProcesses <= 1) {
+      String numNodesEnv = System.getenv("AWS_BATCH_JOB_NUM_NODES");
+      if (!isNullOrEmpty(numNodesEnv)) {
+        logger.logf(
+            Level.INFO,
+            "Env variable 'AWS_BATCH_JOB_NUM_NODES' found with value '%s'. Continuing using this value.",
+            numNodesEnv);
+        try {
+          numberProcesses = Integer.parseInt(numNodesEnv);
+        } catch (NumberFormatException e) {
+          throw new InvalidConfigurationException(
+              "Env variable 'AWS_BATCH_JOB_NUM_NODES' does not contain a valid int value",
+              e);
+        }
+      } else {
+        numberProcesses = 1;
+        logger.logf(
+            Level.INFO,
+            "No information about the amount of available processes for MPI was found. "
+                + "Taking %d as default value.",
+            numberProcesses);
+      }
+    }
+
+    logger.logf(Level.INFO, "Number of specified processes: %d", numberProcesses);
+
     if (hostfile == null) {
       String envVariable = System.getenv("HOST_FILE_PATH");
       if (envVariable != null) {
@@ -137,8 +159,8 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
           logger.log(
               Level.WARNING,
               "No hostfile was given, but a number of available processes was specified. "
-                  + "The sequential execution using MPI is not (yet) supported. Setting "
-                  + "the number of processes to 1.");
+                  + "The sequential execution using MPI is not supported. Setting the "
+                  + "number of processes to 1.");
           numberProcesses = 1;
         }
       }
@@ -162,10 +184,23 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       // back to the main node after completing their analysis.
       if (hostfile != null) {
         Map<String, String> networkSettings = new HashMap<>();
-        if (mainNodeIPAdress == null) {
-          mainNodeIPAdress = InetAddress.getLocalHost().getHostAddress();
+
+        String mainNodeIPAddress = null;
+        try {
+          mainNodeIPAddress =
+              InetAddress.getByName(System.getProperty("user.name")).getHostAddress();
+        } catch (IOException e) {
+          logger.log(
+              Level.WARNING,
+              "Could not retrieve the ip address from the main node. Proceeding without it.");
+          logger.logDebugException(
+              e,
+              "Failed to retrieve the ip address of the main node from PATH.");
         }
-        networkSettings.put("main_node_ipv4_address", mainNodeIPAdress);
+
+        if (mainNodeIPAddress != null) {
+          networkSettings.put("main_node_ipv4_address", mainNodeIPAddress);
+        }
         networkSettings.put("user_name_main_node", System.getProperty("user.name"));
         networkSettings.put("project_location_main_node", System.getProperty("user.dir"));
 
@@ -185,7 +220,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
   private ImmutableMap<String, Object> createCommand(int pIndex)
       throws InvalidConfigurationException {
 
-    String subprocess_timelimit = "90s"; // arbitrary value for now
+    String subprocess_timelimit = "750s"; // arbitrary value for now
     Path subprocess_config = configFiles.get(pIndex);
     Path subprocess_output_basedir = Path.of("output", "output_portfolio-analysis_" + pIndex);
     Path subprocess_logfile = Path.of("logfile_portfolio-analysis_" + pIndex + ".log");
@@ -264,6 +299,12 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
     List<String> cmdList = new ArrayList<>();
     cmdList.add(binaries.get(MPI_BIN).toString());
+
+    // Force Open MPI to only send messages via eth0
+    // https://stackoverflow.com/a/15256822
+    cmdList.add("--mca");
+    cmdList.add("btl_tcp_if_include");
+    cmdList.add("eth0");
 
     // if no hostfile is specified, all CPAchecker instances
     // for the subanalyses will be executed on the local machine
@@ -389,7 +430,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
         logger.log(Level.INFO, Joiner.on("\n\n").join(subanalysisLog));
 
         logger.log(Level.WARNING, "-------------------- END SUBANALYSIS LOG --------------------");
-        return AlgorithmStatus.SOUND_AND_IMPRECISE;
+        return AlgorithmStatus.SOUND_AND_PRECISE;
       }
 
     } catch (IOException e) {

@@ -126,8 +126,17 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
         throw new CPATransferException("Solver failed during successor generation", e);
       }
 
-      return Collections.singleton(
-          mkNonAbstractionStateWithNewPathFormula(pathFormula, element));
+      PredicateAbstractState successor;
+      if (element.isAbstractionState()) {
+        successor = mkNonAbstractionStateWithNewPathFormula(pathFormula, element, element);
+      } else {
+        successor =
+            mkNonAbstractionStateWithNewPathFormula(
+                pathFormula,
+                element,
+                element.getPreviousAbstractionState());
+      }
+      return Collections.singleton(successor);
 
     } finally {
       postTimer.stop();
