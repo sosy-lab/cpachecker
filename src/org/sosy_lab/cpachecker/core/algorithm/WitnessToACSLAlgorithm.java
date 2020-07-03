@@ -19,17 +19,17 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import com.google.common.base.Optional;
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
 import com.google.common.base.Charsets;
+import com.google.common.base.Optional;
 import com.google.common.io.Files;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -80,6 +80,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
   private final ToCExpressionVisitor toCExpressionVisitor;
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
+  @SuppressWarnings("unused")
   public WitnessToACSLAlgorithm(
       Configuration pConfig,
       LogManager pLogger,
@@ -294,7 +295,8 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     int indexOfFirstPeriod = oldFileName.indexOf('.');
     String nameWithoutExtension = oldFileName.substring(0, indexOfFirstPeriod);
     String extension = oldFileName.substring(indexOfFirstPeriod);
-    String timestamp = new SimpleDateFormat("YYYY-MM-dd_HH:mm:ss").format(new Date());
+    String timestamp =
+        LocalDateTime.now().format(DateTimeFormatter.ofPattern("YYYY-MM-dd_HH:mm:ss"));
     return "annotated_".concat(nameWithoutExtension).concat(timestamp).concat(extension);
   }
 
