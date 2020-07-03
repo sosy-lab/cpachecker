@@ -205,6 +205,4 @@ public class SLTransferRelation
   protected Set<SLState> handleBlankEdge(BlankEdge pCfaEdge) {
     return Collections.singleton(state);
   }
-
-
 }
