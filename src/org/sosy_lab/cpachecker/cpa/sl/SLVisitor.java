@@ -260,16 +260,6 @@ public class SLVisitor implements CAstNodeVisitor<SLStateError, Exception> {
     if (error != null) {
       return error;
     }
-    // CExpression offset =
-    // new CBinaryExpression(
-    // FileLocation.DUMMY,
-    // CNumericTypes.INT,
-    // CNumericTypes.INT,
-    // operand,
-    // basePtr,
-    // BinaryOperator.MINUS);
-
-
     if (curLHS == pPointerExpression) { // is assignment?
       return heapDelegate.handleDereferenceAssignment(operand, null, curRHS);
     } else {
