@@ -502,6 +502,15 @@ public class ExpressionToFormulaVisitor
     }
 
     case AMPER:
+        if (operand instanceof CIdExpression) {
+          CIdExpression idExp = (CIdExpression) operand;
+          String name =
+              UnaryOperator.AMPER.getOperator() + idExp.getDeclaration().getQualifiedName();
+          return conv.makeVariable(
+              name,
+              exp.getExpressionType(),
+              ssa);
+        }
       return visitDefault(exp);
 
     case SIZEOF:
