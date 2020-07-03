@@ -140,7 +140,7 @@ public class ACSLToCExpressionVisitor {
       return new CCastExpression(inner.getFileLocation(), type, inner);
   }
 
-  public CExpression visit(Identifier identifier) throws UnrecognizedCodeException {
+  public CExpression visit(Identifier identifier) {
     CProgramScope scope = new CProgramScope(cfa, logger);
     CSimpleDeclaration variableDeclaration = scope.lookupVariable(identifier.getName());
     if (variableDeclaration != null) {
@@ -149,14 +149,14 @@ public class ACSLToCExpressionVisitor {
     throw new AssertionError("Unknown variable identifier: " + identifier.getName());
   }
 
-  public CExpression visit(IntegerLiteral integerLiteral) throws UnrecognizedCodeException {
+  public CExpression visit(IntegerLiteral integerLiteral) {
     return new CIntegerLiteralExpression(
         FileLocation.DUMMY,
         CNumericTypes.LONG_LONG_INT,
         BigInteger.valueOf(integerLiteral.getLiteral()));
   }
 
-  public CExpression visit(StringLiteral stringLiteral) throws UnrecognizedCodeException {
+  public CExpression visit(StringLiteral stringLiteral) {
     return new CStringLiteralExpression(
         FileLocation.DUMMY,
         new CPointerType(false, false, CNumericTypes.UNSIGNED_CHAR),

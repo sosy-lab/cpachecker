@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLAnnotation;
@@ -41,8 +40,8 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
 public class ACSLState implements AbstractState, ExpressionTreeReportingState {
 
-  private Collection<ACSLAnnotation> annotations;
-  private ACSLToCExpressionVisitor visitor;
+  private final Collection<ACSLAnnotation> annotations;
+  private final ACSLToCExpressionVisitor visitor;
 
   public ACSLState(Collection<ACSLAnnotation> pAnnotations, ACSLToCExpressionVisitor pVisitor) {
     annotations = pAnnotations;

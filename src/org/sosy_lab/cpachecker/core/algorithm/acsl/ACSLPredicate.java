@@ -1,6 +1,5 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
