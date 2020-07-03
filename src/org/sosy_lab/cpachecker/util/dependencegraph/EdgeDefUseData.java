@@ -483,7 +483,11 @@ final class EdgeDefUseData {
         expression.accept(this);
       }
 
-      pIastFunctionCallStatement.getFunctionCallExpression().getDeclaration().accept(this);
+      CFunctionDeclaration declaration =
+          pIastFunctionCallStatement.getFunctionCallExpression().getDeclaration();
+      if (declaration != null) {
+        declaration.accept(this);
+      }
 
       return null;
     }
