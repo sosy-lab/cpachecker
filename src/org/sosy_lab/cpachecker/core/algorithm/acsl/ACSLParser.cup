@@ -2,6 +2,8 @@ package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Multimap;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -19,13 +21,15 @@ import java.util.Map;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotationLocations;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 
 parser code {:
 
     private ACSLScanner scanner;
-    private Map<String, Behavior> behaviors;
+    //TODO: Currently only contains behaviors of function contracts
+    private Multimap<String, Behavior> behaviors;
     private CFAWithACSLAnnotationLocations cfa;
     private List<IASTFileLocation> orderedLocs;
 
@@ -33,7 +37,7 @@ parser code {:
       List<IASTFileLocation> pOrderedLocs) {
         super(pScanner);
         scanner = pScanner;
-        behaviors = new HashMap<>();
+        behaviors = LinkedHashMultimap.create();
         cfa = pCfa;
         orderedLocs = pOrderedLocs;
     }
@@ -77,12 +81,21 @@ parser code {:
       }
     }
 
-    public void putBehavior(String id, Behavior b) {
-        behaviors.put(id, b);
+    public CFANode getCurrentNode() {
+      return cfa.getCommentPositions().get(orderedLocs.get(scanner.getCurrentAnnotation())).getSuccessor();
     }
 
-    public Behavior getBehavior(String id) {
-        return behaviors.get(id);
+    public void putBehavior(String functionName, Behavior b) {
+      behaviors.put(functionName, b);
+    }
+
+    public Behavior getBehavior(String functionName, String behaviorName) {
+      for (Behavior b : behaviors.get(functionName)) {
+        if (b.getName().equals(behaviorName)) {
+          return b;
+        }
+      }
+      throw new AssertionError("Unknown behavior identifier: " + behaviorName);
     }
 
     public List<IASTFileLocation> getLocs() {
@@ -186,18 +199,21 @@ loopannotation ::= NEXTCONTRACT loop_clauses:c loop_behaviors:b {: RESULT = new 
 fcontract ::= NEXTCONTRACT clauses:c                {: RESULT = c.build(); :};
 scontract ::= NEXTCONTRACT behavior_identifiers:i clauses:c
                                                     {: List<Behavior> enclosingBehaviors = new ArrayList<>();
-                                                       for(String id : i) { enclosingBehaviors.add(parser.getBehavior(id)); }
+                                                       CFANode node = parser.getCurrentNode();
+                                                       for(String id : i) { enclosingBehaviors.add(parser.getBehavior(node.getFunctionName(), id)); }
                                                        RESULT = StatementContract.fromFunctionContract(enclosingBehaviors, c.build()); :};
 behavior_identifiers ::= FOR identifiers:i COLON PRED_START {: RESULT = i; :};
 identifiers ::= identifiers:is COMMA IDENTIFIER:i    {: is.add(i); RESULT = is; :}
             | IDENTIFIER:i      {: List<String> identifiers = new ArrayList<>();
                                    identifiers.add(i); RESULT = identifiers; :};
 loop_behaviors ::= loop_behaviors:b behavior_identifiers:i loop_clauses:c   {: List<Behavior> holdsFor = new ArrayList<>(i.size());
-                                                                               for(String id : i) { holdsFor.add(parser.getBehavior(id)); }
+                                                                               CFANode node = parser.getCurrentNode();
+                                                                               for(String id : i) { holdsFor.add(parser.getBehavior(node.getFunctionName(), id)); }
                                                                                b.put(holdsFor, c); RESULT = b; :}
                 | behavior_identifiers:i loop_clauses:c                     {: Map<List<Behavior>, LoopInvariant> loopBehaviors = new HashMap<>();
                                                                                List<Behavior> holdsFor = new ArrayList<>(i.size());
-                                                                               for(String id : i) { holdsFor.add(parser.getBehavior(id)); }
+                                                                               CFANode node = parser.getCurrentNode();
+                                                                               for(String id : i) { holdsFor.add(parser.getBehavior(node.getFunctionName(), id)); }
                                                                                loopBehaviors.put(holdsFor, c); RESULT = loopBehaviors; :};
 loop_clauses ::= loop_clauses:c LINVARIANT predicate:p SEMI {: RESULT = c.and(p); :}
             | LINVARIANT predicate:p SEMI                   {: RESULT = new LoopInvariant(p); :};
@@ -213,16 +229,19 @@ behaviors ::=
             | /* nothing */                         {: RESULT = new HashSet<>(); :};
 behavior ::= BEHAVIOR IDENTIFIER:i COLON PRED_START behavior_body:bb   {: bb.setBehaviorName(i);
                                                                           Behavior b = bb.build();
-                                                                          parser.putBehavior(i, b); RESULT = b; :};
+                                                                          CFANode node = parser.getCurrentNode();
+                                                                          parser.putBehavior(node.getFunctionName(), b); RESULT = b; :};
 completeness_clauses ::= completeness_clauses:cs completeness_clause:c  {: cs.add(c); RESULT = cs; :}
                         | /* nothing */                                 {: RESULT = new HashSet<>(); :};
 completeness_clause ::= COMPLETE_BEHAVIORS identifiers:i SEMI {: List<Behavior> behaviors = new ArrayList<>(i.size());
-                                                               for (String id : i) { behaviors.add(parser.getBehavior(id)); }
+                                                                 CFANode node = parser.getCurrentNode();
+                                                               for (String id : i) { behaviors.add(parser.getBehavior(node.getFunctionName(), id)); }
                                                                RESULT = new CompletenessClause(behaviors, CompletenessClause.RelationKind.COMPLETE); :}
                         //TODO:Use all current behaviors
                         | COMPLETE_BEHAVIORS SEMI {: RESULT = new CompletenessClause(new ArrayList<Behavior>(0), CompletenessClause.RelationKind.COMPLETE); :}
                         | DISJOINT_BEHAVIORS identifiers:i SEMI {: List<Behavior> behaviors = new ArrayList<>(i.size());
-                                                               for (String id : i) { behaviors.add(parser.getBehavior(id)); }
+                                                                   CFANode node = parser.getCurrentNode();
+                                                               for (String id : i) { behaviors.add(parser.getBehavior(node.getFunctionName(), id)); }
                                                                RESULT = new CompletenessClause(behaviors, CompletenessClause.RelationKind.DISJOINT); :}
                         // TODO:Use all current behaviors
                         | DISJOINT_BEHAVIORS SEMI {: RESULT = new CompletenessClause(new ArrayList<Behavior>(0), CompletenessClause.RelationKind.DISJOINT); :};

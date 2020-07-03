@@ -17,6 +17,10 @@ public class Behavior {
     assumesClause = ass;
   }
 
+  public String getName() {
+    return name;
+  }
+
   private void makePredicateRepresentation() {
     ACSLPredicate inner;
     ACSLPredicate left = ensuresClause.getPredicate();
