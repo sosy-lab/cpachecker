@@ -75,6 +75,14 @@ public abstract class PredicateAbstractState
       // is always the same when the location is the same.
     }
 
+    private AbstractionState(
+        PathFormula pf,
+        AbstractionFormula pA,
+        PersistentMap<CFANode, Integer> pAbstractionLocations,
+        PredicateAbstractState pPreviousAbstractState) {
+      super(pf, pA, pAbstractionLocations, pPreviousAbstractState);
+    }
+
     @Override
     public Object getPartitionKey() {
       if (super.abstractionFormula.isFalse()) {
@@ -134,6 +142,14 @@ public abstract class PredicateAbstractState
     private NonAbstractionState(PathFormula pF, AbstractionFormula pA,
         PersistentMap<CFANode, Integer> pAbstractionLocations) {
       super(pF, pA, pAbstractionLocations);
+    }
+
+    private NonAbstractionState(
+        PathFormula pF,
+        AbstractionFormula pA,
+        PersistentMap<CFANode, Integer> pAbstractionLocations,
+        PredicateAbstractState pPreviousAbstractState) {
+      super(pF, pA, pAbstractionLocations, pPreviousAbstractState);
     }
 
     @Override
@@ -196,10 +212,29 @@ public abstract class PredicateAbstractState
     return new AbstractionState(pF, pA, pAbstractionLocations);
   }
 
+  public static PredicateAbstractState mkAbstractionState(
+      PathFormula pF,
+      AbstractionFormula pA,
+      PersistentMap<CFANode, Integer> pAbstractionLocations,
+      PredicateAbstractState pPreviousAbstractionState) {
+    return new AbstractionState(pF, pA, pAbstractionLocations, pPreviousAbstractionState);
+  }
+
   public static PredicateAbstractState mkNonAbstractionStateWithNewPathFormula(PathFormula pF,
       PredicateAbstractState oldState) {
     return new NonAbstractionState(pF, oldState.getAbstractionFormula(),
                                         oldState.getAbstractionLocationsOnPath());
+  }
+
+  public static PredicateAbstractState mkNonAbstractionStateWithNewPathFormula(
+      PathFormula pF,
+      PredicateAbstractState oldState,
+      PredicateAbstractState pPreviousAbstractionState) {
+    return new NonAbstractionState(
+        pF,
+        oldState.getAbstractionFormula(),
+        oldState.getAbstractionLocationsOnPath(),
+        pPreviousAbstractionState);
   }
 
   static PredicateAbstractState mkNonAbstractionState(
@@ -227,13 +262,25 @@ public abstract class PredicateAbstractState
   /** How often each abstraction location was visited on the path to the current state. */
   private final transient PersistentMap<CFANode, Integer> abstractionLocations;
 
-  private AbstractionState previousAbstractionState = null;
+  private final AbstractionState previousAbstractionState;
 
   private PredicateAbstractState(PathFormula pf, AbstractionFormula a,
       PersistentMap<CFANode, Integer> pAbstractionLocations) {
     this.pathFormula = pf;
     this.abstractionFormula = a;
     this.abstractionLocations = pAbstractionLocations;
+    this.previousAbstractionState = null;
+  }
+
+  private PredicateAbstractState(
+      PathFormula pf,
+      AbstractionFormula a,
+      PersistentMap<CFANode, Integer> pAbstractionLocations,
+      PredicateAbstractState pPreviousAbstractionState) {
+    this.pathFormula = pf;
+    this.abstractionFormula = a;
+    this.abstractionLocations = pAbstractionLocations;
+    this.previousAbstractionState = (AbstractionState) pPreviousAbstractionState;
   }
 
   public abstract boolean isAbstractionState();
@@ -276,10 +323,6 @@ public abstract class PredicateAbstractState
     } else {
       throw new UnsupportedOperationException("Changing abstraction formula is only supported for abstraction elements");
     }
-  }
-
-  void setPreviousAbstractionState(PredicateAbstractState pPreviousAbstractionState) {
-    previousAbstractionState = (AbstractionState) pPreviousAbstractionState;
   }
 
   public PathFormula getPathFormula() {

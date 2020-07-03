@@ -29,6 +29,3 @@ Typically, this information can be extracted from the metadata
 in the library archive.
 Afterwards, run `reuse download --all` and add any new files under `LICENSES`
 such that all license texts are checked in.
-
-Please also update the path to the BenchExec library in
-`.pydevproject` in the root of the project.

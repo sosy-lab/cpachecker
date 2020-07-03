@@ -76,8 +76,8 @@ public class PredicateMergeOperator implements MergeOperator {
             mkAbstractionState(
                 newPathFormula,
                 newAbstractionFormula,
-                elem2.getAbstractionLocationsOnPath());
-        merged.setPreviousAbstractionState(elem2.getPreviousAbstractionState());
+                elem2.getAbstractionLocationsOnPath(),
+                elem2.getPreviousAbstractionState());
         elem1.setMergedInto(merged);
         totalMergeTimer.stop();
         return merged;
@@ -103,8 +103,11 @@ public class PredicateMergeOperator implements MergeOperator {
 
         logger.log(Level.ALL, "New path formula is", pathFormula);
 
-        merged = mkNonAbstractionStateWithNewPathFormula(pathFormula, elem1);
-        merged.setPreviousAbstractionState(elem2.getPreviousAbstractionState());
+        merged =
+            mkNonAbstractionStateWithNewPathFormula(
+                pathFormula,
+                elem1,
+                elem2.getPreviousAbstractionState());
 
         // now mark elem1 so that coverage check can find out it was merged
         elem1.setMergedInto(merged);

@@ -91,7 +91,7 @@ public class DistanceCalculationHelper {
   }
 
   /**
-   * Convert a list of ARGPaths to a List<List<CFAEdges>>
+   * Convert a list of ARGPaths to a List of Lists of CFAEdges
    */
   public List<List<CFAEdge>> convertPathsToEdges(List<ARGPath> paths) {
     List<List<CFAEdge>> result = new ArrayList<>();
