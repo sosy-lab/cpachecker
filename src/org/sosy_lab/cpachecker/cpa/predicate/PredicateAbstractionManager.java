@@ -1208,6 +1208,26 @@ public class PredicateAbstractionManager {
     return new AbstractionFormula(fmgr, region, formula, instantiatedFormula, a1.getBlockFormula(), noAbstractionReuse);
   }
 
+  /**
+   * Disjuncts two abstractions.
+   */
+  public AbstractionFormula makeOr(AbstractionFormula a1, AbstractionFormula a2)
+      throws InterruptedException {
+    Region region = amgr.getRegionCreator().makeOr(a1.asRegion(), a2.asRegion());
+    BooleanFormula formula = fmgr.makeOr(a1.asFormula(), a2.asFormula());
+    BooleanFormula instantiatedFormula =
+        fmgr.makeOr(a1.asInstantiatedFormula(), a2.asInstantiatedFormula());
+    PathFormula newBlockFormula = pfmgr.makeOr(a1.getBlockFormula(), a2.getBlockFormula());
+
+    return new AbstractionFormula(
+        fmgr,
+        region,
+        formula,
+        instantiatedFormula,
+        newBlockFormula,
+        noAbstractionReuse);
+  }
+
   AbstractionFormula makeAbstractionFormula(Region abs, SSAMap ssaMap, PathFormula blockFormula)
       throws InterruptedException {
     BooleanFormula symbolicAbs = amgr.convertRegionToFormula(abs);

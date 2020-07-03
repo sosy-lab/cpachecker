@@ -198,7 +198,9 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
 
     PredicateAbstractState state =
         PredicateAbstractState.mkAbstractionState(newPathFormula,
-            newAbstractionFormula, abstractionLocations);
+            newAbstractionFormula,
+            abstractionLocations,
+            element.getPreviousAbstractionState());
     return Optional.of(PrecisionAdjustmentResult.create(
         state, precision, PrecisionAdjustmentResult.Action.CONTINUE));
   }
