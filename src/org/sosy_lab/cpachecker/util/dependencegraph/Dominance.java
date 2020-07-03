@@ -199,6 +199,8 @@ final class Dominance {
   /**
    * Iterative Algorithm for computing the immediate dominators of all nodes. For more information
    * on the algorithm, see "A Simple, Fast Dominance Algorithm" (Cooper et al.).
+   *
+   * @return doms[x] == immediate dominator of x
    */
   private static int[] computeDoms(final DomInput pInput) {
 
