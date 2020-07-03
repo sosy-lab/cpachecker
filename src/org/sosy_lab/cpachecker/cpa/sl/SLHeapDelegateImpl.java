@@ -181,7 +181,9 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
   public void handleDeclaration(CVariableDeclaration pDecl) throws Exception {
     String name = pDecl.getQualifiedName();
     // ignore non-program variables, e.g. from non-det functions.
-    if (!pDecl.getName().startsWith("__") && !state.getDeclarations().add(pDecl)) {
+    if (!pDecl.getName().startsWith("__")
+        && !state.getDeclarations().add(pDecl)
+        && isReferenced(name)) {
       incSSAIndex(name);
     }
     CType type = pDecl.getType();
@@ -530,11 +532,12 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
 
   private void incSSAIndex(String pVar) {
     SSAMap ssaMap = getPathFormula().getSsa();
-    // int scopeIndex = pVar.indexOf("::") + 2;
-    // String name = pVar.substring(0, scopeIndex) + "&" + pVar.substring(scopeIndex,
-    // pVar.length());
     String name = UnaryOperator.AMPER.getOperator() + pVar;
     CType type = ssaMap.getType(name);
+    if (type == null) {
+      // Variable not yet referenced.
+      return;
+    }
     int index = ssaMap.getIndex(name) + 1;
     SSAMapBuilder b = ssaMap.builder();
     updateSSAMap(b.setIndex(name, type, index).build());
@@ -547,7 +550,6 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
         removeFromMemory(state.getStack(), alloca);
       }
     }
-
   }
 
   @Override
@@ -657,5 +659,10 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
 
   private Formula makeFreshWildcard() {
     return bvfm.makeVariable(heapValueFormulaType, "-" + wildcardCounter++ + "-");
+  }
+
+  private boolean isReferenced(String pName) {
+    String name = UnaryOperator.AMPER.getOperator() + pName;
+    return getPathFormula().getSsa().containsVariable(name);
   }
 }
