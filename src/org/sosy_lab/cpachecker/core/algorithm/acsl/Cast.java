@@ -1,5 +1,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+
 public class Cast implements ACSLTerm {
 
   private final Type type;
@@ -11,7 +14,7 @@ public class Cast implements ACSLTerm {
   }
 
   @Override
-  public ACSLTerm toPureC() {
+  public Cast toPureC() {
     return new Cast(type, term.toPureC());
   }
 
@@ -32,5 +35,18 @@ public class Cast implements ACSLTerm {
   @Override
   public String toString() {
     return "(" + type.toString() + ") " + term.toString();
+  }
+
+  public Type getType() {
+    return type;
+  }
+
+  public ACSLTerm getTerm() {
+    return term;
+  }
+
+  @Override
+  public CExpression accept(ACSLToCExpressionVisitor visitor) throws UnrecognizedCodeException {
+    return visitor.visit(toPureC());
   }
 }

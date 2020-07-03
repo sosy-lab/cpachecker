@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotationLocations;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLAnnotation;
+import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLToCExpressionVisitor;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -39,9 +40,12 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class ACSLTransferRelation extends SingleEdgeTransferRelation {
 
   private CFAWithACSLAnnotationLocations cfa;
+  private ACSLToCExpressionVisitor visitor;
 
-  public ACSLTransferRelation(CFAWithACSLAnnotationLocations pCFA) {
+  public ACSLTransferRelation(
+      CFAWithACSLAnnotationLocations pCFA, ACSLToCExpressionVisitor pVisitor) {
     cfa = pCFA;
+    visitor = pVisitor;
   }
 
   @Override
@@ -54,6 +58,6 @@ public class ACSLTransferRelation extends SingleEdgeTransferRelation {
       CFAEdge currentEdge = successor.getEnteringEdge(i);
       annotationsForState.addAll(cfa.getEdgesToAnnotations().get(currentEdge));
     }
-    return ImmutableList.of(new ACSLState(annotationsForState));
+    return ImmutableList.of(new ACSLState(annotationsForState, visitor));
   }
 }

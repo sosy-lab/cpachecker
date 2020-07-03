@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
 import com.google.common.base.Preconditions;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.Or;
@@ -135,21 +136,35 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
   }
 
   @Override
-  public ExpressionTree<Object> toExpressionTree() {
+  public ExpressionTree<Object> toExpressionTree(ACSLToCExpressionVisitor visitor) {
     ACSLPredicate purePredicate = toPureC();
     if (equals(purePredicate)) {
-      ExpressionTree<Object> leftTree = left.toExpressionTree();
-      ExpressionTree<Object> rightTree = right.toExpressionTree();
+      ExpressionTree<Object> leftTree;
+      ExpressionTree<Object> rightTree;
       switch (operator) {
         case AND:
+          if (isNegated()) {
+            leftTree = left.negate().toExpressionTree(visitor);
+            rightTree = right.negate().toExpressionTree(visitor);
+            return Or.of(leftTree, rightTree);
+          }
+          leftTree = left.toExpressionTree(visitor);
+          rightTree = right.toExpressionTree(visitor);
           return And.of(leftTree, rightTree);
         case OR:
+          if (isNegated()) {
+            leftTree = left.negate().toExpressionTree(visitor);
+            rightTree = right.negate().toExpressionTree(visitor);
+            return And.of(leftTree, rightTree);
+          }
+          leftTree = left.toExpressionTree(visitor);
+          rightTree = right.toExpressionTree(visitor);
           return Or.of(leftTree, rightTree);
         default:
           throw new AssertionError("Pure predicate should contain AND or OR");
       }
     } else {
-      return purePredicate.toExpressionTree();
+      return purePredicate.toExpressionTree(visitor);
     }
   }
 }

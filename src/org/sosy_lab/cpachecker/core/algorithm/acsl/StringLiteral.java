@@ -1,5 +1,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+
 public class StringLiteral implements ACSLTerm {
 
   private final String literal;
@@ -14,7 +17,7 @@ public class StringLiteral implements ACSLTerm {
   }
 
   @Override
-  public ACSLTerm toPureC() {
+  public StringLiteral toPureC() {
     return this;
   }
 
@@ -30,5 +33,14 @@ public class StringLiteral implements ACSLTerm {
   @Override
   public int hashCode() {
     return 23 * literal.hashCode();
+  }
+
+  public String getLiteral() {
+    return literal;
+  }
+
+  @Override
+  public CExpression accept(ACSLToCExpressionVisitor visitor) throws UnrecognizedCodeException {
+    return visitor.visit(toPureC());
   }
 }

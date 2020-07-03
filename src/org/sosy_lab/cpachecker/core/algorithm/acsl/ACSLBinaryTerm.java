@@ -1,6 +1,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
 import com.google.common.base.Preconditions;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class ACSLBinaryTerm implements ACSLTerm {
 
@@ -24,7 +26,7 @@ public class ACSLBinaryTerm implements ACSLTerm {
   }
 
   @Override
-  public ACSLTerm toPureC() {
+  public ACSLBinaryTerm toPureC() {
     ACSLTerm pureLeft = left.toPureC();
     ACSLTerm pureRight = right.toPureC();
     BinaryOperator newOperator = operator;
@@ -69,5 +71,22 @@ public class ACSLBinaryTerm implements ACSLTerm {
   @Override
   public int hashCode() {
     return 31 * left.hashCode() + 17 * right.hashCode() + operator.hashCode();
+  }
+
+  public ACSLTerm getLeft() {
+    return left;
+  }
+
+  public ACSLTerm getRight() {
+    return right;
+  }
+
+  public BinaryOperator getOperator() {
+    return operator;
+  }
+
+  @Override
+  public CExpression accept(ACSLToCExpressionVisitor visitor) throws UnrecognizedCodeException {
+    return visitor.visit(toPureC());
   }
 }

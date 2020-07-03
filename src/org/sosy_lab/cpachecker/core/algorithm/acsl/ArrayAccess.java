@@ -1,6 +1,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
 import com.google.common.base.Preconditions;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class ArrayAccess implements ACSLTerm {
 
@@ -34,7 +36,20 @@ public class ArrayAccess implements ACSLTerm {
   }
 
   @Override
-  public ACSLTerm toPureC() {
+  public ArrayAccess toPureC() {
     return new ArrayAccess(array.toPureC(), index.toPureC());
+  }
+
+  public Identifier getArray() {
+    return array;
+  }
+
+  public IntegerLiteral getIndex() {
+    return index;
+  }
+
+  @Override
+  public CExpression accept(ACSLToCExpressionVisitor visitor) throws UnrecognizedCodeException {
+    return visitor.visit(toPureC());
   }
 }

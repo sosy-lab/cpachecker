@@ -1,5 +1,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+
 public class ACSLUnaryTerm implements ACSLTerm {
 
   private final ACSLTerm term;
@@ -19,7 +22,7 @@ public class ACSLUnaryTerm implements ACSLTerm {
   }
 
   @Override
-  public ACSLTerm toPureC() {
+  public ACSLUnaryTerm toPureC() {
     return new ACSLUnaryTerm(term.toPureC(), operator);
   }
 
@@ -35,5 +38,18 @@ public class ACSLUnaryTerm implements ACSLTerm {
   @Override
   public int hashCode() {
     return 7 * term.hashCode() + operator.hashCode();
+  }
+
+  public ACSLTerm getInnerTerm() {
+    return term;
+  }
+
+  public UnaryOperator getOperator() {
+    return operator;
+  }
+
+  @Override
+  public CExpression accept(ACSLToCExpressionVisitor visitor) throws UnrecognizedCodeException {
+    return visitor.visit(toPureC());
   }
 }

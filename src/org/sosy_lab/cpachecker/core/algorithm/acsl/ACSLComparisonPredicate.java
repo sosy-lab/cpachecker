@@ -1,6 +1,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
 import com.google.common.base.Preconditions;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 
@@ -89,8 +91,24 @@ public class ACSLComparisonPredicate extends ACSLPredicate {
   }
 
   @Override
-  public ExpressionTree<Object> toExpressionTree() {
-    //TODO
-    return LeafExpression.of(toString());
+  public ExpressionTree<Object> toExpressionTree(ACSLToCExpressionVisitor visitor) {
+    try {
+      CExpression exp = visitor.visit(this);
+      return LeafExpression.of(exp, !isNegated());
+    } catch (UnrecognizedCodeException pE) {
+      throw new AssertionError("Failed to convert to CExpression: " + toString());
+    }
+  }
+
+  public ACSLTerm getLeft() {
+    return left;
+  }
+
+  public ACSLTerm getRight() {
+    return right;
+  }
+
+  public BinaryOperator getOperator() {
+    return operator;
   }
 }

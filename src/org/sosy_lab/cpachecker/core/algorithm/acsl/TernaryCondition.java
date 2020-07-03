@@ -66,10 +66,20 @@ public class TernaryCondition extends ACSLPredicate {
   }
 
   @Override
-  public ExpressionTree<Object> toExpressionTree() {
-    ExpressionTree<Object> left = And.of(condition.toExpressionTree(), then.toExpressionTree());
+  public ExpressionTree<Object> toExpressionTree(ACSLToCExpressionVisitor visitor) {
+    if (isNegated()) {
+      ExpressionTree<Object> left =
+          Or.of(
+              condition.negate().toExpressionTree(visitor),
+              then.negate().toExpressionTree(visitor));
+      ExpressionTree<Object> right =
+          Or.of(condition.toExpressionTree(visitor), otherwise.negate().toExpressionTree(visitor));
+      return And.of(left, right);
+    }
+    ExpressionTree<Object> left =
+        And.of(condition.toExpressionTree(visitor), then.toExpressionTree(visitor));
     ExpressionTree<Object> right =
-        And.of(condition.negate().toExpressionTree(), otherwise.toExpressionTree());
+        And.of(condition.negate().toExpressionTree(visitor), otherwise.toExpressionTree(visitor));
     return Or.of(left, right);
   }
 }

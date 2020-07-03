@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
@@ -61,7 +62,13 @@ public abstract class ACSLPredicate {
   // TODO: All non-trivial implementations of isNegationOf are currently too weak
   public abstract boolean isNegationOf(ACSLPredicate other);
 
-  public abstract ExpressionTree<Object> toExpressionTree();
+  /**
+   * Returns an expression tree representing the predicate.
+   *
+   * @param visitor Visitor for converting terms to CExpressions.
+   * @return An expression tree represntation of the predicate.
+   */
+  public abstract ExpressionTree<Object> toExpressionTree(ACSLToCExpressionVisitor visitor);
 
   private static class TRUE extends ACSLPredicate {
 
@@ -102,7 +109,7 @@ public abstract class ACSLPredicate {
     }
 
     @Override
-    public ExpressionTree<Object> toExpressionTree() {
+    public ExpressionTree<Object> toExpressionTree(ACSLToCExpressionVisitor visitor) {
       return ExpressionTrees.getTrue();
     }
   }
@@ -146,7 +153,7 @@ public abstract class ACSLPredicate {
     }
 
     @Override
-    public ExpressionTree<Object> toExpressionTree() {
+    public ExpressionTree<Object> toExpressionTree(ACSLToCExpressionVisitor visitor) {
       return ExpressionTrees.getFalse();
     }
   }
