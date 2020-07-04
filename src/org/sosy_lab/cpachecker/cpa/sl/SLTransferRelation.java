@@ -118,7 +118,9 @@ public class SLTransferRelation
     SLStateError error = null;
     try {
       error = pExpression.accept(slVisitor);
-      state.addError(error);
+      if (error != null) {
+        state.addError(error);
+      }
     } catch (Exception e) {
       logger.log(Level.SEVERE, e.getMessage());
     }
@@ -144,10 +146,19 @@ public class SLTransferRelation
       List<CParameterDeclaration> pParameters,
       String pCalledFunctionName)
       throws CPATransferException {
-    // TODO Auto-generated method stub. Not yet implemented.
-    // return super.handleFunctionCallEdge(pCfaEdge, pArguments, pParameters, pCalledFunctionName);
-    return Collections
-        .singleton(state);
+
+    for (CParameterDeclaration cParameterDeclaration : pParameters) {
+      SLStateError error = null;
+      try {
+        error = cParameterDeclaration.accept(slVisitor);
+        if (error != null) {
+          state.addError(error);
+        }
+      } catch (Exception e) {
+        logger.log(Level.SEVERE, e.getMessage());
+      }
+    }
+    return ImmutableList.of(state);
   }
 
   @Override
@@ -171,7 +182,9 @@ public class SLTransferRelation
     SLStateError error = null;
     try {
       error = pDecl.accept(slVisitor);
-      state.addError(error);
+      if (error != null) {
+        state.addError(error);
+      }
     } catch (Exception e) {
       logger.log(Level.SEVERE, e.getMessage());
     }
@@ -187,7 +200,9 @@ public class SLTransferRelation
     SLStateError error = null;
     try {
       error = pStatement.accept(slVisitor);
-      state.addError(error);
+      if (error != null) {
+        state.addError(error);
+      }
     } catch (Exception e) {
       logger.log(Level.SEVERE, e.getMessage());
     }
