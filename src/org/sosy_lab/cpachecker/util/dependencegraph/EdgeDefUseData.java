@@ -345,7 +345,8 @@ final class EdgeDefUseData {
 
         mode = prev;
 
-        pointeeUses.add(pIastFieldReference);
+        Set<CExpression> pointeeSet = (mode == Mode.USE ? pointeeUses : pointeeDefs);
+        pointeeSet.add(pIastFieldReference);
 
       } else {
         pIastFieldReference.getFieldOwner().accept(this);
