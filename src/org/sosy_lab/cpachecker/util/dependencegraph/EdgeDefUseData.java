@@ -336,7 +336,20 @@ final class EdgeDefUseData {
     @Override
     public Void visit(CFieldReference pIastFieldReference) throws EdgeDefUseDataException {
 
-      pIastFieldReference.getFieldOwner().accept(this);
+      if (pIastFieldReference.isPointerDereference()) {
+
+        Mode prev = mode;
+
+        mode = Mode.USE;
+        pIastFieldReference.getFieldOwner().accept(this);
+
+        mode = prev;
+
+        pointeeUses.add(pIastFieldReference);
+
+      } else {
+        pIastFieldReference.getFieldOwner().accept(this);
+      }
 
       if (mode == Mode.DEF) {
         partialDefs = true;
