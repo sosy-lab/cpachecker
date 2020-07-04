@@ -22,6 +22,8 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -32,6 +34,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
@@ -327,6 +332,31 @@ abstract class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode,
       ReachDefAnalysis.Def<MemoryLocation, CFAEdge> declaration = getDeclaration(defVar);
       if (declaration != null) {
         dependences.put(pEdge, declaration);
+      }
+    }
+
+    if (pEdge instanceof CDeclarationEdge) {
+      CDeclaration declaration = ((CDeclarationEdge) pEdge).getDeclaration();
+      CType type = declaration.getType();
+
+      while (type instanceof CPointerType) {
+        type = ((CPointerType) type).getType();
+      }
+
+      if (!declaration.isGlobal() && type instanceof CComplexType) {
+        CComplexType complexType = (CComplexType) type;
+        for (CFAEdge globalEdge : globalEdges) {
+          if (globalEdge instanceof CDeclarationEdge) {
+            CDeclaration globalDeclaration = ((CDeclarationEdge) globalEdge).getDeclaration();
+            if (globalDeclaration instanceof CComplexTypeDeclaration) {
+              CComplexType globalType = ((CComplexTypeDeclaration) globalDeclaration).getType();
+              if (complexType.getQualifiedName().equals(globalType.getQualifiedName())) {
+                onDependence(
+                    globalEdge, pEdge, MemoryLocation.valueOf(globalType.getQualifiedName()));
+              }
+            }
+          }
+        }
       }
     }
 
