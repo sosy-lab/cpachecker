@@ -129,10 +129,8 @@ public class SLState implements AbstractState, Targetable, AbstractQueryableStat
     return !errors.isEmpty();
   }
 
-  public void addError(SLStateError pError) {
-    if (pError != null) {
-      errors.add(pError);
-    }
+  public void addError(@Nonnull SLStateError pError) {
+    errors.add(pError);
   }
 
   @Override
