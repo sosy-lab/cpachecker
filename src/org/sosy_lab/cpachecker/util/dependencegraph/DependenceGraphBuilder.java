@@ -381,6 +381,34 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     GlobalPointerState pointerState =
         GlobalPointerState.createFlowSensitive(cfa, logger, shutdownNotifier);
 
+    boolean unknownPointer = false;
+    for (CFANode node : cfa.getAllNodes()) {
+      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
+
+        EdgeDefUseData edgeDefUseData = EdgeDefUseData.extract(edge);
+
+        for (CExpression expression :
+            Iterables.concat(edgeDefUseData.getPointeeDefs(), edgeDefUseData.getPointeeUses())) {
+          if (pointerState.getPossiblePointees(edge, expression).isEmpty()) {
+            unknownPointer = true;
+            break;
+          }
+        }
+      }
+    }
+
+    if (unknownPointer) {
+
+      for (CFANode node : cfa.getAllNodes()) {
+        for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
+          addDependence(
+              getDGNodeForUnknownPointer(), getDGNode(edge, Optional.empty()), DependenceType.FLOW);
+        }
+      }
+
+      return;
+    }
+
     Map<AFunctionDeclaration, Set<MemoryLocation>> foreignDefs = new HashMap<>();
     Map<AFunctionDeclaration, Set<MemoryLocation>> foreignUses = new HashMap<>();
 
