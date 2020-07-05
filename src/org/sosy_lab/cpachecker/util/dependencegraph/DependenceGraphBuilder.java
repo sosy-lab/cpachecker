@@ -74,7 +74,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
-import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
@@ -280,102 +279,6 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     return ImmutableList.copyOf(declEdges);
   }
 
-  private boolean isForeignMemoryLocation(
-      MemoryLocation pMemoryLocation, AFunctionDeclaration pFunction) {
-
-    return !pMemoryLocation.isOnFunctionStack()
-        || !pMemoryLocation.getFunctionName().equals(pFunction.getQualifiedName());
-  }
-
-  // TODO reimplement foreign defs-uses computation
-  private void addForeignDefsUses(
-      GlobalPointerState pPointerState,
-      Map<AFunctionDeclaration, Set<MemoryLocation>> pForeignDefs,
-      Map<AFunctionDeclaration, Set<MemoryLocation>> pForeignUses) {
-
-    List<CFAEdge> edges = new ArrayList<>();
-    for (CFANode node : cfa.getAllNodes()) {
-      Iterables.addAll(edges, CFAUtils.allLeavingEdges(node));
-    }
-
-    Map<AFunctionDeclaration, List<CFunctionSummaryEdge>> summaryEdges = new HashMap<>();
-    for (CFAEdge edge : edges) {
-      if (edge instanceof CFunctionSummaryEdge) {
-        CFunctionSummaryEdge summaryEdge = (CFunctionSummaryEdge) edge;
-        AFunctionDeclaration function = summaryEdge.getPredecessor().getFunction();
-        summaryEdges.computeIfAbsent(function, key -> new ArrayList<>()).add(summaryEdge);
-      }
-    }
-
-    for (CFAEdge edge : edges) {
-      AFunctionDeclaration function = edge.getPredecessor().getFunction();
-      Set<MemoryLocation> funcDefs = pForeignDefs.computeIfAbsent(function, key -> new HashSet<>());
-      Set<MemoryLocation> funcUses = pForeignUses.computeIfAbsent(function, key -> new HashSet<>());
-      EdgeDefUseData defUseData = EdgeDefUseData.extract(edge);
-
-      for (CExpression expr : defUseData.getPointeeDefs()) {
-        Set<MemoryLocation> possibleDefs = pPointerState.getPossiblePointees(edge, expr);
-        assert possibleDefs != null && !possibleDefs.isEmpty() : "No possible pointees";
-        for (MemoryLocation defVar : possibleDefs) {
-          if (isForeignMemoryLocation(defVar, function)) {
-            funcDefs.add(defVar);
-          }
-        }
-      }
-
-      for (CExpression expr : defUseData.getPointeeUses()) {
-        Set<MemoryLocation> possibleUses = pPointerState.getPossiblePointees(edge, expr);
-        assert possibleUses != null && !possibleUses.isEmpty() : "No possible pointees";
-        for (MemoryLocation useVar : possibleUses) {
-          if (isForeignMemoryLocation(useVar, function)) {
-            funcUses.add(useVar);
-          }
-        }
-      }
-    }
-
-    boolean changed = true;
-    while (changed) {
-      changed = false;
-
-      for (Map.Entry<AFunctionDeclaration, List<CFunctionSummaryEdge>> entry :
-          summaryEdges.entrySet()) {
-
-        AFunctionDeclaration callingFunc = entry.getKey();
-        Set<MemoryLocation> callingFuncDefs =
-            pForeignDefs.computeIfAbsent(callingFunc, key -> new HashSet<>());
-        Set<MemoryLocation> callingFuncUses =
-            pForeignUses.computeIfAbsent(callingFunc, key -> new HashSet<>());
-
-        for (CFunctionSummaryEdge summaryEdge : entry.getValue()) {
-
-          AFunctionDeclaration calledFunc = summaryEdge.getFunctionEntry().getFunction();
-          Set<MemoryLocation> calledFuncDefs =
-              pForeignDefs.computeIfAbsent(calledFunc, key -> new HashSet<>());
-
-          for (MemoryLocation defVar : calledFuncDefs) {
-            if (isForeignMemoryLocation(defVar, callingFunc)) {
-              if (callingFuncDefs.add(defVar)) {
-                changed = true;
-              }
-            }
-          }
-
-          Set<MemoryLocation> calledFuncUses =
-              pForeignUses.computeIfAbsent(calledFunc, key -> new HashSet<>());
-
-          for (MemoryLocation useVar : calledFuncUses) {
-            if (isForeignMemoryLocation(useVar, callingFunc)) {
-              if (callingFuncUses.add(useVar)) {
-                changed = true;
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
   private void addFlowDependencesNew() throws InterruptedException, CPAException {
 
     GlobalPointerState pointerState =
@@ -409,10 +312,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
       return;
     }
 
-    Map<AFunctionDeclaration, Set<MemoryLocation>> foreignDefs = new HashMap<>();
-    Map<AFunctionDeclaration, Set<MemoryLocation>> foreignUses = new HashMap<>();
-
-    addForeignDefsUses(pointerState, foreignDefs, foreignUses);
+    ForeignDefUseData foreignDefUseData = ForeignDefUseData.extract(cfa, pointerState);
 
     List<CFAEdge> globalEdges = getGlobalDeclarationEdges(cfa);
     Map<String, CFAEdge> functionDeclarations = new HashMap<>();
@@ -464,12 +364,12 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
         @Override
         protected Set<MemoryLocation> getForeignDefs(AFunctionDeclaration pFunction) {
-          return foreignDefs.get(pFunction);
+          return foreignDefUseData.getForeignDefs(pFunction);
         }
 
         @Override
         protected Set<MemoryLocation> getForeignUses(AFunctionDeclaration pFunction) {
-          return foreignUses.get(pFunction);
+          return foreignDefUseData.getForeignUses(pFunction);
         }
 
         @Override
