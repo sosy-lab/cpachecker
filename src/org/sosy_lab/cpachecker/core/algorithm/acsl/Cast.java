@@ -49,4 +49,9 @@ public class Cast implements ACSLTerm {
   public CExpression accept(ACSLToCExpressionVisitor visitor) throws UnrecognizedCodeException {
     return visitor.visit(toPureC());
   }
+
+  @Override
+  public ACSLTerm useOldValues() {
+    return new Cast(type, term.useOldValues());
+  }
 }

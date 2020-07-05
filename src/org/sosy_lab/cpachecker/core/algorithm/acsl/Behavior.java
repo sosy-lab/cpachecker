@@ -58,4 +58,24 @@ public class Behavior {
     assumesClause.toPureC();
     makePredicateRepresentation();
   }
+
+  public ACSLPredicate getPreStatePredicate() {
+    ACSLPredicate requiresPredicate = requiresClause.getPredicate();
+    ACSLPredicate assumesPredicate = assumesClause.getPredicate();
+    ACSLPredicate negatedAssumesPredicate = assumesPredicate.getCopy().negate();
+    return new ACSLLogicalPredicate(
+        new ACSLLogicalPredicate(assumesPredicate, requiresPredicate, BinaryOperator.AND),
+        negatedAssumesPredicate,
+        BinaryOperator.OR);
+  }
+
+  public ACSLPredicate getPostStatePredicate() {
+    ACSLPredicate ensuresPredicate = ensuresClause.getPredicate();
+    ACSLPredicate assumesPredicate = assumesClause.getPredicate().useOldValues();
+    ACSLPredicate negatedAssumesPredicate = assumesPredicate.getCopy().negate();
+    return new ACSLLogicalPredicate(
+        new ACSLLogicalPredicate(assumesPredicate, ensuresPredicate, BinaryOperator.AND),
+        negatedAssumesPredicate,
+        BinaryOperator.OR);
+  }
 }

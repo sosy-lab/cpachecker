@@ -52,4 +52,9 @@ public class ArrayAccess implements ACSLTerm {
   public CExpression accept(ACSLToCExpressionVisitor visitor) throws UnrecognizedCodeException {
     return visitor.visit(toPureC());
   }
+
+  @Override
+  public ACSLTerm useOldValues() {
+    return new ArrayAccess(array.useOldValues(), index.useOldValues());
+  }
 }

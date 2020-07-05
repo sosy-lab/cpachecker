@@ -13,6 +13,12 @@ public class ACSLComparisonPredicate extends ACSLPredicate {
   private final BinaryOperator operator;
 
   public ACSLComparisonPredicate(ACSLTerm pLeft, ACSLTerm pRight, BinaryOperator op) {
+    this(pLeft, pRight, op, false);
+  }
+
+  public ACSLComparisonPredicate(
+      ACSLTerm pLeft, ACSLTerm pRight, BinaryOperator op, boolean negated) {
+    super(negated);
     left = pLeft;
     right = pRight;
     Preconditions.checkArgument(
@@ -30,7 +36,7 @@ public class ACSLComparisonPredicate extends ACSLPredicate {
 
   @Override
   public ACSLPredicate toPureC() {
-    return new ACSLComparisonPredicate(left.toPureC(), right.toPureC(), operator);
+    return new ACSLComparisonPredicate(left.toPureC(), right.toPureC(), operator, isNegated());
   }
 
   @Override
@@ -109,5 +115,11 @@ public class ACSLComparisonPredicate extends ACSLPredicate {
 
   public BinaryOperator getOperator() {
     return operator;
+  }
+
+  @Override
+  public ACSLPredicate useOldValues() {
+    return new ACSLComparisonPredicate(
+        left.useOldValues(), right.useOldValues(), operator, isNegated());
   }
 }

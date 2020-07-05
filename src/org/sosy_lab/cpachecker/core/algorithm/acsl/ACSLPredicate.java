@@ -7,8 +7,8 @@ public abstract class ACSLPredicate {
 
   private boolean negated;
 
-  public ACSLPredicate() {
-    negated = false;
+  public ACSLPredicate(boolean pNegated) {
+    negated = pNegated;
   }
 
   public static ACSLPredicate getTrue() {
@@ -65,9 +65,15 @@ public abstract class ACSLPredicate {
    * Returns an expression tree representing the predicate.
    *
    * @param visitor Visitor for converting terms to CExpressions.
-   * @return An expression tree represntation of the predicate.
+   * @return An expression tree representation of the predicate.
    */
   public abstract ExpressionTree<Object> toExpressionTree(ACSLToCExpressionVisitor visitor);
+
+  /**
+   * Returns a version of the predicate where each identifier is augmented with the ACSL builtin
+   * predicate "\old" to signal to use the value from the pre-state when evaluating.
+   */
+  public abstract ACSLPredicate useOldValues();
 
   private static class TRUE extends ACSLPredicate {
 
@@ -75,6 +81,10 @@ public abstract class ACSLPredicate {
 
     private static TRUE get() {
       return singleton;
+    }
+
+    private TRUE() {
+      super(false);
     }
 
     @Override
@@ -94,7 +104,7 @@ public abstract class ACSLPredicate {
 
     @Override
     public ACSLPredicate simplify() {
-      return this;
+      return isNegated() ? ACSLPredicate.getFalse() : this;
     }
 
     @Override
@@ -111,6 +121,11 @@ public abstract class ACSLPredicate {
     public ExpressionTree<Object> toExpressionTree(ACSLToCExpressionVisitor visitor) {
       return ExpressionTrees.getTrue();
     }
+
+    @Override
+    public ACSLPredicate useOldValues() {
+      return this;
+    }
   }
 
   private static class FALSE extends ACSLPredicate {
@@ -119,6 +134,10 @@ public abstract class ACSLPredicate {
 
     private static FALSE get() {
       return singleton;
+    }
+
+    private FALSE() {
+      super(false);
     }
 
     @Override
@@ -138,7 +157,7 @@ public abstract class ACSLPredicate {
 
     @Override
     public ACSLPredicate simplify() {
-      return this;
+      return isNegated() ? ACSLPredicate.getTrue() : this;
     }
 
     @Override
@@ -154,6 +173,11 @@ public abstract class ACSLPredicate {
     @Override
     public ExpressionTree<Object> toExpressionTree(ACSLToCExpressionVisitor visitor) {
       return ExpressionTrees.getFalse();
+    }
+
+    @Override
+    public ACSLPredicate useOldValues() {
+      return this;
     }
   }
 }

@@ -29,9 +29,11 @@ import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLAnnotation;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLPredicate;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLToCExpressionVisitor;
+import org.sosy_lab.cpachecker.core.algorithm.acsl.FunctionContract;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -56,7 +58,17 @@ public class ACSLState implements AbstractState, ExpressionTreeReportingState {
     }
     List<ExpressionTree<Object>> representations = new ArrayList<>(annotations.size());
     for (ACSLAnnotation annotation : annotations) {
-      ACSLPredicate predicate = annotation.getPredicateRepresentation();
+      ACSLPredicate predicate;
+      if (annotation instanceof FunctionContract) {
+        FunctionContract functionContract = (FunctionContract) annotation;
+        if (pLocation instanceof FunctionExitNode) {
+          predicate = functionContract.getPostStatePredicateRepresentation();
+        } else {
+          predicate = functionContract.getPreStatePredicateRepresentation();
+        }
+      } else {
+        predicate = annotation.getPredicateRepresentation();
+      }
       representations.add(predicate.toExpressionTree(visitor));
     }
     ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();

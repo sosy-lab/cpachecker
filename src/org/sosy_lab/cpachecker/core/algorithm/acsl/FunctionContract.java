@@ -76,6 +76,42 @@ public class FunctionContract implements ACSLAnnotation {
     return predicateRepresentation;
   }
 
+  public ACSLPredicate getPreStatePredicateRepresentation() {
+    ACSLPredicate preStatePredicate = requiresClause.getPredicate();
+
+    for (Behavior behavior : behaviors) {
+      ACSLPredicate behaviorPredicate = behavior.getPreStatePredicate();
+      preStatePredicate =
+          new ACSLLogicalPredicate(preStatePredicate, behaviorPredicate, BinaryOperator.AND);
+    }
+
+    // for completeness-clauses the location doesn't matter, so they could also be added in the
+    // post-state predicate
+    ACSLPredicate completenessRepresentation = ACSLPredicate.getTrue();
+    for (CompletenessClause completenessClause : completenessClauses) {
+      completenessRepresentation =
+          new ACSLLogicalPredicate(
+              completenessRepresentation,
+              completenessClause.getPredicateRepresentation(),
+              BinaryOperator.AND);
+    }
+
+    return new ACSLLogicalPredicate(
+        preStatePredicate, completenessRepresentation, BinaryOperator.AND);
+  }
+
+  public ACSLPredicate getPostStatePredicateRepresentation() {
+    ACSLPredicate postStatePredicate = ensuresClause.getPredicate();
+
+    for (Behavior behavior : behaviors) {
+      ACSLPredicate behaviorPredicate = behavior.getPostStatePredicate();
+      postStatePredicate =
+          new ACSLLogicalPredicate(postStatePredicate, behaviorPredicate, BinaryOperator.AND);
+    }
+
+    return postStatePredicate;
+  }
+
   public RequiresClause getRequires() {
     return requiresClause;
   }

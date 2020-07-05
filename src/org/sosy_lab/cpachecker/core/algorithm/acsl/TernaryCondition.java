@@ -11,6 +11,11 @@ public class TernaryCondition extends ACSLPredicate {
   private final ACSLPredicate otherwise;
 
   public TernaryCondition(ACSLPredicate p1, ACSLPredicate p2, ACSLPredicate p3) {
+    this(p1, p2, p3, false);
+  }
+
+  public TernaryCondition(ACSLPredicate p1, ACSLPredicate p2, ACSLPredicate p3, boolean negated) {
+    super(negated);
     condition = p1;
     then = p2;
     otherwise = p3;
@@ -33,7 +38,8 @@ public class TernaryCondition extends ACSLPredicate {
 
   @Override
   public ACSLPredicate simplify() {
-    return new TernaryCondition(condition.simplify(), then.simplify(), otherwise.simplify());
+    return new TernaryCondition(
+        condition.simplify(), then.simplify(), otherwise.simplify(), isNegated());
   }
 
   @Override
@@ -80,5 +86,11 @@ public class TernaryCondition extends ACSLPredicate {
     ExpressionTree<Object> right =
         And.of(condition.negate().toExpressionTree(visitor), otherwise.toExpressionTree(visitor));
     return Or.of(left, right);
+  }
+
+  @Override
+  public ACSLPredicate useOldValues() {
+    return new TernaryCondition(
+        condition.useOldValues(), then.useOldValues(), otherwise.useOldValues(), isNegated());
   }
 }

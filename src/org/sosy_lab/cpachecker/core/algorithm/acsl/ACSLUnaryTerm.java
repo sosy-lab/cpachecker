@@ -52,4 +52,9 @@ public class ACSLUnaryTerm implements ACSLTerm {
   public CExpression accept(ACSLToCExpressionVisitor visitor) throws UnrecognizedCodeException {
     return visitor.visit(toPureC());
   }
+
+  @Override
+  public ACSLTerm useOldValues() {
+    return new ACSLUnaryTerm(term.useOldValues(), operator);
+  }
 }

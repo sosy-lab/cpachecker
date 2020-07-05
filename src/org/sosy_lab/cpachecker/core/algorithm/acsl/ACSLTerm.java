@@ -10,4 +10,10 @@ public interface ACSLTerm {
   ACSLTerm toPureC();
 
   CExpression accept(ACSLToCExpressionVisitor visitor) throws UnrecognizedCodeException;
+
+  /**
+   * Returns a version of the term where each identifier is augmented with the ACSL builtin
+   * predicate "\old" to signal to use the value from the pre-state when evaluating.
+   */
+  ACSLTerm useOldValues();
 }

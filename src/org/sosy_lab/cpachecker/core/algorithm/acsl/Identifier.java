@@ -6,20 +6,30 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public class Identifier implements ACSLTerm {
 
   private final String name;
-  // TODO: Needs a type! Perhaps use MemoryLocation instead altogether? (Currently no difference
-  // between Identifier and StringLiteral!)
+  private boolean useOldValue;
+  // TODO: Needs a type! Perhaps use MemoryLocation instead altogether?
 
   public Identifier(String pName) {
+    this(pName, false);
+  }
+
+  private Identifier(String pName, boolean pUseOldValue) {
     name = pName;
+    useOldValue = pUseOldValue;
   }
 
   @Override
   public String toString() {
+    if (useOldValue) {
+      return "\\old(" + name + ")";
+    }
     return name;
   }
 
   @Override
   public Identifier toPureC() {
+    //TODO: This should not use old value, but the generous amount of calls to toPureC() would
+    // currently remove the flag even if it is desired
     return this;
   }
 
@@ -43,6 +53,11 @@ public class Identifier implements ACSLTerm {
 
   @Override
   public CExpression accept(ACSLToCExpressionVisitor visitor) throws UnrecognizedCodeException {
-    return visitor.visit(toPureC());
+    return visitor.visit(this);
+  }
+
+  @Override
+  public ACSLTerm useOldValues() {
+    return new Identifier(name, true);
   }
 }

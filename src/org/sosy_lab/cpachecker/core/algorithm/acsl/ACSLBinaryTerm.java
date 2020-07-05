@@ -89,4 +89,9 @@ public class ACSLBinaryTerm implements ACSLTerm {
   public CExpression accept(ACSLToCExpressionVisitor visitor) throws UnrecognizedCodeException {
     return visitor.visit(toPureC());
   }
+
+  @Override
+  public ACSLTerm useOldValues() {
+    return new ACSLBinaryTerm(left.useOldValues(), right.useOldValues(), operator);
+  }
 }

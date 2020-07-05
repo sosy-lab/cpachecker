@@ -43,4 +43,9 @@ public class IntegerLiteral implements ACSLTerm {
   public CExpression accept(ACSLToCExpressionVisitor visitor) throws UnrecognizedCodeException {
     return visitor.visit(toPureC());
   }
+
+  @Override
+  public ACSLTerm useOldValues() {
+    return this;
+  }
 }
