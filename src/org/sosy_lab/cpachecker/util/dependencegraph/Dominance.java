@@ -721,7 +721,7 @@ final class Dominance {
       Frontier frontier = frontiers[pId];
       Set<T> nodeSet = new HashSet<>();
 
-      for (int id : frontier.set) {
+      for (int id : frontier.getSet()) {
         nodeSet.add(nodes[id]);
       }
 
@@ -780,7 +780,7 @@ final class Dominance {
 
         int removed = waitlist.remove();
 
-        for (int id : frontiers[removed].set) {
+        for (int id : frontiers[removed].getSet()) {
           if (frontier.add(nodes[id])) {
             if (seen.add(id)) { // if not previously seen -> add to waitlist
               waitlist.add(id);
@@ -803,6 +803,10 @@ final class Dominance {
 
       private Frontier() {
         set = new HashSet<>();
+      }
+
+      private Set<Integer> getSet() {
+        return set;
       }
 
       private void add(int pId) {
