@@ -93,12 +93,18 @@ public abstract class ACSLPredicate {
 
     @Override
     public ACSLPredicate simplify() {
-      return isNegated() ? ACSLPredicate.getFalse() : this;
+      return this;
     }
 
     @Override
     public ACSLPredicate negate() {
       return ACSLPredicate.getFalse();
+    }
+
+    @Override
+    public boolean isNegated() {
+      assert !super.isNegated() : "True should not be explicitly negated, should be False instead!";
+      return false;
     }
 
     @Override
@@ -141,12 +147,18 @@ public abstract class ACSLPredicate {
 
     @Override
     public ACSLPredicate simplify() {
-      return isNegated() ? ACSLPredicate.getTrue() : this;
+      return this;
     }
 
     @Override
     public ACSLPredicate negate() {
       return ACSLPredicate.getTrue();
+    }
+
+    @Override
+    public boolean isNegated() {
+      assert !super.isNegated() : "False should not be explicitly negated, should be True instead!";
+      return false;
     }
 
     @Override
