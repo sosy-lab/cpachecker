@@ -39,6 +39,20 @@ public abstract class ACSLPredicate {
     return new ACSLLogicalPredicate(this, other, BinaryOperator.OR);
   }
 
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof ACSLPredicate) {
+      ACSLPredicate other = (ACSLPredicate) obj;
+      return negated == other.negated;
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return isNegated() ? -1 : 1;
+  }
+
   /**
    * Returns true iff the given ACSLPredicate is a negation of the one this method is called on. It
    * is advised to call <code>simplify()</code> on both predicates before calling this method.

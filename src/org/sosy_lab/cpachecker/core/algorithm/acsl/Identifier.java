@@ -38,7 +38,7 @@ public class Identifier implements ACSLTerm {
 
   @Override
   public int hashCode() {
-    return 29 * name.hashCode();
+    return 29 * name.hashCode() * name.hashCode() + 29;
   }
 
   public String getName() {

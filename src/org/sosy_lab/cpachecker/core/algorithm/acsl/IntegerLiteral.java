@@ -27,7 +27,7 @@ public class IntegerLiteral implements ACSLTerm {
 
   @Override
   public int hashCode() {
-    return 23 * literal.hashCode();
+    return 31 * literal.hashCode() * literal.hashCode() + 31;
   }
 
   public Integer getLiteral() {

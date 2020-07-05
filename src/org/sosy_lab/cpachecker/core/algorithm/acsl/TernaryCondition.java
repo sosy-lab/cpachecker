@@ -38,31 +38,26 @@ public class TernaryCondition extends ACSLPredicate {
   }
 
   @Override
-  public boolean equals(Object obj) {
-    return equalsExceptNegation(obj, true);
-  }
-
-  @Override
-  public int hashCode() {
-    int sign = isNegated() ? -1 : 1;
-    return sign * (19 * condition.hashCode() + 11 * then.hashCode() + otherwise.hashCode());
-  }
-
-  private boolean equalsExceptNegation(Object o, boolean shouldNegationMatch) {
+  public boolean equals(Object o) {
     if (o instanceof TernaryCondition) {
       TernaryCondition other = (TernaryCondition) o;
-      if (shouldNegationMatch == (isNegated() == other.isNegated())) {
-        return condition.equals(other.condition)
-            && then.equals(other.then)
-            && otherwise.equals(other.otherwise);
-      }
+      return super.equals(o)
+          && condition.equals(other.condition)
+          && then.equals(other.then)
+          && otherwise.equals(other.otherwise);
     }
     return false;
   }
 
   @Override
+  public int hashCode() {
+    return super.hashCode()
+        * (19 * condition.hashCode() + 11 * then.hashCode() + otherwise.hashCode());
+  }
+
+  @Override
   public boolean isNegationOf(ACSLPredicate other) {
-    return equalsExceptNegation(other, false);
+    return simplify().equals(other.negate().simplify());
   }
 
   @Override

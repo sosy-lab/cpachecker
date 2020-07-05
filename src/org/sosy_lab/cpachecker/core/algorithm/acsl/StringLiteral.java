@@ -27,7 +27,7 @@ public class StringLiteral implements ACSLTerm {
 
   @Override
   public int hashCode() {
-    return 23 * literal.hashCode();
+    return 23 * literal.hashCode() * literal.hashCode() + 23;
   }
 
   public String getLiteral() {

@@ -64,30 +64,24 @@ public class ACSLComparisonPredicate extends ACSLPredicate {
 
   @Override
   public boolean equals(Object o) {
-    return equalsExceptNegation(o, true);
-  }
-
-  @Override
-  public int hashCode() {
-    int sign = isNegated() ? -1 : 1;
-    return sign * (19 * left.hashCode() + 13 * right.hashCode() + operator.hashCode());
-  }
-
-  private boolean equalsExceptNegation(Object o, boolean shouldNegationMatch) {
     if (o instanceof ACSLComparisonPredicate) {
       ACSLComparisonPredicate other = (ACSLComparisonPredicate) o;
-      if (shouldNegationMatch == (isNegated() == other.isNegated())) {
-        return left.equals(other.left)
-            && right.equals(other.right)
-            && operator.equals(other.operator);
-      }
+      return super.equals(o)
+          && left.equals(other.left)
+          && right.equals(other.right)
+          && operator.equals(other.operator);
     }
     return false;
   }
 
   @Override
+  public int hashCode() {
+    return super.hashCode() * (19 * left.hashCode() + 13 * right.hashCode() + operator.hashCode());
+  }
+
+  @Override
   public boolean isNegationOf(ACSLPredicate other) {
-    return equalsExceptNegation(other, false);
+    return simplify().equals(other.negate().simplify());
   }
 
   @Override
