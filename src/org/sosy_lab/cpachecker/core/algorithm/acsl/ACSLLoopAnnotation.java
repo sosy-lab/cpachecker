@@ -34,7 +34,7 @@ public class ACSLLoopAnnotation implements ACSLAnnotation {
       for (Behavior behavior : behaviors) {
         AssumesClause assumesClause = behavior.getAssumesClause();
         enclosingConjunction =
-            enclosingConjunction.and(assumesClause.getPredicate().getCopy().negate());
+            enclosingConjunction.and(assumesClause.getPredicate().negate());
         enclosingDisjunction = enclosingDisjunction.or(assumesClause.getPredicate());
       }
       enclosingConjunction = enclosingConjunction.simplify();

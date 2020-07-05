@@ -44,8 +44,8 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
         // these are already C operators
         break;
       case XOR:
-        ACSLPredicate notRight = pureRight.getCopy().negate();
-        ACSLPredicate notLeft = pureLeft.getCopy().negate();
+        ACSLPredicate notRight = pureRight.negate();
+        ACSLPredicate notLeft = pureLeft.negate();
         pureLeft = new ACSLLogicalPredicate(pureLeft, notRight, BinaryOperator.AND);
         pureRight = new ACSLLogicalPredicate(notLeft, pureRight, BinaryOperator.AND);
         newOperator = BinaryOperator.OR;
@@ -55,8 +55,8 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
         newOperator = BinaryOperator.OR;
         break;
       case EQV:
-        ACSLPredicate negL = pureLeft.getCopy().negate();
-        ACSLPredicate negR = pureRight.getCopy().negate();
+        ACSLPredicate negL = pureLeft.negate();
+        ACSLPredicate negR = pureRight.negate();
         pureLeft = new ACSLLogicalPredicate(pureLeft, pureRight, BinaryOperator.AND);
         pureRight = new ACSLLogicalPredicate(negL, negR, BinaryOperator.AND);
         newOperator = BinaryOperator.OR;
@@ -68,8 +68,8 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
   }
 
   @Override
-  public ACSLPredicate getCopy() {
-    return new ACSLLogicalPredicate(left.getCopy(), right.getCopy(), operator);
+  public ACSLPredicate negate() {
+    return new ACSLLogicalPredicate(left, right, operator, !isNegated());
   }
 
   @Override

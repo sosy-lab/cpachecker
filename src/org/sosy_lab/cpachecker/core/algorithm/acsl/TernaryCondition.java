@@ -27,8 +27,8 @@ public class TernaryCondition extends ACSLPredicate {
   }
 
   @Override
-  public ACSLPredicate getCopy() {
-    return new TernaryCondition(condition.getCopy(), then.getCopy(), otherwise.getCopy());
+  public ACSLPredicate negate() {
+    return new TernaryCondition(condition, then, otherwise, !isNegated());
   }
 
   @Override

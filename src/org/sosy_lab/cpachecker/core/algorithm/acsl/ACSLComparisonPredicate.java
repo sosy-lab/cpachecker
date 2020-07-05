@@ -40,8 +40,8 @@ public class ACSLComparisonPredicate extends ACSLPredicate {
   }
 
   @Override
-  public ACSLPredicate getCopy() {
-    return new ACSLComparisonPredicate(left, right, operator);
+  public ACSLPredicate negate() {
+    return new ACSLComparisonPredicate(left, right, operator, !isNegated());
   }
 
   @Override

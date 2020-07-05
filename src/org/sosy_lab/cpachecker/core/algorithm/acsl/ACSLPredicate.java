@@ -19,11 +19,8 @@ public abstract class ACSLPredicate {
     return FALSE.get();
   }
 
-  /** Negates and returns the predicate. */
-  public ACSLPredicate negate() {
-    negated = !negated;
-    return this;
-  }
+  /** Returns the negation of the predicate. */
+  public abstract ACSLPredicate negate();
 
   public boolean isNegated() {
     return negated;
@@ -34,9 +31,6 @@ public abstract class ACSLPredicate {
    * C expression.
    */
   public abstract ACSLPredicate toPureC();
-
-  /** Returns a deep copy of the predicate. */
-  public abstract ACSLPredicate getCopy();
 
   /** Returns a simplified version of the predicate. */
   public abstract ACSLPredicate simplify();
@@ -98,11 +92,6 @@ public abstract class ACSLPredicate {
     }
 
     @Override
-    public ACSLPredicate getCopy() {
-      return singleton;
-    }
-
-    @Override
     public ACSLPredicate simplify() {
       return isNegated() ? ACSLPredicate.getFalse() : this;
     }
@@ -148,11 +137,6 @@ public abstract class ACSLPredicate {
     @Override
     public ACSLPredicate toPureC() {
       return this;
-    }
-
-    @Override
-    public ACSLPredicate getCopy() {
-      return singleton;
     }
 
     @Override

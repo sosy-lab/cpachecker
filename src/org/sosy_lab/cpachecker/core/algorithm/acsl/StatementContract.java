@@ -80,7 +80,7 @@ public class StatementContract implements ACSLAnnotation {
     for (Behavior behavior : enclosingBehaviors) {
       AssumesClause assumesClause = behavior.getAssumesClause();
       enclosingConjunction =
-          enclosingConjunction.and(assumesClause.getPredicate().getCopy().negate()).simplify();
+          enclosingConjunction.and(assumesClause.getPredicate().negate()).simplify();
       enclosingDisjunction = enclosingDisjunction.or(assumesClause.getPredicate()).simplify();
     }
     predicateRepresentation =

@@ -36,7 +36,7 @@ public class Behavior {
       inner = ACSLPredicate.getTrue();
     }
     ACSLPredicate assumesPredicate = assumesClause.getPredicate();
-    ACSLPredicate negatedAssumesPredicate = assumesPredicate.getCopy().negate();
+    ACSLPredicate negatedAssumesPredicate = assumesPredicate.negate();
     predicateRepresentation =
         new ACSLLogicalPredicate(
             new ACSLLogicalPredicate(assumesPredicate, inner, BinaryOperator.AND),
@@ -62,7 +62,7 @@ public class Behavior {
   public ACSLPredicate getPreStatePredicate() {
     ACSLPredicate requiresPredicate = requiresClause.getPredicate();
     ACSLPredicate assumesPredicate = assumesClause.getPredicate();
-    ACSLPredicate negatedAssumesPredicate = assumesPredicate.getCopy().negate();
+    ACSLPredicate negatedAssumesPredicate = assumesPredicate.negate();
     return new ACSLLogicalPredicate(
         new ACSLLogicalPredicate(assumesPredicate, requiresPredicate, BinaryOperator.AND),
         negatedAssumesPredicate,
@@ -72,7 +72,7 @@ public class Behavior {
   public ACSLPredicate getPostStatePredicate() {
     ACSLPredicate ensuresPredicate = ensuresClause.getPredicate();
     ACSLPredicate assumesPredicate = assumesClause.getPredicate().useOldValues();
-    ACSLPredicate negatedAssumesPredicate = assumesPredicate.getCopy().negate();
+    ACSLPredicate negatedAssumesPredicate = assumesPredicate.negate();
     return new ACSLLogicalPredicate(
         new ACSLLogicalPredicate(assumesPredicate, ensuresPredicate, BinaryOperator.AND),
         negatedAssumesPredicate,
