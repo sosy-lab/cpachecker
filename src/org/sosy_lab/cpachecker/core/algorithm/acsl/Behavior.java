@@ -27,7 +27,7 @@ public class Behavior {
     if (left != ACSLPredicate.getTrue()) {
       ACSLPredicate right = requiresClause.getPredicate();
       if (right != ACSLPredicate.getTrue()) {
-        right.negate();
+        right = right.negate();
         inner = new ACSLLogicalPredicate(left, right, BinaryOperator.OR);
       } else {
         inner = left;

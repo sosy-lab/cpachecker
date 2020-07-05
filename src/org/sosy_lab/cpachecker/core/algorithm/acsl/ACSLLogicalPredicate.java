@@ -51,7 +51,7 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
         newOperator = BinaryOperator.OR;
         break;
       case IMP:
-        pureLeft.negate();
+        pureLeft = pureLeft.negate();
         newOperator = BinaryOperator.OR;
         break;
       case EQV:

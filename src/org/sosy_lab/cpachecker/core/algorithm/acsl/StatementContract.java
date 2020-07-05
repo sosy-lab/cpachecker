@@ -61,7 +61,7 @@ public class StatementContract implements ACSLAnnotation {
     if (left != ACSLPredicate.getTrue()) {
       ACSLPredicate right = requiresClause.getPredicate();
       if (right != ACSLPredicate.getTrue()) {
-        right.negate();
+        right = right.negate();
         predicateRepresentation = new ACSLLogicalPredicate(left, right, BinaryOperator.OR);
       } else {
         predicateRepresentation = left;
