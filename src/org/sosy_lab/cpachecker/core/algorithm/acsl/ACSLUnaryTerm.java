@@ -22,11 +22,6 @@ public class ACSLUnaryTerm implements ACSLTerm {
   }
 
   @Override
-  public ACSLUnaryTerm toPureC() {
-    return new ACSLUnaryTerm(term.toPureC(), operator);
-  }
-
-  @Override
   public boolean equals(Object o) {
     if (o instanceof ACSLUnaryTerm) {
       ACSLUnaryTerm other = (ACSLUnaryTerm) o;
@@ -50,7 +45,7 @@ public class ACSLUnaryTerm implements ACSLTerm {
 
   @Override
   public CExpression accept(ACSLToCExpressionVisitor visitor) throws UnrecognizedCodeException {
-    return visitor.visit(toPureC());
+    return visitor.visit(this);
   }
 
   @Override

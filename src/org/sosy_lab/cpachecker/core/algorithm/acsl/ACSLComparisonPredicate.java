@@ -36,7 +36,7 @@ public class ACSLComparisonPredicate extends ACSLPredicate {
 
   @Override
   public ACSLPredicate toPureC() {
-    return new ACSLComparisonPredicate(left.toPureC(), right.toPureC(), operator, isNegated());
+    return this;
   }
 
   @Override

@@ -17,11 +17,6 @@ public class StringLiteral implements ACSLTerm {
   }
 
   @Override
-  public StringLiteral toPureC() {
-    return this;
-  }
-
-  @Override
   public boolean equals(Object o) {
     if (o instanceof StringLiteral) {
       StringLiteral other = (StringLiteral) o;
@@ -41,7 +36,7 @@ public class StringLiteral implements ACSLTerm {
 
   @Override
   public CExpression accept(ACSLToCExpressionVisitor visitor) throws UnrecognizedCodeException {
-    return visitor.visit(toPureC());
+    return visitor.visit(this);
   }
 
   @Override

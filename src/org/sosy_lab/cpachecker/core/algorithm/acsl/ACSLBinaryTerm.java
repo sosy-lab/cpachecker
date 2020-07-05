@@ -1,6 +1,5 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
-import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -11,26 +10,7 @@ public class ACSLBinaryTerm implements ACSLTerm {
   private final BinaryOperator operator;
 
   public ACSLBinaryTerm(ACSLTerm pLeft, ACSLTerm pRight, BinaryOperator op) {
-    left = pLeft;
-    right = pRight;
-    Preconditions.checkArgument(
-        BinaryOperator.isBitwiseOperator(op) || BinaryOperator.isArithmeticOperator(op),
-        "Unknown comparison operator: %s",
-        op);
-    operator = op;
-  }
-
-  @Override
-  public String toString() {
-    return left.toString() + operator.toString() + right.toString();
-  }
-
-  @Override
-  public ACSLBinaryTerm toPureC() {
-    ACSLTerm pureLeft = left.toPureC();
-    ACSLTerm pureRight = right.toPureC();
-    BinaryOperator newOperator = operator;
-    switch (operator) {
+    switch (op) {
       case PLUS:
       case MINUS:
       case DIVIDE:
@@ -41,20 +21,28 @@ public class ACSLBinaryTerm implements ACSLTerm {
       case BAND:
       case BOR:
       case BXOR:
-        // these are already C operators
+        left = pLeft;
+        right = pRight;
+        operator = op;
         break;
       case BIMP:
-        pureLeft = new ACSLUnaryTerm(pureLeft, UnaryOperator.BNEG);
-        newOperator = BinaryOperator.BOR;
+        left = new ACSLUnaryTerm(pLeft, UnaryOperator.BNEG);
+        right = pRight;
+        operator = BinaryOperator.BOR;
         break;
       case BEQV:
-        pureLeft = new ACSLUnaryTerm(pureLeft, UnaryOperator.BNEG);
-        newOperator = BinaryOperator.BXOR;
+        left = new ACSLUnaryTerm(pLeft, UnaryOperator.BNEG);
+        right = pRight;
+        operator = BinaryOperator.BXOR;
         break;
       default:
         throw new AssertionError("ACSLTerm should hold arithmetic or bitwise operation.");
     }
-    return new ACSLBinaryTerm(pureLeft, pureRight, newOperator);
+  }
+
+  @Override
+  public String toString() {
+    return left.toString() + operator.toString() + right.toString();
   }
 
   @Override
@@ -87,7 +75,7 @@ public class ACSLBinaryTerm implements ACSLTerm {
 
   @Override
   public CExpression accept(ACSLToCExpressionVisitor visitor) throws UnrecognizedCodeException {
-    return visitor.visit(toPureC());
+    return visitor.visit(this);
   }
 
   @Override

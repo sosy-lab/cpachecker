@@ -6,7 +6,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 public class Identifier implements ACSLTerm {
 
   private final String name;
-  private boolean useOldValue;
+  private final boolean useOldValue;
   // TODO: Needs a type! Perhaps use MemoryLocation instead altogether?
 
   public Identifier(String pName) {
@@ -24,13 +24,6 @@ public class Identifier implements ACSLTerm {
       return "\\old(" + name + ")";
     }
     return name;
-  }
-
-  @Override
-  public Identifier toPureC() {
-    //TODO: This should not use old value, but the generous amount of calls to toPureC() would
-    // currently remove the flag even if it is desired
-    return this;
   }
 
   @Override
@@ -58,6 +51,9 @@ public class Identifier implements ACSLTerm {
 
   @Override
   public ACSLTerm useOldValues() {
+    if (useOldValue) {
+      return this;
+    }
     return new Identifier(name, true);
   }
 }

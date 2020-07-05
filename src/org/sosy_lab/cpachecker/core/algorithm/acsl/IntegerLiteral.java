@@ -17,11 +17,6 @@ public class IntegerLiteral implements ACSLTerm {
   }
 
   @Override
-  public IntegerLiteral toPureC() {
-    return this;
-  }
-
-  @Override
   public boolean equals(Object o) {
     if (o instanceof IntegerLiteral) {
       IntegerLiteral other = (IntegerLiteral) o;
@@ -41,7 +36,7 @@ public class IntegerLiteral implements ACSLTerm {
 
   @Override
   public CExpression accept(ACSLToCExpressionVisitor visitor) throws UnrecognizedCodeException {
-    return visitor.visit(toPureC());
+    return visitor.visit(this);
   }
 
   @Override

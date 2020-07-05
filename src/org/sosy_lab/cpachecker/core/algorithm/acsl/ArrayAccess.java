@@ -35,11 +35,6 @@ public class ArrayAccess implements ACSLTerm {
     return array.toString() + "[" + index.toString() + "]";
   }
 
-  @Override
-  public ArrayAccess toPureC() {
-    return new ArrayAccess(array.toPureC(), index.toPureC());
-  }
-
   public Identifier getArray() {
     return array;
   }
@@ -50,7 +45,7 @@ public class ArrayAccess implements ACSLTerm {
 
   @Override
   public CExpression accept(ACSLToCExpressionVisitor visitor) throws UnrecognizedCodeException {
-    return visitor.visit(toPureC());
+    return visitor.visit(this);
   }
 
   @Override

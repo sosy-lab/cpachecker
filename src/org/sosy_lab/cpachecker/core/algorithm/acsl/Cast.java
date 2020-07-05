@@ -14,11 +14,6 @@ public class Cast implements ACSLTerm {
   }
 
   @Override
-  public Cast toPureC() {
-    return new Cast(type, term.toPureC());
-  }
-
-  @Override
   public boolean equals(Object o) {
     if (o instanceof Cast) {
       Cast other = (Cast) o;
@@ -47,7 +42,7 @@ public class Cast implements ACSLTerm {
 
   @Override
   public CExpression accept(ACSLToCExpressionVisitor visitor) throws UnrecognizedCodeException {
-    return visitor.visit(toPureC());
+    return visitor.visit(this);
   }
 
   @Override
