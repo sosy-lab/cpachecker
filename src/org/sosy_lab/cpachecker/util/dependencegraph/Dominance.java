@@ -207,18 +207,18 @@ final class Dominance {
    */
   private static int[] computeDoms(final DomInput pInput) {
 
-    final int start = pInput.getNodeCount() - 1; // the start node is the node with the greatest ID
+    final int startNode = pInput.getNodeCount() - 1; // the start node has the greatest ID
     int[] doms = new int[pInput.getNodeCount()]; // doms[x] == immediate dominator of x
     boolean changed = true;
 
     Arrays.fill(doms, UNDEFINED); // no immediate dominator is known
-    doms[start] = start; // needed to 'seed' the computation, reverted afterwards
+    doms[startNode] = startNode; // needed to 'seed' the computation, reverted afterwards
 
     while (changed) {
       changed = false;
 
       int index = 0; // index for input data (data format is specified in DomInput)
-      for (int id = 0; id < start; id++) { // all nodes in reverse-post-order (except start)
+      for (int id = 0; id < startNode; id++) { // all nodes in reverse-post-order (except start)
         int idom = UNDEFINED; // immediate dominator for node
 
         int pred;
@@ -244,7 +244,7 @@ final class Dominance {
       }
     }
 
-    doms[start] = UNDEFINED; // the start node cannot have an immediate dominator
+    doms[startNode] = UNDEFINED; // the start node cannot have an immediate dominator
 
     return doms;
   }
