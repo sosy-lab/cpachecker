@@ -3,8 +3,10 @@ package org.sosy_lab.cpachecker.core.algorithm.acsl;
 import java.util.List;
 
 public class CompletenessClause {
-  private List<Behavior> behaviors;
-  private RelationKind kind;
+
+  private final List<Behavior> behaviors;
+  private final RelationKind kind;
+
   // this should be a valid C expression
   private ACSLPredicate predicateRepresentation;
 

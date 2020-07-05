@@ -4,11 +4,11 @@ import java.util.List;
 
 public class StatementContract implements ACSLAnnotation {
 
-  private RequiresClause requiresClause;
-  private EnsuresClause ensuresClause;
-  private List<Behavior> enclosingBehaviors;
-  private List<Behavior> ownBehaviors;
-  private List<CompletenessClause> completenessClauses;
+  private final RequiresClause requiresClause;
+  private final EnsuresClause ensuresClause;
+  private final List<Behavior> enclosingBehaviors;
+  private final List<Behavior> ownBehaviors;
+  private final List<CompletenessClause> completenessClauses;
 
   // this should be a valid C expression
   private ACSLPredicate predicateRepresentation;

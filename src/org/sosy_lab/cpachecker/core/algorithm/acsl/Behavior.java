@@ -2,10 +2,10 @@ package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
 public class Behavior {
 
-  private String name;
-  private EnsuresClause ensuresClause;
-  private RequiresClause requiresClause;
-  private AssumesClause assumesClause;
+  private final String name;
+  private final EnsuresClause ensuresClause;
+  private final RequiresClause requiresClause;
+  private final AssumesClause assumesClause;
 
   // this should be a valid C expression
   private ACSLPredicate predicateRepresentation;

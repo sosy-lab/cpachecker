@@ -2,8 +2,8 @@ package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
 public class ACSLAssertion implements ACSLAnnotation {
 
-  private AssertionKind kind;
-  private ACSLPredicate predicate;
+  private final AssertionKind kind;
+  private final ACSLPredicate predicate;
 
   public ACSLAssertion(AssertionKind pKind, ACSLPredicate p) {
     kind = pKind;

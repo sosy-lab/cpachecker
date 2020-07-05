@@ -6,8 +6,8 @@ import java.util.Map;
 
 public class ACSLLoopAnnotation implements ACSLAnnotation {
 
-  private LoopInvariant lInvariant;
-  private Map<List<Behavior>, LoopInvariant> additionalInvariants;
+  private final LoopInvariant lInvariant;
+  private final Map<List<Behavior>, LoopInvariant> additionalInvariants;
 
   private ACSLPredicate predicateRepresentation;
 
@@ -33,8 +33,7 @@ public class ACSLLoopAnnotation implements ACSLAnnotation {
       ACSLPredicate enclosingDisjunction = ACSLPredicate.getFalse();
       for (Behavior behavior : behaviors) {
         AssumesClause assumesClause = behavior.getAssumesClause();
-        enclosingConjunction =
-            enclosingConjunction.and(assumesClause.getPredicate().negate());
+        enclosingConjunction = enclosingConjunction.and(assumesClause.getPredicate().negate());
         enclosingDisjunction = enclosingDisjunction.or(assumesClause.getPredicate());
       }
       enclosingConjunction = enclosingConjunction.simplify();
