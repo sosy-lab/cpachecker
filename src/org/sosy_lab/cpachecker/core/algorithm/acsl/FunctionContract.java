@@ -21,7 +21,6 @@ public class FunctionContract implements ACSLAnnotation {
     ensuresClause = ens;
     behaviors = pBehaviors;
     completenessClauses = pCompletenessClauses;
-    toPureC();
     makeRepresentation();
     predicateRepresentation = predicateRepresentation.simplify();
   }
@@ -29,14 +28,6 @@ public class FunctionContract implements ACSLAnnotation {
   @Override
   public String toString() {
     return predicateRepresentation.toString();
-  }
-
-  private void toPureC() {
-    ensuresClause.toPureC();
-    requiresClause.toPureC();
-    for (Behavior behavior : behaviors) {
-      behavior.toPureC();
-    }
   }
 
   private void makeRepresentation() {

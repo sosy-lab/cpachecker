@@ -26,12 +26,6 @@ public abstract class ACSLPredicate {
     return negated;
   }
 
-  /**
-   * Returns a copy of the predicate that has the same logical value as the original but is a valid
-   * C expression.
-   */
-  public abstract ACSLPredicate toPureC();
-
   /** Returns a simplified version of the predicate. */
   public abstract ACSLPredicate simplify();
 
@@ -87,11 +81,6 @@ public abstract class ACSLPredicate {
     }
 
     @Override
-    public ACSLPredicate toPureC() {
-      return this;
-    }
-
-    @Override
     public ACSLPredicate simplify() {
       return this;
     }
@@ -138,11 +127,6 @@ public abstract class ACSLPredicate {
     @Override
     public String toString() {
       return "false";
-    }
-
-    @Override
-    public ACSLPredicate toPureC() {
-      return this;
     }
 
     @Override

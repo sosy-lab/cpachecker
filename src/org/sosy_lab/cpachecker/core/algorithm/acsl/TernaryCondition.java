@@ -32,11 +32,6 @@ public class TernaryCondition extends ACSLPredicate {
   }
 
   @Override
-  public ACSLPredicate toPureC() {
-    return new TernaryCondition(condition.toPureC(), then.toPureC(), otherwise.toPureC());
-  }
-
-  @Override
   public ACSLPredicate simplify() {
     return new TernaryCondition(
         condition.simplify(), then.simplify(), otherwise.simplify(), isNegated());

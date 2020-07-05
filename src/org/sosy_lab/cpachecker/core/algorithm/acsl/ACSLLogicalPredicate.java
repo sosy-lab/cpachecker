@@ -1,6 +1,5 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
-import com.google.common.base.Preconditions;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.Or;
@@ -18,11 +17,31 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
   public ACSLLogicalPredicate(
       ACSLPredicate pLeft, ACSLPredicate pRight, BinaryOperator op, boolean negated) {
     super(negated);
-    left = pLeft;
-    right = pRight;
-    Preconditions.checkArgument(
-        BinaryOperator.isLogicOperator(op), "Unknown logic operator: %s", op);
-    operator = op;
+    switch (op) {
+      case AND:
+      case OR:
+        left = pLeft;
+        right = pRight;
+        operator = op;
+        break;
+      case XOR:
+        left = new ACSLLogicalPredicate(pLeft, pRight.negate(), BinaryOperator.AND);
+        right = new ACSLLogicalPredicate(pLeft.negate(), pRight, BinaryOperator.AND);
+        operator = BinaryOperator.OR;
+        break;
+      case IMP:
+        left = pLeft.negate();
+        right = pRight;
+        operator = BinaryOperator.OR;
+        break;
+      case EQV:
+        left = new ACSLLogicalPredicate(pLeft, pRight, BinaryOperator.AND);
+        right = new ACSLLogicalPredicate(pLeft.negate(), pRight.negate(), BinaryOperator.AND);
+        operator = BinaryOperator.OR;
+        break;
+      default:
+        throw new AssertionError("Unknown logical operator: " + op);
+    }
   }
 
   @Override
@@ -31,40 +50,6 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
     String negativeTemplate = "!(%s)";
     String template = isNegated() ? negativeTemplate : positiveTemplate;
     return String.format(template, left.toString() + operator.toString() + right.toString());
-  }
-
-  @Override
-  public ACSLPredicate toPureC() {
-    ACSLPredicate pureLeft = left.toPureC();
-    ACSLPredicate pureRight = right.toPureC();
-    BinaryOperator newOperator = operator;
-    switch (operator) {
-      case AND:
-      case OR:
-        // these are already C operators
-        break;
-      case XOR:
-        ACSLPredicate notRight = pureRight.negate();
-        ACSLPredicate notLeft = pureLeft.negate();
-        pureLeft = new ACSLLogicalPredicate(pureLeft, notRight, BinaryOperator.AND);
-        pureRight = new ACSLLogicalPredicate(notLeft, pureRight, BinaryOperator.AND);
-        newOperator = BinaryOperator.OR;
-        break;
-      case IMP:
-        pureLeft = pureLeft.negate();
-        newOperator = BinaryOperator.OR;
-        break;
-      case EQV:
-        ACSLPredicate negL = pureLeft.negate();
-        ACSLPredicate negR = pureRight.negate();
-        pureLeft = new ACSLLogicalPredicate(pureLeft, pureRight, BinaryOperator.AND);
-        pureRight = new ACSLLogicalPredicate(negL, negR, BinaryOperator.AND);
-        newOperator = BinaryOperator.OR;
-        break;
-      default:
-        throw new AssertionError("Unknown logical operator: " + operator);
-    }
-    return new ACSLLogicalPredicate(pureLeft, pureRight, newOperator);
   }
 
   @Override
@@ -141,34 +126,29 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
 
   @Override
   public ExpressionTree<Object> toExpressionTree(ACSLToCExpressionVisitor visitor) {
-    ACSLPredicate purePredicate = toPureC();
-    if (equals(purePredicate)) {
-      ExpressionTree<Object> leftTree;
-      ExpressionTree<Object> rightTree;
-      switch (operator) {
-        case AND:
-          if (isNegated()) {
-            leftTree = left.negate().toExpressionTree(visitor);
-            rightTree = right.negate().toExpressionTree(visitor);
-            return Or.of(leftTree, rightTree);
-          }
-          leftTree = left.toExpressionTree(visitor);
-          rightTree = right.toExpressionTree(visitor);
-          return And.of(leftTree, rightTree);
-        case OR:
-          if (isNegated()) {
-            leftTree = left.negate().toExpressionTree(visitor);
-            rightTree = right.negate().toExpressionTree(visitor);
-            return And.of(leftTree, rightTree);
-          }
-          leftTree = left.toExpressionTree(visitor);
-          rightTree = right.toExpressionTree(visitor);
+    ExpressionTree<Object> leftTree;
+    ExpressionTree<Object> rightTree;
+    switch (operator) {
+      case AND:
+        if (isNegated()) {
+          leftTree = left.negate().toExpressionTree(visitor);
+          rightTree = right.negate().toExpressionTree(visitor);
           return Or.of(leftTree, rightTree);
-        default:
-          throw new AssertionError("Pure predicate should contain AND or OR");
-      }
-    } else {
-      return purePredicate.toExpressionTree(visitor);
+        }
+        leftTree = left.toExpressionTree(visitor);
+        rightTree = right.toExpressionTree(visitor);
+        return And.of(leftTree, rightTree);
+      case OR:
+        if (isNegated()) {
+          leftTree = left.negate().toExpressionTree(visitor);
+          rightTree = right.negate().toExpressionTree(visitor);
+          return And.of(leftTree, rightTree);
+        }
+        leftTree = left.toExpressionTree(visitor);
+        rightTree = right.toExpressionTree(visitor);
+        return Or.of(leftTree, rightTree);
+      default:
+        throw new AssertionError("Pure predicate should contain AND or OR");
     }
   }
 

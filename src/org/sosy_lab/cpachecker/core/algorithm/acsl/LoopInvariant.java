@@ -6,7 +6,7 @@ public class LoopInvariant {
   private ACSLPredicate predicate;
 
   public LoopInvariant(ACSLPredicate p) {
-    predicate = p.toPureC().simplify();
+    predicate = p.simplify();
   }
 
   public ACSLPredicate getPredicate() {

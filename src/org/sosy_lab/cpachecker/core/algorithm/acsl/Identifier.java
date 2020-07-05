@@ -8,6 +8,7 @@ public class Identifier implements ACSLTerm {
   private final String name;
   private final boolean useOldValue;
   // TODO: Needs a type! Perhaps use MemoryLocation instead altogether?
+  // TODO 2: Identifiers can still hold non-C expressions if useOldValue is set
 
   public Identifier(String pName) {
     this(pName, false);

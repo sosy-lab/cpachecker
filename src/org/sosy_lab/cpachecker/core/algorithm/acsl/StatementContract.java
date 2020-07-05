@@ -24,7 +24,6 @@ public class StatementContract implements ACSLAnnotation {
     enclosingBehaviors = enclosing;
     ownBehaviors = own;
     completenessClauses = pCompletenessClauses;
-    toPureC();
     makeRepresentation();
     predicateRepresentation = predicateRepresentation.simplify();
   }
@@ -37,18 +36,6 @@ public class StatementContract implements ACSLAnnotation {
         enclosing,
         fcontract.getBehaviors(),
         fcontract.getCompletenessClauses());
-  }
-
-  private void toPureC() {
-    ensuresClause.toPureC();
-    requiresClause.toPureC();
-    for (Behavior behavior : enclosingBehaviors) {
-      // TODO: This could be left out but it doesn't break anything either way, does it?
-      behavior.toPureC();
-    }
-    for (Behavior behavior : ownBehaviors) {
-      behavior.toPureC();
-    }
   }
 
   @Override

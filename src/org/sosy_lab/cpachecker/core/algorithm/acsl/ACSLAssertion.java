@@ -7,7 +7,7 @@ public class ACSLAssertion implements ACSLAnnotation {
 
   public ACSLAssertion(AssertionKind pKind, ACSLPredicate p) {
     kind = pKind;
-    predicate = p.toPureC().simplify();
+    predicate = p.simplify();
   }
 
   @Override

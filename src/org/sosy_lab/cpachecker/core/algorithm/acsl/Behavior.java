@@ -15,6 +15,7 @@ public class Behavior {
     ensuresClause = ens;
     requiresClause = req;
     assumesClause = ass;
+    makePredicateRepresentation();
   }
 
   public String getName() {
@@ -50,13 +51,6 @@ public class Behavior {
 
   public AssumesClause getAssumesClause() {
     return assumesClause;
-  }
-
-  public void toPureC() {
-    ensuresClause.toPureC();
-    requiresClause.toPureC();
-    assumesClause.toPureC();
-    makePredicateRepresentation();
   }
 
   public ACSLPredicate getPreStatePredicate() {

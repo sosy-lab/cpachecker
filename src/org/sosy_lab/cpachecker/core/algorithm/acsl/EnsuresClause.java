@@ -14,10 +14,6 @@ public class EnsuresClause {
     return predicate.toString();
   }
 
-  public void toPureC() {
-    predicate = predicate.toPureC();
-  }
-
   public ACSLPredicate getPredicate() {
     return predicate;
   }
