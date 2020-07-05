@@ -51,6 +51,9 @@ import java.util.function.Function;
  * <p>Dominance frontiers ({@link DomFrontiers}) are created by {@link
  * #createDomFrontiers(DomTree)}. A {@link DomFrontiers}-object contains the dominance frontier for
  * every node in the graph.
+ *
+ * <p>Implementation detail: the dominance tree and dominance frontier computation algorithms are
+ * from "A Simple, Fast Dominance Algorithm" (Cooper et al.).
  */
 final class Dominance {
 
