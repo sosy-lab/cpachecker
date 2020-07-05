@@ -5,7 +5,7 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
 public abstract class ACSLPredicate {
 
-  private boolean negated;
+  private final boolean negated;
 
   public ACSLPredicate(boolean pNegated) {
     negated = pNegated;

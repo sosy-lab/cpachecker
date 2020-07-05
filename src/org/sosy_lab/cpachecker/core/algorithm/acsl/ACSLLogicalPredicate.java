@@ -59,6 +59,7 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
 
   @Override
   public ACSLPredicate simplify() {
+    // TODO: Add more simplifications
     ACSLPredicate simpleLeft = left.simplify();
     ACSLPredicate simpleRight = right.simplify();
     switch (operator) {
@@ -89,9 +90,7 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
         }
         break;
       default:
-        // Currently no optimizations for other cases
-        // TODO: Add more simplifications
-        break;
+        throw new AssertionError("Unknown C logical operator: " + operator);
     }
     return new ACSLLogicalPredicate(simpleLeft, simpleRight, operator, isNegated());
   }
