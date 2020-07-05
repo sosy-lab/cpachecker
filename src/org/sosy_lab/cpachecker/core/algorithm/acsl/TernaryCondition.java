@@ -11,7 +11,6 @@ public class TernaryCondition extends ACSLPredicate {
   private final ACSLPredicate otherwise;
 
   public TernaryCondition(ACSLPredicate p1, ACSLPredicate p2, ACSLPredicate p3) {
-    super();
     condition = p1;
     then = p2;
     otherwise = p3;

@@ -135,7 +135,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     }
     // this is important because otherwise the candidates will not be displayed!
     gen.produceMoreCandidates();
-    ArrayList<ExpressionTreeLocationInvariant> cands = new ArrayList<>();
+    List<ExpressionTreeLocationInvariant> cands = new ArrayList<>();
     java.util.Iterator<CandidateInvariant> it = gen.iterator();
     while (it.hasNext()) {
       CandidateInvariant inv = it.next();

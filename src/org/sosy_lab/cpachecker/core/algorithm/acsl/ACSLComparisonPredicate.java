@@ -13,7 +13,6 @@ public class ACSLComparisonPredicate extends ACSLPredicate {
   private final BinaryOperator operator;
 
   public ACSLComparisonPredicate(ACSLTerm pLeft, ACSLTerm pRight, BinaryOperator op) {
-    super();
     left = pLeft;
     right = pRight;
     Preconditions.checkArgument(

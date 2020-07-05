@@ -12,7 +12,6 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
   private final BinaryOperator operator;
 
   public ACSLLogicalPredicate(ACSLPredicate pLeft, ACSLPredicate pRight, BinaryOperator op) {
-    super();
     left = pLeft;
     right = pRight;
     Preconditions.checkArgument(
