@@ -71,15 +71,13 @@ public class Behavior {
 
   @Override
   public String toString() {
-    return new StringBuilder()
-        .append("behavior ")
-        .append(name)
-        .append(":\n")
-        .append(assumesClause.toString())
-        .append('\n')
-        .append(requiresClause.toString())
-        .append('\n')
-        .append(ensuresClause.toString())
-        .toString();
+    return "behavior "
+        + name
+        + ":\n"
+        + assumesClause.toString()
+        + '\n'
+        + requiresClause.toString()
+        + '\n'
+        + ensuresClause.toString();
   }
 }

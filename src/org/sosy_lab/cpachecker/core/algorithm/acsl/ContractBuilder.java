@@ -8,8 +8,8 @@ public class ContractBuilder {
 
   private EnsuresClause ensuresClause;
   private RequiresClause requiresClause;
-  private List<Behavior> behaviors;
-  private List<CompletenessClause> completenessClauses;
+  private final List<Behavior> behaviors;
+  private final List<CompletenessClause> completenessClauses;
 
   public ContractBuilder() {
     ensuresClause = new EnsuresClause(ACSLPredicate.getTrue());
@@ -33,12 +33,12 @@ public class ContractBuilder {
   }
 
   public ContractBuilder add(EnsuresClause ens) {
-    ensuresClause.and(ens);
+    ensuresClause = ensuresClause.and(ens);
     return this;
   }
 
   public ContractBuilder add(RequiresClause req) {
-    requiresClause.and(req);
+    requiresClause = requiresClause.and(req);
     return this;
   }
 
@@ -52,7 +52,7 @@ public class ContractBuilder {
     return this;
   }
 
-  public ContractBuilder addAll(Collection<? extends Object> clauses) {
+  public ContractBuilder addAll(Collection<?> clauses) {
     for (Object clause : clauses) {
       add(clause);
     }

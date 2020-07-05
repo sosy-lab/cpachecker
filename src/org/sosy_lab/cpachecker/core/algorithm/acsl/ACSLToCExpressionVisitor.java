@@ -46,8 +46,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class ACSLToCExpressionVisitor {
 
-  private CFA cfa;
-  private LogManager logger;
+  private final CFA cfa;
+  private final LogManager logger;
 
   public ACSLToCExpressionVisitor(CFA pCfa, LogManager pLogger) {
     cfa = pCfa;

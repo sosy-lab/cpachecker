@@ -2,7 +2,7 @@ package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
 public class LoopInvariant {
 
-  private ACSLPredicate predicate;
+  private final ACSLPredicate predicate;
 
   public LoopInvariant(ACSLPredicate p) {
     predicate = p.simplify();
@@ -13,8 +13,7 @@ public class LoopInvariant {
   }
 
   public LoopInvariant and(ACSLPredicate p) {
-    predicate = predicate.and(p);
-    return this;
+    return new LoopInvariant(predicate.and(p));
   }
 
   @Override

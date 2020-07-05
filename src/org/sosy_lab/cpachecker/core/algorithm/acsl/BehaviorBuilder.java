@@ -9,7 +9,6 @@ public class BehaviorBuilder {
   private AssumesClause assumesClause;
 
   public BehaviorBuilder() {
-    behaviorName = "";
     ensuresClause = new EnsuresClause(ACSLPredicate.getTrue());
     requiresClause = new RequiresClause(ACSLPredicate.getTrue());
     assumesClause = new AssumesClause(ACSLPredicate.getTrue());
@@ -33,21 +32,21 @@ public class BehaviorBuilder {
   }
 
   public BehaviorBuilder add(EnsuresClause ens) {
-    ensuresClause.and(ens);
+    ensuresClause = ensuresClause.and(ens);
     return this;
   }
 
   public BehaviorBuilder add(RequiresClause req) {
-    requiresClause.and(req);
+    requiresClause = requiresClause.and(req);
     return this;
   }
 
   public BehaviorBuilder add(AssumesClause ass) {
-    assumesClause.and(ass);
+    assumesClause = assumesClause.and(ass);
     return this;
   }
 
-  public BehaviorBuilder addAll(Collection<? extends Object> clauses) {
+  public BehaviorBuilder addAll(Collection<?> clauses) {
     for (Object clause : clauses) {
       add(clause);
     }
@@ -55,6 +54,7 @@ public class BehaviorBuilder {
   }
 
   public Behavior build() {
+    assert behaviorName != null : "Behavior needs a name";
     return new Behavior(behaviorName, ensuresClause, requiresClause, assumesClause);
   }
 }

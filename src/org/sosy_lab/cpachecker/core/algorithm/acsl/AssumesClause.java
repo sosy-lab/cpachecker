@@ -1,22 +1,22 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
 public class AssumesClause {
-  private ACSLPredicate predicate;
+  private final ACSLPredicate predicate;
 
   public AssumesClause(ACSLPredicate acslPredicate) {
     predicate = acslPredicate;
-  }
-
-  @Override
-  public String toString() {
-    return "assumes" + predicate.toString() + ';';
   }
 
   public ACSLPredicate getPredicate() {
     return predicate;
   }
 
-  public void and(AssumesClause other) {
-    predicate = predicate.and(other.getPredicate()).simplify();
+  public AssumesClause and(AssumesClause other) {
+    return new AssumesClause(predicate.and(other.getPredicate()));
+  }
+
+  @Override
+  public String toString() {
+    return "assumes " + predicate.toString() + ';';
   }
 }
