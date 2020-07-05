@@ -24,9 +24,9 @@
 package org.sosy_lab.cpachecker.cpa.acsl;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLAnnotation;
@@ -40,10 +40,10 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
 public class ACSLState implements AbstractState, ExpressionTreeReportingState {
 
-  private final Collection<ACSLAnnotation> annotations;
+  private final Set<ACSLAnnotation> annotations;
   private final ACSLToCExpressionVisitor visitor;
 
-  public ACSLState(Collection<ACSLAnnotation> pAnnotations, ACSLToCExpressionVisitor pVisitor) {
+  public ACSLState(Set<ACSLAnnotation> pAnnotations, ACSLToCExpressionVisitor pVisitor) {
     annotations = pAnnotations;
     visitor = pVisitor;
   }
@@ -73,11 +73,11 @@ public class ACSLState implements AbstractState, ExpressionTreeReportingState {
     if (this == pO) {
       return true;
     }
-    if (pO == null || getClass() != pO.getClass()) {
-      return false;
+    if (pO instanceof ACSLState) {
+      ACSLState that = (ACSLState) pO;
+      return annotations.equals(that.annotations);
     }
-    ACSLState that = (ACSLState) pO;
-    return annotations.equals(that.annotations);
+    return false;
   }
 
   @Override

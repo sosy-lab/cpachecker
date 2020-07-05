@@ -24,7 +24,7 @@ public class ACSLAssertion implements ACSLAnnotation {
     ASSERT("assert"),
     CHECK("check");
 
-    private String name;
+    private final String name;
 
     AssertionKind(String pName) {
       name = pName;

@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Optional;
+import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -18,24 +18,25 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java_cup.runtime.SymbolFactory;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotationLocations;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.exceptions.CParserException;
-import org.sosy_lab.cpachecker.util.LiveVariables;
 
 parser code {:
 
     private ACSLScanner scanner;
     //TODO: Currently only contains behaviors of function contracts
+    //Maps function names to behaviors declared in the function contract
     private Multimap<String, Behavior> behaviors;
     private CFAWithACSLAnnotationLocations cfa;
     private List<IASTFileLocation> orderedLocs;
 
-    private ACSLParser(ACSLScanner pScanner, CFAWithACSLAnnotationLocations pCfa,
+    private ACSLParser(ACSLScanner pScanner, SymbolFactory sf, CFAWithACSLAnnotationLocations pCfa,
       List<IASTFileLocation> pOrderedLocs) {
-        super(pScanner);
+        super(pScanner, sf);
         scanner = pScanner;
         behaviors = LinkedHashMultimap.create();
         cfa = pCfa;
@@ -48,6 +49,7 @@ parser code {:
 
       for (String filename : files) {
         Reader reader = new FileReader(new File(filename));
+        ComplexSymbolFactory sf = new ComplexSymbolFactory();
         ACSLScanner scanner = new ACSLScanner(reader);
         if (pCfa instanceof CFAWithACSLAnnotationLocations) {
           CFAWithACSLAnnotationLocations cfaWithLocs = (CFAWithACSLAnnotationLocations) pCfa;
@@ -56,7 +58,7 @@ parser code {:
           orderedLocs.addAll(cfaWithLocs.getCommentPositions().keySet());
           Collections.sort(orderedLocs, locationComparator);
           orderedLocs = FluentIterable.from(orderedLocs).filter(x -> x.getFileName().equals(filename)).toList();
-          List<ACSLAnnotation> annotations = new ACSLParser(scanner, cfaWithLocs, orderedLocs).parseACSLAnnotations();
+          List<ACSLAnnotation> annotations = new ACSLParser(scanner, sf, cfaWithLocs, orderedLocs).parseACSLAnnotations();
           for (int i = 0; i < orderedLocs.size(); i++) {
             cfaWithLocs.getEdgesToAnnotations().put(cfaWithLocs.getCommentPositions().get(orderedLocs.get(i)), annotations.get(i));
           }

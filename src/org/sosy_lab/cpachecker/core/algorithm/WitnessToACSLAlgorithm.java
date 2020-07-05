@@ -21,12 +21,15 @@ package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
+import com.google.common.base.Splitter;
 import com.google.common.io.Files;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -243,12 +246,12 @@ public class WitnessToACSLAlgorithm implements Algorithm {
         }
       }
 
-      String[] splitContent = fileContent.split("\\r?\\n");
-      for (int i = 0; i < splitContent.length; i++) {
+      List<String> splitContent = Splitter.onPattern("\\r?\\n").splitToList(fileContent);
+      for (int i = 0; i < splitContent.size(); i++) {
         assert currentInvariant == null || currentInvariant.getLocation() > i;
         while (currentInvariant != null && currentInvariant.getLocation() == i + 1) {
           String annotation = makeACSLAnnotation(currentInvariant);
-          String indentation = getIndentation(splitContent[i]);
+          String indentation = getIndentation(splitContent.get(i));
           output.add(indentation.concat(annotation));
           if (iterator.hasNext()) {
             currentInvariant = iterator.next();
@@ -256,7 +259,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
             currentInvariant = null;
           }
         }
-        output.add(splitContent[i]);
+        output.add(splitContent.get(i));
       }
       try {
         writeToFile(file, output);
@@ -276,7 +279,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
 
     File outFile = new File(Path.of(directory.toString(), newFileName).toUri());
     assert outFile.createNewFile() : String.format("File %s already exists!", outFile);
-    try (FileWriter out = new FileWriter(outFile)) {
+    try (Writer out = Files.newWriter(outFile, StandardCharsets.UTF_8)) {
       for(String line : newContent) {
         out.append(line.concat("\n"));
       }
@@ -296,7 +299,8 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     String nameWithoutExtension = oldFileName.substring(0, indexOfFirstPeriod);
     String extension = oldFileName.substring(indexOfFirstPeriod);
     String timestamp =
-        LocalDateTime.now().format(DateTimeFormatter.ofPattern("YYYY-MM-dd_HH:mm:ss"));
+        LocalDateTime.now(ZoneId.systemDefault())
+            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH:mm:ss"));
     return "annotated_".concat(nameWithoutExtension).concat(timestamp).concat(extension);
   }
 

@@ -23,8 +23,8 @@
  */
 package org.sosy_lab.cpachecker.cpa.acsl;
 
-import java.util.Collection;
-import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotationLocations;
@@ -72,7 +72,7 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
   @Override
   public AbstractState getInitialState(
       CFANode node, StateSpacePartition partition) throws InterruptedException {
-    Collection<ACSLAnnotation> annotations = Collections.emptySet();
+    Set<ACSLAnnotation> annotations = new HashSet<>();
     for (int i = 0; i < node.getNumEnteringEdges(); i++) {
       CFAEdge edge = node.getEnteringEdge(i);
       annotations.addAll(cfa.getEdgesToAnnotations().get(edge));

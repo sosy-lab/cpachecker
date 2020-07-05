@@ -8,7 +8,7 @@ public enum UnaryOperator {
   ADDRESS_OF("&"),
   SIZEOF("sizeof");
 
-  private String operator;
+  private final String operator;
 
   UnaryOperator(String s) {
     operator = s;

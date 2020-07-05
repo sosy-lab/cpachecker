@@ -25,7 +25,7 @@ public enum BinaryOperator {
   LSHIFT("<<"),
   RSHIFT(">>");
 
-  private String operator;
+  private final String operator;
 
   BinaryOperator(String s) {
     operator = s;
