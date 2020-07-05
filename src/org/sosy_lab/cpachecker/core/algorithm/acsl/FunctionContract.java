@@ -1,16 +1,15 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 
 public class FunctionContract implements ACSLAnnotation {
 
   private final RequiresClause requiresClause;
   private final EnsuresClause ensuresClause;
-  private final List<Behavior> behaviors;
-  private final List<CompletenessClause> completenessClauses;
-
-  // this should be a valid C expression
-  private ACSLPredicate predicateRepresentation;
+  private final ImmutableList<Behavior> behaviors;
+  private final ImmutableList<CompletenessClause> completenessClauses;
 
   FunctionContract(
       RequiresClause req,
@@ -19,55 +18,26 @@ public class FunctionContract implements ACSLAnnotation {
       List<CompletenessClause> pCompletenessClauses) {
     requiresClause = req;
     ensuresClause = ens;
-    behaviors = pBehaviors;
-    completenessClauses = pCompletenessClauses;
-    makeRepresentation();
-    predicateRepresentation = predicateRepresentation.simplify();
+    behaviors = ImmutableList.copyOf(pBehaviors);
+    completenessClauses = ImmutableList.copyOf(pCompletenessClauses);
   }
 
   @Override
   public String toString() {
-    return predicateRepresentation.toString();
-  }
-
-  private void makeRepresentation() {
-    ACSLPredicate left = ensuresClause.getPredicate();
-    if (left != ACSLPredicate.getTrue()) {
-      ACSLPredicate right = requiresClause.getPredicate();
-      if (right != ACSLPredicate.getTrue()) {
-        right = right.negate();
-        predicateRepresentation = new ACSLLogicalPredicate(left, right, BinaryOperator.OR);
-      } else {
-        predicateRepresentation = left;
-      }
-    } else {
-      predicateRepresentation = ACSLPredicate.getTrue();
-    }
-    for (Behavior behavior : behaviors) {
-      ACSLPredicate behaviorRepresentation = behavior.getPredicateRepresentation();
-      predicateRepresentation =
-          new ACSLLogicalPredicate(
-              predicateRepresentation, behaviorRepresentation, BinaryOperator.AND);
-    }
-    ACSLPredicate completenessRepresentation = ACSLPredicate.getTrue();
-    for (CompletenessClause completenessClause : completenessClauses) {
-      completenessRepresentation =
-          new ACSLLogicalPredicate(
-              completenessRepresentation,
-              completenessClause.getPredicateRepresentation(),
-              BinaryOperator.AND);
-    }
-    predicateRepresentation =
-        new ACSLLogicalPredicate(
-            predicateRepresentation, completenessRepresentation, BinaryOperator.AND);
+    StringBuilder builder = new StringBuilder();
+    builder
+        .append(requiresClause.toString())
+        .append('\n')
+        .append(ensuresClause.toString())
+        .append('\n');
+    Joiner.on('\n').appendTo(builder, behaviors.stream().map(x -> x.toString()).iterator());
+    Joiner.on('\n')
+        .appendTo(builder, completenessClauses.stream().map(x -> x.toString()).iterator());
+    return builder.toString();
   }
 
   @Override
-  public ACSLPredicate getPredicateRepresentation() {
-    return predicateRepresentation;
-  }
-
-  public ACSLPredicate getPreStatePredicateRepresentation() {
+  public ACSLPredicate getPreStateRepresentation() {
     ACSLPredicate preStatePredicate = requiresClause.getPredicate();
 
     for (Behavior behavior : behaviors) {
@@ -91,7 +61,8 @@ public class FunctionContract implements ACSLAnnotation {
         preStatePredicate, completenessRepresentation, BinaryOperator.AND);
   }
 
-  public ACSLPredicate getPostStatePredicateRepresentation() {
+  @Override
+  public ACSLPredicate getPostStateRepresentation() {
     ACSLPredicate postStatePredicate = ensuresClause.getPredicate();
 
     for (Behavior behavior : behaviors) {

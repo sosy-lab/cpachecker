@@ -1,6 +1,5 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
-// TODO: Just a wrapper for predicate, could be removed
 public class EnsuresClause {
 
   private ACSLPredicate predicate;
@@ -11,7 +10,7 @@ public class EnsuresClause {
 
   @Override
   public String toString() {
-    return predicate.toString();
+    return "ensures " + predicate.toString() + ';';
   }
 
   public ACSLPredicate getPredicate() {

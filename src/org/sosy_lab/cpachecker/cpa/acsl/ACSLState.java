@@ -62,9 +62,9 @@ public class ACSLState implements AbstractState, ExpressionTreeReportingState {
       if (annotation instanceof FunctionContract) {
         FunctionContract functionContract = (FunctionContract) annotation;
         if (pLocation instanceof FunctionExitNode) {
-          predicate = functionContract.getPostStatePredicateRepresentation();
+          predicate = functionContract.getPostStateRepresentation();
         } else {
-          predicate = functionContract.getPreStatePredicateRepresentation();
+          predicate = functionContract.getPreStateRepresentation();
         }
       } else {
         predicate = annotation.getPredicateRepresentation();

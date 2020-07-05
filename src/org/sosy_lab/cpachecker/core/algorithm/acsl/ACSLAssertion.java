@@ -17,7 +17,7 @@ public class ACSLAssertion implements ACSLAnnotation {
 
   @Override
   public String toString() {
-    return kind.toString() + " " + predicate.toString();
+    return kind.toString() + ' ' + predicate.toString() + ';';
   }
 
   public enum AssertionKind {

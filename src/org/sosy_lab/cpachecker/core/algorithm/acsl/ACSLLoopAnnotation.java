@@ -1,18 +1,18 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
-import java.util.HashMap;
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 public class ACSLLoopAnnotation implements ACSLAnnotation {
 
   private final LoopInvariant lInvariant;
-  private final Map<List<Behavior>, LoopInvariant> additionalInvariants;
-
-  private ACSLPredicate predicateRepresentation;
+  private final ImmutableMap<List<Behavior>, LoopInvariant> additionalInvariants;
 
   public ACSLLoopAnnotation(LoopInvariant invariant) {
-    this(invariant, new HashMap<>());
+    this(invariant, ImmutableMap.of());
   }
 
   public ACSLLoopAnnotation(Map<List<Behavior>, LoopInvariant> pAdditionalInvariants) {
@@ -22,12 +22,11 @@ public class ACSLLoopAnnotation implements ACSLAnnotation {
   public ACSLLoopAnnotation(
       LoopInvariant invariant, Map<List<Behavior>, LoopInvariant> pAdditionalInvariants) {
     lInvariant = invariant;
-    additionalInvariants = pAdditionalInvariants;
-    makePredicateRepresentation();
+    additionalInvariants = ImmutableMap.copyOf(pAdditionalInvariants);
   }
 
-  private void makePredicateRepresentation() {
-    predicateRepresentation = lInvariant.getPredicate();
+  private ACSLPredicate makePredicateRepresentation() {
+    ACSLPredicate predicateRepresentation = lInvariant.getPredicate();
     for (List<Behavior> behaviors : additionalInvariants.keySet()) {
       ACSLPredicate enclosingConjunction = ACSLPredicate.getTrue();
       ACSLPredicate enclosingDisjunction = ACSLPredicate.getFalse();
@@ -49,15 +48,26 @@ public class ACSLLoopAnnotation implements ACSLAnnotation {
           new ACSLLogicalPredicate(
               predicateRepresentation, behaviorRepresentation, BinaryOperator.AND);
     }
+    return predicateRepresentation.simplify();
   }
 
   @Override
   public ACSLPredicate getPredicateRepresentation() {
-    return predicateRepresentation;
+    return makePredicateRepresentation();
   }
 
   @Override
   public String toString() {
-    return predicateRepresentation.toString();
+    StringBuilder builder = new StringBuilder();
+    builder.append(lInvariant.toString());
+    if (!additionalInvariants.isEmpty()) {
+      for (Entry<List<Behavior>, LoopInvariant> entry : additionalInvariants.entrySet()) {
+        builder.append('\n').append("for ");
+        Joiner.on(", ").appendTo(builder, entry.getKey().stream().map(x -> x.getName()).iterator());
+        builder.append(':');
+        builder.append(entry.getValue().toString());
+      }
+    }
+    return builder.toString();
   }
 }

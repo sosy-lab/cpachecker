@@ -7,22 +7,18 @@ public class Behavior {
   private final RequiresClause requiresClause;
   private final AssumesClause assumesClause;
 
-  // this should be a valid C expression
-  private ACSLPredicate predicateRepresentation;
-
   public Behavior(String pName, EnsuresClause ens, RequiresClause req, AssumesClause ass) {
     name = pName;
     ensuresClause = ens;
     requiresClause = req;
     assumesClause = ass;
-    makePredicateRepresentation();
   }
 
   public String getName() {
     return name;
   }
 
-  private void makePredicateRepresentation() {
+  private ACSLPredicate makePredicateRepresentation() {
     ACSLPredicate inner;
     ACSLPredicate left = ensuresClause.getPredicate();
     if (left != ACSLPredicate.getTrue()) {
@@ -38,15 +34,15 @@ public class Behavior {
     }
     ACSLPredicate assumesPredicate = assumesClause.getPredicate();
     ACSLPredicate negatedAssumesPredicate = assumesPredicate.negate();
-    predicateRepresentation =
-        new ACSLLogicalPredicate(
+    return new ACSLLogicalPredicate(
             new ACSLLogicalPredicate(assumesPredicate, inner, BinaryOperator.AND),
             negatedAssumesPredicate,
-            BinaryOperator.OR);
+            BinaryOperator.OR)
+        .simplify();
   }
 
   public ACSLPredicate getPredicateRepresentation() {
-    return predicateRepresentation;
+    return makePredicateRepresentation();
   }
 
   public AssumesClause getAssumesClause() {
@@ -71,5 +67,19 @@ public class Behavior {
         new ACSLLogicalPredicate(assumesPredicate, ensuresPredicate, BinaryOperator.AND),
         negatedAssumesPredicate,
         BinaryOperator.OR);
+  }
+
+  @Override
+  public String toString() {
+    return new StringBuilder()
+        .append("behavior ")
+        .append(name)
+        .append(":\n")
+        .append(assumesClause.toString())
+        .append('\n')
+        .append(requiresClause.toString())
+        .append('\n')
+        .append(ensuresClause.toString())
+        .toString();
   }
 }

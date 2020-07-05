@@ -1,17 +1,16 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 
 public class StatementContract implements ACSLAnnotation {
 
   private final RequiresClause requiresClause;
   private final EnsuresClause ensuresClause;
-  private final List<Behavior> enclosingBehaviors;
-  private final List<Behavior> ownBehaviors;
-  private final List<CompletenessClause> completenessClauses;
-
-  // this should be a valid C expression
-  private ACSLPredicate predicateRepresentation;
+  private final ImmutableList<Behavior> enclosingBehaviors;
+  private final ImmutableList<Behavior> ownBehaviors;
+  private final ImmutableList<CompletenessClause> completenessClauses;
 
   public StatementContract(
       RequiresClause req,
@@ -21,11 +20,9 @@ public class StatementContract implements ACSLAnnotation {
       List<CompletenessClause> pCompletenessClauses) {
     requiresClause = req;
     ensuresClause = ens;
-    enclosingBehaviors = enclosing;
-    ownBehaviors = own;
-    completenessClauses = pCompletenessClauses;
-    makeRepresentation();
-    predicateRepresentation = predicateRepresentation.simplify();
+    enclosingBehaviors = ImmutableList.copyOf(enclosing);
+    ownBehaviors = ImmutableList.copyOf(own);
+    completenessClauses = ImmutableList.copyOf(pCompletenessClauses);
   }
 
   public static StatementContract fromFunctionContract(
@@ -38,30 +35,29 @@ public class StatementContract implements ACSLAnnotation {
         fcontract.getCompletenessClauses());
   }
 
-  @Override
-  public ACSLPredicate getPredicateRepresentation() {
-    return predicateRepresentation;
-  }
+  private ACSLPredicate makeRepresentation() {
+    ACSLPredicate predicateRepresentation;
 
-  private void makeRepresentation() {
-    ACSLPredicate left = ensuresClause.getPredicate();
-    if (left != ACSLPredicate.getTrue()) {
-      ACSLPredicate right = requiresClause.getPredicate();
-      if (right != ACSLPredicate.getTrue()) {
-        right = right.negate();
-        predicateRepresentation = new ACSLLogicalPredicate(left, right, BinaryOperator.OR);
+    ACSLPredicate right = ensuresClause.getPredicate();
+    if (right != ACSLPredicate.getTrue()) {
+      ACSLPredicate left = requiresClause.getPredicate();
+      if (left != ACSLPredicate.getTrue()) {
+        left = left.negate();
+        predicateRepresentation = new ACSLLogicalPredicate(right, left, BinaryOperator.OR);
       } else {
-        predicateRepresentation = left;
+        predicateRepresentation = right;
       }
     } else {
       predicateRepresentation = ACSLPredicate.getTrue();
     }
+
     for (Behavior behavior : ownBehaviors) {
       ACSLPredicate behaviorRepresentation = behavior.getPredicateRepresentation();
       predicateRepresentation =
           new ACSLLogicalPredicate(
               predicateRepresentation, behaviorRepresentation, BinaryOperator.AND);
     }
+
     ACSLPredicate enclosingDisjunction = ACSLPredicate.getFalse();
     ACSLPredicate enclosingConjunction = ACSLPredicate.getTrue();
     for (Behavior behavior : enclosingBehaviors) {
@@ -74,6 +70,7 @@ public class StatementContract implements ACSLAnnotation {
         new ACSLLogicalPredicate(enclosingDisjunction, predicateRepresentation, BinaryOperator.AND);
     predicateRepresentation =
         new ACSLLogicalPredicate(predicateRepresentation, enclosingConjunction, BinaryOperator.OR);
+
     ACSLPredicate completenessRepresentation = ACSLPredicate.getTrue();
     for (CompletenessClause completenessClause : completenessClauses) {
       completenessRepresentation =
@@ -85,10 +82,30 @@ public class StatementContract implements ACSLAnnotation {
     predicateRepresentation =
         new ACSLLogicalPredicate(
             predicateRepresentation, completenessRepresentation, BinaryOperator.AND);
+
+    return predicateRepresentation.simplify();
+  }
+
+  @Override
+  public ACSLPredicate getPredicateRepresentation() {
+    return makeRepresentation();
   }
 
   @Override
   public String toString() {
-    return predicateRepresentation.toString();
+    StringBuilder builder = new StringBuilder();
+    if (!enclosingBehaviors.isEmpty()) {
+      builder.append("for ");
+      Joiner.on(", ").appendTo(builder, enclosingBehaviors.stream().map(x -> x.getName()).iterator());
+      builder.append(":\n");
+    }
+    builder.append(requiresClause.toString()).append('\n').append(ensuresClause.toString());
+    for (Behavior b : ownBehaviors) {
+      builder.append('\n').append(b.toString());
+    }
+    for (CompletenessClause c : completenessClauses) {
+      builder.append('\n').append(c.toString());
+    }
+    return builder.toString();
   }
 }

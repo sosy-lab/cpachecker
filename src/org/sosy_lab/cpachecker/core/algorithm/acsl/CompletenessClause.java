@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
+import com.google.common.base.Joiner;
 import java.util.List;
 
 public class CompletenessClause {
@@ -7,18 +8,15 @@ public class CompletenessClause {
   private final List<Behavior> behaviors;
   private final RelationKind kind;
 
-  // this should be a valid C expression
-  private ACSLPredicate predicateRepresentation;
-
   public CompletenessClause(List<Behavior> pBehaviors, RelationKind pKind) {
     behaviors = pBehaviors;
     kind = pKind;
-    makePredicateRepresentation();
   }
 
-  private void makePredicateRepresentation() {
+  private ACSLPredicate makePredicateRepresentation() {
     // TODO: Representation for complete clauses could get simplified to true, so currently only
-    // usable for indication that something is wrong!?
+    //  usable for indication that something is wrong!?
+    ACSLPredicate predicateRepresentation;
     if (kind.equals(RelationKind.COMPLETE)) {
       predicateRepresentation = ACSLPredicate.getFalse();
       for (Behavior behavior : behaviors) {
@@ -48,15 +46,37 @@ public class CompletenessClause {
     } else {
       throw new AssertionError("Unknown kind: " + kind);
     }
-    predicateRepresentation = predicateRepresentation.simplify();
+    return predicateRepresentation.simplify();
   }
 
   public ACSLPredicate getPredicateRepresentation() {
-    return predicateRepresentation;
+    return makePredicateRepresentation();
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+    if (!behaviors.isEmpty()) {
+      builder.append(' ');
+      Joiner.on(", ").appendTo(builder, behaviors.stream().map(x -> x.getName()).iterator());
+    }
+    builder.append(';');
+    return kind.toString() + builder.toString();
   }
 
   public enum RelationKind {
-    COMPLETE,
-    DISJOINT
+    COMPLETE ("complete"),
+    DISJOINT ("disjoint");
+
+    private final String kindName;
+
+    RelationKind(String pKindName) {
+      kindName = pKindName;
+    }
+
+    @Override
+    public String toString() {
+      return kindName + " behaviors";
+    }
   }
 }

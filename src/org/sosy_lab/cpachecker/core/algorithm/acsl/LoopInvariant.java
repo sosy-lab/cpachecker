@@ -1,6 +1,5 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
-// TODO: Just a wrapper for predicate, could be removed
 public class LoopInvariant {
 
   private ACSLPredicate predicate;
@@ -20,6 +19,6 @@ public class LoopInvariant {
 
   @Override
   public String toString() {
-    return "loop invariant " + predicate.toString();
+    return "loop invariant " + predicate.toString() + ';';
   }
 }
