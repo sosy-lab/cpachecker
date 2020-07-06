@@ -55,6 +55,14 @@ public class FormulaEncodingOptions {
                         "i.e. they can return either a valid pointer or zero.")
   private Set<String> memoryAllocationFunctionsWithZeroing = ImmutableSet.of("kzalloc", "calloc");
 
+  @Option(
+      secure = true,
+      description =
+          "Allow the given extern functions and interpret them as pure functions"
+              + " although the predicate analysis does not support their semantics"
+              + " and this can produce wrong results.")
+  private Set<String> allowedUnsupportedFunctions = ImmutableSet.of();
+
   @Option(secure=true, description = "Ignore variables that are not relevant for reachability properties.")
   private boolean ignoreIrrelevantVariables = true;
 
@@ -122,6 +130,10 @@ public class FormulaEncodingOptions {
 
   public boolean isMemoryAllocationFunctionWithZeroing(final String name) {
     return memoryAllocationFunctionsWithZeroing.contains(name);
+  }
+
+  public boolean isAllowedUnsupportedFunction(final String function) {
+    return allowedUnsupportedFunctions.contains(function);
   }
 
   public boolean ignoreIrrelevantVariables() {
