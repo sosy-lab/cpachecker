@@ -10,8 +10,6 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants;
 
 
 import com.google.common.collect.FluentIterable;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -29,19 +27,19 @@ public class TimedAutomatonCandidateInvariant implements CandidateInvariant {
 
   private static TimedAutomatonCandidateInvariant instance;
 
-  public static TimedAutomatonCandidateInvariant getInstance(Configuration pConfig, CFA pCFA) {
+  public static TimedAutomatonCandidateInvariant getInstance(/*Configuration pConfig,*/ CFA pCFA) {
     if (instance == null) {
-      instance = new TimedAutomatonCandidateInvariant(pConfig, pCFA);
+      instance = new TimedAutomatonCandidateInvariant(/*pConfig,*/ pCFA);
     }
     return instance;
   }
 
-  private TimedAutomatonCandidateInvariant(Configuration pConfig, CFA pCFA) {
-    try {
-      encodingProvider = new TAFormulaEncodingProvider(pConfig);
-    } catch (InvalidConfigurationException e) {
-      throw new IllegalArgumentException(e);
-    }
+  private TimedAutomatonCandidateInvariant(/*Configuration pConfig,*/ CFA pCFA) {
+    // try {
+    encodingProvider = new TAFormulaEncodingProvider(/*pConfig*/ );
+    // } catch (InvalidConfigurationException e) {
+    //   throw new IllegalArgumentException(e);
+    // }
     cfa = pCFA;
   }
 

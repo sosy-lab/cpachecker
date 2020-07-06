@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.model.timedautomata;
 
 import com.google.common.base.Optional;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -73,5 +74,26 @@ public class TCFAEdge extends AbstractCFAEdge {
     }
 
     return guardString + " | " + actionString + " | " + resetString;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(variablesToReset, guard, action, getPredecessor(), getSuccessor());
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == this) {
+      return true;
+    }
+    if (!(o instanceof TCFAEdge)) {
+      return false;
+    }
+    TCFAEdge tCFAEdge = (TCFAEdge) o;
+    return Objects.equals(variablesToReset, tCFAEdge.variablesToReset)
+        && Objects.equals(guard, tCFAEdge.guard)
+        && Objects.equals(action, tCFAEdge.action)
+        && getPredecessor().equals(tCFAEdge.getPredecessor())
+        && getSuccessor().equals(tCFAEdge.getSuccessor());
   }
 }

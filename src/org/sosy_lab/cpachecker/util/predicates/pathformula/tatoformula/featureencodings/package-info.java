@@ -6,5 +6,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Classes for converting timed automata to smt formulas */
-package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula;
+/**
+ * Classes that encode (semantic) features of a timed automaton (like time, location, action) to smt
+ * formulas.
+ */
+package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings;

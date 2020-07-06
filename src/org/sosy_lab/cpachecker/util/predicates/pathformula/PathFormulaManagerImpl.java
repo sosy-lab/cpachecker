@@ -79,7 +79,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.CToFo
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.FormulaEncodingWithPointerAliasingOptions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TatoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
@@ -147,7 +146,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     this(
         pFmgr,
         config,
-        pCfa.getLanguage(),
         pLogger,
         pShutdownNotifier,
         pCfa.getMachineModel(),
@@ -160,27 +158,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       MachineModel pMachineModel,
       Optional<VariableClassification> pVariableClassification, AnalysisDirection pDirection)
           throws InvalidConfigurationException {
-    this(
-        pFmgr,
-        config,
-        Language.C,
-        pLogger,
-        pShutdownNotifier,
-        pMachineModel,
-        pVariableClassification,
-        pDirection);
-  }
-
-  public PathFormulaManagerImpl(
-      FormulaManagerView pFmgr,
-      Configuration config,
-      Language language,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      MachineModel pMachineModel,
-      Optional<VariableClassification> pVariableClassification,
-      AnalysisDirection pDirection)
-      throws InvalidConfigurationException {
     config.inject(this, PathFormulaManagerImpl.class);
 
     fmgr = pFmgr;
@@ -217,18 +194,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     } else {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel);
-      if (language == Language.CTA) {
-        converter =
-            new TatoFormulaConverter(
-                options,
-                fmgr,
-                pMachineModel,
-                pVariableClassification,
-                logger,
-                shutdownNotifier,
-                typeHandler,
-                pDirection);
-      } else {
       converter =
           new CtoFormulaConverter(
               options,
@@ -239,7 +204,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
               shutdownNotifier,
               typeHandler,
               pDirection);
-      }
 
       wpConverter =
           new CtoWpConverter(

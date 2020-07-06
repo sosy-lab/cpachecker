@@ -37,7 +37,8 @@ public class TAUnrollingTransferRelation implements TransferRelation {
     }
 
     var nextStepCount = taState.getStepCount() + 1;
-    var successorFormulas = encoding.buildSuccessorFormulas(taState.getFormula(), nextStepCount);
+    var successorFormulas =
+        encoding.buildSuccessorFormulas(taState.getFormula(), nextStepCount - 1);
     var didReachBound = maxStepCount >= 0 && nextStepCount >= maxStepCount;
     return successorFormulas.stream()
         .map(formula -> new TAUnrollingState(formula, nextStepCount, didReachBound))

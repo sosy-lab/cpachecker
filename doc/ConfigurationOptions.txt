@@ -2786,10 +2786,6 @@ cpa.threading.useClonedFunctions = true
 # only reads and writes its own variables.
 cpa.threading.useLocalAccessLocks = true
 
-# Amount by which to increase the maximum unrolling step bound.
-cpa.timedautomata.encoding = ALWAYS_TRUE
-  enum:     [SHALLOW_SYNC_PATH, ALWAYS_TRUE, TRANSITION_RELATION]
-
 # Initial maximum unrolling steps that will be performed. A value less than
 # zero means infinity
 cpa.timedautomata.initialMaximumStepCount = 50

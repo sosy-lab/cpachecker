@@ -86,7 +86,8 @@ public class TAUnrollingCPA
     solver = Solver.create(config, logger, pShutdownNotifier);
     var formulaManager = solver.getFormulaManager();
 
-    encoding = new TAFormulaEncodingProvider(config).createConfiguredEncoding(pCfa, formulaManager);
+    encoding =
+        new TAFormulaEncodingProvider(/*config*/ ).createConfiguredEncoding(pCfa, formulaManager);
     transferRelation = new TAUnrollingTransferRelation(encoding, initialMaximumStepCount);
   }
 
