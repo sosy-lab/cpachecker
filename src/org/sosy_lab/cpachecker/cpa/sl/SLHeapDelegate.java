@@ -21,6 +21,7 @@ package org.sosy_lab.cpachecker.cpa.sl;
 
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
@@ -116,6 +117,8 @@ public interface SLHeapDelegate {
   public SLStateError
       handleDereferenceAssignment(CExpression pLHS, CExpression pOffset, CRightHandSide pRHS)
           throws Exception;
+
+  public void handleAssignment(CIdExpression pLHS, CRightHandSide pRHS) throws Exception;
 
   public void handleFunctionReturn(String pCallee);
 

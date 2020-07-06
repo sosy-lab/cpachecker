@@ -665,4 +665,13 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     String name = UnaryOperator.AMPER.getOperator() + pName;
     return getPathFormula().getSsa().containsVariable(name);
   }
+
+  @Override
+  public void handleAssignment(CIdExpression pLHS, CRightHandSide pRHS)
+      throws Exception {
+    CExpression e = createSymbolicLocation(pLHS);
+    Formula loc = getFormulaForExpression(e, true);
+    Formula val = getFormulaForExpression(pRHS, true);
+    updateMemory(state.getStack(), loc, val);
+  }
 }

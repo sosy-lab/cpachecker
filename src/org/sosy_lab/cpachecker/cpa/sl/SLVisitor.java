@@ -332,6 +332,10 @@ public class SLVisitor implements CAstNodeVisitor<SLStateError, Exception> {
     if(error == null) {
       error = curLHS.accept(this);
     }
+    if (curLHS instanceof CIdExpression) {
+      heapDelegate.handleAssignment((CIdExpression) curLHS, curRHS);
+    }
+
     curLHS = null;
     curRHS = null;
     return error;
