@@ -73,6 +73,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(secure = true, description = "toggle collecting formulas by traversing ARG")
   private boolean collectFormulasByTraversingARG = false;
 
+  @Option(secure = true, description = "toggle checking existence of covered states in ARG")
+  private boolean checkExistenceOfCoveredStates = false;
+
   private final ConfigurableProgramAnalysis cpa;
 
   private final Algorithm algorithm;
@@ -157,6 +160,17 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       BMCHelper.unroll(logger, pReachedSet, algorithm, cpa);
       stats.bmcPreparation.stop();
       shutdownNotifier.shutdownIfNecessary();
+
+      if (checkExistenceOfCoveredStates
+          && !from(pReachedSet).transformAndConcat(e -> ((ARGState) e).getCoveredByThis())
+              .isEmpty()) {
+        throw new CPAException("Covered states exist in ARG, analysis result could be wrong.");
+      }
+
+      if (AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
+        logger.log(Level.INFO, "No target states in ARG");
+        return AlgorithmStatus.SOUND_AND_PRECISE;
+      }
 
       logger.log(Level.FINE, "Collecting prefix, loop, and suffix formulas");
       PartitionedFormulas formulas = collectFormulas(pReachedSet, maxLoopIterations);
