@@ -6,7 +6,7 @@ import java.util.ArrayDeque;
 import java.util.Queue;
 
 @javax.annotation.processing.Generated("JFlex")
-@SuppressWarnings(value = {"all", "cast"})
+@SuppressWarnings("all")
 %%
 
 %class ACSLScanner
@@ -120,6 +120,7 @@ Identifier  = [_a-zA-Z][_a-zA-Z0-9]*
     ":"                 {addTokenToQueue(symbol(sym.PRED_START)); return symbol(sym.COLON);}
     ","                 {return symbol(sym.COMMA);}
     ";"                 {return symbol(sym.SEMI);}
+    "\\old"             {return symbol(sym.OLD);}
     {DecInt}            {buf.setLength(0);
                         return symbol(sym.LITERAL, Integer.valueOf(buf.append(yytext()).toString()));}
     {Identifier}        {buf.setLength(0);

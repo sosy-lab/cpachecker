@@ -161,6 +161,7 @@ terminal PRED_START;
 terminal FOR;
 terminal COMMA;
 terminal COMPLETE_BEHAVIORS, DISJOINT_BEHAVIORS;
+terminal OLD;
 
 non terminal List<ACSLAnnotation> annotations;
 non terminal ACSLAnnotation annotation;
@@ -277,13 +278,14 @@ ass_clauses ::=
 req_clause ::= REQ predicate:p SEMI {: RESULT = new RequiresClause(p); :};
 ens_clause ::= ENS predicate:p SEMI {: RESULT = new EnsuresClause(p); :};
 ass_clause ::= ASS predicate:p SEMI {: RESULT = new AssumesClause(p); :};
-predicate ::= PRED_START TRUE {: RESULT = ACSLPredicate.getTrue(); :}
-    | PRED_START FALSE {: RESULT = ACSLPredicate.getFalse(); :}
-	| predicate:p1 log_op:op predicate:p2 {: RESULT = new ACSLLogicalPredicate(p1, p2, op); :}
-	| PRED_START term:t1 rel_op:op term:t2 {: RESULT = new ACSLComparisonPredicate(t1, t2, op); :}
-	| PRED_START NEG predicate:p {: RESULT = p.negate(); :} %prec NEG
-	| PRED_START LPAREN predicate:p RPAREN {: RESULT = p; :}
-	| predicate:p1 QUESTION predicate:p2 COLON predicate:p3     {: RESULT = new TernaryCondition(p1, p2, p3); :};
+predicate ::= PRED_START TRUE                                       {: RESULT = ACSLPredicate.getTrue(); :}
+        | PRED_START FALSE                                          {: RESULT = ACSLPredicate.getFalse(); :}
+	| predicate:p1 log_op:op predicate:p2                       {: RESULT = new ACSLLogicalPredicate(p1, p2, op); :}
+	| PRED_START term:t1 rel_op:op term:t2                      {: RESULT = new ACSLComparisonPredicate(t1, t2, op); :}
+	| PRED_START NEG predicate:p                                {: RESULT = p.negate(); :} %prec NEG
+	| PRED_START LPAREN predicate:p RPAREN                      {: RESULT = p; :}
+	| predicate:p1 QUESTION predicate:p2 COLON predicate:p3     {: RESULT = new TernaryCondition(p1, p2, p3); :}
+	| PRED_START OLD LPAREN predicate:p RPAREN                  {: RESULT = p.useOldValues(); :};
 term ::= PRED_START term:t                              {: RESULT = t; :}
         | LITERAL:l                                     {: RESULT = new IntegerLiteral(l); :}
         | STRING_LITERAL:l                              {: RESULT = new StringLiteral(l); :}
@@ -296,7 +298,8 @@ term ::= PRED_START term:t                              {: RESULT = t; :}
         | LPAREN PRED_START IDENTIFIER:i RPAREN term:t  {: RESULT = new Cast(new Type(i), t); :}
         | term:t1 arith_op:op term:t2                   {: RESULT = new ACSLBinaryTerm(t1, t2, op); :}
         | term:t1 bit_op:op term:t2                     {: RESULT = new ACSLBinaryTerm(t1, t2, op); :}
-        | LPAREN term:t RPAREN                          {: RESULT = t; :};
+        | LPAREN term:t RPAREN                          {: RESULT = t; :}
+        | OLD LPAREN term:t RPAREN                      {: RESULT = t.useOldValues(); :};
 log_op ::= AND  {: RESULT = BinaryOperator.AND; :}
         | OR    {: RESULT = BinaryOperator.OR; :}
         | IMP   {: RESULT = BinaryOperator.IMP; :}
