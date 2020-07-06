@@ -361,7 +361,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @throws InterruptedException On shutdown request.
    *
    */
-  private PathFormula getLoopHeadFormula(ReachedSet pReachedSet, int numEncounterLoopHead)
+  private PathFormula getLoopHeadFormula(final ReachedSet pReachedSet, int numEncounterLoopHead)
       throws InterruptedException {
     List<AbstractState> loopHeads =
         getLoopHeadEncounterState(getLoopStart(pReachedSet), numEncounterLoopHead).toList();
@@ -378,7 +378,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return formulaToLoopHeads;
   }
 
-  private static boolean isLoopStart(AbstractState pState) {
+  private static boolean isLoopStart(final AbstractState pState) {
     return AbstractStates.extractStateByType(pState, LocationState.class)
         .getLocationNode()
         .isLoopStart();
@@ -388,7 +388,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return from(pReachedSet).filter(IMCAlgorithm::isLoopStart);
   }
 
-  private static boolean isLoopHeadEncounterTime(AbstractState pState, int numEncounterLoopHead) {
+  private static boolean
+      isLoopHeadEncounterTime(final AbstractState pState, int numEncounterLoopHead) {
     return AbstractStates.extractStateByType(pState, LoopBoundState.class).getDeepestIteration()
         - 1 == numEncounterLoopHead;
   }
@@ -411,7 +412,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    *         times.
    *
    */
-  private BooleanFormula getErrorFormula(ReachedSet pReachedSet, int numEncounterLoopHead) {
+  private BooleanFormula getErrorFormula(final ReachedSet pReachedSet, int numEncounterLoopHead) {
     return getLoopHeadEncounterState(
         AbstractStates.getTargetStates(pReachedSet),
         numEncounterLoopHead).transform(es -> getPredicateAbstractionBlockFormula(es).getFormula())
@@ -435,8 +436,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    */
   private <T> BooleanFormula getInterpolantFrom(
       InterpolatingProverEnvironment<T> itpProver,
-      List<T> pFormulaA,
-      List<T> pFormulaB)
+      final List<T> pFormulaA,
+      final List<T> pFormulaB)
       throws SolverException, InterruptedException {
     if (deriveInterpolantFromSuffix) {
       logger.log(Level.FINE, "Deriving the interpolant from suffix (formula B) and negate it");
@@ -460,7 +461,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    */
   private <T> boolean reachFixedPointByInterpolation(
       InterpolatingProverEnvironment<T> itpProver,
-      PartitionedFormulas formulas)
+      final PartitionedFormulas formulas)
       throws InterruptedException, SolverException {
     BooleanFormula prefixBooleanFormula = formulas.prefixFormula.getFormula();
     SSAMap prefixSsaMap = formulas.prefixFormula.getSsa();
