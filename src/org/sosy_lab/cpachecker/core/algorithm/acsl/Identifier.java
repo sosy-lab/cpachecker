@@ -38,11 +38,15 @@ public class Identifier implements ACSLTerm {
 
   @Override
   public int hashCode() {
-    return 29 * name.hashCode() * name.hashCode() + 29;
+    return (29 * name.hashCode() * name.hashCode() + 29) * Boolean.hashCode(useOldValue);
   }
 
   public String getName() {
     return name;
+  }
+
+  public boolean shouldUseOldValue() {
+    return useOldValue;
   }
 
   @Override
