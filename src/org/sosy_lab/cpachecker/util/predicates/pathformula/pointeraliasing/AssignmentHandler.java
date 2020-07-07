@@ -73,7 +73,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expre
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Location.UnaliasedLocation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Expression.Value;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.ArrayFormula;
@@ -90,7 +89,6 @@ class AssignmentHandler {
 
   private final FormulaEncodingWithPointerAliasingOptions options;
   private final FormulaManagerView fmgr;
-  private final BitvectorFormulaManagerView efmgr;
   private final BooleanFormulaManagerView bfmgr;
 
   private final CToFormulaConverterWithPointerAliasing conv;
@@ -122,7 +120,6 @@ class AssignmentHandler {
     typeHandler = pConv.typeHandler;
     options = conv.options;
     fmgr = conv.fmgr;
-    efmgr = conv.efmgr;
     bfmgr = conv.bfmgr;
 
     edge = pEdge;
@@ -755,19 +752,19 @@ class AssignmentHandler {
     } else {
       final Optional<Formula> value = getValueFormula(rvalueType, rvalue);
       if (value.isPresent()) {
-        if (value.get() instanceof BitvectorFormula
-            || value.get() instanceof FloatingPointFormula) {
-          rhs = conv.makeCast(rvalueType, lvalueType, value.orElseThrow(), constraints, edge);
-        } else {
-          rhs = value.orElseThrow();
+        rhs =
+            conv.makeFormulaTypeCast(
+                targetType,
+                pRvalueType,
+                value.orElseThrow(),
+                ssa,
+                constraints);
+        if (rhs instanceof BitvectorFormula || rhs instanceof FloatingPointFormula) {
+          rhs = conv.makeCast(rvalueType, lvalueType, rhs, constraints, edge);
         }
       } else {
         rhs = null;
       }
-      rhs =
-          value.isPresent()
-              ? conv.makeFormulaTypeCast(targetType, lvalueType, rhs, ssa, constraints)
-              : null;
     }
 
     if (!lvalue.isAliased()) { // Unaliased LHS
