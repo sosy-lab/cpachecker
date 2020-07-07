@@ -112,10 +112,13 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
       secondAlg =
           createAlgorithm(secondStepConfig, cfa.getMainFunction(), shutdownManager, reached);
     } catch (IOException pE) {
-
+      logger.log(Level.WARNING, "EXCEPTION");
     } catch (InvalidConfigurationException pE) {
+      logger.log(Level.WARNING, "EXCEPTION");
     } catch (InterruptedException pE) {
+      logger.log(Level.WARNING, "EXCEPTION");
     } catch (CPAException pE) {
+      logger.log(Level.WARNING, "EXCEPTION");
     }
 
 
@@ -177,7 +180,7 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
     // Constructor for the first 2 Techniques
     ControlFLowDistanceMetric metric =
         new ControlFLowDistanceMetric(new DistanceCalculationHelper());
-    List<CFAEdge> closestSuccessfulExecution = null;
+    List<CFAEdge> closestSuccessfulExecution;
     try {
       // Compare all paths with the CE
       // Distance Metric No. 1
@@ -187,6 +190,7 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
       // Distance Metric No. 2
       closestSuccessfulExecution = metric.startPathGenerator(safePaths, targetPath);
     } catch (SolverException pE) {
+      logger.log(Level.WARNING, "EXCEPTION IN DISTANCE METRIC");
     }
 
 
@@ -197,6 +201,7 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
       cpa = CPAs.retrieveCPAOrFail(secondAlg.getSecond(), PredicateCPA.class,
           ConfigurationException.class);
     } catch (InvalidConfigurationException pE) {
+      logger.log(Level.WARNING, "EXCEPTION");
     }
     solver = cpa.getSolver();
     BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();

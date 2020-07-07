@@ -63,9 +63,11 @@ public class ControlFLowDistanceMetric {
 
   /**
    * Starts the path generator technique with the distance metric - ALIGNMENTS -
-   *
-   * @param safePaths is a List with all the Safe Paths
-   * @param b         is the path of the counterexample
+   * @param safePaths is a List with all the Safe paths
+   * @param counterexample is the path of the counterexample
+   * @return the new generated Path
+   * @throws SolverException for Error
+   * @throws InterruptedException for Error
    */
   List<CFAEdge> startPathGenerator(List<ARGPath> safePaths, ARGPath counterexample)
       throws SolverException, InterruptedException {
@@ -392,7 +394,9 @@ public class ControlFLowDistanceMetric {
   }
 
   /**
-   * Checks a List<CFAEdge> for a Target state
+   * Checks if the list contains a Target State
+   * @param list a list with CFAEdges that has to be checked
+   * @return true if it has no target states, otherwise false
    */
   private boolean isTarget(List<CFAEdge> list) {
     for (int i = 0; i < list.size(); i++) {
