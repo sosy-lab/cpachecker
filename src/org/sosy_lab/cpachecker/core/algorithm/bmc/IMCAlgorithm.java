@@ -73,6 +73,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(secure = true, description = "toggle collecting formulas by traversing ARG")
   private boolean collectFormulasByTraversingARG = false;
 
+  @Option(secure = true, description = "toggle checking existence of covered states in ARG")
+  private boolean checkExistenceOfCoveredStates = false;
+
   private final ConfigurableProgramAnalysis cpa;
 
   private final Algorithm algorithm;
@@ -157,6 +160,17 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       BMCHelper.unroll(logger, pReachedSet, algorithm, cpa);
       stats.bmcPreparation.stop();
       shutdownNotifier.shutdownIfNecessary();
+
+      if (checkExistenceOfCoveredStates
+          && !from(pReachedSet).transformAndConcat(e -> ((ARGState) e).getCoveredByThis())
+              .isEmpty()) {
+        throw new CPAException("Covered states exist in ARG, analysis result could be wrong.");
+      }
+
+      if (AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
+        logger.log(Level.INFO, "No target states in ARG");
+        return AlgorithmStatus.SOUND_AND_PRECISE;
+      }
 
       logger.log(Level.FINE, "Collecting prefix, loop, and suffix formulas");
       PartitionedFormulas formulas = collectFormulas(pReachedSet, maxLoopIterations);
@@ -347,7 +361,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * @throws InterruptedException On shutdown request.
    *
    */
-  private PathFormula getLoopHeadFormula(ReachedSet pReachedSet, int numEncounterLoopHead)
+  private PathFormula getLoopHeadFormula(final ReachedSet pReachedSet, int numEncounterLoopHead)
       throws InterruptedException {
     List<AbstractState> loopHeads =
         getLoopHeadEncounterState(getLoopStart(pReachedSet), numEncounterLoopHead).toList();
@@ -364,7 +378,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return formulaToLoopHeads;
   }
 
-  private static boolean isLoopStart(AbstractState pState) {
+  private static boolean isLoopStart(final AbstractState pState) {
     return AbstractStates.extractStateByType(pState, LocationState.class)
         .getLocationNode()
         .isLoopStart();
@@ -374,7 +388,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return from(pReachedSet).filter(IMCAlgorithm::isLoopStart);
   }
 
-  private static boolean isLoopHeadEncounterTime(AbstractState pState, int numEncounterLoopHead) {
+  private static boolean
+      isLoopHeadEncounterTime(final AbstractState pState, int numEncounterLoopHead) {
     return AbstractStates.extractStateByType(pState, LoopBoundState.class).getDeepestIteration()
         - 1 == numEncounterLoopHead;
   }
@@ -397,7 +412,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    *         times.
    *
    */
-  private BooleanFormula getErrorFormula(ReachedSet pReachedSet, int numEncounterLoopHead) {
+  private BooleanFormula getErrorFormula(final ReachedSet pReachedSet, int numEncounterLoopHead) {
     return getLoopHeadEncounterState(
         AbstractStates.getTargetStates(pReachedSet),
         numEncounterLoopHead).transform(es -> getPredicateAbstractionBlockFormula(es).getFormula())
@@ -421,8 +436,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    */
   private <T> BooleanFormula getInterpolantFrom(
       InterpolatingProverEnvironment<T> itpProver,
-      List<T> pFormulaA,
-      List<T> pFormulaB)
+      final List<T> pFormulaA,
+      final List<T> pFormulaB)
       throws SolverException, InterruptedException {
     if (deriveInterpolantFromSuffix) {
       logger.log(Level.FINE, "Deriving the interpolant from suffix (formula B) and negate it");
@@ -446,7 +461,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    */
   private <T> boolean reachFixedPointByInterpolation(
       InterpolatingProverEnvironment<T> itpProver,
-      PartitionedFormulas formulas)
+      final PartitionedFormulas formulas)
       throws InterruptedException, SolverException {
     BooleanFormula prefixBooleanFormula = formulas.prefixFormula.getFormula();
     SSAMap prefixSsaMap = formulas.prefixFormula.getSsa();
