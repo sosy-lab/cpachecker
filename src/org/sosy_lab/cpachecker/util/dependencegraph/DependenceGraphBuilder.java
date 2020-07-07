@@ -62,6 +62,7 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -73,6 +74,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.Specification;
@@ -315,14 +317,18 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     ForeignDefUseData foreignDefUseData = ForeignDefUseData.extract(cfa, pointerState);
 
     List<CFAEdge> globalEdges = getGlobalDeclarationEdges(cfa);
-    Map<String, CFAEdge> functionDeclarations = new HashMap<>();
+    Map<String, CFAEdge> declarationEdges = new HashMap<>();
 
     for (CFAEdge edge : globalEdges) {
       if (edge instanceof CDeclarationEdge) {
         CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
         if (declaration instanceof CFunctionDeclaration) {
           String name = ((CFunctionDeclaration) declaration).getQualifiedName();
-          functionDeclarations.put(name, edge);
+          declarationEdges.put(name, edge);
+        } else if (declaration instanceof CComplexTypeDeclaration) {
+          CComplexType globalType = ((CComplexTypeDeclaration) declaration).getType();
+          String name = globalType.getQualifiedName();
+          declarationEdges.put(name, edge);
         }
       }
     }
@@ -335,7 +341,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
             int value = 0;
           };
 
-      CFAEdge funcDeclEdge = functionDeclarations.get(entryNode.getFunctionName());
+      CFAEdge funcDeclEdge = declarationEdges.get(entryNode.getFunctionName());
       for (CFAEdge callEdge : CFAUtils.enteringEdges(entryNode)) {
         addDependence(
             getDGNode(funcDeclEdge, Optional.empty()),
@@ -377,6 +383,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
               globalEdges,
               pointerState,
               foreignDefUseData,
+              declarationEdges,
               dependenceConsumer)
           .run();
 
