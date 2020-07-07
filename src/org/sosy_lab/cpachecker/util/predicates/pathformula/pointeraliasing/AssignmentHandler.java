@@ -833,20 +833,11 @@ class AssignmentHandler {
         if(region == null) {
           region = regionMgr.makeMemoryRegion(pRValueType);
         }
-        final Formula addressCast;
-        if (options.useVariableClassification()
-            && (pRValue.asAliasedLocation().getAddress() instanceof BitvectorFormula)) {
-          addressCast =
-              efmgr.toIntegerFormula(
-                  (BitvectorFormula) pRValue.asAliasedLocation().getAddress(),
-                  false);
-        } else {
-          addressCast = pRValue.asAliasedLocation().getAddress();
-        }
+        final Formula address = pRValue.asAliasedLocation().getAddress();
         return Optional.of(
             conv.makeDereference(
                 pRValueType,
-                addressCast,
+                address,
                 ssa,
                 errorConditions,
                 region));
