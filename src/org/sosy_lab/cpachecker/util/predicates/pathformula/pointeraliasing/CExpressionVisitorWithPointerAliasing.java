@@ -389,7 +389,18 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     } else {
       final CType fieldOwnerType = typeHandler.getSimplifiedType(e.getFieldOwner());
       if (fieldOwnerType instanceof CCompositeType) {
-        final AliasedLocation base = e.getFieldOwner().accept(this).asAliasedLocation();
+        CExpressionVisitorWithPointerAliasing forceIntVisitor =
+            new CExpressionVisitorWithPointerAliasing(
+                conv,
+                edge,
+                function,
+                ssa,
+                constraints,
+                errorConditions,
+                pts,
+                regionMgr,
+                Optional.of(typeHandler.getPointerType()));
+        final AliasedLocation base = e.getFieldOwner().accept(forceIntVisitor).asAliasedLocation();
 
         final String fieldName = e.getFieldName();
         usedFields.add(CompositeField.of((CCompositeType) fieldOwnerType, fieldName));
