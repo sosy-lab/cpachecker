@@ -73,7 +73,6 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
   private final PathFormulaManager pfm;
 
   private final FormulaManagerView fm;
-  // private final IntegerFormulaManager ifm;
   private final SLFormulaManager slfm;
   private final BooleanFormulaManager bfm;
   private final BitvectorFormulaManager bvfm;
@@ -85,12 +84,8 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
 
   private final BitvectorType heapAddressFormulaType;
   private final BitvectorType heapValueFormulaType;
-  // private final FormulaType<IntegerFormula> heapValueFormulaType = FormulaType.IntegerType;
-  // private final FormulaType<IntegerFormula> heapAddressFormulaType = FormulaType.IntegerType;
-
   private final Formula NOT_INITIALIZED;
   private long wildcardCounter = 0;
-  // private final Formula UNKNOWN;
 
   public SLHeapDelegateImpl(
       LogManager pLogger,
@@ -102,7 +97,6 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     pfm = pPfm;
     machineModel = pMachineModel;
     fm = solver.getFormulaManager();
-    // ifm = fm.getIntegerFormulaManager();
     slfm = fm.getSLFormulaManager();
     bfm = fm.getBooleanFormulaManager();
     bvfm = fm.getBitvectorFormulaManager();
@@ -111,7 +105,6 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
         FormulaType.getBitvectorTypeWithSize(machineModel.getSizeofPtrInBits());
     heapValueFormulaType = FormulaType.getBitvectorTypeWithSize(machineModel.getSizeofCharInBits());
     NOT_INITIALIZED = bvfm.makeVariable(heapValueFormulaType, "__null");
-    // UNKNOWN = slfm.makeNilElement(heapValueFormulaType);
   }
 
   @Override
@@ -415,10 +408,13 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
 
   private boolean isAllocated(Formula pLoc, boolean usePredContext)
       throws Exception {
-    return isAllocated(pLoc, usePredContext, state.getStack())
-        || isAllocated(pLoc, usePredContext, state.getHeap());
+    return checkAllocation(state.getStack(), pLoc, usePredContext) != null
+        || checkAllocation(state.getHeap(), pLoc, usePredContext) != null;
+//    return isAllocated(pLoc, usePredContext, state.getStack())
+//        || isAllocated(pLoc, usePredContext, state.getHeap());
   }
 
+  @SuppressWarnings("unused")
   private boolean isAllocated(Formula pLoc, boolean usePredContext, Map<Formula, Formula> pHeap) {
     PathFormula context = usePredContext ? getPredPathFormula() : getPathFormula();
     BooleanFormula heapFormula = createHeapFormula(pHeap);
