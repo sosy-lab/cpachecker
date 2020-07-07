@@ -139,7 +139,7 @@ abstract class ReachDefAnalysis<D, N, E> {
   /**
    * A dangling edge is an edge that does not exist in the dom-tree.
    *
-   * <p><code>
+   * <pre>{@code
    * Example:
    *
    * Graph:
@@ -164,7 +164,7 @@ abstract class ReachDefAnalysis<D, N, E> {
    * [START]--->[1]--->[4]--->[END]
    *              \
    *              b--->[3]---d--->
-   * </code>
+   * }</pre>
    */
   private boolean isDanglingEdge(Dominance.DomTraversable<N> pParent, E pEdge) {
 
