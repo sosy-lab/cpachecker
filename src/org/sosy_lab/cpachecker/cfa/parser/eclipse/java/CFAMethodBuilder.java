@@ -62,6 +62,7 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanceCreation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JConstructorDeclaration;
@@ -1770,16 +1771,42 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     JDeclaration jDeclaration = astCreator.convert(pCatchClauseNode.getException());
 
-    // TODO Only first throwable of the list is taken into account. Need to create an || expression
-    JSimpleDeclaration thrown = throwables.get(0);
-    JIdExpression jIdExpressionOfThrown =
-        new JIdExpression(thrown.getFileLocation(), thrown.getType(), thrown.getName(), thrown);
+    List<JExpression> instanceOfThrowableExpressions = new ArrayList<>(throwables.size());
+    for (JSimpleDeclaration thrown : throwables) {
+      JIdExpression jIdExpressionOfThrown =
+          new JIdExpression(thrown.getFileLocation(), thrown.getType(), thrown.getName(), thrown);
 
-    final JExpression instanceOfExpression =
-        astCreator.createInstanceOfExpression(
-            jIdExpressionOfThrown, (JClassOrInterfaceType) jDeclaration.getType(), fileloc);
+      final JExpression instanceOfExpression =
+          astCreator.createInstanceOfExpression(
+              jIdExpressionOfThrown, (JClassOrInterfaceType) jDeclaration.getType(), fileloc);
 
-    createConditionEdges(instanceOfExpression, fileloc, prevNode, thenNode, elseNode);
+      instanceOfThrowableExpressions.add(instanceOfExpression);
+    }
+
+    JExpression compareExceptionToThrownType;
+    if (instanceOfThrowableExpressions.size() > 1) {
+      JBinaryExpression jBinaryExpression =
+          new JBinaryExpression(
+              fileloc,
+              jDeclaration.getType(),
+              instanceOfThrowableExpressions.get(0),
+              instanceOfThrowableExpressions.get(1),
+              BinaryOperator.CONDITIONAL_OR);
+      for (int i = 2; i < instanceOfThrowableExpressions.size(); i++) {
+        jBinaryExpression =
+            new JBinaryExpression(
+                fileloc,
+                jDeclaration.getType(),
+                jBinaryExpression,
+                instanceOfThrowableExpressions.get(i),
+                BinaryOperator.CONDITIONAL_OR);
+      }
+      compareExceptionToThrownType = jBinaryExpression;
+    } else {
+      compareExceptionToThrownType = instanceOfThrowableExpressions.get(0);
+    }
+
+    createConditionEdges(compareExceptionToThrownType, fileloc, prevNode, thenNode, elseNode);
 
     return VISIT_CHILDREN;
   }
@@ -1832,9 +1859,14 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     BlankEdge blankEdge =
         new BlankEdge(pThrowStatement.toString(), fileloc, prevNode, throwNode, "throw");
     addToCFA(blankEdge);
-    throwables.add(scope.lookupVariable(pThrowStatement.getExpression().toString()));
 
     return VISIT_CHILDREN;
+  }
+
+  @Override
+  public void endVisit(ThrowStatement pThrowStatement){
+    JSimpleDeclaration thrown = scope.lookupVariable(pThrowStatement.getExpression().toString());
+    throwables.add(thrown);
   }
 
   @Override
