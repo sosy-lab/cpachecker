@@ -53,6 +53,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 
+//TODO implement shutdown notifier handling.
 public class SLTransferRelation
     extends ForwardingTransferRelation<Collection<SLState>, SLState, Precision> {
 
