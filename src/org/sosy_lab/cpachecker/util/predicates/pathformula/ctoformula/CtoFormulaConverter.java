@@ -782,8 +782,7 @@ public class CtoFormulaConverter {
       return fmgr.getFloatingPointFormulaManager()
               .castTo(
                   (FloatingPointFormula) formula,
-                  toType,
-                  FloatingPointRoundingMode.TOWARD_ZERO);
+              toType);
     }
     if (fromType.isIntegerType()) {
       if (toType.isBooleanType()) {
@@ -792,12 +791,8 @@ public class CtoFormulaConverter {
       } else if (toType.isFloatingPointType()) {
         final CSimpleType sType = (CSimpleType) cTypeNoPointer;
         final boolean signed = machineModel.isSigned(sType);
-        if (sType.getType().isFloatingPointType()) {
-          return fmgr.getFloatingPointFormulaManager()
-              .castFrom(formula, signed, (FormulaType.FloatingPointType) getFormulaTypeFromCType(sType));
-        } else {
-          throw new AssertionError("Cannot cast into given FloatingPointType!");
-        }
+        return fmgr.getFloatingPointFormulaManager()
+            .castFrom(formula, signed, (FormulaType.FloatingPointType) toType);
       } else if (toType.isBitvectorType()) {
         int size = ((BitvectorType) toType).getSize();
         return efmgr.makeBitvector(size, (IntegerFormula) formula);
