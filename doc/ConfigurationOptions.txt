@@ -4152,6 +4152,13 @@ witness.checkProgramHash = true
 # Consider assumptions that are provided with the path automaton?
 witness.considerAssumptions = true
 
+# Fail-fast if invariants in the witness exist that would not be accounted
+# for. There are cases where unaccounted invariants are perfectly fine, e.g.
+# if those states in the witness automaton are actually unreachable in the
+# program. This is however rarely the intention of the original producer of
+# the witness, so this options can be used to debug those cases.
+witness.debug.checkForMissedInvariants = false
+
 # Validate correctness witness by specifying an invariants specification
 # automaton
 witness.invariantsSpecificationAutomaton = NO_ISA
