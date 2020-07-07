@@ -62,7 +62,6 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
-import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -104,6 +103,7 @@ import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.DependenceTy
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.NodeMap;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomFrontiers;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
+import org.sosy_lab.cpachecker.util.dependencegraph.FlowDepAnalysis.DependenceConsumer;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -350,53 +350,35 @@ public class DependenceGraphBuilder implements StatisticsProvider {
               DependenceGraphBuilder::iterateSuccessors,
               DependenceGraphBuilder::iteratePredecessors);
 
+      DependenceConsumer dependenceConsumer =
+          (defEdge, useEdge, cause) -> {
+            Optional<MemoryLocation> defEdgeCause = Optional.empty();
+            Optional<MemoryLocation> useEdgeCause = Optional.empty();
+
+            if (defEdge instanceof CFunctionCallEdge || defEdge instanceof CFunctionReturnEdge) {
+              defEdgeCause = Optional.of(cause);
+            }
+
+            if (useEdge instanceof CFunctionCallEdge || useEdge instanceof CFunctionReturnEdge) {
+              useEdgeCause = Optional.of(cause);
+            }
+
+            addDependence(
+                getDGNode(defEdge, defEdgeCause),
+                getDGNode(useEdge, useEdgeCause),
+                DependenceType.FLOW);
+            flowDepCount.value++;
+          };
+
       new FlowDepAnalysis(
-          domTree,
-          Dominance.createDomTraversable(domTree),
-          Dominance.createDomFrontiers(domTree),
-          entryNode,
-          globalEdges) {
-
-        @Override
-        protected Set<MemoryLocation> getPossiblePointees(CFAEdge pEdge, CExpression pExpression) {
-          return pointerState.getPossiblePointees(pEdge, pExpression);
-        }
-
-        @Override
-        protected Set<MemoryLocation> getForeignDefs(AFunctionDeclaration pFunction) {
-          return foreignDefUseData.getForeignDefs(pFunction);
-        }
-
-        @Override
-        protected Set<MemoryLocation> getForeignUses(AFunctionDeclaration pFunction) {
-          return foreignDefUseData.getForeignUses(pFunction);
-        }
-
-        @Override
-        protected void onDependence(CFAEdge pDefEdge, CFAEdge pUseEdge, MemoryLocation pCause) {
-
-          if (pDefEdge.equals(pUseEdge)) {
-            return;
-          }
-
-          Optional<MemoryLocation> defEdgeCause = Optional.empty();
-          Optional<MemoryLocation> useEdgeCause = Optional.empty();
-
-          if (pDefEdge instanceof CFunctionCallEdge || pDefEdge instanceof CFunctionReturnEdge) {
-            defEdgeCause = Optional.of(pCause);
-          }
-
-          if (pUseEdge instanceof CFunctionCallEdge || pUseEdge instanceof CFunctionReturnEdge) {
-            useEdgeCause = Optional.of(pCause);
-          }
-
-          addDependence(
-              getDGNode(pDefEdge, defEdgeCause),
-              getDGNode(pUseEdge, useEdgeCause),
-              DependenceType.FLOW);
-          flowDepCount.value++;
-        }
-      }.run();
+              domTree,
+              Dominance.createDomFrontiers(domTree),
+              entryNode,
+              globalEdges,
+              pointerState,
+              foreignDefUseData,
+              dependenceConsumer)
+          .run();
 
       flowDependenceNumber.setNextValue(flowDepCount.value);
     }

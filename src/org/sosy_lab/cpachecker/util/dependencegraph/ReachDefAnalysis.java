@@ -29,7 +29,6 @@ abstract class ReachDefAnalysis<V, N, E> {
   private final Graph<N, E> graph;
 
   private final Dominance.DomTree<N> domTree;
-  private final Dominance.DomTraversable<N> domTraversable;
   private final Dominance.DomFrontiers<N> domFrontiers;
 
   private final Multimap<V, E> variableDefEdges;
@@ -39,13 +38,11 @@ abstract class ReachDefAnalysis<V, N, E> {
   protected ReachDefAnalysis(
       Graph<N, E> pGraph,
       Dominance.DomTree<N> pDomTree,
-      Dominance.DomTraversable<N> pDomTraversable,
       Dominance.DomFrontiers<N> pDomFrontiers) {
 
     graph = pGraph;
 
     domTree = pDomTree;
-    domTraversable = pDomTraversable;
     domFrontiers = pDomFrontiers;
 
     variableDefEdges = ArrayListMultimap.create();
@@ -258,7 +255,7 @@ abstract class ReachDefAnalysis<V, N, E> {
 
     registerDefs();
     insertCombiners(domFrontiers);
-    traverseDomTree(domTraversable);
+    traverseDomTree(Dominance.createDomTraversable(domTree));
   }
 
   public interface Graph<N, E> {
