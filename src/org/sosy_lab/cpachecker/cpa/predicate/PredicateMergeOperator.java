@@ -69,9 +69,10 @@ public class PredicateMergeOperator implements MergeOperator {
         && !elem1.getAbstractionFormula().equals(elem2.getAbstractionFormula())) {
       if (elem1.getPreviousAbstractionState().equals(elem2.getPreviousAbstractionState())) {
         totalMergeTimer.start();
-        PathFormula newPathFormula = formulaManager.makeEmptyPathFormula(elem2.getPathFormula());
         AbstractionFormula newAbstractionFormula =
             predAbsManager.makeOr(elem1.getAbstractionFormula(), elem2.getAbstractionFormula());
+        PathFormula newPathFormula =
+            formulaManager.makeEmptyPathFormula(newAbstractionFormula.getBlockFormula());
         merged =
             mkAbstractionState(
                 newPathFormula,
