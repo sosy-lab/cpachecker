@@ -167,8 +167,11 @@ abstract class GlobalPointerState {
     public Set<MemoryLocation> getPossiblePointees(CFAEdge pEdge, CExpression pExpression) {
 
       PointerState pointerState = pointerStates.get(pEdge);
-      Set<MemoryLocation> possiblePointees =
-          ReachingDefUtils.possiblePointees(pExpression, pointerState);
+
+      Set<MemoryLocation> possiblePointees = null;
+      if (pointerState != null) {
+        possiblePointees = ReachingDefUtils.possiblePointees(pExpression, pointerState);
+      }
 
       return possiblePointees != null ? possiblePointees : ImmutableSet.of();
     }
