@@ -24,16 +24,16 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-abstract class ReachDefAnalysis<V, N, E> {
+abstract class ReachDefAnalysis<D, N, E> {
 
   private final Graph<N, E> graph;
 
   private final Dominance.DomTree<N> domTree;
   private final Dominance.DomFrontiers<N> domFrontiers;
 
-  private final Multimap<V, E> variableDefEdges;
-  private final Multimap<N, Def.Combiner<V, E>> nodeDefCombiners;
-  private final Map<V, Deque<Def<V, E>>> variableDefStacks;
+  private final Multimap<D, E> variableDefEdges;
+  private final Multimap<N, Def.Combiner<D, E>> nodeDefCombiners;
+  private final Map<D, Deque<Def<D, E>>> variableDefStacks;
 
   protected ReachDefAnalysis(
       Graph<N, E> pGraph,
@@ -51,33 +51,33 @@ abstract class ReachDefAnalysis<V, N, E> {
   }
 
   /** Returns set of defs for the specified edge. */
-  protected abstract Set<V> getEdgeDefs(E pEdge);
+  protected abstract Set<D> getEdgeDefs(E pEdge);
 
-  private Deque<Def<V, E>> getDefStack(V pVariable) {
+  private Deque<Def<D, E>> getDefStack(D pVariable) {
     return variableDefStacks.computeIfAbsent(pVariable, key -> new ArrayDeque<>());
   }
 
-  protected final Iterable<Def<V, E>> iterateDefsNewestFirst(V pVariable) {
-    Iterator<Def<V, E>> iterator = getDefStack(pVariable).iterator();
+  protected final Iterable<Def<D, E>> iterateDefsNewestFirst(D pVariable) {
+    Iterator<Def<D, E>> iterator = getDefStack(pVariable).iterator();
     return () -> Iterators.unmodifiableIterator(iterator);
   }
 
-  protected final Iterable<Def<V, E>> iterateDefsOldestFirst(V pVariable) {
-    Iterator<Def<V, E>> descIterator = getDefStack(pVariable).descendingIterator();
+  protected final Iterable<Def<D, E>> iterateDefsOldestFirst(D pVariable) {
+    Iterator<Def<D, E>> descIterator = getDefStack(pVariable).descendingIterator();
     return () -> Iterators.unmodifiableIterator(descIterator);
   }
 
-  protected Collection<Def<V, E>> getReachDefs(V pVariable) {
+  protected Collection<Def<D, E>> getReachDefs(D pVariable) {
     return Collections.singleton(getDefStack(pVariable).peek());
   }
 
-  protected final void insertCombiner(N pNode, V pVariable) {
-    nodeDefCombiners.put(pNode, new Def.Combiner<V, E>(pVariable));
+  protected final void insertCombiner(N pNode, D pVariable) {
+    nodeDefCombiners.put(pNode, new Def.Combiner<D, E>(pVariable));
   }
 
   protected void insertCombiners(Dominance.DomFrontiers<N> pDomFrontiers) {
 
-    for (V variable : variableDefEdges.keySet()) {
+    for (D variable : variableDefEdges.keySet()) {
 
       Set<N> defNodes = new HashSet<>();
 
@@ -94,33 +94,33 @@ abstract class ReachDefAnalysis<V, N, E> {
   protected void pushEdge(E pEdge) {
 
     // update def stacks
-    for (V edgeDefVar : getEdgeDefs(pEdge)) {
-      Deque<Def<V, E>> defStack = getDefStack(edgeDefVar);
+    for (D edgeDefVar : getEdgeDefs(pEdge)) {
+      Deque<Def<D, E>> defStack = getDefStack(edgeDefVar);
       defStack.push(new Def.Wrapper<>(edgeDefVar, pEdge));
     }
 
     // update successor's combiners
-    for (Def.Combiner<V, E> combiner : nodeDefCombiners.get(graph.getSuccessor(pEdge))) {
-      for (Def<V, E> def : getReachDefs(combiner.getVariable())) {
+    for (Def.Combiner<D, E> combiner : nodeDefCombiners.get(graph.getSuccessor(pEdge))) {
+      for (Def<D, E> def : getReachDefs(combiner.getVariable())) {
         combiner.add(def);
       }
     }
   }
 
   protected void popEdge(E pEdge) {
-    for (V variable : getEdgeDefs(pEdge)) {
+    for (D variable : getEdgeDefs(pEdge)) {
       getDefStack(variable).pop();
     }
   }
 
   protected void pushNode(N pNode) {
-    for (Def.Combiner<V, E> combiner : nodeDefCombiners.get(pNode)) {
+    for (Def.Combiner<D, E> combiner : nodeDefCombiners.get(pNode)) {
       getDefStack(combiner.getVariable()).push(combiner);
     }
   }
 
   protected void popNode(N pNode) {
-    for (Def.Combiner<V, E> combiner : nodeDefCombiners.get(pNode)) {
+    for (Def.Combiner<D, E> combiner : nodeDefCombiners.get(pNode)) {
       getDefStack(combiner.getVariable()).pop();
     }
   }
@@ -244,7 +244,7 @@ abstract class ReachDefAnalysis<V, N, E> {
 
     for (N node : domTree) {
       for (E edge : graph.getLeavingEdges(node)) {
-        for (V varDef : getEdgeDefs(edge)) {
+        for (D varDef : getEdgeDefs(edge)) {
           variableDefEdges.put(varDef, edge);
         }
       }
