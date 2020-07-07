@@ -125,11 +125,21 @@ final class ForeignDefUseData {
           pForeignDefs.computeIfAbsent(function, key -> new HashSet<>());
       collectForeignMemoryLocations(
           function, edge, defUseData.getPointeeDefs(), pPointerState, foreignDefs);
+      for (MemoryLocation def : defUseData.getDefs()) {
+        if (!def.isOnFunctionStack()) {
+          foreignDefs.add(def);
+        }
+      }
 
       Set<MemoryLocation> foreignUses =
           pForeignUses.computeIfAbsent(function, key -> new HashSet<>());
       collectForeignMemoryLocations(
           function, edge, defUseData.getPointeeUses(), pPointerState, foreignUses);
+      for (MemoryLocation use : defUseData.getUses()) {
+        if (!use.isOnFunctionStack()) {
+          foreignUses.add(use);
+        }
+      }
     }
   }
 
