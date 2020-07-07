@@ -177,6 +177,7 @@ public class CtoFormulaConverter {
   // special variable name used for casting boolean variables into different formula types
   private static final String INT_BOOL_TO_INT = "int_bool_to_int";
   private static final String INT_BOOL_TO_BITVECTOR = "int_bool_to_bitvector";
+  private static final String INT_BOOL_TO_FLOATINGPOINT = "int_bool_to_floatingpoint";
 
   private final Map<String, Formula> stringLitToFormula = new HashMap<>();
   private int nextStringLitIndex = 0;
@@ -805,17 +806,18 @@ public class CtoFormulaConverter {
       }
     }
     if (fromType.isBooleanType()) {
-      Formula intFormula = intBoolToInt((BooleanFormula) formula, ssa, constraints);
       if (toType.isIntegerType()) {
-        return intFormula;
+        return intBoolToInt((BooleanFormula) formula, ssa, constraints);
       } else if (toType.isBitvectorType()) {
         return intBoolToBitvector(
             toType,
             (BooleanFormula) formula,
             ssa,
             constraints);
+      } else if (toType.isFloatingPointType()) {
+        return intBoolToFloatingPoint(toType, (BooleanFormula) formula, ssa, constraints);
       } else {
-        return makeFormulaTypeCast(toType, cType, intFormula, ssa, constraints);
+        throw new AssertionError("Cannot cast given formula types!");
       }
     }
     return formula;
@@ -867,6 +869,29 @@ public class CtoFormulaConverter {
     BitvectorFormula placeh = (BitvectorFormula) newVariable;
     BitvectorFormula zero = efmgr.makeBitvector((BitvectorType) bitvType, 0);
     BooleanFormula rhs = bfmgr.not(efmgr.equal(placeh, zero));
+    BooleanFormula constraint = bfmgr.equivalence(formula, rhs);
+    constraints.addConstraint(constraint);
+
+    return placeh;
+  }
+
+  private FloatingPointFormula intBoolToFloatingPoint(
+      FormulaType<?> floatPType,
+      BooleanFormula formula,
+      SSAMapBuilder ssa,
+      Constraints constraints) {
+    assert (floatPType instanceof FloatingPointType);
+    Formula newVariable =
+        makeFreshVariable(
+            INT_BOOL_TO_FLOATINGPOINT,
+            floatPType,
+            CNumericTypes.INT.getCanonicalType(),
+            ssa);
+    assert (newVariable instanceof FloatingPointFormula);
+    FloatingPointFormula placeh = (FloatingPointFormula) newVariable;
+    FloatingPointFormula zero =
+        fmgr.getFloatingPointFormulaManager().makeNumber(0, (FloatingPointType) floatPType);
+    BooleanFormula rhs = bfmgr.not(fmgr.makeEqual(placeh, zero));
     BooleanFormula constraint = bfmgr.equivalence(formula, rhs);
     constraints.addConstraint(constraint);
 
