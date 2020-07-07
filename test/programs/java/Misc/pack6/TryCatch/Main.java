@@ -13,13 +13,14 @@ public class Main {
 
     try {
       System.out.println(intArray[3]);
+      System.out.println("No Exception thrown");
     } catch (ArrayIndexOutOfBoundsException e) {
       System.out.println("Error message: " + e);
       System.out.println("caught exception");
     } catch (RuntimeException e) {
       System.out.println("Runtime Exception: " + e);
-    } finally {
-      System.out.println("finally block");
     }
+    System.out.println("End");
+
   }
 }

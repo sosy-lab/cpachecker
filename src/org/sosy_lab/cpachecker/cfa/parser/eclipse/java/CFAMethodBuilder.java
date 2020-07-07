@@ -123,6 +123,9 @@ class CFAMethodBuilder extends ASTVisitor {
   private final Deque<CFANode> locStack = new ArrayDeque<>();
 
   // Data structures for handling loops & else conditions
+  private final Deque<CFANode> tryStack = new ArrayDeque<>();
+
+  // Data structures for handling loops & else conditions
   private final Deque<CFANode> loopStartStack = new ArrayDeque<>();
   private final Deque<CFANode> loopNextStack  = new ArrayDeque<>(); // For the node following the current if / while block
   private final Deque<CFANode> elseStack      = new ArrayDeque<>();
@@ -1746,6 +1749,11 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     BlankEdge blankEdge =
         new BlankEdge(pTryStatement.toString(), fileloc, prevNode, tryNode, "try");
     addToCFA(blankEdge);
+
+    CFANode postTryNode = new CFANode(cfa.getFunction());
+    cfaNodes.add(postTryNode);
+    tryStack.push(postTryNode);
+
     return VISIT_CHILDREN;
   }
 
@@ -1839,7 +1847,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
   }
 
   @Override
-  public void endVisit(CatchClause node) {
+  public void endVisit(CatchClause pCatchClause) {
     final CFANode prevNode = locStack.pop();
     final CFANode nextNode = locStack.peek();
 
@@ -1866,10 +1874,27 @@ private void handleTernaryExpression(ConditionalExpression condExp,
       }
 
       if (prevNode.getNumEnteringEdges() > 0) {
-        BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, prevNode, nextNode, "");
+        BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, prevNode, tryStack.peek(), "");
         addToCFA(blankEdge);
       }
     }
+
+    if (isLastCatchClause(pCatchClause)) {
+      final CFANode tryEndNode = tryStack.pop();
+      BlankEdge blankEdge =
+          new BlankEdge("", FileLocation.DUMMY, nextNode, tryEndNode, "go to end of try");
+      addToCFA(blankEdge);
+      locStack.pop();
+      locStack.push(tryEndNode);
+    }
+  }
+
+  private boolean isLastCatchClause(CatchClause pCatchClause){
+    final List<?> catchClauses = ((TryStatement) pCatchClause.getParent()).catchClauses();
+    if( pCatchClause == (catchClauses.get(catchClauses.size() - 1))){
+      return true;
+    }
+    return false;
   }
 
   @Override
