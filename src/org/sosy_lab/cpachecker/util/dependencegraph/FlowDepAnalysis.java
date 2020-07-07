@@ -54,7 +54,7 @@ final class FlowDepAnalysis extends ReachDefAnalysis<MemoryLocation, CFANode, CF
   private final Multimap<CFAEdge, ReachDefAnalysis.Def<MemoryLocation, CFAEdge>> dependences;
   private final Multimap<CFAEdge, MemoryLocation> maybeDefs;
 
-  protected FlowDepAnalysis(
+  FlowDepAnalysis(
       Dominance.DomTree<CFANode> pDomTree,
       Dominance.DomFrontiers<CFANode> pDomFrontiers,
       FunctionEntryNode pEntryNode,
