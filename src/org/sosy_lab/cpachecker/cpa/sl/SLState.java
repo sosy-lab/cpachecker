@@ -19,7 +19,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.sl;
 
-import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,16 +28,13 @@ import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
-public class SLState implements AbstractState, Targetable, AbstractQueryableState {
+public class SLState implements AbstractState, AbstractQueryableState {
 
   private static final String HAS_INVALID_READS = "has-invalid-reads";
   private static final String HAS_INVALID_WRITES = "has-invalid-writes";
@@ -124,21 +120,8 @@ public class SLState implements AbstractState, Targetable, AbstractQueryableStat
     return stack;
   }
 
-  @Override
-  public boolean isTarget() {
-    return !errors.isEmpty();
-  }
-
   public void addError(@Nonnull SLStateError pError) {
     errors.add(pError);
-  }
-
-  @Override
-  @Nonnull
-  public Set<Property> getViolatedProperties() throws IllegalStateException {
-    Set<Property> res = new HashSet<>();
-    errors.stream().forEach(e -> res.add(NamedProperty.create(e.name())));
-    return ImmutableSet.copyOf(res);
   }
 
   @Override
