@@ -583,6 +583,13 @@ public class ExpressionToFormulaVisitor
         promoted = conv.machineModel.applyIntegerPromotion(promoted);
       }
         Formula operandFormula = toFormula(operand);
+        operandFormula =
+            conv.makeFormulaTypeCast(
+                conv.getFormulaTypeFromCType(promoted),
+                t,
+                operandFormula,
+                ssa,
+                constraints);
       operandFormula = conv.makeCast(t, promoted, operandFormula, constraints, edge);
       Formula ret;
       if (op == UnaryOperator.MINUS) {
