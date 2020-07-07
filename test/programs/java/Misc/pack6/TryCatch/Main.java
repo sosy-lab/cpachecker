@@ -20,7 +20,10 @@ public class Main {
     } catch (RuntimeException e) {
       System.out.println("Runtime Exception: " + e);
     }
-    System.out.println("End");
+    finally{
+      System.out.println("Finally Statement");
+    }
 
+    System.out.println("End");
   }
 }

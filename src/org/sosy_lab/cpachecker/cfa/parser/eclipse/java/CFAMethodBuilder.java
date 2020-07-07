@@ -86,6 +86,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSuperConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -123,9 +124,6 @@ class CFAMethodBuilder extends ASTVisitor {
   private final Deque<CFANode> locStack = new ArrayDeque<>();
 
   // Data structures for handling loops & else conditions
-  private final Deque<CFANode> tryStack = new ArrayDeque<>();
-
-  // Data structures for handling loops & else conditions
   private final Deque<CFANode> loopStartStack = new ArrayDeque<>();
   private final Deque<CFANode> loopNextStack  = new ArrayDeque<>(); // For the node following the current if / while block
   private final Deque<CFANode> elseStack      = new ArrayDeque<>();
@@ -135,7 +133,8 @@ class CFAMethodBuilder extends ASTVisitor {
   private final Deque<CFANode> switchCaseStack = new ArrayDeque<>();
 
   // Data structure for handling try catch throw
-  private final List<JSimpleDeclaration> throwables = new ArrayList<>();
+  private List<JSimpleDeclaration> throwables = new ArrayList<>();
+  private final Deque<CFANode> tryStack = new ArrayDeque<>();
 
   // Data structures for label , continue , break
   private final Map<String, CLabelNode> labelMap = new HashMap<>();
@@ -1758,24 +1757,49 @@ private void handleTernaryExpression(ConditionalExpression condExp,
   }
 
   @Override
+  public void endVisit(TryStatement pTryStatement) {
+    FileLocation fileLocation = astCreator.getFileLocation(pTryStatement);
+    CFANode postFinallyNode = new CFANode(cfa.getFunction());
+    cfaNodes.add(postFinallyNode);
+
+    JVariableDeclaration jVariableDeclaration =
+        new JVariableDeclaration(
+            fileLocation,
+            JClassType.createUnresolvableType(),
+            "dummy",
+            "dummy",
+            "dummy",
+            null,
+            false);
+    JIdExpression jIdExpression =
+        new JIdExpression(
+            fileLocation,
+            JClassType.getTypeOfObject(),
+            "dummy_No_Exception_Thrown",
+            jVariableDeclaration);
+    JExpression jExpression = new JVariableRunTimeType(fileLocation, jIdExpression);
+
+    createConditionEdges(
+        jExpression, fileLocation, locStack.pop(), postFinallyNode, cfa.getExitNode());
+
+    locStack.push(postFinallyNode);
+  }
+
+  @Override
   public boolean visit(CatchClause pCatchClauseNode) {
 
     FileLocation fileloc = astCreator.getFileLocation(pCatchClauseNode);
 
     CFANode prevNode = locStack.pop();
 
-    CFANode postIfNode = new CFANode(cfa.getFunction());
+    CFANode exceptionDoesNotMatchNode = new CFANode(cfa.getFunction());
 
-    cfaNodes.add(postIfNode);
-    locStack.push(postIfNode);
+    cfaNodes.add(exceptionDoesNotMatchNode);
+    locStack.push(exceptionDoesNotMatchNode);
 
-    CFANode thenNode = new CFANode(cfa.getFunction());
-    cfaNodes.add(thenNode);
-    locStack.push(thenNode);
-
-    CFANode elseNode;
-
-    elseNode = postIfNode;
+    CFANode exceptionMatchesNode = new CFANode(cfa.getFunction());
+    cfaNodes.add(exceptionMatchesNode);
+    locStack.push(exceptionMatchesNode);
 
     JDeclaration jDeclarationOfException = astCreator.convert(pCatchClauseNode.getException());
 
@@ -1792,12 +1816,18 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
       instanceOfThrowableExpressions.add(instanceOfExpression);
     }
+    throwables = new ArrayList<>();
 
     JExpression compareExceptionToThrownType;
 
     if (instanceOfThrowableExpressions.size() == 1) {
       compareExceptionToThrownType = instanceOfThrowableExpressions.get(0);
-      createConditionEdges(compareExceptionToThrownType, fileloc, prevNode, thenNode, elseNode);
+      createConditionEdges(
+          compareExceptionToThrownType,
+          fileloc,
+          prevNode,
+          exceptionMatchesNode,
+          exceptionDoesNotMatchNode);
     } else if (instanceOfThrowableExpressions.size() > 1) {
       JBinaryExpression jBinaryExpression =
           new JBinaryExpression(
@@ -1816,7 +1846,12 @@ private void handleTernaryExpression(ConditionalExpression condExp,
                 BinaryOperator.CONDITIONAL_OR);
       }
       compareExceptionToThrownType = jBinaryExpression;
-      createConditionEdges(compareExceptionToThrownType, fileloc, prevNode, thenNode, elseNode);
+      createConditionEdges(
+          compareExceptionToThrownType,
+          fileloc,
+          prevNode,
+          exceptionMatchesNode,
+          exceptionDoesNotMatchNode);
     } else { // placeholder for unchecked exceptions
       final JClassType unresolvableType = JClassType.createUnresolvableType();
 
@@ -1840,7 +1875,8 @@ private void handleTernaryExpression(ConditionalExpression condExp,
               (JClassOrInterfaceType) jDeclarationOfException.getType(),
               fileloc);
 
-      createConditionEdges(instanceOfExpression, fileloc, prevNode, thenNode, elseNode);
+      createConditionEdges(
+          instanceOfExpression, fileloc, prevNode, exceptionMatchesNode, exceptionDoesNotMatchNode);
     }
 
     return VISIT_CHILDREN;
