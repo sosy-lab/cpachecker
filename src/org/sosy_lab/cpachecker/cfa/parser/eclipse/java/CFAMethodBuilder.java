@@ -1769,7 +1769,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     elseNode = postIfNode;
 
-    JDeclaration jDeclaration = astCreator.convert(pCatchClauseNode.getException());
+    JDeclaration jDeclarationOfException = astCreator.convert(pCatchClauseNode.getException());
 
     List<JExpression> instanceOfThrowableExpressions = new ArrayList<>(throwables.size());
     for (JSimpleDeclaration thrown : throwables) {
@@ -1778,17 +1778,23 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
       final JExpression instanceOfExpression =
           astCreator.createInstanceOfExpression(
-              jIdExpressionOfThrown, (JClassOrInterfaceType) jDeclaration.getType(), fileloc);
+              jIdExpressionOfThrown,
+              (JClassOrInterfaceType) jDeclarationOfException.getType(),
+              fileloc);
 
       instanceOfThrowableExpressions.add(instanceOfExpression);
     }
 
     JExpression compareExceptionToThrownType;
-    if (instanceOfThrowableExpressions.size() > 1) {
+
+    if (instanceOfThrowableExpressions.size() == 1) {
+      compareExceptionToThrownType = instanceOfThrowableExpressions.get(0);
+      createConditionEdges(compareExceptionToThrownType, fileloc, prevNode, thenNode, elseNode);
+    } else if (instanceOfThrowableExpressions.size() > 1) {
       JBinaryExpression jBinaryExpression =
           new JBinaryExpression(
               fileloc,
-              jDeclaration.getType(),
+              jDeclarationOfException.getType(),
               instanceOfThrowableExpressions.get(0),
               instanceOfThrowableExpressions.get(1),
               BinaryOperator.CONDITIONAL_OR);
@@ -1796,17 +1802,38 @@ private void handleTernaryExpression(ConditionalExpression condExp,
         jBinaryExpression =
             new JBinaryExpression(
                 fileloc,
-                jDeclaration.getType(),
+                jDeclarationOfException.getType(),
                 jBinaryExpression,
                 instanceOfThrowableExpressions.get(i),
                 BinaryOperator.CONDITIONAL_OR);
       }
       compareExceptionToThrownType = jBinaryExpression;
-    } else {
-      compareExceptionToThrownType = instanceOfThrowableExpressions.get(0);
-    }
+      createConditionEdges(compareExceptionToThrownType, fileloc, prevNode, thenNode, elseNode);
+    } else { // placeholder for unchecked exceptions
+      final JClassType unresolvableType = JClassType.createUnresolvableType();
 
-    createConditionEdges(compareExceptionToThrownType, fileloc, prevNode, thenNode, elseNode);
+      final JSimpleDeclaration dummyDeclaration =
+          new JVariableDeclaration(
+              fileloc,
+              unresolvableType,
+              unresolvableType.getName(),
+              unresolvableType.getName(),
+              unresolvableType.getName(),
+              null,
+              false);
+
+      JIdExpression dummyJIdExpression =
+          new JIdExpression(
+              fileloc, unresolvableType, unresolvableType.getName(), dummyDeclaration);
+
+      final JExpression instanceOfExpression =
+          astCreator.createInstanceOfExpression(
+              dummyJIdExpression,
+              (JClassOrInterfaceType) jDeclarationOfException.getType(),
+              fileloc);
+
+      createConditionEdges(instanceOfExpression, fileloc, prevNode, thenNode, elseNode);
+    }
 
     return VISIT_CHILDREN;
   }
