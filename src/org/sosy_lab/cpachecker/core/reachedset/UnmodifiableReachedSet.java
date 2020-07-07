@@ -1,30 +1,14 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.reachedset;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import java.util.Collection;
 import java.util.Iterator;
@@ -35,6 +19,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
  * Interface representing an unmodifiable reached set
@@ -125,18 +110,26 @@ public interface UnmodifiableReachedSet extends Iterable<AbstractState> {
   int size();
 
   /**
-   * Violation of some properties is determined by reached set itself, not by a single state. The
-   * example is race condition: it is required to have a couple of special states
+   * Detect whether this reached set contains a property violation.
+   *
+   * <p>In some cases (like checking for race conditions) this is not the same as checking each
+   * state individually for a property violation.
    *
    * @return Is any property violated
    */
   default boolean hasViolatedProperties() {
-    return from(asCollection()).anyMatch(IS_TARGET_STATE);
+    return from(asCollection()).anyMatch(AbstractStates::isTargetState);
   }
 
+  /**
+   * Return the set of violated properties in this reached set, of {@link #hasViolatedProperties()}
+   * returns true.
+   *
+   * @return A set of violated properties, may be emtpy if no precise information is available.
+   */
   default Collection<Property> getViolatedProperties() {
     return from(asCollection())
-        .filter(IS_TARGET_STATE)
+        .filter(AbstractStates::isTargetState)
         .filter(Targetable.class)
         .transformAndConcat(Targetable::getViolatedProperties)
         .toSet();

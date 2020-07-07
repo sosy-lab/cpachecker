@@ -1,33 +1,15 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core;
 
 import static com.google.common.base.Verify.verifyNotNull;
 
-import com.google.common.base.Preconditions;
-import java.nio.file.Path;
-import java.util.Optional;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
@@ -48,7 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CounterexampleStoreAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.InterleavedAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ProgramSplitAlgorithm;
@@ -59,7 +41,9 @@ import org.sosy_lab.cpachecker.core.algorithm.SelectionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.TestCaseGeneratorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.composition.CompositionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
@@ -83,6 +67,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.HistoryForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.PropertyChecker.PropertyCheckerCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPA;
@@ -142,13 +127,22 @@ public class CoreComponentsFactory {
         + "after the analysis has finished, works only with PredicateCPA")
   private boolean useBMC = false;
 
+  @Option(
+    secure = true,
+    name = "algorithm.IMC",
+    description = "use McMillan's interpolation-based model checking algorithm, "
+        + "works only with PredicateCPA and large-block encoding")
+  private boolean useIMC = false;
+
   @Option(secure=true, name="algorithm.impact",
       description="Use McMillan's Impact algorithm for lazy interpolation")
   private boolean useImpactAlgorithm = false;
 
-  @Option(secure = true, name = "useInterleavedAnalyses",
-      description = "start different analyses interleaved and continue after unknown result")
-    private boolean useInterleavedAlgorithm = false;
+  @Option(
+    secure = true,
+    name = "useCompositionAnalysis",
+    description = "select an analysis from a set of analyses after unknown result")
+  private boolean useCompositionAlgorithm = false;
 
   @Option(secure = true, name = "useTestCaseGeneratorAlgorithm",
       description = "generate test cases for covered test targets")
@@ -176,8 +170,18 @@ public class CoreComponentsFactory {
 
   @Option(
     secure = true,
-    name = "algorithm.termination",
-    description = "Use termination algorithm to prove (non-)termination.")
+    name = "algorithm.MPI",
+    description = "Use MPI for running analyses in new subprocesses. The resulting reachedset "
+        + "is the one of the first analysis returning in time. All other mpi-processes will "
+        + "get aborted.")
+  private boolean useMPIProcessAlgorithm = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.termination",
+      description =
+          "Use termination algorithm to prove (non-)termination. This needs the TerminationCPA as"
+              + " root CPA and an automaton CPA with termination_as_reach.spc in the tree of CPAs.")
   private boolean useTerminationAlgorithm = false;
 
   @Option(
@@ -323,24 +327,16 @@ public class CoreComponentsFactory {
         && !useRestartingAlgorithm
         && !useImpactAlgorithm
         && !runCBMCasExternalTool
-        && useBMC;
+        && (useBMC || useIMC);
   }
 
   public Algorithm createAlgorithm(
-      final ConfigurableProgramAnalysis cpa, final CFA cfa, final Specification pSpecification)
+      final ConfigurableProgramAnalysis cpa, final CFA cfa, final Specification specification)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     logger.log(Level.FINE, "Creating algorithms");
 
     if (disableAnalysis) {
       return NoopAlgorithm.INSTANCE;
-    }
-
-    // TerminationAlgorithm requires hard coded specification.
-    Specification specification;
-    if (useTerminationAlgorithm) {
-      specification = loadTerminationSpecification(cfa, pSpecification);
-    } else {
-      specification = pSpecification;
     }
 
     Algorithm algorithm;
@@ -352,7 +348,7 @@ public class CoreComponentsFactory {
       logger.log(Level.INFO, "Using validator for violation witnesses for termination");
       algorithm =
           new NonTerminationWitnessValidator(
-              cfa, config, logger, shutdownNotifier, pSpecification.getSpecificationAutomata());
+              cfa, config, logger, shutdownNotifier, specification.getSpecificationAutomata());
     } else if(useProofCheckAlgorithmWithStoredConfig) {
       logger.log(Level.INFO, "Using Proof Check Algorithm");
       algorithm =
@@ -376,9 +372,9 @@ public class CoreComponentsFactory {
     } else if (useRestartingAlgorithm) {
       logger.log(Level.INFO, "Using Restarting Algorithm");
       algorithm = RestartAlgorithm.create(config, logger, shutdownNotifier, specification, cfa);
-    } else if (useInterleavedAlgorithm) {
-      logger.log(Level.INFO, "Using Interleaved Algorithm");
-      algorithm = new InterleavedAlgorithm(config, logger, shutdownNotifier, specification, cfa);
+    } else if (useCompositionAlgorithm) {
+      logger.log(Level.INFO, "Using Composition Algorithm");
+      algorithm = new CompositionAlgorithm(config, logger, shutdownNotifier, specification, cfa);
 
     } else if (useImpactAlgorithm) {
       algorithm = new ImpactAlgorithm(config, logger, shutdownNotifier, cpa, cfa);
@@ -399,6 +395,9 @@ public class CoreComponentsFactory {
               specification,
               cfa,
               aggregatedReachedSets);
+
+    } else if (useMPIProcessAlgorithm) {
+      algorithm = new MPIPortfolioAlgorithm(config, logger, shutdownNotifier, specification);
 
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
@@ -448,6 +447,21 @@ public class CoreComponentsFactory {
         verifyNotNull(shutdownManager);
         algorithm =
             new BMCAlgorithm(
+                algorithm,
+                cpa,
+                config,
+                logger,
+                reachedSetFactory,
+                shutdownManager,
+                cfa,
+                specification,
+                aggregatedReachedSets);
+      }
+
+      if (useIMC) {
+        verifyNotNull(shutdownManager);
+        algorithm =
+            new IMCAlgorithm(
                 algorithm,
                 cpa,
                 config,
@@ -554,7 +568,7 @@ public class CoreComponentsFactory {
   public ReachedSet createReachedSet() {
     ReachedSet reached = reachedSetFactory.create();
 
-    if (useInterleavedAlgorithm
+    if (useCompositionAlgorithm
         || useRestartingAlgorithm
         || useHeuristicSelectionAlgorithm
         || useParallelAlgorithm
@@ -575,10 +589,10 @@ public class CoreComponentsFactory {
   }
 
   public ConfigurableProgramAnalysis createCPA(final CFA cfa, final Specification pSpecification)
-      throws InvalidConfigurationException, CPAException, InterruptedException {
+      throws InvalidConfigurationException, CPAException {
     logger.log(Level.FINE, "Creating CPAs");
 
-    if (useInterleavedAlgorithm
+    if (useCompositionAlgorithm
         || useRestartingAlgorithm
         || useHeuristicSelectionAlgorithm
         || useParallelAlgorithm
@@ -592,42 +606,6 @@ public class CoreComponentsFactory {
       return LocationCPA.factory().set(cfa, CFA.class).setConfiguration(config).createInstance();
     }
 
-    // TerminationAlgorithm requires hard coded specification.
-    Specification specification;
-    if (useTerminationAlgorithm) {
-      specification = loadTerminationSpecification(cfa, pSpecification);
-    } else {
-      specification = pSpecification;
-    }
-
-    return cpaFactory.buildCPAs(cfa, specification, aggregatedReachedSets);
+    return cpaFactory.buildCPAs(cfa, pSpecification, aggregatedReachedSets);
   }
-
-  private Specification loadTerminationSpecification(CFA cfa, Specification originalSpecification)
-      throws InvalidConfigurationException, InterruptedException {
-    Preconditions.checkState(useTerminationAlgorithm);
-    boolean atMostWitness = true;
-
-    Optional<Path> witness = Optional.empty();
-    for (Path specFile : originalSpecification.getSpecFiles()) {
-      Path fileName = specFile.getFileName();
-      if (fileName != null && fileName.toString().endsWith(".graphml")) {
-        Preconditions.checkState(!witness.isPresent(), "More than one witness file.");
-        witness = Optional.of(specFile);
-      } else {
-        atMostWitness = false;
-      }
-    }
-    Specification terminationSpecification =
-        TerminationAlgorithm.loadTerminationSpecification(
-            originalSpecification.getProperties(), witness, cfa, config, logger, shutdownNotifier);
-
-    if (!atMostWitness && !originalSpecification.equals(terminationSpecification)) {
-      throw new InvalidConfigurationException(
-          originalSpecification + "is not usable with termination analysis");
-    }
-
-    return terminationSpecification;
-  }
-
 }

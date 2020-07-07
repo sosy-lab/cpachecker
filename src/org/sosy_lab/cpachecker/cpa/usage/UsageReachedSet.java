@@ -1,34 +1,19 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.usage;
 
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ObjectOutputStream;
-import java.util.Collections;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -44,14 +29,8 @@ public class UsageReachedSet extends PartitionedReachedSet {
 
   private static final long serialVersionUID = 1L;
 
-  public static class RaceProperty implements Property {
-    @Override
-    public String toString() {
-      return "Race condition";
-    }
-  }
-
-  private static final RaceProperty propertyInstance = new RaceProperty();
+  private static final ImmutableSet<Property> RACE_PROPERTY =
+      NamedProperty.singleton("Race condition");
 
   private final UsageConfiguration config;
   private final LogManager logger;
@@ -100,7 +79,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
   @Override
   public Set<Property> getViolatedProperties() {
     if (hasViolatedProperties()) {
-      return Collections.singleton(propertyInstance);
+      return RACE_PROPERTY;
     } else {
       return ImmutableSet.of();
     }

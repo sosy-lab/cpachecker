@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 <!-- vim: set tabstop=8 shiftwidth=4 expandtab : -->
 <project name="CPAchecker" basedir="." default="build"
          xmlns:unless="ant:unless"
@@ -9,7 +20,7 @@
     <property file="build.properties"/>
     <property environment="env"/>
 
-    <property name="version.base" value="1.9.1-svn"/> <!-- change here for a release -->
+    <property name="version.base" value="1.9.2-svn"/> <!-- change here for a release -->
 
     <!-- Customization of build process. -->
     <property name="jar.file" value="cpachecker.jar"/>
@@ -24,10 +35,12 @@
     <!-- The following error-prone checks are disabled:
          BadImport: we often import FluentIterable.from and we have a Checkstyle check instead
          ReferenceEquality: TODO enable this and fix alarms (but there are many cases where reference equality is desired)
+         MissingSummary: currently buggy (fails build without specifying class)
          -->
     <property name="errorprone.options" value="
         -Xep:BadImport:OFF
         -Xep:ReferenceEquality:OFF
+        -Xep:MissingSummary:OFF
         "/>
 
     <import file="build/build-ivy.xml"/>

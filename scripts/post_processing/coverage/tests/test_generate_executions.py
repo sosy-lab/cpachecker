@@ -1,24 +1,26 @@
 #!/usr/bin/python3
 
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2017 Rodrigo Castano
+# SPDX-FileCopyrightText: 2017-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 import logging
 import os
 import os.path
 import shutil
-import sys
 import time
 import unittest
 import unittest.mock
-from io import StringIO
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import call, patch
 
 import post_processing.coverage.generate_coverage as generate_coverage
 
 script_path = os.path.dirname(os.path.realpath(__file__))
-
-
-def gen_files_in_dir(dir):
-    for f in os.listdir(dir):
-        yield os.path.join(dir, f)
 
 
 class TestCoverage(unittest.TestCase):
@@ -33,19 +35,13 @@ class TestCoverage(unittest.TestCase):
     temp_folder = os.path.join(script_path, "temp_folder")
 
     def setUp(self):
-        try:
-            shutil.rmtree(self.temp_folder)
-        except:
-            pass
+        shutil.rmtree(self.temp_folder, ignore_errors=True)
         self.logger = logging.getLogger()
         self.logger.setLevel(logging.INFO)
         self.start_time = time.time()
 
     def tearDown(self):
-        try:
-            shutil.rmtree(self.temp_folder)
-        except:
-            pass
+        shutil.rmtree(self.temp_folder, ignore_errors=True)
 
 
 class TestGenerateExecutions(TestCoverage):
@@ -100,9 +96,9 @@ class TestGenerateExceptionFoundBug(TestGenerateExecutions):
                     start_time=self.start_time,
                     timer=generate_coverage.Timer(),
                 )
-                cex_generated = len(list(g.generate_executions()))
+                list(g.generate_executions())
                 self.fail("Should have raised FoundBugException.")
-            except generate_coverage.FoundBugException as e:
+            except generate_coverage.FoundBugException:
                 pass
             mock_logger.assert_called_once_with(
                 "Found an assertion violation. "
@@ -204,8 +200,8 @@ class TestCoverageAAIsPrefixFromExistingPath(TestCoverage):
             ]
             self.assertEqual(mock_info.mock_calls, expected_calls)
 
-        self.assertEqual(lines_covered, set([3, 4, 13]))
-        self.assertEqual(lines_to_cover, set([3, 4, 5, 6, 7, 9, 10, 13, 14, 15]))
+        self.assertEqual(lines_covered, {12, 13, 22})
+        self.assertEqual(lines_to_cover, {12, 13, 14, 15, 16, 18, 19, 22, 23, 24})
 
 
 class TestCoveragePathAAFixPoint(TestCoverage):
@@ -240,8 +236,8 @@ class TestCoveragePathAAFixPoint(TestCoverage):
             ]
             self.assertEqual(mock_info.mock_calls, expected_calls)
 
-        self.assertEqual(lines_covered, set([3, 4, 13]))
-        self.assertEqual(lines_to_cover, set([3, 4, 5, 6, 7, 9, 10, 13, 14, 15]))
+        self.assertEqual(lines_covered, {12, 13, 22})
+        self.assertEqual(lines_to_cover, {12, 13, 14, 15, 16, 18, 19, 22, 23, 24})
 
 
 class TestCoverageTreeAAAndExisting2Paths(TestCoverage):
@@ -275,8 +271,8 @@ class TestCoverageTreeAAAndExisting2Paths(TestCoverage):
             ]
             self.assertEqual(mock_info.mock_calls, expected_calls)
 
-        self.assertEqual(lines_covered, set([3, 4, 5, 6, 9]))
-        self.assertEqual(lines_to_cover, set([3, 4, 5, 6, 7, 9, 10, 13, 14, 15]))
+        self.assertEqual(lines_covered, {12, 13, 14, 15, 18})
+        self.assertEqual(lines_to_cover, {12, 13, 14, 15, 16, 18, 19, 22, 23, 24})
 
 
 class TestCoverageFixPointProducesExecutions(TestCoverage):
@@ -326,11 +322,11 @@ class TestCoverageFixPointProducesAllPossibleExecutions(TestCoverage):
             cex_generated = [next(g.generate_executions())]
             # Updating covered lines, to force the generator to cover
             # other lines.
-            g.lines_covered.update([3, 4, 13, 14, 15])
+            g.lines_covered.update([12, 13, 22, 23, 24])
             cex_generated.append(next(g.generate_executions()))
-            g.lines_covered.update([3, 4, 5, 6, 7])
+            g.lines_covered.update([12, 13, 14, 15, 16])
             cex_generated.append(next(g.generate_executions()))
-            g.lines_covered.update([3, 4, 5, 9, 10])
+            g.lines_covered.update([12, 13, 14, 18, 19])
             expected_calls = [
                 call("Generated 1 executions."),
                 call("Generated 1 executions."),
@@ -363,10 +359,10 @@ class TestCoverageFixPointWithinAssumptionAutomatonPath(TestCoverage):
             )
             # Updating covered lines, to force the generator to cover
             # the only other possible path.
-            g.lines_covered.update([3, 4, 5, 9])
+            g.lines_covered.update([12, 13, 14, 18])
             cex_generated = [next(g.generate_executions())]
             # Updating covered lines, to reflect the execution just produced.
-            g.lines_covered.update([3, 4, 5, 6])
+            g.lines_covered.update([12, 13, 14, 15])
             cex_generated += list(g.generate_executions())
             expected_calls = [
                 call("Generated 1 executions."),
@@ -398,7 +394,7 @@ class TestCoverageFixPointAlreadyReached(TestCoverage):
             )
             # Updating covered lines such that it is impossible to
             # cover more lines.
-            g.lines_covered.update([3, 4, 5, 6, 9])
+            g.lines_covered.update([12, 13, 14, 15, 18])
             cex_generated = list(g.generate_executions())
             expected_calls = [call("Generated 0 executions.")]
             self.assertEqual(mock_info.mock_calls, expected_calls)
@@ -576,11 +572,11 @@ class TestOutputParsingExceptionThrown(unittest.TestCase):
         with patch.object(logger, "error") as mock_error:
             cpachecker_result = generate_coverage.parse_result(self.output, logger)
             self.assertEqual(mock_error.mock_calls, [])
-        try:
+
+        with self.assertRaisesRegex(
+            Exception, "This method should not have been called"
+        ):
             cpachecker_result.found_bug()
-            self.fail()
-        except:
-            pass
 
 
 class TestOutputParsingIncompleteOutput(unittest.TestCase):
@@ -615,10 +611,6 @@ class TestCoverageIntegrationCexCountOptional(TestCoverage):
                 instance,
             ]
         ]
-        # ch = logging.StreamHandler()
-        # ch.setLevel(logging.DEBUG)
-        # self.logger.addHandler(ch)
-        # self.logger.setLevel(logging.DEBUG)
         with patch.object(self.logger, "info") as mock_info:
             generate_coverage.main(argv, self.logger)
             expected_calls = [
