@@ -371,7 +371,7 @@ public class AssignmentToPathAllocator {
       ConcreteExpressionEvaluator pEvaluator) {
 
     createAssignments(terms, variableEnvironment, variables, functionEnvironment, memory);
-    removeDeallocatedVariables(ssaMap, variableEnvironment);
+    removeDeallocatedVariables(ssaMap, variableEnvironment, variables);
     Map<String, Memory> allocatedMemory = createAllocatedMemory(memory);
 
     return new ConcreteState(
@@ -432,8 +432,11 @@ public class AssignmentToPathAllocator {
   }
 
   private void removeDeallocatedVariables(
-      SSAMap pMap, Map<String, ValueAssignment> variableEnvironment) {
+      SSAMap pMap,
+      Map<String, ValueAssignment> variableEnvironment,
+      Map<LeftHandSide, Object> variables) {
     variableEnvironment.keySet().removeIf(name -> pMap.getIndex(name) < 0);
+    variables.keySet().removeIf(lhs -> pMap.getIndex(lhs.toString()) < 0);
   }
 
   /**
