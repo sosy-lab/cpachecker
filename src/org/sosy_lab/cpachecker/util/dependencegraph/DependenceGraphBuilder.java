@@ -248,8 +248,11 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
     CFANode node = pCfa.getMainFunction();
     List<CFAEdge> declEdges = new ArrayList<>();
+    Set<CFANode> visited = new HashSet<>();
 
-    while (node.getNumLeavingEdges() == 1) {
+    while (node.getNumLeavingEdges() == 1 && !visited.contains(node)) {
+
+      visited.add(node);
 
       CFAEdge edge = node.getLeavingEdge(0);
 
