@@ -42,10 +42,9 @@ public class AbstractDistanceMetric {
     this.distanceHelper = pDistanceCalculationHelper;
   }
 
-  /**
-   * Start Method
-   */
+  /** Start Method */
   public List<CFAEdge> startDistanceMetric(List<ARGPath> safePaths, ARGPath counterexample) {
+    assert distanceHelper != null;
     List<CFAEdge> ce = distanceHelper.cleanPath(counterexample);
     List<List<CFAEdge>> paths = new ArrayList<>();
     // clean the paths from useless Statements
@@ -57,7 +56,6 @@ public class AbstractDistanceMetric {
         comparePaths(ce, paths, counterexample.asStatesList(), safePaths);
 
     return closestSuccessfulExecution;
-
   }
 
   /**
@@ -78,7 +76,6 @@ public class AbstractDistanceMetric {
     int predicateWeight = 1;
     int unalignedStatesWeight = 2;
 
-
     // "sp" here stands for "Safe Path"
     for (int i = 0; i < sp.size(); i++) {
       // Step 1: CREATE ALIGNMENTS
@@ -96,7 +93,6 @@ public class AbstractDistanceMetric {
       int d = predicateWeight * predicateDistance + unalignedStatesWeight * unalignedStates;
       distances.add(d);
     }
-
 
     // clean distance = 0
     for (int i = 0; i < distances.size(); i++) {
@@ -121,20 +117,14 @@ public class AbstractDistanceMetric {
     return sp.get(index);
   }
 
-  /**
-   * Calculate the Number of Unaligned States
-   */
+  /** Calculate the Number of Unaligned States */
   private int getNumberOfUnalignedStates(List<List<CFAEdge>> alignments, List<CFAEdge> safePath) {
     return Math.abs((alignments.get(0).size() - safePath.size()));
   }
 
-  /**
-   * Calculates the distance of the predicates
-   */
+  /** Calculates the distance of the predicates */
   private int calculatePredicateDistance(
-      List<List<CFAEdge>> alignments,
-      List<ARGState> ce_states,
-      List<ARGState> pathsStates) {
+      List<List<CFAEdge>> alignments, List<ARGState> ce_states, List<ARGState> pathsStates) {
     assert alignments.get(0).size() == alignments.get(1).size();
     int distance = 0;
     List<List<ARGState>> stateAlignments = new ArrayList<>();
@@ -147,9 +137,11 @@ public class AbstractDistanceMetric {
     // COMPUTATIONS FOR THE COUNTEREXAMPLE
     for (CFAEdge alignedEdge : alignments.get(0)) {
       for (ARGState ceState : ce_states) {
-        if (alignedEdge.getPredecessor()
-            .equals(AbstractStates.extractStateByType(ceState, AbstractStateWithLocation.class)
-                .getLocationNode())) {
+        if (alignedEdge
+            .getPredecessor()
+            .equals(
+                AbstractStates.extractStateByType(ceState, AbstractStateWithLocation.class)
+                    .getLocationNode())) {
           stateAlignments.get(0).add(ceState);
           break;
         }
@@ -159,9 +151,11 @@ public class AbstractDistanceMetric {
     // COMPUTATIONS FOR THE SAFE PATH
     for (CFAEdge alignedEdge : alignments.get(1)) {
       for (ARGState pathState : pathsStates) {
-        if (alignedEdge.getPredecessor()
-            .equals(AbstractStates.extractStateByType(pathState, AbstractStateWithLocation.class)
-                .getLocationNode())) {
+        if (alignedEdge
+            .getPredecessor()
+            .equals(
+                AbstractStates.extractStateByType(pathState, AbstractStateWithLocation.class)
+                    .getLocationNode())) {
           stateAlignments.get(1).add(pathState);
           break;
         }
@@ -174,12 +168,18 @@ public class AbstractDistanceMetric {
 
     // THE alignments List has only 2 Lists with the same size
     for (int j = 0; j < stateAlignments.get(0).size(); j++) {
-      Set<BooleanFormula> predicatesCE = distanceHelper.splitPredicates(AbstractStates
-          .extractStateByType(stateAlignments.get(0).get(j), PredicateAbstractState.class)
-          .getAbstractionFormula().asFormula());
-      Set<BooleanFormula> predicatesSafePath = distanceHelper.splitPredicates(AbstractStates
-          .extractStateByType(stateAlignments.get(1).get(j), PredicateAbstractState.class)
-          .getAbstractionFormula().asFormula());
+      Set<BooleanFormula> predicatesCE =
+          distanceHelper.splitPredicates(
+              AbstractStates.extractStateByType(
+                      stateAlignments.get(0).get(j), PredicateAbstractState.class)
+                  .getAbstractionFormula()
+                  .asFormula());
+      Set<BooleanFormula> predicatesSafePath =
+          distanceHelper.splitPredicates(
+              AbstractStates.extractStateByType(
+                      stateAlignments.get(1).get(j), PredicateAbstractState.class)
+                  .getAbstractionFormula()
+                  .asFormula());
 
       for (BooleanFormula predicate : predicatesCE) {
         if (!predicatesSafePath.contains(predicate)) {
@@ -195,9 +195,7 @@ public class AbstractDistanceMetric {
     return distance;
   }
 
-  /**
-   * Create Alignments between CE and Safe Path
-   */
+  /** Create Alignments between CE and Safe Path */
   private List<List<CFAEdge>> createAlignments(List<CFAEdge> ce, List<CFAEdge> safePath) {
     List<CFAEdge> ce_1 = new ArrayList<>(ce);
     List<CFAEdge> safePath_1 = new ArrayList<>(safePath);
@@ -207,10 +205,10 @@ public class AbstractDistanceMetric {
     // MAKING ALIGNMENTS
     for (int i = 0; i < ce_1.size(); i++) {
       for (int j = 0; j < safePath_1.size(); j++) {
-        if (ce_1.get(i).getPredecessor().getNodeNumber() == safePath_1.get(j).getPredecessor()
-            .getNodeNumber()) {
-          if (ce_1.get(i).getSuccessor().getNodeNumber() != safePath_1.get(j).getSuccessor()
-              .getNodeNumber()) {
+        if (ce_1.get(i).getPredecessor().getNodeNumber()
+            == safePath_1.get(j).getPredecessor().getNodeNumber()) {
+          if (ce_1.get(i).getSuccessor().getNodeNumber()
+              != safePath_1.get(j).getSuccessor().getNodeNumber()) {
             ce_2.add(ce_1.get(i));
             safePath_2.add(safePath_1.get(j));
             // remove the aligned Node
@@ -225,7 +223,5 @@ public class AbstractDistanceMetric {
     result.add(ce_2);
     result.add(safePath_2);
     return result;
-
   }
-
 }
