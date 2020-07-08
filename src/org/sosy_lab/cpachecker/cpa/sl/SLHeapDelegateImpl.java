@@ -487,9 +487,9 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
 
   private Formula createFormula(CExpression pExp, CExpression pOffset, boolean usePredContext)
       throws Exception {
-    if (pExp instanceof CIdExpression && pExp.getExpressionType() instanceof CArrayType) {
-      CIdExpression idExp = (CIdExpression) pExp;
-      CArrayType t = (CArrayType) idExp.getExpressionType();
+    if (pExp.getExpressionType() instanceof CArrayType) {
+      // CIdExpression idExp = (CIdExpression) pExp;
+      CArrayType t = (CArrayType) pExp.getExpressionType();
       pExp =
           new CUnaryExpression(FileLocation.DUMMY, t.asPointerType(), pExp, UnaryOperator.AMPER);
 
