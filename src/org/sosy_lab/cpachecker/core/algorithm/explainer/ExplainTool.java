@@ -75,7 +75,7 @@ public class ExplainTool {
     for (int i = 0; i < flow.size(); i++) {
       if (flow.get(i).getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
         List<String> code = Splitter.onPattern("\\s*[()]\\s*").splitToList(flow.get(i).getCode());
-        if (code.size() > 0) {
+        if (!code.isEmpty()) {
           if (code.get(0).equals("__VERIFIER_assert")) {
             filteredEdges.add(flow.get(i));
             return filteredEdges;

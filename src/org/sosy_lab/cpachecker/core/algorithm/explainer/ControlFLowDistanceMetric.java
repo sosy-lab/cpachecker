@@ -144,7 +144,7 @@ public class ControlFLowDistanceMetric {
       List<List<Event>> pDistances,
       List<List<CFAEdge>> safePaths) {
     for (int i = 0; i < pDistances.size(); i++) {
-      if (pDistances.get(i).size() == 0) {
+      if (pDistances.get(i).isEmpty()) {
         pDistances.remove(i);
         safePaths.remove(i);
       }
