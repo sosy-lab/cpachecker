@@ -353,12 +353,13 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
       return fLoc;
     }
     // Semantical check.
-    for (Formula formulaOnHeap : pMemory.keySet()) {
-      if (checkEquivalence(fLoc, formulaOnHeap, context)) {
-        return formulaOnHeap;
-      }
-    }
-    return null;
+    return isAllocated(fLoc, usePredContext, pMemory);
+    // for (Formula formulaOnHeap : pMemory.keySet()) {
+    // if (checkEquivalence(fLoc, formulaOnHeap, context)) {
+    // return formulaOnHeap;
+    // }
+    // }
+    // return null;
   }
 
   private void addToMemory(
@@ -403,11 +404,11 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
       throws Exception {
     // return checkAllocation(state.getStack(), pLoc, usePredContext) != null
     // || checkAllocation(state.getHeap(), pLoc, usePredContext) != null;
-    return isAllocated(pLoc, usePredContext, state.getStack())
-        || isAllocated(pLoc, usePredContext, state.getHeap());
+    return isAllocated(pLoc, usePredContext, state.getStack()) != null
+        || isAllocated(pLoc, usePredContext, state.getHeap()) != null;
   }
 
-  private boolean isAllocated(Formula pLoc, boolean usePredContext, Map<Formula, Formula> pHeap) {
+  private Formula isAllocated(Formula pLoc, boolean usePredContext, Map<Formula, Formula> pHeap) {
     PathFormula context = usePredContext ? getPredPathFormula() : getPathFormula();
     // BooleanFormula heapFormula = createHeapFormula(pHeap);
     BooleanFormula toBeChecked = slfm.makePointsTo(pLoc, makeFreshWildcard());
@@ -419,7 +420,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
         prover.addConstraint(context.getFormula());
         prover.addConstraint(slfm.makeStar(toBeChecked, ptsTo));
         if (prover.isUnsat()) {
-          return true;
+          return entry.getKey();
         }
       } catch (Exception e) {
         logger.log(Level.SEVERE, e.getMessage());
@@ -435,7 +436,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     // } catch (Exception e) {
     // logger.log(Level.SEVERE, e.getMessage());
     // }
-    return false;
+    return null;
   }
 
   private BooleanFormula createHeapFormula(Map<Formula, Formula> pHeap) {
