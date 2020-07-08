@@ -5,7 +5,7 @@
   <rundefinition/>
   
   <tasks name="MemSafety-ext3">
-    <includesfile>../programs/benchmarks/MemSafety-SL.set</includesfile>
+    <includesfile>../programs/benchmarks/MemSafety-Heap.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
     <option name="-sl"/>
   </tasks>
