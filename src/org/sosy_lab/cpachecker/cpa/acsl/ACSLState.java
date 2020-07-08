@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.acsl;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -42,11 +43,11 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
 public class ACSLState implements AbstractState, ExpressionTreeReportingState {
 
-  private final Set<ACSLAnnotation> annotations;
+  private final ImmutableSet<ACSLAnnotation> annotations;
   private final ACSLToCExpressionVisitor visitor;
 
   public ACSLState(Set<ACSLAnnotation> pAnnotations, ACSLToCExpressionVisitor pVisitor) {
-    annotations = pAnnotations;
+    annotations = ImmutableSet.copyOf(pAnnotations);
     visitor = pVisitor;
   }
 
