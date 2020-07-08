@@ -504,6 +504,9 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
                 makeVariable(baseName, baseType, ssa)));
       }
     }
+
+    // Delete SSA index to signal that baseName should not be used anymore.
+    ssa.deleteVariable(baseName);
   }
 
   /**
@@ -665,7 +668,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    */
   @Override
   public MergeResult<PointerTargetSet> mergePointerTargetSets(
-      PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMap pSsa) throws InterruptedException {
+      PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMapBuilder pSsa)
+      throws InterruptedException {
     return ptsMgr.mergePointerTargetSets(pPts1, pPts2, pSsa);
   }
 

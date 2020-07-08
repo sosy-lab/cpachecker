@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
@@ -247,9 +248,9 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public PointerTargetSet
-      mergePts(PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMap pSSA)
-          throws InterruptedException {
+  public PointerTargetSet mergePts(
+      PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMapBuilder pSSA)
+      throws InterruptedException {
     return delegate.mergePts(pPts1, pPts2, pSSA);
   }
 
