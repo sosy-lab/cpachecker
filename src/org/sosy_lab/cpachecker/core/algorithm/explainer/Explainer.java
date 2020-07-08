@@ -204,7 +204,7 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
       logger.log(Level.INFO, "NO SUCCESSFUL EXECUTION WAS FOUND");
       return status;
     }
-    ExplainTool.ExplainDeltas(targetPath.getFullPath(), closestSuccessfulExecution, logger);
+    ExplainTool.explainDeltas(targetPath.getFullPath(), closestSuccessfulExecution, logger);
     return status;
   }
 
@@ -301,7 +301,7 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
 
   private static class ExplainerAlgorithmStatistics extends MultiStatistics {
 
-    private final int noOfAlgorithmsUsed = 0;
+    private final static int noOfAlgorithmsUsed = 0;
     private Timer totalTime = new Timer();
 
     public ExplainerAlgorithmStatistics(LogManager pLogger) {

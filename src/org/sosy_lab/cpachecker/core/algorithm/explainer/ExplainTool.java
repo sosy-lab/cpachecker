@@ -27,7 +27,7 @@ public class ExplainTool {
    * @param closestExecution The closest successful found execution
    * @param logger           For Printing
    */
-  public static void ExplainDeltas(
+  public static void explainDeltas(
       List<CFAEdge> counterexample,
       List<CFAEdge> closestExecution,
       LogManager logger) {
