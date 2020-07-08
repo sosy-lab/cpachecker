@@ -347,7 +347,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
       Map<Formula, Formula> pMemory,
       Formula fLoc,
       boolean usePredContext) {
-    PathFormula context = usePredContext ? getPredPathFormula() : getPathFormula();
+    // PathFormula context = usePredContext ? getPredPathFormula() : getPathFormula();
     // Syntactical check for performance.
     if (pMemory.containsKey(fLoc)) {
       return fLoc;
@@ -439,6 +439,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     return null;
   }
 
+  @SuppressWarnings("unused")
   private BooleanFormula createHeapFormula(Map<Formula, Formula> pHeap) {
     BooleanFormula formula = slfm.makeEmptyHeap(heapAddressFormulaType, heapValueFormulaType);
     for (Formula f : pHeap.keySet()) {
