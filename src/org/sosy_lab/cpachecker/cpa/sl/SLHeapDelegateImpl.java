@@ -22,6 +22,7 @@ package org.sosy_lab.cpachecker.cpa.sl;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.logging.Level;
@@ -398,49 +399,44 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
 
   }
 
-  // private void updateMemory(Formula pLoc, Formula pVal) {
-  // if (heap.containsKey(pLoc)) {
-  // heap.put(pLoc, pVal);
-  // } else if (stack.containsKey(pLoc)) {
-  // stack.put(pLoc, pVal);
-  // }
-  // }
-
   private boolean isAllocated(Formula pLoc, boolean usePredContext)
       throws Exception {
-    return checkAllocation(state.getStack(), pLoc, usePredContext) != null
-        || checkAllocation(state.getHeap(), pLoc, usePredContext) != null;
-//    return isAllocated(pLoc, usePredContext, state.getStack())
-//        || isAllocated(pLoc, usePredContext, state.getHeap());
+    // return checkAllocation(state.getStack(), pLoc, usePredContext) != null
+    // || checkAllocation(state.getHeap(), pLoc, usePredContext) != null;
+    return isAllocated(pLoc, usePredContext, state.getStack())
+        || isAllocated(pLoc, usePredContext, state.getHeap());
   }
 
-  @SuppressWarnings("unused")
   private boolean isAllocated(Formula pLoc, boolean usePredContext, Map<Formula, Formula> pHeap) {
     PathFormula context = usePredContext ? getPredPathFormula() : getPathFormula();
-    BooleanFormula heapFormula = createHeapFormula(pHeap);
+    // BooleanFormula heapFormula = createHeapFormula(pHeap);
     BooleanFormula toBeChecked = slfm.makePointsTo(pLoc, makeFreshWildcard());
-    try (ProverEnvironment prover =
-        solver.newProverEnvironment(ProverOptions.ENABLE_SEPARATION_LOGIC)) {
-      prover.addConstraint(context.getFormula());
-      prover.addConstraint(slfm.makeStar(toBeChecked, heapFormula));
-      return prover.isUnsat();
-    } catch (Exception e) {
-      logger.log(Level.SEVERE, e.getMessage());
+    for (Entry<Formula, Formula> entry : pHeap.entrySet()) {
+      BooleanFormula ptsTo = slfm.makePointsTo(entry.getKey(), entry.getValue());
+
+      try (ProverEnvironment prover =
+          solver.newProverEnvironment(ProverOptions.ENABLE_SEPARATION_LOGIC)) {
+        prover.addConstraint(context.getFormula());
+        prover.addConstraint(slfm.makeStar(toBeChecked, ptsTo));
+        if (prover.isUnsat()) {
+          return true;
+        }
+      } catch (Exception e) {
+        logger.log(Level.SEVERE, e.getMessage());
+      }
     }
+    // // heapFormula = slfm.makeMagicWand(toBeChecked, heapFormula);
+    // try (ProverEnvironment prover =
+    // solver.newProverEnvironment(ProverOptions.ENABLE_SEPARATION_LOGIC)) {
+    // prover.addConstraint(context.getFormula());
+    // prover.addConstraint(slfm.makeStar(toBeChecked, heapFormula));
+    // // prover.addConstraint(heapFormula);
+    // return prover.isUnsat();
+    // } catch (Exception e) {
+    // logger.log(Level.SEVERE, e.getMessage());
+    // }
     return false;
   }
-
-  // /***
-  // * Generates a SL heap formula.
-  // *
-  // * @return Formula - key0->val0 * key1->val1 * ... * keyX->valX
-  // */
-  //
-  // private BooleanFormula createHeapFormula() {
-  // BooleanFormula stackFormula = createHeapFormula(stack);
-  // BooleanFormula heapFormula = createHeapFormula(heap);
-  // return slfm.makeStar(stackFormula, heapFormula);
-  // }
 
   private BooleanFormula createHeapFormula(Map<Formula, Formula> pHeap) {
     BooleanFormula formula = slfm.makeEmptyHeap(heapAddressFormulaType, heapValueFormulaType);
