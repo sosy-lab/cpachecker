@@ -187,6 +187,7 @@ flake8:
   needs: []
   image: python
   before_script:
+    - pip install 'isort<5' # workaround for https://github.com/gforcada/flake8-isort/issues/88
     - pip install flake8-awesome
   script:
     - flake8
