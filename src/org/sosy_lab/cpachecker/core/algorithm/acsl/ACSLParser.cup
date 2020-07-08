@@ -65,29 +65,105 @@ parser code {:
             cfaWithLocs.getEdgesToAnnotations().put(cfaWithLocs.getCommentPositions().get(orderedLocs.get(i)), annotations.get(i));
           }
 
-          //Add function contracts to function exits as well because some clauses have to be
-          //evaluated in the post-state
-          for (CFAEdge key : cfaWithLocs.getEdgesToAnnotations().keySet()) {
-            if (key.getFileLocation().getFileName().equals(filename)) {
-              Collection<ACSLAnnotation> currentAnnotations = cfaWithLocs.getEdgesToAnnotations().get(key);
-              for (ACSLAnnotation annotation : currentAnnotations) {
-                if (annotation instanceof FunctionContract) {
-                  FunctionExitNode exit =
-                      cfaWithLocs.getFunctionHead(key.getSuccessor().getFunctionName()).getExitNode();
-                  for (int i = 0; i < exit.getNumEnteringEdges(); i++) {
-                    CFAEdge currentEdge = exit.getEnteringEdge(i);
-                    cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
-                  }
-                }
-              }
-            }
-          }
+          adjustAnnotationLocations(cfaWithLocs, filename);
         } else {
           throw new AssertionError("No location information available!");
         }
       }
 
       return pCfa;
+    }
+
+    /**
+     * Add, move and remove ACSL annotations to, between and from CFAEdges as necessary to match
+     * their semantics.
+     *
+     * @param cfaWithLocs A CFA holding the location information about the annotations.
+     * @param currentFile Name of the file the annotations of which should be handled.
+     */
+    private static void adjustAnnotationLocations(CFAWithACSLAnnotationLocations cfaWithLocs, String currentFile) {
+      for (CFAEdge key : cfaWithLocs.getEdgesToAnnotations().keySet()) {
+        if (key.getFileLocation().getFileName().equals(currentFile)) {
+          Collection<ACSLAnnotation> currentAnnotations = cfaWithLocs.getEdgesToAnnotations().get(key);
+          List<ACSLAnnotation> toRemove = new ArrayList<>();
+          for (ACSLAnnotation annotation : currentAnnotations) {
+            if (annotation instanceof FunctionContract) {
+              //Add function contracts to function exits as well because some clauses have to be
+              //evaluated in the post-state
+              FunctionExitNode exit =
+                  cfaWithLocs.getFunctionHead(key.getSuccessor().getFunctionName()).getExitNode();
+              for (int i = 0; i < exit.getNumEnteringEdges(); i++) {
+                CFAEdge currentEdge = exit.getEnteringEdge(i);
+                cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
+              }
+            } else if (annotation instanceof ACSLLoopAnnotation) {
+              if (handleLoopAnnotation(cfaWithLocs, key, (ACSLLoopAnnotation) annotation)) {
+                toRemove.add(annotation);
+              }
+            }
+          }
+          for (ACSLAnnotation annotationToRemove : toRemove) {
+            cfaWithLocs.getEdgesToAnnotations().get(key).remove(annotationToRemove);
+          }
+        }
+      }
+    }
+
+    /**
+     * Adds the given annotation to the correct edges in the CFA and signals to remove it from the
+     * current one if necessary.
+     *
+     * @param cfaWithLocs A CFA holding location information about the annotation.
+     * @param edge The edge on which the annotation was originally placed.
+     * @param annotation The annotation to be handled.
+     * @return true if the annotation should be removed from the current edge, false otherwise.
+     */
+    private static boolean handleLoopAnnotation(
+        CFAWithACSLAnnotationLocations cfaWithLocs, CFAEdge edge, ACSLLoopAnnotation annotation) {
+      CFANode successor = edge.getSuccessor();
+      if (!successor.isLoopStart()) {
+        if (edge.getDescription().equals("for")) {
+          assert successor.getNumLeavingEdges() == 1;
+          CFANode next = successor.getLeavingEdge(0).getSuccessor();
+          for (int i = 0; i < next.getNumEnteringEdges(); i++) {
+            cfaWithLocs.getEdgesToAnnotations().put(next.getEnteringEdge(i), annotation);
+          }
+          // loop invariant only has to hold after initilization, so remove it from here
+          return true;
+        } else {
+          boolean isDoWhile = false;
+          for (int i = 0; i < successor.getNumEnteringEdges(); i++) {
+            if (successor.getEnteringEdge(i).getDescription().equals("do")) {
+              isDoWhile = true;
+              // loop invariant should also hold on first iteration
+              cfaWithLocs.getEdgesToAnnotations().put(successor.getEnteringEdge(i), annotation);
+              break;
+            }
+          }
+          assert isDoWhile;
+        }
+      } else {
+        assert edge.getDescription().equals("while");
+        for (int i = 0; i < successor.getNumEnteringEdges(); i++) {
+          CFAEdge currentEdge = successor.getEnteringEdge(i);
+          if (currentEdge != edge) {
+            cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
+          }
+        }
+      }
+      // ACSL doesn't guarantee that a loop invariant still holds when the loop is left
+      // but if such a thing is desired something akin to the following could be used:
+
+      // LoopStructure loopStructure = cfaWithLocs.getLoopStructure().orElseThrow();
+      // assert loopStructure.getAllLoopHeads().contains(key.getSuccessor());
+      // Set<Loop> loops = loopStructure.getLoopsForLoopHead(key.getSuccessor());
+      // for (Loop loop : loops) {
+      //  for (CFAEdge edge : loop.getOutgoingEdges()) {
+      //    // Loop invariant still has to hold after last iteration
+      //    cfaWithLocs.getEdgesToAnnotations().put(edge, annotation);
+      //  }
+      // }
+      return false;
     }
 
     public List<ACSLAnnotation> parseACSLAnnotations() throws CParserException {
