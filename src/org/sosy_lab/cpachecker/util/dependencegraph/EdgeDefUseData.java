@@ -53,7 +53,10 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 final class EdgeDefUseData {
@@ -354,6 +357,18 @@ final class EdgeDefUseData {
 
       if (mode == Mode.DEF) {
         partialDefs = true;
+      }
+
+      CType type = pIastFieldReference.getFieldOwner().getExpressionType();
+
+      while (type instanceof CPointerType) {
+        type = ((CPointerType) type).getType();
+      }
+
+      if (type instanceof CComplexType) {
+        String name = ((CComplexType) type).getQualifiedName();
+        Set<MemoryLocation> set = (mode == Mode.USE ? uses : defs);
+        set.add(MemoryLocation.valueOf(name));
       }
 
       return null;
