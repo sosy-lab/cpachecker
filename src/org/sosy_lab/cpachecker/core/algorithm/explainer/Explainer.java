@@ -78,30 +78,31 @@ import org.sosy_lab.java_smt.api.SolverException;
 @Options(prefix = "explainer")
 public class Explainer extends NestingAlgorithm implements Algorithm {
 
-  @Option(secure = true, name = "secondStep", description = "Configuration of the first step of the Explainer Algorithm")
+  @Option(
+      secure = true,
+      name = "secondStep",
+      description = "Configuration of the first step of the Explainer Algorithm")
   @FileOption(Type.REQUIRED_INPUT_FILE)
   private Path secondStepConfig;
-
 
   private Algorithm secondStepAlgorithm;
 
   private final ExplainerAlgorithmStatistics stats;
-
 
   public Explainer(
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       Specification pSpecification,
-      CFA pCfa) throws InvalidConfigurationException {
+      CFA pCfa)
+      throws InvalidConfigurationException {
     super(pConfig, pLogger, pShutdownNotifier, pSpecification, pCfa);
     pConfig.inject(this);
     stats = new ExplainerAlgorithmStatistics(pLogger);
   }
 
   @Override
-  public AlgorithmStatus run(ReachedSet reachedSet)
-      throws CPAException, InterruptedException {
+  public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
 
     ForwardingReachedSet reached = (ForwardingReachedSet) reachedSet;
     Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> secondAlg = null;
@@ -138,10 +139,11 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
     reached.setDelegate(currentReached);
 
     // Find All Targets
-    ImmutableList<ARGState> allTargets = from(currentReached)
-        .transform(s -> AbstractStates.extractStateByType(s, ARGState.class))
-        .filter(ARGState::isTarget)
-        .toList();
+    ImmutableList<ARGState> allTargets =
+        from(currentReached)
+            .transform(s -> AbstractStates.extractStateByType(s, ARGState.class))
+            .filter(ARGState::isTarget)
+            .toList();
     if (allTargets.isEmpty()) {
       return status;
     }
@@ -149,24 +151,28 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
     // Get a Path to the Target
     FluentIterable<CounterexampleInfo> counterExamples =
         Optionals.presentInstances(
-            from(reached).filter(AbstractStates::isTargetState)
+            from(reached)
+                .filter(AbstractStates::isTargetState)
                 .filter(ARGState.class)
                 .transform(ARGState::getCounterexampleInformation));
 
     ARGPath targetPath = counterExamples.get(0).getTargetPath();
 
-
     // Find All Safe Nodes
-    List<ARGState> safeLeafNodes = from(currentReached)
-        .transform(x -> AbstractStates.extractStateByType(x, ARGState.class))
-        .filter(x -> x.getChildren().isEmpty())
-        .filter(x -> !x.isTarget()).toList();
+    List<ARGState> safeLeafNodes =
+        from(currentReached)
+            .transform(x -> AbstractStates.extractStateByType(x, ARGState.class))
+            .filter(x -> x.getChildren().isEmpty())
+            .filter(x -> !x.isTarget())
+            .toList();
 
-
-    //Find the Root Node
-    ARGState rootNode = from(currentReached)
-        .transform(x -> AbstractStates.extractStateByType(x, ARGState.class))
-        .filter(x -> x.getParents().isEmpty()).toList().get(0);
+    // Find the Root Node
+    ARGState rootNode =
+        from(currentReached)
+            .transform(x -> AbstractStates.extractStateByType(x, ARGState.class))
+            .filter(x -> x.getParents().isEmpty())
+            .toList()
+            .get(0);
 
     Collection<ARGState> statesOnPathTo = null;
 
@@ -194,27 +200,25 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
       logger.log(Level.WARNING, "EXCEPTION IN DISTANCE METRIC");
     }
 
-
     // create a SOLVER for the 3rd Technique
-    Solver solver = null;
-    PredicateCPA cpa = null;
-    try(PredicateCPA cpa2 = CPAs.retrieveCPAOrFail(secondAlg.getSecond(), PredicateCPA.class,
-        ConfigurationException.class)) {
+    //Solver solver = null;
+    BooleanFormulaManagerView bfmgr = null;
+    try (PredicateCPA cpa2 =
+            CPAs.retrieveCPAOrFail(
+                secondAlg.getSecond(), PredicateCPA.class, ConfigurationException.class);
+        Solver solver2 = cpa2.getSolver()) {
+      bfmgr = solver2.getFormulaManager().getBooleanFormulaManager();
       assert cpa2 != null;
-      solver = cpa2.getSolver();
+
     } catch (InvalidConfigurationException pE) {
       logger.log(Level.WARNING, "EXCEPTION");
     }
-    assert solver != null;
-    BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
-
+    assert bfmgr != null;
     // Create Distance Metric No. 3
     AbstractDistanceMetric metric2 =
         new AbstractDistanceMetric(new DistanceCalculationHelper(bfmgr));
     closestSuccessfulExecution = metric2.startDistanceMetric(safePaths, targetPath);
 
-    cpa.close();
-    solver.close();
 
     if (closestSuccessfulExecution == null) {
       // EXECUTION COLLAPSED
@@ -226,16 +230,14 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
   }
 
   /**
-   * Find and constructs all Safe Paths
-   * Example: When the algorithm constructs the safe path: [1,2,3,4,5]
-   * Condition now: [1,2,3], but "3" has 2 Children (1st: "4" and 2nd "9")
-   * Then the Algorithm creates a new (copy) List: [1,2,3,4] and put this list in the waitList
-   * in order to be examined later.
-   * Then adds in the original List the next child [1,2,3,4] and goes on.
-   * Terminates when the Wait List is empty
+   * Find and constructs all Safe Paths Example: When the algorithm constructs the safe path:
+   * [1,2,3,4,5] Condition now: [1,2,3], but "3" has 2 Children (1st: "4" and 2nd "9") Then the
+   * Algorithm creates a new (copy) List: [1,2,3,4] and put this list in the waitList in order to be
+   * examined later. Then adds in the original List the next child [1,2,3,4] and goes on. Terminates
+   * when the Wait List is empty
    *
    * @param pStatesOnPathTo the ARGStates on the Path
-   * @param root            the Beginning of the Path
+   * @param root the Beginning of the Path
    * @return a List with all found safe paths
    */
   private List<ARGPath> createPath(Collection<ARGState> pStatesOnPathTo, ARGState root) {
@@ -272,7 +274,6 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
           paths.add(targetPath);
           finished = true;
         }
-
       }
     }
     return paths;
@@ -281,7 +282,7 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
   /**
    * Makes sure that the children are a part of the Path
    *
-   * @param children  the Children of the node to be examined
+   * @param children the Children of the node to be examined
    * @param safeNodes the Safe Nodes on the Path
    * @return a List with the Children that are on the Path
    */
@@ -317,9 +318,7 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
   }
 
   @Override
-  public void collectStatistics(Collection<Statistics> statsCollection) {
-
-  }
+  public void collectStatistics(Collection<Statistics> statsCollection) {}
 
   private static class ExplainerAlgorithmStatistics extends MultiStatistics {
 
@@ -342,9 +341,7 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
     }
 
     @Override
-    public void printStatistics(
-        PrintStream out, Result result,
-        UnmodifiableReachedSet reached) {
+    public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
 
       out.println("Number of algorithms provided:    ");
       out.println("Number of algorithms used:        " + noOfAlgorithmsUsed);
@@ -358,5 +355,4 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
       super.printStatistics(out, result, reached);
     }
   }
-
 }
