@@ -121,6 +121,7 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
       logger.log(Level.WARNING, "EXCEPTION");
     }
 
+    assert secondAlg != null;
 
     currentReached = secondAlg.getThird();
 
@@ -195,21 +196,25 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
 
 
     // create a SOLVER for the 3rd Technique
-    Solver solver;
+    Solver solver = null;
     PredicateCPA cpa = null;
-    try {
-      cpa = CPAs.retrieveCPAOrFail(secondAlg.getSecond(), PredicateCPA.class,
-          ConfigurationException.class);
+    try(PredicateCPA cpa2 = CPAs.retrieveCPAOrFail(secondAlg.getSecond(), PredicateCPA.class,
+        ConfigurationException.class)) {
+      assert cpa2 != null;
+      solver = cpa2.getSolver();
     } catch (InvalidConfigurationException pE) {
       logger.log(Level.WARNING, "EXCEPTION");
     }
-    solver = cpa.getSolver();
+    assert solver != null;
     BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
 
     // Create Distance Metric No. 3
     AbstractDistanceMetric metric2 =
         new AbstractDistanceMetric(new DistanceCalculationHelper(bfmgr));
     closestSuccessfulExecution = metric2.startDistanceMetric(safePaths, targetPath);
+
+    cpa.close();
+    solver.close();
 
     if (closestSuccessfulExecution == null) {
       // EXECUTION COLLAPSED

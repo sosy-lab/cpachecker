@@ -49,8 +49,7 @@ public class ControlFLowDistanceMetric {
     this.distanceHelper = pDistanceCalculationHelper;
   }
 
-  List<CFAEdge> startDistanceMetric(List<ARGPath> safePaths, ARGPath counterexample)
-      throws SolverException, InterruptedException {
+  List<CFAEdge> startDistanceMetric(List<ARGPath> safePaths, ARGPath counterexample) {
     List<CFAEdge> ce = distanceHelper.cleanPath(counterexample);
     // find all Branches in Counterexample
     List<CFAEdge> branches_ce = findBranches(ce);
@@ -78,7 +77,7 @@ public class ControlFLowDistanceMetric {
     List<List<CFAEdge>> successfulGeneratedPath = pathGenerator(branches_ce, ce);
 
     // check the number of the successfulGeneratedPath
-    List<CFAEdge> finalGeneratedPath = null;
+    List<CFAEdge> finalGeneratedPath;
     if (successfulGeneratedPath == null) {
       finalGeneratedPath = null;
     } else if (successfulGeneratedPath.isEmpty()) {
@@ -87,6 +86,8 @@ public class ControlFLowDistanceMetric {
       finalGeneratedPath = successfulGeneratedPath.get(0);
     } else if (successfulGeneratedPath.size() > 1) {
       finalGeneratedPath = comparePaths(branches_ce, successfulGeneratedPath);
+    } else {
+      finalGeneratedPath = null;
     }
 
     return finalGeneratedPath;

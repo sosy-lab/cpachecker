@@ -24,6 +24,8 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
@@ -42,6 +44,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInvariantsUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.expressions.And;
@@ -55,6 +58,7 @@ import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
  * reachability analysis over the witness automaton. Subsequently, the invariants can be extracted
  * from the reached set.
  */
+@Options(prefix = "witness")
 public class WitnessInvariantsExtractor {
 
   private Configuration config;
@@ -63,6 +67,17 @@ public class WitnessInvariantsExtractor {
   private ShutdownNotifier shutdownNotifier;
   private ReachedSet reachedSet;
   private Specification automatonAsSpec;
+
+  @Option(
+      secure = true,
+      name = "debug.checkForMissedInvariants",
+      description =
+          "Fail-fast if invariants in the witness exist that would not be accounted for. "
+              + "There are cases where unaccounted invariants are perfectly fine, "
+              + "e.g. if those states in the witness automaton are actually unreachable in the program. "
+              + "This is however rarely the intention of the original producer of the witness, "
+              + "so this options can be used to debug those cases.")
+  private boolean checkForMissedInvariants = false;
 
   /**
    * Creates an instance of {@link WitnessInvariantsExtractor} and uses {@code pSpecification} and
@@ -87,6 +102,7 @@ public class WitnessInvariantsExtractor {
       Path pPathToWitnessFile)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     this.config = pConfig;
+    config.inject(this);
     this.logger = pLogger;
     this.cfa = pCFA;
     this.shutdownNotifier = pShutdownNotifier;
@@ -169,6 +185,9 @@ public class WitnessInvariantsExtractor {
       // Candidate collection was interrupted,
       // but instead of throwing the exception here,
       // let it be thrown by the invariant generator.
+    }
+    if (checkForMissedInvariants) {
+      AutomatonInvariantsUtils.checkForMissedInvariants(automatonAsSpec, reachedSet);
     }
   }
 
