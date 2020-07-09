@@ -357,7 +357,7 @@ ass_clause ::= ASS predicate:p SEMI {: RESULT = new AssumesClause(p); :};
 predicate ::= PRED_START TRUE                                       {: RESULT = ACSLPredicate.getTrue(); :}
         | PRED_START FALSE                                          {: RESULT = ACSLPredicate.getFalse(); :}
 	| predicate:p1 log_op:op predicate:p2                       {: RESULT = new ACSLLogicalPredicate(p1, p2, op); :}
-	| PRED_START term:t1 rel_op:op term:t2                      {: RESULT = new ACSLComparisonPredicate(t1, t2, op); :}
+	| PRED_START term:t1 rel_op:op term:t2                      {: RESULT = new ACSLComparisonPredicate(new ACSLBinaryTerm(t1, t2, op)); :}
 	| PRED_START NEG predicate:p                                {: RESULT = p.negate(); :} %prec NEG
 	| PRED_START LPAREN predicate:p RPAREN                      {: RESULT = p; :}
 	| predicate:p1 QUESTION predicate:p2 COLON predicate:p3     {: RESULT = new TernaryCondition(p1, p2, p3); :}

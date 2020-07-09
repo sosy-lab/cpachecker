@@ -51,7 +51,7 @@ public class ACSLToCExpressionVisitor {
   private final CFA cfa;
   private final LogManager logger;
 
-  private Map<ACSLTerm, CExpression> cache = new HashMap<>();
+  private final Map<ACSLTerm, CExpression> cache = new HashMap<>();
 
   public ACSLToCExpressionVisitor(CFA pCfa, LogManager pLogger) {
     cfa = pCfa;
@@ -96,6 +96,24 @@ public class ACSLToCExpressionVisitor {
           break;
         case RSHIFT:
           op = CBinaryExpression.BinaryOperator.SHIFT_RIGHT;
+          break;
+        case EQ:
+          op = CBinaryExpression.BinaryOperator.EQUALS;
+          break;
+        case NEQ:
+          op = CBinaryExpression.BinaryOperator.NOT_EQUALS;
+          break;
+        case LEQ:
+          op = CBinaryExpression.BinaryOperator.LESS_EQUAL;
+          break;
+        case GEQ:
+          op = CBinaryExpression.BinaryOperator.GREATER_EQUAL;
+          break;
+        case LT:
+          op = CBinaryExpression.BinaryOperator.LESS_THAN;
+          break;
+        case GT:
+          op = CBinaryExpression.BinaryOperator.GREATER_THAN;
           break;
         default:
           throw new AssertionError("Invalid operator: " + binaryTerm.getOperator());
@@ -211,35 +229,5 @@ public class ACSLToCExpressionVisitor {
       cache.put(stringLiteral, result);
     }
     return result;
-  }
-
-  public CExpression visit(ACSLComparisonPredicate pred) throws UnrecognizedCodeException {
-    CBinaryExpressionBuilder builder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
-    CExpression leftExpression = pred.getLeft().accept(this);
-    CExpression rightExpression = pred.getRight().accept(this);
-    CBinaryExpression.BinaryOperator op;
-    switch (pred.getOperator()) {
-      case EQ:
-        op = CBinaryExpression.BinaryOperator.EQUALS;
-        break;
-      case NEQ:
-        op = CBinaryExpression.BinaryOperator.NOT_EQUALS;
-        break;
-      case LEQ:
-        op = CBinaryExpression.BinaryOperator.LESS_EQUAL;
-        break;
-      case GEQ:
-        op = CBinaryExpression.BinaryOperator.GREATER_EQUAL;
-        break;
-      case LT:
-        op = CBinaryExpression.BinaryOperator.LESS_THAN;
-        break;
-      case GT:
-        op = CBinaryExpression.BinaryOperator.GREATER_THAN;
-        break;
-      default:
-        throw new AssertionError("Unknown comparison operator: " + pred.getOperator());
-    }
-    return builder.buildBinaryExpression(leftExpression, rightExpression, op);
   }
 }

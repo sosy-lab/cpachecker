@@ -10,6 +10,8 @@ public class ACSLBinaryTerm implements ACSLTerm {
   private final BinaryOperator operator;
 
   public ACSLBinaryTerm(ACSLTerm pLeft, ACSLTerm pRight, BinaryOperator op) {
+    assert !BinaryOperator.isLogicOperator(op)
+        : "Logic operations should be stored in ACSLPredicate.";
     switch (op) {
       case PLUS:
       case MINUS:
@@ -21,6 +23,12 @@ public class ACSLBinaryTerm implements ACSLTerm {
       case BAND:
       case BOR:
       case BXOR:
+      case EQ:
+      case NEQ:
+      case LEQ:
+      case GEQ:
+      case LT:
+      case GT:
         left = pLeft;
         right = pRight;
         operator = op;
@@ -36,7 +44,7 @@ public class ACSLBinaryTerm implements ACSLTerm {
         operator = BinaryOperator.BXOR;
         break;
       default:
-        throw new AssertionError("ACSLTerm should hold arithmetic or bitwise operation.");
+        throw new AssertionError("Unknown operator: " + op);
     }
   }
 
