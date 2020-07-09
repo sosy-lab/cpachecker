@@ -441,9 +441,9 @@ public class DependenceGraphBuilder implements StatisticsProvider {
       }
 
       Set<CFAEdge> noDomEdges = new HashSet<>();
-      for (int id = 0; id < domTree.getNodeCount() - 1; id++) { // all nodes except the root
-        if (!domTree.hasParent(id)) {
-          CFANode node = domTree.getNode(id);
+      for (CFANode node : cfa.getFunctionNodes(entryNode.getFunction().getQualifiedName())) {
+        int nodeId = domTree.getId(node);
+        if (nodeId == Dominance.UNDEFINED || !domTree.hasParent(nodeId)) {
           Iterables.addAll(noDomEdges, CFAUtils.allEnteringEdges(node));
           Iterables.addAll(noDomEdges, CFAUtils.allLeavingEdges(node));
         }
@@ -484,7 +484,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         }
       }
 
-      for (CFANode node : domTree) {
+      for (CFANode node : cfa.getFunctionNodes(entryNode.getFunction().getQualifiedName())) {
         for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
           if (!dependentEdges.contains(edge) && !ignoreFunctionEdge(edge)) {
             for (CFAEdge callEdge : callEdges) {
