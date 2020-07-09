@@ -471,35 +471,35 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         }
       }
 
-      controlDepCount += addFunctionCallControlDependences(entryNode, dependentEdges);
+      Set<CFAEdge> callEdges = new HashSet<>();
+      for (CFAEdge callEdge : CFAUtils.enteringEdges(entryNode)) {
+        if (callEdge instanceof CFunctionCallEdge) {
+          CFAEdge summaryEdge = ((CFunctionCallEdge) callEdge).getSummaryEdge();
+          callEdges.add(callEdge);
+          addDependence(
+              getDGNode(summaryEdge, Optional.empty()),
+              getDGNode(callEdge, Optional.empty()),
+              DependenceType.CONTROL);
+          controlDepCount++;
+        }
+      }
 
-      controlDependenceNumber.setNextValue(controlDepCount);
-    }
-  }
-
-  private int addFunctionCallControlDependences(
-      FunctionEntryNode pEntryNode, Set<CFAEdge> pDependentEdges) {
-    Collection<DGNode> functionCalls =
-        CFAUtils.enteringEdges(pEntryNode).transform(x -> getDGNode(x, Optional.empty())).toList();
-    assert CFAUtils.enteringEdges(pEntryNode).allMatch(x -> x instanceof CFunctionCallEdge);
-    int depCount = 0;
-    Set<CFANode> functionNodes =
-        CFATraversal.dfs().ignoreFunctionCalls().collectNodesReachableFrom(pEntryNode);
-    for (CFANode n : functionNodes) {
-      for (CFAEdge e : CFAUtils.leavingEdges(n)) {
-        Collection<DGNode> candidates = getDGNodes(e);
-        for (DGNode dgN : candidates) {
-          if (!pDependentEdges.contains(dgN.getCfaEdge())) {
-            for (DGNode nodeDependentOn : functionCalls) {
-              addDependence(nodeDependentOn, dgN, DependenceType.CONTROL);
-              depCount++;
+      for (CFANode node : domTree) {
+        for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
+          if (!dependentEdges.contains(edge) && !ignoreFunctionEdge(edge)) {
+            for (CFAEdge callEdge : callEdges) {
+              addDependence(
+                  getDGNode(callEdge, Optional.empty()),
+                  getDGNode(edge, Optional.empty()),
+                  DependenceType.CONTROL);
+              controlDepCount++;
             }
           }
         }
       }
-    }
 
-    return depCount;
+      controlDependenceNumber.setNextValue(controlDepCount);
+    }
   }
 
   @SuppressWarnings("unused") // old method for computing flow dependences
@@ -550,15 +550,6 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     DGNode unk = UnknownPointerNode.getInstance();
     nodes.getSpecialNodes().add(unk);
     return unk;
-  }
-
-  private Collection<DGNode> getDGNodes(final CFAEdge pCfaEdge) {
-    if (!nodes.containsANodeForEdge(pCfaEdge)) {
-      nodes
-          .getNodesForEdges()
-          .put(pCfaEdge, Optional.empty(), createNode(pCfaEdge, Optional.empty()));
-    }
-    return nodes.getNodesForEdges().row(pCfaEdge).values();
   }
 
   /**
