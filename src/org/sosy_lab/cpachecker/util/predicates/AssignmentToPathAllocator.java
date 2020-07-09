@@ -132,13 +132,8 @@ public class AssignmentToPathAllocator {
     while (pathIt.hasNext()) {
       shutdownNotifier.shutdownIfNecessary();
       CFAEdge cfaEdge = pathIt.getOutgoingEdge();
-
-      memory = new HashMap<>(memory);
-      variableEnvironment = new HashMap<>(variableEnvironment);
-      functionEnvironment = HashMultimap.create(functionEnvironment);
       ImmutableSet<ValueAssignment> terms =
           assignableTerms.getAssignableTermsAtPosition().get(ssaMapIndex);
-
       SSAMap ssaMap = pSSAMaps.get(ssaMapIndex);
 
       boolean isInsideMultiEdge;
