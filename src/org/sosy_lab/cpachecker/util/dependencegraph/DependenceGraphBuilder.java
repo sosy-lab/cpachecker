@@ -265,7 +265,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
   }
 
   private boolean ignoreFunctionEdge(CFAEdge pEdge) {
-    return !(pEdge instanceof CFunctionCallEdge) && !(pEdge instanceof CFunctionReturnEdge);
+    return pEdge instanceof CFunctionCallEdge || pEdge instanceof CFunctionReturnEdge;
   }
 
   private static List<CFAEdge> getGlobalDeclarationEdges(CFA pCfa) {
