@@ -244,6 +244,26 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         node -> !(node instanceof FunctionEntryNode));
   }
 
+  private static boolean dominates(
+      DomTree<CFANode> pDomTree, int pDominatingNodeId, int pDominatedNodeId) {
+
+    if (pDominatingNodeId == pDominatedNodeId) {
+      return true;
+    }
+
+    int node = pDominatedNodeId;
+    while (pDomTree.hasParent(node)) {
+
+      node = pDomTree.getParent(node);
+
+      if (node == pDominatingNodeId) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   private static List<CFAEdge> getGlobalDeclarationEdges(CFA pCfa) {
 
     CFANode node = pCfa.getMainFunction();
@@ -394,26 +414,29 @@ public class DependenceGraphBuilder implements StatisticsProvider {
       Set<CFAEdge> dependentEdges = new HashSet<>();
 
       for (CFANode dependentNode : domTree) {
+        int nodeId = domTree.getId(dependentNode);
         for (CFANode branchNode : frontiers.getFrontier(dependentNode)) {
-          // TODO: depend only on necessary leaving-edges of branching-node
           for (CFAEdge assumeEdge : CFAUtils.leavingEdges(branchNode)) {
-            for (CFAEdge dependentEdge : CFAUtils.allLeavingEdges(dependentNode)) {
+            int assumeNodeId = domTree.getId(assumeEdge.getSuccessor());
+            if (dominates(domTree, nodeId, assumeNodeId)) {
+              for (CFAEdge dependentEdge : CFAUtils.allLeavingEdges(dependentNode)) {
 
-              for (DGNode dependentDGN : getDGNodes(dependentEdge)) {
-                addDependence(
-                    getDGNode(assumeEdge, Optional.empty()), dependentDGN, DependenceType.CONTROL);
-                controlDepCount++;
-              }
+                for (DGNode dependentDGN : getDGNodes(dependentEdge)) {
+                  addDependence(
+                      getDGNode(assumeEdge, Optional.empty()),
+                      dependentDGN,
+                      DependenceType.CONTROL);
+                  controlDepCount++;
+                }
 
-              addDependence(
-                  getDGNode(assumeEdge, Optional.empty()),
-                  getDGNode(dependentEdge, Optional.empty()),
-                  DependenceType.CONTROL);
-              controlDepCount++;
-
-              // if not control-dependent on itself
-              if (!dependentNode.equals(branchNode)) {
-                    dependentEdges.add(dependentEdge);
+                if (!assumeEdge.equals(dependentEdge)) {
+                  addDependence(
+                      getDGNode(assumeEdge, Optional.empty()),
+                      getDGNode(dependentEdge, Optional.empty()),
+                      DependenceType.CONTROL);
+                  controlDepCount++;
+                  dependentEdges.add(dependentEdge);
+                }
               }
             }
           }
