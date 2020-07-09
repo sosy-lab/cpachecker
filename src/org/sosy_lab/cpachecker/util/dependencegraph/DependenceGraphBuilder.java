@@ -445,25 +445,31 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         }
       }
 
-      // for every node N that is not post-dominated by the exit node:
-      //   make all leaving edges of N depend on all assume edges in the function
-      for (int id = 0; id < domTree.getNodeCount(); id++) {
-        if (domTree.getParent(id) == Dominance.UNDEFINED) {
-          CFANode dependentNode = domTree.getNode(id);
-          if (!dependentNode.equals(entryNode.getExitNode())) {
-            for (CFANode otherNode : domTree) {
-              for (CFAEdge edge : CFAUtils.leavingEdges(otherNode)) {
-                if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
-                  for (CFAEdge dependentEdge : CFAUtils.allLeavingEdges(dependentNode)) {
-                    addDependence(
-                        getDGNode(edge, Optional.empty()),
-                        getDGNode(dependentEdge, Optional.empty()),
-                        DependenceType.CONTROL);
-                    controlDepCount++;
-                  }
-                }
-              }
-            }
+      Set<CFAEdge> noDomEdges = new HashSet<>();
+      for (int id = 0; id < domTree.getNodeCount() - 1; id++) { // all nodes except the root
+        if (!domTree.hasParent(id)) {
+          CFANode node = domTree.getNode(id);
+          Iterables.addAll(noDomEdges, CFAUtils.enteringEdges(node));
+          Iterables.addAll(noDomEdges, CFAUtils.leavingEdges(node));
+        }
+      }
+
+      Set<CFAEdge> noDomAssumes = new HashSet<>();
+      for (CFAEdge edge : noDomEdges) {
+        if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+          noDomAssumes.add(edge);
+        }
+      }
+
+      for (CFAEdge dependentEdge : noDomEdges) {
+        for (CFAEdge assumeEdge : noDomAssumes) {
+          if (!assumeEdge.equals(dependentEdge)) {
+            addDependence(
+                getDGNode(assumeEdge, Optional.empty()),
+                getDGNode(dependentEdge, Optional.empty()),
+                DependenceType.CONTROL);
+            controlDepCount++;
+            dependentEdges.add(dependentEdge);
           }
         }
       }
