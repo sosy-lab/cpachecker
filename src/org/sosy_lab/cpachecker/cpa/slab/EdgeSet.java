@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.slab;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -27,9 +28,9 @@ public class EdgeSet implements Serializable, Iterable<CFAEdge> {
   private Set<CFAEdge> edges;
   private CFAEdge selected;
 
-  public EdgeSet(Set<CFAEdge> edges) {
+  public EdgeSet(Collection<CFAEdge> edges) {
     checkArgument(!edges.isEmpty());
-    this.edges = edges;
+    this.edges = new LinkedHashSet<>(edges);
     this.selected = null;
   }
 
