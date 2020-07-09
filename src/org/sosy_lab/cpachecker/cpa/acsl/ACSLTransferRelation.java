@@ -30,7 +30,7 @@ import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotationLocations;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLAnnotation;
-import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLToCExpressionVisitor;
+import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLTermToCExpressionVisitor;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -39,10 +39,10 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 public class ACSLTransferRelation extends SingleEdgeTransferRelation {
 
   private CFAWithACSLAnnotationLocations cfa;
-  private ACSLToCExpressionVisitor visitor;
+  private ACSLTermToCExpressionVisitor visitor;
 
   public ACSLTransferRelation(
-      CFAWithACSLAnnotationLocations pCFA, ACSLToCExpressionVisitor pVisitor) {
+      CFAWithACSLAnnotationLocations pCFA, ACSLTermToCExpressionVisitor pVisitor) {
     cfa = pCFA;
     visitor = pVisitor;
   }

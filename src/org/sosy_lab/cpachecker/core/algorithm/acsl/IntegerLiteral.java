@@ -35,7 +35,7 @@ public class IntegerLiteral implements ACSLTerm {
   }
 
   @Override
-  public CExpression accept(ACSLToCExpressionVisitor visitor) throws UnrecognizedCodeException {
+  public CExpression accept(ACSLTermToCExpressionVisitor visitor) throws UnrecognizedCodeException {
     return visitor.visit(this);
   }
 

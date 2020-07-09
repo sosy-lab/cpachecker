@@ -33,7 +33,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLAnnotation;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLPredicate;
-import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLToCExpressionVisitor;
+import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLTermToCExpressionVisitor;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.FunctionContract;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
@@ -44,9 +44,9 @@ import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 public class ACSLState implements AbstractState, ExpressionTreeReportingState {
 
   private final ImmutableSet<ACSLAnnotation> annotations;
-  private final ACSLToCExpressionVisitor visitor;
+  private final ACSLTermToCExpressionVisitor visitor;
 
-  public ACSLState(Set<ACSLAnnotation> pAnnotations, ACSLToCExpressionVisitor pVisitor) {
+  public ACSLState(Set<ACSLAnnotation> pAnnotations, ACSLTermToCExpressionVisitor pVisitor) {
     annotations = ImmutableSet.copyOf(pAnnotations);
     visitor = pVisitor;
   }

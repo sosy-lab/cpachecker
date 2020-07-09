@@ -5,7 +5,7 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public interface ACSLTerm {
 
-  CExpression accept(ACSLToCExpressionVisitor visitor) throws UnrecognizedCodeException;
+  CExpression accept(ACSLTermToCExpressionVisitor visitor) throws UnrecognizedCodeException;
 
   /**
    * Returns a version of the term where each identifier is augmented with the ACSL builtin

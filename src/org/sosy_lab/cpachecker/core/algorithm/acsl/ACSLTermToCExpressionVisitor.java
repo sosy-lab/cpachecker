@@ -46,14 +46,14 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
-public class ACSLToCExpressionVisitor {
+public class ACSLTermToCExpressionVisitor {
 
   private final CFA cfa;
   private final LogManager logger;
 
   private final Map<ACSLTerm, CExpression> cache = new HashMap<>();
 
-  public ACSLToCExpressionVisitor(CFA pCfa, LogManager pLogger) {
+  public ACSLTermToCExpressionVisitor(CFA pCfa, LogManager pLogger) {
     cfa = pCfa;
     logger = pLogger;
   }

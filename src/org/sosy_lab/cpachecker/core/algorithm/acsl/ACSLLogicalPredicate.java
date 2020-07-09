@@ -118,7 +118,7 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
   }
 
   @Override
-  public ExpressionTree<Object> toExpressionTree(ACSLToCExpressionVisitor visitor) {
+  public ExpressionTree<Object> toExpressionTree(ACSLTermToCExpressionVisitor visitor) {
     ExpressionTree<Object> leftTree;
     ExpressionTree<Object> rightTree;
     switch (operator) {

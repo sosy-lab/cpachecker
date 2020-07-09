@@ -69,7 +69,7 @@ public abstract class ACSLPredicate {
    * @param visitor Visitor for converting terms to CExpressions.
    * @return An expression tree representation of the predicate.
    */
-  public abstract ExpressionTree<Object> toExpressionTree(ACSLToCExpressionVisitor visitor);
+  public abstract ExpressionTree<Object> toExpressionTree(ACSLTermToCExpressionVisitor visitor);
 
   /**
    * Returns a version of the predicate where each identifier is augmented with the ACSL builtin
@@ -116,7 +116,7 @@ public abstract class ACSLPredicate {
     }
 
     @Override
-    public ExpressionTree<Object> toExpressionTree(ACSLToCExpressionVisitor visitor) {
+    public ExpressionTree<Object> toExpressionTree(ACSLTermToCExpressionVisitor visitor) {
       return ExpressionTrees.getTrue();
     }
 
@@ -165,7 +165,7 @@ public abstract class ACSLPredicate {
     }
 
     @Override
-    public ExpressionTree<Object> toExpressionTree(ACSLToCExpressionVisitor visitor) {
+    public ExpressionTree<Object> toExpressionTree(ACSLTermToCExpressionVisitor visitor) {
       return ExpressionTrees.getFalse();
     }
 

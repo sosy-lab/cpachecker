@@ -31,7 +31,7 @@ import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotationLocations;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLAnnotation;
-import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLToCExpressionVisitor;
+import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLTermToCExpressionVisitor;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -47,7 +47,7 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
 
   private CFAWithACSLAnnotationLocations cfa;
   private LogManager logger;
-  private ACSLToCExpressionVisitor visitor;
+  private ACSLTermToCExpressionVisitor visitor;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ACSLCPA.class);
@@ -61,7 +61,7 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
       throw new AssertionError("No annotations in CFA");
     }
     logger = pLogManager;
-    visitor = new ACSLToCExpressionVisitor(cfa, logger);
+    visitor = new ACSLTermToCExpressionVisitor(cfa, logger);
   }
 
   @Override

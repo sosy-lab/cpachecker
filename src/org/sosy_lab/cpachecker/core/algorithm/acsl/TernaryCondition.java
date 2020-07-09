@@ -61,7 +61,7 @@ public class TernaryCondition extends ACSLPredicate {
   }
 
   @Override
-  public ExpressionTree<Object> toExpressionTree(ACSLToCExpressionVisitor visitor) {
+  public ExpressionTree<Object> toExpressionTree(ACSLTermToCExpressionVisitor visitor) {
     if (isNegated()) {
       ExpressionTree<Object> left =
           Or.of(

@@ -5,15 +5,15 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 
-public class ACSLComparisonPredicate extends ACSLPredicate {
+public class ACSLSimplePredicate extends ACSLPredicate {
 
   private final ACSLTerm term;
 
-  public ACSLComparisonPredicate(ACSLTerm pTerm) {
+  public ACSLSimplePredicate(ACSLTerm pTerm) {
     this(pTerm, false);
   }
 
-  public ACSLComparisonPredicate(ACSLTerm pTerm, boolean negated) {
+  public ACSLSimplePredicate(ACSLTerm pTerm, boolean negated) {
     super(negated);
     Preconditions.checkArgument(
         pTerm instanceof ACSLBinaryTerm
@@ -32,7 +32,7 @@ public class ACSLComparisonPredicate extends ACSLPredicate {
 
   @Override
   public ACSLPredicate negate() {
-    return new ACSLComparisonPredicate(term, !isNegated());
+    return new ACSLSimplePredicate(term, !isNegated());
   }
 
   @Override
@@ -42,8 +42,8 @@ public class ACSLComparisonPredicate extends ACSLPredicate {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ACSLComparisonPredicate) {
-      ACSLComparisonPredicate other = (ACSLComparisonPredicate) o;
+    if (o instanceof ACSLSimplePredicate) {
+      ACSLSimplePredicate other = (ACSLSimplePredicate) o;
       return super.equals(o) && term.equals(other.term);
     }
     return false;
@@ -60,7 +60,7 @@ public class ACSLComparisonPredicate extends ACSLPredicate {
   }
 
   @Override
-  public ExpressionTree<Object> toExpressionTree(ACSLToCExpressionVisitor visitor) {
+  public ExpressionTree<Object> toExpressionTree(ACSLTermToCExpressionVisitor visitor) {
     try {
       return LeafExpression.of(term.accept(visitor), !isNegated());
     } catch (UnrecognizedCodeException pE) {
@@ -74,6 +74,6 @@ public class ACSLComparisonPredicate extends ACSLPredicate {
 
   @Override
   public ACSLPredicate useOldValues() {
-    return new ACSLComparisonPredicate(term.useOldValues(), isNegated());
+    return new ACSLSimplePredicate(term.useOldValues(), isNegated());
   }
 }
