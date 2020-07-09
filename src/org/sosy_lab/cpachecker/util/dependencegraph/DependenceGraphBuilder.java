@@ -384,11 +384,13 @@ public class DependenceGraphBuilder implements StatisticsProvider {
             flowDepCount.value++;
           };
 
+      boolean isMain = entryNode.equals(cfa.getMainFunction());
+
       new FlowDepAnalysis(
               domTree,
               Dominance.createDomFrontiers(domTree),
               entryNode,
-              globalEdges,
+              isMain ? ImmutableList.of() : globalEdges,
               pointerState,
               foreignDefUseData,
               declarationEdges,
