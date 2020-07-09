@@ -82,7 +82,8 @@ parser code {:
      * @param currentFile Name of the file the annotations of which should be handled.
      */
     private static void adjustAnnotationLocations(CFAWithACSLAnnotationLocations cfaWithLocs, String currentFile) {
-      for (CFAEdge key : cfaWithLocs.getEdgesToAnnotations().keySet()) {
+      ImmutableList<CFAEdge> keys = ImmutableList.copyOf(cfaWithLocs.getEdgesToAnnotations().keySet());
+      for (CFAEdge key : keys) {
         if (key.getFileLocation().getFileName().equals(currentFile)) {
           Collection<ACSLAnnotation> currentAnnotations = cfaWithLocs.getEdgesToAnnotations().get(key);
           List<ACSLAnnotation> toRemove = new ArrayList<>();
