@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.refiner;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
 import java.io.PrintStream;
@@ -347,7 +348,7 @@ public class SymbolicValueAnalysisRefiner
       Set<Entry<MemoryLocation, ValueAndType>> newAssignees =
           new HashSet<>(nextVals.getConstants());
       newAssignees.removeAll(oldVals.getConstants());
-      Collection<AExpressionStatement> assumptions = new ArrayList<>(1);
+      ImmutableList.Builder<AExpressionStatement> assumptions = ImmutableList.builder();
       for (Entry<MemoryLocation, ValueAndType> e : newAssignees) {
         Value v = e.getValue().getValue();
         CType t = (CType) e.getValue().getType();
@@ -378,7 +379,7 @@ public class SymbolicValueAnalysisRefiner
         symbolicInfo.append(System.lineSeparator());
       }
       CFAEdgeWithAssumptions edgeWithAssumption =
-          new CFAEdgeWithAssumptions(p.getSecond().get(0), assumptions, "");
+          new CFAEdgeWithAssumptions(p.getSecond().get(0), assumptions.build(), "");
       symbolicInfo.append(edgeWithAssumption.prettyPrintCode(1));
       currentState = nextState;
     }
