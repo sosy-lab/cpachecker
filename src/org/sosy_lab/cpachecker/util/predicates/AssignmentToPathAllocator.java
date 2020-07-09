@@ -10,19 +10,20 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
@@ -111,18 +112,14 @@ public class AssignmentToPathAllocator {
         ImmutableList.builderWithExpectedSize(pPath.getInnerEdges().size());
     ImmutableMap<LeftHandSide, Address> addressOfVariables = getVariableAddresses(assignableTerms);
 
-    /* Its too inefficient to recreate every assignment from scratch,
-       but the ssaIndex of the Assignable Terms are needed, thats
-       why we declare two maps of variables and functions. One for
-       the calculation of the SSAIndex, the other to save the references
-       to the objects we want to store in the concrete State, so we can avoid
-       recreating those objects */
-
-    Map<String, ValueAssignment> variableEnvironment = new HashMap<>();
-    Map<LeftHandSide, Object> variables = new HashMap<>();
-    Multimap<String, ValueAssignment> functionEnvironment = HashMultimap.create();
-    //TODO Persistent Map
-    Map<String, Map<Address, Object>> memory = new HashMap<>();
+    // Its too inefficient to recreate every assignment from scratch, but the ssaIndex of the
+    // Assignable Terms are needed, thats why we declare two maps of variables and functions. One
+    // for the calculation of the SSAIndex, the other to save the references to the objects we want
+    // to store in the concrete State, so we can avoid recreating those objects
+    final Map<String, ValueAssignment> variableEnvironment = new LinkedHashMap<>();
+    final Map<LeftHandSide, Object> variables = new LinkedHashMap<>();
+    final SetMultimap<String, ValueAssignment> functionEnvironment = LinkedHashMultimap.create();
+    final Map<String, Map<Address, Object>> memory = new LinkedHashMap<>();
 
     int ssaMapIndex = 0;
 
@@ -480,13 +477,12 @@ public class AssignmentToPathAllocator {
   }
   private void addHeapValue(Map<String, Map<Address, Object>> memory, ValueAssignment pFunctionAssignment) {
     String heapName = getName(pFunctionAssignment);
-    Map<Address, Object> heap;
 
-    if (!memory.containsKey(heapName)) {
-      memory.put(heapName, new HashMap<>());
+    Map<Address, Object> heap = memory.get(heapName);
+    if (heap == null) {
+      heap = new LinkedHashMap<>();
+      memory.put(heapName, heap);
     }
-
-    heap = memory.get(heapName);
 
     Address address =
         Address.valueOf(Iterables.getOnlyElement(pFunctionAssignment.getArgumentsInterpretation()));
