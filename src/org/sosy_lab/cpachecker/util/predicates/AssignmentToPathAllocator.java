@@ -150,16 +150,14 @@ public class AssignmentToPathAllocator {
         isInsideMultiEdge = false;
       }
 
+      createAssignments(terms, variableEnvironment, variables, functionEnvironment, memory);
+      removeDeallocatedVariables(ssaMap, variableEnvironment, variables);
+      ImmutableMap<String, Memory> allocatedMemory =
+          ImmutableMap.copyOf(
+              Maps.transformEntries(memory, (name, heap) -> new Memory(name, heap)));
+
       ConcreteState concreteState =
-          createConcreteState(
-              ssaMap,
-              variableEnvironment,
-              variables,
-              functionEnvironment,
-              memory,
-              addressOfVariables,
-              terms,
-              evaluator);
+          new ConcreteState(variables, allocatedMemory, addressOfVariables, memoryName, evaluator);
 
       final SingleConcreteState singleConcreteState;
       if (isInsideMultiEdge) {
@@ -358,30 +356,6 @@ public class AssignmentToPathAllocator {
 
       return Value.UnknownValue.getInstance();
     }
-  }
-
-  private ConcreteState createConcreteState(
-      SSAMap ssaMap,
-      Map<String, ValueAssignment> variableEnvironment,
-      Map<LeftHandSide, Object> variables,
-      Multimap<String, ValueAssignment> functionEnvironment,
-      Map<String, Map<Address, Object>> memory,
-      Map<LeftHandSide, Address> addressOfVariables,
-      Collection<ValueAssignment> terms,
-      ConcreteExpressionEvaluator pEvaluator) {
-
-    createAssignments(terms, variableEnvironment, variables, functionEnvironment, memory);
-    removeDeallocatedVariables(ssaMap, variableEnvironment, variables);
-    Map<String, Memory> allocatedMemory = createAllocatedMemory(memory);
-
-    return new ConcreteState(
-        variables, allocatedMemory, addressOfVariables, memoryName, pEvaluator);
-  }
-
-  private Map<String, Memory> createAllocatedMemory(Map<String, Map<Address, Object>> pMemory) {
-
-    return ImmutableMap.copyOf(
-        Maps.transformEntries(pMemory, (name, heap) -> new Memory(name, heap)));
   }
 
   private LeftHandSide createLeftHandSide(String pTermName) {
