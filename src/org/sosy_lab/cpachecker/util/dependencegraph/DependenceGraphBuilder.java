@@ -264,6 +264,10 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     return false;
   }
 
+  private boolean ignoreFunctionEdge(CFAEdge pEdge) {
+    return !(pEdge instanceof CFunctionCallEdge) && !(pEdge instanceof CFunctionReturnEdge);
+  }
+
   private static List<CFAEdge> getGlobalDeclarationEdges(CFA pCfa) {
 
     CFANode node = pCfa.getMainFunction();
@@ -422,16 +426,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
             int assumeNodeId = domTree.getId(assumeEdge.getSuccessor());
             if (dominates(domTree, nodeId, assumeNodeId)) {
               for (CFAEdge dependentEdge : CFAUtils.allLeavingEdges(dependentNode)) {
-
-                for (DGNode dependentDGN : getDGNodes(dependentEdge)) {
-                  addDependence(
-                      getDGNode(assumeEdge, Optional.empty()),
-                      dependentDGN,
-                      DependenceType.CONTROL);
-                  controlDepCount++;
-                }
-
-                if (!assumeEdge.equals(dependentEdge)) {
+                if (!ignoreFunctionEdge(dependentEdge) && !assumeEdge.equals(dependentEdge)) {
                   addDependence(
                       getDGNode(assumeEdge, Optional.empty()),
                       getDGNode(dependentEdge, Optional.empty()),
@@ -449,8 +444,8 @@ public class DependenceGraphBuilder implements StatisticsProvider {
       for (int id = 0; id < domTree.getNodeCount() - 1; id++) { // all nodes except the root
         if (!domTree.hasParent(id)) {
           CFANode node = domTree.getNode(id);
-          Iterables.addAll(noDomEdges, CFAUtils.enteringEdges(node));
-          Iterables.addAll(noDomEdges, CFAUtils.leavingEdges(node));
+          Iterables.addAll(noDomEdges, CFAUtils.allEnteringEdges(node));
+          Iterables.addAll(noDomEdges, CFAUtils.allLeavingEdges(node));
         }
       }
 
@@ -462,14 +457,16 @@ public class DependenceGraphBuilder implements StatisticsProvider {
       }
 
       for (CFAEdge dependentEdge : noDomEdges) {
-        for (CFAEdge assumeEdge : noDomAssumes) {
-          if (!assumeEdge.equals(dependentEdge)) {
-            addDependence(
-                getDGNode(assumeEdge, Optional.empty()),
-                getDGNode(dependentEdge, Optional.empty()),
-                DependenceType.CONTROL);
-            controlDepCount++;
-            dependentEdges.add(dependentEdge);
+        if (!ignoreFunctionEdge(dependentEdge)) {
+          for (CFAEdge assumeEdge : noDomAssumes) {
+            if (!assumeEdge.equals(dependentEdge)) {
+              addDependence(
+                  getDGNode(assumeEdge, Optional.empty()),
+                  getDGNode(dependentEdge, Optional.empty()),
+                  DependenceType.CONTROL);
+              controlDepCount++;
+              dependentEdges.add(dependentEdge);
+            }
           }
         }
       }
