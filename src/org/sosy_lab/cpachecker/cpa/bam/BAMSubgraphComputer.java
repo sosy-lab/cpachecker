@@ -250,7 +250,7 @@ public class BAMSubgraphComputer {
       reachedSets.put(reachedSet, newBackwardTarget);
     }
 
-    for (final ReachedSet reachedSet : reachedSets.asMap().keySet()) {
+    for (final ReachedSet reachedSet : reachedSets.keySet()) {
       final BackwardARGState newInnerRoot;
       try {
         newInnerRoot =

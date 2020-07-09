@@ -75,9 +75,7 @@ public class SLABTransferRelation implements TransferRelation {
   private static EdgeSet makeTotalTransitionEdgeSet(CFA pCfa) {
     ImmutableSet.Builder<CFAEdge> edges = new ImmutableSet.Builder<>();
     for (CFANode node : pCfa.getAllNodes()) {
-      for (CFAEdge leaving : CFAUtils.leavingEdges(node)) {
-        edges.add(leaving);
-      }
+      edges.addAll(CFAUtils.leavingEdges(node));
     }
     return new EdgeSet(edges.build());
   }
