@@ -13,7 +13,6 @@ import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -261,13 +260,13 @@ public class SLARGState extends ARGState
     // expects there to be some location information for determining the right CFAEdge)
     ImmutableSet.Builder<CFANode> locations = ImmutableSet.builder();
     for (EdgeSet value : parentsToEdgeSets.values()) {
-      for (Iterator<CFAEdge> it = value.iterator(); it.hasNext(); ) {
-        locations.add(it.next().getSuccessor());
+      for (CFAEdge edge : value) {
+        locations.add(edge.getSuccessor());
       }
     }
     for (EdgeSet value : childrenToEdgeSets.values()) {
-      for (Iterator<CFAEdge> it = value.iterator(); it.hasNext(); ) {
-        locations.add(it.next().getPredecessor());
+      for (CFAEdge edge : value) {
+        locations.add(edge.getPredecessor());
       }
     }
     return locations.build();

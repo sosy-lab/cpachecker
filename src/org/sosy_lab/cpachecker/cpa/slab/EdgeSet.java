@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
  * Represents a set of @link {@link CFAEdge}s where one of the elements can be marked for later
  * retrieval.
  */
-public class EdgeSet implements Serializable {
+public class EdgeSet implements Serializable, Iterable<CFAEdge> {
 
   private static final long serialVersionUID = 1L;
 
@@ -38,9 +38,8 @@ public class EdgeSet implements Serializable {
     this.edges = new LinkedHashSet<>(other.edges);
   }
 
-  /**
-   *  Returns an iterator over the edges in the set.
-   */
+  /** Returns an iterator over the edges in the set. */
+  @Override
   public Iterator<CFAEdge> iterator() {
     return edges.iterator();
   }
