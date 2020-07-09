@@ -33,8 +33,17 @@ public class TernaryCondition extends ACSLPredicate {
 
   @Override
   public ACSLPredicate simplify() {
-    return new TernaryCondition(
-        condition.simplify(), then.simplify(), otherwise.simplify(), isNegated());
+    ACSLPredicate simpleCondition = condition.simplify();
+    ACSLPredicate simpleThen = then.simplify();
+    ACSLPredicate simpleOtherwise = otherwise.simplify();
+    if (simpleCondition.equals(getTrue())) {
+      return simpleThen;
+    } else if (simpleCondition.equals(getFalse())) {
+      return simpleOtherwise;
+    } else if (simpleThen.equals(simpleOtherwise)) {
+      return simpleThen;
+    }
+    return new TernaryCondition(simpleCondition, simpleThen, simpleOtherwise, isNegated());
   }
 
   @Override
