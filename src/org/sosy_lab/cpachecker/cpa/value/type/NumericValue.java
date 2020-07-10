@@ -104,7 +104,7 @@ public class NumericValue implements Value, Serializable {
     if (number instanceof Rational) {
       return new NumericValue(number).bigDecimalValue().toBigInteger();
     }
-    return new BigInteger(number + "");
+    return new BigInteger(number.toString());
   }
 
   @Override
