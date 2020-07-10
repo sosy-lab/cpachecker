@@ -149,16 +149,13 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     List<BooleanFormula> invariantFormulas = new ArrayList<>();
 
     for (CFANode loc : locations) {
-      BooleanFormula invariant;
       if (this.invariants.appendToPathFormula()) {
-        invariant =
+        BooleanFormula invariant =
             fmgr.instantiate(
                 this.invariants.getInvariantFor(loc, callstackWrapper, fmgr, pathFormulaManager, pathFormula),
                 pathFormula.getSsa());
-      } else {
-        invariant = fmgr.getBooleanFormulaManager().makeTrue();
+        invariantFormulas.add(invariant);
       }
-      invariantFormulas.add(invariant);
     }
 
     // we don't want to add trivially true invariants
