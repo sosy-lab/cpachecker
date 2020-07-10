@@ -5,14 +5,13 @@
 // SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
-package org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure;
+package org.sosy_lab.cpachecker.core.algorithm.tarantula;
 
 import static com.google.common.collect.FluentIterable.from;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaUtils;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
