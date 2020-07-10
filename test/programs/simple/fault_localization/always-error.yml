@@ -1,5 +1,5 @@
 format_version: '1.0'
-input_files: 'primefactors_false-unreach.c'
+input_files: 'always-error.c'
 
 properties:
   - property_file: ../../../../config/properties/unreach-label.prp

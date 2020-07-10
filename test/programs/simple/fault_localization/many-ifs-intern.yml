@@ -1,5 +1,5 @@
 format_version: '1.0'
-input_files: 'mss_false-unreach.c'
+input_files: 'many-ifs-intern.c'
 
 properties:
   - property_file: ../../../../config/properties/unreach-label.prp

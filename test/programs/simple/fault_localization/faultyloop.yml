@@ -1,5 +1,5 @@
 format_version: '1.0'
-input_files: 'index-calculation_false-unreach.c'
+input_files: 'faultyloop.c'
 
 properties:
   - property_file: ../../../../config/properties/unreach-label.prp

@@ -1,5 +1,5 @@
 format_version: '1.0'
-input_files: 'interval_false-unreach.c'
+input_files: 'intro-02_false.c'
 
 properties:
   - property_file: ../../../../config/properties/unreach-label.prp

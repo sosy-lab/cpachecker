@@ -1,5 +1,5 @@
 format_version: '1.0'
-input_files: 'factorization_false-unreach.c'
+input_files: 'many-ifs-extern.c'
 
 properties:
   - property_file: ../../../../config/properties/unreach-label.prp
