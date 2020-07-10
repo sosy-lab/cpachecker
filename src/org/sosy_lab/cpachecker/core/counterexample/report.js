@@ -1,3 +1,12 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2018 Lokesh Nandanwar
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /* Refer to the doc/ReportTemplateStyleGuide.md for Coding and Style Guide. They will let you write better code
 with considerably less effort */
 
@@ -12,9 +21,14 @@ with considerably less effort */
 		$(document).on('hover', '[data-toggle=tooltip]', function () {
 			$(this).tooltip('show');
 		});
+
 		// hide tooltip after 5 seconds
+		var timeout;
 		$(document).on('shown.bs.tooltip', function (e) {
-			setTimeout(function () {
+			if (timeout) {
+				clearTimeout(timeout)
+			}
+			timeout = setTimeout(function () {
 				$(e.target).tooltip('hide');
 			}, 5000);
 		});
@@ -29,21 +43,21 @@ with considerably less effort */
 				],
 				iDisplayLength: -1, //Default display all entries
 				"columnDefs": [{
-						"orderable": false, //No ordering 
+						"orderable": false, //No ordering
 						"targets": 0,
 					}, {
 						"orderable": false, //No Ordering
 						"targets": 1,
 					},
 					{
-						"orderable": false, //No ordering 
+						"orderable": false, //No ordering
 						"targets": 2,
 					},
 				]
 			});
 		});
 
-		// Initialize Google pretiffy code 
+		// Initialize Google pretiffy code
 		$(document).ready(function () {
 			PR.prettyPrint();
 		});
@@ -288,20 +302,6 @@ with considerably less effort */
 			return Object.values(lines);
 		};
 
-		// make faults visible to angular
-		$rootScope.faults = [];
-		if (cfaJson.faults !== undefined) {
-			for (var i = 0; i < cfaJson.faults.length; i++) {
-				var fault = cfaJson.faults[i];
-				var fInfo = Object.assign({}, fault);
-				// store all error-path elements related to this fault.
-				// we can't do  this in the Java backend because
-				// we can't be sure to have the full error-path elements in the FaultLocalizationInfo
-				// when the faults-code is generated.
-				$rootScope.faults.push(fInfo);
-			}
-		}
-
 		function getValues(val, prevValDict) {
 			var values = {};
 			if (val != "") {
@@ -359,8 +359,8 @@ with considerably less effort */
 
 				if (errPathElem.faults !== undefined && errPathElem.faults.length > 0) {
 					errPathElem["importantindex"] = importantIndex;
-					errPathElem["bestrank"] = $rootScope.faults[errPathElem.faults[0]].rank;
-					errPathElem["bestreason"] = $rootScope.faults[errPathElem.faults[0]].reason;
+					errPathElem["bestrank"] = cfaJson.faults[errPathElem.faults[0]].rank;
+					errPathElem["bestreason"] = cfaJson.faults[errPathElem.faults[0]].reason;
 					if (errPathElem["additional"] !== undefined && errPathElem["additional"] !== "") {
 						errPathElem["bestreason"] = errPathElem["bestreason"] + errPathElem["additional"];
 					}
@@ -1024,7 +1024,7 @@ function init() {
 	// Display modal window containing current rendering state
 	$("#renderStateModal").modal("show");
 
-	// Setup section widths accordingly 
+	// Setup section widths accordingly
 	if (errorPath === undefined) {
 		d3.select("#errorpath_section").style("display", "none");
 		$("#toggle_button_error_path").hide();
@@ -1596,7 +1596,7 @@ function init() {
 				}
 			}
 
-			// After the initial ARG graph has been send to the master script, prepare ARG containing only error path		
+			// After the initial ARG graph has been send to the master script, prepare ARG containing only error path
 			function prepareErrorGraph() {
 				var errorNodes = [],
 					errorEdges = [];
@@ -1867,7 +1867,7 @@ function init() {
 					return "arg-error-node" + node.index;
 			}
 
-			// Set the graph edges 
+			// Set the graph edges
 			function setGraphEdges(graph, edgesToSet, multigraph) {
 				edgesToSet.forEach(function (e) {
 					if (!multigraph || (graph.nodes().includes("" + e.source) && graph.nodes().includes("" + e.target))) {
@@ -1902,7 +1902,7 @@ function init() {
 
 	// ======================= Create CFA and ARG Worker Listeners =======================
 	/**
-	 * Create workers using blobs due to Chrome's default security policy and 
+	 * Create workers using blobs due to Chrome's default security policy and
 	 * the need of having a single file at the end that can be send i.e. via e-mail
 	 */
 	cfaWorker = new Worker(URL.createObjectURL(new Blob(["(" + cfaWorker_function + ")()"], {
@@ -2054,10 +2054,10 @@ function init() {
 		});
 	}
 
-	// Function to get transfromation thorugh translate as in new version of D3.js d3.transfrom is removed 
+	// Function to get transfromation thorugh translate as in new version of D3.js d3.transfrom is removed
 	function getTransformation(transform) {
 		// Create a dummy g for calculation purposes only. This will never
-		// be appended to the DOM and will be discarded once this function 
+		// be appended to the DOM and will be discarded once this function
 		// returns.
 		var g = document.createElementNS("http://www.w3.org/2000/svg", "g");
 
@@ -2066,7 +2066,7 @@ function init() {
 
 		// consolidate the SVGTransformList containing all transformations
 		// to a single SVGTransform of type SVG_TRANSFORM_MATRIX and get
-		// its SVGMatrix. 
+		// its SVGMatrix.
 		var matrix = g.transform.baseVal.consolidate().matrix;
 
 		// Below calculations are taken and adapted from the private function

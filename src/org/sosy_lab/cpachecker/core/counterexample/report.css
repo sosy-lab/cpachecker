@@ -1,3 +1,14 @@
+/*
+ * This file is part of CPAchecker,
+ * a tool for configurable software verification:
+ * https://cpachecker.sosy-lab.org
+ *
+ * SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+ * SPDX-FileCopyrightText: 2018 Lokesh Nandanwar
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 /* Refer to the doc/ReportTemplateStyleGuide.md for Coding and Style Guide. They will let you write better code
 with considerably less effort */
 
@@ -268,30 +279,6 @@ input:checked+.slider:before {
 
 #err-table tr.clickedErrPathElement {
 	outline: #df80ff solid 2px;
-}
-
-#fault-values table {
-	border-collapse: collapse;
-	table-layout: fixed ;
-	width: 100%;
-}
-  
-#fault-values td {
-	width: 50%;
-	text-align: left;
-	padding: 8px;
-}
-  
-#fault-values tr:nth-child(even){background-color: #f2f2f2}
-  
-#fault-values tr:first-child {
-	background-color: #4CAF50;
-	color: white;
-}
-
-#fault-values tr:first-child td {
-	text-align: center;
-	font-weight: 600;
 }
 
 .rank {

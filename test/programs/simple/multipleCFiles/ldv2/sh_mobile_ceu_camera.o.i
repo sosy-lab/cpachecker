@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: The Linux kernel authors
+//
+// SPDX-License-Identifier: GPL-2.0-only
+
 # 1 "/home/alpha/work/work/current--X--drivers/media/platform/soc_camera/sh_mobile_ceu_camera.ko--X--defaultlinux-3.15.6.tar.xz--X--104_1a--X--cpachecker/linux-3.15.6.tar.xz/csd_deg_dscv/12/dscv_tempdir/dscv/ri/104_1a/drivers/media/platform/soc_camera/sh_mobile_ceu_camera.o.c"
 # 1 "<command-line>"
 # 1 "/home/alpha/work/work/current--X--drivers/media/platform/soc_camera/sh_mobile_ceu_camera.ko--X--defaultlinux-3.15.6.tar.xz--X--104_1a--X--cpachecker/linux-3.15.6.tar.xz/csd_deg_dscv/12/dscv_tempdir/dscv/ri/104_1a/drivers/media/platform/soc_camera/sh_mobile_ceu_camera.o.c"

@@ -1,3 +1,12 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import com.google.common.collect.Collections2;
@@ -40,7 +49,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 @Options(prefix="cpa.lpi")
 public class StateFormulaConversionManager {
 
-  @Option(description="Remove redundant items when abstract values.")
+  @Option(secure = true, description = "Remove redundant items when abstract values.")
   private boolean simplifyDotOutput = false;
 
   private final FormulaManagerView fmgr;
@@ -146,13 +155,9 @@ public class StateFormulaConversionManager {
         fmgr, state.getBackpointerState(), true));
   }
 
-  /**
-   * @return Representation of an {@code abstractState} as a
-   * {@link PolicyIntermediateState}.
-   */
+  /** Return representation of an {@code abstractState} as a {@link PolicyIntermediateState}. */
   PolicyIntermediateState abstractStateToIntermediate(
-      PolicyAbstractedState abstractState,
-      boolean attachExtraInvariant) {
+      PolicyAbstractedState abstractState, boolean attachExtraInvariant) {
     CFANode node = abstractState.getNode();
     PathFormula generatingFormula = getPathFormula(abstractState,
         fmgr, attachExtraInvariant
@@ -162,9 +167,10 @@ public class StateFormulaConversionManager {
   }
 
   /**
+   * Return starting {@code PathFormula} associated with {@code abstractState}. Does not include the
+   * constraints.
+   *
    * @param attachExtraInvariant Whether the extra invariant should be attached.
-   * @return Starting {@code PathFormula} associated with {@code abstractState}. Does not include
-   *     the constraints.
    */
   PathFormula getPathFormula(
       PolicyAbstractedState abstractState,

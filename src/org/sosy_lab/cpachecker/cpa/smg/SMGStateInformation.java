@@ -1,55 +1,41 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2015  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdgeSet;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 
 public class SMGStateInformation {
 
   private static final SMGStateInformation EMPTY = new SMGStateInformation();
 
-  private final ImmutableSet<SMGEdgeHasValue> hvEdges;
+  private final SMGHasValueEdges hvEdges;
   private final ImmutableSet<SMGEdgePointsTo> ptEdges;
   private final boolean valid;
   private final boolean external;
 
   private SMGStateInformation() {
-    hvEdges = ImmutableSet.of();
+    hvEdges = new SMGHasValueEdgeSet();
     ptEdges = ImmutableSet.of();
     valid = false;
     external = false;
   }
 
   private SMGStateInformation(
-      Set<SMGEdgeHasValue> pHves,
+      SMGHasValueEdges pHves,
       Set<SMGEdgePointsTo> pPtes,
       boolean pIsRegionValid,
       boolean pIsRegionExternallyAllocated) {
-    hvEdges = ImmutableSet.copyOf(pHves);
+    hvEdges = pHves;
     ptEdges = ImmutableSet.copyOf(pPtes);
     valid = pIsRegionValid;
     external = pIsRegionExternallyAllocated;
@@ -63,7 +49,7 @@ public class SMGStateInformation {
     return ptEdges;
   }
 
-  public ImmutableSet<SMGEdgeHasValue> getHvEdges() {
+  public SMGHasValueEdges getHvEdges() {
     return hvEdges;
   }
 
@@ -81,7 +67,7 @@ public class SMGStateInformation {
   }
 
   public static SMGStateInformation of(
-      Set<SMGEdgeHasValue> pHves,
+      SMGHasValueEdges pHves,
       Set<SMGEdgePointsTo> ptes,
       boolean pIsRegionValid,
       boolean pIsRegionExternallyAllocated) {

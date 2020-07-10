@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2014 Matt Lewis
+//
+// SPDX-License-Identifier: BSD-2-Clause
+
 extern void __VERIFIER_error() __attribute__ ((__noreturn__));
 extern unsigned int __VERIFIER_nondet_uint(void);
 void __VERIFIER_assert(int cond) {
