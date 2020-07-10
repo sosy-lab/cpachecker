@@ -123,6 +123,10 @@ public class TraceFormula {
     public boolean isReduceSelectors() {
       return reduceSelectors;
     }
+
+    public void setReduceSelectors(boolean pB) {
+      reduceSelectors = pB;
+    }
   }
 
   /**

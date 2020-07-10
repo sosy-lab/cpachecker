@@ -10,7 +10,7 @@ int main(){
 	}
 	
 	//POST-CONDITION
-	if ( b >= a ) {
+	if ( 5 >= a ) {
 		goto ERROR;
 	}
 
