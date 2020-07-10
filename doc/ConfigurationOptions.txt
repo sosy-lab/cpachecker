@@ -3277,6 +3277,12 @@ heuristicSelection.recursionConfig = no default value
 # toggle checking existence of covered states in ARG
 imc.checkExistenceOfCoveredStates = false
 
+# toggle checking existence of target states in ARG
+imc.checkExistenceOfTargetStates = false
+
+# toggle sanity check of collected formulas
+imc.checkSanityOfFormulas = false
+
 # toggle collecting formulas by traversing ARG
 imc.collectFormulasByTraversingARG = false
 
