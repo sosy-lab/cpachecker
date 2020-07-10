@@ -183,7 +183,7 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
     }
     if (!algorithmType.equals("MAXSAT") && options.isReduceSelectors()) {
       logger.log(Level.SEVERE, "The option reduceselectors will be ignored since MAX-SAT is not selected");
-      ban = "";
+      options.setReduceSelectors(false);
       correctConfiguration = false;
     }
     if (!options.getDisable().isBlank() && algorithmType.equals("ERRINV")) {
@@ -367,7 +367,7 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
   public void printStatistics(
       PrintStream out, Result result, UnmodifiableReachedSet reached) {
     StatisticsWriter w0  = StatisticsWriter.writingStatisticsTo(out);
-   w0.put("Total time", totalTime);
+    w0.put("Total time", totalTime);
   }
 
   @Override
