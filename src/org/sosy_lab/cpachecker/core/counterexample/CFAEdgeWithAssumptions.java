@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.counterexample;
 
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -39,9 +39,9 @@ public class CFAEdgeWithAssumptions {
    *     but can't be represented as assumption.
    */
   public CFAEdgeWithAssumptions(
-      CFAEdge pEdge, Collection<AExpressionStatement> pExpStmt, String pComment) {
+      CFAEdge pEdge, ImmutableCollection<AExpressionStatement> pExpStmt, String pComment) {
     edge = Objects.requireNonNull(pEdge);
-    expressionStmts = ImmutableList.copyOf(pExpStmt);
+    expressionStmts = pExpStmt.asList();
     comment = Objects.requireNonNull(pComment);
   }
 

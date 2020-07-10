@@ -20,7 +20,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
@@ -251,8 +250,7 @@ public class BAMSubgraphComputer {
       reachedSets.put(reachedSet, newBackwardTarget);
     }
 
-    for (Entry<ReachedSet, Collection<BackwardARGState>> entry : reachedSets.asMap().entrySet()) {
-      final ReachedSet reachedSet = entry.getKey();
+    for (final ReachedSet reachedSet : reachedSets.keySet()) {
       final BackwardARGState newInnerRoot;
       try {
         newInnerRoot =

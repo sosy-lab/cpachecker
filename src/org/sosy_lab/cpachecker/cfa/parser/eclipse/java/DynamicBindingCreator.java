@@ -96,8 +96,8 @@ class DynamicBindingCreator {
     trackOverridenMethods(cfAs);
     completeMethodBindings();
 
-    for (Map.Entry<String, FunctionEntryNode> functionEntry : cfAs.entrySet()) {
-      insertBindings(functionEntry.getValue());
+    for (FunctionEntryNode value : cfAs.values()) {
+      insertBindings(value);
     }
   }
 

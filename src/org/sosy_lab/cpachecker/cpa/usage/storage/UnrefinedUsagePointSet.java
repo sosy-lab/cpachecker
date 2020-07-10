@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.usage.storage;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NavigableSet;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
@@ -65,8 +64,8 @@ public class UnrefinedUsagePointSet implements AbstractUsagePointSet {
   public int size() {
     int result = 0;
 
-    for (Entry<UsagePoint, UsageInfoSet> entry : usageInfoSets.entrySet()) {
-      result += entry.getValue().size();
+    for (UsageInfoSet value : usageInfoSets.values()) {
+      result += value.size();
     }
 
     return result;

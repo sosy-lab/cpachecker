@@ -534,9 +534,6 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
             ssa,
             constraints,
             null);
-        if (conv.hasIndex(base.getName(), base.getType(), ssa)) {
-          ssa.deleteVariable(base.getName());
-        }
         if (pts.isPreparedBase(base.getName())) {
           pts.shareBase(base.getName(), base.getType());
         } else {
