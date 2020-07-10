@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.value.type;
 
 import static com.google.common.truth.Truth.assertThat;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
