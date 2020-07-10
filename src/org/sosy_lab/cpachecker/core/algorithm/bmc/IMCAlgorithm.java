@@ -76,6 +76,12 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(secure = true, description = "toggle checking existence of covered states in ARG")
   private boolean checkExistenceOfCoveredStates = false;
 
+  @Option(secure = true, description = "toggle checking existence of target states in ARG")
+  private boolean checkExistenceOfTargetStates = false;
+
+  @Option(secure = true, description = "toggle sanity check of collected formulas")
+  private boolean checkSanityOfFormulas = false;
+
   private final ConfigurableProgramAnalysis cpa;
 
   private final Algorithm algorithm;
@@ -167,9 +173,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         throw new CPAException("Covered states exist in ARG, analysis result could be wrong.");
       }
 
-      if (AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
-        logger.log(Level.INFO, "No target states in ARG");
-        return AlgorithmStatus.SOUND_AND_PRECISE;
+      if (checkExistenceOfTargetStates && AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
+        throw new CPAException("No target states exist in ARG, analysis result could be wrong.");
       }
 
       logger.log(Level.FINE, "Collecting prefix, loop, and suffix formulas");
@@ -177,6 +182,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       logger.log(Level.ALL, "The prefix is", formulas.prefixFormula.getFormula());
       logger.log(Level.ALL, "The loop is", formulas.loopFormula);
       logger.log(Level.ALL, "The suffix is", formulas.suffixFormula);
+
+      if (checkSanityOfFormulas && !checkSanityOfFormulas(formulas)) {
+        throw new CPAException("Collected formulas are insane, analysis result could be wrong.");
+      }
 
       BooleanFormula reachErrorFormula =
           bfmgr.or(
@@ -342,6 +351,17 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         loopFormula,
         suffixFormula,
         getErrorFormula(pReachedSet, -1));
+  }
+
+  private boolean checkSanityOfFormulas(final PartitionedFormulas formulas)
+      throws SolverException, InterruptedException {
+    if (!bfmgr.isFalse(formulas.prefixFormula.getFormula())
+        && !bfmgr.isTrue(formulas.loopFormula)
+        && solver.isUnsat(bfmgr.and(formulas.prefixFormula.getFormula(), formulas.loopFormula))) {
+      logger.log(Level.SEVERE, "The conjunction of prefix and loop should not be UNSAT!");
+      return false;
+    }
+    return true;
   }
 
   /**
