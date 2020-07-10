@@ -16,7 +16,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.Specification;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 
 /**
  * Abstract implementation of {@link Slicer} that takes care of mapping the specification to slicing

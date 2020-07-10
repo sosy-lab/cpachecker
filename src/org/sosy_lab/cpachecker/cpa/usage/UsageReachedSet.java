@@ -11,9 +11,9 @@ package org.sosy_lab.cpachecker.cpa.usage;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ObjectOutputStream;
-import java.util.Collections;
 import java.util.Set;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -29,14 +29,8 @@ public class UsageReachedSet extends PartitionedReachedSet {
 
   private static final long serialVersionUID = 1L;
 
-  public static class RaceProperty implements Property {
-    @Override
-    public String toString() {
-      return "Race condition";
-    }
-  }
-
-  private static final RaceProperty propertyInstance = new RaceProperty();
+  private static final ImmutableSet<Property> RACE_PROPERTY =
+      NamedProperty.singleton("Race condition");
 
   private final UsageConfiguration config;
   private final LogManager logger;
@@ -85,7 +79,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
   @Override
   public Set<Property> getViolatedProperties() {
     if (hasViolatedProperties()) {
-      return Collections.singleton(propertyInstance);
+      return RACE_PROPERTY;
     } else {
       return ImmutableSet.of();
     }

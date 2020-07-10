@@ -6,11 +6,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util;
+package org.sosy_lab.cpachecker.core.specification;
 
+import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Optional;
-import org.sosy_lab.cpachecker.util.Property.CommonCoverageType;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageType;
 
 public class SpecificationProperty {
 
@@ -18,10 +19,10 @@ public class SpecificationProperty {
 
   private final Property property;
 
-  private final Optional<String> internalSpecificationPath;
+  private final Optional<Path> internalSpecificationPath;
 
   public SpecificationProperty(
-      String pEntryFunction, Property pProperty, Optional<String> pInternalSpecificationPath) {
+      String pEntryFunction, Property pProperty, Optional<Path> pInternalSpecificationPath) {
     entryFunction = Objects.requireNonNull(pEntryFunction);
     property = Objects.requireNonNull(pProperty);
     internalSpecificationPath = Objects.requireNonNull(pInternalSpecificationPath);
@@ -41,7 +42,7 @@ public class SpecificationProperty {
    *
    * @return the path to the specification automaton used to represent the property, if it exists.
    */
-  public Optional<String> getInternalSpecificationPath() {
+  public Optional<Path> getInternalSpecificationPath() {
     return internalSpecificationPath;
   }
 

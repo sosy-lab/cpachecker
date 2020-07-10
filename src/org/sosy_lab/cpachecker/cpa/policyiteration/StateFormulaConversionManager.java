@@ -49,7 +49,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 @Options(prefix="cpa.lpi")
 public class StateFormulaConversionManager {
 
-  @Option(description="Remove redundant items when abstract values.")
+  @Option(secure = true, description = "Remove redundant items when abstract values.")
   private boolean simplifyDotOutput = false;
 
   private final FormulaManagerView fmgr;

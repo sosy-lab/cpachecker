@@ -46,7 +46,7 @@ SPDX-License-Identifier: Apache-2.0
         <!-- When adding/changing/removing a runtime dependency, make sure to also update java-runtime-licenses.txt! -->
 
         <!-- SoSy-Lab Common Library -->
-        <dependency org="org.sosy_lab" name="common" rev="0.3000-420-gef84297" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="common" rev="0.3000-427-g2475fc6" conf="runtime->runtime; contrib->sources"/>
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
@@ -123,7 +123,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Eclipse JDT Compiler
              For additional compiler warnings. -->
-        <dependency org="org.eclipse.jdt.core.compiler" name="ecj" rev="4.14" conf="build->default"/>
+        <dependency org="org.eclipse.jdt.core.compiler" name="ecj" rev="4.16" conf="build->default"/>
 
         <!-- google-java-format
              A source-code formatter for Java -->
@@ -137,13 +137,13 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Checkstyle -->
         <dependency org="com.github.sevntu-checkstyle" name="sevntu-checks" rev="1.37.1" conf="checkstyle->default"/>
-        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="8.33" conf="checkstyle->default"/>
+        <dependency org="com.puppycrawl.tools" name="checkstyle" rev="8.34" conf="checkstyle->default"/>
 
         <!-- VerifierCloud -->
         <dependency org="org.sosy_lab" name="vcloud" rev="${verifiercloud.version}" conf="benchmark->runtime"/>
 
         <!-- JavaSMT -->
-        <dependency org="org.sosy_lab" name="java-smt" rev="3.4.1" conf="runtime->runtime; contrib->sources">
+        <dependency org="org.sosy_lab" name="java-smt" rev="3.5.1" conf="runtime->runtime; contrib->sources">
           <!-- OptiMathSAT causes segfaults: https://github.com/sosy-lab/java-smt/issues/132 -->
           <exclude org="org.sosy_lab" module="javasmt-solver-optimathsat"/>
         </dependency>

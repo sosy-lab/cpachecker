@@ -24,7 +24,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier.TrivialInvariantSupplier;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
@@ -41,6 +40,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
@@ -82,6 +82,12 @@ public class PredicateCPA
   @Option(secure=true, name="merge", values={"SEP", "ABE"}, toUppercase=true,
       description="which merge operator to use for predicate cpa (usually ABE should be used)")
   private String mergeType = "ABE";
+
+  @Option(
+    secure = true,
+    name = "merge.mergeAbstractionStatesWithSamePredecessor",
+    description = "merge two abstraction states if their preceeding abstraction states are the same")
+  private boolean mergeAbstractionStates = false;
 
   @Option(secure=true, name="stop", values={"SEP", "SEPPCC"}, toUppercase=true,
       description="which stop operator to use for predicate cpa (usually SEP should be used in analysis)")
@@ -239,7 +245,12 @@ public class PredicateCPA
       case "SEP":
         return MergeSepOperator.getInstance();
       case "ABE":
-        return new PredicateMergeOperator(logger, pathFormulaManager, statistics);
+        return new PredicateMergeOperator(
+            logger,
+            pathFormulaManager,
+            statistics,
+            mergeAbstractionStates,
+            predicateManager);
       default:
         throw new InternalError("Update list of allowed merge operators");
     }

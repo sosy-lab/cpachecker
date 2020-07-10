@@ -141,7 +141,7 @@ def collectChildren(filename):
 def listFiles(paths):
     """recursively traverse the given path and collect all files"""
     for path in paths:
-        for root, subFolders, files in os.walk(path):
+        for root, _subFolders, files in os.walk(path):
             for item in files:
                 if "README" not in item:  # filter unwanted files
                     yield os.path.normpath(os.path.join(root, item))

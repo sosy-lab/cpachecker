@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.residualprogram;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -21,9 +22,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -43,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.export.CFAToPixelsWriter;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ConditionFolder.FOLDER_TYPE;
@@ -56,6 +54,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
@@ -273,12 +272,9 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       CoreComponentsFactory coreComponents =
           new CoreComponentsFactory(config, logger, shutdown, new AggregatedReachedSets());
 
-      Specification constrSpec = spec;
-      List<Path> specList = new ArrayList<>(constrSpec.getSpecFiles());
-      specList.add(conditionSpec);
-      specList.add(condition);
-      constrSpec =
-          Specification.fromFiles(spec.getProperties(), specList, cfa, config, logger, shutdown);
+      final Specification constrSpec =
+          spec.withAdditionalSpecificationFile(
+              ImmutableSet.of(conditionSpec, condition), cfa, config, logger, shutdown);
 
       ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, constrSpec);
 

@@ -21,14 +21,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -123,7 +120,7 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
           prevCallState = callStacks.get(parentElement);
         }
 
-        PathFormula currentFormula = strengthen(currentState, parentFormula);
+        PathFormula currentFormula = parentFormula;
         for (CFAEdge edge : edges) {
           currentFormula = pfmgr.makeAnd(currentFormula, edge);
           if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
@@ -186,20 +183,6 @@ public final class BAMBlockFormulaStrategy extends BlockFormulaStrategy {
     BooleanFormula branchingFormula =
         pfmgr.buildBranchingFormula(finishedFormulas.keySet(), branchingFormulas);
     return new BlockFormulas(abstractionFormulas, branchingFormula);
-  }
-
-  /** Add additional information from other CPAs. */
-  private PathFormula strengthen(final ARGState currentState, PathFormula currentFormula)
-      throws CPATransferException, InterruptedException {
-    AbstractStateWithAssumptions other =
-        AbstractStates.extractStateByType(currentState, AbstractStateWithAssumptions.class);
-    if (other != null) {
-      for (CExpression preassumption :
-          Iterables.filter(other.getPreconditionAssumptions(), CExpression.class)) {
-        currentFormula = pfmgr.makeAnd(currentFormula, preassumption);
-      }
-    }
-    return currentFormula;
   }
 
   /* rebuild indices from outer scope */

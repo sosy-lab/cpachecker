@@ -8,14 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import com.google.common.collect.ImmutableSet;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
@@ -25,12 +23,10 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -38,6 +34,9 @@ import org.sosy_lab.cpachecker.util.CBMCExecutor;
 
 @Options
 public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
+
+  private static final DummyTargetState DUMMY_TARGET_STATE =
+      DummyTargetState.withSingleProperty("Target location reachabable with CBMC!");
 
   private final Path fileName;
   private final LogManager logger;
@@ -113,7 +112,7 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
         logger.log(Level.INFO, "CBMC terminated with unwinding assertions violation");
         return AlgorithmStatus.UNSOUND_AND_PRECISE;
       } else {
-        pReachedSet.add(new DummyErrorState(), SingletonPrecision.getInstance());
+        pReachedSet.add(DUMMY_TARGET_STATE, SingletonPrecision.getInstance());
         assert pReachedSet.size() == 1 && pReachedSet.hasWaitingState();
 
         // remove dummy state from waitlist
@@ -162,29 +161,6 @@ public class ExternalCBMCAlgorithm implements Algorithm, StatisticsProvider {
     @Override
     public void printStatistics(PrintStream out, Result pResult, UnmodifiableReachedSet pReached) {
       out.println("Time for running CBMC: " + cbmcTime);
-    }
-  }
-
-  private static class CbmcReachabilityProperty implements Property {
-
-    @Override
-    public String toString() {
-      return "Target location reachabable with CBMC!";
-    }
-  }
-
-  private static class DummyErrorState implements AbstractState, Targetable {
-
-    private final Property prop = new CbmcReachabilityProperty();
-
-    @Override
-    public boolean isTarget() {
-      return true;
-    }
-
-    @Override
-    public Set<Property> getViolatedProperties() throws IllegalStateException {
-      return ImmutableSet.of(prop);
     }
   }
 }

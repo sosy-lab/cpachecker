@@ -1612,7 +1612,7 @@ public class CtoFormulaConverter {
    * @throws InterruptedException may be thrown in subclasses
    */
   public MergeResult<PointerTargetSet> mergePointerTargetSets(
-      final PointerTargetSet pts1, final PointerTargetSet pts2, final SSAMap ssa)
+      final PointerTargetSet pts1, final PointerTargetSet pts2, final SSAMapBuilder ssa)
       throws InterruptedException {
     return MergeResult.trivial(pts1, bfmgr);
   }
@@ -1778,15 +1778,25 @@ public class CtoFormulaConverter {
     }
   }
 
-  static String isUnsupportedFunction(String functionName) {
+  String isUnsupportedFunction(String functionName) {
+    String result = null;
     if (UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
-      return UNSUPPORTED_FUNCTIONS.get(functionName);
+      result = UNSUPPORTED_FUNCTIONS.get(functionName);
     } else if (functionName.startsWith("__atomic_")) {
-      return "atomic operations";
+      result = "atomic operations";
     } else if (BuiltinOverflowFunctions.isUnsupportedBuiltinOverflowFunction(functionName)) {
-      return "builtin functions for arithmetic with overflow handling";
+      result = "builtin functions for arithmetic with overflow handling";
     }
-    return null;
+
+    if (result != null && options.isAllowedUnsupportedFunction(functionName)) {
+      logger.logfOnce(
+          Level.WARNING,
+          "Program contains calls to unsupported function %s, result may be wrong.",
+          functionName);
+      return null;
+    }
+
+    return result;
   }
 
   /**

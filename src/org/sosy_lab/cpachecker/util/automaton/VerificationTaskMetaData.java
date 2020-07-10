@@ -25,9 +25,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.core.CPAchecker;
-import org.sosy_lab.cpachecker.core.Specification;
+import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
-import org.sosy_lab.cpachecker.util.SpecificationProperty;
 
 public class VerificationTaskMetaData {
 
@@ -81,14 +81,14 @@ public class VerificationTaskMetaData {
    */
   public List<Path> getNonPropertySpecificationFiles() throws IOException {
     classifyAutomataFiles();
-    Set<String> pathsAssociatedWithPropertyFiles =
+    Set<Path> pathsAssociatedWithPropertyFiles =
         FluentIterable.from(getProperties())
             .transform(SpecificationProperty::getInternalSpecificationPath)
             .filter(Optional::isPresent)
             .transform(Optional::get)
             .toSet();
     return FluentIterable.from(nonWitnessAutomatonFiles)
-        .filter(p -> !pathsAssociatedWithPropertyFiles.contains(p.toString()))
+        .filter(p -> !pathsAssociatedWithPropertyFiles.contains(p))
         .toList();
   }
 

@@ -8,12 +8,13 @@
 
 package org.sosy_lab.cpachecker.cpa.slab;
 
+import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
@@ -25,9 +26,9 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public class SLABTransferRelation implements TransferRelation {
 
-  private TransferRelation transferRelation;
-  private EdgeSet allTransitions;
-  private SymbolicLocationsUtility symbolicLocationsUtility;
+  private final TransferRelation transferRelation;
+  private final ImmutableSet<CFAEdge> allTransitions;
+  private final SymbolicLocationsUtility symbolicLocationsUtility;
 
   public SLABTransferRelation(
       TransferRelation pTransferRelation,
@@ -72,13 +73,7 @@ public class SLABTransferRelation implements TransferRelation {
     throw new UnsupportedOperationException();
   }
 
-  private static EdgeSet makeTotalTransitionEdgeSet(CFA pCfa) {
-    ImmutableSet.Builder<CFAEdge> edges = new ImmutableSet.Builder<>();
-    for (CFANode node : pCfa.getAllNodes()) {
-      for (CFAEdge leaving : CFAUtils.leavingEdges(node)) {
-        edges.add(leaving);
-      }
-    }
-    return new EdgeSet(edges.build());
+  private static ImmutableSet<CFAEdge> makeTotalTransitionEdgeSet(CFA pCfa) {
+    return from(pCfa.getAllNodes()).transformAndConcat(CFAUtils::leavingEdges).toSet();
   }
 }

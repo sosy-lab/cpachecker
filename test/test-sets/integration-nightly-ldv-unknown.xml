@@ -25,7 +25,7 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
 
   <tasks>
-    <include>../programs/ldv-benchmarks/unknown/*/*/*.c</include>
-    <propertyfile>../programs/ldv-benchmarks/PropertyERROR.prp</propertyfile>
+    <include>../programs/ldv-benchmarks/unknown/*/*/*.yml</include>
+    <propertyfile>../programs/ldv-benchmarks/properties/unreach-label.prp</propertyfile>
   </tasks>
 </benchmark>

@@ -21,6 +21,12 @@ ignore =
     IF100,
     # using a result variable instead of early return allows later addition of logic
     R504,
+    # no warnings about assert
+    S101,
+    # no warnings about XML parsing
+    S320,S410,
+    # no warnings about all uses of subprocess
+    S404,S603,S607,
     # several scripts use print() for their output, so allow it
     T001,
     # only relevant if pytest is used

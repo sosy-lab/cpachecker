@@ -92,28 +92,6 @@ describe("ReportController", function () {
             expect($scope.makeFullScreen).not.toBeUndefined();
         });
 
-        it("Should enable/disable full screen mode", function () {
-
-            if ((document.fullScreenElement && document.fullScreenElement !== null) || (!document.mozFullScreen && !
-                    document.webkitIsFullScreen)) {
-                if (document.documentElement.requestFullScreen) {
-                    expect($scope.makeFullScreen()).toEqual(document.documentElement.requestFullScreen());
-                } else if (document.documentElement.mozRequestFullScreen) {
-                    expect($scope.makeFullScreen()).toEqual(document.documentElement.mozRequestFullScreen());
-                } else if (document.documentElement.webkitRequestFullScreen) {
-                    expect($scope.makeFullScreen()).toEqual(document.documentElement.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT));
-                }
-            } else {
-                if (document.cancelFullScreen) {
-                    expect($scope.makeFullScreen()).toEqual(document.cancelFullScreen());
-                } else if (document.mozCancelFullScreen) {
-                    expect($scope.makeFullScreen()).toEqual(document.mozCancelFullScreen());
-                } else if (document.webkitCancelFullScreen) {
-                    expect($scope.makeFullScreen()).toEqual(document.webkitCancelFullScreen());
-                }
-            }
-        });
-
     });
 
     describe("setTab action Handler", function () {

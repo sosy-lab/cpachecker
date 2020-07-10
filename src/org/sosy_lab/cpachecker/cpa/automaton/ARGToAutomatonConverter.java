@@ -784,7 +784,8 @@ public class ARGToAutomatonConverter {
     final Multimap<CallstackState, CallstackState> callstacks = LinkedHashMultimap.create();
     final Map<CallstackState, CallstackState> inverseCallstacks = new LinkedHashMap<>();
     final Multimap<CallstackState, ARGState> callstackToLeaves = LinkedHashMultimap.create();
-    final Multimap<CallstackState, ARGState> callstackToLeafWithPreAssumptions = LinkedHashMultimap.create();
+    final Multimap<CallstackState, ARGState> callstackToLeafWithParentAssumptions =
+        LinkedHashMultimap.create();
     for (ARGState leaf : pLeaves) {
       CallstackState callstack = AbstractStates.extractStateByType(leaf, CallstackState.class);
       Preconditions.checkNotNull(callstack);
@@ -796,10 +797,12 @@ public class ARGToAutomatonConverter {
         callstack = callstack.getPreviousState();
       }
       callstackToLeaves.put(callstack, leaf);
-      if (AbstractStates.projectToType(
-              AbstractStates.asIterable(leaf), AbstractStateWithAssumptions.class)
-          .anyMatch(x -> !x.getPreconditionAssumptions().isEmpty())) {
-        callstackToLeafWithPreAssumptions.put(callstack, leaf);
+      for (ARGState parent : leaf.getParents()) {
+        if (AbstractStates.asIterable(parent)
+            .filter(AbstractStateWithAssumptions.class)
+            .anyMatch(x -> !x.getAssumptions().isEmpty())) {
+          callstackToLeafWithParentAssumptions.put(callstack, leaf);
+        }
       }
       CallstackState prev = callstack.getPreviousState();
       while (prev != null) {
@@ -825,15 +828,16 @@ public class ARGToAutomatonConverter {
     while (!waitlist.isEmpty()) {
       final CallstackState elem = waitlist.removeFirst();
       boolean useAll = false;
-      Set<AExpression> assumptions = new HashSet<>();
-      for (ARGState leaf : callstackToLeafWithPreAssumptions.get(elem)) {
-        AbstractStates.projectToType(
-                AbstractStates.asIterable(leaf), AbstractStateWithAssumptions.class)
-            .stream()
-            .map(x -> x.getPreconditionAssumptions())
-            .flatMap(Collection::stream)
-            .forEach(assumptions::add);
+      ImmutableSet.Builder<AExpression> assumptionsBuilder = ImmutableSet.builder();
+      for (ARGState leaf : callstackToLeafWithParentAssumptions.get(elem)) {
+        for (ARGState parent : leaf.getParents()) {
+          for (AbstractStateWithAssumptions state :
+              AbstractStates.asIterable(parent).filter(AbstractStateWithAssumptions.class)) {
+            assumptionsBuilder.addAll(state.getAssumptions());
+          }
+        }
       }
+      Set<AExpression> assumptions = assumptionsBuilder.build();
       final List<AutomatonTransition> transitions = new ArrayList<>();
       for (ARGState leaf : callstackToLeaves.get(elem)) {
         if (assumptions.isEmpty()) {
