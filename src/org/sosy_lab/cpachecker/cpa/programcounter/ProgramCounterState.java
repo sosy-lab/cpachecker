@@ -132,9 +132,7 @@ public class ProgramCounterState implements AbstractState, LatticeAbstractState<
 
   public static AbstractState getStateForValues(Iterable<BigInteger> pValues) {
     ImmutableSet.Builder<BigInteger> builder = ImmutableSet.builder();
-    for (BigInteger value : pValues) {
-      builder.add(value);
-    }
+    builder.addAll(pValues);
     return new ProgramCounterState(builder.build());
   }
 

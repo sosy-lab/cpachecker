@@ -1062,7 +1062,7 @@ public class CFASingleLoopTransformation {
           } else {
             newCallstack = currentCallstack;
           }
-          ignoredNodes.addAll(CFAUtils.predecessorsOf(current).toList());
+          CFAUtils.predecessorsOf(current).copyInto(ignoredNodes);
           waitlist.offer(successor);
           callstacks.offer(currentCallstack);
         }

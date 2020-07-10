@@ -99,7 +99,7 @@ public class SingleLoopHead extends CFANode {
       CFANode current = waitlist.poll();
       if (visited.add(current)) {
         if (current.getFunctionName().equals(CFASingleLoopTransformation.ARTIFICIAL_PROGRAM_COUNTER_FUNCTION_NAME)) {
-          waitlist.addAll(CFAUtils.allPredecessorsOf(current).toList());
+          CFAUtils.allPredecessorsOf(current).copyInto(waitlist);
         } else {
           results.add(current.getFunctionName());
         }
