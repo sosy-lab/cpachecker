@@ -41,10 +41,10 @@ public class AutomatonEncoding implements TAFormulaEncoding {
   protected final FormulaManagerView fmgr;
   protected final BooleanFormulaManagerView bFmgr;
   private final Collection<TaDeclaration> automata;
-  private final Map<TaDeclaration, Collection<TCFANode>> nodesByAutomaton;
+  protected final Map<TaDeclaration, Collection<TCFANode>> nodesByAutomaton;
   protected final Map<TaDeclaration, Collection<TCFAEdge>> edgesByAutomaton;
   private final ActionEncoding actions;
-  private final LocationEncoding locations;
+  protected final LocationEncoding locations;
   private final TimeEncoding time;
   private Map<TaDeclaration, Collection<TCFANode>> initialNodesByAutomaton;
 
@@ -116,7 +116,7 @@ public class AutomatonEncoding implements TAFormulaEncoding {
   public Collection<BooleanFormula> buildSuccessorFormulas(
       BooleanFormula pPredecessor, int pLastReachedIndex, CFAEdge pEdge) {
     throw new UnsupportedOperationException(
-        "Location wise formula constrution not supported by " + this.getClass().getSimpleName());
+        "Location wise formula construction not supported by " + this.getClass().getSimpleName());
   }
 
   @Override
