@@ -174,7 +174,13 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
 
       if (checkExistenceOfTargetStates && AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
-        throw new CPAException("No target states exist in ARG, analysis result could be wrong.");
+        logger.log(Level.WARNING, "No target states at maxLoopIterations =", maxLoopIterations);
+        if (maxLoopIterations == 1) {
+          adjustConditions();
+          continue;
+        } else {
+          return AlgorithmStatus.SOUND_AND_PRECISE;
+        }
       }
 
       logger.log(Level.FINE, "Collecting prefix, loop, and suffix formulas");
