@@ -10,12 +10,12 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -78,8 +78,8 @@ public final class ErrorPathShrinker {
   /** This is an important Edge constituted from current handled CFA Edge, plus accumulated assumptions*/
   private CFAEdgeWithAssumptions currentCFAEdgeWithAssumptions;
 
-  /** This List contains the accumulated assumptions for the current CFAEdge*/
-  private Set<AExpressionStatement> assumptions;
+  /** This List contains the accumulated assumptions for the current CFAEdge */
+  private ImmutableSet.Builder<AExpressionStatement> assumptions;
 
   /** This is only an UtilityClass. */
   public ErrorPathShrinker() {
@@ -113,7 +113,7 @@ public final class ErrorPathShrinker {
     importantVars = new HashSet<>();
 
     // Set for storing recent Assumptions
-    assumptions = new LinkedHashSet<>();
+    assumptions = ImmutableSet.builder();
 
     // the short Path, the result
     final Deque<Pair<CFAEdgeWithAssumptions, Boolean>> shortErrorPath = new ArrayDeque<>();
@@ -156,7 +156,8 @@ public final class ErrorPathShrinker {
     shortPath = shortErrorPath;
 
     // define all edges as normal with their according assumptions
-    currentCFAEdgeWithAssumptions = new CFAEdgeWithAssumptions(currentCFAEdge, assumptions, "");
+    currentCFAEdgeWithAssumptions =
+        new CFAEdgeWithAssumptions(currentCFAEdge, assumptions.build(), "");
     if (revAssumIterator != null && revAssumIterator.hasNext()) {
       CFAEdgeWithAssumptions nextRevAssumEdge = revAssumIterator.next();
       assumptions.addAll(nextRevAssumEdge.getExpStmts());
@@ -506,12 +507,12 @@ public final class ErrorPathShrinker {
         Pair.of(
             new CFAEdgeWithAssumptions(
                 currentCFAEdgeWithAssumptions.getCFAEdge(),
-                assumptions,
+                assumptions.build(),
                 currentCFAEdgeWithAssumptions.getComment()),
             Boolean.TRUE);
 
     // empty assumptions for fresh accumulation for next edge in short path
-    assumptions = new HashSet<>();
+    assumptions = ImmutableSet.builder();
 
     shortPath.addFirst(importantPair);
   }

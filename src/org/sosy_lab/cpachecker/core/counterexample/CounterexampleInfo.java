@@ -16,7 +16,7 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.ImmutableSetMultimap;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -212,7 +212,7 @@ public class CounterexampleInfo extends AbstractAppender {
    *
    * <p>This is only available for precise counterexamples.
    */
-  public Multimap<ARGState, CFAEdgeWithAssumptions> getExactVariableValues() {
+  public ImmutableSetMultimap<ARGState, CFAEdgeWithAssumptions> getExactVariableValues() {
     checkState(!spurious);
     checkState(isPreciseCounterExample);
     return assignments.getExactVariableValues(targetPath);

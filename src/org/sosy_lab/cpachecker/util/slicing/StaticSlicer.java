@@ -13,6 +13,7 @@ import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -24,12 +25,14 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.TraversalDirection;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -59,6 +62,10 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       new StatInt(StatKind.SUM, "Number of proposed slicing " + "procedures");
   private StatInt sliceCount = new StatInt(StatKind.SUM, "Number of slicing procedures");
   private StatTimer slicingTime = new StatTimer(StatKind.SUM, "Time needed for slicing");
+
+  private final StatInt sliceEdgesNumber =
+      new StatInt(StatKind.SUM, "Number of relevant slice edges");
+  private final StatInt programEdgesNumber = new StatInt(StatKind.SUM, "Number of program edges");
 
   StaticSlicer(
       SlicingCriteriaExtractor pExtractor,
@@ -125,11 +132,35 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
       final Slice slice = new Slice(pCfa, relevantEdges, pSlicingCriteria);
       slicingTime.stop();
+
+      sliceEdgesNumber.setNextValue(relevantEdges.size());
+      if (programEdgesNumber.getValueCount() == 0) {
+        programEdgesNumber.setNextValue(countProgramEdges(pCfa));
+      }
+
       return slice;
 
     } finally {
       sliceCount.setNextValue(realSlices);
     }
+  }
+
+  private int countProgramEdges(CFA pCfa) {
+
+    int programEdgeCounter = 0;
+    for (CFANode node : pCfa.getAllNodes()) {
+      programEdgeCounter += CFAUtils.allLeavingEdges(node).size();
+    }
+
+    return programEdgeCounter;
+  }
+
+  private double getSliceProgramRatio() {
+
+    double sliceEdges = sliceEdgesNumber.getValueSum();
+    double programEdges = programEdgesNumber.getValueSum();
+
+    return programEdges > 0.0 ? sliceEdges / programEdges : 1.0;
   }
 
   @Override
@@ -143,6 +174,10 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
             StatisticsWriter writer = StatisticsWriter.writingStatisticsTo(pOut);
             writer.put(candidateSliceCount).put(sliceCount).put(slicingTime);
+
+            writer.put(sliceEdgesNumber).put(programEdgesNumber);
+            writer.put(
+                "Slice/Program ratio", String.format(Locale.US, "%.3f", getSliceProgramRatio()));
           }
 
           @Override
