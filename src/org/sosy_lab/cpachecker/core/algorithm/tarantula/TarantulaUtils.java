@@ -7,6 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.core.algorithm.tarantula;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
@@ -46,7 +47,7 @@ public class TarantulaUtils {
       // Expand the last path
 
       List<ARGState> curPath = paths.remove(paths.size() - 1);
-      assert !curPath.isEmpty();
+      Preconditions.checkNotNull(curPath);
       // If there is no more to expand - add this path and continue
       if (curPath.get(curPath.size() - 1) == root) {
         results.add(new ARGPath(Lists.reverse(curPath)));

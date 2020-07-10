@@ -13,9 +13,9 @@ import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.FailedCase;
+import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.FaultInformation;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.SafeCase;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.TarantulaCasesStatus;
-import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.TarantulaFault;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 
@@ -54,14 +54,14 @@ public class TarantulaRanking {
    *
    * @return Calculated tarantula ranking.
    */
-  public Map<TarantulaFault, FaultContribution> getRanked() throws InterruptedException {
+  public Map<FaultInformation, FaultContribution> getRanked() throws InterruptedException {
     Set<ARGPath> safePaths = safeCase.getSafePaths();
     Set<ARGPath> errorPaths = failedCase.getErrorPaths();
     int totalSafePaths = safePaths.size();
     int totalErrorPaths = errorPaths.size();
     Map<FaultContribution, TarantulaCasesStatus> coverage =
         coverageInformation.getCoverageInformation(safePaths, errorPaths);
-    Map<TarantulaFault, FaultContribution> rankedInfo = new HashMap<>();
+    Map<FaultInformation, FaultContribution> rankedInfo = new HashMap<>();
     Set<FaultContribution> hints = new HashSet<>();
     coverage.forEach(
         (pFaultContribution, pTarantulaCasesStatus) -> {
@@ -78,7 +78,7 @@ public class TarantulaRanking {
               pFaultContribution.setScore(suspicious);
               hints.add(pFaultContribution);
               rankedInfo.put(
-                  new TarantulaFault(
+                  new FaultInformation(
                       suspicious, hints, pFaultContribution.correspondingEdge().getLineNumber()),
                   pFaultContribution);
             }
