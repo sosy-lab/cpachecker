@@ -17,10 +17,19 @@ public class TaVariable implements Serializable {
   private final String automatonName;
   private final boolean isLocal;
 
-  public TaVariable(String pName, String pAutomatonNane, boolean pIsLocal) {
+  public TaVariable(String pName, String pAutomatonName, boolean pIsLocal) {
     name = pName;
-    automatonName = pAutomatonNane;
+    automatonName = pAutomatonName;
     isLocal = pIsLocal;
+  }
+
+  /**
+   * This method does the same as the constructor. However, creating instances of this class should
+   * be kept in this package, thus, this method exists to abstract from the constructor.
+   */
+  public static TaVariable createDummyVariable(
+      String pName, String pAutomatonName, boolean pIsLocal) {
+    return new TaVariable(pName, pAutomatonName, pIsLocal);
   }
 
   public String getName() {

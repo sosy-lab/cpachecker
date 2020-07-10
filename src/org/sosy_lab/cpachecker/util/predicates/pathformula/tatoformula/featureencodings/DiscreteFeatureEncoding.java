@@ -12,7 +12,7 @@ import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public interface DiscreteFeatureEncoding<T> {
-  BooleanFormula makeEqualsFormula(T feature, TaDeclaration pAutomaton, int pVariableIndex);
+  BooleanFormula makeEqualsFormula(TaDeclaration pAutomaton, int pVariableIndex, T feature);
 
-  BooleanFormula makeUnchangedFormula(TaDeclaration pAutomaton, int pNextIndex);
+  BooleanFormula makeUnchangedFormula(TaDeclaration pAutomaton, int pIndexBefore);
 }

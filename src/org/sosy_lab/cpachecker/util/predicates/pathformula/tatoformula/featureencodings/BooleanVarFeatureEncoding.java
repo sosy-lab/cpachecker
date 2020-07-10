@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public abstract class BooleanVarFeatureEncoding<T> {
+public class BooleanVarFeatureEncoding<T> implements DiscreteFeatureEncoding<T> {
   private Table<TaDeclaration, T, String> variableNames;
   protected final FormulaManagerView fmgr;
 
@@ -25,11 +25,16 @@ public abstract class BooleanVarFeatureEncoding<T> {
     variableNames = HashBasedTable.create();
   }
 
-  protected void addEntry(TaDeclaration pAutomaton, T pValue, String pVariableName) {
+  public void addEntry(TaDeclaration pAutomaton, T pValue, String pVariableName) {
     variableNames.put(pAutomaton, pValue, pVariableName);
   }
 
-  protected void addEntryToAllAutomata(T pValue, String pVariableName) {
+  /**
+   * Adds the same value entry to every automaton. This is useful for shared objects (e.g.
+   * synchronizing actions). This is the same as iterating over each automaton and calling addEntry
+   */
+  public void addEntryToAllAutomata(T pValue, String pVariableName) {
+    // using variable names here is really unsafe!
     variableNames.rowKeySet().forEach(automaton -> addEntry(automaton, pValue, pVariableName));
   }
 
@@ -37,17 +42,19 @@ public abstract class BooleanVarFeatureEncoding<T> {
     return fmgr.getBooleanFormulaManager().makeVariable(variableName, variableIndex);
   }
 
-  public BooleanFormula makeEqualsFormula(T feature, TaDeclaration pAutomaton, int pVariableIndex) {
+  @Override
+  public BooleanFormula makeEqualsFormula(TaDeclaration pAutomaton, int pVariableIndex, T feature) {
     return makeVariableFormula(variableNames.get(pAutomaton, feature), pVariableIndex);
   }
 
-  public BooleanFormula makeUnchangedFormula(TaDeclaration pAutomaton, int pNextIndex) {
+  @Override
+  public BooleanFormula makeUnchangedFormula(TaDeclaration pAutomaton, int pIndexBefore) {
     var unchangedFormulas =
         from(variableNames.row(pAutomaton).values())
             .transform(
                 variable -> {
-                  var variableBefore = makeVariableFormula(variable, pNextIndex - 1);
-                  var variableAfter = makeVariableFormula(variable, pNextIndex);
+                  var variableBefore = makeVariableFormula(variable, pIndexBefore);
+                  var variableAfter = makeVariableFormula(variable, pIndexBefore + 1);
                   return fmgr.makeEqual(variableAfter, variableBefore);
                 });
 

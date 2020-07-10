@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class AutomatonEncoding implements TAFormulaEncoding {
-  private final FormulaManagerView fmgr;
+  protected final FormulaManagerView fmgr;
   protected final BooleanFormulaManagerView bFmgr;
   private final Collection<TaDeclaration> automata;
   private final Map<TaDeclaration, Collection<TCFANode>> nodesByAutomaton;
@@ -61,6 +61,8 @@ public class AutomatonEncoding implements TAFormulaEncoding {
 
   private boolean actionDetachedDelayTransition = false;
   private boolean actionDetachedIdleTransition = true;
+
+  private boolean noTwoActions = true;
 
   public AutomatonEncoding(
       FormulaManagerView pFmgr,
@@ -120,12 +122,27 @@ public class AutomatonEncoding implements TAFormulaEncoding {
   @Override
   public Collection<BooleanFormula> buildSuccessorFormulas(
       BooleanFormula pPredecessor, int pLastReachedIndex) {
+    var result = bFmgr.makeTrue();
+
     var automataFormulas =
         from(automata)
             .transform(automaton -> makeAutomatonStep(automaton, pLastReachedIndex))
             .toSet();
+    result = bFmgr.and(bFmgr.and(automataFormulas), result);
 
-    return ImmutableSet.of(bFmgr.and(automataFormulas));
+    if (noTwoActions) {
+      var allActions =
+          ImmutableSet.copyOf(
+              actions.makeAllActionFormulas(pLastReachedIndex, useDelayAction, useIdleAction));
+      var actionPairs =
+          from(Sets.cartesianProduct(allActions, allActions))
+              .filter(pair -> !pair.get(0).equals(pair.get(1)))
+              .transform(pair -> bFmgr.and(pair.get(0), pair.get(1)));
+      var noTwoActionsFormula = bFmgr.not(bFmgr.or(actionPairs.toSet()));
+      result = bFmgr.and(noTwoActionsFormula, result);
+    }
+
+    return ImmutableSet.of(result);
   }
 
   protected BooleanFormula makeAutomatonStep(TaDeclaration pAutomaton, int pLastReachedIndex) {

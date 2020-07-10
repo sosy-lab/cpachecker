@@ -31,7 +31,7 @@ public class LocalVarLocationEncoding extends LocalVarDiscreteFeatureEncoding<TC
   @Override
   public BooleanFormula makeLocationEqualsFormula(
       TaDeclaration pAutomaton, int pVariableIndex, TCFANode pNode) {
-    return makeEqualsFormula(pNode, pAutomaton, pVariableIndex);
+    return makeEqualsFormula(pAutomaton, pVariableIndex, pNode);
   }
 
   @Override

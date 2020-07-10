@@ -12,7 +12,9 @@ import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
@@ -27,20 +29,22 @@ public class LocalVarActionEncoding extends LocalVarDiscreteFeatureEncoding<TaVa
   private Map<TaDeclaration, TaVariable> delayActions;
   private Map<TaDeclaration, TaVariable> idleActions;
   private Map<TaDeclaration, TaVariable> localDummyActions;
+  private final Collection<TaDeclaration> automata;
 
   public LocalVarActionEncoding(FormulaManagerView pFmgr, CFA pCfa) {
     super(pFmgr, "action");
 
-    var allAutomata =
+    automata =
         from(pCfa.getAllFunctions().values())
             .filter(instanceOf(TCFAEntryNode.class))
-            .transform(entry -> (TaDeclaration) entry.getFunction());
-    var allActions = allAutomata.transformAndConcat(automaton -> automaton.getActions()).toSet();
+            .transform(entry -> (TaDeclaration) entry.getFunction())
+            .toSet();
+    var allActions = from(automata).transformAndConcat(automaton -> automaton.getActions()).toSet();
     allActions.forEach(action -> addEntry(action));
 
-    delayActions = createDummyEntries(allAutomata, "delay");
-    idleActions = createDummyEntries(allAutomata, "idle");
-    localDummyActions = createDummyEntries(allAutomata, "dummy");
+    delayActions = createDummyEntries(automata, "delay");
+    idleActions = createDummyEntries(automata, "idle");
+    localDummyActions = createDummyEntries(automata, "dummy");
   }
 
   private Map<TaDeclaration, TaVariable> createDummyEntries(
@@ -48,7 +52,8 @@ public class LocalVarActionEncoding extends LocalVarDiscreteFeatureEncoding<TaVa
     Map<TaDeclaration, TaVariable> result = new HashMap<>();
     pAutomata.forEach(
         automaton -> {
-          var dummyVar = new TaVariable(pVarName + "#dummy", automaton.getName(), true);
+          var dummyVar =
+              TaVariable.createDummyVariable(pVarName + "#dummy", automaton.getName(), true);
           result.put(automaton, dummyVar);
           addEntry(dummyVar);
         });
@@ -59,7 +64,7 @@ public class LocalVarActionEncoding extends LocalVarDiscreteFeatureEncoding<TaVa
   @Override
   public BooleanFormula makeActionEqualsFormula(
       TaDeclaration pAutomaton, int pVariableIndex, TaVariable pVariable) {
-    return makeEqualsFormula(pVariable, pAutomaton, pVariableIndex);
+    return makeEqualsFormula(pAutomaton, pVariableIndex, pVariable);
   }
 
   @Override
@@ -75,5 +80,32 @@ public class LocalVarActionEncoding extends LocalVarDiscreteFeatureEncoding<TaVa
   @Override
   public BooleanFormula makeLocalDummyActionFormula(TaDeclaration pAutomaton, int pVariableIndex) {
     return makeActionEqualsFormula(pAutomaton, pVariableIndex, localDummyActions.get(pAutomaton));
+  }
+
+  @Override
+  public Iterable<BooleanFormula> makeAllActionFormulas(
+      int pVariableIndex, boolean pIncludeDelay, boolean pIncludeIdle) {
+    var result = new HashSet<BooleanFormula>();
+    var processedActions = new HashSet<TaVariable>();
+    for (var automaton : automata) {
+      for (var action : automaton.getActions()) {
+        // it is possible that automata share an action. However, the automaton definition is needed
+        // for formula cration. Thus remember actions that have been processed by another automaton
+        if (!processedActions.contains(action)) {
+          result.add(makeActionEqualsFormula(automaton, pVariableIndex, action));
+          processedActions.add(action);
+        }
+      }
+      result.add(makeLocalDummyActionFormula(automaton, pVariableIndex));
+      // dummy and delay are globally unique, add only once
+      if (pIncludeIdle) {
+        result.add(makeIdleActionFormula(automaton, pVariableIndex));
+      }
+      if (pIncludeDelay) {
+        result.add(makeDelayActionFormula(automaton, pVariableIndex));
+      }
+    }
+
+    return result;
   }
 }

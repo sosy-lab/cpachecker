@@ -10,12 +10,13 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featuree
 
 import java.util.HashMap;
 import java.util.Map;
+import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
-public class GlobalVarDiscreteFeatureEncoding<T> {
+public class GlobalVarDiscreteFeatureEncoding<T> implements DiscreteFeatureEncoding<T> {
   private final String VARIABLE_NAME;
   private static final FormulaType<?> VARIABLE_TYPE = FormulaType.IntegerType;
   private Map<T, Integer> ids;
@@ -40,15 +41,17 @@ public class GlobalVarDiscreteFeatureEncoding<T> {
     return fmgr.makeNumber(VARIABLE_TYPE, ids.get(feature));
   }
 
-  public BooleanFormula makeEqualsFormula(T feature, int pVariableIndex) {
+  @Override
+  public BooleanFormula makeEqualsFormula(TaDeclaration pAutomaton, int pVariableIndex, T feature) {
     var variable = makeVariableFormula(pVariableIndex);
     var value = makeValueFormula(feature);
     return fmgr.makeEqual(variable, value);
   }
 
-  public BooleanFormula makeUnchangedFormula(int pNextIndex) {
-    var variableBefore = makeVariableFormula(pNextIndex - 1);
-    var variableAfter = makeVariableFormula(pNextIndex);
+  @Override
+  public BooleanFormula makeUnchangedFormula(TaDeclaration pAutomaton, int pIndexBefore) {
+    var variableBefore = makeVariableFormula(pIndexBefore);
+    var variableAfter = makeVariableFormula(pIndexBefore + 1);
     return fmgr.makeEqual(variableAfter, variableBefore);
   }
 }

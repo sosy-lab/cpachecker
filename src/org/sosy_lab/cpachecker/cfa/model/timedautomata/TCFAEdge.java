@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cfa.model.timedautomata;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -38,6 +39,16 @@ public class TCFAEdge extends AbstractCFAEdge {
     variablesToReset = pVariablesToReset;
     guard = pGuard;
     action = pAction;
+  }
+
+  public static TCFAEdge createDummyEdge() {
+    return new TCFAEdge(
+        FileLocation.DUMMY,
+        CFANode.newDummyCFANode("dummy"),
+        CFANode.newDummyCFANode("dummy"),
+        Optional.absent(),
+        ImmutableSet.of(),
+        Optional.absent());
   }
 
   public Optional<TaVariable> getAction() {

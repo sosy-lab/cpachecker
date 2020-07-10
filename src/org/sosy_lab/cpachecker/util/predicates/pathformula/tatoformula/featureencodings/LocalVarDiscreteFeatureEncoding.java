@@ -16,7 +16,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
-public class LocalVarDiscreteFeatureEncoding<T> {
+public class LocalVarDiscreteFeatureEncoding<T> implements DiscreteFeatureEncoding<T> {
   private final String VARIABLE_NAME;
   private static final FormulaType<?> VARIABLE_TYPE = FormulaType.IntegerType;
   private Map<T, Integer> ids;
@@ -42,12 +42,14 @@ public class LocalVarDiscreteFeatureEncoding<T> {
     return fmgr.makeNumber(VARIABLE_TYPE, ids.get(feature));
   }
 
-  public BooleanFormula makeEqualsFormula(T feature, TaDeclaration pAutomaton, int pVariableIndex) {
+  @Override
+  public BooleanFormula makeEqualsFormula(TaDeclaration pAutomaton, int pVariableIndex, T feature) {
     var variable = makeVariableFormula(pAutomaton, pVariableIndex);
     var value = makeValueFormula(feature);
     return fmgr.makeEqual(variable, value);
   }
 
+  @Override
   public BooleanFormula makeUnchangedFormula(TaDeclaration pAutomaton, int pIndexBefore) {
     var variableBefore = makeVariableFormula(pAutomaton, pIndexBefore);
     var variableAfter = makeVariableFormula(pAutomaton, pIndexBefore + 1);
