@@ -93,7 +93,8 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface, Sta
   /**
    * Get a minimal subset of selectors considering the already found ones
    * Minimal means that we cannot remove a single selector from the returned set and maintain unsatisfiability.
-   * Minimal does not mean that there does not exist a smaller unsat-core here. (Since we loop, this is no problem)
+   * Minimal does not mean that there does not exist a smaller unsat-core here.
+   * Since we find all solutions the order does not matter.
    *
    * @param pTraceFormula TraceFormula to the error
    * @param pHardSet already found minimal sets
@@ -142,25 +143,13 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface, Sta
 
   /**
    * Conjunct of all selector-formulas
+   *
    * @param softSet left selectors
    * @return boolean formula as conjunct of all selector formulas
    */
   private BooleanFormula softSetFormula(Fault softSet) {
-    return softSet.stream().map(f -> ((Selector)f).getFormula()).collect(bmgr.toConjunction());
+    return softSet.stream().map(f -> ((Selector) f).getFormula()).collect(bmgr.toConjunction());
   }
-
-  /*
-   * Creates the formula (a1 or a2 or a3) and (b1 or b2) ... for the input [[a1,a2,a3],[b1,b2]]
-   *
-   * @param hardSet the current hard set
-   * @return conjunction of the disjunction of the sets
-
-  private BooleanFormula hardSetFormula(Set<Fault> hardSet) {
-    return hardSet.stream()
-        .map(l -> l.stream().map(f -> ((Selector)f).getFormula()).collect(bmgr.toDisjunction()))
-        .collect(bmgr.toConjunction());
-  }
-   */
 
   @Override
   public void printStatistics(
