@@ -31,7 +31,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingBasicProverEnvironment.UFCheckingProverOptions;
@@ -301,8 +300,7 @@ public final class Solver implements AutoCloseable {
           .put("Max time for itp queries", stats.getMaxTimeOfInterpolationQueries().formatAs(TimeUnit.SECONDS))
           .put("Number of allSat queries", stats.getNumberOfAllSatQueries())
           .put("Sum time for allSat queries", stats.getSumTimeOfAllSatQueries().formatAs(TimeUnit.SECONDS))
-          .put("Max time for allSat queries", stats.getMaxTimeOfAllSatQueries().formatAs(TimeUnit.SECONDS))
-          .endLevel();
+          .put("Max time for allSat queries", stats.getMaxTimeOfAllSatQueries().formatAs(TimeUnit.SECONDS));
     }
   }
 
