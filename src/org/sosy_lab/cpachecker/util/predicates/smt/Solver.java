@@ -273,7 +273,6 @@ public final class Solver implements AutoCloseable {
    * Return the underlying {@link FormulaManagerView} that can be used for creating and manipulating
    * formulas.
    */
-  @SuppressWarnings("CheckReturnValue")
   public void printStatistics(PrintStream pOut) {
     if (solvingContext instanceof StatisticsSolverContext) {
       final SolverStatistics stats =
@@ -301,8 +300,7 @@ public final class Solver implements AutoCloseable {
           .put("Max time for itp queries", stats.getMaxTimeOfInterpolationQueries().formatAs(TimeUnit.SECONDS))
           .put("Number of allSat queries", stats.getNumberOfAllSatQueries())
           .put("Sum time for allSat queries", stats.getSumTimeOfAllSatQueries().formatAs(TimeUnit.SECONDS))
-          .put("Max time for allSat queries", stats.getMaxTimeOfAllSatQueries().formatAs(TimeUnit.SECONDS))
-          .endLevel();
+          .put("Max time for allSat queries", stats.getMaxTimeOfAllSatQueries().formatAs(TimeUnit.SECONDS));
     }
   }
 
