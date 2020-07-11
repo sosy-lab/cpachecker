@@ -101,6 +101,10 @@ parser code {:
               if (handleLoopAnnotation(cfaWithLocs, key, (ACSLLoopAnnotation) annotation)) {
                 toRemove.add(annotation);
               }
+            } else if (annotation instanceof ACSLAssertion) {
+              if (handleAssertion(cfaWithLocs, key, (ACSLAssertion) annotation)) {
+                toRemove.add(annotation);
+              }
             }
           }
           for (ACSLAnnotation annotationToRemove : toRemove) {
@@ -165,6 +169,31 @@ parser code {:
       //  }
       // }
       return false;
+    }
+
+    /**
+     * Adds the given assertion to the correct edges in the CFA and signals to remove it from the
+     * current one if necessary.
+     *
+     * @param cfaWithLocs A CFA holding location information about the annotation.
+     * @param edge The edge on which the annotation was originally placed.
+     * @param annotation The annotation to be handled.
+     * @return true if the annotation should be removed from the current edge, false otherwise.
+     */
+    private static boolean handleAssertion(
+        CFAWithACSLAnnotationLocations cfaWithLocs, CFAEdge edge, ACSLAssertion annotation) {
+      CFANode predecessor = edge.getPredecessor();
+      for (int i = 0; i < predecessor.getNumEnteringEdges(); i++) {
+        CFAEdge currentEdge = predecessor.getEnteringEdge(i);
+        while (edge.getFileLocation().getNodeOffset()
+            == currentEdge.getFileLocation().getNodeOffset()) {
+          assert currentEdge.getPredecessor().getNumEnteringEdges() == 1;
+          currentEdge = currentEdge.getPredecessor().getEnteringEdge(0);
+        }
+        cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
+      }
+      // currently we always want to move assertions
+      return true;
     }
 
     public List<ACSLAnnotation> parseACSLAnnotations() throws CParserException {
