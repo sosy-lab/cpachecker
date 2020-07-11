@@ -31,7 +31,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.SeparateInterpolatingProverEnvironment;
 import org.sosy_lab.cpachecker.util.predicates.ufCheckingProver.UFCheckingBasicProverEnvironment.UFCheckingProverOptions;
@@ -274,6 +273,7 @@ public final class Solver implements AutoCloseable {
    * Return the underlying {@link FormulaManagerView} that can be used for creating and manipulating
    * formulas.
    */
+  @SuppressWarnings("CheckReturnValue")
   public void printStatistics(PrintStream pOut) {
     if (solvingContext instanceof StatisticsSolverContext) {
       final SolverStatistics stats =
