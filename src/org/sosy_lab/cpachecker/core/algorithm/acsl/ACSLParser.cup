@@ -89,13 +89,8 @@ parser code {:
           List<ACSLAnnotation> toRemove = new ArrayList<>();
           for (ACSLAnnotation annotation : currentAnnotations) {
             if (annotation instanceof FunctionContract) {
-              //Add function contracts to function exits as well because some clauses have to be
-              //evaluated in the post-state
-              FunctionExitNode exit =
-                  cfaWithLocs.getFunctionHead(key.getSuccessor().getFunctionName()).getExitNode();
-              for (int i = 0; i < exit.getNumEnteringEdges(); i++) {
-                CFAEdge currentEdge = exit.getEnteringEdge(i);
-                cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
+              if (handleFunctionContract(cfaWithLocs, key, (FunctionContract) annotation)) {
+                toRemove.add(annotation);
               }
             } else if (annotation instanceof ACSLLoopAnnotation) {
               if (handleLoopAnnotation(cfaWithLocs, key, (ACSLLoopAnnotation) annotation)) {
@@ -112,6 +107,23 @@ parser code {:
           }
         }
       }
+    }
+
+    private static boolean handleFunctionContract(
+        CFAWithACSLAnnotationLocations cfaWithLocs, CFAEdge edge, FunctionContract annotation) {
+      // Add function contracts to function exits as well because some clauses have to be
+      // evaluated in the post-state
+      FunctionExitNode exit =
+          cfaWithLocs.getFunctionHead(edge.getSuccessor().getFunctionName()).getExitNode();
+      for (int i = 0; i < exit.getNumEnteringEdges(); i++) {
+        CFAEdge currentEdge = exit.getEnteringEdge(i);
+        cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
+      }
+      // currently we always have to move function contracts since they get matched to
+      // one edge too late
+      assert edge.getPredecessor().getNumEnteringEdges() == 1;
+      cfaWithLocs.getEdgesToAnnotations().put(edge.getPredecessor().getEnteringEdge(0), annotation);
+      return true;
     }
 
     /**
