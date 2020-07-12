@@ -150,4 +150,8 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
     return new ACSLLogicalPredicate(
         left.useOldValues(), right.useOldValues(), operator, isNegated());
   }
+
+  public ACSLPredicate getRight() {
+    return right;
+  }
 }

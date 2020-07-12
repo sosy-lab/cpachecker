@@ -303,8 +303,9 @@ non terminal Map<List<Behavior>, LoopInvariant> loop_behaviors;
 non terminal List<String> behavior_identifiers, identifiers;
 non terminal Behavior behavior;
 non terminal ACSLPredicate predicate;
+non terminal ACSLPredicate asc_comp_predicate, desc_comp_predicate, eq_chain, asc_base, desc_base;
 non terminal ACSLTerm term;
-non terminal BinaryOperator rel_op, log_op, arith_op, bit_op;
+non terminal BinaryOperator asc_rel_op, desc_rel_op, log_op, arith_op, bit_op;
 non terminal UnaryOperator unary_op;
 
 precedence right QUESTION;
@@ -399,11 +400,81 @@ ass_clause ::= ASS predicate:p SEMI {: RESULT = new AssumesClause(p); :};
 predicate ::= PRED_START TRUE                                       {: RESULT = ACSLPredicate.getTrue(); :}
         | PRED_START FALSE                                          {: RESULT = ACSLPredicate.getFalse(); :}
 	| predicate:p1 log_op:op predicate:p2                       {: RESULT = new ACSLLogicalPredicate(p1, p2, op); :}
-	| PRED_START term:t1 rel_op:op term:t2                      {: RESULT = new ACSLSimplePredicate(new ACSLBinaryTerm(t1, t2, op)); :}
+	| PRED_START term:t1 NEQ term:t2                            {: RESULT = new ACSLSimplePredicate(new ACSLBinaryTerm(t1, t2, BinaryOperator.NEQ)); :}
+	| PRED_START eq_chain:ec                                    {: RESULT = ec; :}
+	| PRED_START asc_comp_predicate:p                           {: RESULT = p; :}
+	| PRED_START desc_comp_predicate:p                          {: RESULT = p; :}
 	| PRED_START NEG predicate:p                                {: RESULT = p.negate(); :} %prec NEG
 	| PRED_START LPAREN predicate:p RPAREN                      {: RESULT = p; :}
 	| predicate:p1 QUESTION predicate:p2 COLON predicate:p3     {: RESULT = new TernaryCondition(p1, p2, p3); :}
 	| PRED_START OLD LPAREN predicate:p RPAREN                  {: RESULT = p.useOldValues(); :};
+asc_comp_predicate ::= asc_comp_predicate:p asc_rel_op:op term:t    {: ACSLTerm innerLeft;
+                                                                       if (p instanceof ACSLSimplePredicate) {
+                                                                        innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) p).getTerm()).getRight();
+                                                                       } else {
+                                                                        innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) ((ACSLLogicalPredicate) p).
+                                                                           getRight()).getTerm()).getRight();
+                                                                       }
+                                                                       ACSLPredicate right = new ACSLSimplePredicate(new ACSLBinaryTerm(innerLeft, t, op));
+                                                                       RESULT = new ACSLLogicalPredicate(p, right, BinaryOperator.AND);  :}
+        | asc_comp_predicate:p EQ term:t                            {: ACSLTerm innerLeft;
+                                                                      if (p instanceof ACSLSimplePredicate) {
+                                                                       innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) p).getTerm()).getRight();
+                                                                      } else {
+                                                                       innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) ((ACSLLogicalPredicate) p).
+                                                                          getRight()).getTerm()).getRight();
+                                                                      }
+                                                                      ACSLPredicate right = new ACSLSimplePredicate(new ACSLBinaryTerm(innerLeft, t, BinaryOperator.EQ));
+                                                                      RESULT = new ACSLLogicalPredicate(p, right, BinaryOperator.AND); :}
+        | asc_base:ab                      {: RESULT = ab; :}
+        | eq_chain:ec asc_rel_op:op term:t {: ACSLTerm innerLeft;
+                                              if (ec instanceof ACSLSimplePredicate) {
+                                                innerLeft = ((ACSLBinaryTerm)((ACSLSimplePredicate) ec).getTerm()).getRight();
+                                              } else {
+                                                innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) ((ACSLLogicalPredicate) ec).getRight()).getTerm()).
+                                                   getRight();
+                                              }
+                                              ACSLPredicate right = new ACSLSimplePredicate(new ACSLBinaryTerm(innerLeft, t, op));
+                                              RESULT = new ACSLLogicalPredicate(ec, right, BinaryOperator.AND); :};
+desc_comp_predicate ::= desc_comp_predicate:p desc_rel_op:op term:t {: ACSLTerm innerLeft;
+                                                                       if (p instanceof ACSLSimplePredicate) {
+                                                                        innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) p).getTerm()).getRight();
+                                                                       } else {
+                                                                        innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) ((ACSLLogicalPredicate) p).
+                                                                           getRight()).getTerm()).getRight();
+                                                                       }
+                                                                       ACSLPredicate right = new ACSLSimplePredicate(new ACSLBinaryTerm(innerLeft, t, op));
+                                                                       RESULT = new ACSLLogicalPredicate(p, right, BinaryOperator.AND); :}
+        | desc_comp_predicate:p EQ term:t                             {: ACSLTerm innerLeft;
+                                                                       if (p instanceof ACSLSimplePredicate) {
+                                                                        innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) p).getTerm()).getRight();
+                                                                       } else {
+                                                                        innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) ((ACSLLogicalPredicate) p).
+                                                                           getRight()).getTerm()).getRight();
+                                                                       }
+                                                                       ACSLPredicate right = new ACSLSimplePredicate(new ACSLBinaryTerm(innerLeft, t, BinaryOperator.EQ));
+                                                                       RESULT = new ACSLLogicalPredicate(p, right, BinaryOperator.AND); :}
+        | desc_base:db                      {: RESULT = db; :}
+        | eq_chain:ec desc_rel_op:op term:t {: ACSLTerm innerLeft;
+                                               if (ec instanceof ACSLSimplePredicate) {
+                                                innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) ec).getTerm()).getRight();
+                                               } else {
+                                                innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) ((ACSLLogicalPredicate) ec).getRight()).getTerm()).
+                                                   getRight();
+                                               }
+                                               ACSLPredicate right = new ACSLSimplePredicate(new ACSLBinaryTerm(innerLeft, t, op));
+                                               RESULT = new ACSLLogicalPredicate(ec, right, BinaryOperator.AND); :};
+eq_chain ::= eq_chain:ec EQ term:t  {: ACSLTerm innerLeft;
+                                       if (ec instanceof ACSLSimplePredicate) {
+                                        innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) ec).getTerm()).getRight();
+                                       } else {
+                                        innerLeft = ((ACSLBinaryTerm) ((ACSLSimplePredicate) ((ACSLLogicalPredicate) ec).getRight()).getTerm()).getRight();
+                                       }
+                                       ACSLPredicate right = new ACSLSimplePredicate(new ACSLBinaryTerm(innerLeft, t, BinaryOperator.EQ));
+                                       RESULT = new ACSLLogicalPredicate(ec, right, BinaryOperator.AND); :}
+           | term:t1 EQ term:t2     {: RESULT = new ACSLSimplePredicate(new ACSLBinaryTerm(t1, t2, BinaryOperator.EQ)); :};
+asc_base ::= term:t1 asc_rel_op:op term:t2    {: RESULT = new ACSLSimplePredicate(new ACSLBinaryTerm(t1, t2, op)); :};
+desc_base ::= term:t1 desc_rel_op:op term:t2  {: RESULT = new ACSLSimplePredicate(new ACSLBinaryTerm(t1, t2, op)); :};
 term ::= PRED_START term:t                              {: RESULT = t; :}
         | LITERAL:l                                     {: RESULT = new IntegerLiteral(l); :}
         | STRING_LITERAL:l                              {: RESULT = new StringLiteral(l); :}
@@ -423,12 +494,10 @@ log_op ::= AND  {: RESULT = BinaryOperator.AND; :}
         | IMP   {: RESULT = BinaryOperator.IMP; :}
         | EQV   {: RESULT = BinaryOperator.EQV; :}
         | XOR   {: RESULT = BinaryOperator.XOR; :};
-rel_op ::= EQ   {: RESULT = BinaryOperator.EQ; :}
-        | NEQ   {: RESULT = BinaryOperator.NEQ; :}
-        | LEQ   {: RESULT = BinaryOperator.LEQ; :}
-        | GEQ   {: RESULT = BinaryOperator.GEQ; :}
-        | GT    {: RESULT = BinaryOperator.GT; :}
-        | LT    {: RESULT = BinaryOperator.LT; :};
+asc_rel_op ::= LEQ      {: RESULT = BinaryOperator.LEQ; :}
+        | LT            {: RESULT = BinaryOperator.LT; :};
+desc_rel_op ::= GT      {: RESULT = BinaryOperator.GT; :}
+        | GEQ           {: RESULT = BinaryOperator.GEQ; :};
 arith_op ::= PLUS       {: RESULT = BinaryOperator.PLUS; :}
         | MINUS         {: RESULT = BinaryOperator.MINUS; :}
         | STAR          {: RESULT = BinaryOperator.TIMES; :}    %prec TIMES
