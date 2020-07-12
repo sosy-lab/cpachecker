@@ -25,4 +25,14 @@ public class TarantulaCasesStatus {
   public int getPassedCases() {
     return passedCases;
   }
+
+  @Override
+  public String toString() {
+    return "TarantulaCasesStatus{"
+        + "failedCases="
+        + failedCases
+        + ", passedCases="
+        + passedCases
+        + '}';
+  }
 }

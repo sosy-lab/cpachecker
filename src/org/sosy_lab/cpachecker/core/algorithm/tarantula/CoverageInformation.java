@@ -34,18 +34,18 @@ public class CoverageInformation {
    * @param paths All paths contains all error paths and passed paths.
    * @return result as edge and its case status.
    */
-  private Map<FaultContribution, TarantulaCasesStatus> calculateCoverageInformation(
-      Set<ARGPath> paths) throws InterruptedException {
-    Map<FaultContribution, TarantulaCasesStatus> coverageInfo = new LinkedHashMap<>();
+  private Map<CFAEdge, TarantulaCasesStatus> calculateCoverageInformation(Set<ARGPath> paths)
+      throws InterruptedException {
+    Map<CFAEdge, TarantulaCasesStatus> coverageInfo = new LinkedHashMap<>();
 
     for (ARGPath path : paths) {
       for (CFAEdge cfaEdge : path.getFullPath()) {
         shutdownNotifier.shutdownIfNecessary();
         TarantulaCasesStatus caseStatus;
-        if (!coverageInfo.containsKey(new FaultContribution(cfaEdge))) {
-          coverageInfo.put(new FaultContribution(cfaEdge), new TarantulaCasesStatus(0, 0));
+        if (!coverageInfo.containsKey(cfaEdge)) {
+          coverageInfo.put(cfaEdge, new TarantulaCasesStatus(0, 0));
         }
-        caseStatus = coverageInfo.get(new FaultContribution(cfaEdge));
+        caseStatus = coverageInfo.get(cfaEdge);
         if (failedCase.isFailedPath(path)) {
           caseStatus =
               new TarantulaCasesStatus(
@@ -59,11 +59,10 @@ public class CoverageInformation {
 
         // Skipp the "none" line numbers.
         if (cfaEdge.getLineNumber() != 0) {
-          coverageInfo.put(new FaultContribution(cfaEdge), caseStatus);
+          coverageInfo.put(cfaEdge, caseStatus);
         }
       }
     }
-
     return coverageInfo;
   }
 
@@ -72,7 +71,7 @@ public class CoverageInformation {
    *
    * @return Covered edges.
    */
-  public Map<FaultContribution, TarantulaCasesStatus> getCoverageInformation(
+  public Map<CFAEdge, TarantulaCasesStatus> getCoverageInformation(
       Set<ARGPath> safePaths, Set<ARGPath> errorPaths) throws InterruptedException {
     return calculateCoverageInformation(Sets.union(safePaths, errorPaths));
   }

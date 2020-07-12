@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.FaultInformation;
 import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.TarantulaCasesStatus;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -57,12 +58,12 @@ public class TarantulaRanking {
     Set<ARGPath> errorPaths = failedCase.getErrorPaths();
     int totalSafePaths = safePaths.size();
     int totalErrorPaths = errorPaths.size();
-    Map<FaultContribution, TarantulaCasesStatus> coverage =
+    Map<CFAEdge, TarantulaCasesStatus> coverage =
         coverageInformation.getCoverageInformation(safePaths, errorPaths);
     Map<FaultInformation, FaultContribution> rankedInfo = new HashMap<>();
     Set<FaultContribution> hints = new HashSet<>();
     coverage.forEach(
-        (pFaultContribution, pTarantulaCasesStatus) -> {
+        (pCFAEdge, pTarantulaCasesStatus) -> {
           double suspicious =
               computeSuspicious(
                   pTarantulaCasesStatus.getFailedCases(),
@@ -70,8 +71,8 @@ public class TarantulaRanking {
                   totalErrorPaths,
                   totalSafePaths);
           // Skip 0 line numbers
-          if (pFaultContribution.correspondingEdge().getLineNumber() != 0) {
-
+          if (pCFAEdge.getLineNumber() != 0) {
+            FaultContribution pFaultContribution = new FaultContribution(pCFAEdge);
             if (suspicious != 0) {
               pFaultContribution.setScore(suspicious);
               hints.add(pFaultContribution);
