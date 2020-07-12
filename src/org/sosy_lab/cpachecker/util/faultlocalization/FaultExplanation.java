@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
-import org.sosy_lab.cpachecker.util.faultlocalization.ranking.NoContextExplanation;
-
 /**
  * Every reason needs a description.
  * If there is a similar way to map Faults to a description a FaultExplanation can be created.

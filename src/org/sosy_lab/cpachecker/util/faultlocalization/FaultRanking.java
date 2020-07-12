@@ -10,8 +10,6 @@ package org.sosy_lab.cpachecker.util.faultlocalization;
 
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
-import org.sosy_lab.cpachecker.util.faultlocalization.ranking.MaximalLineDistanceRanking;
 
 @FunctionalInterface
 public interface FaultRanking {
