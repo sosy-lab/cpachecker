@@ -64,8 +64,6 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       throws InvalidConfigurationException {
     super(pExtractor, pLogger, pShutdownNotifier, pConfig);
 
-    pConfig.inject(this);
-
     depGraph =
         pCfa.getDependenceGraph()
             .orElseThrow(
