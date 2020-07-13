@@ -17,6 +17,7 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAEdge;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.EncodingExtension;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.BooleanVarFeatureEncoding;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.DiscreteFeatureEncoding;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.actionencodings.ActionEncoding;
@@ -35,8 +36,9 @@ public class TATransitionUnrolling extends AutomatonEncoding {
       CFA pCfa,
       TimeEncoding pTime,
       ActionEncoding pActions,
-      LocationEncoding pLocations) {
-    super(pFmgr, pCfa, pTime, pActions, pLocations);
+      LocationEncoding pLocations,
+      Iterable<EncodingExtension> pExtensions) {
+    super(pFmgr, pCfa, pTime, pActions, pLocations, pExtensions);
     idleEdgesByAutomaton = new HashMap<>();
 
     var transitionEncoding = new BooleanVarFeatureEncoding<TCFAEdge>(pFmgr);
@@ -57,7 +59,8 @@ public class TATransitionUnrolling extends AutomatonEncoding {
   }
 
   @Override
-  protected BooleanFormula makeAutomatonStep(TaDeclaration pAutomaton, int pLastReachedIndex) {
+  protected BooleanFormula makeAutomatonTransitionsFormula(
+      TaDeclaration pAutomaton, int pLastReachedIndex) {
     var delayEdgeFormula = transitions.makeEqualsFormula(pAutomaton, pLastReachedIndex, delayEdge);
     var delayFormula =
         bFmgr.implication(delayEdgeFormula, makeDelayTransition(pAutomaton, pLastReachedIndex));

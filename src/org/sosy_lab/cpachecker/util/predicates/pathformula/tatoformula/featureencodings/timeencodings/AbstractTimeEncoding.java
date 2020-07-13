@@ -96,4 +96,9 @@ public abstract class AbstractTimeEncoding implements TimeEncoding {
 
   protected abstract BooleanFormula makeResetFormula(
       TaDeclaration pAutomaton, int pVariableIndex, TaVariable pVariable);
+
+  @Override
+  public FormulaType<?> getTimeFormulaType() {
+    return CLOCK_VARIABLE_TYPE;
+  }
 }

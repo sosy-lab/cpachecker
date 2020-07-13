@@ -8,8 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula;
 
-
-
+import java.util.HashSet;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.actionencodings.ActionEncoding;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.actionencodings.BooleanVarActionEncoding;
@@ -55,7 +54,7 @@ public class TAFormulaEncodingProvider {
     var actions = makeActionEncoding(pCfa, pFmgr);
     var time = makeTimeEncoding(pFmgr);
 
-    var automaton = new AutomatonEncoding(pFmgr, pCfa, time, actions, locations);
+    var automaton = new AutomatonEncoding(pFmgr, pCfa, time, actions, locations, new HashSet<>());
 
     return automaton;
   }

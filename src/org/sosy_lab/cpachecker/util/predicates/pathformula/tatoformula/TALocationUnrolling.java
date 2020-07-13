@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFANode;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.EncodingExtension;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.actionencodings.ActionEncoding;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.locationencodings.LocationEncoding;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.timeencodings.TimeEncoding;
@@ -32,8 +33,9 @@ public class TALocationUnrolling extends AutomatonEncoding {
       CFA pCfa,
       TimeEncoding pTime,
       ActionEncoding pActions,
-      LocationEncoding pLocations) {
-    super(pFmgr, pCfa, pTime, pActions, pLocations);
+      LocationEncoding pLocations,
+      Iterable<EncodingExtension> pExtensions) {
+    super(pFmgr, pCfa, pTime, pActions, pLocations, pExtensions);
 
     edgesByPredecessor = HashBasedTable.create();
     for (var automatonEdges : edgesByAutomaton.entrySet()) {
@@ -49,7 +51,8 @@ public class TALocationUnrolling extends AutomatonEncoding {
   }
 
   @Override
-  protected BooleanFormula makeAutomatonStep(TaDeclaration pAutomaton, int pLastReachedIndex) {
+  protected BooleanFormula makeAutomatonTransitionsFormula(
+      TaDeclaration pAutomaton, int pLastReachedIndex) {
     var result = bFmgr.makeTrue();
     var delayFormula = makeDelayTransition(pAutomaton, pLastReachedIndex);
     var idleFormula = makeIdleTransition(pAutomaton, pLastReachedIndex);

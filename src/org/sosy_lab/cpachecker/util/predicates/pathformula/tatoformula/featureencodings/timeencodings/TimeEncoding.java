@@ -12,6 +12,7 @@ import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariable;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariableCondition;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 public interface TimeEncoding {
   BooleanFormula makeConditionFormula(
@@ -28,4 +29,6 @@ public interface TimeEncoding {
   BooleanFormula makeTimeUpdateFormula(TaDeclaration pAutomaton, int pIndexBefore);
 
   BooleanFormula makeTimeDoesNotAdvanceFormula(TaDeclaration pAutomaton, int pIndexBefore);
+
+  FormulaType<?> getTimeFormulaType();
 }

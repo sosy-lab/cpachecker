@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.timedautomata.TAUnrollingState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.EncodingExtension;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.actionencodings.ActionEncoding;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.locationencodings.LocationEncoding;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.timeencodings.TimeEncoding;
@@ -47,17 +48,11 @@ public class AutomatonEncoding implements TAFormulaEncoding {
   protected final LocationEncoding locations;
   private final TimeEncoding time;
   private Map<TaDeclaration, Collection<TCFANode>> initialNodesByAutomaton;
+  private Iterable<EncodingExtension> extensions;
 
   // Placeholder for config
   private boolean useDelayAction = true;
   private boolean useIdleAction = false;
-
-  private static enum InvariantType {
-    LOCAL, // invariant formulas at discrete and delay steps only
-    GLOBAL // add one big invariant formula to each transition
-  }
-
-  private InvariantType invariantType = InvariantType.LOCAL;
 
   private boolean actionDetachedDelayTransition = false;
   private boolean actionDetachedIdleTransition = true;
@@ -69,12 +64,14 @@ public class AutomatonEncoding implements TAFormulaEncoding {
       CFA pCfa,
       TimeEncoding pTime,
       ActionEncoding pActions,
-      LocationEncoding pLocations) {
+      LocationEncoding pLocations,
+      Iterable<EncodingExtension> pExtensions) {
     fmgr = pFmgr;
     bFmgr = fmgr.getBooleanFormulaManager();
     time = pTime;
     actions = pActions;
     locations = pLocations;
+    extensions = pExtensions;
 
     automata =
         from(pCfa.getAllFunctions().values())
@@ -126,7 +123,7 @@ public class AutomatonEncoding implements TAFormulaEncoding {
 
     var automataFormulas =
         from(automata)
-            .transform(automaton -> makeAutomatonStep(automaton, pLastReachedIndex))
+            .transform(automaton -> makeSuccessorFormulaForAutomaton(automaton, pLastReachedIndex))
             .toSet();
     result = bFmgr.and(bFmgr.and(automataFormulas), result);
 
@@ -145,7 +142,19 @@ public class AutomatonEncoding implements TAFormulaEncoding {
     return ImmutableSet.of(result);
   }
 
-  protected BooleanFormula makeAutomatonStep(TaDeclaration pAutomaton, int pLastReachedIndex) {
+  private BooleanFormula makeSuccessorFormulaForAutomaton(
+      TaDeclaration pAutomaton, int pLastReachedIndex) {
+    var extensionFormulas =
+        from(extensions)
+            .transform(extension -> extension.makeAutomatonStep(pAutomaton, pLastReachedIndex));
+    var extensionsFormula = bFmgr.and(extensionFormulas.toSet());
+    var automatonTransitionsFormula =
+        makeAutomatonTransitionsFormula(pAutomaton, pLastReachedIndex);
+    return bFmgr.and(automatonTransitionsFormula, extensionsFormula);
+  }
+
+  protected BooleanFormula makeAutomatonTransitionsFormula(
+      TaDeclaration pAutomaton, int pLastReachedIndex) {
     var delayFormula = makeDelayTransition(pAutomaton, pLastReachedIndex);
     var idleFormula = makeIdleTransition(pAutomaton, pLastReachedIndex);
 
@@ -315,7 +324,12 @@ public class AutomatonEncoding implements TAFormulaEncoding {
                 node -> locations.makeLocationEqualsFormula(pAutomaton, pInitialIndex, node));
     var initialTime = time.makeInitiallyZeroFormula(pAutomaton, pInitialIndex);
 
-    return bFmgr.and(initialTime, bFmgr.and(initialLocations.toSet()));
+    var extensionFormulas =
+        from(extensions)
+            .transform(extension -> extension.makeInitialFormula(pAutomaton, pInitialIndex));
+    var extensionsFormula = bFmgr.and(extensionFormulas.toSet());
+
+    return bFmgr.and(initialTime, bFmgr.and(initialLocations.toSet()), extensionsFormula);
   }
 
   @Override
@@ -332,31 +346,40 @@ public class AutomatonEncoding implements TAFormulaEncoding {
 
     var errorCondition = bFmgr.makeFalse();
     for (int i = 0; i <= maxUnrolling; i++) {
-      errorCondition = bFmgr.or(makeErrorCondition(i), errorCondition);
+      errorCondition = bFmgr.or(makeFinalCondition(i), errorCondition);
     }
 
     return bFmgr.and(behaviorEncoding, errorCondition);
   }
 
-  protected BooleanFormula makeErrorCondition(int pHighestReachedIndex) {
+  protected BooleanFormula makeFinalCondition(int pHighestReachedIndex) {
     return bFmgr.and(
         from(automata)
-            .transform(automaton -> makeErrorConditionForAutomaton(automaton, pHighestReachedIndex))
+            .transform(automaton -> makeFinalConditionForAutomaton(automaton, pHighestReachedIndex))
             .toSet());
   }
 
-  private BooleanFormula makeErrorConditionForAutomaton(
+  private BooleanFormula makeFinalConditionForAutomaton(
       TaDeclaration pAutomaton, int pHighestReachedIndex) {
     var errorNodes =
-        from(nodesByAutomaton.get(pAutomaton)).filter(node -> node.isErrorLocation()).toSet();
+        from(nodesByAutomaton.get(pAutomaton)).filter(TCFANode::isErrorLocation).toSet();
     if (errorNodes.isEmpty()) {
       errorNodes = ImmutableSet.copyOf(nodesByAutomaton.get(pAutomaton));
     }
-
-    return bFmgr.or(
+    var finalLocationsFormulas =
         from(errorNodes)
             .transform(
-                node -> locations.makeLocationEqualsFormula(pAutomaton, pHighestReachedIndex, node))
-            .toSet());
+                node ->
+                    locations.makeLocationEqualsFormula(pAutomaton, pHighestReachedIndex, node));
+    var anyFinalLocationReached = bFmgr.or(finalLocationsFormulas.toSet());
+
+    var extensionFormulas =
+        from(extensions)
+            .transform(
+                extension ->
+                    extension.makeFinalConditionForAutomaton(pAutomaton, pHighestReachedIndex));
+    var extensionsFormula = bFmgr.and(extensionFormulas.toSet());
+
+    return bFmgr.and(anyFinalLocationReached, extensionsFormula);
   }
 }

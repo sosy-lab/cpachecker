@@ -81,4 +81,10 @@ public class ExplicitTimeEncoding extends AbstractTimeEncoding {
 
     return fmgr.makeEqual(timeVariableAfterFormula, timeVariableBeforeFormula);
   }
+
+  public BooleanFormula makeTimeEqualsVariable(
+      TaDeclaration pAutomaton, int pVariableIndex, Formula variable) {
+    var timeVariableFormula = makeTimeVariableFormula(pAutomaton, pVariableIndex);
+    return fmgr.makeEqual(timeVariableFormula, variable);
+  }
 }
