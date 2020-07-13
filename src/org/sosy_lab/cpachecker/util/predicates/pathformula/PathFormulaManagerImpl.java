@@ -303,7 +303,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Override
   public PathFormula makeEmptyPathFormula() {
     return new PathFormula(bfmgr.makeTrue(),
-                           SSAMap.emptySSAMap(),
+                           //SSAMap.emptySSAMap(),
+                           SSAMap.emptySSAMap().withDefault(1),
                            PointerTargetSet.emptyPointerTargetSet(),
                            0);
   }
@@ -606,14 +607,19 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
-  public BooleanFormula buildWeakestPrecondition(
-      final CFAEdge pEdge, final BooleanFormula pPostcond)
+  public PathFormula buildWeakestPrecondition(
+      final PathFormula pOldFormula, final CFAEdge pEdge)
       throws UnrecognizedCFAEdgeException, UnrecognizedCodeException, InterruptedException {
 
     // TODO: refactor as soon as there is a WP converter with pointer aliasing
 
     if (wpConverter != null) {
-      return wpConverter.makePreconditionForEdge(pEdge, pPostcond);
+      var pf = wpConverter.makePrecondition(pOldFormula, pEdge);
+
+      if (simplifyGeneratedPathFormulas) {
+        pf = pf.updateFormula(fmgr.simplify(pf.getFormula()));
+      }
+      return pf;
     }
 
     throw new UnsupportedOperationException();

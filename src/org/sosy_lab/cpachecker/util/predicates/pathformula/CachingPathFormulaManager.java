@@ -255,10 +255,9 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   }
 
   @Override
-  public BooleanFormula buildWeakestPrecondition(
-      final CFAEdge pEdge, final BooleanFormula pPostcondition)
+  public PathFormula buildWeakestPrecondition(PathFormula pPostcond, CFAEdge pEdge)
       throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
-    return delegate.buildWeakestPrecondition(pEdge, pPostcondition);
+    return delegate.buildWeakestPrecondition(pPostcond, pEdge);
   }
 
   @Override

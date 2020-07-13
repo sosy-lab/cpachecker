@@ -23,28 +23,45 @@
  */
 package org.sosy_lab.cpachecker.util.predicates;
 
+import static org.sosy_lab.common.collect.MapsDifference.collectMapsDifferenceTo;
+
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoWpConverter;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -81,7 +98,7 @@ public class UCBRefinementManager {
                                                           final BlockFormulas pFormulas)
       throws CPAException, InterruptedException {
 
-    List<ARGState> trace = new ArrayList<>(abstractionStatesTrace);
+    var trace = new ArrayList<>(abstractionStatesTrace);
     // Add root to the trace in order to compute WPs correctly as 'abstractionStatesTrace'
     // does not contain the root element.
     trace.add(0, allStatesTrace.getFirstState());
@@ -110,29 +127,36 @@ public class UCBRefinementManager {
   private List<BooleanFormula> computeWeakestPreconditions(final List<ARGState> pTrace)
       throws CPAException, InterruptedException {
 
-    BooleanFormula wpre = bfmgr.makeTrue();
-    List<BooleanFormula> wpres = new ArrayList<>();
+    var wpre = Optional.of(pfmgr.makeEmptyPathFormula());
+    var wpres = new ArrayList<PathFormula>();
 
     logger.log(Level.FINEST, "Calculate weakest precondition for the error trace.");
 
     // Ignore last state as it's the error state
     for (int i = pTrace.size() - 2; i >= 0; i--) {
       try {
-        wpre = computeWeakestPrecondition(pTrace.get(i), pTrace.get(i + 1), wpre);
+        wpre = computeWeakestPrecondition(pTrace.get(i), pTrace.get(i + 1), wpre.get());
+        if(wpre.isEmpty()) {
+          break;
+        }
 
-        PredicateAbstractState abstractState =
-            AbstractStates.extractStateByType(pTrace.get(i), PredicateAbstractState.class);
+        var state = AbstractStates.extractStateByType(pTrace.get(i), PredicateAbstractState.class);
+        var stateFormula = state.getAbstractionFormula().asFormula();
 
-        BooleanFormula stateFormula = abstractState.getAbstractionFormula().asFormula();
-
-        if (solver.isUnsat(bfmgr.and(stateFormula, wpre))) {
-          logger.log(
-              Level.FINEST,
+        if (solver.isUnsat(bfmgr.and(wpre.get().getFormula(), stateFormula))) {
+          logger.log(Level.FINEST,
               "Abstract state is disjoint with the weakest precondition. Found spurious error trace suffix.");
 
-          return wpres;
+          var wpSsa = wpres.get(wpres.size() - 1).getSsa();
+
+          var prevState = AbstractStates.extractStateByType(pTrace.get(i + 1), PredicateAbstractState.class);
+          var spSsa = prevState.getPathFormula().getSsa();
+
+          return wpres.stream().map(wp -> flipNondetIndices(wp, wpSsa, spSsa)).collect(Collectors.toList());
         }
-        wpres.add(wpre);
+
+        wpres.add(wpre.get());
+
       } catch (SolverException e) {
         throw new CPAException(e.getMessage());
       }
@@ -141,14 +165,43 @@ public class UCBRefinementManager {
     return null;
   }
 
-  private BooleanFormula computeWeakestPrecondition(final ARGState src,
-                                                    final ARGState dst,
-                                                    final BooleanFormula postCondition)
+  private BooleanFormula flipNondetIndices(final PathFormula pf, final SSAMap wpSsa, final SSAMap spSsa) {
+    var vars = wpSsa.allVariables();
+    var formula = pf.getFormula();
+
+    formula = fmgr.renameFreeVariablesAndUFs(formula, (n) -> {
+      var i = n.lastIndexOf("!");
+      if(i < 0) {
+        return n;
+      }
+
+      var j = n.lastIndexOf("@");
+      if(j < 0) {
+        j = n.length();
+      }
+
+      var v = n.substring(0, i);
+
+      var wpIndex = wpSsa.getIndex(v);
+      var offset = spSsa.containsVariable(v) ? spSsa.getIndex(v) - 1 : 0;
+
+      var index = Integer.valueOf(n.substring(i + 1, j));
+      var flipped = wpIndex - index + 2;
+      return v + "!" + (flipped + offset) + n.substring(j);
+    });
+
+    return formula;
+  }
+
+  private Optional<PathFormula> computeWeakestPrecondition(final ARGState src,
+                                                           final ARGState dst,
+                                                           final PathFormula postCondition)
       throws CPAException, InterruptedException {
+
 
     CFAEdge singleEdge = src.getEdgeToChild(dst);
     if (singleEdge != null) {
-      return pfmgr.buildWeakestPrecondition(singleEdge, postCondition);
+      return Optional.of(pfmgr.buildWeakestPrecondition(postCondition, singleEdge));
     }
 
     CFANode srcNode = AbstractStates.extractLocation(src);
@@ -158,48 +211,49 @@ public class UCBRefinementManager {
       return computeWeakestPrecondition(srcNode, dstNode, postCondition, ImmutableSet.of());
     }
 
-    return bfmgr.makeFalse();
+    return Optional.empty();
   }
 
 
-  private BooleanFormula computeWeakestPrecondition(final CFANode src,
-                                                    final CFANode dst,
-                                                    final BooleanFormula postCondition,
-                                                    final Set<CFANode> visitedNodes)
+  private Optional<PathFormula> computeWeakestPrecondition(final CFANode src,
+                                                           final CFANode dst,
+                                                           final PathFormula postCondition,
+                                                           final Set<CFANode> visitedNodes)
       throws CPAException, InterruptedException {
 
     Set<CFANode> visited = Sets.newHashSet(visitedNodes);
     visited.add(src);
 
-    BooleanFormula res = bfmgr.makeFalse();
+    Optional<PathFormula> res = Optional.empty();
 
     for(int i = 0; i < src.getNumLeavingEdges(); i++) {
       CFAEdge edge = src.getLeavingEdge(i);
       CFANode next = edge.getSuccessor();
 
-      BooleanFormula wp = bfmgr.makeFalse();
-      BooleanFormula post = bfmgr.makeFalse();
+      Optional<PathFormula> post = Optional.empty();
 
       if(next.equals(dst)) {
-        post = postCondition;
+        post = Optional.of(postCondition);
       } else if (!visited.contains(next)) {
         post = computeWeakestPrecondition(next, dst, postCondition, visited);
       }
 
-      if(!bfmgr.isFalse(post)) {
-        wp = pfmgr.buildWeakestPrecondition(edge, post);
-      }
-
-      if(bfmgr.isFalse(res)){
-        res = wp;
-      } else if (!bfmgr.isFalse(wp)) {
-        res = bfmgr.or(res, wp);
+      if(post.isPresent()) {
+        var wp = pfmgr.buildWeakestPrecondition(post.get(), edge);
+        wp = res.isPresent() ? makeOr(res.get(), wp) : wp;
+        res = Optional.of(wp);
       }
     }
 
     return res;
   }
 
+  private PathFormula makeOr(PathFormula pf1, PathFormula pf2)
+      throws InterruptedException {
+
+    var pf =  pfmgr.makeOr(pf1, pf2);
+    return pf.updateFormula(fmgr.makeOr(pf1.getFormula(), pf2.getFormula()));
+  }
 
   private List<BooleanFormula> computeUCB(final List<ARGState> pTrace,
                                           final BlockFormulas pFormulas,
@@ -211,12 +265,12 @@ public class UCBRefinementManager {
 
 
     // We transform every wp into ucb in-place
-    List<BooleanFormula> ucbs = new ArrayList<>(wpres);
-    Collections.reverse(ucbs);
+    Collections.reverse(wpres);
+    var ucbs = new ArrayList<BooleanFormula>();
 
     // WPs list does not contain the first (= false) and the last (= true) nodes,
     // while the pTrace contains the whole path, i.e. from the root to the error node
-    int startStateIdx = pTrace.size() - ucbs.size() - 2;
+    int startStateIdx = pTrace.size() - wpres.size() - 2;
 
     BooleanFormula pred = null;
     PredicateAbstractState curState, nextState;
@@ -229,30 +283,43 @@ public class UCBRefinementManager {
         pred = curState.getAbstractionFormula().asFormula();
       }
 
+      var curSsa = curState.getPathFormula().getSsa();
+      var nextSsa = nextState.getPathFormula().getSsa();
+
+      /*
+      var ssaBuilder = curSsa.builder();
+
+      for(var v : nextSsa.allVariables()) {
+        if(!curSsa.containsVariable(v)) {
+          ssaBuilder.setIndex(v, nextSsa.getType(v), 1);
+        }
+      }
+      var predSsa = ssaBuilder.build();
+      */
+
       // Previously computed predicate
-      pred = fmgr.instantiate(pred, curState.getPathFormula().getSsa());
+      pred = fmgr.instantiate(pred, curSsa);
 
       // Compute edge post-condition
-      BooleanFormula pf = pFormulas.getFormulas().get(i);
+      var pf = pFormulas.getFormulas().get(i);
 
       // Weakest precondition in the target location
-      BooleanFormula ucb = fmgr.instantiate(ucbs.get(i - startStateIdx), nextState.getPathFormula().getSsa());
+      var wp = fmgr.instantiate(wpres.get(i - startStateIdx), nextSsa);
 
       // Clauses of the precondition to be refined
-      Set<BooleanFormula> ucbConj = bfmgr.toConjunctionArgs(ucb, true);
-
+      var wpConj = bfmgr.toConjunctionArgs(wp, true);
 
       // All clauses of the formula: p__i && sp__i+1 && wp__i+1
       Set<BooleanFormula> conjs = new HashSet<>();
       conjs.add(pred);
       conjs.add(pf);
-      conjs.addAll(ucbConj);
+      conjs.addAll(wpConj);
 
       try {
-        List<BooleanFormula> unsatCore = solver.unsatCore(conjs);
-        unsatCore = unsatCore.stream().filter(uc -> ucbConj.contains(uc)).collect(Collectors.toList());
-
-        BooleanFormula ucf = fmgr.uninstantiate(bfmgr.and(unsatCore));
+        var unsatCore = solver.unsatCore(conjs);
+        unsatCore = unsatCore.stream().filter(uc -> wpConj.contains(uc)).collect(Collectors.toList());
+        var ucf = fmgr.uninstantiate(bfmgr.and(unsatCore));
+        var prev = pred;
 
         // Avoid (not true|false) predicates as the refinement strategy
         // does not recognize them as trivial (and does not skip)
@@ -265,7 +332,7 @@ public class UCBRefinementManager {
           pred = bfmgr.not(ucf);
         }
 
-        ucbs.set(i - startStateIdx, pred);
+        ucbs.add(pred);
 
       } catch (SolverException e) {
         throw new CPAException(e.getMessage());

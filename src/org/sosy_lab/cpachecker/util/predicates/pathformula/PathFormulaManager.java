@@ -207,7 +207,7 @@ public interface PathFormulaManager {
    * @param pPostcond Postcondition
    * @return Created precondition
    */
-  BooleanFormula buildWeakestPrecondition(CFAEdge pEdge, BooleanFormula pPostcond)
+  PathFormula buildWeakestPrecondition(PathFormula pPostcond, CFAEdge pEdge)
       throws UnrecognizedCFAEdgeException, UnrecognizedCodeException, InterruptedException;
 
   PointerTargetSet
