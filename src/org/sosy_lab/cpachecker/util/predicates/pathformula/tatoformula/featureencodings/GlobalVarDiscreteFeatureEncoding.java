@@ -43,6 +43,10 @@ public class GlobalVarDiscreteFeatureEncoding<T> implements DiscreteFeatureEncod
 
   @Override
   public BooleanFormula makeEqualsFormula(TaDeclaration pAutomaton, int pVariableIndex, T feature) {
+    return makeEqualsFormula(pVariableIndex, feature);
+  }
+
+  public BooleanFormula makeEqualsFormula(int pVariableIndex, T feature) {
     var variable = makeVariableFormula(pVariableIndex);
     var value = makeValueFormula(feature);
     return fmgr.makeEqual(variable, value);

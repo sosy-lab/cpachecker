@@ -16,12 +16,5 @@ public interface ActionEncoding {
   BooleanFormula makeActionEqualsFormula(
       TaDeclaration pAutomaton, int pVariableIndex, TaVariable pVariable);
 
-  BooleanFormula makeDelayActionFormula(TaDeclaration pAutomaton, int pVariableIndex);
-
-  BooleanFormula makeIdleActionFormula(TaDeclaration pAutomaton, int pVariableIndex);
-
-  BooleanFormula makeLocalDummyActionFormula(TaDeclaration pAutomaton, int pVariableIndex);
-
-  Iterable<BooleanFormula> makeAllActionFormulas(
-      int pVariableIndex, boolean pIncludeDelay, boolean pIncludeIdle);
+  BooleanFormula makeActionOccursInStepFormula(int pVariableIndex, TaVariable pVariable);
 }

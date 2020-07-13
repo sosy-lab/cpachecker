@@ -38,18 +38,19 @@ public class TATransitionUnrolling extends AutomatonEncoding {
     super(pFmgr, pAutomata, pTime, pLocations, pExtensions);
     idleEdgesByAutomaton = new HashMap<>();
 
+    delayEdge = TCFAEdge.createDummyEdge();
     var transitionEncoding = new BooleanVarFeatureEncoding<TCFAEdge>(pFmgr);
     for (var automaton : automata.getAllAutomata()) {
+      transitionEncoding.addEntry(automaton, delayEdge, "delay_edge");
+
+      var idleEdge = TCFAEdge.createDummyEdge();
+      transitionEncoding.addEntry(automaton, idleEdge, "idle_" + automaton.getName());
+      idleEdgesByAutomaton.put(automaton, idleEdge);
+
       for (var edge : automata.getEdgesByAutomaton(automaton)) {
         transitionEncoding.addEntry(automaton, edge, "edge_" + edge.hashCode());
-        var idleEdge = TCFAEdge.createDummyEdge();
-        transitionEncoding.addEntry(automaton, idleEdge, "idle_" + automaton.getName());
-        idleEdgesByAutomaton.put(automaton, idleEdge);
       }
     }
-
-    delayEdge = TCFAEdge.createDummyEdge();
-    transitionEncoding.addEntryToAllAutomata(delayEdge, "delay_edge");
 
     transitions = transitionEncoding;
   }

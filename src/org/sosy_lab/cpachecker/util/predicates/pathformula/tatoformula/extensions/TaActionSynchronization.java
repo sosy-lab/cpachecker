@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensio
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAEdge;
@@ -23,9 +22,6 @@ public class TaActionSynchronization extends EncodingExtensionBase {
   // CONFIG
   private boolean actionDetachedDelayTransition = false;
   private boolean actionDetachedIdleTransition = true;
-  private boolean useDelayAction = true;
-  private boolean useIdleAction = false;
-
   private boolean noTwoActions = true;
 
   private final ActionEncoding actions;
@@ -41,35 +37,29 @@ public class TaActionSynchronization extends EncodingExtensionBase {
   @Override
   public BooleanFormula makeDiscreteStep(
       TaDeclaration pAutomaton, int pLastReachedIndex, TCFAEdge pEdge) {
-    return pEdge
-        .getAction()
-        .transform(action -> actions.makeActionEqualsFormula(pAutomaton, pLastReachedIndex, action))
-        .or(actions.makeLocalDummyActionFormula(pAutomaton, pLastReachedIndex));
+    var action = automata.getActionOrDummy(pEdge);
+    return actions.makeActionEqualsFormula(pAutomaton, pLastReachedIndex, action);
   }
 
   @Override
   public BooleanFormula makeDelayTransition(TaDeclaration pAutomaton, int pLastReachedIndex) {
     var result = bFmgr.makeTrue();
-    if (useDelayAction) {
-      result = bFmgr.and(actions.makeDelayActionFormula(pAutomaton, pLastReachedIndex), result);
+    if (automata.getDelayAction(pAutomaton).isPresent()) {
+      result =
+          bFmgr.and(
+              actions.makeActionEqualsFormula(
+                  pAutomaton, pLastReachedIndex, automata.getDelayAction(pAutomaton).get()),
+              result);
     }
 
     if (actionDetachedDelayTransition) {
-      if (useIdleAction) {
-        result =
-            bFmgr.and(
-                bFmgr.not(actions.makeIdleActionFormula(pAutomaton, pLastReachedIndex)), result);
-      }
-
       var notActionOccurs =
           from(automata.getActionsByAutomaton(pAutomaton))
               .transform(
                   action ->
                       bFmgr.not(
                           actions.makeActionEqualsFormula(pAutomaton, pLastReachedIndex, action)));
-      var notDummyAction =
-          bFmgr.not(actions.makeLocalDummyActionFormula(pAutomaton, pLastReachedIndex));
-      result = bFmgr.and(bFmgr.and(notActionOccurs.toSet()), notDummyAction, result);
+      result = bFmgr.and(bFmgr.and(notActionOccurs.toSet()), result);
     }
 
     return result;
@@ -79,26 +69,22 @@ public class TaActionSynchronization extends EncodingExtensionBase {
   public BooleanFormula makeIdleTransition(TaDeclaration pAutomaton, int pLastReachedIndex) {
     var result = bFmgr.makeTrue();
 
-    if (useIdleAction) {
-      result = bFmgr.and(actions.makeIdleActionFormula(pAutomaton, pLastReachedIndex), result);
+    if (automata.getIdleAction(pAutomaton).isPresent()) {
+      result =
+          bFmgr.and(
+              actions.makeActionEqualsFormula(
+                  pAutomaton, pLastReachedIndex, automata.getIdleAction(pAutomaton).get()),
+              result);
     }
 
     if (actionDetachedIdleTransition) {
-      if (useDelayAction) {
-        result =
-            bFmgr.and(
-                bFmgr.not(actions.makeDelayActionFormula(pAutomaton, pLastReachedIndex)), result);
-      }
-
       var notActionOccurs =
           from(automata.getActionsByAutomaton(pAutomaton))
               .transform(
                   action ->
                       bFmgr.not(
                           actions.makeActionEqualsFormula(pAutomaton, pLastReachedIndex, action)));
-      var notDummyAction =
-          bFmgr.not(actions.makeLocalDummyActionFormula(pAutomaton, pLastReachedIndex));
-      result = bFmgr.and(bFmgr.and(notActionOccurs.toSet()), notDummyAction, result);
+      result = bFmgr.and(bFmgr.and(notActionOccurs.toSet()), result);
     }
 
     return result;
@@ -107,14 +93,18 @@ public class TaActionSynchronization extends EncodingExtensionBase {
   @Override
   public BooleanFormula makeStepFormula(int pLastReachedIndex) {
     if (noTwoActions) {
-      var allActions =
-          ImmutableSet.copyOf(
-              actions.makeAllActionFormulas(pLastReachedIndex, useDelayAction, useIdleAction));
+      var actionOccurences =
+          from(automata.getAllActions())
+              .transform(
+                  action ->
+                      bFmgr.not(actions.makeActionOccursInStepFormula(pLastReachedIndex, action)))
+              .toSet();
+
       var actionPairs =
-          from(Sets.cartesianProduct(allActions, allActions))
+          from(Sets.cartesianProduct(actionOccurences, actionOccurences))
               .filter(pair -> !pair.get(0).equals(pair.get(1)))
-              .transform(pair -> bFmgr.and(pair.get(0), pair.get(1)));
-      return bFmgr.not(bFmgr.or(actionPairs.toSet()));
+              .transform(pair -> bFmgr.or(pair.get(0), pair.get(1)));
+      return bFmgr.and(actionPairs.toSet());
     }
 
     return bFmgr.makeTrue();
