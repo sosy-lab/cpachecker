@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula;
 
 import java.util.ArrayList;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TaEncodingOptions.AutomatonEncodingType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TaEncodingOptions.TAEncodingExtension;
@@ -29,27 +31,42 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureen
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.timeencodings.TimeEncoding;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
-// @Options(prefix = "cpa.timedautomata")
 public class TAFormulaEncodingProvider {
   private final TaEncodingOptions options;
   private final CFA cfa;
+  private final FormulaManagerView fmgr;
+  private final TAFormulaEncoding encoding;
 
-  public TAFormulaEncodingProvider(CFA pCfa, TaEncodingOptions pOptions
-      /* Configuration config */ ) { // throws InvalidConfigurationException {
-    // config.inject(this, TAFormulaEncodingProvider.class);
-    // config.toString();
-    cfa = pCfa;
-    options = pOptions;
+  private static TAFormulaEncodingProvider instance;
+
+  public static TAFormulaEncoding getEncoding(
+      Configuration config, CFA pCfa, FormulaManagerView pFmgr)
+      throws InvalidConfigurationException {
+    if (instance == null) {
+      instance = new TAFormulaEncodingProvider(config, pCfa, pFmgr);
+    }
+
+    return instance.encoding;
   }
 
-  public TAFormulaEncoding createConfiguredEncoding(FormulaManagerView pFmgr) {
-    var automatonView = new TimedAutomatonView(cfa, options);
-    var locations = createLocationEncoding(pFmgr, automatonView);
-    var actions = createActionEncoding(pFmgr, automatonView);
-    var time = createTimeEncoding(pFmgr);
+  private TAFormulaEncodingProvider(Configuration config, CFA pCfa, FormulaManagerView pFmgr)
+      throws InvalidConfigurationException {
+    options = new TaEncodingOptions();
+    config.inject(options, TaEncodingOptions.class);
+    cfa = pCfa;
+    fmgr = pFmgr;
 
-    var extensions = createExtensions(pFmgr, automatonView, time, locations, actions);
-    var automatonEncoding = createEncoding(pFmgr, automatonView, time, locations, extensions);
+    encoding = createConfiguredEncoding();
+  }
+
+  private TAFormulaEncoding createConfiguredEncoding() {
+    var automatonView = new TimedAutomatonView(cfa, options);
+    var locations = createLocationEncoding(fmgr, automatonView);
+    var actions = createActionEncoding(fmgr, automatonView);
+    var time = createTimeEncoding(fmgr);
+
+    var extensions = createExtensions(fmgr, automatonView, time, locations, actions);
+    var automatonEncoding = createEncoding(fmgr, automatonView, time, locations, extensions);
 
     return automatonEncoding;
   }
@@ -110,7 +127,14 @@ public class TAFormulaEncodingProvider {
       result.add(new TaInvariants(pFmgr, pAutomata, pTime, pLocations));
     }
     if (options.encodingExtensions.contains(TAEncodingExtension.ACTION_SYNC)) {
-      result.add(new TaActionSynchronization(pFmgr, pAutomata, pActions));
+      result.add(
+          new TaActionSynchronization(
+              pFmgr,
+              pAutomata,
+              pActions,
+              options.actionDetachedDelay,
+              options.actionDetachedIdle,
+              options.noTwoActions));
     }
 
     return result;

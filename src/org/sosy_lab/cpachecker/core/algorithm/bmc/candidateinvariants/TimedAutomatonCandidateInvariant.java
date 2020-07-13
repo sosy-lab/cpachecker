@@ -10,37 +10,30 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants;
 
 
 import com.google.common.collect.FluentIterable;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TAFormulaEncoding;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TAFormulaEncodingProvider;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /** Candidate invariant that represents the formula encoding of a timed automaton network. */
 public class TimedAutomatonCandidateInvariant implements CandidateInvariant {
-  private final CFA cfa;
-  private final TAFormulaEncodingProvider encodingProvider;
+  private final TAFormulaEncoding encoding;
 
-  private static TimedAutomatonCandidateInvariant instance;
-
-  public static TimedAutomatonCandidateInvariant getInstance(/*Configuration pConfig,*/ CFA pCFA) {
-    if (instance == null) {
-      instance = new TimedAutomatonCandidateInvariant(/*pConfig,*/ pCFA);
+  public TimedAutomatonCandidateInvariant(
+      Configuration pConfig, CFA pCfa, FormulaManagerView pFmgr) {
+    try {
+      encoding = TAFormulaEncodingProvider.getEncoding(pConfig, pCfa, pFmgr);
+    } catch (InvalidConfigurationException e) {
+      throw new IllegalArgumentException(e);
     }
-    return instance;
-  }
-
-  private TimedAutomatonCandidateInvariant(/*Configuration pConfig,*/ CFA pCFA) {
-    // try {
-    encodingProvider = new TAFormulaEncodingProvider(/*pConfig*/ );
-    // } catch (InvalidConfigurationException e) {
-    //   throw new IllegalArgumentException(e);
-    // }
-    cfa = pCFA;
   }
 
   @Override
@@ -53,7 +46,6 @@ public class TimedAutomatonCandidateInvariant implements CandidateInvariant {
   public BooleanFormula getAssertion(
       Iterable<AbstractState> pReachedSet, FormulaManagerView pFMGR, PathFormulaManager pPFMGR)
       throws InterruptedException {
-    var encoding = encodingProvider.createConfiguredEncoding(cfa, pFMGR);
     return pFMGR.makeNot(encoding.getFormulaFromReachedSet(pReachedSet));
   }
 

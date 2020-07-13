@@ -19,19 +19,26 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class TaActionSynchronization extends EncodingExtensionBase {
-  // CONFIG
-  private boolean actionDetachedDelayTransition = false;
-  private boolean actionDetachedIdleTransition = true;
-  private boolean noTwoActions = true;
+  private final boolean actionDetachedDelay;
+  private final boolean actionDetachedIdle;
+  private final boolean noTwoActions;
 
   private final ActionEncoding actions;
   private final TimedAutomatonView automata;
 
   public TaActionSynchronization(
-      FormulaManagerView pFmgr, TimedAutomatonView pAutomata, ActionEncoding pActions) {
+      FormulaManagerView pFmgr,
+      TimedAutomatonView pAutomata,
+      ActionEncoding pActions,
+      boolean pActionDetachedDelay,
+      boolean pActionDetachedIdle,
+      boolean pNoTwoActions) {
     super(pFmgr);
     actions = pActions;
     automata = pAutomata;
+    actionDetachedDelay = pActionDetachedDelay;
+    actionDetachedIdle = pActionDetachedIdle;
+    noTwoActions = pNoTwoActions;
   }
 
   @Override
@@ -52,7 +59,7 @@ public class TaActionSynchronization extends EncodingExtensionBase {
               result);
     }
 
-    if (actionDetachedDelayTransition) {
+    if (actionDetachedDelay) {
       var notActionOccurs =
           from(automata.getActionsByAutomaton(pAutomaton))
               .transform(
@@ -77,7 +84,7 @@ public class TaActionSynchronization extends EncodingExtensionBase {
               result);
     }
 
-    if (actionDetachedIdleTransition) {
+    if (actionDetachedIdle) {
       var notActionOccurs =
           from(automata.getActionsByAutomaton(pAutomaton))
               .transform(

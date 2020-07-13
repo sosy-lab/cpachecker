@@ -14,7 +14,6 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Optional;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
@@ -34,6 +33,8 @@ public class TimedAutomatonView {
   private final Map<TaDeclaration, Iterable<TCFAEdge>> edgesByAutomaton;
   private final Map<TaDeclaration, Iterable<TCFANode>> nodesByAutomaton;
   private final Iterable<TaDeclaration> allAutomata;
+  private final Iterable<TCFANode> allNodes;
+  private final Map<TaDeclaration, Iterable<TCFANode>> initialNodesByAutomaton;
 
   // todo remove later maybe
   private final TaEncodingOptions options;
@@ -54,6 +55,7 @@ public class TimedAutomatonView {
     delayActionByAutomaton = new HashMap<>();
     edgesByAutomaton = new HashMap<>();
     nodesByAutomaton = new HashMap<>();
+    initialNodesByAutomaton = new HashMap<>();
 
     for (var automaton : getAllAutomata()) {
       var nodes =
@@ -62,6 +64,7 @@ public class TimedAutomatonView {
               .transform(node -> (TCFANode) node)
               .filter(node -> node.getAutomatonDeclaration() == automaton);
       nodesByAutomaton.put(automaton, nodes.toSet());
+      initialNodesByAutomaton.put(automaton, nodes.filter(node -> node.isInitialState()).toSet());
 
       var edges =
           from(getNodesByAutomaton(automaton))
@@ -85,6 +88,12 @@ public class TimedAutomatonView {
 
       actionsByAutomaton.put(automaton, initialActions.append(dummyActions).toSet());
     }
+
+    allNodes =
+        from(cfa.getAllNodes())
+            .filter(instanceOf(TCFANode.class))
+            .transform(location -> (TCFANode) location)
+            .toSet();
   }
 
   private void makeIdleActionForAutomaton(TaDeclaration pAutomaton) {
@@ -130,9 +139,7 @@ public class TimedAutomatonView {
   }
 
   public Iterable<TCFANode> getAllNodes() {
-    return from(cfa.getAllNodes())
-        .filter(instanceOf(TCFANode.class))
-        .transform(location -> (TCFANode) location);
+    return allNodes;
   }
 
   public Iterable<TaDeclaration> getAllAutomata() {
@@ -140,16 +147,7 @@ public class TimedAutomatonView {
   }
 
   public Iterable<TCFANode> getInitialNodesByAutomaton(TaDeclaration pAutomaton) {
-    var result = new HashSet<TCFANode>();
-    var nodes = from(cfa.getAllNodes()).filter(instanceOf(TCFANode.class));
-    for (var node : nodes) {
-      var tNode = (TCFANode) node;
-      if (tNode.isInitialState() && tNode.getAutomatonDeclaration() == pAutomaton) {
-        result.add(tNode);
-      }
-    }
-
-    return result;
+    return initialNodesByAutomaton.get(pAutomaton);
   }
 
   public Iterable<TCFANode> getNodesByAutomaton(TaDeclaration pAutomaton) {

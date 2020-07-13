@@ -2786,15 +2786,57 @@ cpa.threading.useClonedFunctions = true
 # only reads and writes its own variables.
 cpa.threading.useLocalAccessLocks = true
 
+# Use actions to prevent delay transitions from being active in the same step
+# as any other transition
+cpa.timedautomata.actionDetachedDelay = false
+
+# Use actions to prevent idle transitions from being active in the same step
+# as any other transition
+cpa.timedautomata.actionDetachedIdle = true
+
+# Formula representation of actions. Options are: BOOLEAN_VAR, LOCAL_VAR,
+# GLOBAL_VAR
+cpa.timedautomata.actionEncoding = GLOBAL_ID
+  enum:     [LOCAL_ID, GLOBAL_ID, BOOLEAN_VAR]
+
+# Type of unrolling of the formula. Options are: TRANSITION_UNROLLING,
+# LOCATION_UNROLLING, CONSTRAINT_UNROLLING
+cpa.timedautomata.automatonEncodingType = CONSTRAINT_UNROLLING
+  enum:     [TRANSITION_UNROLLING, LOCATION_UNROLLING, CONSTRAINT_UNROLLING]
+
+# Representation of a special delay action. Options are: LOCAL, GLOBAL, NONE
+cpa.timedautomata.delayAction = NONE
+  enum:     [LOCAL, GLOBAL, NONE]
+
+# Extensions to use for the encoding. Available options: SHALLOW_SYNC,
+# INVARIANTS, ACTION_SYNC
+cpa.timedautomata.encodingExtensions = Lists.newArrayList(TAEncodingExtension.INVARIANTS)
+
+# Representation of a special idle action. Options are: LOCAL, GLOBAL, NONE
+cpa.timedautomata.idleAction = NONE
+  enum:     [LOCAL, GLOBAL, NONE]
+
 # Initial maximum unrolling steps that will be performed. A value less than
 # zero means infinity
 cpa.timedautomata.initialMaximumStepCount = 50
+
+# Formula representation of locations. Options are: BOOLEAN_VAR, LOCAL_VAR
+cpa.timedautomata.locationEncoding = LOCAL_ID
+  enum:     [LOCAL_ID, GLOBAL_ID, BOOLEAN_VAR]
+
+# Forbid distinct actions to appear in the same step
+cpa.timedautomata.noTwoActions = true
 
 # Amount by which to increase the maximum unrolling step bound.
 cpa.timedautomata.stepCountAdujstmentStep = 0
 
 # Maximum value that the unrolling step bound will reach.
 cpa.timedautomata.stepCountUpperBound = 50
+
+# Formula representation of time. Options are: GLOBAL_IMPLICIT,
+# GLOBAL_EXPLICIT, LOCAL_EXPLICIT
+cpa.timedautomata.timeEncoding = GLOBAL_IMPLICIT
+  enum:     [GLOBAL_IMPLICIT, GLOBAL_EXPLICIT, LOCAL_EXPLICIT]
 
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"
