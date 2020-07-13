@@ -24,4 +24,6 @@ public interface EncodingExtension {
   BooleanFormula makeDelayTransition(TaDeclaration pAutomaton, int pLastReachedIndex);
 
   BooleanFormula makeIdleTransition(TaDeclaration pAutomaton, int pLastReachedIndex);
+
+  BooleanFormula makeStepFormula(int pLastReachedIndex);
 }

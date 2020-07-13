@@ -8,12 +8,10 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.locationencodings;
 
-import static com.google.common.base.Predicates.instanceOf;
-import static com.google.common.collect.FluentIterable.from;
 
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFANode;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TimedAutomatonView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.BooleanVarFeatureEncoding;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -21,19 +19,17 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public class BooleanVarLocationEncoding extends BooleanVarFeatureEncoding<TCFANode>
     implements LocationEncoding {
 
-  public BooleanVarLocationEncoding(FormulaManagerView pFmgr, CFA pCfa) {
+  public BooleanVarLocationEncoding(FormulaManagerView pFmgr, TimedAutomatonView pAutomata) {
     super(pFmgr);
 
-    var allLocations =
-        from(pCfa.getAllNodes())
-            .filter(instanceOf(TCFANode.class))
-            .transform(location -> (TCFANode) location);
-    allLocations.forEach(
-        location ->
-            addEntry(
-                location.getAutomatonDeclaration(),
-                location,
-                location.getAutomatonDeclaration().getName() + "#" + location.getName()));
+    pAutomata
+        .getAllNodes()
+        .forEach(
+            location ->
+                addEntry(
+                    location.getAutomatonDeclaration(),
+                    location,
+                    location.getAutomatonDeclaration().getName() + "#" + location.getName()));
   }
 
   @Override

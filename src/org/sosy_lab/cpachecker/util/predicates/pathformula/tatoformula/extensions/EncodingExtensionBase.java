@@ -54,4 +54,9 @@ public class EncodingExtensionBase implements EncodingExtension {
   public BooleanFormula makeIdleTransition(TaDeclaration pAutomaton, int pLastReachedIndex) {
     return bFmgr.makeTrue();
   }
+
+  @Override
+  public BooleanFormula makeStepFormula(int pLastReachedIndex) {
+    return bFmgr.makeTrue();
+  }
 }

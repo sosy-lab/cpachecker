@@ -14,12 +14,10 @@ import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 import java.util.Collection;
 import java.util.HashSet;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFANode;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.EncodingExtension;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.actionencodings.ActionEncoding;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.locationencodings.LocationEncoding;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.timeencodings.TimeEncoding;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -30,17 +28,15 @@ public class TALocationUnrolling extends AutomatonEncoding {
 
   public TALocationUnrolling(
       FormulaManagerView pFmgr,
-      CFA pCfa,
+      TimedAutomatonView pAutomata,
       TimeEncoding pTime,
-      ActionEncoding pActions,
       LocationEncoding pLocations,
       Iterable<EncodingExtension> pExtensions) {
-    super(pFmgr, pCfa, pTime, pActions, pLocations, pExtensions);
+    super(pFmgr, pAutomata, pTime, pLocations, pExtensions);
 
     edgesByPredecessor = HashBasedTable.create();
-    for (var automatonEdges : edgesByAutomaton.entrySet()) {
-      var automaton = automatonEdges.getKey();
-      for (var edge : automatonEdges.getValue()) {
+    for (var automaton : automata.getAllAutomata()) {
+      for (var edge : automata.getEdgesByAutomaton(automaton)) {
         var predecessor = (TCFANode) edge.getPredecessor();
         if (!edgesByPredecessor.contains(automaton, predecessor)) {
           edgesByPredecessor.put(automaton, predecessor, new HashSet<>());

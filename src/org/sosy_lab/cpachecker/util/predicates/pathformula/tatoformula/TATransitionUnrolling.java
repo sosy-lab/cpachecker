@@ -14,13 +14,11 @@ import com.google.common.collect.Sets;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAEdge;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.EncodingExtension;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.BooleanVarFeatureEncoding;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.DiscreteFeatureEncoding;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.actionencodings.ActionEncoding;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.locationencodings.LocationEncoding;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.timeencodings.TimeEncoding;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -33,18 +31,16 @@ public class TATransitionUnrolling extends AutomatonEncoding {
 
   public TATransitionUnrolling(
       FormulaManagerView pFmgr,
-      CFA pCfa,
+      TimedAutomatonView pAutomata,
       TimeEncoding pTime,
-      ActionEncoding pActions,
       LocationEncoding pLocations,
       Iterable<EncodingExtension> pExtensions) {
-    super(pFmgr, pCfa, pTime, pActions, pLocations, pExtensions);
+    super(pFmgr, pAutomata, pTime, pLocations, pExtensions);
     idleEdgesByAutomaton = new HashMap<>();
 
     var transitionEncoding = new BooleanVarFeatureEncoding<TCFAEdge>(pFmgr);
-    for (var edgeEntry : edgesByAutomaton.entrySet()) {
-      var automaton = edgeEntry.getKey();
-      for (var edge : edgeEntry.getValue()) {
+    for (var automaton : automata.getAllAutomata()) {
+      for (var edge : automata.getEdgesByAutomaton(automaton)) {
         transitionEncoding.addEntry(automaton, edge, "edge_" + edge.hashCode());
         var idleEdge = TCFAEdge.createDummyEdge();
         transitionEncoding.addEntry(automaton, idleEdge, "idle_" + automaton.getName());
@@ -73,7 +69,7 @@ public class TATransitionUnrolling extends AutomatonEncoding {
 
     var edgeFormulas = new HashSet<BooleanFormula>();
     var discreteSteps =
-        from(edgesByAutomaton.get(pAutomaton))
+        from(automata.getEdgesByAutomaton(pAutomaton))
             .transform(
                 edge -> {
                   var edgeFormula =

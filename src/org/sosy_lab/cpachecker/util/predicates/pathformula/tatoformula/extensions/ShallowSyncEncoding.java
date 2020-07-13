@@ -10,9 +10,9 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensio
 
 import static com.google.common.collect.FluentIterable.from;
 
-import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariable;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TimedAutomatonView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.actionencodings.ActionEncoding;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.timeencodings.ExplicitTimeEncoding;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -25,18 +25,18 @@ public class ShallowSyncEncoding extends EncodingExtensionBase {
   private final ActionEncoding actions;
   private final FormulaType<?> timeFormulaType;
   private static final FormulaType<?> countFormulaType = FormulaType.IntegerType;
-  private final Map<TaDeclaration, Iterable<TaVariable>> actionsByAutomaton;
+  private final TimedAutomatonView automata;
 
   public ShallowSyncEncoding(
       FormulaManagerView pFmgr,
+      TimedAutomatonView pAutomata,
       ExplicitTimeEncoding pTime,
-      Map<TaDeclaration, Iterable<TaVariable>> pActionsByAutomaton,
       ActionEncoding pActions) {
     super(pFmgr);
     time = pTime;
     actions = pActions;
     timeFormulaType = time.getTimeFormulaType();
-    actionsByAutomaton = pActionsByAutomaton;
+    automata = pAutomata;
   }
 
   private Formula makeOccurenceCountFormula(
@@ -77,7 +77,7 @@ public class ShallowSyncEncoding extends EncodingExtensionBase {
   @Override
   public BooleanFormula makeAutomatonStep(TaDeclaration pAutomaton, int pLastReachedIndex) {
     var result = bFmgr.makeTrue();
-    for (var action : actionsByAutomaton.get(pAutomaton)) {
+    for (var action : automata.getActionsByAutomaton(pAutomaton)) {
       var actionEqualsFormula =
           actions.makeActionEqualsFormula(pAutomaton, pLastReachedIndex, action);
       var occurenceCountFormulas = bFmgr.makeTrue();
@@ -98,7 +98,7 @@ public class ShallowSyncEncoding extends EncodingExtensionBase {
       result = bFmgr.and(bFmgr.implication(actionEqualsFormula, occurenceCountFormulas), result);
     }
 
-    for (var action : actionsByAutomaton.get(pAutomaton)) {
+    for (var action : automata.getActionsByAutomaton(pAutomaton)) {
       var actionOccurs = actions.makeActionEqualsFormula(pAutomaton, pLastReachedIndex, action);
       var unchanged = makeOccurenceCountUnchangedFormula(pAutomaton, pLastReachedIndex, action);
       var increse = makeOccurenceCountIncreaseFormula(pAutomaton, pLastReachedIndex, action);
@@ -115,7 +115,7 @@ public class ShallowSyncEncoding extends EncodingExtensionBase {
   @Override
   public BooleanFormula makeInitialFormula(TaDeclaration pAutomaton, int pInitialIndex) {
     var initialCounts =
-        from(actionsByAutomaton.get(pAutomaton))
+        from(automata.getActionsByAutomaton(pAutomaton))
             .transform(
                 action -> makeOccurenceCountEqualsFormula(pAutomaton, pInitialIndex, action, 0));
     return bFmgr.and(initialCounts.toSet());
@@ -126,7 +126,7 @@ public class ShallowSyncEncoding extends EncodingExtensionBase {
       TaDeclaration pAutomaton, int pHighestReachedIndex) {
 
     var occurenceCounts = bFmgr.makeTrue();
-    for (var action : actionsByAutomaton.get(pAutomaton)) {
+    for (var action : automata.getActionsByAutomaton(pAutomaton)) {
       var localOccurenceCount = makeOccurenceCountFormula(pAutomaton, pHighestReachedIndex, action);
       var globalOccurenceCount = makeFinalOccurenceCountFormula(action);
       occurenceCounts =

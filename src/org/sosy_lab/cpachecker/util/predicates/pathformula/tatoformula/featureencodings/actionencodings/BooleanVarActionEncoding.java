@@ -8,15 +8,12 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.actionencodings;
 
-import static com.google.common.collect.FluentIterable.from;
-
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariable;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TimedAutomatonView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.BooleanVarFeatureEncoding;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -26,25 +23,26 @@ public class BooleanVarActionEncoding extends BooleanVarFeatureEncoding<TaVariab
   private TaVariable delayAction;
   private TaVariable idleAction;
   private Map<TaDeclaration, TaVariable> localDummyActions;
-  private final Collection<TaDeclaration> automata;
+  private final TimedAutomatonView automata;
 
-  public BooleanVarActionEncoding(FormulaManagerView pFmgr, CFA pCfa) {
+  public BooleanVarActionEncoding(FormulaManagerView pFmgr, TimedAutomatonView pAutomata) {
     super(pFmgr);
     localDummyActions = new HashMap<>();
+    automata = pAutomata;
 
-    automata =
-        from(pCfa.getAllFunctions().values())
-            .transform(functionEntry -> (TaDeclaration) functionEntry.getFunctionDefinition())
-            .toSet();
-    automata.forEach(
-        automaton -> {
-          automaton.getActions().forEach(action -> addEntry(automaton, action, action.getName()));
+    automata
+        .getAllAutomata()
+        .forEach(
+            automaton -> {
+              automaton
+                  .getActions()
+                  .forEach(action -> addEntry(automaton, action, action.getName()));
 
-          var localDummyAction =
-              TaVariable.createDummyVariable("#dummy", automaton.getName(), true);
-          addEntry(automaton, localDummyAction, localDummyAction.getName());
-          localDummyActions.put(automaton, localDummyAction);
-        });
+              var localDummyAction =
+                  TaVariable.createDummyVariable("#dummy", automaton.getName(), true);
+              addEntry(automaton, localDummyAction, localDummyAction.getName());
+              localDummyActions.put(automaton, localDummyAction);
+            });
 
     delayAction = createDummyEntry("delay#dummy");
     idleAction = createDummyEntry("idle#dummy");
@@ -82,8 +80,8 @@ public class BooleanVarActionEncoding extends BooleanVarFeatureEncoding<TaVariab
       int pVariableIndex, boolean pIncludeDelay, boolean pIncludeIdle) {
     var result = new HashSet<BooleanFormula>();
     var processedActions = new HashSet<TaVariable>();
-    for (var automaton : automata) {
-      for (var action : automaton.getActions()) {
+    for (var automaton : automata.getAllAutomata()) {
+      for (var action : automata.getActionsByAutomaton(automaton)) {
         // it is possible that automata share an action. However, the automaton definition is needed
         // for formula cration. Thus remember actions that have been processed by another automaton
         if (!processedActions.contains(action)) {
@@ -96,11 +94,13 @@ public class BooleanVarActionEncoding extends BooleanVarFeatureEncoding<TaVariab
 
     // dummy and delay are globally unique, add only once
     if (pIncludeIdle) {
-      result.add(makeIdleActionFormula(automata.iterator().next(), pVariableIndex));
+      result.add(
+          makeIdleActionFormula(automata.getAllAutomata().iterator().next(), pVariableIndex));
     }
 
     if (pIncludeDelay) {
-      result.add(makeDelayActionFormula(automata.iterator().next(), pVariableIndex));
+      result.add(
+          makeDelayActionFormula(automata.getAllAutomata().iterator().next(), pVariableIndex));
     }
 
     return result;
