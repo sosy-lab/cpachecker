@@ -35,8 +35,8 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TAFormulaEncoding;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TAFormulaEncodingProvider;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.encodings.TAFormulaEncoding;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 @Options(prefix = "cpa.timedautomata")

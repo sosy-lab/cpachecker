@@ -12,27 +12,33 @@ import java.util.ArrayList;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TaEncodingOptions.AutomatonEncodingType;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TaEncodingOptions.TAEncodingExtension;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TaEncodingOptions.TimeEncodingType;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.EncodingExtension;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.ShallowSyncEncoding;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TaActionSynchronization;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TaInvariants;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.actionencodings.ActionEncoding;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.actionencodings.BooleanVarActionEncoding;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.actionencodings.GlobalVarActionEncoding;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.actionencodings.LocalVarActionEncoding;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.locationencodings.BooleanVarLocationEncoding;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.locationencodings.LocalVarLocationEncoding;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.locationencodings.LocationEncoding;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.timeencodings.ExplicitTimeEncoding;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.timeencodings.GlobalImplicitTimeEncoding;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.timeencodings.TimeEncoding;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TAEncodingOptions.AutomatonEncodingType;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TAEncodingOptions.InvariantType;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TAEncodingOptions.TAEncodingExtensionType;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TAEncodingOptions.TimeEncodingType;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.encodings.TAConstraintUnrolling;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.encodings.TAFormulaEncoding;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.encodings.TALocationUnrolling;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.encodings.TATransitionUnrolling;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAEncodingExtension;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAEncodingExtensionWrapper;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAInvariants;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAShallowSync;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TATransitionActions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.actions.TAActions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.actions.TABooleanVarActions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.actions.TAGlobalVarActions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.actions.TALocalVarActions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.locations.TABooleanVarLocations;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.locations.TALocalVarLocations;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.locations.TALocations;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.time.TAExplicitTime;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.time.TAGlobalImplicitTime;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.time.TATime;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 public class TAFormulaEncodingProvider {
-  private final TaEncodingOptions options;
+  private final TAEncodingOptions options;
   private final CFA cfa;
   private final FormulaManagerView fmgr;
   private final TAFormulaEncoding encoding;
@@ -51,8 +57,8 @@ public class TAFormulaEncodingProvider {
 
   private TAFormulaEncodingProvider(Configuration config, CFA pCfa, FormulaManagerView pFmgr)
       throws InvalidConfigurationException {
-    options = new TaEncodingOptions();
-    config.inject(options, TaEncodingOptions.class);
+    options = new TAEncodingOptions();
+    config.inject(options, TAEncodingOptions.class);
     cfa = pCfa;
     fmgr = pFmgr;
 
@@ -66,69 +72,71 @@ public class TAFormulaEncodingProvider {
     var time = createTimeEncoding(fmgr);
 
     var extensions = createExtensions(fmgr, automatonView, time, locations, actions);
-    var automatonEncoding = createEncoding(fmgr, automatonView, time, locations, extensions);
+    var extensionsWrapper = new TAEncodingExtensionWrapper(fmgr, extensions);
+    var automatonEncoding = createEncoding(fmgr, automatonView, time, locations, extensionsWrapper);
 
     return automatonEncoding;
   }
 
-  private LocationEncoding createLocationEncoding(
+  private TALocations createLocationEncoding(
       FormulaManagerView pFmgr, TimedAutomatonView pAutomata) {
     switch (options.locationEncoding) {
       case LOCAL_ID:
-        return new LocalVarLocationEncoding(pFmgr, pAutomata);
+        return new TALocalVarLocations(pFmgr, pAutomata);
       case BOOLEAN_VAR:
-        return new BooleanVarLocationEncoding(pFmgr, pAutomata);
+        return new TABooleanVarLocations(pFmgr, pAutomata);
       default:
         throw new AssertionError("Location encoding not supported");
     }
   }
 
-  private ActionEncoding createActionEncoding(
-      FormulaManagerView pFmgr, TimedAutomatonView pAutomata) {
+  private TAActions createActionEncoding(FormulaManagerView pFmgr, TimedAutomatonView pAutomata) {
     switch (options.actionEncoding) {
       case LOCAL_ID:
-        return new LocalVarActionEncoding(pFmgr, pAutomata);
+        return new TALocalVarActions(pFmgr, pAutomata);
       case GLOBAL_ID:
-        return new GlobalVarActionEncoding(pFmgr, pAutomata);
+        return new TAGlobalVarActions(pFmgr, pAutomata);
       case BOOLEAN_VAR:
-        return new BooleanVarActionEncoding(pFmgr, pAutomata);
+        return new TABooleanVarActions(pFmgr, pAutomata);
       default:
         throw new AssertionError("Action encoding not supported");
     }
   }
 
-  private TimeEncoding createTimeEncoding(FormulaManagerView pFmgr) {
+  private TATime createTimeEncoding(FormulaManagerView pFmgr) {
     if (options.timeEncoding == TimeEncodingType.GLOBAL_EXPLICIT) {
-      return new GlobalImplicitTimeEncoding(pFmgr);
+      return new TAGlobalImplicitTime(pFmgr);
     }
     if (options.timeEncoding == TimeEncodingType.GLOBAL_IMPLICIT) {
-      return new ExplicitTimeEncoding(pFmgr, false);
+      return new TAExplicitTime(pFmgr, false);
     }
     if (options.timeEncoding == TimeEncodingType.LOCAL_EXPLICIT) {
-      return new ExplicitTimeEncoding(pFmgr, true);
+      return new TAExplicitTime(pFmgr, true);
     }
     throw new AssertionError("Unknown encoding type");
   }
 
-  private Iterable<EncodingExtension> createExtensions(
+  private Iterable<TAEncodingExtension> createExtensions(
       FormulaManagerView pFmgr,
       TimedAutomatonView pAutomata,
-      TimeEncoding pTime,
-      LocationEncoding pLocations,
-      ActionEncoding pActions) {
-    var result = new ArrayList<EncodingExtension>(options.encodingExtensions.size());
-    if (options.encodingExtensions.contains(TAEncodingExtension.SHALLOW_SYNC)) {
-      if (!(pTime instanceof ExplicitTimeEncoding)) {
+      TATime pTime,
+      TALocations pLocations,
+      TAActions pActions) {
+    var result = new ArrayList<TAEncodingExtension>(options.encodingExtensions.size());
+    if (options.encodingExtensions.contains(TAEncodingExtensionType.SHALLOW_SYNC)) {
+      if (!(pTime instanceof TAExplicitTime)) {
         throw new AssertionError("Shallow sync is only possible with explicit time encoding");
       }
-      result.add(new ShallowSyncEncoding(pFmgr, pAutomata, (ExplicitTimeEncoding) pTime, pActions));
+      result.add(new TAShallowSync(pFmgr, pAutomata, (TAExplicitTime) pTime, pActions));
     }
-    if (options.encodingExtensions.contains(TAEncodingExtension.INVARIANTS)) {
-      result.add(new TaInvariants(pFmgr, pAutomata, pTime, pLocations));
-    }
-    if (options.encodingExtensions.contains(TAEncodingExtension.ACTION_SYNC)) {
+    if (options.encodingExtensions.contains(TAEncodingExtensionType.INVARIANTS)) {
       result.add(
-          new TaActionSynchronization(
+          new TAInvariants(
+              pFmgr, pAutomata, pTime, pLocations, options.invariantType == InvariantType.LOCAL));
+    }
+    if (options.encodingExtensions.contains(TAEncodingExtensionType.ACTION_SYNC)) {
+      result.add(
+          new TATransitionActions(
               pFmgr,
               pAutomata,
               pActions,
@@ -143,17 +151,17 @@ public class TAFormulaEncodingProvider {
   private TAFormulaEncoding createEncoding(
       FormulaManagerView pFmgr,
       TimedAutomatonView pAutomata,
-      TimeEncoding pTime,
-      LocationEncoding pLocations,
-      Iterable<EncodingExtension> pExtensions) {
+      TATime pTime,
+      TALocations pLocations,
+      TAEncodingExtension pExtension) {
     if (options.automatonEncodingType == AutomatonEncodingType.TRANSITION_UNROLLING) {
-      return new TATransitionUnrolling(pFmgr, pAutomata, pTime, pLocations, pExtensions);
+      return new TATransitionUnrolling(pFmgr, pAutomata, pTime, pLocations, pExtension);
     }
     if (options.automatonEncodingType == AutomatonEncodingType.LOCATION_UNROLLING) {
-      return new TALocationUnrolling(pFmgr, pAutomata, pTime, pLocations, pExtensions);
+      return new TALocationUnrolling(pFmgr, pAutomata, pTime, pLocations, pExtension);
     }
     if (options.automatonEncodingType == AutomatonEncodingType.CONSTRAINT_UNROLLING) {
-      return new TAConstraintUnrolling(pFmgr, pAutomata, pTime, pLocations, pExtensions);
+      return new TAConstraintUnrolling(pFmgr, pAutomata, pTime, pLocations, pExtension);
     }
 
     throw new AssertionError("Unknown encoding type");
