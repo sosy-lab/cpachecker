@@ -22,7 +22,7 @@ public interface FaultExplanation {
    * For an example see NoContextExplanation.
    * @param subset set to find a reason for
    * @return explanation as string
-   * @see NoContextExplanation
+   * @see org.sosy_lab.cpachecker.util.faultlocalization.ranking.NoContextExplanation
    */
   String explanationFor(Fault subset);
 }

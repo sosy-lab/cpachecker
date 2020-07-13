@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.faultlocalization;
 
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
 @FunctionalInterface
 public interface FaultRanking {
@@ -25,7 +26,7 @@ public interface FaultRanking {
    * @return a ranked list of all contained FaultContribution objects.
    * @see FaultRankingUtils#concatHeuristics(Function, FaultRanking...)
    * @see FaultRankingUtils#concatHeuristicsDefaultFinalScoring(FaultRanking...)
-   * @see MaximalLineDistanceRanking
+   * @see org.sosy_lab.cpachecker.util.faultlocalization.ranking.MaximalLineDistanceRanking
    */
   List<Fault> rank(Set<Fault> result);
 }
