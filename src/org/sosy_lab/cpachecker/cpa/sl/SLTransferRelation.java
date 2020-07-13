@@ -65,12 +65,13 @@ public class SLTransferRelation
 
   public SLTransferRelation(
       LogManager pLogger,
+      SLStatistics pStats,
       Solver pSolver,
       PathFormulaManager pPfm,
       MachineModel pMachineModel) {
     logger = pLogger;
     solver = pSolver;
-    memDel = new SLHeapDelegateImpl(logger, pSolver, pMachineModel, pPfm);
+    memDel = new SLHeapDelegateImpl(logger, pStats, pSolver, pMachineModel, pPfm);
     slVisitor = new SLVisitor(memDel);
   }
 

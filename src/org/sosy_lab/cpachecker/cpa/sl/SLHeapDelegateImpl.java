@@ -69,6 +69,7 @@ import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
 
   private final LogManager logger;
+  private final SLStatistics stats;
   private final MachineModel machineModel;
   private final Solver solver;
   private final PathFormulaManager pfm;
@@ -90,10 +91,12 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
 
   public SLHeapDelegateImpl(
       LogManager pLogger,
+      SLStatistics pStats,
       Solver pSolver,
       MachineModel pMachineModel,
       PathFormulaManager pPfm) {
     logger = pLogger;
+    stats = pStats;
     solver = pSolver;
     pfm = pPfm;
     machineModel = pMachineModel;
@@ -402,10 +405,8 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
 
   private boolean isAllocated(Formula pLoc, boolean usePredContext)
       throws Exception {
-    // return checkAllocation(state.getStack(), pLoc, usePredContext) != null
-    // || checkAllocation(state.getHeap(), pLoc, usePredContext) != null;
-    return isAllocated(pLoc, usePredContext, state.getStack()) != null
-        || isAllocated(pLoc, usePredContext, state.getHeap()) != null;
+    return checkAllocation(state.getStack(), pLoc, usePredContext) != null
+        || checkAllocation(state.getHeap(), pLoc, usePredContext) != null;
   }
 
   private Formula isAllocated(Formula pLoc, boolean usePredContext, Map<Formula, Formula> pHeap) {
@@ -419,11 +420,15 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
           solver.newProverEnvironment(ProverOptions.ENABLE_SEPARATION_LOGIC)) {
         prover.addConstraint(context.getFormula());
         prover.addConstraint(slfm.makeStar(toBeChecked, ptsTo));
+        // prover.addConstraint(slfm.makeMagicWand(toBeChecked, ptsTo));
+        stats.startSolverTime();
         if (prover.isUnsat()) {
           return entry.getKey();
         }
       } catch (Exception e) {
         logger.log(Level.SEVERE, e.getMessage());
+      } finally {
+        stats.stopSolverTime();
       }
     }
     // // heapFormula = slfm.makeMagicWand(toBeChecked, heapFormula);
@@ -458,19 +463,25 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     try (ProverEnvironment prover = solver.newProverEnvironment()) {
       prover.addConstraint(pContext.getFormula());
       prover.addConstraint(tmp);
+      stats.startSolverTime();
       if (prover.isUnsat()) {
         return false;
       }
     } catch (Exception e) {
       logger.log(Level.SEVERE, e.getMessage());
+    } finally {
+      stats.stopSolverTime();
     }
     // Check tautology.
     try (ProverEnvironment prover = solver.newProverEnvironment()) {
       prover.addConstraint(pContext.getFormula());
       prover.addConstraint(bfm.not(tmp));
+      stats.startSolverTime();
       return prover.isUnsat();
     } catch (Exception e) {
       logger.log(Level.SEVERE, e.getMessage());
+    } finally {
+      stats.stopSolverTime();
     }
     return false;
   }
@@ -557,6 +568,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     try (ProverEnvironment env = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       env.addConstraint(context.getFormula());
       env.addConstraint((BooleanFormula) f);
+      stats.startSolverTime();
       if (!env.isUnsat()) {
         List<ValueAssignment> assignments = env.getModelAssignments();
         for (ValueAssignment a : assignments) {
@@ -567,6 +579,8 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
       }
     } catch (Exception e) {
       logger.log(Level.SEVERE, e.getMessage());
+    } finally {
+      stats.stopSolverTime();
     }
     logger.log(
         Level.SEVERE,

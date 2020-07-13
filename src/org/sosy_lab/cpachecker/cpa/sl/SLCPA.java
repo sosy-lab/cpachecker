@@ -19,6 +19,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.sl;
 
+import java.util.Collection;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -31,6 +32,8 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -40,7 +43,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 /**
  *
  */
-public class SLCPA extends AbstractCPA {
+public class SLCPA extends AbstractCPA implements StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(SLCPA.class);
@@ -52,6 +55,7 @@ public class SLCPA extends AbstractCPA {
   private final ShutdownNotifier shutdownNotifier;
   private final PathFormulaManager pfm;
   private final Solver solver;
+  private final SLStatistics stats;
 
   private SLCPA(
       CFA pCfa,
@@ -62,6 +66,7 @@ public class SLCPA extends AbstractCPA {
 
     super("sep", "sep", new FlatLatticeDomain(), null);
 
+    stats = new SLStatistics();
     cfa = pCfa;
     logger = pLogger;
     config = pConfig;
@@ -86,6 +91,11 @@ public class SLCPA extends AbstractCPA {
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new SLTransferRelation(logger, solver, pfm, cfa.getMachineModel());
+    return new SLTransferRelation(logger, stats, solver, pfm, cfa.getMachineModel());
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(stats);
   }
 }
