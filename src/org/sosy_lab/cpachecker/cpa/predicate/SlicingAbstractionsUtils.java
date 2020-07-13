@@ -657,9 +657,8 @@ public class SlicingAbstractionsUtils {
   private static Set<CFANode> getIncomingLocations(SLARGState pState) {
     ImmutableSet.Builder<CFANode> locations = ImmutableSet.builder();
     for (ARGState parent : pState.getParents()) {
-      for (Iterator<CFAEdge> it = ((SLARGState) parent).getEdgeSetToChild(pState).iterator();
-          it.hasNext(); ) {
-        locations.add(it.next().getSuccessor());
+      for (CFAEdge edge : ((SLARGState) parent).getEdgeSetToChild(pState)) {
+        locations.add(edge.getSuccessor());
       }
     }
     return locations.build();
@@ -668,8 +667,8 @@ public class SlicingAbstractionsUtils {
   private static Set<CFANode> getOutgoingLocations(SLARGState pState) {
     ImmutableSet.Builder<CFANode> locations = ImmutableSet.builder();
     for (ARGState child : pState.getChildren()) {
-      for (Iterator<CFAEdge> it = pState.getEdgeSetToChild(child).iterator();it.hasNext();) {
-        locations.add(it.next().getPredecessor());
+      for (CFAEdge edge : pState.getEdgeSetToChild(child)) {
+        locations.add(edge.getPredecessor());
       }
     }
     return locations.build();

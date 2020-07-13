@@ -1615,7 +1615,7 @@ public class CtoFormulaConverter {
    * @throws InterruptedException may be thrown in subclasses
    */
   public MergeResult<PointerTargetSet> mergePointerTargetSets(
-      final PointerTargetSet pts1, final PointerTargetSet pts2, final SSAMap ssa)
+      final PointerTargetSet pts1, final PointerTargetSet pts2, final SSAMapBuilder ssa)
       throws InterruptedException {
     return MergeResult.trivial(pts1, bfmgr);
   }

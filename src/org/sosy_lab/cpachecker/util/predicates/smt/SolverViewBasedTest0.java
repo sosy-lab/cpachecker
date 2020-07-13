@@ -57,6 +57,14 @@ public class SolverViewBasedTest0 extends SolverBasedTest0 {
         // newConfig.setOption("cpa.predicate.encodeBitvectorAs", "BITVECTOR");
         // newConfig.setOption("cpa.predicate.encodeFloatAs", "INTEGER");
         break;
+      case YICES2:
+        assume()
+            .withMessage(
+                "Solver %s is not available on all systems, disabling it for CPAchecker",
+                solverToUse())
+            .that(solverToUse())
+            .isNotEqualTo(Solvers.YICES2);
+        break;
       default:
         newConfig.setOption("cpa.predicate.encodeBitvectorAs", "BITVECTOR");
         newConfig.setOption("cpa.predicate.encodeFloatAs", "FLOAT");

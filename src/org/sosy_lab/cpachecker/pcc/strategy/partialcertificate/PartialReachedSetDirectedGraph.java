@@ -62,8 +62,8 @@ public class PartialReachedSetDirectedGraph implements Statistics {
     }
 
     List<ImmutableList<Integer>> newList = new ArrayList<>(adjacencyList.size());
-    for (int i = 0; i < adjacencyList.size(); i++) {
-      newList.add(ImmutableList.copyOf(adjacencyList.get(i)));
+    for (List<Integer> element : adjacencyList) {
+      newList.add(ImmutableList.copyOf(element));
     }
     return ImmutableList.copyOf(newList);
   }
