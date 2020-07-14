@@ -4,10 +4,16 @@
 
   <rundefinition/>
   
+  <option name="-stats"/>
   <tasks name="MemSafety-ext3">
     <includesfile>../programs/benchmarks/MemSafety-SL.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
     <option name="-sl"/>
   </tasks>
   
+  <columns>
+    <column title="reached">Size of reached set</column>
+    <column title="transfer">Time for transfer relation</column>
+    <column title="stop">Time for stop operator</column>
+  </columns>
 </benchmark>
