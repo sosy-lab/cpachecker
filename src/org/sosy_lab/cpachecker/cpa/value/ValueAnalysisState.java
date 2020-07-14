@@ -830,11 +830,11 @@ public final class ValueAnalysisState
                 long value = num.getNumber().longValue();
                 val = new CIntegerLiteralExpression(loc, simpleType, BigInteger.valueOf(value));
               } else if (simpleType.getType().isFloatingPointType()) {
-                if (((Double) num.getNumber()).isNaN() || ((Double) num.getNumber()).isInfinite()) {
+                double value = num.getNumber().doubleValue();
+                if (((Double) value).isNaN() || ((Double) value).isInfinite()) {
                   // Cannot represent this here
                   continue;
                 }
-                double value = num.getNumber().doubleValue();
                 val = new CFloatLiteralExpression(loc, simpleType, BigDecimal.valueOf(value));
               } else {
                 throw new AssertionError("Unexpected type: " + simpleType);
