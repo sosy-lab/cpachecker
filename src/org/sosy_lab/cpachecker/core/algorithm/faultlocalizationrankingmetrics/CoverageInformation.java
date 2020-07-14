@@ -5,7 +5,7 @@
 // SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
-package org.sosy_lab.cpachecker.core.algorithm.tarantula;
+package org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics;
 
 import com.google.common.collect.Sets;
 import java.util.LinkedHashMap;
@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.TarantulaCasesStatus;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
 public class CoverageInformation {
@@ -33,26 +32,26 @@ public class CoverageInformation {
    * @param paths All paths contains all error paths and passed paths.
    * @return result as edge and its case status.
    */
-  private Map<CFAEdge, TarantulaCasesStatus> calculateCoverageInformation(Set<ARGPath> paths)
-      throws InterruptedException {
-    Map<CFAEdge, TarantulaCasesStatus> coverageInfo = new LinkedHashMap<>();
+  private Map<CFAEdge, FaultLocalizationCasesStatus> calculateCoverageInformation(
+      Set<ARGPath> paths) throws InterruptedException {
+    Map<CFAEdge, FaultLocalizationCasesStatus> coverageInfo = new LinkedHashMap<>();
 
     for (ARGPath path : paths) {
       for (CFAEdge cfaEdge : path.getFullPath()) {
         shutdownNotifier.shutdownIfNecessary();
-        TarantulaCasesStatus caseStatus;
+        FaultLocalizationCasesStatus caseStatus;
         if (!coverageInfo.containsKey(cfaEdge)) {
-          coverageInfo.put(cfaEdge, new TarantulaCasesStatus(0, 0));
+          coverageInfo.put(cfaEdge, new FaultLocalizationCasesStatus(0, 0));
         }
         caseStatus = coverageInfo.get(cfaEdge);
         if (failedCase.isFailedPath(path)) {
           caseStatus =
-              new TarantulaCasesStatus(
+              new FaultLocalizationCasesStatus(
                   caseStatus.getFailedCases() + 1, caseStatus.getPassedCases());
 
         } else {
           caseStatus =
-              new TarantulaCasesStatus(
+              new FaultLocalizationCasesStatus(
                   caseStatus.getFailedCases(), caseStatus.getPassedCases() + 1);
         }
 
@@ -70,7 +69,7 @@ public class CoverageInformation {
    *
    * @return Covered edges.
    */
-  public Map<CFAEdge, TarantulaCasesStatus> getCoverageInformation(
+  public Map<CFAEdge, FaultLocalizationCasesStatus> getCoverageInformation(
       Set<ARGPath> safePaths, Set<ARGPath> errorPaths) throws InterruptedException {
     return calculateCoverageInformation(Sets.union(safePaths, errorPaths));
   }

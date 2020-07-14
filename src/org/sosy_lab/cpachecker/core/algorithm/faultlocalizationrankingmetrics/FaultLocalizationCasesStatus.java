@@ -5,14 +5,14 @@
 // SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
-package org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure;
+package org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics;
 
-public class TarantulaCasesStatus {
+public class FaultLocalizationCasesStatus {
 
   private final int failedCases;
   private final int passedCases;
 
-  public TarantulaCasesStatus(int pFailedCases, int pPassedCases) {
+  public FaultLocalizationCasesStatus(int pFailedCases, int pPassedCases) {
 
     this.failedCases = pFailedCases;
     this.passedCases = pPassedCases;
@@ -28,7 +28,7 @@ public class TarantulaCasesStatus {
 
   @Override
   public String toString() {
-    return "TarantulaCasesStatus{"
+    return "FaultLocalizationCasesStatus{"
         + "failedCases="
         + failedCases
         + ", passedCases="

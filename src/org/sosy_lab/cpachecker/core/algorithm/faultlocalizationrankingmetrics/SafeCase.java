@@ -5,7 +5,7 @@
 // SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
-package org.sosy_lab.cpachecker.core.algorithm.tarantula;
+package org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics;
 
 import static com.google.common.collect.FluentIterable.from;
 
@@ -43,7 +43,7 @@ public class SafeCase {
     Set<ARGPath> allSafePathsTogether = new HashSet<>();
 
     for (ARGState safeState : getSafeStates()) {
-      allSafePathsTogether.addAll(TarantulaUtils.getAllPaths(pReachedSet, safeState));
+      allSafePathsTogether.addAll(FaultLocalizationUtils.getAllPaths(pReachedSet, safeState));
     }
     return allSafePathsTogether;
   }

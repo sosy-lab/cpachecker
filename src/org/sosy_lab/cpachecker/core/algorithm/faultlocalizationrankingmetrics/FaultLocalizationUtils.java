@@ -5,7 +5,7 @@
 // SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
-package org.sosy_lab.cpachecker.core.algorithm.tarantula;
+package org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -19,10 +19,13 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-public class TarantulaUtils {
+public class FaultLocalizationUtils {
 
-  /** Helper class for TarantulaAlgorithm related utility methods. */
-  private TarantulaUtils() {}
+  /**
+   * Helper class for all fault localization which works with ranking metrics related utility
+   * methods.
+   */
+  private FaultLocalizationUtils() {}
 
   /**
    * Gets all possible paths from the possible leaves (whether targetStates or safeStates)to the

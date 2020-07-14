@@ -5,5 +5,5 @@
 // SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
-/** All Relevant Data structures for Fault localization technique with Tarantula Algorithm. */
-package org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure;
+/** All Relevant Data structures for Fault localization technique with ranking metrics. */
+package org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics;

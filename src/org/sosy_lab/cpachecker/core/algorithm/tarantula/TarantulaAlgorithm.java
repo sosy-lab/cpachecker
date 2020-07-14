@@ -20,6 +20,9 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics.FailedCase;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics.FaultLocalizationFault;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics.SafeCase;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -93,7 +96,7 @@ public class TarantulaAlgorithm implements Algorithm, StatisticsProvider, Statis
       throws InterruptedException {
     FaultLocalizationInfo info;
     TarantulaRanking ranking = new TarantulaRanking(safeCase, failedCase, shutdownNotifier);
-    List<Fault> faults = new TarantulaFault().getTarantulaFaults(ranking.getRanked());
+    List<Fault> faults = new FaultLocalizationFault().getFaults(ranking.getRanked());
     logger.log(Level.INFO, faults);
     for (CounterexampleInfo counterexample : pCounterexampleInfo) {
       info = new FaultLocalizationInfo(faults, counterexample);

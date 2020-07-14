@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.tarantula;
+package org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -14,22 +14,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaDatastructure.FaultInformation;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 
-public class TarantulaFault {
+public class FaultLocalizationFault {
   /**
-   * Determinants tarantula faults after rearranged these faults by sorting this by its line and its
+   * Determinants faults after rearranged these faults by sorting this by its line and its
    * corresponding edges. Sort these faults by its score reversed, so that the highest score appears
    * first.
    *
-   * @param pRearrangeFaultInformation rearrangedTarantulaFaults
-   * @return list of tarantula faults.
+   * @param pRearrangeFaultInformation rearrangedFaults
+   * @return list of faults.
    */
   private List<Fault> faultsDetermination(List<FaultInformation> pRearrangeFaultInformation) {
-    List<Fault> tarantulaFaults = new ArrayList<>();
+    List<Fault> faults = new ArrayList<>();
     // sort the faults
     pRearrangeFaultInformation.sort(
         Comparator.comparing(FaultInformation::getLineScore).reversed());
@@ -40,10 +39,10 @@ public class TarantulaFault {
         fault.setScore(faultInformation.getLineScore());
         fault.addInfo(FaultInfo.hint(faultContribution.textRepresentation()));
       }
-      tarantulaFaults.add(fault);
+      faults.add(fault);
     }
 
-    return tarantulaFaults;
+    return faults;
   }
   /**
    * Sums up the ranking information so that each line has many CFAEdges by their highest calculated
@@ -52,8 +51,7 @@ public class TarantulaFault {
    * @param origin input map
    * @return rearranged faults.
    */
-  private List<FaultInformation> rearrangeTarantulaFaults(
-      Map<FaultInformation, FaultContribution> origin) {
+  private List<FaultInformation> rearrangeFaults(Map<FaultInformation, FaultContribution> origin) {
 
     Map<Integer, List<Map.Entry<FaultInformation, FaultContribution>>>
         faultToListOfFaultContribution =
@@ -82,7 +80,7 @@ public class TarantulaFault {
         .collect(Collectors.toList());
   }
 
-  public List<Fault> getTarantulaFaults(Map<FaultInformation, FaultContribution> getRanked) {
-    return faultsDetermination(rearrangeTarantulaFaults(getRanked));
+  public List<Fault> getFaults(Map<FaultInformation, FaultContribution> getRanked) {
+    return faultsDetermination(rearrangeFaults(getRanked));
   }
 }

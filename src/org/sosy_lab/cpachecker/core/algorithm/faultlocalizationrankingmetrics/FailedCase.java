@@ -5,7 +5,7 @@
 // SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
-package org.sosy_lab.cpachecker.core.algorithm.tarantula;
+package org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -29,7 +29,7 @@ public class FailedCase {
     Set<ARGPath> allErrorPathsTogether = new HashSet<>();
 
     for (ARGState safeState : ARGUtils.getErrorStates(pReachedSet)) {
-      allErrorPathsTogether.addAll(TarantulaUtils.getAllPaths(pReachedSet, safeState));
+      allErrorPathsTogether.addAll(FaultLocalizationUtils.getAllPaths(pReachedSet, safeState));
     }
     return allErrorPathsTogether;
   }
