@@ -302,8 +302,15 @@ class MPIMain:
             main_node_ip_address = self.main_node_network_config.get(
                 "main_node_ipv4_address"
             )
-            local_ip_address = socket.gethostbyname(os.environ.get("USER"))
+            try:
+                local_ip_address = socket.gethostbyname(os.environ.get("USER"))
+            except socket.gaierror:
+                # hostfile was provided, but ip address could not be found
+                # process is most likely running on localhost
+                local_ip_address = socket.gethostbyname(socket.gethostname())
+
             logger.debug("Local ip address: %s ", local_ip_address)
+
             if (
                 main_node_ip_address is not None
                 and main_node_ip_address != local_ip_address
