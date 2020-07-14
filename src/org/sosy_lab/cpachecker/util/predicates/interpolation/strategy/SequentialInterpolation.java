@@ -12,7 +12,6 @@ import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -74,7 +73,7 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
         try {
           return getFwdInterpolants(interpolator, formulas);
         } catch (SolverException e) {
-          logger.log(Level.ALL, FALLBACK_BWD_MSG, e);
+          logger.logDebugException(e, FALLBACK_BWD_MSG);
         }
         // $FALL-THROUGH$
       case BWD:
@@ -84,7 +83,7 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
         try {
           return getBwdInterpolants(interpolator, formulas);
         } catch (SolverException e) {
-          logger.log(Level.ALL, FALLBACK_FWD_MSG, e);
+          logger.logDebugException(e, FALLBACK_FWD_MSG);
         }
         // $FALL-THROUGH$
       case FWD:
@@ -97,7 +96,7 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
         try {
           forward = getFwdInterpolants(interpolator, formulas);
         } catch (SolverException e) {
-          logger.log(Level.ALL, FALLBACK_BWD_MSG, e);
+          logger.logDebugException(e, FALLBACK_BWD_MSG);
           return getBwdInterpolants(interpolator, formulas);
         }
 
@@ -108,7 +107,7 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
           if (forward == null) {
             throw e;
           } else {
-            logger.log(Level.ALL, FALLBACK_FWD_MSG, e);
+            logger.logDebugException(e, FALLBACK_FWD_MSG);
             return forward;
           }
         }
