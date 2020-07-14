@@ -830,6 +830,10 @@ public final class ValueAnalysisState
                 long value = num.getNumber().longValue();
                 val = new CIntegerLiteralExpression(loc, simpleType, BigInteger.valueOf(value));
               } else if (simpleType.getType().isFloatingPointType()) {
+                if (((Double) num.getNumber()).isNaN() || ((Double) num.getNumber()).isInfinite()) {
+                  // Cannot represent this here
+                  continue;
+                }
                 double value = num.getNumber().doubleValue();
                 val = new CFloatLiteralExpression(loc, simpleType, BigDecimal.valueOf(value));
               } else {
@@ -848,7 +852,12 @@ public final class ValueAnalysisState
                 val = new CIntegerLiteralExpression(loc, enumType, BigInteger.valueOf(value));
               }
             } else {
-              throw new AssertionError("Unknown arithmetic type: " + cType);
+              // disabled since this blocks too many programs for which plenty other information
+              // would be available, so just skip the current variable
+
+              // throw new AssertionError("Unknown arithmetic type: " + cType);
+
+              continue;
             }
             CBinaryExpression exp =
                 builder.buildBinaryExpressionUnchecked(var, val, BinaryOperator.EQUALS);
