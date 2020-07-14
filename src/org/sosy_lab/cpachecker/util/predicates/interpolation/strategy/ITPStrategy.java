@@ -27,7 +27,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public abstract class ITPStrategy<T> {
+public abstract class ITPStrategy {
 
   protected final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
@@ -42,43 +42,37 @@ public abstract class ITPStrategy<T> {
     bfmgr = pBfmgr;
   }
 
-
   /**
-   * The implementation of this method specifies the interpolation strategy
-   * and computes interpolants for the given formulae.
+   * The implementation of this method specifies the interpolation strategy and computes
+   * interpolants for the given formulae.
    *
-   * @param interpolator is the interface towards the SMT-solver and
-   *          contains an ITP-solver with all formulas asserted on its solver-stack.
-   * @param formulasWithStateAndGroupId is a list of (F,E,T) where
-   *          the path formula F starting at an abstract state E (abstraction state?)
-   *          corresponds with the ITP-group T.
-   *          We assume the sorting of the list matches the order
-   *          of abstract states along the counterexample.
+   * @param interpolator is the interface towards the SMT-solver and contains an ITP-solver with all
+   *     formulas asserted on its solver-stack.
+   * @param formulasWithStateAndGroupId is a list of (F,E,T) where the path formula F starting at an
+   *     abstract state E (abstraction state?) corresponds with the ITP-group T. We assume the
+   *     sorting of the list matches the order of abstract states along the counterexample.
    * @return a list of (N-1) interpolants for a list of N formulae
    */
-  public abstract List<BooleanFormula> getInterpolants(
+  public abstract <T> List<BooleanFormula> getInterpolants(
       final InterpolationManager.Interpolator<T> interpolator,
       final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStateAndGroupId)
       throws InterruptedException, SolverException;
 
-
   /**
-   * This method checks the validity of the interpolants according to
-   * the current interpolation strategy.
-   * The default interpolation strategy is sequential interpolation,
-   * i.e. we assume:  \forall i \in [1..n-1] : itp_{i-1} & f_i => itp_i
-   * This method can be overridden if the strategy computes interpolants
-   * with a different strategy.
+   * This method checks the validity of the interpolants according to the current interpolation
+   * strategy. The default interpolation strategy is sequential interpolation, i.e. we assume:
+   * \forall i \in [1..n-1] : itp_{i-1} & f_i => itp_i This method can be overridden if the strategy
+   * computes interpolants with a different strategy.
    *
    * @param solver is for checking satisfiability
-   * @param formulasWithStatesAndGroupdIds is a list of (F,E,T) where
-   *          the path formula F starting at an abstract state E corresponds
-   *          with the ITP-group T. We assume the sorting of the list matches
-   *          the order of abstract states along the counterexample.
+   * @param formulasWithStatesAndGroupdIds is a list of (F,E,T) where the path formula F starting at
+   *     an abstract state E corresponds with the ITP-group T. We assume the sorting of the list
+   *     matches the order of abstract states along the counterexample.
    * @param interpolants computed with {@link #getInterpolants} and will be checked.
    */
-  public void checkInterpolants(final Solver solver,
-      final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds,
+  public void checkInterpolants(
+      final Solver solver,
+      final List<? extends Triple<BooleanFormula, AbstractState, ?>> formulasWithStatesAndGroupdIds,
       final List<BooleanFormula> interpolants)
       throws InterruptedException, SolverException {
 
@@ -150,14 +144,17 @@ public abstract class ITPStrategy<T> {
   }
 
   /**
-   * Precondition: The solver-stack contains all formulas and is UNSAT.
-   * Get the interpolant between the Sublist of formulas and the other formulas on the solver-stack.
-   * Each formula is identified by its GroupId,
-   * The sublist is taken from the list of GroupIds, including both start and end of A.
+   * Precondition: The solver-stack contains all formulas and is UNSAT. Get the interpolant between
+   * the Sublist of formulas and the other formulas on the solver-stack. Each formula is identified
+   * by its GroupId, The sublist is taken from the list of GroupIds, including both start and end of
+   * A.
    */
-  protected final BooleanFormula getInterpolantFromSublist(final InterpolatingProverEnvironment<T> pItpProver,
-      final List<T> itpGroupsIds, final int start_of_A, final int end_of_A)
-          throws InterruptedException, SolverException {
+  protected final <T> BooleanFormula getInterpolantFromSublist(
+      final InterpolatingProverEnvironment<T> pItpProver,
+      final List<T> itpGroupsIds,
+      final int start_of_A,
+      final int end_of_A)
+      throws InterruptedException, SolverException {
     shutdownNotifier.shutdownIfNecessary();
 
     logger.log(Level.ALL, "Looking for interpolant for formulas from", start_of_A, "to", end_of_A);

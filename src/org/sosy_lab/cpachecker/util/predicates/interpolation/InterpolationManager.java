@@ -55,7 +55,6 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.DomainSpec
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.ITPStrategy;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.NestedInterpolation;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.SequentialInterpolation;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.SequentialInterpolation.SeqInterpolationStrategy;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.SequentialInterpolationWithSolver;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.TreeInterpolation;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.TreeInterpolationWithSolver;
@@ -213,12 +212,6 @@ public final class InterpolationManager {
     TREE_CPACHECKER,
   }
 
-  @Option(secure = true, description = "In case we apply sequential interpolation, "
-      + "forward and backward directions return valid interpolants. "
-      + "We can either choose one of the directions, fallback to the other "
-      + "if one does not succeed, or even combine the interpolants.")
-  private SeqInterpolationStrategy sequentialStrategy = SeqInterpolationStrategy.FWD;
-
   @Option(secure=true, description="dump all interpolation problems")
   private boolean dumpInterpolationProblems = false;
 
@@ -238,6 +231,8 @@ public final class InterpolationManager {
 
   @Option(secure=true, description="Use a single SMT solver environment for several interpolation queries")
   private boolean reuseInterpolationEnvironment = false;
+
+  private final ITPStrategy itpStrategy;
 
   private final ExecutorService executor;
   private final LoopStructure loopStructure;
@@ -275,6 +270,30 @@ public final class InterpolationManager {
       interpolator = new Interpolator<>();
     } else {
       interpolator = null;
+    }
+
+    switch (strategy) {
+      case SEQ_CPACHECKER:
+        itpStrategy = new SequentialInterpolation(pLogger, pShutdownNotifier, fmgr, bfmgr, config);
+        break;
+      case SEQ:
+        itpStrategy =
+            new SequentialInterpolationWithSolver(pLogger, pShutdownNotifier, fmgr, bfmgr);
+        break;
+      case TREE_WELLSCOPED:
+        itpStrategy = new WellScopedInterpolation(pLogger, pShutdownNotifier, fmgr, bfmgr);
+        break;
+      case TREE_NESTED:
+        itpStrategy = new NestedInterpolation(pLogger, pShutdownNotifier, fmgr, bfmgr);
+        break;
+      case TREE_CPACHECKER:
+        itpStrategy = new TreeInterpolation(pLogger, pShutdownNotifier, fmgr, bfmgr);
+        break;
+      case TREE:
+        itpStrategy = new TreeInterpolationWithSolver(pLogger, pShutdownNotifier, fmgr, bfmgr);
+        break;
+      default:
+        throw new AssertionError("unknown interpolation strategy");
     }
   }
 
@@ -668,41 +687,11 @@ public final class InterpolationManager {
   private <T> List<BooleanFormula> getInterpolants(Interpolator<T> pInterpolator,
       List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
       throws SolverException, InterruptedException, InvalidConfigurationException {
-
-    // TODO replace with Config-Class-Constructor-Injection?
-
-
     if (domainSpecificAbstractions) {
       List <BooleanFormula> interpolants = createDSAInterpolants(formulasWithStatesAndGroupdIds);
       return interpolants;
 
     } else {
-      final ITPStrategy<T> itpStrategy;
-      switch (strategy) {
-        case SEQ_CPACHECKER:
-          itpStrategy = new SequentialInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr,
-              sequentialStrategy);
-          break;
-        case SEQ:
-          itpStrategy =
-              new SequentialInterpolationWithSolver<>(logger, shutdownNotifier, fmgr, bfmgr);
-          break;
-        case TREE_WELLSCOPED:
-          itpStrategy = new WellScopedInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
-          break;
-        case TREE_NESTED:
-          itpStrategy = new NestedInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
-          break;
-        case TREE_CPACHECKER:
-          itpStrategy = new TreeInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
-          break;
-        case TREE:
-          itpStrategy = new TreeInterpolationWithSolver<>(logger, shutdownNotifier, fmgr, bfmgr);
-          break;
-        default:
-          throw new AssertionError("unknown interpolation strategy");
-      }
-
       final List<BooleanFormula> interpolants =
           itpStrategy.getInterpolants(pInterpolator, formulasWithStatesAndGroupdIds);
 

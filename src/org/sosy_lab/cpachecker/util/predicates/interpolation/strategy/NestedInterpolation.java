@@ -31,7 +31,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class NestedInterpolation<T> extends AbstractTreeInterpolation<T> {
+public class NestedInterpolation extends AbstractTreeInterpolation {
 
   /**
    * This strategy returns a sequence of interpolants.
@@ -45,10 +45,10 @@ public class NestedInterpolation<T> extends AbstractTreeInterpolation<T> {
   }
 
   @Override
-  public List<BooleanFormula> getInterpolants(
-          final InterpolationManager.Interpolator<T> interpolator,
-          final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
-          throws InterruptedException, SolverException {
+  public <T> List<BooleanFormula> getInterpolants(
+      final InterpolationManager.Interpolator<T> interpolator,
+      final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
+      throws InterruptedException, SolverException {
     List<BooleanFormula> interpolants = new ArrayList<>(formulasWithStatesAndGroupdIds.size() - 1);
     BooleanFormula lastItp = bfmgr.makeTrue(); // PSI_0 = True
     final Deque<Pair<BooleanFormula, BooleanFormula>> callstack = new ArrayDeque<>();
@@ -63,12 +63,14 @@ public class NestedInterpolation<T> extends AbstractTreeInterpolation<T> {
     return interpolants;
   }
 
-  /** This function implements the paper "Nested Interpolants" with a small modification:
-   * instead of a return-edge, we use dummy-edges with simple pathformula "true".
-   * Actually the implementation does not use "true", but omits it completely and
-   * returns the conjunction of the two interpolants (before and after the (non-existing) dummy edge).
-   * TODO simplify this algorithm, it is soo ugly! Maybe it is 'equal' with the normal tree-interpolation. */
-  private BooleanFormula getNestedInterpolant(
+  /**
+   * This function implements the paper "Nested Interpolants" with a small modification: instead of
+   * a return-edge, we use dummy-edges with simple pathformula "true". Actually the implementation
+   * does not use "true", but omits it completely and returns the conjunction of the two
+   * interpolants (before and after the (non-existing) dummy edge). TODO simplify this algorithm, it
+   * is soo ugly! Maybe it is 'equal' with the normal tree-interpolation.
+   */
+  private <T> BooleanFormula getNestedInterpolant(
       final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds,
       final List<BooleanFormula> interpolants,
       final Deque<Pair<BooleanFormula, BooleanFormula>> callstack,

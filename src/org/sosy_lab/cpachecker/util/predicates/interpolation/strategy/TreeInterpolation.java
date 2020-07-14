@@ -26,7 +26,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class TreeInterpolation<T> extends AbstractTreeInterpolation<T> {
+public class TreeInterpolation extends AbstractTreeInterpolation {
 
   /**
    * This strategy is similar to "Tree Interpolation in Vampire*" from Blanc et al.
@@ -39,10 +39,10 @@ public class TreeInterpolation<T> extends AbstractTreeInterpolation<T> {
   }
 
   @Override
-  public List<BooleanFormula> getInterpolants(
-          final InterpolationManager.Interpolator<T> interpolator,
-          final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
-              throws InterruptedException, SolverException {
+  public <T> List<BooleanFormula> getInterpolants(
+      final InterpolationManager.Interpolator<T> interpolator,
+      final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
+      throws InterruptedException, SolverException {
     final Pair<List<Triple<BooleanFormula, AbstractState, T>>, ImmutableIntArray> p =
         buildTreeStructure(formulasWithStatesAndGroupdIds);
     final List<BooleanFormula> itps = new ArrayList<>();
@@ -54,7 +54,7 @@ public class TreeInterpolation<T> extends AbstractTreeInterpolation<T> {
     return flattenTreeItps(formulasWithStatesAndGroupdIds, itps);
   }
 
-  private BooleanFormula getTreeInterpolant(
+  private <T> BooleanFormula getTreeInterpolant(
       final InterpolationManager.Interpolator<T> interpolator,
       final Deque<Pair<BooleanFormula, Integer>> itpStack,
       final List<Triple<BooleanFormula, AbstractState, T>> formulas,

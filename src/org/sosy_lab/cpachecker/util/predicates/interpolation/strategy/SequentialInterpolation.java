@@ -13,6 +13,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.Triple;
@@ -27,7 +31,8 @@ import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 
-public class SequentialInterpolation<T> extends ITPStrategy<T> {
+@Options(prefix = "cpa.predicate.refinement")
+public class SequentialInterpolation extends ITPStrategy {
 
   private static final String FALLBACK_BWD_MSG =
       "Falling back to backward interpolant, because forward interpolant caused exception:";
@@ -46,23 +51,34 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
     RANDOM
   }
 
-  private final SeqInterpolationStrategy sequentialStrategy;
+  @Option(
+      secure = true,
+      description =
+          "In case we apply sequential interpolation, "
+              + "forward and backward directions return valid interpolants. "
+              + "We can either choose one of the directions, fallback to the other "
+              + "if one does not succeed, or even combine the interpolants.")
+  private SeqInterpolationStrategy sequentialStrategy = SeqInterpolationStrategy.FWD;
 
   private final Random rnd = new Random(0);
 
   /**
-   * This strategy returns a sequence of interpolants by computing
-   * each interpolant for i={0..n-1} for the partitions A=[0 .. i] and B=[i+1 .. n] .
+   * This strategy returns a sequence of interpolants by computing each interpolant for i={0..n-1}
+   * for the partitions A=[0 .. i] and B=[i+1 .. n] .
    */
-  public SequentialInterpolation(LogManager pLogger, ShutdownNotifier pShutdownNotifier,
-      FormulaManagerView pFmgr, BooleanFormulaManager pBfmgr,
-      SeqInterpolationStrategy pSequentialStrategy) {
+  public SequentialInterpolation(
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      FormulaManagerView pFmgr,
+      BooleanFormulaManager pBfmgr,
+      Configuration pConfig)
+      throws InvalidConfigurationException {
     super(pLogger, pShutdownNotifier, pFmgr, pBfmgr);
-    sequentialStrategy = pSequentialStrategy;
+    pConfig.inject(this);
   }
 
   @Override
-  public List<BooleanFormula> getInterpolants(
+  public <T> List<BooleanFormula> getInterpolants(
       final InterpolationManager.Interpolator<T> interpolator,
       final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStateAndGroupId)
       throws InterruptedException, SolverException {
@@ -117,8 +133,10 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
     }
   }
 
-  /** Compute interpolants ITP(A,B) for i={0..n-1} for the partitions A=[0 .. i] and B=[i+1 .. n] . */
-  private List<BooleanFormula> getFwdInterpolants(
+  /**
+   * Compute interpolants ITP(A,B) for i={0..n-1} for the partitions A=[0 .. i] and B=[i+1 .. n] .
+   */
+  private <T> List<BooleanFormula> getFwdInterpolants(
       final InterpolationManager.Interpolator<T> interpolator, final List<T> formulas)
       throws InterruptedException, SolverException {
     final List<BooleanFormula> interpolants = new ArrayList<>(formulas.size() - 1);
@@ -131,9 +149,11 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
     return interpolants;
   }
 
-  /** Compute interpolants ITP(B,A) for i={0..n-1} for the partitions B=[0 .. i] and A=[i+1 .. n] ,
-   * then negate each interpolant. */
-  private List<BooleanFormula> getBwdInterpolants(
+  /**
+   * Compute interpolants ITP(B,A) for i={0..n-1} for the partitions B=[0 .. i] and A=[i+1 .. n] ,
+   * then negate each interpolant.
+   */
+  private <T> List<BooleanFormula> getBwdInterpolants(
       final InterpolationManager.Interpolator<T> interpolator, final List<T> formulas)
       throws InterruptedException, SolverException {
     final List<BooleanFormula> interpolants = new ArrayList<>(formulas.size() - 1);

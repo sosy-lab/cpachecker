@@ -19,7 +19,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class SequentialInterpolationWithSolver<T> extends ITPStrategy<T> {
+public class SequentialInterpolationWithSolver extends ITPStrategy {
 
   /**
    * This strategy uses a SMT solver that directly computes a sequence of inductive interpolants.
@@ -31,10 +31,10 @@ public class SequentialInterpolationWithSolver<T> extends ITPStrategy<T> {
   }
 
   @Override
-  public List<BooleanFormula> getInterpolants(
-          final InterpolationManager.Interpolator<T> interpolator,
-          final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
-          throws InterruptedException, SolverException {
+  public <T> List<BooleanFormula> getInterpolants(
+      final InterpolationManager.Interpolator<T> interpolator,
+      final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
+      throws InterruptedException, SolverException {
     return interpolator.itpProver.getSeqInterpolants0(
         projectToThird(formulasWithStatesAndGroupdIds));
   }

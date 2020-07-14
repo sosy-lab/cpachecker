@@ -22,7 +22,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class WellScopedInterpolation<T> extends AbstractTreeInterpolation<T> {
+public class WellScopedInterpolation extends AbstractTreeInterpolation {
 
   /**
    * This strategy returns a sequence of interpolants by computing each interpolant for i={0..n-1}
@@ -73,10 +73,10 @@ public class WellScopedInterpolation<T> extends AbstractTreeInterpolation<T> {
   }
 
   @Override
-  public List<BooleanFormula> getInterpolants(
-          final InterpolationManager.Interpolator<T> interpolator,
-          final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
-          throws InterruptedException, SolverException {
+  public <T> List<BooleanFormula> getInterpolants(
+      final InterpolationManager.Interpolator<T> interpolator,
+      final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
+      throws InterruptedException, SolverException {
     final Pair<List<Triple<BooleanFormula, AbstractState, T>>, ImmutableIntArray> p =
         buildTreeStructure(formulasWithStatesAndGroupdIds);
     final List<BooleanFormula> itps = new ArrayList<>();
