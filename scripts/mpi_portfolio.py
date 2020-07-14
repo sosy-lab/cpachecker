@@ -25,12 +25,16 @@ import threading
 # MPI message tags
 tags = Enum("Status", "READY DONE")
 
+results = Enum("Status", "SUCCESS UNKNOWN EXCEPTION")
+
 MPI_PROBE_INTERVAL = 1
 
 ANALYSIS = "analysis"
 CMDLINE = "cmd"
 OUTPUT_PATH = "output"
 LOGFILE = "logfile"
+
+SUBANALYSIS_RESULT = "subanalysis_result"
 
 logger = None
 mpi = None
@@ -166,38 +170,68 @@ class MPIMain:
 
     def mpi_broadcast_listener(self, event_listener, wait_time):
         logger.debug("Setting up mpi_broadcast_listener")
-        probe = False
         while not self.event_listener.isSet():
             self.event_listener.wait(timeout=wait_time)
             # TODO: I have not found a proper way to interrupt an MPI-recv command,
             # hence the current implemenatation polls periodically for new
             # messages
+            probe = False
             probe = self.comm.iprobe(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG)
-            if probe:
-                self.interrupt_mpi_listener()
-            logger.debug("event set? %s", event_listener.isSet())
 
-        if probe:
-            status = MPI.Status()
-            data = self.comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
-            tag = status.Get_tag()
-            source = status.Get_source()
-            logger.info(
-                "RECEIVING: Process %d received msg from process %d with tag '%s': %s",
-                self.rank,
-                source,
-                tags(tag).name,
-                data,
-            )
-            self.shutdown_processes()
+            if probe:
+                status = MPI.Status()
+                data = self.comm.recv(
+                    source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status
+                )
+                tag = status.Get_tag()
+                source = status.Get_source()
+                logger.info(
+                    "RECEIVING: Process %d received msg from process %d with tag '%s': %s",
+                    self.rank,
+                    source,
+                    tags(tag).name,
+                    data,
+                )
+
+                if isinstance(data, dict):
+                    result = data.get(SUBANALYSIS_RESULT)
+                    # only shut this process down if another subanalysis reported
+                    # a TRUE or FALSE result.
+                    if result is not None and result == results["SUCCESS"].name:
+                        logger.info(
+                            "RECEIVING: received signal for shutting this process "
+                            "down."
+                        )
+                        self.interrupt_mpi_listener()
+                        self.shutdown_processes()
+
+            logger.debug("event set? %s", event_listener.isSet())
 
     def broadcast_except_to_self(self, data, tag):
         for i in range(0, self.size):
             if self.rank != i:
                 self.comm.send(data, dest=i, tag=tag)
 
-    def publish_completion_of_subprocess(self):
-        data = ["subanalysis", "finished"]  # input is not yet used
+    def parse_data(self, data):
+        status = None
+
+        result = [x for x in data if x.startswith("Verification result: ")]
+        if len(result) == 1:
+            result = result[0][21:].strip()
+            if result.startswith("TRUE") or result.startswith("FALSE"):
+                status = results.SUCCESS.value
+            else:
+                status = results.UNKNOWN.value
+        elif len(result) > 1:
+            raise ValueError("Unexpected number of result lines received")
+
+        if status is None:
+            status = results.EXCEPTION.value
+
+        return {SUBANALYSIS_RESULT: results(status).name}
+
+    def publish_completion_of_subprocess(self, proc_output):
+        data = self.parse_data(proc_output)
         logger.info("SENDING: Process %d broadcasts msg: %s", self.rank, data)
         self.broadcast_except_to_self(data, tags.DONE.value)
         self.interrupt_mpi_listener()
@@ -243,24 +277,29 @@ class MPIMain:
                 os.makedirs(self.analysis_param[OUTPUT_PATH])
 
             logger.info("Executing cmd: %s", cmdline)
-            with open(self.analysis_param[LOGFILE], "w+") as outputfile:
+            with open(self.analysis_param[LOGFILE], "w+", buffering=1) as outputfile:
+                with subprocess.Popen(
+                    cmdline,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    universal_newlines=True,
+                ) as self.process:
 
-                # Redirect all output from the errorstream to stdout, such that the
-                # output log stays consistent in the child CPAchecker instances
-                self.process = subprocess.Popen(
-                    cmdline, stdout=outputfile, stderr=subprocess.STDOUT,
-                )
-                try:
-                    self.process.communicate()
-                except KeyboardInterrupt:
-                    mpi.interrupt_mpi_listener()
+                    try:
+                        proc_stdout, _ = self.process.communicate()
+                    except KeyboardInterrupt:
+                        mpi.interrupt_mpi_listener()
+
+                    if proc_stdout is not None:
+                        outputfile.write(proc_stdout)
+                        proc_output = proc_stdout.split("\n")
 
             logger.info(
                 "Process returned with status code %d", self.process.returncode,
             )
             if not self.shutdown_requested:
                 self.shutdown_requested = True
-                self.publish_completion_of_subprocess()
+                self.publish_completion_of_subprocess(proc_output)
                 logger.debug("Rank %d is about to shut itself down", self.rank)
 
     def prepare_cmdline(self):
