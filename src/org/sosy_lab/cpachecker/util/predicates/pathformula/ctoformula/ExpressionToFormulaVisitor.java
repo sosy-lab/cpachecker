@@ -175,9 +175,17 @@ public class ExpressionToFormulaVisitor
     final CType returnType = exp.getExpressionType();
     final CType calculationType = exp.getCalculationType();
 
-    Optional<FormulaType<?>> litFormType = determineLiteralFormulaType(exp, returnType);
+    Optional<FormulaType<?>> freshForceFormulaType =
+        determineForceFormulaType(exp, calculationType);
     final ExpressionToFormulaVisitor newVisitor =
-        new ExpressionToFormulaVisitor(conv, mgr, edge, function, ssa, constraints, litFormType);
+        new ExpressionToFormulaVisitor(
+            conv,
+            mgr,
+            edge,
+            function,
+            ssa,
+            constraints,
+            freshForceFormulaType);
 
     final Formula f1 = newVisitor.processOperand(exp.getOperand1(), calculationType, returnType);
     final Formula f2 = newVisitor.processOperand(exp.getOperand2(), calculationType, returnType);
@@ -368,7 +376,39 @@ public class ExpressionToFormulaVisitor
 
     // The CalculationType could be different from returnType, so we cast the result.
     // If the types are equal, the cast returns the Formula unchanged.
-    final Formula castedResult = conv.makeCast(calculationType, returnType, ret, constraints, edge);
+    // When processing boolean, or integer formulas, we may have to skip the cast.
+    Formula castedResult;
+    if (!CTypes.isIntegerType(returnType) || !conv.options.useVariableClassification()) {
+      castedResult =
+          conv.makeFormulaTypeCast(
+              conv.getFormulaTypeFromCType(returnType),
+              calculationType,
+              ret,
+              ssa,
+              constraints);
+      castedResult = conv.makeCast(calculationType, returnType, ret, constraints, edge);
+    } else {
+      if (forceFormulaType.isPresent()) {
+        castedResult =
+            conv.makeFormulaTypeCast(
+                forceFormulaType.get(),
+                calculationType,
+                ret,
+                ssa,
+                constraints);
+      } else if (calculationFormulaType.isFloatingPointType()) {
+        castedResult =
+            conv.makeFormulaTypeCast(
+                conv.getFormulaTypeFromCType(returnType),
+                calculationType,
+                ret,
+                ssa,
+                constraints);
+        castedResult = conv.makeCast(calculationType, returnType, ret, constraints, edge);
+      } else {
+        castedResult = ret;
+      }
+    }
 
     if (!conv.options.useVariableClassification()) {
       assert returnFormulaType.equals(
@@ -1319,29 +1359,21 @@ public class ExpressionToFormulaVisitor
   }
 
   private Optional<FormulaType<?>>
-      determineLiteralFormulaType(CBinaryExpression exp, CType returnType)
-      throws UnrecognizedCodeException {
+      determineForceFormulaType(CBinaryExpression exp, CType calculationType) {
     if (!conv.options.useVariableClassification()) {
       return Optional.empty();
+    }
+    if (!CTypes.isIntegerType(calculationType)) {
+      return Optional.of(conv.getFormulaTypeFromCType(calculationType));
     }
     CExpression op1 = exp.getOperand1();
     CExpression op2 = exp.getOperand2();
     if (op1 instanceof CLiteralExpression && CTypes.isIntegerType(op1.getExpressionType())) {
-      if (op2 instanceof CLiteralExpression && CTypes.isIntegerType(op2.getExpressionType())) {
-        return Optional.of(FormulaType.IntegerType);
-      } else {
-        op2 = conv.makeCastFromArrayToPointerIfNecessary(op2, returnType);
-        Formula f = toFormula(op2);
-        return Optional.of(mgr.getFormulaType(f));
-      }
+      return Optional.of(FormulaType.IntegerType);
+    } else if (op2 instanceof CLiteralExpression && CTypes.isIntegerType(op2.getExpressionType())) {
+      return Optional.of(FormulaType.IntegerType);
     } else {
-      if (op2 instanceof CLiteralExpression && CTypes.isIntegerType(op2.getExpressionType())) {
-        op1 = conv.makeCastFromArrayToPointerIfNecessary(op1, returnType);
-        Formula f = toFormula(op1);
-        return Optional.of(mgr.getFormulaType(f));
-      } else {
-        return Optional.empty();
-      }
+      return Optional.empty();
     }
   }
 
@@ -1351,7 +1383,7 @@ public class ExpressionToFormulaVisitor
       BinaryOperator op,
       CType calculationType) {
     FormulaType<?> result;
-    if (!conv.options.useVariableClassification()) {
+    if ((!conv.options.useVariableClassification()) || !CTypes.isIntegerType(calculationType)) {
       return conv.getFormulaTypeFromCType(calculationType);
     }
     if (mgr.getFormulaType(f1).isBooleanType() && mgr.getFormulaType(f2).isBooleanType()) {
@@ -1364,6 +1396,8 @@ public class ExpressionToFormulaVisitor
         case SHIFT_LEFT:
         case SHIFT_RIGHT:
           result = conv.getFormulaTypeFromCType(calculationType);
+          assert !conv.getFormulaTypeFromCType(calculationType)
+              .isIntegerType() : "Impossible operation with IntegerFormula as CPointerType!";
           break;
         default:
           if (mgr.getFormulaType(f1).equals(mgr.getFormulaType(f2))) {
