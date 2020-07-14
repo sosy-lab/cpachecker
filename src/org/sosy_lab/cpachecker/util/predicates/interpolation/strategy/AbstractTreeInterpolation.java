@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -357,7 +358,7 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
             "number of interpolants does not match formulas: %d vs %d",
             itps.size(), formulasWithStatesAndGroupdIds.size());
 
-    final List<BooleanFormula> interpolants = new ArrayList<>();
+    final ImmutableList.Builder<BooleanFormula> interpolants = ImmutableList.builder();
     final Iterator<BooleanFormula> iter = itps.iterator();
     for (int positionOfA = 0; positionOfA < formulasWithStatesAndGroupdIds.size() - 1; positionOfA++) {
       // last interpolant would be False.
@@ -387,7 +388,7 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
 
     assert !iter.hasNext() : "remaining interpolants: " + Lists.newArrayList(iter);
 
-    return interpolants;
+    return interpolants.build();
   }
 
   /**

@@ -8,12 +8,12 @@
 
 package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.ImmutableIntArray;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
-import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -44,13 +44,13 @@ public class TreeInterpolation extends AbstractTreeInterpolation {
       throws InterruptedException, SolverException {
     final Pair<List<Triple<BooleanFormula, AbstractState, T>>, ImmutableIntArray> p =
         buildTreeStructure(formulasWithStatesAndGroupdIds);
-    final List<BooleanFormula> itps = new ArrayList<>();
+    final ImmutableList.Builder<BooleanFormula> itps =
+        ImmutableList.builderWithExpectedSize(p.getFirst().size());
     final Deque<Pair<BooleanFormula, Integer>> itpStack = new ArrayDeque<>();
     for (int positionOfA = 0; positionOfA < p.getFirst().size() - 1; positionOfA++) {
       itps.add(getTreeInterpolant(interpolator, itpStack, p.getFirst(), p.getSecond(), positionOfA));
     }
-    logger.log(Level.ALL, "received interpolants of tree :", itps);
-    return flattenTreeItps(formulasWithStatesAndGroupdIds, itps);
+    return flattenTreeItps(formulasWithStatesAndGroupdIds, itps.build());
   }
 
   private <T> BooleanFormula getTreeInterpolant(

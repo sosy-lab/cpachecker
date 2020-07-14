@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.ImmutableIntArray;
-import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -75,13 +75,14 @@ public class WellScopedInterpolation extends AbstractTreeInterpolation {
       throws InterruptedException, SolverException {
     final Pair<List<Triple<BooleanFormula, AbstractState, T>>, ImmutableIntArray> p =
         buildTreeStructure(formulasWithStatesAndGroupdIds);
-    final List<BooleanFormula> itps = new ArrayList<>();
+    final ImmutableList.Builder<BooleanFormula> itps =
+        ImmutableList.builderWithExpectedSize(p.getFirst().size());
     for (int end_of_A = 0; end_of_A < p.getFirst().size() - 1; end_of_A++) {
       // last iteration is left out because B would be empty
       final int start_of_A = p.getSecond().get(end_of_A);
       itps.add(getInterpolantFromSublist(interpolator.itpProver, projectToThird(p.getFirst()), start_of_A, end_of_A));
     }
-    return flattenTreeItps(formulasWithStatesAndGroupdIds, itps);
+    return flattenTreeItps(formulasWithStatesAndGroupdIds, itps.build());
   }
 
 }

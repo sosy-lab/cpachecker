@@ -9,7 +9,7 @@
 package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
 import com.google.common.base.Preconditions;
-import java.util.ArrayList;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Random;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -137,14 +137,15 @@ public class SequentialInterpolation extends ITPStrategy {
   private <T> List<BooleanFormula> getFwdInterpolants(
       final InterpolationManager.Interpolator<T> interpolator, final List<T> formulas)
       throws InterruptedException, SolverException {
-    final List<BooleanFormula> interpolants = new ArrayList<>(formulas.size() - 1);
+    final ImmutableList.Builder<BooleanFormula> interpolants =
+        ImmutableList.builderWithExpectedSize(formulas.size() - 1);
     for (int end_of_A = 0; end_of_A < formulas.size() - 1; end_of_A++) {
       // last iteration is left out because B would be empty
       final int start_of_A = 0;
       interpolants.add(
           getInterpolantFromSublist(interpolator.itpProver, formulas, start_of_A, end_of_A));
     }
-    return interpolants;
+    return interpolants.build();
   }
 
   /**
@@ -154,7 +155,8 @@ public class SequentialInterpolation extends ITPStrategy {
   private <T> List<BooleanFormula> getBwdInterpolants(
       final InterpolationManager.Interpolator<T> interpolator, final List<T> formulas)
       throws InterruptedException, SolverException {
-    final List<BooleanFormula> interpolants = new ArrayList<>(formulas.size() - 1);
+    final ImmutableList.Builder<BooleanFormula> interpolants =
+        ImmutableList.builderWithExpectedSize(formulas.size() - 1);
     for (int start_of_A = 1; start_of_A < formulas.size(); start_of_A++) {
       // first iteration is left out because B would be empty
       final int end_of_A = formulas.size() - 1;
@@ -162,7 +164,7 @@ public class SequentialInterpolation extends ITPStrategy {
           bfmgr.not(
               getInterpolantFromSublist(interpolator.itpProver, formulas, start_of_A, end_of_A)));
     }
-    return interpolants;
+    return interpolants.build();
   }
 
   /**
@@ -182,11 +184,12 @@ public class SequentialInterpolation extends ITPStrategy {
 
     switch (sequentialStrategy) {
       case CONJUNCTION:
-        final List<BooleanFormula> interpolants = new ArrayList<>(forward.size());
+        final ImmutableList.Builder<BooleanFormula> interpolants =
+            ImmutableList.builderWithExpectedSize(forward.size());
         for (int i = 0; i < forward.size(); i++) {
           interpolants.add(bfmgr.and(forward.get(i), backward.get(i)));
         }
-        return interpolants;
+        return interpolants.build();
 
       case WEIGHTED:
         long weightFwd = getWeight(forward);
