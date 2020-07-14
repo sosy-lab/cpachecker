@@ -17,7 +17,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
@@ -34,7 +33,6 @@ public abstract class ITPStrategy<T> {
   private final ShutdownNotifier shutdownNotifier;
   protected final FormulaManagerView fmgr;
   protected final BooleanFormulaManager bfmgr;
-  private final Timer getInterpolantTimer = new Timer();
 
   ITPStrategy(LogManager pLogger, ShutdownNotifier pShutdownNotifier,
       FormulaManagerView pFmgr, BooleanFormulaManager pBfmgr) {
@@ -164,13 +162,8 @@ public abstract class ITPStrategy<T> {
 
     logger.log(Level.ALL, "Looking for interpolant for formulas from", start_of_A, "to", end_of_A);
 
-    getInterpolantTimer.start();
-    final BooleanFormula itp;
-    try {
-      itp = pItpProver.getInterpolant(itpGroupsIds.subList(start_of_A, end_of_A + 1));
-    } finally {
-      getInterpolantTimer.stop();
-    }
+    final BooleanFormula itp =
+        pItpProver.getInterpolant(itpGroupsIds.subList(start_of_A, end_of_A + 1));
 
     logger.log(Level.ALL, "Received interpolant", itp);
     return itp;
