@@ -21,6 +21,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Verify;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -1297,7 +1298,7 @@ public class ARGUtils {
     return Optional.of(CounterexampleInfo.feasibleImprecise(path, additionalInfo));
   }
 
-  public static Set<ARGState> getNonCoveredStatesInSubgraph(ARGState pRoot) {
-    return Sets.filter(pRoot.getSubgraph(), s -> !s.isCovered());
+  public static FluentIterable<ARGState> getNonCoveredStatesInSubgraph(ARGState pRoot) {
+    return from(pRoot.getSubgraph()).filter(s -> !s.isCovered());
   }
 }

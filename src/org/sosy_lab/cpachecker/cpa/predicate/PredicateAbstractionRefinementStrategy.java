@@ -17,7 +17,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -585,8 +584,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
   public static PredicatePrecision findAllPredicatesFromSubgraph(
       ARGState refinementRoot, UnmodifiableReachedSet reached) {
     return PredicatePrecision.unionOf(
-        Collections2.transform(
-            ARGUtils.getNonCoveredStatesInSubgraph(refinementRoot), reached::getPrecision));
+        ARGUtils.getNonCoveredStatesInSubgraph(refinementRoot).transform(reached::getPrecision));
   }
 
   private void dumpNewPredicates() {
