@@ -51,7 +51,7 @@ public class FaultLocalizationFault {
    * @param origin input map
    * @return rearranged faults.
    */
-  private List<FaultInformation> rearrangeFaults(Map<FaultInformation, FaultContribution> origin) {
+  private List<FaultInformation> sumUpFaults(Map<FaultInformation, FaultContribution> origin) {
 
     Map<Integer, List<Map.Entry<FaultInformation, FaultContribution>>>
         faultToListOfFaultContribution =
@@ -81,6 +81,6 @@ public class FaultLocalizationFault {
   }
 
   public List<Fault> getFaults(Map<FaultInformation, FaultContribution> getRanked) {
-    return faultsDetermination(rearrangeFaults(getRanked));
+    return faultsDetermination(sumUpFaults(getRanked));
   }
 }

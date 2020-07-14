@@ -16,7 +16,7 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-/** Class represents the safe case for tarantula algorithm */
+/** Class represents the safe case for algorithm which works with ranking metric */
 public class SafeCase {
   private final ReachedSet pReachedSet;
 
