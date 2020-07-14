@@ -64,9 +64,9 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
    *     checked.
    */
   @Override
-  public void checkInterpolants(
+  public <T> void checkInterpolants(
       final Solver solver,
-      final List<? extends Triple<BooleanFormula, AbstractState, ?>> formulasWithStatesAndGroupdIds,
+      final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds,
       final List<BooleanFormula> interpolants)
       throws SolverException, InterruptedException {
 
@@ -203,7 +203,7 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
 
   /** returns the current position in a interpolation tree. */
   private static <T> TreePosition getTreePosition(
-      final List<? extends Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds,
+      final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds,
       final int position) {
     final AbstractState abstractionState = checkNotNull(formulasWithStatesAndGroupdIds.get(position).getSecond());
     final CFANode node = AbstractStates.extractLocation(abstractionState);
@@ -218,7 +218,7 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
 
   /** check, if there exists a function-exit-node to the current call-node. */
   protected static <T> boolean callHasReturn(
-      final List<? extends Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds,
+      final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds,
       int callIndex) {
     // TODO caching as optimization to reduce from  k*O(n)  to  O(n)+k*O(1)  ?
     final Deque<CFANode> callstack = new ArrayDeque<>();
@@ -273,8 +273,7 @@ public abstract class AbstractTreeInterpolation extends ITPStrategy {
    */
   protected <T>
       Pair<List<Triple<BooleanFormula, AbstractState, T>>, ImmutableIntArray> buildTreeStructure(
-          final List<? extends Triple<BooleanFormula, AbstractState, T>>
-              formulasWithStatesAndGroupdIds) {
+          final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds) {
 
     final List<Triple<BooleanFormula, AbstractState, T>> formulas = new ArrayList<>();
     final ImmutableIntArray.Builder startOfSubTree = ImmutableIntArray.builder();

@@ -69,9 +69,9 @@ public abstract class ITPStrategy {
    *     matches the order of abstract states along the counterexample.
    * @param interpolants computed with {@link #getInterpolants} and will be checked.
    */
-  public void checkInterpolants(
+  public <T> void checkInterpolants(
       final Solver solver,
-      final List<? extends Triple<BooleanFormula, AbstractState, ?>> formulasWithStatesAndGroupdIds,
+      final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds,
       final List<BooleanFormula> interpolants)
       throws InterruptedException, SolverException {
 
