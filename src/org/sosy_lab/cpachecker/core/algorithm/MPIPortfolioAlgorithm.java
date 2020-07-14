@@ -300,15 +300,16 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     List<String> cmdList = new ArrayList<>();
     cmdList.add(binaries.get(MPI_BIN).toString());
 
-    // Force Open MPI to only send messages via eth0
-    // https://stackoverflow.com/a/15256822
-    cmdList.add("--mca");
-    cmdList.add("btl_tcp_if_include");
-    cmdList.add("eth0");
-
     // if no hostfile is specified, all CPAchecker instances
     // for the subanalyses will be executed on the local machine
     if (hostfile != null) {
+
+      // Force Open MPI to only send messages via eth0
+      // https://stackoverflow.com/a/15256822
+      cmdList.add("--mca");
+      cmdList.add("btl_tcp_if_include");
+      cmdList.add("eth0");
+
       cmdList.add("-hostfile");
       cmdList.add(hostfile.normalize().toString());
 
@@ -316,6 +317,9 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
         cmdList.add("-np");
         cmdList.add(String.valueOf(numberProcesses));
       }
+
+      cmdList.add("--map-by");
+      cmdList.add("node");
     }
 
     cmdList.add(binaries.get(PYTHON3_BIN).toString());
