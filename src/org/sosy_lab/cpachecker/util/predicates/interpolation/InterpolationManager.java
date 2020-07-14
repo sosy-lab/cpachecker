@@ -274,23 +274,22 @@ public final class InterpolationManager {
 
     switch (strategy) {
       case SEQ_CPACHECKER:
-        itpStrategy = new SequentialInterpolation(pLogger, pShutdownNotifier, fmgr, bfmgr, config);
+        itpStrategy = new SequentialInterpolation(pLogger, pShutdownNotifier, fmgr, config);
         break;
       case SEQ:
-        itpStrategy =
-            new SequentialInterpolationWithSolver(pLogger, pShutdownNotifier, fmgr, bfmgr);
+        itpStrategy = new SequentialInterpolationWithSolver(pLogger, pShutdownNotifier, fmgr);
         break;
       case TREE_WELLSCOPED:
-        itpStrategy = new WellScopedInterpolation(pLogger, pShutdownNotifier, fmgr, bfmgr);
+        itpStrategy = new WellScopedInterpolation(pLogger, pShutdownNotifier, fmgr);
         break;
       case TREE_NESTED:
-        itpStrategy = new NestedInterpolation(pLogger, pShutdownNotifier, fmgr, bfmgr);
+        itpStrategy = new NestedInterpolation(pLogger, pShutdownNotifier, fmgr);
         break;
       case TREE_CPACHECKER:
-        itpStrategy = new TreeInterpolation(pLogger, pShutdownNotifier, fmgr, bfmgr);
+        itpStrategy = new TreeInterpolation(pLogger, pShutdownNotifier, fmgr);
         break;
       case TREE:
-        itpStrategy = new TreeInterpolationWithSolver(pLogger, pShutdownNotifier, fmgr, bfmgr);
+        itpStrategy = new TreeInterpolationWithSolver(pLogger, pShutdownNotifier, fmgr);
         break;
       default:
         throw new AssertionError("unknown interpolation strategy");

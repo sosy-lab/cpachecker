@@ -34,12 +34,11 @@ public abstract class ITPStrategy {
   protected final FormulaManagerView fmgr;
   protected final BooleanFormulaManager bfmgr;
 
-  ITPStrategy(LogManager pLogger, ShutdownNotifier pShutdownNotifier,
-      FormulaManagerView pFmgr, BooleanFormulaManager pBfmgr) {
+  ITPStrategy(LogManager pLogger, ShutdownNotifier pShutdownNotifier, FormulaManagerView pFmgr) {
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
     fmgr = pFmgr;
-    bfmgr = pBfmgr;
+    bfmgr = pFmgr.getBooleanFormulaManager();
   }
 
   /**

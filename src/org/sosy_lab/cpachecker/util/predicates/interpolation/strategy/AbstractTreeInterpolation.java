@@ -36,22 +36,20 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManage
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public abstract class AbstractTreeInterpolation extends ITPStrategy {
 
   /**
-   * Tree interpolants are used for the analysis recursive procedures
-   * and to have a modular analysis.
-   * Current status:
-   * - We need abstraction states at function entry and exit nodes (and maybe also at function calls).
-   * - Tree interpolants are useless for the 'normal' PredicateAnalysis.
-   * - Tree interpolants are useful in for PredicateAnalysis in combination with BAM and recursion.
+   * Tree interpolants are used for the analysis recursive procedures and to have a modular
+   * analysis. Current status: - We need abstraction states at function entry and exit nodes (and
+   * maybe also at function calls). - Tree interpolants are useless for the 'normal'
+   * PredicateAnalysis. - Tree interpolants are useful in for PredicateAnalysis in combination with
+   * BAM and recursion.
    */
-  AbstractTreeInterpolation(LogManager pLogger, ShutdownNotifier pShutdownNotifier,
-                            FormulaManagerView pFmgr, BooleanFormulaManager pBfmgr) {
-    super(pLogger, pShutdownNotifier, pFmgr, pBfmgr);
+  AbstractTreeInterpolation(
+      LogManager pLogger, ShutdownNotifier pShutdownNotifier, FormulaManagerView pFmgr) {
+    super(pLogger, pShutdownNotifier, pFmgr);
   }
 
   /**

@@ -22,20 +22,19 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
 public class TreeInterpolation extends AbstractTreeInterpolation {
 
   /**
-   * This strategy is similar to "Tree Interpolation in Vampire*" from Blanc et al.
-   * In comparison to the paper, we directly use the post-order-sorted
-   * formula-list instead of the tree. This is easier to implement.
+   * This strategy is similar to "Tree Interpolation in Vampire*" from Blanc et al. In comparison to
+   * the paper, we directly use the post-order-sorted formula-list instead of the tree. This is
+   * easier to implement.
    */
-  public TreeInterpolation(LogManager pLogger, ShutdownNotifier pShutdownNotifier,
-                           FormulaManagerView pFmgr, BooleanFormulaManager pBfmgr) {
-    super(pLogger, pShutdownNotifier, pFmgr, pBfmgr);
+  public TreeInterpolation(
+      LogManager pLogger, ShutdownNotifier pShutdownNotifier, FormulaManagerView pFmgr) {
+    super(pLogger, pShutdownNotifier, pFmgr);
   }
 
   @Override
