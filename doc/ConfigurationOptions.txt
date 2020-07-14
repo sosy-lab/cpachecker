@@ -3705,9 +3705,7 @@ precision.sharing = SCOPE
   enum:     [SCOPE, LOCATION]
 
 # Allowed coefficients in a template.
-precision.template.allowedCoefficients = {
-      Rational.NEG_ONE, Rational.ONE
-  }
+precision.template.allowedCoefficients = {Rational.NEG_ONE, Rational.ONE}
 
 # Generate difference constraints.This option is redundant for
 # `maxExpressionSize` >= 2.
