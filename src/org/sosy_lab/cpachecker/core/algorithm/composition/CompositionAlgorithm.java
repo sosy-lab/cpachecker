@@ -676,9 +676,6 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     Preconditions.checkArgument(!pPreviousReachedSets.isEmpty());
     Precision resultPrec = pInitialPrecision;
 
-    PredicatePrecision predPrec;
-    LoopBoundPrecision loopPrec;
-    ConstraintsPrecision constrPrec;
     VariableTrackingPrecision varPrec =
         Precisions.extractPrecisionByType(resultPrec, VariableTrackingPrecision.class);
     if (varPrec != null) {
@@ -700,7 +697,8 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
                 changed = true;
               }
 
-              predPrec = Precisions.extractPrecisionByType(resultPrec, PredicatePrecision.class);
+              PredicatePrecision predPrec =
+                  Precisions.extractPrecisionByType(resultPrec, PredicatePrecision.class);
               if (predPrec != null && pFMgr != null) {
                 varPrec =
                     varPrec.withIncrement(convertPredPrecToVariableTrackingPrec(predPrec, pFMgr));
@@ -719,7 +717,8 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
 
-    constrPrec = Precisions.extractPrecisionByType(resultPrec, ConstraintsPrecision.class);
+    ConstraintsPrecision constrPrec =
+        Precisions.extractPrecisionByType(resultPrec, ConstraintsPrecision.class);
     if (constrPrec != null) {
       try {
         if (!(constrPrec instanceof RefinableConstraintsPrecision)) {
@@ -750,22 +749,23 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
 
-    loopPrec = Precisions.extractPrecisionByType(resultPrec, LoopBoundPrecision.class);
+    LoopBoundPrecision loopPrec =
+        Precisions.extractPrecisionByType(resultPrec, LoopBoundPrecision.class);
     if (loopPrec != null && pPreviousReachedSets.get(0) != null) {
       resultPrec =
           Precisions.replaceByType(
               resultPrec, loopPrec, Predicates.instanceOf(LoopBoundPrecision.class));
     }
 
-    predPrec = Precisions.extractPrecisionByType(resultPrec, PredicatePrecision.class);
+    PredicatePrecision predPrec =
+        Precisions.extractPrecisionByType(resultPrec, PredicatePrecision.class);
 
     if (predPrec != null && pPreviousReachedSets.get(0) != null) {
       Collection<PredicatePrecision> predPrecs =
           new HashSet<>(pPreviousReachedSets.get(0).getPrecisions().size());
       predPrecs.add(predPrec);
       for (Precision prec : pPreviousReachedSets.get(0).getPrecisions()) {
-        predPrec = Precisions.extractPrecisionByType(prec, PredicatePrecision.class);
-        predPrecs.add(predPrec);
+        predPrecs.add(Precisions.extractPrecisionByType(prec, PredicatePrecision.class));
       }
 
       resultPrec =
