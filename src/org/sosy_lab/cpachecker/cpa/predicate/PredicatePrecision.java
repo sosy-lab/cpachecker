@@ -198,10 +198,8 @@ public final class PredicatePrecision implements AdjustablePrecision {
     return EMPTY;
   }
 
-  /**
-   * Create a new precision that is the union of all given precisions.
-   */
-  public static PredicatePrecision unionOf(Collection<PredicatePrecision> precisions) {
+  /** Create a new precision that is the union of all given precisions. */
+  private static PredicatePrecision unionOf(Collection<PredicatePrecision> precisions) {
     if (precisions.isEmpty()) {
       return empty();
     }

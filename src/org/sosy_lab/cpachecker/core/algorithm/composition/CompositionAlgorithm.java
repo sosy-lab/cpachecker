@@ -16,6 +16,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
@@ -761,17 +762,13 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
         Precisions.extractPrecisionByType(resultPrec, PredicatePrecision.class);
 
     if (predPrec != null && pPreviousReachedSets.get(0) != null) {
-      Collection<PredicatePrecision> predPrecs =
-          new HashSet<>(pPreviousReachedSets.get(0).getPrecisions().size());
-      predPrecs.add(predPrec);
-      for (Precision prec : pPreviousReachedSets.get(0).getPrecisions()) {
-        predPrecs.add(Precisions.extractPrecisionByType(prec, PredicatePrecision.class));
-      }
+      Iterable<Precision> allPrecisions =
+          from(ImmutableList.of(resultPrec)).append(pPreviousReachedSets.get(0).getPrecisions());
 
       resultPrec =
           Precisions.replaceByType(
               resultPrec,
-              PredicatePrecision.unionOf(predPrecs),
+              PredicatePrecision.unionOf(allPrecisions),
               Predicates.instanceOf(PredicatePrecision.class));
     }
 
