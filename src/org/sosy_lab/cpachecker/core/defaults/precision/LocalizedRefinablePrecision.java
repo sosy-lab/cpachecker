@@ -144,7 +144,8 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
     in.defaultReadObject();
     CFAInfo cfa = GlobalInfo.getInstance().getCFAInfo().orElseThrow();
     ImmutableSetMultimap.Builder<CFANode, MemoryLocation> precisionBuilder = createBuilder();
-    for (int i = 0; i < in.readInt(); i++) {
+    final int entryCount = in.readInt();
+    for (int i = 0; i < entryCount; i++) {
       precisionBuilder.put(cfa.getNodeByNodeNumber(in.readInt()), (MemoryLocation) in.readObject());
     }
     rawPrecision = precisionBuilder.build();
