@@ -1299,6 +1299,6 @@ public class ARGUtils {
   }
 
   public static FluentIterable<ARGState> getNonCoveredStatesInSubgraph(ARGState pRoot) {
-    return from(pRoot.getSubgraph()).filter(s -> !s.isCovered());
+    return pRoot.getSubgraph().filter(s -> !s.isCovered());
   }
 }

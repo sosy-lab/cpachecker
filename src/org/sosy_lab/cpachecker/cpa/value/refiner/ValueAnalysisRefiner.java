@@ -13,6 +13,7 @@ import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefineme
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
@@ -353,7 +354,7 @@ public class ValueAnalysisRefiner
       return pRefinementRoot;
     }
 
-    Set<ARGState> descendants = pRefinementRoot.getSubgraph();
+    final ImmutableList<ARGState> descendants = pRefinementRoot.getSubgraph().toList();
     final ImmutableSet<ARGState> coveredStates =
         from(descendants)
             .transformAndConcat(ARGState::getCoveredByThis)
