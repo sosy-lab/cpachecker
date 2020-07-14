@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
@@ -47,6 +48,8 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
   }
 
   private final SeqInterpolationStrategy sequentialStrategy;
+
+  private final Random rnd = new Random(0);
 
   /**
    * This strategy returns a sequence of interpolants by computing
@@ -174,7 +177,7 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
         return weightFwd <= weightBwd ? forward : backward;
 
       case RANDOM:
-        return Math.random() <= 0.5 ? forward : backward;
+        return rnd.nextBoolean() ? forward : backward;
 
       default:
         throw new AssertionError(UNEXPECTED_DIRECTION_MSG);
