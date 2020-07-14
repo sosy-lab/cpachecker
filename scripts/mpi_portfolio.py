@@ -216,9 +216,10 @@ class MPIMain:
         """Print an info about the proccesor name, the rank of the executed process, and
         the number of total processes."""
         logger.info(
-            "Executing process on '{}' (rank {} of {})".format(
-                self.name, self.rank, self.size
-            )
+            "Executing process on '%s' (rank %d of %d)",
+            self.name,
+            self.rank,
+            self.size,
         )
 
     def execute_verifier(self):
@@ -288,7 +289,7 @@ class MPIMain:
 
     def push_results_to_master(self):
         if self.main_node_network_config is None:
-            logger.warning(
+            logger.info(
                 "No network parameters received. The process was executed "
                 "on the main node only. The result files are hence "
                 "already in their correct location."
@@ -332,14 +333,14 @@ class MPIMain:
                     ]
                     logger.debug("Command for scp: %s", scp_cmd)
                     scp_proc = subprocess.run(scp_cmd)
-                    logger.info(
+                    logger.debug(
                         "Process for copying the output back to the main node "
                         "completed with status code %d",
                         scp_proc.returncode,
                     )
 
             else:
-                logger.debug(
+                logger.info(
                     "The current process is executed on the main node. The result "
                     "files are already in the correct place."
                 )

@@ -324,7 +324,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
     cmdList.add(binaries.get(PYTHON3_BIN).toString());
     cmdList.add(MPI_PYTHON_MAIN_PATH.normalize().toString());
-    logger.log(Level.FINE, "Executing command (arguments trimmed): " + cmdList);
+    logger.log(Level.INFO, "Executing command (arguments trimmed): " + cmdList);
 
     cmdList.add("--input");
     cmdList.add(mpiArgs);
