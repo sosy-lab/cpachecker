@@ -405,8 +405,26 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
 
   private boolean isAllocated(Formula pLoc, boolean usePredContext)
       throws Exception {
-    return checkAllocation(state.getStack(), pLoc, usePredContext) != null
-        || checkAllocation(state.getHeap(), pLoc, usePredContext) != null;
+    return isAllocated0(pLoc, usePredContext, state.getStack())
+        || isAllocated0(pLoc, usePredContext, state.getHeap());
+  }
+
+  private boolean isAllocated0(Formula pLoc, boolean usePredContext, Map<Formula, Formula> pHeap) {
+    PathFormula context = usePredContext ? getPredPathFormula() : getPathFormula();
+    BooleanFormula heapFormula = createHeapFormula(pHeap);
+    BooleanFormula toBeChecked = slfm.makePointsTo(pLoc, makeFreshWildcard());
+    try (ProverEnvironment prover =
+        solver.newProverEnvironment(ProverOptions.ENABLE_SEPARATION_LOGIC)) {
+      prover.addConstraint(context.getFormula());
+      prover.addConstraint(slfm.makeMagicWand(toBeChecked, heapFormula));
+      stats.startSolverTime();
+      return prover.isUnsat();
+    } catch (Exception e) {
+      logger.log(Level.SEVERE, e.getMessage());
+    } finally {
+      stats.stopSolverTime();
+    }
+    return false;
   }
 
   private Formula isAllocated(Formula pLoc, boolean usePredContext, Map<Formula, Formula> pHeap) {
