@@ -157,7 +157,7 @@ public abstract class TAEncodingBase implements TAFormulaEncoding {
         from(automata.getInitialNodesByAutomaton(pAutomaton))
             .transform(
                 node -> locations.makeLocationEqualsFormula(pAutomaton, pInitialIndex, node));
-    var initialLocationsFormula = bFmgr.and(initialLocationFormulas.toSet());
+    var initialLocationsFormula = bFmgr.or(initialLocationFormulas.toSet());
     var initialTime = time.makeInitiallyZeroFormula(pAutomaton, pInitialIndex);
     var extensionsFormula = extensions.makeInitialFormula(pAutomaton, pInitialIndex);
     return bFmgr.and(initialTime, initialLocationsFormula, extensionsFormula);
@@ -176,21 +176,21 @@ public abstract class TAEncodingBase implements TAFormulaEncoding {
     var stepFormulas = unrollingStates.transform(TAUnrollingState::getFormula);
     var behaviorEncoding = bFmgr.and(stepFormulas.toSet());
 
-    var finalAutomatonConditions =
-        from(automata.getAllAutomata())
-            .transform(automaton -> makeFinalConditionForEachUnrolling(automaton, maxUnrolling));
-    var finalCondition = bFmgr.and(finalAutomatonConditions.toSet());
+    var stepConditions =
+        IntStream.rangeClosed(0, maxUnrolling)
+            .mapToObj(step -> makeFinalConditionForUnrollingStep(step))
+            .collect(Collectors.toSet());
+
+    var finalCondition = bFmgr.or(stepConditions);
 
     return bFmgr.and(behaviorEncoding, finalCondition);
   }
 
-  private BooleanFormula makeFinalConditionForEachUnrolling(
-      TaDeclaration pAutomaton, int pMaxUnrolling) {
-    var finalConditionsForEachStep =
-        IntStream.rangeClosed(0, pMaxUnrolling)
-            .mapToObj(step -> makeFinalConditionForAutomaton(pAutomaton, step));
-    var finalAutomatonCondition = bFmgr.or(finalConditionsForEachStep.collect(Collectors.toSet()));
-    return finalAutomatonCondition;
+  private BooleanFormula makeFinalConditionForUnrollingStep(int step) {
+    var automatonFormulas =
+        from(automata.getAllAutomata())
+            .transform(automaton -> makeFinalConditionForAutomaton(automaton, step));
+    return bFmgr.and(automatonFormulas.toSet());
   }
 
   private final BooleanFormula makeFinalConditionForAutomaton(TaDeclaration pAutomaton, int pStep) {

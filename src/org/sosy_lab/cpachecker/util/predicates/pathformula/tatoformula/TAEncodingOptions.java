@@ -18,7 +18,7 @@ public class TAEncodingOptions {
   public static enum TAEncodingExtensionType {
     SHALLOW_SYNC,
     INVARIANTS,
-    ACTION_SYNC
+    TRANSITION_ACTIONS
   }
 
   @Option(
@@ -78,12 +78,12 @@ public class TAEncodingOptions {
   @Option(
       secure = true,
       description = "Representation of a special idle action. Options are: LOCAL, GLOBAL, NONE")
-  public SpecialActionType idleAction = SpecialActionType.NONE;
+  public SpecialActionType idleActionType = SpecialActionType.NONE;
 
   @Option(
       secure = true,
       description = "Representation of a special delay action. Options are: LOCAL, GLOBAL, NONE")
-  public SpecialActionType delayAction = SpecialActionType.NONE;
+  public SpecialActionType delayActionType = SpecialActionType.NONE;
 
   @Option(
       secure = true,

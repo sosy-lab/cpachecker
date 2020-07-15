@@ -29,7 +29,7 @@ public class TAGlobalVarDiscreteFeatureEncoding<T> implements TADiscreteFeatureE
   }
 
   protected void addEntry(T pValue) {
-    ids.put(pValue, ids.size());
+    ids.putIfAbsent(pValue, ids.size());
   }
 
   private Formula makeVariableFormula(int variableIndex) {

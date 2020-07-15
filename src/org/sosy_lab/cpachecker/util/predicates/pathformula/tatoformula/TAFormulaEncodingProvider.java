@@ -105,10 +105,10 @@ public class TAFormulaEncodingProvider {
 
   private TATime createTimeEncoding(FormulaManagerView pFmgr) {
     if (options.timeEncoding == TimeEncodingType.GLOBAL_EXPLICIT) {
-      return new TAGlobalImplicitTime(pFmgr);
+      return new TAExplicitTime(pFmgr, false);
     }
     if (options.timeEncoding == TimeEncodingType.GLOBAL_IMPLICIT) {
-      return new TAExplicitTime(pFmgr, false);
+      return new TAGlobalImplicitTime(pFmgr);
     }
     if (options.timeEncoding == TimeEncodingType.LOCAL_EXPLICIT) {
       return new TAExplicitTime(pFmgr, true);
@@ -134,7 +134,7 @@ public class TAFormulaEncodingProvider {
           new TAInvariants(
               pFmgr, pAutomata, pTime, pLocations, options.invariantType == InvariantType.LOCAL));
     }
-    if (options.encodingExtensions.contains(TAEncodingExtensionType.ACTION_SYNC)) {
+    if (options.encodingExtensions.contains(TAEncodingExtensionType.TRANSITION_ACTIONS)) {
       result.add(
           new TATransitionActions(
               pFmgr,

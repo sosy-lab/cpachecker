@@ -58,7 +58,7 @@ public class TAInvariants extends TAEncodingExtensionBase {
   public BooleanFormula makeDiscreteStep(
       TaDeclaration pAutomaton, int pLastReachedIndex, TCFAEdge pEdge) {
     if (useLocalInvariant) {
-      makeEdgeInvariantFormula(pAutomaton, pLastReachedIndex, pEdge);
+      return makeEdgeInvariantFormula(pAutomaton, pLastReachedIndex, pEdge);
     }
 
     return bFmgr.makeTrue();

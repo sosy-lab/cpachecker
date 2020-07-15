@@ -2789,42 +2789,31 @@ cpa.threading.useLocalAccessLocks = true
 # Use actions to prevent delay transitions from being active in the same step
 # as any other transition
 cpa.timedautomata.actionDetachedDelay = false
-cpa.timedautomata.actionDetachedDelay = no default value
 
 # Use actions to prevent idle transitions from being active in the same step
 # as any other transition
 cpa.timedautomata.actionDetachedIdle = true
-cpa.timedautomata.actionDetachedIdle = no default value
 
 # Formula representation of actions. Options are: BOOLEAN_VAR, LOCAL_VAR,
 # GLOBAL_VAR
 cpa.timedautomata.actionEncoding = GLOBAL_ID
-  enum:     [LOCAL_ID, GLOBAL_ID, BOOLEAN_VAR]
-cpa.timedautomata.actionEncoding = no default value
   enum:     [LOCAL_ID, GLOBAL_ID, BOOLEAN_VAR]
 
 # Type of unrolling of the formula. Options are: TRANSITION_UNROLLING,
 # LOCATION_UNROLLING, CONSTRAINT_UNROLLING
 cpa.timedautomata.automatonEncodingType = CONSTRAINT_UNROLLING
   enum:     [TRANSITION_UNROLLING, LOCATION_UNROLLING, CONSTRAINT_UNROLLING]
-cpa.timedautomata.automatonEncodingType = no default value
-  enum:     [TRANSITION_UNROLLING, LOCATION_UNROLLING, CONSTRAINT_UNROLLING]
 
 # Representation of a special delay action. Options are: LOCAL, GLOBAL, NONE
-cpa.timedautomata.delayAction = NONE
-  enum:     [LOCAL, GLOBAL, NONE]
-cpa.timedautomata.delayAction = no default value
+cpa.timedautomata.delayActionType = NONE
   enum:     [LOCAL, GLOBAL, NONE]
 
 # Extensions to use for the encoding. Available options: SHALLOW_SYNC,
 # INVARIANTS, ACTION_SYNC
 cpa.timedautomata.encodingExtensions = Lists.newArrayList(TAEncodingExtensionType.INVARIANTS)
-cpa.timedautomata.encodingExtensions = no default value
 
 # Representation of a special idle action. Options are: LOCAL, GLOBAL, NONE
-cpa.timedautomata.idleAction = NONE
-  enum:     [LOCAL, GLOBAL, NONE]
-cpa.timedautomata.idleAction = no default value
+cpa.timedautomata.idleActionType = NONE
   enum:     [LOCAL, GLOBAL, NONE]
 
 # Initial maximum unrolling steps that will be performed. A value less than
@@ -2839,12 +2828,9 @@ cpa.timedautomata.invariantType = LOCAL
 # Formula representation of locations. Options are: BOOLEAN_VAR, LOCAL_VAR
 cpa.timedautomata.locationEncoding = LOCAL_ID
   enum:     [LOCAL_ID, GLOBAL_ID, BOOLEAN_VAR]
-cpa.timedautomata.locationEncoding = no default value
-  enum:     [LOCAL_ID, GLOBAL_ID, BOOLEAN_VAR]
 
 # Forbid distinct actions to appear in the same step
 cpa.timedautomata.noTwoActions = true
-cpa.timedautomata.noTwoActions = no default value
 
 # Amount by which to increase the maximum unrolling step bound.
 cpa.timedautomata.stepCountAdujstmentStep = 0
@@ -2855,8 +2841,6 @@ cpa.timedautomata.stepCountUpperBound = 50
 # Formula representation of time. Options are: GLOBAL_IMPLICIT,
 # GLOBAL_EXPLICIT, LOCAL_EXPLICIT
 cpa.timedautomata.timeEncoding = GLOBAL_IMPLICIT
-  enum:     [GLOBAL_IMPLICIT, GLOBAL_EXPLICIT, LOCAL_EXPLICIT]
-cpa.timedautomata.timeEncoding = no default value
   enum:     [GLOBAL_IMPLICIT, GLOBAL_EXPLICIT, LOCAL_EXPLICIT]
 
 # which merge operator to use for UninitializedVariablesCPA?

@@ -37,37 +37,37 @@ public class TAEncodingExtensionWrapper implements TAEncodingExtension {
 
   @Override
   public BooleanFormula makeAutomatonStep(TaDeclaration pAutomaton, int pLastReachedIndex) {
-    return combineExtensions(ext -> makeAutomatonStep(pAutomaton, pLastReachedIndex));
+    return combineExtensions(ext -> ext.makeAutomatonStep(pAutomaton, pLastReachedIndex));
   }
 
   @Override
   public BooleanFormula makeInitialFormula(TaDeclaration pAutomaton, int pInitialIndex) {
-    return combineExtensions(ext -> makeInitialFormula(pAutomaton, pInitialIndex));
+    return combineExtensions(ext -> ext.makeInitialFormula(pAutomaton, pInitialIndex));
   }
 
   @Override
   public BooleanFormula makeFinalConditionForAutomaton(TaDeclaration pAutomaton, int pStep) {
-    return combineExtensions(ext -> makeFinalConditionForAutomaton(pAutomaton, pStep));
+    return combineExtensions(ext -> ext.makeFinalConditionForAutomaton(pAutomaton, pStep));
   }
 
   @Override
   public BooleanFormula makeDiscreteStep(
       TaDeclaration pAutomaton, int pLastReachedIndex, TCFAEdge pEdge) {
-    return combineExtensions(ext -> makeDiscreteStep(pAutomaton, pLastReachedIndex, pEdge));
+    return combineExtensions(ext -> ext.makeDiscreteStep(pAutomaton, pLastReachedIndex, pEdge));
   }
 
   @Override
   public BooleanFormula makeDelayTransition(TaDeclaration pAutomaton, int pLastReachedIndex) {
-    return combineExtensions(ext -> makeDelayTransition(pAutomaton, pLastReachedIndex));
+    return combineExtensions(ext -> ext.makeDelayTransition(pAutomaton, pLastReachedIndex));
   }
 
   @Override
   public BooleanFormula makeIdleTransition(TaDeclaration pAutomaton, int pLastReachedIndex) {
-    return combineExtensions(ext -> makeIdleTransition(pAutomaton, pLastReachedIndex));
+    return combineExtensions(ext -> ext.makeIdleTransition(pAutomaton, pLastReachedIndex));
   }
 
   @Override
   public BooleanFormula makeStepFormula(int pLastReachedIndex) {
-    return combineExtensions(ext -> makeStepFormula(pLastReachedIndex));
+    return combineExtensions(ext -> ext.makeStepFormula(pLastReachedIndex));
   }
 }

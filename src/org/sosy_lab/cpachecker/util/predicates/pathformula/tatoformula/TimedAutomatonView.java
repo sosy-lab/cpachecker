@@ -114,12 +114,20 @@ public class TimedAutomatonView {
   }
 
   private void makeIdleActionForAutomaton(TaDeclaration pAutomaton) {
-    var isLocal = options.idleAction == SpecialActionType.LOCAL;
+    if (options.idleActionType == SpecialActionType.NONE) {
+      return;
+    }
+
+    var isLocal = options.idleActionType == SpecialActionType.LOCAL;
     createAndAddSpecialVariable(pAutomaton, "idle", isLocal, idleActionByAutomaton);
   }
 
   private void makeDelayActionForAutomaton(TaDeclaration pAutomaton) {
-    var isLocal = options.delayAction == SpecialActionType.LOCAL;
+    if (options.delayActionType == SpecialActionType.NONE) {
+      return;
+    }
+
+    var isLocal = options.delayActionType == SpecialActionType.LOCAL;
     createAndAddSpecialVariable(pAutomaton, "delay", isLocal, delayActionByAutomaton);
   }
 
@@ -194,7 +202,8 @@ public class TimedAutomatonView {
   }
 
   public TaVariable getActionOrDummy(TCFAEdge pEdge) {
-    return dummyActionsByEdge.getOrDefault(pEdge, pEdge.getAction().get());
+    var action = pEdge.getAction().toJavaUtil();
+    return dummyActionsByEdge.getOrDefault(pEdge, action.orElseThrow());
   }
 
   public Optional<TaVariable> getIdleAction(TaDeclaration pAutomaton) {

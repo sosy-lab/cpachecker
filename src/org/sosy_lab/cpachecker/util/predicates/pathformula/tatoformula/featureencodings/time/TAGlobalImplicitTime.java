@@ -60,7 +60,7 @@ public class TAGlobalImplicitTime extends TAAbstractTime {
     var clockUpdatesFormula = bFmgr.and(clockUpdateFormulas.toSet());
 
     var zero = fmgr.makeNumber(CLOCK_VARIABLE_TYPE, 0);
-    var delayLowerBound = fmgr.makeGreaterOrEqual(delayVariable, zero, true);
+    var delayLowerBound = fmgr.makeGreaterOrEqual(delayVariable, zero, false);
 
     return bFmgr.and(delayLowerBound, clockUpdatesFormula);
   }
