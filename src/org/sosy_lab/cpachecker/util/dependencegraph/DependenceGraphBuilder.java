@@ -385,6 +385,13 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     }
   }
 
+  private void addControlDependence(CFAEdge pDependingOnEdge, CFAEdge pDependentEdge) {
+    addDependence(
+        getDGNode(pDependingOnEdge, Optional.empty()),
+        getDGNode(pDependentEdge, Optional.empty()),
+        DependenceType.CONTROL);
+  }
+
   private void addControlDependences() {
 
     int controlDepCount = 0;
@@ -407,10 +414,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
             if (nodeId == assumeSuccessorId || domTree.isAncestorOf(nodeId, assumeSuccessorId)) {
               for (CFAEdge dependentEdge : CFAUtils.allLeavingEdges(dependentNode)) {
                 if (!ignoreFunctionEdge(dependentEdge) && !assumeEdge.equals(dependentEdge)) {
-                  addDependence(
-                      getDGNode(assumeEdge, Optional.empty()),
-                      getDGNode(dependentEdge, Optional.empty()),
-                      DependenceType.CONTROL);
+                  addControlDependence(assumeEdge, dependentEdge);
                   controlDepCount++;
                   dependentEdges.add(dependentEdge);
                 }
@@ -440,10 +444,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         if (!ignoreFunctionEdge(dependentEdge)) {
           for (CFAEdge assumeEdge : noDomAssumes) {
             if (!assumeEdge.equals(dependentEdge)) {
-              addDependence(
-                  getDGNode(assumeEdge, Optional.empty()),
-                  getDGNode(dependentEdge, Optional.empty()),
-                  DependenceType.CONTROL);
+              addControlDependence(assumeEdge, dependentEdge);
               controlDepCount++;
               dependentEdges.add(dependentEdge);
             }
@@ -456,10 +457,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         if (callEdge instanceof CFunctionCallEdge) {
           CFAEdge summaryEdge = ((CFunctionCallEdge) callEdge).getSummaryEdge();
           callEdges.add(callEdge);
-          addDependence(
-              getDGNode(summaryEdge, Optional.empty()),
-              getDGNode(callEdge, Optional.empty()),
-              DependenceType.CONTROL);
+          addControlDependence(summaryEdge, callEdge);
           controlDepCount++;
         }
       }
@@ -468,10 +466,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
           if (!dependentEdges.contains(edge) && !ignoreFunctionEdge(edge)) {
             for (CFAEdge callEdge : callEdges) {
-              addDependence(
-                  getDGNode(callEdge, Optional.empty()),
-                  getDGNode(edge, Optional.empty()),
-                  DependenceType.CONTROL);
+              addControlDependence(callEdge, edge);
               controlDepCount++;
             }
           }
