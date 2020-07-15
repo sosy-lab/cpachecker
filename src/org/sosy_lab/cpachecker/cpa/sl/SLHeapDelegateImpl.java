@@ -350,19 +350,19 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
       Map<Formula, Formula> pMemory,
       Formula fLoc,
       boolean usePredContext) {
-    // PathFormula context = usePredContext ? getPredPathFormula() : getPathFormula();
+    PathFormula context = usePredContext ? getPredPathFormula() : getPathFormula();
     // Syntactical check for performance.
     if (pMemory.containsKey(fLoc)) {
       return fLoc;
     }
     // Semantical check.
-    return isAllocated(fLoc, usePredContext, pMemory);
-    // for (Formula formulaOnHeap : pMemory.keySet()) {
-    // if (checkEquivalence(fLoc, formulaOnHeap, context)) {
-    // return formulaOnHeap;
-    // }
-    // }
-    // return null;
+    // return isAllocated(fLoc, usePredContext, pMemory);
+    for (Formula formulaOnHeap : pMemory.keySet()) {
+      if (checkEquivalence(fLoc, formulaOnHeap, context)) {
+        return formulaOnHeap;
+      }
+    }
+    return null;
   }
 
   private void addToMemory(
