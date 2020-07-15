@@ -73,4 +73,12 @@ public class Identifier implements ACSLTerm {
     }
     return new Identifier(name, functionName, true);
   }
+
+  @Override
+  public boolean isAllowedIn(Class<?> clauseType) {
+    if (useOldValue || name.equals(RESULT)) {
+      return clauseType.equals(EnsuresClause.class);
+    }
+    return true;
+  }
 }

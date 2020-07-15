@@ -90,4 +90,9 @@ public class ACSLBinaryTerm implements ACSLTerm {
   public ACSLTerm useOldValues() {
     return new ACSLBinaryTerm(left.useOldValues(), right.useOldValues(), operator);
   }
+
+  @Override
+  public boolean isAllowedIn(Class<?> clauseType) {
+    return left.isAllowedIn(clauseType) && right.isAllowedIn(clauseType);
+  }
 }

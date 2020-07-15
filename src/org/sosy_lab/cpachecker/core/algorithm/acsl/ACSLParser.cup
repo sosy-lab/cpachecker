@@ -359,7 +359,7 @@ loop_behaviors ::= loop_behaviors:b behavior_identifiers:i loop_clauses:c   {: L
                                                                                for(String id : i) { holdsFor.add(parser.getBehavior(node.getFunctionName(), id)); }
                                                                                loopBehaviors.put(holdsFor, c); RESULT = loopBehaviors; :};
 loop_clauses ::= loop_clauses:c LINVARIANT predicate:p SEMI {: RESULT = c.and(p); :}
-            | LINVARIANT predicate:p SEMI                   {: RESULT = new LoopInvariant(p); :};
+            | LINVARIANT predicate:p SEMI                   {: assert p.isAllowedIn(LoopInvariant.class); RESULT = new LoopInvariant(p); :};
 clauses ::= req_clauses:r ens_clauses:e behaviors:b completeness_clauses:c {: RESULT = new ContractBuilder().addAll(r).addAll(e).addAll(b).addAll(c); :};
 req_clauses ::=
             req_clauses:c req_clause:r              {: c.add(r); RESULT = c; :}
@@ -395,9 +395,9 @@ behavior_body ::= ass_clauses:a req_clauses:r ens_clauses:e
 ass_clauses ::=
             ass_clauses:c ass_clause:a              {: c.add(a); RESULT = c; :}
             | /* nothing */                         {: RESULT = new HashSet<>(); :};
-req_clause ::= REQ predicate:p SEMI {: RESULT = new RequiresClause(p); :};
-ens_clause ::= ENS predicate:p SEMI {: RESULT = new EnsuresClause(p); :};
-ass_clause ::= ASS predicate:p SEMI {: RESULT = new AssumesClause(p); :};
+req_clause ::= REQ predicate:p SEMI {: assert p.isAllowedIn(RequiresClause.class); RESULT = new RequiresClause(p); :};
+ens_clause ::= ENS predicate:p SEMI {: assert p.isAllowedIn(EnsuresClause.class); RESULT = new EnsuresClause(p); :};
+ass_clause ::= ASS predicate:p SEMI {: assert p.isAllowedIn(AssumesClause.class); RESULT = new AssumesClause(p); :};
 predicate ::= PRED_START TRUE                                       {: RESULT = ACSLPredicate.getTrue(); :}
         | PRED_START FALSE                                          {: RESULT = ACSLPredicate.getFalse(); :}
 	| predicate:p1 log_op:op predicate:p2                       {: RESULT = new ACSLLogicalPredicate(p1, p2, op); :}

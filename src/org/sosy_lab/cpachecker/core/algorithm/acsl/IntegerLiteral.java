@@ -43,4 +43,9 @@ public class IntegerLiteral implements ACSLTerm {
   public ACSLTerm useOldValues() {
     return this;
   }
+
+  @Override
+  public boolean isAllowedIn(Class<?> clauseType) {
+    return true;
+  }
 }

@@ -92,4 +92,11 @@ public class TernaryCondition extends ACSLPredicate {
     return new TernaryCondition(
         condition.useOldValues(), then.useOldValues(), otherwise.useOldValues(), isNegated());
   }
+
+  @Override
+  public boolean isAllowedIn(Class<?> clauseType) {
+    return condition.isAllowedIn(clauseType)
+        && then.isAllowedIn(clauseType)
+        && otherwise.isAllowedIn(clauseType);
+  }
 }

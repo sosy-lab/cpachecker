@@ -76,4 +76,9 @@ public class ACSLSimplePredicate extends ACSLPredicate {
   public ACSLPredicate useOldValues() {
     return new ACSLSimplePredicate(term.useOldValues(), isNegated());
   }
+
+  @Override
+  public boolean isAllowedIn(Class<?> clauseType) {
+    return term.isAllowedIn(clauseType);
+  }
 }

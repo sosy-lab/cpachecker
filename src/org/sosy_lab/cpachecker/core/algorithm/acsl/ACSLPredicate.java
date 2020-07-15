@@ -77,6 +77,14 @@ public abstract class ACSLPredicate {
    */
   public abstract ACSLPredicate useOldValues();
 
+  /**
+   * Returns whether the predicate may be used in a clause of the given type.
+   *
+   * @param clauseType the type of the clause the predicate should be used in
+   * @return true if the predicate may be used in a clause of the given type, false otherwise
+   */
+  public abstract boolean isAllowedIn(Class<?> clauseType);
+
   private static class TRUE extends ACSLPredicate {
 
     private static final TRUE singleton = new TRUE();
@@ -128,6 +136,11 @@ public abstract class ACSLPredicate {
     @Override
     public boolean equals(Object obj) {
       return obj == singleton;
+    }
+
+    @Override
+    public boolean isAllowedIn(Class<?> clauseType) {
+      return true;
     }
   }
 
@@ -182,6 +195,11 @@ public abstract class ACSLPredicate {
     @Override
     public boolean equals(Object obj) {
       return obj == singleton;
+    }
+
+    @Override
+    public boolean isAllowedIn(Class<?> clauseType) {
+      return true;
     }
   }
 }

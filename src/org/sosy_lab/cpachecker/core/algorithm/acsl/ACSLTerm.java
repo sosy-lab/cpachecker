@@ -12,4 +12,12 @@ public interface ACSLTerm {
    * predicate "\old" to signal to use the value from the pre-state when evaluating.
    */
   ACSLTerm useOldValues();
+
+  /**
+   * Returns whether the term may be used in a clause of the given type.
+   *
+   * @param clauseType the type of the clause the term should be used in
+   * @return true if the term may be used in a clause of the given type, false otherwise
+   */
+  boolean isAllowedIn(Class<?> clauseType);
 }

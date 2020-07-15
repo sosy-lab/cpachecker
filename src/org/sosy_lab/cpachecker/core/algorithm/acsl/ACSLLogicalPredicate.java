@@ -154,4 +154,9 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
   public ACSLPredicate getRight() {
     return right;
   }
+
+  @Override
+  public boolean isAllowedIn(Class<?> clauseType) {
+    return left.isAllowedIn(clauseType) && right.isAllowedIn(clauseType);
+  }
 }
