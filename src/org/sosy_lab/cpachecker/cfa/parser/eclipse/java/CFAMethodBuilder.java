@@ -1762,27 +1762,36 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     CFANode postFinallyNode = new CFANode(cfa.getFunction());
     cfaNodes.add(postFinallyNode);
 
+    JExpression jExpressionHangingException = createDummyJExpression();
+
+    createConditionEdges(
+        jExpressionHangingException,
+        fileLocation,
+        locStack.pop(),
+        postFinallyNode,
+        cfa.getExitNode());
+
+    locStack.push(postFinallyNode);
+    throwables = new ArrayList<>();
+  }
+
+  private JExpression createDummyJExpression() {
     JVariableDeclaration jVariableDeclaration =
         new JVariableDeclaration(
-            fileLocation,
+            FileLocation.DUMMY,
             JClassType.createUnresolvableType(),
-            "dummy",
-            "dummy",
-            "dummy",
+            "dummy_hanging_Exception",
+            "dummy_hanging_Exception",
+            "dummy_hanging_Exception",
             null,
             false);
     JIdExpression jIdExpression =
         new JIdExpression(
-            fileLocation,
+            FileLocation.DUMMY,
             JClassType.getTypeOfObject(),
-            "dummy_No_Exception_Thrown",
+            "dummy_hanging_Exception",
             jVariableDeclaration);
-    JExpression jExpression = new JVariableRunTimeType(fileLocation, jIdExpression);
-
-    createConditionEdges(
-        jExpression, fileLocation, locStack.pop(), postFinallyNode, cfa.getExitNode());
-
-    locStack.push(postFinallyNode);
+    return new JVariableRunTimeType(FileLocation.DUMMY, jIdExpression);
   }
 
   @Override
@@ -1816,7 +1825,6 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
       instanceOfThrowableExpressions.add(instanceOfExpression);
     }
-    throwables = new ArrayList<>();
 
     JExpression compareExceptionToThrownType;
 
@@ -1853,30 +1861,14 @@ private void handleTernaryExpression(ConditionalExpression condExp,
           exceptionMatchesNode,
           exceptionDoesNotMatchNode);
     } else { // placeholder for unchecked exceptions
-      final JClassType unresolvableType = JClassType.createUnresolvableType();
-
-      final JSimpleDeclaration dummyDeclaration =
-          new JVariableDeclaration(
-              fileloc,
-              unresolvableType,
-              unresolvableType.getName(),
-              unresolvableType.getName(),
-              unresolvableType.getName(),
-              null,
-              false);
-
-      JIdExpression dummyJIdExpression =
-          new JIdExpression(
-              fileloc, unresolvableType, unresolvableType.getName(), dummyDeclaration);
-
-      final JExpression instanceOfExpression =
-          astCreator.createInstanceOfExpression(
-              dummyJIdExpression,
-              (JClassOrInterfaceType) jDeclarationOfException.getType(),
-              fileloc);
+      JExpression jExpressionHangingException = createDummyJExpression();
 
       createConditionEdges(
-          instanceOfExpression, fileloc, prevNode, exceptionMatchesNode, exceptionDoesNotMatchNode);
+          jExpressionHangingException,
+          fileloc,
+          prevNode,
+          exceptionMatchesNode,
+          exceptionDoesNotMatchNode);
     }
 
     return VISIT_CHILDREN;
