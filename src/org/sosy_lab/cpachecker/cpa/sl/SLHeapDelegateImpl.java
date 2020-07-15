@@ -405,8 +405,10 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
 
   private boolean isAllocated(Formula pLoc, boolean usePredContext)
       throws Exception {
-    return isAllocated(pLoc, usePredContext, state.getStack()) != null
-        || isAllocated(pLoc, usePredContext, state.getHeap()) != null;
+    return checkAllocation(state.getStack(), pLoc, usePredContext) != null
+        || checkAllocation(state.getHeap(), pLoc, usePredContext) != null;
+    // return isAllocated(pLoc, usePredContext, state.getStack()) != null
+    // || isAllocated(pLoc, usePredContext, state.getHeap()) != null;
   }
 
 
