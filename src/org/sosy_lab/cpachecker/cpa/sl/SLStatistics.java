@@ -26,7 +26,7 @@ public class SLStatistics implements Statistics {
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-    put(pOut, "Solver Time", solverTime);
+    put(pOut, "solvertime", solverTime);
   }
 
   @Override
