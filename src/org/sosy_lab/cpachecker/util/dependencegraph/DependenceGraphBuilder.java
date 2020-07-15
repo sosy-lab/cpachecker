@@ -134,6 +134,17 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
   @Option(
       secure = true,
+      name = "controldeps.considerInverseAssumption",
+      description =
+          "Whether to take an assumption edge 'p' as control dependence if edge 'not p' is a"
+              + " control dependence. This creates a larger slice, but may reduce the size of the"
+              + " state space for deterministic programs. This behavior is also closer to the"
+              + " static program slicing based on control-flow graphs (CFGs), where branching is"
+              + " represented by a single assumption (with true- and false-edges)")
+  private boolean controlDepsTakeBothAssumptions = false;
+
+  @Option(
+      secure = true,
       name = "flowdeps.use",
       description = "Whether to consider (data-)flow dependencies.")
   private boolean considerFlowDeps = true;
@@ -395,6 +406,8 @@ public class DependenceGraphBuilder implements StatisticsProvider {
   private void addControlDependences() {
 
     int controlDepCount = 0;
+    boolean dependOnBothAssumptions = controlDepsTakeBothAssumptions;
+
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
 
       DomTree<CFANode> domTree =
@@ -411,7 +424,9 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         for (CFANode branchNode : frontiers.getFrontier(dependentNode)) {
           for (CFAEdge assumeEdge : CFAUtils.leavingEdges(branchNode)) {
             int assumeSuccessorId = domTree.getId(assumeEdge.getSuccessor());
-            if (nodeId == assumeSuccessorId || domTree.isAncestorOf(nodeId, assumeSuccessorId)) {
+            if (dependOnBothAssumptions
+                || nodeId == assumeSuccessorId
+                || domTree.isAncestorOf(nodeId, assumeSuccessorId)) {
               for (CFAEdge dependentEdge : CFAUtils.allLeavingEdges(dependentNode)) {
                 if (!ignoreFunctionEdge(dependentEdge) && !assumeEdge.equals(dependentEdge)) {
                   addControlDependence(assumeEdge, dependentEdge);
