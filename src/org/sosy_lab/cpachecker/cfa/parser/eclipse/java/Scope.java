@@ -58,6 +58,8 @@ class Scope {
   // symbolic table for  Variables and other Declarations
   private final ArrayDeque<Map<String, JSimpleDeclaration>> varsStack = new ArrayDeque<>();
   private final ArrayDeque<Map<String, JSimpleDeclaration>> varsList = new ArrayDeque<>();
+  private final Deque<Map<String, JSimpleDeclaration>> varsStackWitNewNames = new ArrayDeque<>();
+  private final ArrayDeque<Map<String, JSimpleDeclaration>> varsListWithNewNames = new ArrayDeque<>();
 
   // Stores all found methods and constructors
   private Map<String, JMethodDeclaration> methods;
@@ -110,6 +112,8 @@ class Scope {
   private void enterProgramScope() {
     varsStack.addLast(new HashMap<>());
     varsList.addLast(varsStack.getLast());
+    varsStackWitNewNames.addLast(new HashMap<>());
+    varsListWithNewNames.addLast(varsStackWitNewNames.getLast());
   }
 
   /**
@@ -213,8 +217,7 @@ class Scope {
   }
 
   /**
-   * Indicates that the Visitor using this scope
-   * leaves current Method while traversing the JDT AST.
+   * Indicates that the Visitor using this scope leaves current Method while traversing the JDT AST.
    */
   public void leaveMethod() {
     checkState(!isTopClassScope());
@@ -222,6 +225,9 @@ class Scope {
 
     while (varsList.size() > varsStack.size()) {
       varsList.removeLast();
+    }
+    while (varsListWithNewNames.size() > varsStackWitNewNames.size()) {
+      varsListWithNewNames.removeLast();
     }
 
     currentMethodName = null;
@@ -234,6 +240,8 @@ class Scope {
   public void enterBlock() {
     varsStack.addLast(new HashMap<>());
     varsList.addLast(varsStack.getLast());
+    varsStackWitNewNames.addLast(new HashMap<>());
+    varsListWithNewNames.addLast(varsStackWitNewNames.getLast());
   }
 
   /**
@@ -243,6 +251,7 @@ class Scope {
   public void leaveBlock() {
     checkState(varsStack.size() > 2);
     varsStack.removeLast();
+    varsStackWitNewNames.removeLast();
   }
 
   /**
@@ -258,11 +267,11 @@ class Scope {
     checkNotNull(name);
       checkNotNull(origName);
 
-      Iterator<Map<String, JSimpleDeclaration>> it = varsList.descendingIterator();
+      Iterator<Map<String, JSimpleDeclaration>> it = varsListWithNewNames.descendingIterator();
       while (it.hasNext()) {
         Map<String, JSimpleDeclaration> vars = it.next();
 
-        JSimpleDeclaration binding = vars.get(origName);
+        JSimpleDeclaration binding = vars.get(name);
         if (binding != null && binding.getName().equals(name)) {
           return true;
         }
@@ -293,11 +302,7 @@ class Scope {
       }
     }
 
-    if (fields.containsKey(name)) {
-      return fields.get(name);
-    } else {
-      return null;
-    }
+    return fields.getOrDefault(name, null);
   }
 
   /**
@@ -336,18 +341,19 @@ class Scope {
     assert name != null;
 
     Map<String, JSimpleDeclaration> vars = varsStack.getLast();
+    Map<String, JSimpleDeclaration> varsWithNewNames = varsStackWitNewNames.getLast();
 
     if (isProgramScope()) {
       throw new CFAGenerationRuntimeException("Could not find Class for Declaration " + declaration.getName() , declaration);
     }
 
     // multiple declarations of the same variable are disallowed
-    // unless i
-    if (vars.containsKey(name)) {
+    if (vars.containsKey(declaration.getName())) {
       throw new CFAGenerationRuntimeException("Variable " + name + " already declared", declaration);
     }
 
     vars.put(name, declaration);
+    varsWithNewNames.put(declaration.getName(), declaration);
   }
 
   public String getCurrentMethodName() {

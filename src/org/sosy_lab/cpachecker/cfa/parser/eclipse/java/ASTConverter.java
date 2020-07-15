@@ -507,8 +507,14 @@ class ASTConverter {
 
       NameAndInitializer nameAndInitializer = getNamesAndInitializer(vdf);
 
+        String name = nameAndInitializer.getName();
+        int i = 0;
+        while (scope.variableNameInUse(name + i, name)) {
+          i++;
+        }
+        name += i;
       JVariableDeclaration newD = new JVariableDeclaration(fileLoc,
-          convert(type), nameAndInitializer.getName(),
+          convert(type), name,
           nameAndInitializer.getName(),
           getQualifiedName(nameAndInitializer.getName()),
           nameAndInitializer.getInitializer(),
@@ -520,16 +526,13 @@ class ASTConverter {
     return variableDeclarations;
   }
 
-
   /**
    * Converts JDT SingleVariableDeclaration into an AST.
-   *
    *
    * @param d JDT SingleVariableDeclaration to be transformed
    * @return AST representing given Parameter
    */
   public JDeclaration convert(SingleVariableDeclaration d) {
-
 
     Type type = d.getType();
 
@@ -548,18 +551,25 @@ class ASTConverter {
     // If there is no Initializer, CStorageClass expects null to be given.
     if (d.getInitializer() != null) {
 
-      JExpression iniExpr =
-          (JExpression) convertExpressionWithSideEffects(d.getInitializer());
+      JExpression iniExpr = (JExpression) convertExpressionWithSideEffects(d.getInitializer());
 
-      initializerExpression =
-          new JInitializerExpression(getFileLocation(d), iniExpr);
+      initializerExpression = new JInitializerExpression(getFileLocation(d), iniExpr);
     }
 
+    String name = d.getName().getFullyQualifiedName();
+
+    int i = 0;
+    while (scope.variableNameInUse(name + i, name)) {
+      i++;
+    }
+    name += i;
+
     return new JVariableDeclaration(getFileLocation(d),
-        convert(type), d.getName().getFullyQualifiedName(),
+        convert(type), name,
         d.getName().getFullyQualifiedName(),
         getQualifiedName(d.getName().getFullyQualifiedName()),
-        initializerExpression, mB.isFinal());
+        initializerExpression,
+        mB.isFinal());
   }
 
 /**
@@ -2163,12 +2173,12 @@ class ASTConverter {
       declaration = createVariableDeclarationFromBinding(e, vb);
     }
 
-    assert name.equals(declaration.getName()) :
+    assert name.equals(declaration.getOrigName()) :
       "Created a false declaration for " + e.toString();
 
     JType type = convert(e.resolveTypeBinding());
 
-    return new JIdExpression(getFileLocation(e), type, name, declaration);
+    return new JIdExpression(getFileLocation(e), type, declaration.getName(), declaration);
   }
 
   private JSimpleDeclaration createVariableDeclarationFromBinding
