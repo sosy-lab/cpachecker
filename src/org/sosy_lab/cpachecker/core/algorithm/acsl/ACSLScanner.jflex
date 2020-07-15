@@ -121,6 +121,7 @@ Identifier  = [_a-zA-Z][_a-zA-Z0-9]*
     ","                 {return symbol(sym.COMMA);}
     ";"                 {return symbol(sym.SEMI);}
     "\\old"             {return symbol(sym.OLD);}
+    "\\result"          {return symbol(sym.RETVAL);}
     {DecInt}            {buf.setLength(0);
                         return symbol(sym.LITERAL, Integer.valueOf(buf.append(yytext()).toString()));}
     {Identifier}        {buf.setLength(0);

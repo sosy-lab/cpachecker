@@ -280,6 +280,7 @@ terminal FOR;
 terminal COMMA;
 terminal COMPLETE_BEHAVIORS, DISJOINT_BEHAVIORS;
 terminal OLD;
+terminal RETVAL;
 
 non terminal List<ACSLAnnotation> annotations;
 non terminal ACSLAnnotation annotation;
@@ -478,8 +479,8 @@ desc_base ::= term:t1 desc_rel_op:op term:t2  {: RESULT = new ACSLSimplePredicat
 term ::= PRED_START term:t                              {: RESULT = t; :}
         | LITERAL:l                                     {: RESULT = new IntegerLiteral(l); :}
         | STRING_LITERAL:l                              {: RESULT = new StringLiteral(l); :}
-        | IDENTIFIER:i                                  {: RESULT = new Identifier(i); :}
-        | IDENTIFIER:i LBRACKET LITERAL:l RBRACKET      {: ACSLTerm t1 = new Identifier(i);
+        | IDENTIFIER:i                                  {: RESULT = new Identifier(i, parser.getCurrentNode().getFunctionName()); :}
+        | IDENTIFIER:i LBRACKET LITERAL:l RBRACKET      {: ACSLTerm t1 = new Identifier(i, parser.getCurrentNode().getFunctionName());
                                                            ACSLTerm t2 = new IntegerLiteral(l);
                                                            RESULT = new ArrayAccess(t1, t2); :}
         | unary_op:op term:t                            {: RESULT = new ACSLUnaryTerm(t, op); :}
@@ -488,7 +489,8 @@ term ::= PRED_START term:t                              {: RESULT = t; :}
         | term:t1 arith_op:op term:t2                   {: RESULT = new ACSLBinaryTerm(t1, t2, op); :}
         | term:t1 bit_op:op term:t2                     {: RESULT = new ACSLBinaryTerm(t1, t2, op); :}
         | LPAREN term:t RPAREN                          {: RESULT = t; :}
-        | OLD LPAREN term:t RPAREN                      {: RESULT = t.useOldValues(); :};
+        | OLD LPAREN term:t RPAREN                      {: RESULT = t.useOldValues(); :}
+        | RETVAL                                        {: RESULT = new Identifier(Identifier.RESULT, parser.getCurrentNode().getFunctionName()); :};
 log_op ::= AND  {: RESULT = BinaryOperator.AND; :}
         | OR    {: RESULT = BinaryOperator.OR; :}
         | IMP   {: RESULT = BinaryOperator.IMP; :}

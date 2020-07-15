@@ -5,17 +5,21 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class Identifier implements ACSLTerm {
 
+  public static final String RESULT = "\\result";
+
   private final String name;
+  private final String functionName;
   private final boolean useOldValue;
   // TODO: Needs a type! Perhaps use MemoryLocation instead altogether?
   // TODO 2: Identifiers can still hold non-C expressions if useOldValue is set
 
-  public Identifier(String pName) {
-    this(pName, false);
+  public Identifier(String pName, String pFunctionName) {
+    this(pName, pFunctionName, false);
   }
 
-  private Identifier(String pName, boolean pUseOldValue) {
+  private Identifier(String pName, String pFunctionName, boolean pUseOldValue) {
     name = pName;
+    functionName = pFunctionName;
     useOldValue = pUseOldValue;
   }
 
@@ -45,6 +49,10 @@ public class Identifier implements ACSLTerm {
     return name;
   }
 
+  public String getFunctionName() {
+    return functionName;
+  }
+
   public boolean shouldUseOldValue() {
     return useOldValue;
   }
@@ -56,9 +64,13 @@ public class Identifier implements ACSLTerm {
 
   @Override
   public ACSLTerm useOldValues() {
+    if (name.equals(RESULT)) {
+      throw new UnsupportedOperationException(
+          "\\old should not be used on term containing \\result");
+    }
     if (useOldValue) {
       return this;
     }
-    return new Identifier(name, true);
+    return new Identifier(name, functionName, true);
   }
 }

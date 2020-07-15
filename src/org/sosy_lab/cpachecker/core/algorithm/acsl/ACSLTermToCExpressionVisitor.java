@@ -188,12 +188,17 @@ public class ACSLTermToCExpressionVisitor {
     CExpression result = cache.get(identifier);
     if (result == null) {
       if (identifier.shouldUseOldValue()) {
-        result = cache.get(new Identifier(identifier.getName()));
+        result = cache.get(new Identifier(identifier.getName(), identifier.getFunctionName()));
         assert result != null : "Expected to have seen the old value already";
         cache.put(identifier, result);
       } else {
         CProgramScope scope = new CProgramScope(cfa, logger);
-        CSimpleDeclaration variableDeclaration = scope.lookupVariable(identifier.getName());
+        CSimpleDeclaration variableDeclaration;
+        if (identifier.getName().equals(Identifier.RESULT)) {
+          variableDeclaration = scope.getFunctionReturnVariable(identifier.getFunctionName());
+        } else {
+          variableDeclaration = scope.lookupVariable(identifier.getName());
+        }
         if (variableDeclaration != null) {
           result = new CIdExpression(variableDeclaration.getFileLocation(), variableDeclaration);
           cache.put(identifier, result);
