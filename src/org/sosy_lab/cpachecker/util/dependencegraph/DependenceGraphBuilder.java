@@ -244,26 +244,6 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         node -> !(node instanceof FunctionEntryNode));
   }
 
-  private static boolean dominates(
-      DomTree<CFANode> pDomTree, int pDominatingNodeId, int pDominatedNodeId) {
-
-    if (pDominatingNodeId == pDominatedNodeId) {
-      return true;
-    }
-
-    int node = pDominatedNodeId;
-    while (pDomTree.hasParent(node)) {
-
-      node = pDomTree.getParent(node);
-
-      if (node == pDominatingNodeId) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
   private boolean ignoreFunctionEdge(CFAEdge pEdge) {
     return pEdge instanceof CFunctionCallEdge || pEdge instanceof CFunctionReturnEdge;
   }
@@ -423,8 +403,8 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         int nodeId = domTree.getId(dependentNode);
         for (CFANode branchNode : frontiers.getFrontier(dependentNode)) {
           for (CFAEdge assumeEdge : CFAUtils.leavingEdges(branchNode)) {
-            int assumeNodeId = domTree.getId(assumeEdge.getSuccessor());
-            if (dominates(domTree, nodeId, assumeNodeId)) {
+            int assumeSuccessorId = domTree.getId(assumeEdge.getSuccessor());
+            if (nodeId == assumeSuccessorId || domTree.isAncestorOf(nodeId, assumeSuccessorId)) {
               for (CFAEdge dependentEdge : CFAUtils.allLeavingEdges(dependentNode)) {
                 if (!ignoreFunctionEdge(dependentEdge) && !assumeEdge.equals(dependentEdge)) {
                   addDependence(
