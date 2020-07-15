@@ -12,8 +12,6 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public class JRunTimeTypePendingException extends JVariableRunTimeType {
 
-  JVariableRunTimeType jVariableRunTimeType;
-
   public JRunTimeTypePendingException(JIdExpression pReferencedVariable) {
     super(FileLocation.DUMMY, pReferencedVariable);
   }

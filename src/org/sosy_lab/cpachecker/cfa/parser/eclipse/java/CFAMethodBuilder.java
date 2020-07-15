@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
@@ -62,7 +63,6 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.java.JAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.java.JBooleanLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JClassInstanceCreation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JConstructorDeclaration;
@@ -72,6 +72,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpressionOfPendingException;
 import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
@@ -82,11 +83,11 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JReferencedMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypePendingException;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSuperConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.java.JVariableRunTimeType;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -133,7 +134,7 @@ class CFAMethodBuilder extends ASTVisitor {
   private final Deque<CFANode> switchCaseStack = new ArrayDeque<>();
 
   // Data structure for handling try catch throw
-  private List<JSimpleDeclaration> throwables = new ArrayList<>();
+  private final Deque<Optional<JSimpleDeclaration>> throwables = new ArrayDeque<>();
   private final Deque<CFANode> tryStack = new ArrayDeque<>();
 
   // Data structures for label , continue , break
@@ -1735,7 +1736,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
   @Override
   public boolean visit(TryStatement pTryStatement) {
-
+    throwables.push(Optional.empty());
     FileLocation fileloc = astCreator.getFileLocation(pTryStatement);
 
     CFANode prevNode = locStack.pop();
@@ -1758,40 +1759,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
   @Override
   public void endVisit(TryStatement pTryStatement) {
-    FileLocation fileLocation = astCreator.getFileLocation(pTryStatement);
-    CFANode postFinallyNode = new CFANode(cfa.getFunction());
-    cfaNodes.add(postFinallyNode);
-
-    JExpression jExpressionHangingException = createDummyJExpression();
-
-    createConditionEdges(
-        jExpressionHangingException,
-        fileLocation,
-        locStack.pop(),
-        postFinallyNode,
-        cfa.getExitNode());
-
-    locStack.push(postFinallyNode);
-    throwables = new ArrayList<>();
-  }
-
-  private JExpression createDummyJExpression() {
-    JVariableDeclaration jVariableDeclaration =
-        new JVariableDeclaration(
-            FileLocation.DUMMY,
-            JClassType.createUnresolvableType(),
-            "dummy_hanging_Exception",
-            "dummy_hanging_Exception",
-            "dummy_hanging_Exception",
-            null,
-            false);
-    JIdExpression jIdExpression =
-        new JIdExpression(
-            FileLocation.DUMMY,
-            JClassType.getTypeOfObject(),
-            "dummy_hanging_Exception",
-            jVariableDeclaration);
-    return new JVariableRunTimeType(FileLocation.DUMMY, jIdExpression);
+    throwables.pop();
   }
 
   @Override
@@ -1812,64 +1780,28 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     JDeclaration jDeclarationOfException = astCreator.convert(pCatchClauseNode.getException());
 
-    List<JExpression> instanceOfThrowableExpressions = new ArrayList<>(throwables.size());
-    for (JSimpleDeclaration thrown : throwables) {
-      JIdExpression jIdExpressionOfThrown =
-          new JIdExpression(thrown.getFileLocation(), thrown.getType(), thrown.getName(), thrown);
-
+    assert !throwables.isEmpty() : "Wrong depth of throwables in CFAMethodBuilder";
+    final Optional<JSimpleDeclaration> thrown = this.throwables.peek();
+    JExpression jExpressionOfThrown;
+    if (thrown.isPresent()) {
+      jExpressionOfThrown =
+          new JRunTimeTypePendingException(new JIdExpressionOfPendingException(fileloc, thrown.get().getType(), thrown.get().getName(), thrown.get()));
+    }
+    else {
+      jExpressionOfThrown = new JRunTimeTypePendingException();
+    }
       final JExpression instanceOfExpression =
           astCreator.createInstanceOfExpression(
-              jIdExpressionOfThrown,
+              jExpressionOfThrown,
               (JClassOrInterfaceType) jDeclarationOfException.getType(),
               fileloc);
 
-      instanceOfThrowableExpressions.add(instanceOfExpression);
-    }
-
-    JExpression compareExceptionToThrownType;
-
-    if (instanceOfThrowableExpressions.size() == 1) {
-      compareExceptionToThrownType = instanceOfThrowableExpressions.get(0);
       createConditionEdges(
-          compareExceptionToThrownType,
+          instanceOfExpression,
           fileloc,
           prevNode,
           exceptionMatchesNode,
           exceptionDoesNotMatchNode);
-    } else if (instanceOfThrowableExpressions.size() > 1) {
-      JBinaryExpression jBinaryExpression =
-          new JBinaryExpression(
-              fileloc,
-              jDeclarationOfException.getType(),
-              instanceOfThrowableExpressions.get(0),
-              instanceOfThrowableExpressions.get(1),
-              BinaryOperator.CONDITIONAL_OR);
-      for (int i = 2; i < instanceOfThrowableExpressions.size(); i++) {
-        jBinaryExpression =
-            new JBinaryExpression(
-                fileloc,
-                jDeclarationOfException.getType(),
-                jBinaryExpression,
-                instanceOfThrowableExpressions.get(i),
-                BinaryOperator.CONDITIONAL_OR);
-      }
-      compareExceptionToThrownType = jBinaryExpression;
-      createConditionEdges(
-          compareExceptionToThrownType,
-          fileloc,
-          prevNode,
-          exceptionMatchesNode,
-          exceptionDoesNotMatchNode);
-    } else { // placeholder for unchecked exceptions
-      JExpression jExpressionHangingException = createDummyJExpression();
-
-      createConditionEdges(
-          jExpressionHangingException,
-          fileloc,
-          prevNode,
-          exceptionMatchesNode,
-          exceptionDoesNotMatchNode);
-    }
 
     return VISIT_CHILDREN;
   }
@@ -1946,7 +1878,8 @@ private void handleTernaryExpression(ConditionalExpression condExp,
   @Override
   public void endVisit(ThrowStatement pThrowStatement){
     JSimpleDeclaration thrown = scope.lookupVariable(pThrowStatement.getExpression().toString());
-    throwables.add(thrown);
+    throwables.pop();
+    throwables.push(Optional.of(thrown));
   }
 
   @Override

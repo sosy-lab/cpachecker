@@ -1074,7 +1074,7 @@ class ASTConverter {
    *     parameters
    */
   JExpression createInstanceOfExpression(
-      JIdExpression pLeftOperand, JReferenceType pRightOperand, FileLocation pLocation) {
+      JExpression pLeftOperand, JReferenceType pRightOperand, FileLocation pLocation) {
     List<JType> allPossibleClasses;
     boolean isRightOperandArray;
     if ((pRightOperand instanceof JArrayType)) {
@@ -1132,7 +1132,7 @@ class ASTConverter {
   }
 
   private JExpression createInstanceOfDisjunction(
-      JIdExpression pLeftOperand,
+      JExpression pLeftOperand,
       List<JType> pConcreteTypes,
       JType pExpressionType,
       FileLocation pLocation,
@@ -1149,16 +1149,40 @@ class ASTConverter {
             "Arguments for instance of must be reference type or null type");
       }
     }
-    JExpression currentCondition =
-        convertClassRunTimeCompileTimeAccord(pLocation, pLeftOperand, (JClassType) firstElement);
+    JExpression currentCondition;
+    if (pLeftOperand instanceof JIdExpression) {
+      currentCondition =
+          convertClassRunTimeCompileTimeAccord(
+              pLocation, (JIdExpression) pLeftOperand, (JClassType) firstElement);
+    }
+   else if (pLeftOperand instanceof JRunTimeTypeExpression) {
+    currentCondition =
+        new JRunTimeTypeEqualsType(
+            pLeftOperand.getFileLocation(),
+            (JRunTimeTypeExpression) pLeftOperand,
+            (JClassType) firstElement);
+  } else {
+    throw new CFAGenerationRuntimeException(
+        "Can only create instance of disjunction with JIdExpression or JRunTimeTypeExpression");
+  }
 
     JRunTimeTypeEqualsType newCondition;
 
     for (JType currentSubType : pConcreteTypes) {
-      newCondition =
-          convertClassRunTimeCompileTimeAccord(
-              pLocation, pLeftOperand, (JClassType) currentSubType);
-
+      if (pLeftOperand instanceof JIdExpression) {
+        newCondition =
+            convertClassRunTimeCompileTimeAccord(
+                pLocation, (JIdExpression) pLeftOperand, (JClassType) currentSubType);
+      } else if (pLeftOperand instanceof JRunTimeTypeExpression) {
+        newCondition =
+            new JRunTimeTypeEqualsType(
+                pLeftOperand.getFileLocation(),
+                (JRunTimeTypeExpression) pLeftOperand,
+                (JClassType) currentSubType);
+      } else {
+        throw new CFAGenerationRuntimeException(
+            "Can only create instance of disjunction with JIdExpression or JRunTimeTypeExpression");
+      }
       currentCondition =
           new JBinaryExpression(
               pLocation,
