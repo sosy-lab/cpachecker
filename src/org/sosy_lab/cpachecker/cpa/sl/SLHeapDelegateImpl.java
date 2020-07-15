@@ -405,10 +405,12 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
 
   private boolean isAllocated(Formula pLoc, boolean usePredContext)
       throws Exception {
-    return isAllocated0(pLoc, usePredContext, state.getStack())
-        || isAllocated0(pLoc, usePredContext, state.getHeap());
+    return isAllocated(pLoc, usePredContext, state.getStack()) != null
+        || isAllocated(pLoc, usePredContext, state.getHeap()) != null;
   }
 
+
+  @SuppressWarnings("unused")
   private boolean isAllocated0(Formula pLoc, boolean usePredContext, Map<Formula, Formula> pHeap) {
     PathFormula context = usePredContext ? getPredPathFormula() : getPathFormula();
     BooleanFormula heapFormula = createHeapFormula(pHeap);
@@ -428,8 +430,10 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
   }
 
   private Formula isAllocated(Formula pLoc, boolean usePredContext, Map<Formula, Formula> pHeap) {
+    if (pHeap.containsKey(pLoc)) {
+      return pLoc;
+    }
     PathFormula context = usePredContext ? getPredPathFormula() : getPathFormula();
-    // BooleanFormula heapFormula = createHeapFormula(pHeap);
     BooleanFormula toBeChecked = slfm.makePointsTo(pLoc, makeFreshWildcard());
     for (Entry<Formula, Formula> entry : pHeap.entrySet()) {
       BooleanFormula ptsTo = slfm.makePointsTo(entry.getKey(), entry.getValue());
@@ -449,16 +453,6 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
         stats.stopSolverTime();
       }
     }
-    // // heapFormula = slfm.makeMagicWand(toBeChecked, heapFormula);
-    // try (ProverEnvironment prover =
-    // solver.newProverEnvironment(ProverOptions.ENABLE_SEPARATION_LOGIC)) {
-    // prover.addConstraint(context.getFormula());
-    // prover.addConstraint(slfm.makeStar(toBeChecked, heapFormula));
-    // // prover.addConstraint(heapFormula);
-    // return prover.isUnsat();
-    // } catch (Exception e) {
-    // logger.log(Level.SEVERE, e.getMessage());
-    // }
     return null;
   }
 
