@@ -124,6 +124,11 @@ public abstract class ACSLPredicate {
     public ACSLPredicate useOldValues() {
       return this;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj == singleton;
+    }
   }
 
   private static class FALSE extends ACSLPredicate {
@@ -172,6 +177,11 @@ public abstract class ACSLPredicate {
     @Override
     public ACSLPredicate useOldValues() {
       return this;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      return obj == singleton;
     }
   }
 }

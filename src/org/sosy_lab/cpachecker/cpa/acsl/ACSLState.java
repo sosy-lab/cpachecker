@@ -55,7 +55,7 @@ public class ACSLState implements AbstractState, ExpressionTreeReportingState {
   public ExpressionTree<Object> getFormulaApproximation(
       FunctionEntryNode pFunctionScope, CFANode pLocation) {
     if (annotations.isEmpty()) {
-      return ExpressionTrees.getFalse();
+      return ExpressionTrees.getTrue();
     }
     List<ExpressionTree<Object>> representations = new ArrayList<>(annotations.size());
     for (ACSLAnnotation annotation : annotations) {
