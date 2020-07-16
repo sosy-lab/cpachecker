@@ -16,8 +16,9 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.primitives.ImmutableIntArray;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -34,6 +35,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
+import java.util.stream.IntStream;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -651,25 +653,24 @@ public final class InterpolationManager {
   }
 
   /**
-   * Put the list of formulas into the order in which they should be given to
-   * the solver, as defined by the {@link #direction} configuration option.
+   * Put the list of formulas into the order in which they should be given to the solver, as defined
+   * by the {@link #direction} configuration option.
+   *
    * @param traceFormulas The list of formulas to check.
-   * @return The same list of formulas in different order,
-   *         and each formula has its position in the original list as third element of the pair.
+   * @return The same list of formulas in different order, and each formula has its position in the
+   *     original list as third element of the pair.
    */
-  private List<Triple<BooleanFormula, AbstractState, Integer>> orderFormulas(
-          final List<BooleanFormula> traceFormulas, final List<AbstractState> pAbstractionStates) {
+  private ImmutableIntArray orderFormulas(
+      final List<BooleanFormula> traceFormulas, final List<AbstractState> pAbstractionStates) {
 
     // In this list are all formulas together with their position in the original list
-    ImmutableList<Triple<BooleanFormula, AbstractState, Integer>> result = direction.orderFormulas(traceFormulas,
-                                                                                                   pAbstractionStates,
-                                                                                                   variableClassification,
-                                                                                                   loopStructure,
-                                                                                                   fmgr);
-    assert traceFormulas.size() == result.size();
-    assert ImmutableMultiset.copyOf(from(result).transform(Triple::getFirst))
-            .equals(ImmutableMultiset.copyOf(traceFormulas))
-        : "Ordered list does not contain the same formulas with the same count";
+    ImmutableIntArray result =
+        direction.orderFormulas(
+            traceFormulas, pAbstractionStates, variableClassification, loopStructure, fmgr);
+    assert Iterators.elementsEqual(
+            result.stream().sorted().boxed().iterator(),
+            IntStream.range(0, traceFormulas.size()).boxed().iterator())
+        : "Not a valid permutation: " + result;
     return result;
   }
 
@@ -825,22 +826,13 @@ public final class InterpolationManager {
         //should be constructed in PredicateCPA refiner or in BAM predicate refiner strategy
         //impact algorithm, predicate forced covering pass empty pAbstractionStates
       }
-      assert pAbstractionStates.size() == formulas.getSize() : "each pathFormula must end with an abstract State";
+      assert pAbstractionStates.size() == formulas.getSize()
+          : "each pathFormula must end with an abstract State";
 
-      /* we use two lists, that contain identical formulas
-       * with different additional information and (maybe) in different order:
-       * 1) formulasWithStatesAndGroupdIds contains elements (F,A,T)
-       *      with a path formula F that represents the path until the abstract state A and has the ITP-group T.
-       *      It is sorted 'forwards' along the counterexample and is the basis for getting interpolants.
-       * 2) orderedFormulas contains elements (F,A,I)
-       *      with a path formula F that represents the path until the abstract state A.
-       *      It is sorted depending on the {@link CexTraceAnalysisDirection} and
-       *      is only used to check the counterexample for satisfiability.
-       *      Depending on different directions, different interpolants
-       *      might be computed from the solver's proof for unsatisfiability.
-       */
-
-      // initialize all interpolation group ids with "null"
+      // This list will contain tuples (formula, abstraction state, interpolation-group id)
+      // for every block of the counterexample (in correct order).
+      // It is initialized with {@code null} and filled while the formulas are pushed on the solver
+      // stack.
       final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds =
           new ArrayList<>(Collections.nCopies(formulas.getSize(), null));
 
@@ -856,15 +848,19 @@ public final class InterpolationManager {
           dumpInterpolationProblem(formulas.getFormulas());
         }
 
-        // re-order formulas if needed
-        final List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas =
+        // compute permutation in which formulas should be added
+        final ImmutableIntArray formulaPermutation =
             orderFormulas(formulas.getFormulas(), pAbstractionStates);
-        assert orderedFormulas.size() == formulas.getSize();
 
         // ask solver for satisfiability
-        spurious = checkInfeasabilityOfTrace(orderedFormulas, formulasWithStatesAndGroupdIds);
-        assert formulasWithStatesAndGroupdIds.size() == formulas.getSize();
-        assert !formulasWithStatesAndGroupdIds.contains(null); // has to be filled completely
+        spurious =
+            checkInfeasabilityOfTrace(
+                formulas.getFormulas(),
+                pAbstractionStates,
+                formulaPermutation,
+                formulasWithStatesAndGroupdIds);
+        assert Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst)
+            .equals(formulas.getFormulas());
 
       } finally {
         satCheckTimer.stop();
@@ -899,36 +895,41 @@ public final class InterpolationManager {
     }
 
     /**
-     * Check the satisfiability of a list of formulas, using them in the given order.
-     * This method honors the {@link #incrementalCheck} configuration option.
-     * It also updates the SMT solver stack and the {@link #currentlyAssertedFormulas}
-     * list that is used if {@link #reuseInterpolationEnvironment} is enabled.
+     * Check the satisfiability of a list of formulas, using them in the given order. This method
+     * honors the {@link #incrementalCheck} configuration option. It also updates the SMT solver
+     * stack and the {@link #currentlyAssertedFormulas} list that is used if {@link
+     * #reuseInterpolationEnvironment} is enabled.
      *
-     * @param traceFormulas The list of formulas to check, each formula with its index of where it should be added in the list of interpolation groups.
-     * @param formulasWithStatesAndGroupdIds The list where to store the references to the interpolation groups. This is just a list of 'identifiers' for the formulas.
+     * @param formulaPermutation The order (by indices) in which the formulas should be checked.
+     * @param formulasWithStatesAndGroupdIds The list where to store the references (in original
+     *     order) to the interpolation groups. This is just a list of 'identifiers' for the
+     *     formulas.
      * @return True if the formulas are unsatisfiable.
      */
     private boolean checkInfeasabilityOfTrace(
-        final List<Triple<BooleanFormula, AbstractState, Integer>> traceFormulas,
+        final List<BooleanFormula> traceFormulas,
+        final List<AbstractState> traceStates,
+        final ImmutableIntArray formulaPermutation,
         final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
-            throws InterruptedException, SolverException {
+        throws InterruptedException, SolverException {
 
       // first identify which formulas are already on the solver stack,
       // which formulas need to be removed from the solver stack,
       // and which formulas need to be added to the solver stack
-      ListIterator<Triple<BooleanFormula, AbstractState, Integer>> todoIterator = traceFormulas.listIterator();
+      ListIterator<Integer> todoIterator = formulaPermutation.asList().listIterator();
       int firstBadIndex =
-          getIndexOfFirstNonReusableFormula(formulasWithStatesAndGroupdIds, todoIterator);
+          getIndexOfFirstNonReusableFormula(
+              traceFormulas, traceStates, todoIterator, formulasWithStatesAndGroupdIds);
 
       // now remove the formulas from the solver stack where necessary
       cleanupSolverStack(firstBadIndex);
 
       // push new formulas onto the solver stack
-      addNewFormulasToStack(formulasWithStatesAndGroupdIds, todoIterator);
+      addNewFormulasToStack(
+          traceFormulas, traceStates, todoIterator, formulasWithStatesAndGroupdIds);
 
-      assert Iterables.elementsEqual(
-          from(traceFormulas).transform(Triple::getFirst),
-          from(currentlyAssertedFormulas).transform(Pair::getFirst));
+      assert ImmutableMultiset.copyOf(traceFormulas)
+          .equals(from(currentlyAssertedFormulas).transform(Pair::getFirst).toMultiset());
 
       // we have to do the sat check every time, as it could be that also
       // with incremental checking it was missing (when the path is infeasible
@@ -942,11 +943,14 @@ public final class InterpolationManager {
      * from the solver stack.
      *
      * @param formulasWithStatesAndGroupdIds the new sorted collection of formulas, with indizes
-     * @param todoIterator iterator from the new collection of formulas, is the new starting point
+     * @param todoIterator iterator producing the indices of formulas to be used, afterwards it is
+     *     positioned at the new starting point
      */
     private int getIndexOfFirstNonReusableFormula(
-        final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds,
-        ListIterator<Triple<BooleanFormula, AbstractState, Integer>> todoIterator) {
+        final List<BooleanFormula> traceFormulas,
+        final List<AbstractState> traceStates,
+        final ListIterator<Integer> todoIterator,
+        final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds) {
 
       ListIterator<Pair<BooleanFormula, T>> assertedIterator =
           currentlyAssertedFormulas.listIterator();
@@ -960,14 +964,15 @@ public final class InterpolationManager {
           break;
         }
 
-        Triple<BooleanFormula, AbstractState, Integer> todoFormula = todoIterator.next();
+        int index = todoIterator.next();
+        BooleanFormula todoFormula = traceFormulas.get(index);
 
-        if (todoFormula.getFirst().equals(assertedFormula.getFirst())) {
+        if (todoFormula.equals(assertedFormula.getFirst())) {
           // formula is already in solver stack in correct location
           final Triple<BooleanFormula, AbstractState, T> assertedFormulaWithState =
               Triple.of(
-                  assertedFormula.getFirst(), todoFormula.getSecond(), assertedFormula.getSecond());
-          formulasWithStatesAndGroupdIds.set(todoFormula.getThird(), assertedFormulaWithState);
+                  assertedFormula.getFirst(), traceStates.get(index), assertedFormula.getSecond());
+          formulasWithStatesAndGroupdIds.set(index, assertedFormulaWithState);
 
         } else {
           firstBadIndex = assertedIterator.previousIndex();
@@ -1017,11 +1022,13 @@ public final class InterpolationManager {
      * ignore them.
      *
      * @param formulasWithStatesAndGroupdIds the new sorted collection of formulas, with indizes
-     * @param todoIterator iterator from the new collection of formulas, is the new starting point
+     * @param todoIterator iterator producing the indices of formulas to be used
      */
     private void addNewFormulasToStack(
-        final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds,
-        ListIterator<Triple<BooleanFormula, AbstractState, Integer>> todoIterator)
+        final List<BooleanFormula> traceFormulas,
+        final List<AbstractState> traceStates,
+        final ListIterator<Integer> todoIterator,
+        final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
         throws SolverException, InterruptedException {
       boolean isStillFeasible = true;
 
@@ -1033,10 +1040,9 @@ public final class InterpolationManager {
 
       // add remaining formulas to the solver stack
       while (todoIterator.hasNext()) {
-        Triple<BooleanFormula, AbstractState, Integer> p = todoIterator.next();
-        BooleanFormula f = p.getFirst();
-        AbstractState state = p.getSecond();
-        int index = p.getThird();
+        int index = todoIterator.next();
+        BooleanFormula f = traceFormulas.get(index);
+        AbstractState state = traceStates.get(index);
 
         assert formulasWithStatesAndGroupdIds.get(index) == null;
         T itpGroupId = itpProver.push(f);

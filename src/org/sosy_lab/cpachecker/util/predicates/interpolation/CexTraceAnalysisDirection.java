@@ -12,11 +12,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.TreeMultimap;
+import com.google.common.primitives.ImmutableIntArray;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.Random;
 import java.util.Set;
+import java.util.stream.IntStream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -36,7 +37,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -47,18 +47,13 @@ enum CexTraceAnalysisDirection {
    */
   FORWARDS {
     @Override
-    public ImmutableList<Triple<BooleanFormula, AbstractState, Integer>>
-    orderFormulas(List<BooleanFormula> traceFormulas,
-                  List<AbstractState> abstractionStates,
-                  VariableClassification pVariableClassification,
-                  LoopStructure pLoopStructure,
-                  FormulaManagerView pFmgr) {
-      ImmutableList.Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas =
-          ImmutableList.builder();
-      for (int i = 0; i < traceFormulas.size(); i++) {
-        orderedFormulas.add(Triple.of(traceFormulas.get(i), abstractionStates.get(i), i));
-      }
-      return orderedFormulas.build();
+    public ImmutableIntArray orderFormulas(
+        List<BooleanFormula> traceFormulas,
+        List<AbstractState> abstractionStates,
+        VariableClassification pVariableClassification,
+        LoopStructure pLoopStructure,
+        FormulaManagerView pFmgr) {
+      return ImmutableIntArray.copyOf(IntStream.range(0, traceFormulas.size()));
     }
   },
 
@@ -67,18 +62,17 @@ enum CexTraceAnalysisDirection {
    */
   BACKWARDS {
     @Override
-    public ImmutableList<Triple<BooleanFormula, AbstractState, Integer>>
-    orderFormulas(List<BooleanFormula> traceFormulas,
-                  List<AbstractState> abstractionStates,
-                  VariableClassification pVariableClassification,
-                  LoopStructure pLoopStructure,
-                  FormulaManagerView pFmgr) {
-      ImmutableList.Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas =
-          ImmutableList.builder();
+    public ImmutableIntArray orderFormulas(
+        List<BooleanFormula> traceFormulas,
+        List<AbstractState> abstractionStates,
+        VariableClassification pVariableClassification,
+        LoopStructure pLoopStructure,
+        FormulaManagerView pFmgr) {
+      ImmutableIntArray.Builder order = ImmutableIntArray.builder(traceFormulas.size());
       for (int i = traceFormulas.size()-1; i >= 0; i--) {
-        orderedFormulas.add(Triple.of(traceFormulas.get(i), abstractionStates.get(i), i));
+        order.add(i);
       }
-      return orderedFormulas.build();
+      return order.build();
     }
   },
 
@@ -88,14 +82,13 @@ enum CexTraceAnalysisDirection {
    */
   ZIGZAG {
     @Override
-    public ImmutableList<Triple<BooleanFormula, AbstractState, Integer>>
-    orderFormulas(List<BooleanFormula> traceFormulas,
-                  List<AbstractState> abstractionStates,
-                  VariableClassification pVariableClassification,
-                  LoopStructure pLoopStructure,
-                  FormulaManagerView pFmgr) {
-      ImmutableList.Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas =
-          ImmutableList.builder();
+    public ImmutableIntArray orderFormulas(
+        List<BooleanFormula> traceFormulas,
+        List<AbstractState> abstractionStates,
+        VariableClassification pVariableClassification,
+        LoopStructure pLoopStructure,
+        FormulaManagerView pFmgr) {
+      ImmutableIntArray.Builder order = ImmutableIntArray.builder(traceFormulas.size());
       int e = traceFormulas.size() - 1;
       int s = 0;
       boolean fromStart = false;
@@ -103,9 +96,9 @@ enum CexTraceAnalysisDirection {
         int i = fromStart ? s++ : e--;
         fromStart = !fromStart;
 
-        orderedFormulas.add(Triple.of(traceFormulas.get(i), abstractionStates.get(i), i));
+        order.add(i);
       }
-      return orderedFormulas.build();
+      return order.build();
     }
   },
 
@@ -115,14 +108,13 @@ enum CexTraceAnalysisDirection {
    */
   LOOP_FREE_FIRST {
     @Override
-    public ImmutableList<Triple<BooleanFormula, AbstractState, Integer>>
-    orderFormulas(List<BooleanFormula> traceFormulas,
-                  List<AbstractState> abstractionStates,
-                  VariableClassification pVariableClassification,
-                  LoopStructure pLoopStructure,
-                  FormulaManagerView pFmgr) {
-      ImmutableList.Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas =
-          ImmutableList.builder();
+    public ImmutableIntArray orderFormulas(
+        List<BooleanFormula> traceFormulas,
+        List<AbstractState> abstractionStates,
+        VariableClassification pVariableClassification,
+        LoopStructure pLoopStructure,
+        FormulaManagerView pFmgr) {
+      ImmutableIntArray.Builder order = ImmutableIntArray.builder(traceFormulas.size());
       Multimap<Integer, AbstractState> stateOrdering = LinkedHashMultimap.create();
       createLoopDrivenStateOrdering(abstractionStates,
                                     stateOrdering,
@@ -133,10 +125,10 @@ enum CexTraceAnalysisDirection {
         Collection<AbstractState> states = stateOrdering.get(i);
         for (AbstractState state : states) {
           int id = abstractionStates.indexOf(state);
-          orderedFormulas.add(Triple.of(traceFormulas.get(id), state, id));
+          order.add(id);
         }
       }
-      return orderedFormulas.build();
+      return order.build();
     }
   },
 
@@ -148,23 +140,22 @@ enum CexTraceAnalysisDirection {
     private final Random rnd = new Random(0);
 
     @Override
-    public ImmutableList<Triple<BooleanFormula, AbstractState, Integer>>
-    orderFormulas(List<BooleanFormula> traceFormulas,
-                  List<AbstractState> abstractionStates,
-                  VariableClassification pVariableClassification,
-                  LoopStructure pLoopStructure,
-                  FormulaManagerView pFmgr) {
-      ImmutableList.Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas =
-          ImmutableList.builder();
+    public ImmutableIntArray orderFormulas(
+        List<BooleanFormula> traceFormulas,
+        List<AbstractState> abstractionStates,
+        VariableClassification pVariableClassification,
+        LoopStructure pLoopStructure,
+        FormulaManagerView pFmgr) {
+      ImmutableIntArray.Builder order = ImmutableIntArray.builder(traceFormulas.size());
       List<AbstractState> stateList = new ArrayList<>(abstractionStates);
       Collections.shuffle(stateList, rnd);
 
       for (int i = 0; i < traceFormulas.size(); i++) {
         AbstractState state = stateList.get(i);
         int oldIndex = abstractionStates.indexOf(state);
-        orderedFormulas.add(Triple.of(traceFormulas.get(oldIndex), state, oldIndex));
+        order.add(oldIndex);
       }
-      return orderedFormulas.build();
+      return order.build();
     }
   },
 
@@ -174,14 +165,12 @@ enum CexTraceAnalysisDirection {
    */
   LOWEST_AVG_SCORE {
     @Override
-    public ImmutableList<Triple<BooleanFormula, AbstractState, Integer>>
-    orderFormulas(List<BooleanFormula> traceFormulas,
-                  List<AbstractState> abstractionStates,
-                  VariableClassification pVariableClassification,
-                  LoopStructure pLoopStructure,
-                  FormulaManagerView pFmgr) {
-      ImmutableList.Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas =
-          ImmutableList.builder();
+    public ImmutableIntArray orderFormulas(
+        List<BooleanFormula> traceFormulas,
+        List<AbstractState> abstractionStates,
+        VariableClassification pVariableClassification,
+        LoopStructure pLoopStructure,
+        FormulaManagerView pFmgr) {
       Multimap<Double, Integer> sortedFormulas = TreeMultimap.create();
 
       for (BooleanFormula formula : traceFormulas) {
@@ -194,12 +183,7 @@ enum CexTraceAnalysisDirection {
         }
       }
 
-      for (Integer index : sortedFormulas.values()) {
-        orderedFormulas.add(Triple.of(traceFormulas.get(index),
-                                      abstractionStates.get(index),
-                                      index));
-      }
-      return orderedFormulas.build();
+      return ImmutableIntArray.copyOf(sortedFormulas.values());
     }
   },
 
@@ -209,14 +193,12 @@ enum CexTraceAnalysisDirection {
    */
   HIGHEST_AVG_SCORE {
     @Override
-    public ImmutableList<Triple<BooleanFormula, AbstractState, Integer>>
-    orderFormulas(List<BooleanFormula> traceFormulas,
-                  List<AbstractState> abstractionStates,
-                  VariableClassification pVariableClassification,
-                  LoopStructure pLoopStructure,
-                  FormulaManagerView pFmgr) {
-      ImmutableList.Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas =
-          ImmutableList.builder();
+    public ImmutableIntArray orderFormulas(
+        List<BooleanFormula> traceFormulas,
+        List<AbstractState> abstractionStates,
+        VariableClassification pVariableClassification,
+        LoopStructure pLoopStructure,
+        FormulaManagerView pFmgr) {
       Multimap<Double, Integer> sortedFormulas = TreeMultimap.create();
 
       for (BooleanFormula formula : traceFormulas) {
@@ -229,12 +211,7 @@ enum CexTraceAnalysisDirection {
         }
       }
 
-      for (Integer index : sortedFormulas.values()) {
-        orderedFormulas.add(Triple.of(traceFormulas.get(index),
-                                      abstractionStates.get(index),
-                                      index));
-      }
-      return orderedFormulas.build();
+      return ImmutableIntArray.copyOf(sortedFormulas.values());
     }
   },
 
@@ -245,14 +222,13 @@ enum CexTraceAnalysisDirection {
    */
   LOOP_FREE_FIRST_BACKWARDS {
     @Override
-    public ImmutableList<Triple<BooleanFormula, AbstractState, Integer>>
-          orderFormulas(List<BooleanFormula> traceFormulas,
-                        List<AbstractState> abstractionStates,
-                        VariableClassification pVariableClassification,
-                        LoopStructure pLoopStructure,
-                        FormulaManagerView pFmgr) {
-      ImmutableList.Builder<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas =
-          ImmutableList.builder();
+    public ImmutableIntArray orderFormulas(
+        List<BooleanFormula> traceFormulas,
+        List<AbstractState> abstractionStates,
+        VariableClassification pVariableClassification,
+        LoopStructure pLoopStructure,
+        FormulaManagerView pFmgr) {
+      ImmutableIntArray.Builder order = ImmutableIntArray.builder(traceFormulas.size());
       Multimap<Integer, AbstractState> stateOrdering = LinkedHashMultimap.create();
       createLoopDrivenStateOrdering(abstractionStates,
                                     stateOrdering,
@@ -265,24 +241,24 @@ enum CexTraceAnalysisDirection {
         stateSet.toArray(stateArray);
         for (int j = stateArray.length-1; j >= 0; j--) {
           int id = abstractionStates.indexOf(stateArray[j]);
-          orderedFormulas.add(Triple.of(traceFormulas.get(id), stateArray[j], id));
+          order.add(id);
         }
       }
-      return orderedFormulas.build();
+      return order.build();
     }
   };
 
   /**
-   * This method reorders the given formulas such that their order applies to the
-   * name of the given enum constant.
-   * @return The reordered formulas
+   * This method returns a permutation of the interval {@code [0, traceFormulas.size()[} such that
+   * when the formulas are reordered according to this permutation, they are in the order as
+   * described by the respective enum value.
    */
-  public abstract ImmutableList<Triple<BooleanFormula, AbstractState, Integer>>
-                    orderFormulas(List<BooleanFormula> traceFormulas,
-                                  List<AbstractState> abstractionStates,
-                                  VariableClassification variableClassification,
-                                  LoopStructure loopStructure,
-                                  FormulaManagerView fmgr);
+  public abstract ImmutableIntArray orderFormulas(
+      List<BooleanFormula> traceFormulas,
+      List<AbstractState> abstractionStates,
+      VariableClassification variableClassification,
+      LoopStructure loopStructure,
+      FormulaManagerView fmgr);
 
   /**
    * This method computes a score for a set of variables regarding the domain
