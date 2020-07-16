@@ -13,14 +13,15 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.TreeMultimap;
+import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.Multimaps;
+import com.google.common.collect.Streams;
 import com.google.common.primitives.ImmutableIntArray;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
@@ -29,6 +30,7 @@ import java.util.OptionalInt;
 import java.util.Random;
 import java.util.Set;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -114,21 +116,12 @@ enum CexTraceAnalysisDirection {
         VariableClassification pVariableClassification,
         LoopStructure pLoopStructure,
         FormulaManagerView pFmgr) {
-      ImmutableIntArray.Builder order = ImmutableIntArray.builder(traceFormulas.size());
-      Multimap<Integer, AbstractState> stateOrdering = LinkedHashMultimap.create();
-      createLoopDrivenStateOrdering(abstractionStates,
-                                    stateOrdering,
-                                    new ArrayDeque<CFANode>(),
-                                    checkNotNull(pLoopStructure));
+      ListMultimap<Integer, Integer> loopLevelsToIndexMap =
+          MultimapBuilder.treeKeys().arrayListValues().build();
+      createLoopDrivenStateOrdering(
+          abstractionStates, loopLevelsToIndexMap, new ArrayDeque<CFANode>(), pLoopStructure);
 
-      for (int i = 0; stateOrdering.containsKey(i); i++) {
-        Collection<AbstractState> states = stateOrdering.get(i);
-        for (AbstractState state : states) {
-          int id = abstractionStates.indexOf(state);
-          order.add(id);
-        }
-      }
-      return order.build();
+      return ImmutableIntArray.copyOf(loopLevelsToIndexMap.values());
     }
   },
 
@@ -146,16 +139,19 @@ enum CexTraceAnalysisDirection {
         VariableClassification pVariableClassification,
         LoopStructure pLoopStructure,
         FormulaManagerView pFmgr) {
-      ImmutableIntArray.Builder order = ImmutableIntArray.builder(traceFormulas.size());
-      List<AbstractState> stateList = new ArrayList<>(abstractionStates);
-      Collections.shuffle(stateList, rnd);
+      int[] array = IntStream.range(0, traceFormulas.size()).toArray();
 
-      for (int i = 0; i < traceFormulas.size(); i++) {
-        AbstractState state = stateList.get(i);
-        int oldIndex = abstractionStates.indexOf(state);
-        order.add(oldIndex);
+      // Shuffle array with same strategy as Collections.shuffle:
+      // starting with the last element, swap each element with a random one from before it.
+      // Elements can be swapped with themselves.
+      for (int i = array.length - 1; i > 0; i--) {
+        int swapWith = rnd.nextInt(i + 1);
+        int temp = array[i];
+        array[i] = array[swapWith];
+        array[swapWith] = temp;
       }
-      return order.build();
+
+      return ImmutableIntArray.copyOf(array);
     }
   },
 
@@ -171,19 +167,11 @@ enum CexTraceAnalysisDirection {
         VariableClassification pVariableClassification,
         LoopStructure pLoopStructure,
         FormulaManagerView pFmgr) {
-      Multimap<Double, Integer> sortedFormulas = TreeMultimap.create();
-
-      for (BooleanFormula formula : traceFormulas) {
-        if (!sortedFormulas.put(getAVGScoreForVariables(formula,
-                                                        checkNotNull(pVariableClassification),
-                                                        checkNotNull(pFmgr),
-                                                        checkNotNull(pLoopStructure)),
-                                traceFormulas.indexOf(formula))) {
-          throw new AssertionError("Bug in creation of sorted formulas.");
-        }
-      }
-
-      return ImmutableIntArray.copyOf(sortedFormulas.values());
+      // Compute tuple (index, score) for each formula, sort according to score, and return indices
+      return ImmutableIntArray.copyOf(
+          getIndexScoreTuples(traceFormulas, pVariableClassification, pLoopStructure, pFmgr)
+              .sorted(Comparator.comparing(Pair::getSecond))
+              .mapToInt(Pair::getFirst));
     }
   },
 
@@ -199,19 +187,12 @@ enum CexTraceAnalysisDirection {
         VariableClassification pVariableClassification,
         LoopStructure pLoopStructure,
         FormulaManagerView pFmgr) {
-      Multimap<Double, Integer> sortedFormulas = TreeMultimap.create();
-
-      for (BooleanFormula formula : traceFormulas) {
-        if (!sortedFormulas.put(Double.MAX_VALUE - getAVGScoreForVariables(formula,
-                                                                           checkNotNull(pVariableClassification),
-                                                                           checkNotNull(pFmgr),
-                                                                           checkNotNull(pLoopStructure)),
-                                traceFormulas.indexOf(formula))) {
-          throw new AssertionError("Bug in creation of sorted formulas.");
-        }
-      }
-
-      return ImmutableIntArray.copyOf(sortedFormulas.values());
+      // Compute tuple (index, score) for each formula, sort according to score, and return indices
+      final Comparator<Pair<?, Double>> scoreComparator = Comparator.comparing(Pair::getSecond);
+      return ImmutableIntArray.copyOf(
+          getIndexScoreTuples(traceFormulas, pVariableClassification, pLoopStructure, pFmgr)
+              .sorted(scoreComparator.reversed())
+              .mapToInt(Pair::getFirst));
     }
   },
 
@@ -228,21 +209,14 @@ enum CexTraceAnalysisDirection {
         VariableClassification pVariableClassification,
         LoopStructure pLoopStructure,
         FormulaManagerView pFmgr) {
-      ImmutableIntArray.Builder order = ImmutableIntArray.builder(traceFormulas.size());
-      Multimap<Integer, AbstractState> stateOrdering = LinkedHashMultimap.create();
-      createLoopDrivenStateOrdering(abstractionStates,
-                                    stateOrdering,
-                                    new ArrayDeque<CFANode>(),
-                                    checkNotNull(pLoopStructure));
+      ListMultimap<Integer, Integer> loopLevelsToIndexMap =
+          MultimapBuilder.treeKeys().arrayListValues().build();
+      createLoopDrivenStateOrdering(
+          abstractionStates, loopLevelsToIndexMap, new ArrayDeque<CFANode>(), pLoopStructure);
 
-      for (int i = 0; stateOrdering.containsKey(i); i++) {
-        Collection<AbstractState> stateSet = stateOrdering.get(i);
-        AbstractState[] stateArray = new AbstractState[stateSet.size()];
-        stateSet.toArray(stateArray);
-        for (int j = stateArray.length-1; j >= 0; j--) {
-          int id = abstractionStates.indexOf(stateArray[j]);
-          order.add(id);
-        }
+      ImmutableIntArray.Builder order = ImmutableIntArray.builder(traceFormulas.size());
+      for (List<Integer> indices : Multimaps.asMap(loopLevelsToIndexMap).values()) {
+        order.addAll(Lists.reverse(indices));
       }
       return order.build();
     }
@@ -259,6 +233,20 @@ enum CexTraceAnalysisDirection {
       VariableClassification variableClassification,
       LoopStructure loopStructure,
       FormulaManagerView fmgr);
+
+  /** Return a stream with tuples (index, score) for each of the given formulas (in order). */
+  private static Stream<Pair<Integer, Double>> getIndexScoreTuples(
+      List<BooleanFormula> traceFormulas,
+      VariableClassification pVariableClassification,
+      LoopStructure pLoopStructure,
+      FormulaManagerView pFmgr) {
+    return Streams.mapWithIndex(
+        traceFormulas.stream(),
+        (formula, index) ->
+            Pair.of(
+                (int) index,
+                getAVGScoreForVariables(formula, pVariableClassification, pFmgr, pLoopStructure)));
+  }
 
   /**
    * This method computes a score for a set of variables regarding the domain
@@ -316,19 +304,18 @@ enum CexTraceAnalysisDirection {
     }
   }
 
-  private static void createLoopDrivenStateOrdering(final List<AbstractState> pAbstractionStates,
-                                                    final Multimap<Integer, AbstractState> loopLevelsToStatesMap,
-                                                    Deque<CFANode> actLevelStack,
-                                                    LoopStructure loopStructure) {
+  private static void createLoopDrivenStateOrdering(
+      final List<AbstractState> pAbstractionStates,
+      final Multimap<Integer, Integer> loopLevelsToIndexMap,
+      Deque<CFANode> actLevelStack,
+      LoopStructure loopStructure) {
     ImmutableSet<CFANode> loopHeads = loopStructure.getAllLoopHeads();
 
     // in the nodeLoopLevel map there has to be for every seen ARGState one
     // key-value pair therefore we can use this as our index
-    int actARGState = loopLevelsToStatesMap.size();
+    int actARGState = loopLevelsToIndexMap.size();
 
-    AbstractState actState = null;
     CFANode actCFANode = null;
-
     boolean isCFANodeALoopHead = false;
 
     // move on as long as there occurs no loop-head in the ARG path
@@ -336,10 +323,9 @@ enum CexTraceAnalysisDirection {
            && actLevelStack.isEmpty()
            && actARGState < pAbstractionStates.size()) {
 
-      actState = pAbstractionStates.get(actARGState);
-      actCFANode = AbstractStates.extractLocation(actState);
+      actCFANode = AbstractStates.extractLocation(pAbstractionStates.get(actARGState));
 
-      loopLevelsToStatesMap.put(0, actState);
+      loopLevelsToIndexMap.put(0, actARGState);
 
       isCFANodeALoopHead = loopHeads.contains(actCFANode);
 
@@ -349,22 +335,25 @@ enum CexTraceAnalysisDirection {
     // when not finished with computing the node levels
     if (actARGState != pAbstractionStates.size()) {
       actLevelStack.push(actCFANode);
-      createLoopDrivenStateOrdering0(pAbstractionStates, loopLevelsToStatesMap, actLevelStack, loopStructure);
+      createLoopDrivenStateOrdering0(
+          pAbstractionStates, loopLevelsToIndexMap, actLevelStack, loopStructure);
     }
   }
 
-  private static void createLoopDrivenStateOrdering0(final List<AbstractState> pAbstractionStates,
-                                                     final Multimap<Integer, AbstractState> loopLevelsToStatesMap,
-                                                     Deque<CFANode> actLevelStack,
-                                                     LoopStructure loopStructure) {
+  private static void createLoopDrivenStateOrdering0(
+      final List<AbstractState> pAbstractionStates,
+      final Multimap<Integer, Integer> loopLevelsToIndexMap,
+      Deque<CFANode> actLevelStack,
+      LoopStructure loopStructure) {
 
     // we are finished with the computation
-    if (loopLevelsToStatesMap.size() == pAbstractionStates.size()) {
+    if (loopLevelsToIndexMap.size() == pAbstractionStates.size()) {
       return;
     }
 
-    AbstractState lastState = pAbstractionStates.get(loopLevelsToStatesMap.size()-1);
-    AbstractState actState = pAbstractionStates.get(loopLevelsToStatesMap.size());
+    final int actARGState = loopLevelsToIndexMap.size();
+    final AbstractState lastState = pAbstractionStates.get(actARGState - 1);
+    final AbstractState actState = pAbstractionStates.get(actARGState);
     @Nullable CFANode actCFANode = AbstractStates.extractLocation(actState);
 
     Iterator<CFANode> it = actLevelStack.descendingIterator();
@@ -391,20 +380,22 @@ enum CexTraceAnalysisDirection {
 
         // we have a valid path to the function of the lastLoopNode
       } else {
-        loopLevelsToStatesMap.put(actLevelStack.size(), actState);
+        loopLevelsToIndexMap.put(actLevelStack.size(), actARGState);
 
         // node itself is a loophead, too, so add it also to the levels stack
         if (loopStructure.getAllLoopHeads().contains(actCFANode)) {
           actLevelStack.push(actCFANode);
         }
-        createLoopDrivenStateOrdering0(pAbstractionStates, loopLevelsToStatesMap, actLevelStack, loopStructure);
+        createLoopDrivenStateOrdering0(
+            pAbstractionStates, loopLevelsToIndexMap, actLevelStack, loopStructure);
         return;
       }
     }
 
     // coming here is possible only if the stack is empty and no matching
     // loop for the current node was found
-    createLoopDrivenStateOrdering(pAbstractionStates, loopLevelsToStatesMap, actLevelStack, loopStructure);
+    createLoopDrivenStateOrdering(
+        pAbstractionStates, loopLevelsToIndexMap, actLevelStack, loopStructure);
   }
 
   private static boolean isNodePartOfLoop(CFANode loopHead, CFANode potentialLoopNode, LoopStructure loopStructure) {
