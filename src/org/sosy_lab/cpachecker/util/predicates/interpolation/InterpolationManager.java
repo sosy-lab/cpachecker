@@ -693,14 +693,24 @@ public final class InterpolationManager {
       return interpolants;
 
     } else {
-      final List<BooleanFormula> interpolants =
-          itpStrategy.getInterpolants(pInterpolator, formulasWithStatesAndGroupdIds);
+      final List<BooleanFormula> interpolants;
+      try {
+        getInterpolantTimer.start();
+        interpolants = itpStrategy.getInterpolants(pInterpolator, formulasWithStatesAndGroupdIds);
+      } finally {
+        getInterpolantTimer.stop();
+      }
 
       assert formulasWithStatesAndGroupdIds.size() - 1 == interpolants.size()
           : "we should return N-1 interpolants for N formulas.";
 
       if (verifyInterpolants) {
-        itpStrategy.checkInterpolants(solver, formulasWithStatesAndGroupdIds, interpolants);
+        try {
+          interpolantVerificationTimer.start();
+          itpStrategy.checkInterpolants(solver, formulasWithStatesAndGroupdIds, interpolants);
+        } finally {
+          interpolantVerificationTimer.stop();
+        }
       }
       return interpolants;
     }
