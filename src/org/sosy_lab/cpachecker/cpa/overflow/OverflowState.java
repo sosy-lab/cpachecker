@@ -42,7 +42,7 @@ public final class OverflowState
     assumptions = ImmutableSet.copyOf(pAssumptions);
     if (pParent != null) {
       hasOverflow = pParent.nextHasOverflow();
-      parent = hasOverflow ? pParent : null;
+      parent = pParent;
     } else {
       hasOverflow = false;
       parent = null;

@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
+import org.sosy_lab.cpachecker.cpa.overflow.OverflowState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState.InfeasibleDummyState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -359,7 +360,11 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       }
     }
 
-    for (CExpression assumption : from(pAssumeElement.getAssumptions()).filter(CExpression.class)) {
+    AbstractStateWithAssumptions assumeElement = pAssumeElement;
+    if (assumeElement instanceof OverflowState) {
+      assumeElement = ((OverflowState) assumeElement).getParent();
+    }
+    for (CExpression assumption : from(assumeElement.getAssumptions()).filter(CExpression.class)) {
       // assumptions do not contain complete type nor scope information
       // hence, not all types can be resolved, so ignore these
       // TODO: the witness automaton is complete in that regard, so use that in future
