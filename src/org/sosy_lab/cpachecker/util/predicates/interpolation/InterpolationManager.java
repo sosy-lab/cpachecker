@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMultiset;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.ImmutableIntArray;
+import com.google.common.primitives.Ints;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -188,6 +189,13 @@ public final class InterpolationManager {
               + " pushed on solver stack between interpolation queries.")
   // Evaluation showed that it is not useful together with cexTraceCheckDirection=ZIGZAG.
   private boolean reuseInterpolationEnvironment = false;
+
+  @Option(
+      secure = true,
+      description =
+          "After a failed interpolation query, try to solve the formulas again with different"
+              + " options instead of giving up immediately.")
+  private boolean tryAgainOnInterpolationError = true;
 
   private final ITPStrategy itpStrategy;
 
@@ -793,6 +801,7 @@ public final class InterpolationManager {
       final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds =
           new ArrayList<>(Collections.nCopies(formulas.getSize(), null));
 
+      ImmutableIntArray formulaPermutation;
       try {
 
         if (getUsefulBlocks) {
@@ -806,8 +815,8 @@ public final class InterpolationManager {
         }
 
         // compute permutation in which formulas should be added
-        final ImmutableIntArray formulaPermutation =
-            orderFormulas(formulas.getFormulas(), pAbstractionStates);
+        formulaPermutation = orderFormulas(formulas.getFormulas(), pAbstractionStates);
+        logger.log(Level.ALL, "Permutation of blocks for interpolation query:", formulaPermutation);
 
         // ask solver for satisfiability
         spurious =
@@ -830,8 +839,51 @@ public final class InterpolationManager {
       CounterexampleTraceInfo info;
       if (spurious) {
 
-        final List<BooleanFormula> interpolants =
-            getInterpolants(this, formulasWithStatesAndGroupdIds);
+        List<BooleanFormula> interpolants;
+        try {
+          interpolants = getInterpolants(this, formulasWithStatesAndGroupdIds);
+        } catch (SolverException e) {
+          if (!tryAgainOnInterpolationError) {
+            throw e;
+          }
+          // Interpolation failed. There are at least some tasks where MathSAT succeeds if we try
+          // again with different options. We invert incrementalCheck and we reverse the formula
+          // order. Note that a new solver environment will be created automatically, because due to
+          // the reversed order there will be no change of reusing something on the solver stack,
+          // and cleanupSolverStack creates a new environment in this case.
+          logger.logfDebugException(
+              e,
+              "Interpolation failed, trying again in reverse order and with%s incremental check.",
+              incrementalCheck ? "out" : "");
+          Collections.fill(formulasWithStatesAndGroupdIds, null); // reset state
+
+          int[] permutation = formulaPermutation.toArray();
+          Ints.reverse(permutation);
+          formulaPermutation = ImmutableIntArray.copyOf(permutation); // reverse permutation
+
+          final boolean originalIncrementalCheck = incrementalCheck;
+          try {
+            // A little bit ugly to invert the field, but we reset in finally and this at least
+            // makes sure that it will definitely be used in all relevant places.
+            incrementalCheck = !incrementalCheck; // invert incrementalCheck
+
+            satCheckTimer.start();
+            spurious = // solve again
+                checkInfeasabilityOfTrace(
+                    formulas.getFormulas(),
+                    pAbstractionStates,
+                    formulaPermutation,
+                    formulasWithStatesAndGroupdIds);
+            assert Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst)
+                .equals(formulas.getFormulas());
+
+          } finally {
+            incrementalCheck = originalIncrementalCheck;
+            satCheckTimer.stop();
+          }
+
+          interpolants = getInterpolants(this, formulasWithStatesAndGroupdIds);
+        }
         if (logger.wouldBeLogged(Level.ALL)) {
           int i = 1;
           for (BooleanFormula itp : interpolants) {
@@ -1002,6 +1054,7 @@ public final class InterpolationManager {
         AbstractState state = traceStates.get(index);
 
         assert formulasWithStatesAndGroupdIds.get(index) == null;
+        logger.logf(Level.ALL, "Pushing formula for block %s:\n  %s", index, f);
         T itpGroupId = itpProver.push(f);
         formulasWithStatesAndGroupdIds.set(index, Triple.of(f, state, itpGroupId));
         currentlyAssertedFormulas.add(Pair.of(f, itpGroupId));

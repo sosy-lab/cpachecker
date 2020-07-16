@@ -2442,6 +2442,10 @@ cpa.predicate.refinement.strategy = SEQ_CPACHECKER
 # infinite)
 cpa.predicate.refinement.timelimit = 0ms
 
+# After a failed interpolation query, try to solve the formulas again with
+# different options instead of giving up immediately.
+cpa.predicate.refinement.tryAgainOnInterpolationError = true
+
 # Use BDDs to simplify interpolants (removing irrelevant predicates)
 cpa.predicate.refinement.useBddInterpolantSimplification = false
 
