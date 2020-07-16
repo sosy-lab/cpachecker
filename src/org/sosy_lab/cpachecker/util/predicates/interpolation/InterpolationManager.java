@@ -175,10 +175,15 @@ public final class InterpolationManager {
     + "a minimal set of blocks, before applying interpolation-based refinement")
   private boolean getUsefulBlocks = false;
 
-  @Option(secure=true, name="incrementalCexTraceCheck",
-      description="use incremental search in counterexample analysis, "
-        + "to find the minimal infeasible prefix")
-  private boolean incrementalCheck = false;
+  @Option(
+      secure = true,
+      name = "incrementalCexTraceCheck",
+      description =
+          "Use incremental search in counterexample analysis to find a minimal infeasible part of"
+              + " the trace. This will typically lead to interpolants that refer to this part"
+              + " only. The option cexTraceCheckDirection defines in which order the blocks of the"
+              + " trace are looked at.")
+  private boolean incrementalCheck = true;
 
   @Option(secure=true, name="domainSpecificAbstractions",
       description="use variant described in the Guiding Craig Interpolation Paper "
@@ -190,21 +195,35 @@ public final class InterpolationManager {
           + "using inequalities instead of equalities")
   private boolean inequalityInterpolationAbstractions = false;
 
-  @Option(secure=true, name="cexTraceCheckDirection",
-      description="Direction for doing counterexample analysis: from start of trace, from end of trace, or alternatingly from start and end of the trace towards the middle")
-  private CexTraceAnalysisDirection direction = CexTraceAnalysisDirection.FORWARDS;
+  @Option(
+      secure = true,
+      name = "cexTraceCheckDirection",
+      description =
+          "Direction for doing counterexample analysis: from start of trace, from end of trace, or"
+              + " in more complex patterns. In combination with incrementalCexTraceCheck=true the"
+              + " generated interpolants will refer to the minimal infeasible part of the trace"
+              + " according to this strategy (e.g., with FORWARDS a minimal infeasible prefix is"
+              + " found).")
+  private CexTraceAnalysisDirection direction = CexTraceAnalysisDirection.ZIGZAG;
 
-  @Option(secure=true, description="Strategy how to interact with the intepolating prover. " +
-          "The analysis must support the strategy, otherwise the result will be useless!" +
-          "\n- SEQ_CPACHECKER: We simply return each interpolant for i={0..n-1} for the partitions A=[0 .. i] and B=[i+1 .. n]. " +
-          "The result is similar to INDUCTIVE_SEQ, but we do not guarantee the 'inductiveness', " +
-          "i.e. the solver has to generate nice interpolants itself. Supported by all solvers!" +
-          "\n- INDUCTIVE_SEQ: Generate an inductive sequence of interpolants the partitions [1,...n]. " +
-          "\n- TREE: use the tree-interpolation-feature of a solver to get interpolants" +
-          "\n- TREE_WELLSCOPED: We return each interpolant for i={0..n-1} for the partitions " +
-          "A=[lastFunctionEntryIndex .. i] and B=[0 .. lastFunctionEntryIndex-1 , i+1 .. n]. Based on a tree-like scheme." +
-          "\n- TREE_NESTED: use callstack and previous interpolants for next interpolants (see 'Nested Interpolants')," +
-          "\n- TREE_CPACHECKER: similar to TREE_NESTED, but the algorithm is taken from 'Tree Interpolation in Vampire'.")
+  @Option(
+      secure = true,
+      description =
+          "Strategy how to interact with the intepolating prover. The analysis must support the"
+              + " strategy, otherwise the result will be useless!\n"
+              + "- SEQ_CPACHECKER: Generate an inductive sequence of interpolants by asking the"
+              + " solver individually for each of them. This allows us to fine-tune the queries"
+              + " with the option sequentialStrategy and is supported by all solvers.\n"
+              + "- SEQ: Generate an inductive sequence of interpolants by asking the solver for"
+              + " the whole sequence at once.\n"
+              + "- TREE: Use the tree-interpolation feature of the solver to get interpolants.\n"
+              + "- TREE_WELLSCOPED: Return each interpolant for i={0..n-1} for the partitions"
+              + " A=[lastFunctionEntryIndex..i] and B=[0..lastFunctionEntryIndex-1]+[i+1..n]."
+              + " Based on a tree-like scheme.\n"
+              + "- TREE_NESTED: Use callstack and previous interpolants for next interpolants (cf."
+              + " 'Nested Interpolants').\n"
+              + "- TREE_CPACHECKER: similar to TREE_NESTED, but the algorithm is taken from 'Tree"
+              + " Interpolation in Vampire'")
   private InterpolationStrategy strategy = InterpolationStrategy.SEQ_CPACHECKER;
 
   private enum InterpolationStrategy {
@@ -232,7 +251,12 @@ public final class InterpolationManager {
     + "this amount of bytes (ignored if 0)")
   private int maxRefinementSize = 0;
 
-  @Option(secure=true, description="Use a single SMT solver environment for several interpolation queries")
+  @Option(
+      secure = true,
+      description =
+          "Use a single SMT solver environment for all interpolation queries and keep formulas"
+              + " pushed on solver stack between interpolation queries.")
+  // Evaluation showed that it is not useful together with cexTraceCheckDirection=ZIGZAG.
   private boolean reuseInterpolationEnvironment = false;
 
   private final ITPStrategy itpStrategy;
