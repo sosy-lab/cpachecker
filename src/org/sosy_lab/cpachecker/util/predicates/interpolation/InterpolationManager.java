@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.DomainSpecificAbstraction;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.ITPStrategy;
@@ -785,7 +786,7 @@ public final class InterpolationManager {
   public class Interpolator<T> {
 
     public InterpolatingProverEnvironment<T> itpProver;
-    private final List<Triple<BooleanFormula, AbstractState, T>> currentlyAssertedFormulas = new ArrayList<>();
+    private final List<Pair<BooleanFormula, T>> currentlyAssertedFormulas = new ArrayList<>();
 
     Interpolator() {
       itpProver = newEnvironment();
@@ -927,7 +928,7 @@ public final class InterpolationManager {
 
       assert Iterables.elementsEqual(
           from(traceFormulas).transform(Triple::getFirst),
-          from(currentlyAssertedFormulas).transform(Triple::getFirst));
+          from(currentlyAssertedFormulas).transform(Pair::getFirst));
 
       // we have to do the sat check every time, as it could be that also
       // with incremental checking it was missing (when the path is infeasible
@@ -947,12 +948,12 @@ public final class InterpolationManager {
         final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds,
         ListIterator<Triple<BooleanFormula, AbstractState, Integer>> todoIterator) {
 
-      ListIterator<Triple<BooleanFormula, AbstractState, T>> assertedIterator =
+      ListIterator<Pair<BooleanFormula, T>> assertedIterator =
           currentlyAssertedFormulas.listIterator();
       int firstBadIndex = -1; // index of first mis-matching formula in both lists
 
       while (assertedIterator.hasNext()) {
-        Triple<BooleanFormula, AbstractState, T> assertedFormula = assertedIterator.next();
+        Pair<BooleanFormula, T> assertedFormula = assertedIterator.next();
 
         if (!todoIterator.hasNext()) {
           firstBadIndex = assertedIterator.previousIndex();
@@ -963,7 +964,10 @@ public final class InterpolationManager {
 
         if (todoFormula.getFirst().equals(assertedFormula.getFirst())) {
           // formula is already in solver stack in correct location
-          formulasWithStatesAndGroupdIds.set(todoFormula.getThird(), assertedFormula);
+          final Triple<BooleanFormula, AbstractState, T> assertedFormulaWithState =
+              Triple.of(
+                  assertedFormula.getFirst(), todoFormula.getSecond(), assertedFormula.getSecond());
+          formulasWithStatesAndGroupdIds.set(todoFormula.getThird(), assertedFormulaWithState);
 
         } else {
           firstBadIndex = assertedIterator.previousIndex();
@@ -995,7 +999,7 @@ public final class InterpolationManager {
         assert firstBadIndex > 0;
         // list with all formulas on solver stack that we need to remove
         // (= remaining formulas in currentlyAssertedFormulas list)
-        List<Triple<BooleanFormula, AbstractState, T>> toDeleteFormulas =
+        List<Pair<BooleanFormula, T>> toDeleteFormulas =
             currentlyAssertedFormulas.subList(firstBadIndex, currentlyAssertedFormulas.size());
 
         // remove formulas from solver stack
@@ -1036,10 +1040,8 @@ public final class InterpolationManager {
 
         assert formulasWithStatesAndGroupdIds.get(index) == null;
         T itpGroupId = itpProver.push(f);
-        final Triple<BooleanFormula, AbstractState, T> assertedFormula =
-            Triple.of(f, state, itpGroupId);
-        formulasWithStatesAndGroupdIds.set(index, assertedFormula);
-        currentlyAssertedFormulas.add(assertedFormula);
+        formulasWithStatesAndGroupdIds.set(index, Triple.of(f, state, itpGroupId));
+        currentlyAssertedFormulas.add(Pair.of(f, itpGroupId));
 
         // We need to iterate through the full loop
         // to add all formulas, but this prevents us from doing further sat checks.
