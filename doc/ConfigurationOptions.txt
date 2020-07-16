@@ -2311,10 +2311,6 @@ cpa.predicate.refinement.cexTraceCheckDirection = ZIGZAG
 # BDDs as they are.
 cpa.predicate.refinement.doAbstractionComputation = false
 
-# use variant described in the Guiding Craig Interpolation Paper leading to a
-# different routine
-cpa.predicate.refinement.domainSpecificAbstractions = false
-
 # dump all interpolation problems
 cpa.predicate.refinement.dumpInterpolationProblems = false
 
@@ -2347,10 +2343,6 @@ cpa.predicate.refinement.includePartialInvariants = true
 # refer to this part only. The option cexTraceCheckDirection defines in which
 # order the blocks of the trace are looked at.
 cpa.predicate.refinement.incrementalCexTraceCheck = true
-
-# additional variation to domainSpecificAbstractions using inequalities
-# instead of equalities
-cpa.predicate.refinement.inequalityInterpolationAbstractions = false
 
 # Max. number of prefixes to extract
 cpa.predicate.refinement.maxPrefixCount = 64
