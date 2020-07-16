@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2016  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cmdline;
 
 import static com.google.common.truth.StreamSubject.streams;
@@ -139,6 +124,7 @@ public class ConfigurationFileChecks {
           "limits.time.cpu::required",
           "limits.time.cpu.thread",
           "log.consoleLevel",
+          "log.truncateSize",
           "memorysafety.config",
           "memorycleanup.config",
           "overflow.config",
@@ -199,10 +185,9 @@ public class ConfigurationFileChecks {
 
     @Option(
       secure = true,
-      name = "analysis.useInterleavedAnalyses",
-      description = "start different analyses interleaved and continue after unknown result"
-    )
-    private boolean useInterleavedAlgorithm = false;
+      name = "useCompositionAnalysis",
+      description = "select an analysis from a set of analyses after unknown result")
+    private boolean useCompositionAlgorithm = false;
 
     @Option(
       secure = true,
@@ -548,7 +533,7 @@ public class ConfigurationFileChecks {
     }
 
     if (!(options.useParallelAlgorithm || options.useRestartingAlgorithm)
-        || options.useInterleavedAlgorithm) {
+        || options.useCompositionAlgorithm) {
       // TODO find a solution how to check for unused properties correctly even with
       // RestartAlgorithm
       assert_()

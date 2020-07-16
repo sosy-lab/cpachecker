@@ -1,34 +1,19 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.ImmutableIntArray;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
-import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -37,39 +22,38 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class TreeInterpolation<T> extends AbstractTreeInterpolation<T> {
+public class TreeInterpolation extends AbstractTreeInterpolation {
 
   /**
-   * This strategy is similar to "Tree Interpolation in Vampire*" from Blanc et al.
-   * In comparison to the paper, we directly use the post-order-sorted
-   * formula-list instead of the tree. This is easier to implement.
+   * This strategy is similar to "Tree Interpolation in Vampire*" from Blanc et al. In comparison to
+   * the paper, we directly use the post-order-sorted formula-list instead of the tree. This is
+   * easier to implement.
    */
-  public TreeInterpolation(LogManager pLogger, ShutdownNotifier pShutdownNotifier,
-                           FormulaManagerView pFmgr, BooleanFormulaManager pBfmgr) {
-    super(pLogger, pShutdownNotifier, pFmgr, pBfmgr);
+  public TreeInterpolation(
+      LogManager pLogger, ShutdownNotifier pShutdownNotifier, FormulaManagerView pFmgr) {
+    super(pLogger, pShutdownNotifier, pFmgr);
   }
 
   @Override
-  public List<BooleanFormula> getInterpolants(
-          final InterpolationManager.Interpolator<T> interpolator,
-          final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
-              throws InterruptedException, SolverException {
+  public <T> List<BooleanFormula> getInterpolants(
+      final InterpolationManager.Interpolator<T> interpolator,
+      final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
+      throws InterruptedException, SolverException {
     final Pair<List<Triple<BooleanFormula, AbstractState, T>>, ImmutableIntArray> p =
         buildTreeStructure(formulasWithStatesAndGroupdIds);
-    final List<BooleanFormula> itps = new ArrayList<>();
+    final ImmutableList.Builder<BooleanFormula> itps =
+        ImmutableList.builderWithExpectedSize(p.getFirst().size());
     final Deque<Pair<BooleanFormula, Integer>> itpStack = new ArrayDeque<>();
     for (int positionOfA = 0; positionOfA < p.getFirst().size() - 1; positionOfA++) {
       itps.add(getTreeInterpolant(interpolator, itpStack, p.getFirst(), p.getSecond(), positionOfA));
     }
-    logger.log(Level.ALL, "received interpolants of tree :", itps);
-    return flattenTreeItps(formulasWithStatesAndGroupdIds, itps);
+    return flattenTreeItps(formulasWithStatesAndGroupdIds, itps.build());
   }
 
-  private BooleanFormula getTreeInterpolant(
+  private <T> BooleanFormula getTreeInterpolant(
       final InterpolationManager.Interpolator<T> interpolator,
       final Deque<Pair<BooleanFormula, Integer>> itpStack,
       final List<Triple<BooleanFormula, AbstractState, T>> formulas,

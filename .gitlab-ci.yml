@@ -1,12 +1,20 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 include: /build/gitlab-ci.yml
 
 variables:
   PROJECT_PATH: "sosy-lab/software/cpachecker"
   GH_REF: "github.com/sosy-lab/cpachecker"
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
-  REFASTER_REPO_REVISION: 1c7b66df1ee6460c3a7b04bc4495f440a093ece7
+  REFASTER_REPO_REVISION: 4c3ac9b63d8668ffbe4e1d761d9280c4dc5cf163
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
-  REFASTER_VERSION: 2.3.4
+  REFASTER_VERSION: 2.4.0
 
 
 .binary_check: &binary_check
@@ -20,6 +28,8 @@ variables:
       - "ConfigurationChecks.html"
       - "hs_err_pid*.log"
     when: always
+    reports:
+      junit: "output/configuration-checks/TESTS-TestSuites.xml"
 
 configuration-checks:jdk-11:
   <<: *configuration-checks
@@ -64,6 +74,7 @@ configuration-plot:
     - "scripts/configViz.py > ConfigurationPlot.dot"
     - "dot -Tsvg ConfigurationPlot.dot -O"
   dependencies: []
+  needs: []
   artifacts:
     paths:
       - "ConfigurationPlot.dot.svg"
@@ -97,7 +108,7 @@ python-unit-tests:jdk-14:
 javascript-unit-tests:
   stage: checks
   dependencies: []
-  image: node:8.10.0 # This version is also provided by Ubuntu 18.04
+  image: ${CI_REGISTRY_IMAGE}/test:node
   before_script:
     - cd src/org/sosy_lab/cpachecker/core/counterexample/
     - npm install
@@ -117,6 +128,12 @@ build-docker:test:java-node:
   variables:
     DOCKERFILE: build/gitlab-ci.Dockerfile.java-node
     IMAGE: /test:java-node
+
+build-docker:test:java-node:
+  extends: .build-docker
+  variables:
+    DOCKERFILE: build/gitlab-ci.Dockerfile.node
+    IMAGE: /test:node
 
 build-docker:release:
   extends: .build-docker
@@ -157,6 +174,7 @@ javascript-e2e-tests:
 check-format-python:
   stage: checks
   dependencies: []
+  needs: []
   image: python
   before_script:
     - pip install black
@@ -166,12 +184,13 @@ check-format-python:
 flake8:
   stage: checks
   dependencies: []
+  needs: []
   image: python
   before_script:
+    - pip install 'isort<5' # workaround for https://github.com/gforcada/flake8-isort/issues/88
     - pip install flake8-awesome
   script:
     - flake8
-  allow_failure: true # need to fix existing code first
 
 
 build-tar:
@@ -207,9 +226,15 @@ deploy-docker:
 # No coverage is computed for CPAchecker
 unit-tests:jdk-11:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
+  artifacts:
+    reports:
+      junit: "output/junit/TESTS-TestSuites.xml"
 
 unit-tests:jdk-14:
   script: "ant $ANT_PROPS_CHECKS unit-tests"
+  artifacts:
+    reports:
+      junit: "output/junit/TESTS-TestSuites.xml"
 
 
 # Disable some checks because they are not used for CPAchecker

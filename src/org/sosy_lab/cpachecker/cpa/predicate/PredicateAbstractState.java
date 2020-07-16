@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -79,14 +64,13 @@ public abstract class PredicateAbstractState
    * abstraction.
    */
   private static class AbstractionState extends PredicateAbstractState
-      implements NonMergeableAbstractState,
-          Graphable,
-          FormulaReportingState,
-          ExpressionTreeReportingState {
+      implements Graphable, FormulaReportingState, ExpressionTreeReportingState {
 
     private static final long serialVersionUID = 8341054099315063986L;
 
     private static final String FUNCTION_DELIMITER = "::";
+
+    private transient PredicateAbstractState mergedInto = null;
 
     private AbstractionState(PathFormula pf,
         AbstractionFormula pA, PersistentMap<CFANode, Integer> pAbstractionLocations) {
@@ -98,6 +82,14 @@ public abstract class PredicateAbstractState
       // with an invariant.
       // This is no problem for the partial order because the invariant
       // is always the same when the location is the same.
+    }
+
+    private AbstractionState(
+        PathFormula pf,
+        AbstractionFormula pA,
+        PersistentMap<CFANode, Integer> pAbstractionLocations,
+        PredicateAbstractState pPreviousAbstractState) {
+      super(pf, pA, pAbstractionLocations, pPreviousAbstractState);
     }
 
     @Override
@@ -171,6 +163,17 @@ public abstract class PredicateAbstractState
       }
       return ExpressionTrees.getTrue(); // no new invariant
     }
+
+    @Override
+    PredicateAbstractState getMergedInto() {
+      return mergedInto;
+    }
+
+    @Override
+    void setMergedInto(PredicateAbstractState pMergedInto) {
+      Preconditions.checkNotNull(pMergedInto);
+      mergedInto = pMergedInto;
+    }
   }
 
   private static class NonAbstractionState extends PredicateAbstractState {
@@ -184,6 +187,14 @@ public abstract class PredicateAbstractState
     private NonAbstractionState(PathFormula pF, AbstractionFormula pA,
         PersistentMap<CFANode, Integer> pAbstractionLocations) {
       super(pF, pA, pAbstractionLocations);
+    }
+
+    private NonAbstractionState(
+        PathFormula pF,
+        AbstractionFormula pA,
+        PersistentMap<CFANode, Integer> pAbstractionLocations,
+        PredicateAbstractState pPreviousAbstractState) {
+      super(pF, pA, pAbstractionLocations, pPreviousAbstractState);
     }
 
     @Override
@@ -246,10 +257,29 @@ public abstract class PredicateAbstractState
     return new AbstractionState(pF, pA, pAbstractionLocations);
   }
 
+  public static PredicateAbstractState mkAbstractionState(
+      PathFormula pF,
+      AbstractionFormula pA,
+      PersistentMap<CFANode, Integer> pAbstractionLocations,
+      PredicateAbstractState pPreviousAbstractionState) {
+    return new AbstractionState(pF, pA, pAbstractionLocations, pPreviousAbstractionState);
+  }
+
   public static PredicateAbstractState mkNonAbstractionStateWithNewPathFormula(PathFormula pF,
       PredicateAbstractState oldState) {
     return new NonAbstractionState(pF, oldState.getAbstractionFormula(),
                                         oldState.getAbstractionLocationsOnPath());
+  }
+
+  public static PredicateAbstractState mkNonAbstractionStateWithNewPathFormula(
+      PathFormula pF,
+      PredicateAbstractState oldState,
+      PredicateAbstractState pPreviousAbstractionState) {
+    return new NonAbstractionState(
+        pF,
+        oldState.getAbstractionFormula(),
+        oldState.getAbstractionLocationsOnPath(),
+        pPreviousAbstractionState);
   }
 
   static PredicateAbstractState mkNonAbstractionState(
@@ -277,11 +307,25 @@ public abstract class PredicateAbstractState
   /** How often each abstraction location was visited on the path to the current state. */
   private final transient PersistentMap<CFANode, Integer> abstractionLocations;
 
+  private final AbstractionState previousAbstractionState;
+
   private PredicateAbstractState(PathFormula pf, AbstractionFormula a,
       PersistentMap<CFANode, Integer> pAbstractionLocations) {
     this.pathFormula = pf;
     this.abstractionFormula = a;
     this.abstractionLocations = pAbstractionLocations;
+    this.previousAbstractionState = null;
+  }
+
+  private PredicateAbstractState(
+      PathFormula pf,
+      AbstractionFormula a,
+      PersistentMap<CFANode, Integer> pAbstractionLocations,
+      PredicateAbstractState pPreviousAbstractionState) {
+    this.pathFormula = pf;
+    this.abstractionFormula = a;
+    this.abstractionLocations = pAbstractionLocations;
+    this.previousAbstractionState = (AbstractionState) pPreviousAbstractionState;
   }
 
   public abstract boolean isAbstractionState();
@@ -291,6 +335,8 @@ public abstract class PredicateAbstractState
   }
 
   /**
+   * Mark this state as merged with another state.
+   *
    * @param pMergedInto the state that should be set as merged
    */
   void setMergedInto(PredicateAbstractState pMergedInto) {
@@ -303,6 +349,10 @@ public abstract class PredicateAbstractState
 
   public AbstractionFormula getAbstractionFormula() {
     return abstractionFormula;
+  }
+
+  public PredicateAbstractState getPreviousAbstractionState() {
+    return previousAbstractionState;
   }
 
   /**

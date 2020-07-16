@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -37,7 +22,9 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -211,10 +198,8 @@ public final class PredicatePrecision implements AdjustablePrecision {
     return EMPTY;
   }
 
-  /**
-   * Create a new precision that is the union of all given precisions.
-   */
-  public static PredicatePrecision unionOf(Collection<PredicatePrecision> precisions) {
+  /** Create a new precision that is the union of all given precisions. */
+  private static PredicatePrecision unionOf(Collection<PredicatePrecision> precisions) {
     if (precisions.isEmpty()) {
       return empty();
     }
@@ -236,13 +221,25 @@ public final class PredicatePrecision implements AdjustablePrecision {
    * and will handle the union computation efficiently.
    */
   public static PredicatePrecision unionOf(Iterable<Precision> precisions) {
-    // Find all distinct elements to avoid computing the union over lots of identical objects.
-    Set<PredicatePrecision> predicatePrecisions = Sets.newIdentityHashSet();
+    // We want to do a fast deduplication of precisions in order to speed up the actual union
+    // computation, which would use a lot of memory if it is passed a lot of precisions with lots of
+    // predicates. Use case is large iterables of precisions with only a few distinct elements
+    // (e.g., a reached set). The predicates themselves will be deduplicated later on anyway,
+    // so we do not need to fully deduplicate.
+    // Equality comparison of PredicatePrecisions are expensive, so we approximate with identity.
+    // But we should keep the input order to avoid nondeterminism.
+    Set<PredicatePrecision> distinctPrecisions = Sets.newIdentityHashSet();
+    List<PredicatePrecision> orderedPrecisions = new ArrayList<>();
     for (Precision prec : precisions) {
-      predicatePrecisions.add(Precisions.extractPrecisionByType(prec, PredicatePrecision.class));
+      PredicatePrecision predicatePrec =
+          Precisions.extractPrecisionByType(prec, PredicatePrecision.class);
+      // check for EMPTY because union over empty precision is pointless
+      if (predicatePrec != EMPTY && distinctPrecisions.add(predicatePrec)) {
+        orderedPrecisions.add(predicatePrec);
+      }
     }
-    predicatePrecisions.remove(EMPTY); // union over empty precision is pointless
-    return unionOf(predicatePrecisions);
+    assert distinctPrecisions.size() == orderedPrecisions.size();
+    return unionOf(orderedPrecisions);
   }
 
   /**

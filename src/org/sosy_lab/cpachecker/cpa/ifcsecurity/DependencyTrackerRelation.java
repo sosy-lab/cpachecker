@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.ifcsecurity;
 
 import java.util.Collection;
@@ -28,7 +13,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.SortedSet;
+import java.util.NavigableSet;
 import java.util.TreeSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -100,12 +85,12 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
         CParameterDeclaration par=pParameters.get(i);
         String name=par.getQualifiedName();
         Variable pvar=new Variable(name);
-        SortedSet<Variable> deps=new TreeSet<>();
+      NavigableSet<Variable> deps = new TreeSet<>();
 
         CExpression expr=pArguments.get(i);
         VariableDependancy visitor = new VariableDependancy();
         expr.accept(visitor);
-        SortedSet<Variable> vars=visitor.getResult();
+      NavigableSet<Variable> vars = visitor.getResult();
         for(Variable var: vars){
             assert(state.getDependencies().containsKey(pvar));
             deps.addAll(state.getDependencies().get(var));
@@ -137,8 +122,8 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
       CExpression left=funcExp.getLeftHandSide();
       VariableDependancy visitor=new VariableDependancy();
       left.accept(visitor);
-      SortedSet<Variable> varl=visitor.getResult();
-      SortedSet<Variable> deps=new TreeSet<>();
+      NavigableSet<Variable> varl = visitor.getResult();
+      NavigableSet<Variable> deps = new TreeSet<>();
       assert(state.getDependencies().containsKey(function));
       deps.addAll(state.getDependencies().get(function));
 
@@ -177,7 +162,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
          * Global Variable
          * -depends initially on itself
          */
-        SortedSet<Variable> deps=new TreeSet<>();
+        NavigableSet<Variable> deps = new TreeSet<>();
         deps.add(var);
         result.getDependencies().put(var, deps);
       }
@@ -186,11 +171,11 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
          * Local Variable
          * -depends initially on the dependencies of its initializer
          */
-        SortedSet<Variable> deps=new TreeSet<>();
+        NavigableSet<Variable> deps = new TreeSet<>();
         if(dec.getInitializer()!=null){
           Variable tvar=new Variable(dec.getInitializer().toASTString());
           if(state.getDependencies().containsKey(tvar)){
-            SortedSet<Variable> tdeps=state.getDependencies().get(tvar);
+            NavigableSet<Variable> tdeps = state.getDependencies().get(tvar);
             deps.addAll(tdeps);
           }
         }
@@ -205,7 +190,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
       CFunctionDeclaration dec = (CFunctionDeclaration) pDecl;
       String fname=dec.getQualifiedName();
       Variable fvar=new Variable(fname);
-      SortedSet<Variable> fdeps=new TreeSet<>();
+      NavigableSet<Variable> fdeps = new TreeSet<>();
       result.getDependencies().put(fvar,fdeps);
 
       //Set Default-Dependancies of Parameter
@@ -213,7 +198,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
       for(CParameterDeclaration par:param){
         String name=par.getQualifiedName();
         Variable var=new Variable(name);
-        SortedSet<Variable> deps=new TreeSet<>();
+        NavigableSet<Variable> deps = new TreeSet<>();
         result.getDependencies().put(var, deps);
       }
     }
@@ -239,15 +224,15 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
 
       VariableDependancy visitor=new VariableDependancy();
       left.accept(visitor);
-      SortedSet<Variable> varl=visitor.getResult();
+      NavigableSet<Variable> varl = visitor.getResult();
 
       visitor=new VariableDependancy();
       right.accept(visitor);
-      SortedSet<Variable> vars=visitor.getResult();
+      NavigableSet<Variable> vars = visitor.getResult();
 
       for(Variable l: varl){
         assert(state.getDependencies().containsKey(l));
-        SortedSet<Variable> deps=new TreeSet<>();
+        NavigableSet<Variable> deps = new TreeSet<>();
         for(Variable var: vars){
           assert(state.getDependencies().containsKey(var));
           deps.addAll(state.getDependencies().get(var));
@@ -267,10 +252,10 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
 
        expr.accept(visitor);
        Variable function=visitor.getFunctionname();
-       SortedSet<Variable> vars=visitor.getResult();
+      NavigableSet<Variable> vars = visitor.getResult();
 
        assert(state.getDependencies().containsKey(function));
-       SortedSet<Variable> deps=new TreeSet<>();
+      NavigableSet<Variable> deps = new TreeSet<>();
        for(Variable var: vars){
          assert(state.getDependencies().containsKey(var));
          deps.addAll(state.getDependencies().get(var));
@@ -350,10 +335,10 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
           LocationSet lset=memloc.getValue();
           for (Variable var2 : trackerState.getDependencies().keySet()) {
             if(lset.mayPointTo(MemoryLocation.valueOf(var2.toString()))){
-              SortedSet<Variable> varset1 = trackerState.getDependencies().get(var);
-              SortedSet<Variable> varset2 = trackerState.getDependencies().get(var2);
+              NavigableSet<Variable> varset1 = trackerState.getDependencies().get(var);
+              NavigableSet<Variable> varset2 = trackerState.getDependencies().get(var2);
               if (!varset1.equals(varset2)) {
-                SortedSet<Variable> newvarset1=new TreeSet<>(varset2);
+                NavigableSet<Variable> newvarset1 = new TreeSet<>(varset2);
                 trackerState.getDependencies().put(var, newvarset1);
               }
             }
@@ -387,12 +372,12 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
           CExpression left= ((CExpressionAssignmentStatement) ((CStatementEdge)pCfaEdge).getStatement()).getLeftHandSide();
           VariableDependancy visitor=new VariableDependancy();
           left.accept(visitor);
-          SortedSet<Variable> varl=visitor.getResult();
+          NavigableSet<Variable> varl = visitor.getResult();
           for(Variable var: varl){
-            SortedSet<Variable> cvars=pState.getDependencies().get(var);
+            NavigableSet<Variable> cvars = pState.getDependencies().get(var);
             int size=ostate.getGuards().getSize();
             for(int i=0;i<size;i++){
-              SortedSet<Variable> nvars = ostate.getGuards().getVariables(i);
+              NavigableSet<Variable> nvars = ostate.getGuards().getVariables(i);
               cvars.addAll(nvars);
             }
           }
@@ -424,12 +409,12 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
           CExpression left= ((CFunctionCallAssignmentStatement) ((CFunctionReturnEdge)pCfaEdge).getSummaryEdge().getExpression()).getLeftHandSide();
           VariableDependancy visitor=new VariableDependancy();
           left.accept(visitor);
-          SortedSet<Variable> varl=visitor.getResult();
+          NavigableSet<Variable> varl = visitor.getResult();
           for(Variable var: varl){
-            SortedSet<Variable> cvars=pState.getDependencies().get(var);
+            NavigableSet<Variable> cvars = pState.getDependencies().get(var);
             int size=ostate.getGuards().getSize();
             for(int i=0;i<size;i++){
-              SortedSet<Variable> nvars = ostate.getGuards().getVariables(i);
+              NavigableSet<Variable> nvars = ostate.getGuards().getVariables(i);
               cvars.addAll(nvars);
             }
           }
@@ -464,10 +449,10 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
           expr.accept(visitor);
           Variable function=visitor.getFunctionname();
 
-          SortedSet<Variable> cvars=pState.getDependencies().get(function);
+          NavigableSet<Variable> cvars = pState.getDependencies().get(function);
           int size=ostate.getGuards().getSize();
           for(int i=0;i<size;i++){
-            SortedSet<Variable> nvars = ostate.getGuards().getVariables(i);
+            NavigableSet<Variable> nvars = ostate.getGuards().getVariables(i);
             cvars.addAll(nvars);
           }
          }
@@ -495,13 +480,13 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
           CallstackState ostate=(CallstackState) astate;
           String function = ostate.getCurrentFunction();
           Variable fvar=new Variable(function);
-          SortedSet<Variable> deps=new TreeSet<>();
+          NavigableSet<Variable> deps = new TreeSet<>();
           if(edge.getExpression().isPresent()){
             //return x;
             CExpression expr=edge.getExpression().get();
             VariableDependancy visitor=new VariableDependancy();
             expr.accept(visitor);
-            SortedSet<Variable> vars=visitor.getResult();
+            NavigableSet<Variable> vars = visitor.getResult();
             for(Variable var: vars){
               assert(pState.getDependencies().containsKey(var));
               deps.addAll(pState.getDependencies().get(var));
