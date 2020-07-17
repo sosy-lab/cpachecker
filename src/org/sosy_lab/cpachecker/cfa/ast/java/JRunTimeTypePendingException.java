@@ -12,6 +12,8 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 public class JRunTimeTypePendingException extends JVariableRunTimeType {
 
+  private static final long serialVersionUID = 8533391047865289737L;
+
   public JRunTimeTypePendingException(JIdExpression pReferencedVariable) {
     super(FileLocation.DUMMY, pReferencedVariable);
   }

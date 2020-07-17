@@ -13,6 +13,9 @@ import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
 public class JIdExpressionOfPendingException extends JIdExpression {
+
+  private static final long serialVersionUID = 7788790137238292607L;
+
   public JIdExpressionOfPendingException(
       FileLocation pFileLocation, JType pType, String pName, JSimpleDeclaration pDeclaration) {
     super(pFileLocation, pType, pName, pDeclaration);
