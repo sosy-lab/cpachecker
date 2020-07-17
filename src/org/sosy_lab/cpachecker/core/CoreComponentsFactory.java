@@ -45,9 +45,11 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.IMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.composition.CompositionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.dstar.DStarAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVReachedSet;
+import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.ochiai.OchiaiAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.AlgorithmWithPropertyCheck;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ConfigReadingProofCheckAlgorithm;
@@ -59,7 +61,7 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramCon
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.tarantula.TarantulaAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.tarantula.TarantulaAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
@@ -94,6 +96,18 @@ public class CoreComponentsFactory {
       name = "algorithm.tarantula",
       description = "use fault localization with tarantula")
   private boolean useTarantula = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.dstar",
+      description = "use fault localization with DStar")
+  private boolean useDStar = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.ochiai",
+      description = "use fault localization with Ochiai")
+  private boolean useOchiai = false;
 
   @Option(secure=true, description="use assumption collecting algorithm")
   private boolean collectAssumptions = false;
@@ -536,6 +550,12 @@ public class CoreComponentsFactory {
       }
       if (useTarantula) {
         algorithm = new TarantulaAlgorithm(algorithm, shutdownNotifier, logger);
+      }
+      if (useDStar) {
+        algorithm = new DStarAlgorithm(algorithm, shutdownNotifier, logger);
+      }
+      if (useOchiai) {
+        algorithm = new OchiaiAlgorithm(algorithm, shutdownNotifier, logger);
       }
       if (useCustomInstructionRequirementExtraction) {
         algorithm = new CustomInstructionRequirementsExtractingAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa);

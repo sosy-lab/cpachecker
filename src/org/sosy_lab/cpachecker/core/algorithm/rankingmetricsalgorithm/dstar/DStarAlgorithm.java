@@ -5,7 +5,7 @@
 // SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
-package org.sosy_lab.cpachecker.core.algorithm.tarantula;
+package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.dstar;
 
 import static com.google.common.collect.FluentIterable.from;
 
@@ -37,13 +37,13 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.Info
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-public class TarantulaAlgorithm implements Algorithm, StatisticsProvider, Statistics {
+public class DStarAlgorithm implements Algorithm, StatisticsProvider, Statistics {
   private final Algorithm algorithm;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   StatTimer totalAnalysisTime = new StatTimer("Time for fault localization");
 
-  public TarantulaAlgorithm(
+  public DStarAlgorithm(
       Algorithm analysisAlgorithm, ShutdownNotifier pShutdownNotifier, final LogManager pLogger) {
     algorithm = analysisAlgorithm;
     this.shutdownNotifier = pShutdownNotifier;
@@ -72,9 +72,9 @@ public class TarantulaAlgorithm implements Algorithm, StatisticsProvider, Statis
           logger.log(
               Level.WARNING, "There is no safe Path, the algorithm is therefore not efficient");
         }
-        logger.log(Level.INFO, "Start tarantula algorithm ... ");
+        logger.log(Level.INFO, "Start DStar algorithm ... ");
 
-        runTarantulaProcess(counterExamples, safeCase, failedCase);
+        runDStarProcess(counterExamples, safeCase, failedCase);
 
       } else {
         logger.log(Level.INFO, "There is no counterexample. No bugs found.");
@@ -89,13 +89,13 @@ public class TarantulaAlgorithm implements Algorithm, StatisticsProvider, Statis
    * Prints result after calculating suspicious and make the ranking for all edges and then store
    * the results <code>CPALog.txt</code> and make the graphical representations possible
    */
-  public void runTarantulaProcess(
+  public void runDStarProcess(
       FluentIterable<CounterexampleInfo> pCounterexampleInfo,
       SafeCase safeCase,
       FailedCase failedCase)
       throws InterruptedException {
     FaultLocalizationInfo info;
-    TarantulaRanking ranking = new TarantulaRanking(safeCase, failedCase, shutdownNotifier);
+    DStarRanking ranking = new DStarRanking(safeCase, failedCase, shutdownNotifier);
     List<Fault> faults = new FaultLocalizationFault().getFaults(ranking.getRanked());
     logger.log(Level.INFO, faults);
     for (CounterexampleInfo counterexample : pCounterexampleInfo) {
@@ -116,11 +116,11 @@ public class TarantulaAlgorithm implements Algorithm, StatisticsProvider, Statis
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
     StatisticsWriter w0 = StatisticsWriter.writingStatisticsTo(out);
-    w0.put("Tarantula total time", totalAnalysisTime);
+    w0.put("DStar total time", totalAnalysisTime);
   }
 
   @Override
   public @Nullable String getName() {
-    return "Fault Localization With Tarantula";
+    return "Fault Localization With DStar";
   }
 }

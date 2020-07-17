@@ -5,7 +5,7 @@
 // SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
-package org.sosy_lab.cpachecker.core.algorithm.tarantula;
+package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.ochiai;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -21,12 +21,12 @@ import org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics.Sa
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 
-public class TarantulaRanking {
+public class OchiaiRanking {
   private final SafeCase safeCase;
   private final FailedCase failedCase;
   private final CoverageInformation coverageInformation;
 
-  public TarantulaRanking(
+  public OchiaiRanking(
       SafeCase pSafeCase, FailedCase pFailedCase, ShutdownNotifier pShutdownNotifier) {
     this.safeCase = pSafeCase;
     this.failedCase = pFailedCase;
@@ -34,7 +34,7 @@ public class TarantulaRanking {
   }
 
   /**
-   * Calculates suspicious of tarantula algorithm.
+   * Calculates suspicious of ochiai algorithm.
    *
    * @param pFailed Is the number of pFailed cases in each edge.
    * @param pPassed Is the number of pPassed cases in each edge.
@@ -42,24 +42,22 @@ public class TarantulaRanking {
    * @param totalPassed Is the total number of all possible safe paths.
    * @return Calculated suspicious.
    */
-  private double computeSuspicious(
-      double pFailed, double pPassed, double totalFailed, double totalPassed) {
-    double numerator = pFailed / totalFailed;
-    double denominator = (pPassed / totalPassed) + (pFailed / totalFailed);
+  private double computeSuspicious(double pFailed, double pPassed, double totalFailed) {
+
+    double denominator = Math.sqrt(totalFailed * (pFailed + pPassed));
     if (denominator == 0.0) {
       return 0.0;
     }
-    return numerator / denominator;
+    return pFailed / denominator;
   }
   /**
    * Gets ranking information with calculated Suspiciousness
    *
-   * @return Calculated tarantula ranking.
+   * @return Calculated ochiai ranking.
    */
   public Map<FaultInformation, FaultContribution> getRanked() throws InterruptedException {
     Set<ARGPath> safePaths = safeCase.getSafePaths();
     Set<ARGPath> errorPaths = failedCase.getErrorPaths();
-    int totalSafePaths = safePaths.size();
     int totalErrorPaths = errorPaths.size();
     Map<CFAEdge, FaultLocalizationCasesStatus> coverage =
         coverageInformation.getCoverageInformation(safePaths, errorPaths);
@@ -71,8 +69,7 @@ public class TarantulaRanking {
               computeSuspicious(
                   pFaultLocalizationCasesStatus.getFailedCases(),
                   pFaultLocalizationCasesStatus.getPassedCases(),
-                  totalErrorPaths,
-                  totalSafePaths);
+                  totalErrorPaths);
           // Skip 0 line numbers
           if (pCFAEdge.getLineNumber() != 0) {
             FaultContribution pFaultContribution = new FaultContribution(pCFAEdge);
