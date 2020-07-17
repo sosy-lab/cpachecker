@@ -39,12 +39,11 @@ public class DStarRanking {
    * @param pFailed Is the number of pFailed cases in each edge.
    * @param pPassed Is the number of pPassed cases in each edge.
    * @param totalFailed Is the total number of all possible error paths.
-   * @param totalPassed Is the total number of all possible safe paths.
    * @return Calculated suspicious.
    */
   private double computeSuspicious(double pFailed, double pPassed, double totalFailed) {
     double numerator = Math.pow(pFailed, 2);
-    double denominator = (pPassed) + (totalFailed - pFailed);
+    double denominator = (pPassed + (totalFailed - pFailed));
     if (denominator == 0.0) {
       return 0.0;
     }
