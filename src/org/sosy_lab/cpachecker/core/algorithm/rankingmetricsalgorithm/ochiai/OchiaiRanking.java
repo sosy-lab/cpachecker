@@ -39,7 +39,6 @@ public class OchiaiRanking {
    * @param pFailed Is the number of pFailed cases in each edge.
    * @param pPassed Is the number of pPassed cases in each edge.
    * @param totalFailed Is the total number of all possible error paths.
-   * @param totalPassed Is the total number of all possible safe paths.
    * @return Calculated suspicious.
    */
   private double computeSuspicious(double pFailed, double pPassed, double totalFailed) {
