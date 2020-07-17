@@ -474,14 +474,12 @@ class ASTConverter {
     }
   }
 
-
-/**
- * Converts JDT VariableDeclarationStatement into an AST.
- *
- *
- * @param vds JDT VariableDeclarationStatement to be transformed
- * @return AST representing given Parameter
- */
+  /**
+   * Converts JDT VariableDeclarationStatement into an AST.
+   *
+   * @param vds JDT VariableDeclarationStatement to be transformed
+   * @return AST representing given Parameter
+   */
   public List<JDeclaration> convert(VariableDeclarationStatement vds) {
 
     List<JDeclaration> variableDeclarations = new ArrayList<>();
@@ -492,13 +490,13 @@ class ASTConverter {
     FileLocation fileLoc = getFileLocation(vds);
     Type type = vds.getType();
 
-
     @SuppressWarnings("unchecked")
     ModifierBean mB = ModifierBean.getModifiers(vds.modifiers());
 
     assert (!mB.isAbstract()) : "Local Variable has abstract modifier?";
     assert (!mB.isNative()) : "Local Variable has native modifier?";
-    assert (mB.getVisibility() == VisibilityModifier.NONE) : "Local Variable has Visibility modifier?";
+    assert (mB.getVisibility() == VisibilityModifier.NONE)
+        : "Local Variable has Visibility modifier?";
     assert (!mB.isStatic()) : "Local Variable has static modifier?";
     assert (!mB.isStrictFp()) : "Local Variable has strictFp modifier?";
     assert (!mB.isSynchronized()) : "Local Variable has synchronized modifier?";
@@ -507,18 +505,17 @@ class ASTConverter {
 
       NameAndInitializer nameAndInitializer = getNamesAndInitializer(vdf);
 
-        String name = nameAndInitializer.getName();
-        int i = 0;
-        while (scope.variableNameInUse(name + i, name)) {
-          i++;
-        }
-        name += i;
-      JVariableDeclaration newD = new JVariableDeclaration(fileLoc,
-          convert(type), name,
-          nameAndInitializer.getName(),
-          getQualifiedName(nameAndInitializer.getName()),
-          nameAndInitializer.getInitializer(),
-          mB.isFinal());
+      String name = nameAndInitializer.getName();
+      name = addCounterToName(name);
+      JVariableDeclaration newD =
+          new JVariableDeclaration(
+              fileLoc,
+              convert(type),
+              name,
+              nameAndInitializer.getName(),
+              getQualifiedName(nameAndInitializer.getName()),
+              nameAndInitializer.getInitializer(),
+              mB.isFinal());
 
       variableDeclarations.add(newD);
     }
@@ -558,14 +555,12 @@ class ASTConverter {
 
     String name = d.getName().getFullyQualifiedName();
 
-    int i = 0;
-    while (scope.variableNameInUse(name + i, name)) {
-      i++;
-    }
-    name += i;
+    name = addCounterToName(name);
 
-    return new JVariableDeclaration(getFileLocation(d),
-        convert(type), name,
+    return new JVariableDeclaration(
+        getFileLocation(d),
+        convert(type),
+        name,
         d.getName().getFullyQualifiedName(),
         getQualifiedName(d.getName().getFullyQualifiedName()),
         initializerExpression,
@@ -1003,8 +998,7 @@ class ASTConverter {
     List<JDeclaration> variableDeclarations = new ArrayList<>();
 
     @SuppressWarnings("unchecked")
-    List<VariableDeclarationFragment> variableDeclarationFragments =
-        vde.fragments();
+    List<VariableDeclarationFragment> variableDeclarationFragments = vde.fragments();
 
     FileLocation fileLoc = getFileLocation(vde);
     Type type = vde.getType();
@@ -1014,7 +1008,8 @@ class ASTConverter {
 
     assert (!mB.isAbstract()) : "Local Variable has abstract modifier?";
     assert (!mB.isNative()) : "Local Variable has native modifier?";
-    assert (mB.getVisibility() == VisibilityModifier.NONE) : "Local Variable has Visibility modifier?";
+    assert (mB.getVisibility() == VisibilityModifier.NONE)
+        : "Local Variable has Visibility modifier?";
     assert (!mB.isStatic()) : "Local Variable has static modifier?";
     assert (!mB.isStrictFp()) : "Local Variable has strictFp modifier?";
     assert (!mB.isSynchronized()) : "Local Variable has synchronized modifier?";
@@ -1023,12 +1018,18 @@ class ASTConverter {
 
       NameAndInitializer nameAndInitializer = getNamesAndInitializer(vdf);
 
-      JVariableDeclaration newD = new JVariableDeclaration(fileLoc,
-          convert(type), nameAndInitializer.getName(),
-          nameAndInitializer.getName(),
-          getQualifiedName(nameAndInitializer.getName()),
-          nameAndInitializer.getInitializer(),
-          mB.isFinal());
+      String name = nameAndInitializer.getName();
+      name = addCounterToName(name);
+
+      JVariableDeclaration newD =
+          new JVariableDeclaration(
+              fileLoc,
+              convert(type),
+              name,
+              nameAndInitializer.getName(),
+              getQualifiedName(nameAndInitializer.getName()),
+              nameAndInitializer.getInitializer(),
+              mB.isFinal());
 
       variableDeclarations.add(newD);
     }
@@ -1036,6 +1037,16 @@ class ASTConverter {
     forInitDeclarations.addAll(variableDeclarations);
 
     return null;
+  }
+
+  private String addCounterToName(String pName) {
+    int i = 0;
+    String sep = "__";
+    while (scope.variableNameInUse(pName + sep + i, pName)) {
+      i++;
+    }
+    pName = pName + sep + i;
+    return pName;
   }
 
   private JExpression convert(InstanceofExpression e) {
