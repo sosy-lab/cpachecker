@@ -76,13 +76,14 @@ public class TarantulaRanking {
           // Skip 0 line numbers
           if (pCFAEdge.getLineNumber() != 0) {
             FaultContribution pFaultContribution = new FaultContribution(pCFAEdge);
-
-            pFaultContribution.setScore(suspicious);
-            hints.add(pFaultContribution);
-            rankedInfo.put(
-                new FaultInformation(
-                    suspicious, hints, pFaultContribution.correspondingEdge().getLineNumber()),
-                pFaultContribution);
+            if (suspicious != 0) {
+              pFaultContribution.setScore(suspicious);
+              hints.add(pFaultContribution);
+              rankedInfo.put(
+                  new FaultInformation(
+                      suspicious, hints, pFaultContribution.correspondingEdge().getLineNumber()),
+                  pFaultContribution);
+            }
           }
         });
 
