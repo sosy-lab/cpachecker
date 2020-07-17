@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
@@ -876,6 +877,7 @@ public final class InterpolationManager {
                     formulasWithStatesAndGroupdIds);
             assert Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst)
                 .equals(formulas.getFormulas());
+            verify(spurious, "Counterexample formulas became satisfiable on second try");
 
           } finally {
             incrementalCheck = originalIncrementalCheck;
