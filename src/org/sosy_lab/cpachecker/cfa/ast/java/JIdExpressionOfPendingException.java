@@ -26,14 +26,14 @@ public class JIdExpressionOfPendingException extends JIdExpression {
         new JVariableDeclaration(
             FileLocation.DUMMY,
             JClassType.createUnresolvableType(),
-            "dummy_pending_Exception",
-            "dummy_pending_Exception",
-            "dummy_pending_Exception",
+            "pending_Exception",
+            "pending_Exception",
+            "pending_Exception",
             null,
             false);
     return new JIdExpressionOfPendingException(
         FileLocation.DUMMY,
-        JClassType.createUnresolvableType(),
+        jVariableDeclaration.getType(),
         "pending exception",
         jVariableDeclaration);
   }

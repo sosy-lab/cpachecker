@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
@@ -71,6 +72,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpressionIsPendingExceptionThrown;
 import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
@@ -102,6 +104,7 @@ import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
+import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -132,7 +135,8 @@ class CFAMethodBuilder extends ASTVisitor {
   private final Deque<CFANode> switchCaseStack = new ArrayDeque<>();
 
   // Data structure for handling try catch throw
-  private final Deque<CFANode> tryStack = new ArrayDeque<>();
+  // First value of list is post try node, second is post finally node
+  private final Deque<List<Optional<CFANode>>> tryStack = new ArrayDeque<>();
 
   // Data structures for label , continue , break
   private final Map<String, CLabelNode> labelMap = new HashMap<>();
@@ -1742,15 +1746,60 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     cfaNodes.add(tryNode);
     locStack.push(tryNode);
 
-    BlankEdge blankEdge =
-        new BlankEdge(pTryStatement.toString(), fileloc, prevNode, tryNode, "try");
-    addToCFA(blankEdge);
-
     CFANode postTryNode = new CFANode(cfa.getFunction());
     cfaNodes.add(postTryNode);
-    tryStack.push(postTryNode);
+
+    if (pTryStatement.getFinally() != null) {
+      CFANode postFinallyNode = new CFANode(cfa.getFunction());
+      cfaNodes.add(postFinallyNode);
+
+      tryStack.push(ImmutableList.of(Optional.of(postTryNode), Optional.of(postFinallyNode)));
+    } else {
+      tryStack.push(ImmutableList.of(Optional.of(postTryNode), Optional.empty()));
+    }
+    CFANode hasPendingExceptionNode = new CFANode(cfa.getFunction());
+    cfaNodes.add(hasPendingExceptionNode);
+
+    JIdExpression jIdExpression =
+        new JIdExpressionIsPendingExceptionThrown();
+
+    final Optional<CFANode> postFinallyNode = getPostFinallyNode();
+    createConditionEdges(
+        jIdExpression,
+        fileloc,
+        prevNode,
+        postFinallyNode.isEmpty() ? postTryNode : postFinallyNode.get(),
+        hasPendingExceptionNode);
+
+    BlankEdge blankEdge =
+        new BlankEdge(pTryStatement.toString(), fileloc, hasPendingExceptionNode, tryNode, "try");
+    addToCFA(blankEdge);
 
     return VISIT_CHILDREN;
+  }
+
+  @Override
+  public void endVisit(TryStatement pTryStatement) {
+
+    if (getPostFinallyNode().isPresent()) {
+
+      CFANode prevNode = locStack.pop();
+      final CFANode postFinallyNode = getPostFinallyNode().get();
+
+      FileLocation fileloc = astCreator.getFileLocation(pTryStatement);
+
+      BlankEdge blankEdge =
+          new BlankEdge(
+              pTryStatement.toString(),
+              fileloc,
+              prevNode,
+              postFinallyNode,
+              "End of finally");
+      addToCFA(blankEdge);
+
+      locStack.push(postFinallyNode);
+    }
+    tryStack.pop();
   }
 
   @Override
@@ -1771,15 +1820,13 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     JDeclaration jDeclarationOfException = astCreator.convert(pCatchClauseNode.getException());
 
-    JExpression jExpressionOfThrown;
+    JExpression jRunTimeTypePendingException = new JRunTimeTypePendingException();
 
-      jExpressionOfThrown = new JRunTimeTypePendingException();
-    
-      final JExpression instanceOfExpression =
-          astCreator.createInstanceOfExpression(
-              jExpressionOfThrown,
-              (JClassOrInterfaceType) jDeclarationOfException.getType(),
-              fileloc);
+    final JExpression instanceOfExpression =
+        astCreator.createInstanceOfExpression(
+            jRunTimeTypePendingException,
+            (JClassOrInterfaceType) jDeclarationOfException.getType(),
+            fileloc);
 
     createConditionEdges(
         instanceOfExpression, fileloc, prevNode, exceptionMatchesNode, exceptionDoesNotMatchNode);
@@ -1815,13 +1862,14 @@ private void handleTernaryExpression(ConditionalExpression condExp,
       }
 
       if (prevNode.getNumEnteringEdges() > 0) {
-        BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, prevNode, tryStack.peek(), "");
+        BlankEdge blankEdge =
+            new BlankEdge("", FileLocation.DUMMY, prevNode, getPostTryNode().get(), "");
         addToCFA(blankEdge);
       }
     }
 
     if (isLastCatchClause(pCatchClause)) {
-      final CFANode tryEndNode = tryStack.pop();
+      final CFANode tryEndNode = getPostTryNode().get();
       BlankEdge blankEdge =
           new BlankEdge("", FileLocation.DUMMY, nextNode, tryEndNode, "go to end of try");
       addToCFA(blankEdge);
@@ -1836,6 +1884,16 @@ private void handleTernaryExpression(ConditionalExpression condExp,
       return true;
     }
     return false;
+  }
+
+  private Optional<CFANode> getPostTryNode() {
+    assert tryStack.peek() != null && tryStack.peek().size() == 2;
+    return tryStack.peek().get(0);
+  }
+
+  private Optional<CFANode> getPostFinallyNode() {
+    assert tryStack.peek() != null && tryStack.peek().size() == 2;
+    return tryStack.peek().get(1);
   }
 
   @Override

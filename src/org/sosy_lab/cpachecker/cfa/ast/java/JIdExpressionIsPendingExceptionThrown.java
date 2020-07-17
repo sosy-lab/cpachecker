@@ -9,12 +9,10 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 
-public class JRunTimeTypePendingException extends JVariableRunTimeType {
-
-  private static final long serialVersionUID = 8533391047865289737L;
-
-  public JRunTimeTypePendingException() {
-    super(FileLocation.DUMMY, JIdExpressionOfPendingException.create());
+public class JIdExpressionIsPendingExceptionThrown extends JIdExpression {
+  public JIdExpressionIsPendingExceptionThrown() {
+    super(FileLocation.DUMMY, JSimpleType.getBoolean(), "isPendingExceptionThrown", null);
   }
 }
