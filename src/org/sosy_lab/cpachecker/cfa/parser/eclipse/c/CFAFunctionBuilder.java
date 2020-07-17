@@ -330,6 +330,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     assert nextNode != null;
     locStack.push(nextNode);
+    nextNode.setStatementStackDepth(locStack.size());
 
     return PROCESS_SKIP; // important to skip here, otherwise we would visit nested declarations
   }
@@ -457,6 +458,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     final CFANode nextNode = newCFANode();
     locStack.add(nextNode);
+    nextNode.setStatementStackDepth(locStack.size());
 
     final BlankEdge dummyEdge = new BlankEdge("", FileLocation.DUMMY,
         startNode, nextNode, "Function start dummy edge");
@@ -477,6 +479,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     final CFANode nextNode = newCFANode();
     locStack.push(nextNode);
+    nextNode.setStatementStackDepth(locStack.size());
 
     final BlankEdge edge = new BlankEdge(asmCode.getRawSignature(),
         fileloc, prevNode, nextNode, "Ignored inline assembler code");
@@ -583,6 +586,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       //  Push the start of the else clause onto our location stack
       CFANode elseNode = elseStack.pop();
       locStack.push(elseNode);
+      elseNode.setStatementStackDepth(locStack.size());
     }
 
     // Handle each kind of expression
@@ -656,6 +660,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       lastNode = createIASTExpressionStatementEdges(rawSignature, fileloc, prevNode, statement);
     }
     locStack.push(lastNode);
+    lastNode.setStatementStackDepth(locStack.size());
   }
 
   /**
@@ -725,6 +730,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CLabelNode labelNode = new CLabelNode(cfa.getFunction(), labelName);
     locStack.push(labelNode);
+    labelNode.setStatementStackDepth(locStack.size());
 
     if (localLabel == null) {
       labelMap.put(labelName, labelNode);
@@ -776,6 +782,7 @@ class CFAFunctionBuilder extends ASTVisitor {
               "Label: " + labelName);
       addToCFA(blankEdge);
       locStack.push(node);
+      node.setStatementStackDepth(locStack.size());
     }
   }
 
@@ -817,6 +824,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CFANode nextNode = newCFANode();
     locStack.push(nextNode);
+    nextNode.setStatementStackDepth(locStack.size());
   }
 
   /**
@@ -845,6 +853,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CFANode nextNode = newCFANode();
     locStack.push(nextNode);
+    nextNode.setStatementStackDepth(locStack.size());
   }
 
   /**
@@ -909,6 +918,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
       CFANode nextNode = loopNextStack.pop();
       assert nextNode.equals(locStack.peek());
+      nextNode.setStatementStackDepth(locStack.size());
     }
     return PROCESS_CONTINUE;
   }
@@ -1089,9 +1099,11 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CFANode postIfNode = newCFANode();
     locStack.push(postIfNode);
+    postIfNode.setStatementStackDepth(locStack.size());
 
     CFANode thenNode = newCFANode();
     locStack.push(thenNode);
+    thenNode.setStatementStackDepth(locStack.size());
 
     CFANode elseNode;
     // elseNode is the start of the else branch,
@@ -1456,7 +1468,9 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // inverse order here!
     locStack.push(postLoopNode);
+    postLoopNode.setStatementStackDepth(locStack.size());
     locStack.push(firstLoopNode);
+    firstLoopNode.setStatementStackDepth(locStack.size());
 
     createConditionEdges(condition, fileloc,
         loopStart, firstLoopNode, postLoopNode);
@@ -1481,6 +1495,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CFANode nextNode = newCFANode();
     locStack.push(nextNode);
+    nextNode.setStatementStackDepth(locStack.size());
   }
 
   /**
@@ -1498,6 +1513,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     CFANode nextNode = new CFANode(cfa.getFunction());
     locStack.push(nextNode);
+    nextNode.setStatementStackDepth(locStack.size());
   }
 
 
@@ -1543,7 +1559,9 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     // inverse order here!
     locStack.push(postLoopNode);
+    postLoopNode.setStatementStackDepth(locStack.size());
     locStack.push(firstLoopNode);
+    firstLoopNode.setStatementStackDepth(locStack.size());
 
     createConditionEdgesForForLoop(forStatement.getConditionExpression(),
           fileLocation, loopStart, postLoopNode, firstLoopNode);
@@ -1690,8 +1708,11 @@ class CFAFunctionBuilder extends ASTVisitor {
     final CFANode postSwitchNode = newCFANode();
     loopNextStack.push(postSwitchNode);
     locStack.push(postSwitchNode);
+    postSwitchNode.setStatementStackDepth(locStack.size());
 
-    locStack.push(new CFANode(cfa.getFunction()));
+    CFANode nextNode = new CFANode(cfa.getFunction());
+    locStack.push(nextNode);
+    nextNode.setStatementStackDepth(locStack.size());
 
     switchDefaultStack.push(null);
     switchDefaultFileLocationStack.push(null);
@@ -1776,6 +1797,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     switchCaseStack.push(nextCaseStartsAtNode);
     locStack.push(caseNode);
+    caseNode.setStatementStackDepth(locStack.size());
   }
 
   /**
@@ -1925,6 +1947,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     }
 
     locStack.push(caseNode);
+    caseNode.setStatementStackDepth(locStack.size());
   }
 
 
@@ -2072,6 +2095,7 @@ class CFAFunctionBuilder extends ASTVisitor {
 
     scope.enterBlock();
     locStack.push(rootNode);
+    rootNode.setStatementStackDepth(locStack.size());
 
     int locDepth = locStack.size();
     int conditionDepth = elseStack.size();
