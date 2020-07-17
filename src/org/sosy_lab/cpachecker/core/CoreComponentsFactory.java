@@ -417,7 +417,7 @@ public class CoreComponentsFactory {
 
     } else if (useWitnessToACSLAlgorithm) {
       algorithm = new WitnessToACSLAlgorithm(
-              config, logger, shutdownNotifier, specification, cfa, aggregatedReachedSets);
+              config, logger, shutdownNotifier, specification, cfa);
 
     } else {
       algorithm = CPAAlgorithm.create(cpa, logger, config, shutdownNotifier);
