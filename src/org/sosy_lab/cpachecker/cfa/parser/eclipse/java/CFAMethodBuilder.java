@@ -21,7 +21,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
@@ -72,7 +71,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JFieldDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
-import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpressionOfPendingException;
 import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodDeclaration;
@@ -134,7 +132,6 @@ class CFAMethodBuilder extends ASTVisitor {
   private final Deque<CFANode> switchCaseStack = new ArrayDeque<>();
 
   // Data structure for handling try catch throw
-  private final Deque<Optional<JSimpleDeclaration>> throwables = new ArrayDeque<>();
   private final Deque<CFANode> tryStack = new ArrayDeque<>();
 
   // Data structures for label , continue , break
@@ -1736,7 +1733,6 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
   @Override
   public boolean visit(TryStatement pTryStatement) {
-    throwables.push(Optional.empty());
     FileLocation fileloc = astCreator.getFileLocation(pTryStatement);
 
     CFANode prevNode = locStack.pop();
@@ -1758,11 +1754,6 @@ private void handleTernaryExpression(ConditionalExpression condExp,
   }
 
   @Override
-  public void endVisit(TryStatement pTryStatement) {
-    throwables.pop();
-  }
-
-  @Override
   public boolean visit(CatchClause pCatchClauseNode) {
 
     FileLocation fileloc = astCreator.getFileLocation(pCatchClauseNode);
@@ -1780,28 +1771,18 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     JDeclaration jDeclarationOfException = astCreator.convert(pCatchClauseNode.getException());
 
-    assert !throwables.isEmpty() : "Wrong depth of throwables in CFAMethodBuilder";
-    final Optional<JSimpleDeclaration> thrown = this.throwables.peek();
     JExpression jExpressionOfThrown;
-    if (thrown.isPresent()) {
-      jExpressionOfThrown =
-          new JRunTimeTypePendingException(new JIdExpressionOfPendingException(fileloc, thrown.get().getType(), thrown.get().getName(), thrown.get()));
-    }
-    else {
+
       jExpressionOfThrown = new JRunTimeTypePendingException();
-    }
+    
       final JExpression instanceOfExpression =
           astCreator.createInstanceOfExpression(
               jExpressionOfThrown,
               (JClassOrInterfaceType) jDeclarationOfException.getType(),
               fileloc);
 
-      createConditionEdges(
-          instanceOfExpression,
-          fileloc,
-          prevNode,
-          exceptionMatchesNode,
-          exceptionDoesNotMatchNode);
+    createConditionEdges(
+        instanceOfExpression, fileloc, prevNode, exceptionMatchesNode, exceptionDoesNotMatchNode);
 
     return VISIT_CHILDREN;
   }
@@ -1860,8 +1841,6 @@ private void handleTernaryExpression(ConditionalExpression condExp,
   @Override
   public void endVisit(ThrowStatement pThrowStatement) {
     JSimpleDeclaration thrown = scope.lookupVariable(pThrowStatement.getExpression().toString());
-    throwables.pop();
-    throwables.push(Optional.of(thrown));
 
     FileLocation fileloc = astCreator.getFileLocation(pThrowStatement);
 
