@@ -1858,7 +1858,10 @@ private void handleTernaryExpression(ConditionalExpression condExp,
   }
 
   @Override
-  public boolean visit(ThrowStatement pThrowStatement) {
+  public void endVisit(ThrowStatement pThrowStatement) {
+    JSimpleDeclaration thrown = scope.lookupVariable(pThrowStatement.getExpression().toString());
+    throwables.pop();
+    throwables.push(Optional.of(thrown));
 
     FileLocation fileloc = astCreator.getFileLocation(pThrowStatement);
 
@@ -1869,17 +1872,9 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     locStack.push(throwNode);
 
     BlankEdge blankEdge =
-        new BlankEdge(pThrowStatement.toString(), fileloc, prevNode, throwNode, "throw");
+        new BlankEdge(
+            pThrowStatement.toString(), fileloc, prevNode, throwNode, "throw " + thrown.getName());
     addToCFA(blankEdge);
-
-    return VISIT_CHILDREN;
-  }
-
-  @Override
-  public void endVisit(ThrowStatement pThrowStatement){
-    JSimpleDeclaration thrown = scope.lookupVariable(pThrowStatement.getExpression().toString());
-    throwables.pop();
-    throwables.push(Optional.of(thrown));
   }
 
   @Override
