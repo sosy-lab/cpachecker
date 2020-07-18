@@ -16,6 +16,11 @@ public class ACSLAssertion implements ACSLAnnotation {
   }
 
   @Override
+  public ACSLPredicate getCompletenessPredicate() {
+    return ACSLPredicate.getTrue();
+  }
+
+  @Override
   public String toString() {
     return kind.toString() + ' ' + predicate.toString() + ';';
   }

@@ -64,19 +64,7 @@ public class StatementContract implements ACSLAnnotation {
           new ACSLLogicalPredicate(preStatePredicate, enclosingConjunction, BinaryOperator.OR);
     }
 
-    // for completeness-clauses the location doesn't matter, so they could also be added in the
-    // post-state predicate
-    ACSLPredicate completenessRepresentation = ACSLPredicate.getTrue();
-    for (CompletenessClause completenessClause : completenessClauses) {
-      completenessRepresentation =
-          new ACSLLogicalPredicate(
-              completenessRepresentation,
-              completenessClause.getPredicateRepresentation(),
-              BinaryOperator.AND);
-    }
-
-    return new ACSLLogicalPredicate(
-        preStatePredicate, completenessRepresentation, BinaryOperator.AND);
+    return preStatePredicate;
   }
 
   @Override
@@ -105,6 +93,19 @@ public class StatementContract implements ACSLAnnotation {
     }
 
     return postStatePredicate;
+  }
+
+  @Override
+  public ACSLPredicate getCompletenessPredicate() {
+    ACSLPredicate completenessPredicate = ACSLPredicate.getTrue();
+    for (CompletenessClause completenessClause : completenessClauses) {
+      completenessPredicate =
+          new ACSLLogicalPredicate(
+              completenessPredicate,
+              completenessClause.getPredicateRepresentation(),
+              BinaryOperator.AND);
+    }
+    return completenessPredicate.simplify();
   }
 
   @Override

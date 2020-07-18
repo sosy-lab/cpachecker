@@ -400,7 +400,8 @@ precedence left TIMES, DIVIDE, MOD;
 precedence right NEG, BNEG, UPLUS, UMINUS, STAR, AMPERSAND, RPAREN;
 precedence left RBRACKET;
 
-annotations ::= annotations:as annotation:a {: as.add(a); RESULT = as; :}
+annotations ::= annotations:as annotation:a {: assert !a.getCompletenessPredicate().equals(ACSLPredicate.getFalse());
+                                               as.add(a); RESULT = as; :}
             | /* nothing */                 {: RESULT = new ArrayList<>(); :};
 annotation ::= fcontract:f {: RESULT = f; :}
             | scontract:s           {:  RESULT = s; :}

@@ -40,4 +40,6 @@ public interface ACSLAnnotation {
   default ACSLPredicate getPostStateRepresentation() {
     throw new UnsupportedOperationException();
   }
+
+  ACSLPredicate getCompletenessPredicate();
 }

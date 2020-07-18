@@ -57,6 +57,11 @@ public class ACSLLoopAnnotation implements ACSLAnnotation {
   }
 
   @Override
+  public ACSLPredicate getCompletenessPredicate() {
+    return ACSLPredicate.getTrue();
+  }
+
+  @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();
     builder.append(lInvariant.toString());
