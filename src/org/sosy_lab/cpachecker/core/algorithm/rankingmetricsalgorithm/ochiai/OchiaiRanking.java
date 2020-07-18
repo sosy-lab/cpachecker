@@ -8,7 +8,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.ochiai;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
