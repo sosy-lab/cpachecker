@@ -21,8 +21,8 @@ public class TAExplicitTime extends TAAbstractTime {
   private static final String TIME_VARIABLE_NAME = "#time";
   private final boolean localEncoding;
 
-  public TAExplicitTime(FormulaManagerView pFmgr, boolean pLocalEncoding) {
-    super(pFmgr);
+  public TAExplicitTime(FormulaManagerView pFmgr, boolean pLocalEncoding, boolean pAllowZeroDelay) {
+    super(pFmgr, pAllowZeroDelay);
     localEncoding = pLocalEncoding;
   }
 
@@ -68,10 +68,27 @@ public class TAExplicitTime extends TAAbstractTime {
 
   @Override
   public BooleanFormula makeTimeUpdateFormula(TaDeclaration pAutomaton, int pIndexBefore) {
+    var timeVariableUpdate = makeTimeVariableUpdateFormula(pAutomaton, pIndexBefore);
+    var clocksUnchanged =
+        makeClockVariablesDoNotChangeFormula(pAutomaton, pIndexBefore, pAutomaton.getClocks());
+
+    return bFmgr.and(timeVariableUpdate, clocksUnchanged);
+  }
+
+  private BooleanFormula makeTimeVariableUpdateFormula(TaDeclaration pAutomaton, int pIndexBefore) {
     var timeVariableBeforeFormula = makeTimeVariableFormula(pAutomaton, pIndexBefore);
     var timeVariableAfterFormula = makeTimeVariableFormula(pAutomaton, pIndexBefore + 1);
 
-    return fmgr.makeGreaterOrEqual(timeVariableAfterFormula, timeVariableBeforeFormula, true);
+    BooleanFormula timeVariableRelation;
+    if (allowZeroDelay) {
+      timeVariableRelation =
+          fmgr.makeGreaterOrEqual(timeVariableAfterFormula, timeVariableBeforeFormula, true);
+    } else {
+      timeVariableRelation =
+          fmgr.makeGreaterThan(timeVariableAfterFormula, timeVariableBeforeFormula, true);
+    }
+
+    return timeVariableRelation;
   }
 
   @Override

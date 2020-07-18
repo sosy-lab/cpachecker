@@ -105,13 +105,13 @@ public class TAFormulaEncodingProvider {
 
   private TATime createTimeEncoding(FormulaManagerView pFmgr) {
     if (options.timeEncoding == TimeEncodingType.GLOBAL_EXPLICIT) {
-      return new TAExplicitTime(pFmgr, false);
+      return new TAExplicitTime(pFmgr, false, options.allowZeroDelay);
     }
     if (options.timeEncoding == TimeEncodingType.GLOBAL_IMPLICIT) {
-      return new TAGlobalImplicitTime(pFmgr);
+      return new TAGlobalImplicitTime(pFmgr, options.allowZeroDelay);
     }
     if (options.timeEncoding == TimeEncodingType.LOCAL_EXPLICIT) {
-      return new TAExplicitTime(pFmgr, true);
+      return new TAExplicitTime(pFmgr, true, options.allowZeroDelay);
     }
     throw new AssertionError("Unknown encoding type");
   }

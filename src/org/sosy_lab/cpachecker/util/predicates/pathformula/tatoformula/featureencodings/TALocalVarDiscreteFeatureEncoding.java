@@ -19,7 +19,7 @@ import org.sosy_lab.java_smt.api.FormulaType;
 public class TALocalVarDiscreteFeatureEncoding<T> implements TADiscreteFeatureEncoding<T> {
   private final String variableName;
   private static final FormulaType<?> VARIABLE_TYPE = FormulaType.IntegerType;
-  private Map<T, Integer> ids;
+  public Map<T, Integer> ids;
   protected final FormulaManagerView fmgr;
 
   public TALocalVarDiscreteFeatureEncoding(FormulaManagerView pFmgr, String pVariableName) {
@@ -28,7 +28,7 @@ public class TALocalVarDiscreteFeatureEncoding<T> implements TADiscreteFeatureEn
     ids = new HashMap<>();
   }
 
-  protected void addEntry(T pValue) {
+  public void addEntry(T pValue) {
     ids.putIfAbsent(pValue, ids.size());
   }
 

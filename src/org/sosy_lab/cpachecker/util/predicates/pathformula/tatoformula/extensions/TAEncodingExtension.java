@@ -17,7 +17,7 @@ public interface TAEncodingExtension {
 
   BooleanFormula makeInitialFormula(TaDeclaration pAutomaton, int pInitialIndex);
 
-  BooleanFormula makeFinalConditionForAutomaton(TaDeclaration pAutomaton, int pStep);
+  BooleanFormula makeFinalConditionForAutomaton(TaDeclaration pAutomaton, int pMaxUnrolling);
 
   BooleanFormula makeDiscreteStep(TaDeclaration pAutomaton, int pLastReachedIndex, TCFAEdge pEdge);
 

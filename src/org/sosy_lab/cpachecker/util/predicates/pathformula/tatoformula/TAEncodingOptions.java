@@ -18,6 +18,7 @@ public class TAEncodingOptions {
   public static enum TAEncodingExtensionType {
     SHALLOW_SYNC,
     INVARIANTS,
+    TRANSITION_TYPES,
     TRANSITION_ACTIONS
   }
 
@@ -110,4 +111,7 @@ public class TAEncodingOptions {
       description =
           "Whether to add the invariant to discrete/delay transition of globally to the whole step formula")
   public InvariantType invariantType = InvariantType.LOCAL;
+
+  @Option(secure = true, description = "Delays of zero are allowed if true")
+  public Boolean allowZeroDelay = true;
 }

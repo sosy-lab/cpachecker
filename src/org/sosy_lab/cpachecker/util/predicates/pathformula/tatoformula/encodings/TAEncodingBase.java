@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Collection;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -176,24 +175,16 @@ public abstract class TAEncodingBase implements TAFormulaEncoding {
     var stepFormulas = unrollingStates.transform(TAUnrollingState::getFormula);
     var behaviorEncoding = bFmgr.and(stepFormulas.toSet());
 
-    var stepConditions =
-        IntStream.rangeClosed(0, maxUnrolling)
-            .mapToObj(step -> makeFinalConditionForUnrollingStep(step))
-            .collect(Collectors.toSet());
-
-    var finalCondition = bFmgr.or(stepConditions);
+    var finalConditions =
+        from(automata.getAllAutomata())
+            .transform(automaton -> makeFinalConditionForAutomaton(automaton, maxUnrolling));
+    var finalCondition = bFmgr.and(finalConditions.toSet());
 
     return bFmgr.and(behaviorEncoding, finalCondition);
   }
 
-  private BooleanFormula makeFinalConditionForUnrollingStep(int step) {
-    var automatonFormulas =
-        from(automata.getAllAutomata())
-            .transform(automaton -> makeFinalConditionForAutomaton(automaton, step));
-    return bFmgr.and(automatonFormulas.toSet());
-  }
-
-  private final BooleanFormula makeFinalConditionForAutomaton(TaDeclaration pAutomaton, int pStep) {
+  private final BooleanFormula makeFinalConditionForAutomaton(
+      TaDeclaration pAutomaton, int pMaxUnrolling) {
     var errorLocations =
         from(automata.getNodesByAutomaton(pAutomaton)).filter(TCFANode::isErrorLocation).toSet();
     if (errorLocations.isEmpty()) {
@@ -202,10 +193,11 @@ public abstract class TAEncodingBase implements TAFormulaEncoding {
 
     var errorLocationFormulas =
         from(errorLocations)
-            .transform(node -> locations.makeLocationEqualsFormula(pAutomaton, pStep, node));
+            .transform(
+                node -> locations.makeLocationEqualsFormula(pAutomaton, pMaxUnrolling, node));
     var anyErrorLocationReached = bFmgr.or(errorLocationFormulas.toSet());
 
-    var extensionsFormula = extensions.makeFinalConditionForAutomaton(pAutomaton, pStep);
+    var extensionsFormula = extensions.makeFinalConditionForAutomaton(pAutomaton, pMaxUnrolling);
 
     return bFmgr.and(anyErrorLocationReached, extensionsFormula);
   }

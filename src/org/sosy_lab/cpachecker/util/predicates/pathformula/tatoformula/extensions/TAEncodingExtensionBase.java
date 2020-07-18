@@ -34,7 +34,8 @@ public class TAEncodingExtensionBase implements TAEncodingExtension {
   }
 
   @Override
-  public BooleanFormula makeFinalConditionForAutomaton(TaDeclaration pAutomaton, int pStep) {
+  public BooleanFormula makeFinalConditionForAutomaton(
+      TaDeclaration pAutomaton, int pMaxUnrolling) {
     return bFmgr.makeTrue();
   }
 

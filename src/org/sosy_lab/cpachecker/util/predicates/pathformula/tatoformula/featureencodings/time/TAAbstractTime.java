@@ -28,10 +28,12 @@ public abstract class TAAbstractTime implements TATime {
       FormulaType.getFloatingPointType(15, 112);
   protected final FormulaManagerView fmgr;
   protected final BooleanFormulaManagerView bFmgr;
+  protected final boolean allowZeroDelay;
 
-  public TAAbstractTime(FormulaManagerView pFmgr) {
+  public TAAbstractTime(FormulaManagerView pFmgr, boolean pAllowZeroDelay) {
     fmgr = pFmgr;
     bFmgr = pFmgr.getBooleanFormulaManager();
+    allowZeroDelay = pAllowZeroDelay;
   }
 
   @Override

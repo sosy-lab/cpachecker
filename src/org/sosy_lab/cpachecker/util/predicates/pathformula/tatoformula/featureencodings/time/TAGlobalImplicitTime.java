@@ -20,8 +20,8 @@ import org.sosy_lab.java_smt.api.Formula;
 public class TAGlobalImplicitTime extends TAAbstractTime {
   private static final String DELAY_VARIABLE_NAME = "#delay";
 
-  public TAGlobalImplicitTime(FormulaManagerView pFmgr) {
-    super(pFmgr);
+  public TAGlobalImplicitTime(FormulaManagerView pFmgr, boolean pAllowZeroDelay) {
+    super(pFmgr, pAllowZeroDelay);
   }
 
   @Override
@@ -58,11 +58,17 @@ public class TAGlobalImplicitTime extends TAAbstractTime {
         from(pAutomaton.getClocks())
             .transform(clock -> makeTimeUpdateFormula(clock, delayVariable, pIndexBefore));
     var clockUpdatesFormula = bFmgr.and(clockUpdateFormulas.toSet());
-
-    var zero = fmgr.makeNumber(CLOCK_VARIABLE_TYPE, 0);
-    var delayLowerBound = fmgr.makeGreaterOrEqual(delayVariable, zero, false);
-
+    BooleanFormula delayLowerBound = makeDelayLowerBound(delayVariable);
     return bFmgr.and(delayLowerBound, clockUpdatesFormula);
+  }
+
+  private BooleanFormula makeDelayLowerBound(Formula delayVariable) {
+    var zero = fmgr.makeNumber(CLOCK_VARIABLE_TYPE, 0);
+    if (allowZeroDelay) {
+      return fmgr.makeGreaterOrEqual(delayVariable, zero, false);
+    } else {
+      return fmgr.makeGreaterThan(delayVariable, zero, false);
+    }
   }
 
   private BooleanFormula makeTimeUpdateFormula(

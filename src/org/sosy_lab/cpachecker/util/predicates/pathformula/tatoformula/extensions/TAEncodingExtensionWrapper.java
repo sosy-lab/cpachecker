@@ -46,8 +46,9 @@ public class TAEncodingExtensionWrapper implements TAEncodingExtension {
   }
 
   @Override
-  public BooleanFormula makeFinalConditionForAutomaton(TaDeclaration pAutomaton, int pStep) {
-    return combineExtensions(ext -> ext.makeFinalConditionForAutomaton(pAutomaton, pStep));
+  public BooleanFormula makeFinalConditionForAutomaton(
+      TaDeclaration pAutomaton, int pMaxUnrolling) {
+    return combineExtensions(ext -> ext.makeFinalConditionForAutomaton(pAutomaton, pMaxUnrolling));
   }
 
   @Override

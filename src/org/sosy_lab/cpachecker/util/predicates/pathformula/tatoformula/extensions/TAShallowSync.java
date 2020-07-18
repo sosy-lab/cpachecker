@@ -27,6 +27,7 @@ public class TAShallowSync extends TAEncodingExtensionBase {
   private final TAActions actions;
   private final FormulaType<?> timeFormulaType;
   private static final FormulaType<?> countFormulaType = FormulaType.IntegerType;
+  private static final FormulaType<?> occurenceStepFormulaType = FormulaType.IntegerType;
   private final TimedAutomatonView automata;
 
   public TAShallowSync(
@@ -75,10 +76,29 @@ public class TAShallowSync extends TAEncodingExtensionBase {
       TaDeclaration pAutomaton, int pLastReachedIndex, TaVariable action, int occurenceCount) {
     var occurenceCountFormula =
         makeOccurenceCountEqualsFormula(pAutomaton, pLastReachedIndex + 1, action, occurenceCount);
-    var occurenceTimeStampVariable = makeOccurenceTimeFormula(pLastReachedIndex + 1, action);
+
+    var occurenceTimeStampVariable = makeOccurenceTimeVariable(occurenceCount, action);
     var timeOfOccurence =
         time.makeTimeEqualsVariable(pAutomaton, pLastReachedIndex, occurenceTimeStampVariable);
-    return bFmgr.implication(occurenceCountFormula, timeOfOccurence);
+
+    var globalOrderVariable = makeGlobalActionOrderVariable(action, occurenceCount);
+    var oldLocalOrderVariable = makeLocalOrderVariable(pAutomaton, pLastReachedIndex);
+    var newLocalOrderVariable = makeLocalOrderVariable(pAutomaton, pLastReachedIndex + 1);
+    var f1 = fmgr.makeEqual(globalOrderVariable, oldLocalOrderVariable);
+    var f2 = fmgr.makeGreaterThan(newLocalOrderVariable, oldLocalOrderVariable, false);
+    var f3 = bFmgr.and(f1, f2);
+
+    return bFmgr.implication(occurenceCountFormula, bFmgr.and(f3, timeOfOccurence));
+  }
+
+  private Formula makeGlobalActionOrderVariable(TaVariable pAction, int pOccurenceCount) {
+    var variableName = "order#" + pAction.getName();
+    return fmgr.makeVariable(occurenceStepFormulaType, variableName, pOccurenceCount);
+  }
+
+  private Formula makeLocalOrderVariable(TaDeclaration pAutomaton, int pLastReaachedIndex) {
+    var variableName = pAutomaton.getName() + "#order";
+    return fmgr.makeVariable(occurenceStepFormulaType, variableName, pLastReaachedIndex);
   }
 
   private BooleanFormula makeCounterStepFormula(
@@ -103,18 +123,21 @@ public class TAShallowSync extends TAEncodingExtensionBase {
   }
 
   @Override
-  public BooleanFormula makeFinalConditionForAutomaton(TaDeclaration pAutomaton, int pStep) {
+  public BooleanFormula makeFinalConditionForAutomaton(
+      TaDeclaration pAutomaton, int pMaxUnrolling) {
 
     var occurenceCounts = bFmgr.makeTrue();
     for (var action : automata.getActionsByAutomaton(pAutomaton)) {
-      var localOccurenceCount = makeOccurenceCountFormula(pAutomaton, pStep, action);
-      var globalOccurenceCount = makeFinalOccurenceCountFormula(action);
+      var localOccurenceCount = makeOccurenceCountFormula(pAutomaton, pMaxUnrolling, action);
+      var globalOccurenceCount = makeFinalOccurenceCountVariable(action);
       occurenceCounts =
           bFmgr.and(fmgr.makeEqual(globalOccurenceCount, localOccurenceCount), occurenceCounts);
     }
 
-    var finalTime = makeFinalTimeFormula();
-    return bFmgr.and(occurenceCounts, time.makeTimeEqualsVariable(pAutomaton, pStep, finalTime));
+    var finalTimeVariable = makeFinalTimeVariable();
+    var finalTimeFormula =
+        time.makeTimeEqualsVariable(pAutomaton, pMaxUnrolling, finalTimeVariable);
+    return bFmgr.and(occurenceCounts, finalTimeFormula);
   }
 
   private Formula makeOccurenceCountFormula(
@@ -140,9 +163,9 @@ public class TAShallowSync extends TAEncodingExtensionBase {
     return fmgr.makeEqual(occurenceCountVarAfter, fmgr.makePlus(occurenceCountVarBefore, one));
   }
 
-  private Formula makeOccurenceTimeFormula(int pVariableIndex, TaVariable pVariable) {
+  private Formula makeOccurenceTimeVariable(int pOccurenceCount, TaVariable pVariable) {
     var variableName = "occurence_time#" + pVariable.getName();
-    return fmgr.makeVariable(timeFormulaType, variableName, pVariableIndex);
+    return fmgr.makeVariable(timeFormulaType, variableName, pOccurenceCount);
   }
 
   private BooleanFormula makeOccurenceCountUnchangedFormula(
@@ -152,12 +175,12 @@ public class TAShallowSync extends TAEncodingExtensionBase {
     return fmgr.makeEqual(actionCountAfter, actionCountBefore);
   }
 
-  private Formula makeFinalOccurenceCountFormula(TaVariable pVariable) {
+  private Formula makeFinalOccurenceCountVariable(TaVariable pVariable) {
     var variableName = "occurence_count_final#" + pVariable.getName();
     return fmgr.makeVariable(countFormulaType, variableName);
   }
 
-  private Formula makeFinalTimeFormula() {
+  private Formula makeFinalTimeVariable() {
     var variableName = "#final_time";
     return fmgr.makeVariable(timeFormulaType, variableName);
   }

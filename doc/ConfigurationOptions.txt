@@ -2799,6 +2799,9 @@ cpa.timedautomata.actionDetachedIdle = true
 cpa.timedautomata.actionEncoding = GLOBAL_ID
   enum:     [LOCAL_ID, GLOBAL_ID, BOOLEAN_VAR]
 
+# Delays of zero are allowed if true
+cpa.timedautomata.allowZeroDelay = true
+
 # Type of unrolling of the formula. Options are: TRANSITION_UNROLLING,
 # LOCATION_UNROLLING, CONSTRAINT_UNROLLING
 cpa.timedautomata.automatonEncodingType = CONSTRAINT_UNROLLING
