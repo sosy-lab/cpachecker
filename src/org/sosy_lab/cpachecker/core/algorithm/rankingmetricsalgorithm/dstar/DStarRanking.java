@@ -61,7 +61,6 @@ public class DStarRanking {
     Map<CFAEdge, FaultLocalizationCasesStatus> coverage =
         coverageInformation.getCoverageInformation(safePaths, errorPaths);
     Map<FaultInformation, FaultContribution> rankedInfo = new HashMap<>();
-    Set<FaultContribution> hints = new HashSet<>();
     coverage.forEach(
         (pCFAEdge, pFaultLocalizationCasesStatus) -> {
           double suspicious =
@@ -73,14 +72,12 @@ public class DStarRanking {
           FaultContribution pFaultContribution = new FaultContribution(pCFAEdge);
           if (suspicious != 0) {
             pFaultContribution.setScore(suspicious);
-            hints.add(pFaultContribution);
             rankedInfo.put(
                 new FaultInformation(
-                    suspicious, hints, pFaultContribution.correspondingEdge().getLineNumber()),
+                    suspicious, null, pFaultContribution.correspondingEdge().getLineNumber()),
                 pFaultContribution);
           }
         });
-
     return rankedInfo;
   }
 }
