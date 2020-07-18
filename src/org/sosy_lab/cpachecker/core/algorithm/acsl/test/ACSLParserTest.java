@@ -45,10 +45,10 @@ import org.sosy_lab.cpachecker.util.test.TestDataTools;
 @RunWith(Parameterized.class)
 public class ACSLParserTest {
 
-  private static String TEST_DIR = "test/programs/acsl/";
+  private static final String TEST_DIR = "test/programs/acsl/";
 
-  private String programName;
-  private CFACreator cfaCreator;
+  private final String programName;
+  private final CFACreator cfaCreator;
 
   public ACSLParserTest(String pProgramName) throws InvalidConfigurationException {
     programName = pProgramName;

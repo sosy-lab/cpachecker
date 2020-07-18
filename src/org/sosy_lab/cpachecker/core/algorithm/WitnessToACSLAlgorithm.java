@@ -123,10 +123,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     // this is important because otherwise the candidates will not be displayed!
     gen.produceMoreCandidates();
     List<ExpressionTreeLocationInvariant> cands = new ArrayList<>();
-    java.util.Iterator<CandidateInvariant> it = gen.iterator();
-    while (it.hasNext()) {
-      CandidateInvariant inv = it.next();
-
+    for (CandidateInvariant inv : gen) {
       if (inv instanceof ExpressionTreeLocationInvariant) {
         cands.add((ExpressionTreeLocationInvariant) inv);
       }
@@ -246,7 +243,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
         logger.logfUserException(Level.SEVERE, pE, "Could not write annotations for file %s", file);
       }
     }
-    return AlgorithmStatus.SOUND_AND_PRECISE;
+    return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
   private void writeToFile(String pathToOriginalFile, List<String> newContent) throws IOException{

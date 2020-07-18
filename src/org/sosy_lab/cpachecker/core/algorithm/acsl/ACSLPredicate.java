@@ -135,7 +135,16 @@ public abstract class ACSLPredicate {
 
     @Override
     public boolean equals(Object obj) {
-      return obj == singleton;
+      if (obj instanceof TRUE) {
+        assert obj == singleton && this == singleton;
+        return true;
+      }
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return 23;
     }
 
     @Override
@@ -194,7 +203,16 @@ public abstract class ACSLPredicate {
 
     @Override
     public boolean equals(Object obj) {
-      return obj == singleton;
+      if (obj instanceof FALSE) {
+        assert obj == singleton && this == singleton;
+        return true;
+      }
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return 19;
     }
 
     @Override
