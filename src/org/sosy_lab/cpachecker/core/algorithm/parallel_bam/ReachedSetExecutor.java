@@ -34,6 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -241,6 +242,9 @@ class ReachedSetExecutor {
     // TODO checking this once on RSE-creation would be sufficient
     checkForTargetState();
 
+    assert FluentIterable.from(rs).filter(MissingBlockAbstractionState.class).isEmpty()
+        : "dummy state should never exist for longer than needed in a reached-set";
+
     if (!targetStateFound) {
       // further analysis of the reached-set, sub-analysis is scheduled if necessary
       algorithm.run(rs);
@@ -348,7 +352,12 @@ class ReachedSetExecutor {
     }
 
     logger.logf(
-        level, "%s :: finished=%s, targetStateFound=%s", this, isFinished, targetStateFound);
+        level,
+        "%s :: finished=%s, targetStateFound=%s, terminateAnalysis=%s",
+        this,
+        isFinished,
+        targetStateFound,
+        terminateAnalysis);
   }
 
   private void updateCache() {
@@ -384,7 +393,11 @@ class ReachedSetExecutor {
     // first lock is only against deadlock of locks for 'reachedSetMapping' and 'dependingFrom'.
     // TODO optimize lock/unlock behavior if performance is too bad
     synchronized (dependingFrom) {
-      logger.logf(level, "%s :: %s -> %s", this, this, dependingFrom.keys());
+      logger.logf(
+          level,
+          "%s :: -> %s",
+          this,
+          Iterables.transform(dependingFrom.entries(), e -> e.getKey() + "#" + id(e.getValue())));
       for (Entry<ReachedSetExecutor, Collection<AbstractState>> parent :
           dependingFrom.asMap().entrySet()) {
         registerJob(parent.getKey(), parent.getKey().asRunnable(parent.getValue()));
@@ -415,14 +428,21 @@ class ReachedSetExecutor {
   private void handleMissingBlock(MissingBlockAbstractionState pBsme)
       throws UnsupportedCodeException {
     final AbstractState parentState = pBsme.getState();
+    @Nullable final ReachedSet reached = pBsme.getReachedSet();
     assert rs.contains(parentState) : "parent reachedset must contain entry state";
 
-    logger.logf(level, "%s :: missing block, bsme=%s", this, id(parentState));
+    logger.logf(
+        level,
+        "%s :: missing block, bsme=%s, reached=%s",
+        this,
+        id(parentState),
+        reached == null ? reached : id(reached));
 
     rs.remove(pBsme);
 
     if (targetStateFound) {
-      logger.logf(Level.SEVERE, "%s :: after finding a missing block, we should not get new states", this);
+      logger.logf(
+          Level.SEVERE, "%s :: after finding a missing block, we should not get new states", this);
       throw new AssertionError("after finding a missing block, we should not get new states");
     }
 
@@ -454,7 +474,7 @@ class ReachedSetExecutor {
     if (rs.getWaitlist().isEmpty()) {
       // optimization: if no further states are waiting, no need to schedule the current RSE.
       // when sub-analysis is finished, the current analysis is re-started.
-      logger.logf(level, "%s :: not scheduling self, emtpy waitlist", this);
+      logger.logf(level, "%s :: not scheduling self, empty waitlist", this);
     } else {
       // register current RSE for further analysis.
       // this step results in 'parallel' execution of current analysis and sub-analysis.
@@ -502,28 +522,27 @@ class ReachedSetExecutor {
       }
     }
 
-    ReachedSetExecutor newSubRse =
-        new ReachedSetExecutor(
-            bamcpa,
+    // check whether we already have a matching RSE.
+    // If an old RSE is available, ignore the newly created one. Otherwise use the new one.
+    ReachedSetExecutor subRse =
+        reachedSetMapping.computeIfAbsent(
             newRs,
-            pBsme.getBlock(),
-            false, // mainReachedSet is never nested in another reached-set
-            reachedSetMapping,
-            pool,
-            algorithmFactory,
-            shutdownNotifier,
-            stats,
-            errors,
-            terminateAnalysis,
-            scheduledJobs,
-            logger);
-
-    // check whether we already have a matching RSE. If not use the new one.
-    ReachedSetExecutor subRse = reachedSetMapping.putIfAbsent(newRs, newSubRse);
-    if (subRse == null) { // there was an already existent RSE
-      subRse = newSubRse;
-      logger.logf(level, "%s :: register subRSE %s", this, id(newRs));
-    }
+            newRs2 ->
+                new ReachedSetExecutor(
+                    bamcpa,
+                    newRs2,
+                    pBsme.getBlock(),
+                    false, // mainReachedSet is never nested in another reached-set
+                    reachedSetMapping,
+                    pool,
+                    algorithmFactory,
+                    shutdownNotifier,
+                    stats,
+                    errors,
+                    terminateAnalysis,
+                    scheduledJobs,
+                    logger));
+    logger.logf(level, "%s :: register sub%s", this, subRse);
     return subRse;
   }
 
@@ -532,7 +551,7 @@ class ReachedSetExecutor {
    * reached-set.
    */
   private void registerJob(ReachedSetExecutor pRse, Runnable r) {
-    logger.logf(level, "%s :: scheduling RSE: %s", this, pRse);
+    logger.logf(level, "%s :: scheduling %s", this, pRse);
     pRse.addNewTask(r);
   }
 
