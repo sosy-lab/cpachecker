@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
@@ -245,17 +244,13 @@ public final class BMCHelper {
       return loopHeads;
     }
     LoopStructure loopStructure = pCFA.getLoopStructure().orElseThrow();
-    return from(loopStructure.getAllLoops()).transformAndConcat(new Function<Loop, Iterable<CFANode>>() {
-
-      @Override
-      public Iterable<CFANode> apply(Loop pLoop) {
+    return from(loopStructure.getAllLoops()).transformAndConcat(pLoop -> {
         if (Sets.intersection(pLoop.getLoopNodes(), loopHeads).isEmpty()) {
           return ImmutableSet.of();
         }
         return pLoop.getLoopHeads();
       }
-
-    }).toSet();
+    ).toSet();
   }
 
   public static FluentIterable<AbstractState> filterIterationsBetween(
