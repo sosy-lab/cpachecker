@@ -19,9 +19,11 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -117,12 +119,11 @@ public final class BMCHelper {
       FormulaManagerView pFMGR,
       boolean pForce)
       throws CPATransferException, InterruptedException {
-    BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
-    BooleanFormula result = bfmgr.makeTrue();
+    List<BooleanFormula> result = new ArrayList<>();
     for (AbstractState abstractState : pStates) {
-      result = bfmgr.and(result, assertAt(abstractState, pInvariant, pFMGR, pForce));
+      result.add(assertAt(abstractState, pInvariant, pFMGR, pForce));
     }
-    return result;
+    return pFMGR.getBooleanFormulaManager().and(result);
   }
 
   private static BooleanFormula assertAt(
@@ -164,8 +165,8 @@ public final class BMCHelper {
       BooleanFormulaManager pBFMGR,
       Optional<ShutdownNotifier> pShutdownNotifier)
       throws InterruptedException {
-    BooleanFormula f = pBFMGR.makeFalse();
 
+    List<BooleanFormula> pathFormulas = new ArrayList<>();
     for (PredicateAbstractState e :
         AbstractStates.projectToType(states, PredicateAbstractState.class)) {
       if (pShutdownNotifier.isPresent()) {
@@ -177,10 +178,10 @@ public final class BMCHelper {
           pBFMGR.and(
               e.getAbstractionFormula().getBlockFormula().getFormula(),
               e.getPathFormula().getFormula());
-      f = pBFMGR.or(f, pathFormula);
+      pathFormulas.add(pathFormula);
     }
 
-    return f;
+    return pBFMGR.or(pathFormulas);
   }
 
   /**
@@ -382,15 +383,13 @@ public final class BMCHelper {
   public static BooleanFormula disjoinStateViolationAssertions(
       BooleanFormulaManager pBfmgr,
       Multimap<BooleanFormula, BooleanFormula> pSuccessorViolationAssertions) {
-    BooleanFormula disjunction = pBfmgr.makeFalse();
+    List<BooleanFormula> assertions = new ArrayList<>();
     for (Map.Entry<BooleanFormula, Collection<BooleanFormula>> stateWithViolations :
         pSuccessorViolationAssertions.asMap().entrySet()) {
-      disjunction =
-          pBfmgr.or(
-              disjunction,
-              pBfmgr.and(stateWithViolations.getKey(), pBfmgr.and(stateWithViolations.getValue())));
+      assertions.add(
+          pBfmgr.and(stateWithViolations.getKey(), pBfmgr.and(stateWithViolations.getValue())));
     }
-    return disjunction;
+    return pBfmgr.or(assertions);
   }
 
   static FluentIterable<AbstractState> filterBmcChecked(
