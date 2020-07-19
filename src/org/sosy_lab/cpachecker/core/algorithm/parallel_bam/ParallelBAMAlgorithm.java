@@ -341,7 +341,10 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
       StatisticsUtils.write(pOut, 0, 50, threadTime);
       StatisticsUtils.write(pOut, 1, 50, addingStatesTime);
       StatisticsUtils.write(pOut, 1, 50, terminationCheckTime);
+    }
 
+    @Override
+    public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
       if (runningRSESeriesFile != null) {
         try {
           IO.writeFile(runningRSESeriesFile, Charset.defaultCharset(), runningRSESeries);
