@@ -154,12 +154,12 @@ parser code {:
           cfaWithLocs.getFunctionHead(edge.getSuccessor().getFunctionName()).getExitNode();
       for (int i = 0; i < exit.getNumEnteringEdges(); i++) {
         CFAEdge currentEdge = exit.getEnteringEdge(i);
-        cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
+        cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation.getCopyForPostState());
       }
       // currently we always have to move function contracts since they get matched to
       // one edge too late
       assert edge.getPredecessor().getNumEnteringEdges() == 1;
-      cfaWithLocs.getEdgesToAnnotations().put(edge.getPredecessor().getEnteringEdge(0), annotation);
+      cfaWithLocs.getEdgesToAnnotations().put(edge.getPredecessor().getEnteringEdge(0), annotation.getCopyForPreState());
       return true;
     }
 
@@ -167,8 +167,7 @@ parser code {:
         CFAWithACSLAnnotationLocations cfaWithLocs, CFAEdge edge, StatementContract annotation) {
       // requirements have to be fulfilled by all entering edges
       for (int i = 0; i < edge.getPredecessor().getNumEnteringEdges(); i++) {
-        cfaWithLocs.getEdgesToAnnotations().put(edge.getPredecessor().getEnteringEdge(i), annotation);
-        annotation.addEdgeForPreState(edge.getPredecessor().getEnteringEdge(i));
+        cfaWithLocs.getEdgesToAnnotations().put(edge.getPredecessor().getEnteringEdge(i), annotation.getCopyForPreState());
       }
       // Add statement contracts directly after the statement as well because some clauses have to
       // be evaluated in the post-state
@@ -187,7 +186,7 @@ parser code {:
           if (currentEdge == edge) {
             remove = false;
           } else {
-            cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
+            cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation.getCopyForPostState());
           }
         } else {
           for (int i = 0; i < successor.getNumLeavingEdges(); i++) {

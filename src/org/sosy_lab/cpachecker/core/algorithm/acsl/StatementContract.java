@@ -2,10 +2,7 @@ package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 
 public class StatementContract implements ACSLAnnotation {
 
@@ -14,7 +11,7 @@ public class StatementContract implements ACSLAnnotation {
   private final ImmutableList<Behavior> enclosingBehaviors;
   private final ImmutableList<Behavior> ownBehaviors;
   private final ImmutableList<CompletenessClause> completenessClauses;
-  private final Set<CFAEdge> edgesForPreState = new HashSet<>();
+  private final boolean usePreStateRepresentation;
 
   public StatementContract(
       RequiresClause req,
@@ -22,11 +19,22 @@ public class StatementContract implements ACSLAnnotation {
       List<Behavior> enclosing,
       List<Behavior> own,
       List<CompletenessClause> pCompletenessClauses) {
+    this(req, ens, enclosing, own, pCompletenessClauses, false);
+  }
+
+  public StatementContract(
+      RequiresClause req,
+      EnsuresClause ens,
+      List<Behavior> enclosing,
+      List<Behavior> own,
+      List<CompletenessClause> pCompletenessClauses,
+      boolean pUsePreStateRepresentation) {
     requiresClause = req;
     ensuresClause = ens;
     enclosingBehaviors = ImmutableList.copyOf(enclosing);
     ownBehaviors = ImmutableList.copyOf(own);
     completenessClauses = ImmutableList.copyOf(pCompletenessClauses);
+    usePreStateRepresentation = pUsePreStateRepresentation;
   }
 
   public static StatementContract fromFunctionContract(
@@ -40,7 +48,11 @@ public class StatementContract implements ACSLAnnotation {
   }
 
   @Override
-  public ACSLPredicate getPreStateRepresentation() {
+  public ACSLPredicate getPredicateRepresentation() {
+    return usePreStateRepresentation ? getPreStateRepresentation() : getPostStateRepresentation();
+  }
+
+  private ACSLPredicate getPreStateRepresentation() {
     ACSLPredicate preStatePredicate = requiresClause.getPredicate();
 
     for (Behavior behavior : ownBehaviors) {
@@ -67,8 +79,7 @@ public class StatementContract implements ACSLAnnotation {
     return preStatePredicate;
   }
 
-  @Override
-  public ACSLPredicate getPostStateRepresentation() {
+  private ACSLPredicate getPostStateRepresentation() {
     ACSLPredicate postStatePredicate = ensuresClause.getPredicate();
 
     for (Behavior behavior : ownBehaviors) {
@@ -113,7 +124,8 @@ public class StatementContract implements ACSLAnnotation {
     StringBuilder builder = new StringBuilder();
     if (!enclosingBehaviors.isEmpty()) {
       builder.append("for ");
-      Joiner.on(", ").appendTo(builder, enclosingBehaviors.stream().map(x -> x.getName()).iterator());
+      Joiner.on(", ")
+          .appendTo(builder, enclosingBehaviors.stream().map(x -> x.getName()).iterator());
       builder.append(":\n");
     }
     builder.append(requiresClause.toString()).append('\n').append(ensuresClause.toString());
@@ -126,11 +138,18 @@ public class StatementContract implements ACSLAnnotation {
     return builder.toString();
   }
 
-  public void addEdgeForPreState(CFAEdge edge) {
-    edgesForPreState.add(edge);
+  public StatementContract getCopyForPreState() {
+    return new StatementContract(
+        requiresClause, ensuresClause, enclosingBehaviors, ownBehaviors, completenessClauses, true);
   }
 
-  public Set<CFAEdge> getEdgesForPreState() {
-    return edgesForPreState;
+  public StatementContract getCopyForPostState() {
+    return new StatementContract(
+        requiresClause,
+        ensuresClause,
+        enclosingBehaviors,
+        ownBehaviors,
+        completenessClauses,
+        false);
   }
 }

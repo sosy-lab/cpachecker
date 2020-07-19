@@ -10,16 +10,27 @@ public class FunctionContract implements ACSLAnnotation {
   private final EnsuresClause ensuresClause;
   private final ImmutableList<Behavior> behaviors;
   private final ImmutableList<CompletenessClause> completenessClauses;
+  private final boolean usePreStateRepresentation;
 
   FunctionContract(
       RequiresClause req,
       EnsuresClause ens,
       List<Behavior> pBehaviors,
       List<CompletenessClause> pCompletenessClauses) {
+    this(req, ens, pBehaviors, pCompletenessClauses, false);
+  }
+
+  FunctionContract(
+      RequiresClause req,
+      EnsuresClause ens,
+      List<Behavior> pBehaviors,
+      List<CompletenessClause> pCompletenessClauses,
+      boolean pUsePreStateRepresentation) {
     requiresClause = req;
     ensuresClause = ens;
     behaviors = ImmutableList.copyOf(pBehaviors);
     completenessClauses = ImmutableList.copyOf(pCompletenessClauses);
+    usePreStateRepresentation = pUsePreStateRepresentation;
   }
 
   @Override
@@ -37,7 +48,15 @@ public class FunctionContract implements ACSLAnnotation {
   }
 
   @Override
-  public ACSLPredicate getPreStateRepresentation() {
+  public ACSLPredicate getPredicateRepresentation() {
+    return usePreStateRepresentation ? getPreStateRepresentation() : getPostStateRepresentation();
+  }
+
+  /**
+   * Returns a predicate that represents the semantics of the annotation as they could be used in an
+   * invariant. Only properties that should be evaluated in the pre-state are considered.
+   */
+  private ACSLPredicate getPreStateRepresentation() {
     ACSLPredicate preStatePredicate = requiresClause.getPredicate();
 
     for (Behavior behavior : behaviors) {
@@ -49,8 +68,11 @@ public class FunctionContract implements ACSLAnnotation {
     return preStatePredicate;
   }
 
-  @Override
-  public ACSLPredicate getPostStateRepresentation() {
+  /**
+   * Returns a predicate that represents the semantics of the annotation as they could be used in an
+   * invariant. Only properties that should be evaluated in the post-state are considered.
+   */
+  private ACSLPredicate getPostStateRepresentation() {
     ACSLPredicate postStatePredicate = ensuresClause.getPredicate();
 
     for (Behavior behavior : behaviors) {
@@ -89,5 +111,15 @@ public class FunctionContract implements ACSLAnnotation {
 
   public List<CompletenessClause> getCompletenessClauses() {
     return completenessClauses;
+  }
+
+  public FunctionContract getCopyForPreState() {
+    return new FunctionContract(
+        requiresClause, ensuresClause, behaviors, completenessClauses, true);
+  }
+
+  public FunctionContract getCopyForPostState() {
+    return new FunctionContract(
+        requiresClause, ensuresClause, behaviors, completenessClauses, false);
   }
 }

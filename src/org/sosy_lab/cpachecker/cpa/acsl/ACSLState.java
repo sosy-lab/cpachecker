@@ -28,15 +28,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLAnnotation;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLPredicate;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLTermToCExpressionVisitor;
-import org.sosy_lab.cpachecker.core.algorithm.acsl.FunctionContract;
-import org.sosy_lab.cpachecker.core.algorithm.acsl.StatementContract;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
@@ -61,31 +57,7 @@ public class ACSLState implements AbstractState, ExpressionTreeReportingState {
     }
     List<ExpressionTree<Object>> representations = new ArrayList<>(annotations.size());
     for (ACSLAnnotation annotation : annotations) {
-      ACSLPredicate predicate;
-      if (annotation instanceof FunctionContract) {
-        FunctionContract functionContract = (FunctionContract) annotation;
-        if (pLocation instanceof FunctionExitNode) {
-          predicate = functionContract.getPostStateRepresentation();
-        } else {
-          predicate = functionContract.getPreStateRepresentation();
-        }
-      } else if (annotation instanceof StatementContract) {
-        StatementContract statementContract = (StatementContract) annotation;
-        Set<CFAEdge> edgesForPreState = statementContract.getEdgesForPreState();
-        boolean usePreState = false;
-        for (CFAEdge edge : edgesForPreState) {
-          if (edge.getSuccessor().equals(pLocation)) {
-            usePreState = true;
-          }
-        }
-        if (usePreState) {
-          predicate = statementContract.getPreStateRepresentation();
-        } else {
-          predicate = statementContract.getPostStateRepresentation();
-        }
-      } else {
-        predicate = annotation.getPredicateRepresentation();
-      }
+      ACSLPredicate predicate = annotation.getPredicateRepresentation();
       representations.add(predicate.toExpressionTree(visitor));
     }
     ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
