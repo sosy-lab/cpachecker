@@ -8,10 +8,13 @@
 
 package org.sosy_lab.cpachecker.cpa.value.refiner;
 
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionRefinementStrategy.findAllPredicatesFromSubgraph;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.SetMultimap;
@@ -351,13 +354,13 @@ public class ValueAnalysisRefiner
       return pRefinementRoot;
     }
 
-    Set<ARGState> descendants = pRefinementRoot.getSubgraph();
-    Set<ARGState> coveredStates = new HashSet<>();
+    final ImmutableList<ARGState> descendants = pRefinementRoot.getSubgraph().toList();
+    final ImmutableSet<ARGState> coveredStates =
+        from(descendants)
+            .transformAndConcat(ARGState::getCoveredByThis)
+            .append(pRefinementRoot)
+            .toSet();
     shutdownNotifier.shutdownIfNecessary();
-    for (ARGState descendant : descendants) {
-      coveredStates.addAll(descendant.getCoveredByThis());
-    }
-    coveredStates.add(pRefinementRoot);
 
     // no relocation needed if set of descendants is closed under coverage
     if(descendants.containsAll(coveredStates)) {

@@ -22,8 +22,8 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -1138,7 +1138,7 @@ class WitnessFactory implements EdgeAppender {
     edgeToCFAEdges.clear();
 
     BiPredicate<ARGState, ARGState> isRelevantEdge = pIsRelevantEdge;
-    Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMultimap.of();
+    Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableListMultimap.of();
     Map<ARGState, CFAEdgeWithAdditionalInfo> additionalInfo = getAdditionalInfo(pCounterExample);
     additionalInfoConverters = getAdditionalInfoConverters(pCounterExample);
 

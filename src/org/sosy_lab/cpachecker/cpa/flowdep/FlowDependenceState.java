@@ -14,7 +14,7 @@ import com.google.common.collect.ForwardingMultimap;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
@@ -296,7 +296,7 @@ public final class FlowDependenceState implements AbstractState, AbstractWrapper
 
     private UnknownPointerDependence() {
       // It shouldn't be possible to add states to an UnknownPointerDependence
-      super(ImmutableMultimap.of());
+      super(ImmutableListMultimap.of());
     }
 
     public static UnknownPointerDependence getInstance() {

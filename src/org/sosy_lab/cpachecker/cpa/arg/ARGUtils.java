@@ -23,7 +23,7 @@ import com.google.common.base.Verify;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -704,7 +704,7 @@ public class ARGUtils {
 
     ARGState rootState = pPaths.iterator().next().getFirstState();
 
-    Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMultimap.of();
+    Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableListMultimap.of();
 
     if (pCounterExample != null && pCounterExample.isPreciseCounterExample()) {
       valueMap = pCounterExample.getExactVariableValues();
@@ -760,7 +760,7 @@ public class ARGUtils {
   public static void producePathAutomaton(Appendable sb, ARGState pRootState,
       Set<ARGState> pPathStates, String name, @Nullable CounterexampleInfo pCounterExample) throws IOException {
 
-    Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMultimap.of();
+    Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableListMultimap.of();
 
     if (pCounterExample != null && pCounterExample.isPreciseCounterExample()) {
       valueMap = pCounterExample.getExactVariableValues();
@@ -1298,8 +1298,8 @@ public class ARGUtils {
     return Optional.of(CounterexampleInfo.feasibleImprecise(path, additionalInfo));
   }
 
-  public static Set<ARGState> getNonCoveredStatesInSubgraph(ARGState pRoot) {
-    return Sets.filter(pRoot.getSubgraph(), s -> !s.isCovered());
+  public static FluentIterable<ARGState> getNonCoveredStatesInSubgraph(ARGState pRoot) {
+    return pRoot.getSubgraph().filter(s -> !s.isCovered());
   }
   /**
    * Gets error states (error leaves) from ARG.
