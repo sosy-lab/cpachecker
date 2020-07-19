@@ -10,17 +10,18 @@ import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Queue;
-import java_cup.runtime.ComplexSymbolFactory;
-import java_cup.runtime.Symbol;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java_cup.runtime.ComplexSymbolFactory;
+import java_cup.runtime.Symbol;
 import java_cup.runtime.SymbolFactory;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -177,12 +178,11 @@ parser code {:
         waitlist.offer(edge.getPredecessor().getLeavingEdge(i));
       }
       boolean remove = true;
+      Set<CFAEdge> reachedSet = new HashSet<>();
       while (!waitlist.isEmpty()) {
         CFAEdge currentEdge = waitlist.poll();
+        reachedSet.add(currentEdge);
         CFANode successor = currentEdge.getSuccessor();
-        if (successor.getStatementStackDepth() == -1) {
-          successor.setStatementStackDepth(currentEdge.getPredecessor().getStatementStackDepth());
-        }
         if (successor.getStatementStackDepth() == currentDepth) {
           if (currentEdge == edge) {
             remove = false;
@@ -191,7 +191,9 @@ parser code {:
           }
         } else {
           for (int i = 0; i < successor.getNumLeavingEdges(); i++) {
-            waitlist.offer(successor.getLeavingEdge(i));
+            if (!reachedSet.contains(successor.getLeavingEdge(i))) {
+              waitlist.offer(successor.getLeavingEdge(i));
+            }
           }
         }
       }
@@ -323,32 +325,59 @@ parser code {:
     }
 
     private boolean inSameScope(CFANode oldNode, CFANode newNode) {
-      int oldDepth = oldNode.getStatementStackDepth();
-      int newDepth = newNode.getStatementStackDepth();
-      if (newDepth > -1 && newDepth < oldDepth) {
+      if (newNode.getStatementStackDepth() > 0
+          && newNode.getStatementStackDepth() < oldNode.getStatementStackDepth()) {
         return false;
       }
+      return getInnermostScopeOf(oldNode).contains(newNode);
+    }
+
+    private Set<CFANode> getInnermostScopeOf(CFANode pNode) {
+      Set<CFANode> inScope = new HashSet<>();
+      Set<CFANode> borderNodes = new HashSet<>();
+      Set<CFAEdge> initialWaitset = new HashSet<>();
       Queue<CFAEdge> waitlist = new ArrayDeque<>();
-      for (int i = 0; i < oldNode.getNumLeavingEdges(); i++) {
-        waitlist.offer(oldNode.getLeavingEdge(i));
+      int targetStatementStackDepth = pNode.getStatementStackDepth();
+      CFANode currentNode = pNode;
+      while (targetStatementStackDepth <= 0) {
+        assert currentNode.getNumEnteringEdges() == 1;
+        currentNode = currentNode.getEnteringEdge(0).getPredecessor();
+        // if we don't know the current depth, let's just take the previous depth plus one
+        targetStatementStackDepth = currentNode.getStatementStackDepth() + 1;
       }
-      boolean sameScope = true;
+      if (targetStatementStackDepth == 1) {
+        // not inside a block statement
+        return FluentIterable.from(cfa.getAllNodes())
+            .filter(x -> x.getFunctionName().equals(pNode.getFunctionName()))
+            .toSet();
+      }
+
+      for (int i = 0; i < pNode.getNumEnteringEdges(); i++) {
+        CFANode prev = pNode.getEnteringEdge(i).getPredecessor();
+        for (int j = 0; j < prev.getNumLeavingEdges(); j++) {
+          initialWaitset.add(prev.getLeavingEdge(j));
+        }
+        borderNodes.add(prev);
+      }
+      waitlist.addAll(initialWaitset);
+
       while (!waitlist.isEmpty()) {
         CFAEdge currentEdge = waitlist.poll();
         CFANode successor = currentEdge.getSuccessor();
-        if (successor == newNode) {
-          return true;
+        if (inScope.contains(successor) || borderNodes.contains(successor)) {
+          continue;
         }
-        if (successor.getStatementStackDepth() == -1) {
-          successor.setStatementStackDepth(currentEdge.getPredecessor().getStatementStackDepth());
-        }
-        if (successor.getStatementStackDepth() >= oldDepth) {
+        int currentStatementStackDepth = successor.getStatementStackDepth();
+        if (currentStatementStackDepth > 0 && currentStatementStackDepth < targetStatementStackDepth) {
+          borderNodes.add(successor);
+        } else {
+          inScope.add(successor);
           for (int i = 0; i < successor.getNumLeavingEdges(); i++) {
-            waitlist.offer(successor.getLeavingEdge(i));
+            waitlist.add(successor.getLeavingEdge(i));
           }
         }
       }
-      return false;
+      return inScope;
     }
 
     public List<IASTFileLocation> getLocs() {
