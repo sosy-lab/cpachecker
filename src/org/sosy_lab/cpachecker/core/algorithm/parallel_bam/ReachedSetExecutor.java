@@ -96,9 +96,9 @@ class ReachedSetExecutor {
   private final LogManager logger;
 
   /**
-   * This variable is shared acros all threads and counts the number of currently scheduled, but not
-   * yet running jobs. It is used to automatically shutdown the thread pool as soon as all jobs are
-   * done.
+   * This variable is shared across all threads and counts the number of currently scheduled, but
+   * not yet running jobs. It is used to automatically shutdown the thread pool as soon as all jobs
+   * are done.
    */
   private final AtomicInteger scheduledJobs;
 
@@ -109,7 +109,11 @@ class ReachedSetExecutor {
 
   /**
    * This set contains all sub-reached-sets that have to be finished before the current one. The
-   * state is unique. Synchronized access guaranteed by only instance-local access in the current
+   * state is unique and belongs to the current reached-set (but not its watlist). We removed the
+   * state from the waitlist temporary until the sub-RSE is finished, and re-add it afterwards to be
+   * analyzed again, such the the computed block abstraction can be applied.
+   *
+   * Synchronized access guaranteed by only instance-local access in the current
    * {@link ReachedSetExecutor}!
    */
   private final Set<AbstractState> dependsOn = new LinkedHashSet<>();
