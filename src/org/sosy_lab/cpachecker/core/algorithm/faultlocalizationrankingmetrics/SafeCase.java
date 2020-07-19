@@ -7,8 +7,6 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics;
 
-import static com.google.common.collect.FluentIterable.from;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
