@@ -454,14 +454,6 @@ class ReachedSetExecutor {
       throw new UnsupportedCodeException("recursion", entryLocation.getLeavingEdge(0));
     }
 
-    if (shutdownNotifier.shouldShutdown() || terminateAnalysis.get()) {
-      // if an error was found somewhere, we do not longer schedule new sub-analyses
-      logger.logf(level, "%s :: exiting on demand", this);
-      // cleanup, re-add state for further exploration
-      rs.reAddToWaitlist(parentState);
-      return;
-    }
-
     // register new sub-analysis as asynchronous/parallel/future work, if not existent
     ReachedSetExecutor subRse = createAndRegisterNewReachedSet(pBsme);
 
