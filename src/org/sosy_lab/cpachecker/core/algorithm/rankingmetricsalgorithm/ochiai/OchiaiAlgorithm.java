@@ -66,12 +66,7 @@ public class OchiaiAlgorithm implements Algorithm, StatisticsProvider, Statistic
       FailedCase failedCase = new FailedCase(reachedSet);
       // Checks if there is any error paths before starting the algorithm
       if (failedCase.existsErrorPath()) {
-        // Checks if there is any safe paths before starting the algorithm
-        if (!safeCase.existsSafePath()) {
 
-          logger.log(
-              Level.WARNING, "There is no safe Path, the algorithm is therefore not efficient");
-        }
         logger.log(Level.INFO, "Start ochiai algorithm ... ");
 
         runOchiaiProcess(counterExamples, safeCase, failedCase);
