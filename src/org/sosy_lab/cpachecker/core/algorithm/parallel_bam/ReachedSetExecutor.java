@@ -471,15 +471,9 @@ class ReachedSetExecutor {
     // register callback to get results of terminated analysis
     registerJob(subRse, subRse.asRunnable());
 
-    if (rs.getWaitlist().isEmpty()) {
-      // optimization: if no further states are waiting, no need to schedule the current RSE.
-      // when sub-analysis is finished, the current analysis is re-started.
-      logger.logf(level, "%s :: not scheduling self, empty waitlist", this);
-    } else {
-      // register current RSE for further analysis.
-      // this step results in 'parallel' execution of current analysis and sub-analysis.
-      registerJob(this, this.asRunnable());
-    }
+    // register current RSE for further analysis.
+    // this step results in 'parallel' execution of current analysis and sub-analysis.
+    registerJob(this, this.asRunnable());
   }
 
   /** We need to traverse the RSEs whether there is a cyclic dependency. */
