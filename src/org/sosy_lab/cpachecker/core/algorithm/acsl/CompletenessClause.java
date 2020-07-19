@@ -14,8 +14,6 @@ public class CompletenessClause {
   }
 
   private ACSLPredicate makePredicateRepresentation() {
-    // TODO: Representation for complete clauses could get simplified to true, so currently only
-    //  usable for indication that something is wrong!?
     ACSLPredicate predicateRepresentation;
     if (kind.equals(RelationKind.COMPLETE)) {
       predicateRepresentation = ACSLPredicate.getFalse();

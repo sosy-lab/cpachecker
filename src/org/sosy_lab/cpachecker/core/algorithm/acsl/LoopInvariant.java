@@ -5,7 +5,7 @@ public class LoopInvariant {
   private final ACSLPredicate predicate;
 
   public LoopInvariant(ACSLPredicate p) {
-    predicate = p.simplify();
+    predicate = p;
   }
 
   public ACSLPredicate getPredicate() {
@@ -13,7 +13,7 @@ public class LoopInvariant {
   }
 
   public LoopInvariant and(ACSLPredicate p) {
-    return new LoopInvariant(predicate.and(p));
+    return new LoopInvariant(predicate.and(p).simplify());
   }
 
   @Override
