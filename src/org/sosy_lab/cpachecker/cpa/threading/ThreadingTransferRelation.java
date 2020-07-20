@@ -10,22 +10,22 @@ package org.sosy_lab.cpachecker.cpa.threading;
 
 import static com.google.common.collect.Collections2.transform;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicates;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -168,9 +168,10 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
 
     results = getAbstractSuccessorsForEdge0(cfaEdge, threadingState, activeThread, results);
 
-    results = setActiveThread(activeThread, results);
+    // Store the active thread in the given states, cf. JavaDoc of activeThread
+    results = Collections2.transform(results, ts -> ts.withActiveThread(activeThread));
 
-    return results;
+    return ImmutableList.copyOf(results);
   }
 
   /** Search for the thread, where the current edge is available.
@@ -604,16 +605,6 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
     }
   }
 
-  /**
-   * Store the active thread in the given states.
-   *
-   * @see ThreadingState#setActiveThread
-   */
-  private Collection<ThreadingState> setActiveThread(
-      @Nullable String activeThread, Collection<ThreadingState> results) {
-    return transform(results, ts -> ts.setActiveThread(activeThread));
-  }
-
   @Override
   public Collection<? extends AbstractState> strengthen(
       AbstractState state,
@@ -621,19 +612,17 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
       @Nullable CFAEdge cfaEdge,
       Precision precision)
       throws CPATransferException, InterruptedException {
-    Collection<ThreadingState> results = Collections.singleton((ThreadingState) state);
+    Optional<ThreadingState> results = Optional.of((ThreadingState) state);
 
     for (AutomatonState automatonState :
         AbstractStates.projectToType(otherStates, AutomatonState.class)) {
       if ("WitnessAutomaton".equals(automatonState.getOwningAutomatonName())) {
-        results = transform(results, ts -> handleWitnessAutomaton(ts, automatonState));
-        results = Collections2.filter(results, Predicates.notNull());
+        results = results.map(ts -> handleWitnessAutomaton(ts, automatonState));
       }
     }
 
-    assert !results.contains(null);
-
-    return setActiveThread(null, results);
+    // delete activeThread, cf. JavaDoc of activeThread
+    return Optionals.asSet(results.map(ts -> ts.withActiveThread(null)));
   }
 
   private @Nullable ThreadingState handleWitnessAutomaton(
@@ -693,6 +682,6 @@ public final class ThreadingTransferRelation extends SingleEdgeTransferRelation 
         }
       }
     }
-    return Optional.absent();
+    return Optional.empty();
   }
 }

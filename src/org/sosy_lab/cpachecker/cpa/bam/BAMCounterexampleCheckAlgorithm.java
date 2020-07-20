@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
-import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -68,7 +68,7 @@ public class BAMCounterexampleCheckAlgorithm extends CounterexampleCheckAlgorith
         graphComputer.computeCounterexampleSubgraph(errorState, mainReachedSet);
     ARGState rootState = rootAndTargetOfSubgraph.getFirst();
     ARGState target = rootAndTargetOfSubgraph.getSecond();
-    Set<ARGState> statesOnErrorPath = rootState.getSubgraph();
+    ImmutableSet<ARGState> statesOnErrorPath = rootState.getSubgraph().toSet();
 
     assert Objects.equals(((BackwardARGState) target).getARGState(), errorState);
 

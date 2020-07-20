@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.predicates.smt;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 import static org.sosy_lab.java_smt.api.SolverContext.ProverOptions.GENERATE_UNSAT_CORE;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -16,11 +17,13 @@ import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -44,6 +47,8 @@ import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.delegate.statistics.SolverStatistics;
+import org.sosy_lab.java_smt.delegate.statistics.StatisticsSolverContext;
 
 /**
  * Encapsulation of an SMT solver.
@@ -262,6 +267,41 @@ public final class Solver implements AutoCloseable {
    */
   public FormulaManagerView getFormulaManager() {
     return fmgr;
+  }
+
+  /**
+   * Return the underlying {@link FormulaManagerView} that can be used for creating and manipulating
+   * formulas.
+   */
+  public void printStatistics(PrintStream pOut) {
+    if (solvingContext instanceof StatisticsSolverContext) {
+      final SolverStatistics stats =
+          ((StatisticsSolverContext) solvingContext).getSolverStatistics();
+      pOut.println();
+      writingStatisticsTo(pOut).put("Statistics about operations", "")
+          .beginLevel()
+          .put("Number of boolean operations", stats.getNumberOfBooleanOperations())
+          .put("Number of numeric operations", stats.getNumberOfNumericOperations())
+          .put("Number of FP operations", stats.getNumberOfFPOperations())
+          .put("Number of BV operations", stats.getNumberOfBVOperations())
+          .put("Number of array operations", stats.getNumberOfArrayOperations())
+          .endLevel()
+          .put("Statistics about queries", "")
+          .beginLevel()
+          .put("Number of push queries", stats.getNumberOfPushQueries())
+          .put("Number of addConstraint queries", stats.getNumberOfAddConstraintQueries())
+          .put("Number of pop queries", stats.getNumberOfPopQueries())
+          .put("Number of model queries", stats.getNumberOfModelQueries())
+          .put("Number of isUnsat queries", stats.getNumberOfIsUnsatQueries())
+          .put("Sum time for isUnsat queries", stats.getSumTimeOfIsUnsatQueries().formatAs(TimeUnit.SECONDS))
+          .put("Max time for isUnsat queries", stats.getMaxTimeOfIsUnsatQueries().formatAs(TimeUnit.SECONDS))
+          .put("Number of interpolation queries", stats.getNumberOfInterpolationQueries())
+          .put("Sum time for itp queries", stats.getSumTimeOfInterpolationQueries().formatAs(TimeUnit.SECONDS))
+          .put("Max time for itp queries", stats.getMaxTimeOfInterpolationQueries().formatAs(TimeUnit.SECONDS))
+          .put("Number of allSat queries", stats.getNumberOfAllSatQueries())
+          .put("Sum time for allSat queries", stats.getSumTimeOfAllSatQueries().formatAs(TimeUnit.SECONDS))
+          .put("Max time for allSat queries", stats.getMaxTimeOfAllSatQueries().formatAs(TimeUnit.SECONDS));
+    }
   }
 
   /**

@@ -224,7 +224,7 @@ public class ARGReachedSet {
   public void removeInfeasiblePartofARG(ARGState rootOfInfeasiblePart) {
     dumpSubgraph(rootOfInfeasiblePart);
 
-    Set<ARGState> infeasibleSubtree = rootOfInfeasiblePart.getSubgraph();
+    Set<ARGState> infeasibleSubtree = rootOfInfeasiblePart.getSubgraph().toSet();
 
     for (ARGState removedNode : infeasibleSubtree) {
       removeCoverageOf(removedNode);
@@ -247,7 +247,8 @@ public class ARGReachedSet {
    * @param argState the state to be removed including its subtree
    */
   public void cutOffSubtree(ARGState argState) {
-    Set<ARGState> subgraph = argState.getSubgraph();
+    // copy whole subgraph before modifying ARG!
+    ImmutableList<ARGState> subgraph = argState.getSubgraph().toList();
     mReached.removeAll(subgraph);
 
     for (ARGState ae : subgraph) {
@@ -315,21 +316,16 @@ public class ARGReachedSet {
 
     dumpSubgraph(e);
 
-    Set<ARGState> toUnreach = e.getSubgraph();
-
     // collect all elements covered by the subtree
-    List<ARGState> newToUnreach = new ArrayList<>();
+    ImmutableList<ARGState> subtree = e.getSubgraph().toList();
+    ImmutableSet<ARGState> toUnreach =
+        from(subtree).transformAndConcat(ARGState::getCoveredByThis).append(subtree).toSet();
 
-    for (ARGState ae : toUnreach) {
-      newToUnreach.addAll(ae.getCoveredByThis());
-    }
     // we remove the covered states completely,
     // maybe we re-explore them later and find coverage again.
     // caution: siblings of the covered state might be re-explored, too,
     // they should be covered by the existing/previous siblings
     // (if sibling not removed and precision is not weaker)
-    toUnreach.addAll(newToUnreach);
-
     Set<ARGState> toWaitlist = removeSet(toUnreach);
 
     return toWaitlist;
@@ -429,9 +425,7 @@ public class ARGReachedSet {
     element.uncover();
 
     // this is the subtree of elements which now become uncovered
-    Set<ARGState> uncoveredSubTree = element.getSubgraph();
-
-    for (ARGState e : uncoveredSubTree) {
+    for (ARGState e : element.getSubgraph()) {
       assert !e.isCovered();
 
       e.setHasCoveredParent(false);
@@ -459,8 +453,7 @@ public class ARGReachedSet {
     // ignore return value of stop, because it will always be false
 
     if (v.isCovered()) {
-      Set<ARGState> subtree = v.getSubgraph();
-      subtree.remove(v);
+      ImmutableSet<ARGState> subtree = v.getSubgraph().filter(s -> !s.equals(v)).toSet();
 
       removeCoverageOf(v);
       for (ARGState childOfV : subtree) {

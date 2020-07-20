@@ -21,7 +21,7 @@ import com.google.common.collect.ComparisonChain;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Maps;
@@ -301,7 +301,7 @@ public final class LoopStructure implements Serializable {
     }
   }
 
-  private final ImmutableMultimap<String, Loop> loops;
+  private final ImmutableListMultimap<String, Loop> loops;
 
   private transient @Nullable ImmutableSet<CFANode> loopHeads = null; // computed lazily
 
@@ -309,7 +309,7 @@ public final class LoopStructure implements Serializable {
   private transient @Nullable ImmutableSet<String> loopExitConditionVariables;
   private transient @Nullable ImmutableSet<String> loopIncDecVariables;
 
-  private LoopStructure(ImmutableMultimap<String, Loop> pLoops) {
+  private LoopStructure(ImmutableListMultimap<String, Loop> pLoops) {
     loops = pLoops;
   }
 
@@ -540,7 +540,7 @@ public final class LoopStructure implements Serializable {
    * @throws ParserException If the structure of the CFA is too complex for determining loops.
    */
   public static LoopStructure getLoopStructure(MutableCFA cfa) throws ParserException {
-    ImmutableMultimap.Builder<String, Loop> loops = ImmutableMultimap.builder();
+    ImmutableListMultimap.Builder<String, Loop> loops = ImmutableListMultimap.builder();
     for (String functionName : cfa.getAllFunctionNames()) {
       NavigableSet<CFANode> nodes = cfa.getFunctionNodes(functionName);
       loops.putAll(functionName, findLoops(nodes, cfa.getLanguage()));

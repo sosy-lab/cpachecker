@@ -11,7 +11,8 @@ package org.sosy_lab.cpachecker.util.dependencegraph;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Table;
@@ -197,12 +198,12 @@ public final class DependenceGraph implements Serializable {
 
     private static final long serialVersionUID = 4311993821719514171L;
 
-    private ImmutableMultimap<CFAEdge, DGNode> nodesForEdges;
-    private ImmutableSet<DGNode> specialNodes;
+    private final ImmutableListMultimap<CFAEdge, DGNode> nodesForEdges;
+    private final ImmutableSet<DGNode> specialNodes;
 
     public ImmutableNodeMap(NodeMap pNodeMap) {
       // FIXME avoid iteration in O(n) here, there may be lots of nodes
-      ImmutableMultimap.Builder<CFAEdge, DGNode> mapBuilder = ImmutableMultimap.builder();
+      ImmutableListMultimap.Builder<CFAEdge, DGNode> mapBuilder = ImmutableListMultimap.builder();
       for (Cell<CFAEdge, Optional<MemoryLocation>, DGNode> c :
           pNodeMap.getNodesForEdges().cellSet()) {
         mapBuilder.put(checkNotNull(c.getRowKey()), checkNotNull(c.getValue()));
@@ -211,7 +212,7 @@ public final class DependenceGraph implements Serializable {
       specialNodes = ImmutableSet.copyOf(pNodeMap.getSpecialNodes());
     }
 
-    public Collection<DGNode> getNodesForEdge(CFAEdge pEdge) {
+    public ImmutableList<DGNode> getNodesForEdge(CFAEdge pEdge) {
       return nodesForEdges.get(pEdge);
     }
 

@@ -18,8 +18,8 @@ import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.unroll;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
@@ -784,8 +784,8 @@ class KInductionProver implements AutoCloseable {
       throws CPATransferException, InterruptedException {
     ReachedSet reached = reachedSet.getReachedSet();
 
-    ImmutableMultimap.Builder<BooleanFormula, BooleanFormula> stateViolationAssertionsBuilder =
-        ImmutableMultimap.builder();
+    ImmutableListMultimap.Builder<BooleanFormula, BooleanFormula> stateViolationAssertionsBuilder =
+        ImmutableListMultimap.builder();
     Iterable<AbstractState> assertionStates =
         filterIteration(pCandidateInvariant.filterApplicable(reached), pK, loopHeads);
 

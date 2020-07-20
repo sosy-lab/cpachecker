@@ -41,7 +41,8 @@ public class BAMReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
     this.path = pPath;
     this.removeCachedSubtreeTimer = pRemoveCachedSubtreeTimer;
 
-    assert path.getFirstState().getSubgraph().containsAll(path.asStatesList()) : "path should traverse reachable states";
+    assert path.getFirstState().getSubgraph().toSet().containsAll(path.asStatesList())
+        : "path should traverse reachable states";
   }
 
   @Override
