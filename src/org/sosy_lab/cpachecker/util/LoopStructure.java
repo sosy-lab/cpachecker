@@ -16,9 +16,9 @@ import static org.sosy_lab.cpachecker.util.CFAUtils.edgeHasType;
 import static org.sosy_lab.cpachecker.util.CFAUtils.hasBackWardsEdges;
 import static org.sosy_lab.cpachecker.util.CFAUtils.leavingEdges;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Comparators;
 import com.google.common.collect.ComparisonChain;
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -481,7 +481,7 @@ public final class LoopStructure implements Serializable {
 
     // If the loop head cannot reach itself, there is no loop
     if (!reachableSuccessors.contains(pSingleLoopHead)) {
-      return new LoopStructure(ImmutableMultimap.of());
+      return new LoopStructure(ImmutableListMultimap.of());
     }
 
     /*
@@ -507,10 +507,11 @@ public final class LoopStructure implements Serializable {
     // A size of one means only the loop head is contained
     if (loopNodes.isEmpty()
         || (loopNodes.size() == 1 && !pSingleLoopHead.hasEdgeTo(pSingleLoopHead))) {
-      return new LoopStructure(ImmutableMultimap.of());
+      return new LoopStructure(ImmutableListMultimap.of());
     }
 
-    return new LoopStructure(ImmutableMultimap.of(loopFunction, new Loop(pSingleLoopHead, loopNodes)));
+    return new LoopStructure(
+        ImmutableListMultimap.of(loopFunction, new Loop(pSingleLoopHead, loopNodes)));
   }
 
 
