@@ -25,7 +25,8 @@ public class ACSLLoopAnnotation implements ACSLAnnotation {
     additionalInvariants = ImmutableMap.copyOf(pAdditionalInvariants);
   }
 
-  private ACSLPredicate makePredicateRepresentation() {
+  @Override
+  public ACSLPredicate getPredicateRepresentation() {
     ACSLPredicate predicateRepresentation = lInvariant.getPredicate();
     for (List<Behavior> behaviors : additionalInvariants.keySet()) {
       ACSLPredicate enclosingConjunction = ACSLPredicate.getTrue();
@@ -49,11 +50,6 @@ public class ACSLLoopAnnotation implements ACSLAnnotation {
               predicateRepresentation, behaviorRepresentation, BinaryOperator.AND);
     }
     return predicateRepresentation.simplify();
-  }
-
-  @Override
-  public ACSLPredicate getPredicateRepresentation() {
-    return makePredicateRepresentation();
   }
 
   @Override

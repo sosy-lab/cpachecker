@@ -76,7 +76,7 @@ public class StatementContract implements ACSLAnnotation {
           new ACSLLogicalPredicate(preStatePredicate, enclosingConjunction, BinaryOperator.OR);
     }
 
-    return preStatePredicate;
+    return preStatePredicate.simplify();
   }
 
   private ACSLPredicate getPostStateRepresentation() {
@@ -103,7 +103,7 @@ public class StatementContract implements ACSLAnnotation {
           new ACSLLogicalPredicate(postStatePredicate, enclosingConjunction, BinaryOperator.OR);
     }
 
-    return postStatePredicate;
+    return postStatePredicate.simplify();
   }
 
   @Override

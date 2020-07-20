@@ -65,7 +65,7 @@ public class FunctionContract implements ACSLAnnotation {
           new ACSLLogicalPredicate(preStatePredicate, behaviorPredicate, BinaryOperator.AND);
     }
 
-    return preStatePredicate;
+    return preStatePredicate.simplify();
   }
 
   /**
@@ -81,7 +81,7 @@ public class FunctionContract implements ACSLAnnotation {
           new ACSLLogicalPredicate(postStatePredicate, behaviorPredicate, BinaryOperator.AND);
     }
 
-    return postStatePredicate;
+    return postStatePredicate.simplify();
   }
 
   @Override
