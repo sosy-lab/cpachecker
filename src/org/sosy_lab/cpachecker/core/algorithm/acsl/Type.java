@@ -5,7 +5,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 public class Type {
-  private String typeName;
+  private final String typeName;
 
   public Type(String name) {
     typeName = name;

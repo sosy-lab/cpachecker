@@ -39,7 +39,7 @@ public class WitnessInvariant {
   private boolean atLoopStart;
   private boolean atFunctionEntry;
   //Contains those nodes that this invariant holds for
-  private List<CFANode> holdsFor;
+  private final List<CFANode> holdsFor = new ArrayList<>();
   private final CBinaryExpressionBuilder builder;
 
   public WitnessInvariant(CFANode node, CExpression pExpression, CBinaryExpressionBuilder pBuilder,
@@ -57,7 +57,6 @@ public class WitnessInvariant {
     exp = pExpression;
     atLoopStart = node.isLoopStart();
     atFunctionEntry = node instanceof FunctionEntryNode;
-    holdsFor = new ArrayList<>();
     holdsFor.add(node);
     builder = pBuilder;
   }

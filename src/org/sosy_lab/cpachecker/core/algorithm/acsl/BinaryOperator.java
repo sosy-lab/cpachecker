@@ -45,7 +45,7 @@ public enum BinaryOperator {
     }
   }
 
-  public static boolean isLogicOperator(BinaryOperator op) {
+  public static boolean isLogicalOperator(BinaryOperator op) {
     switch (op) {
       case AND:
       case OR:

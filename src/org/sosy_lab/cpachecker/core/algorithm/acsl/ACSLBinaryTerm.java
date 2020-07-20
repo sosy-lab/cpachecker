@@ -10,8 +10,11 @@ public class ACSLBinaryTerm implements ACSLTerm {
   private final BinaryOperator operator;
 
   public ACSLBinaryTerm(ACSLTerm pLeft, ACSLTerm pRight, BinaryOperator op) {
-    assert !BinaryOperator.isLogicOperator(op)
-        : "Logic operations should be stored in ACSLPredicate.";
+    assert BinaryOperator.isArithmeticOperator(op)
+            || BinaryOperator.isBitwiseOperator(op)
+            || BinaryOperator.isComparisonOperator(op)
+        : String.format(
+            "ACSLTerm may only hold arithmetic, bitwise or comparison operator, %s is neither", op);
     switch (op) {
       case PLUS:
       case MINUS:

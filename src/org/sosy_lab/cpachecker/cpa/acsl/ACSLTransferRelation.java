@@ -38,8 +38,8 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class ACSLTransferRelation extends SingleEdgeTransferRelation {
 
-  private CFAWithACSLAnnotationLocations cfa;
-  private ACSLTermToCExpressionVisitor visitor;
+  private final CFAWithACSLAnnotationLocations cfa;
+  private final ACSLTermToCExpressionVisitor visitor;
 
   public ACSLTransferRelation(
       CFAWithACSLAnnotationLocations pCFA, ACSLTermToCExpressionVisitor pVisitor) {

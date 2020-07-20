@@ -17,6 +17,8 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
   public ACSLLogicalPredicate(
       ACSLPredicate pLeft, ACSLPredicate pRight, BinaryOperator op, boolean negated) {
     super(negated);
+    assert BinaryOperator.isLogicalOperator(op)
+        : "ACSLLogicalPredicate may only hold logical operator";
     switch (op) {
       case AND:
       case OR:
