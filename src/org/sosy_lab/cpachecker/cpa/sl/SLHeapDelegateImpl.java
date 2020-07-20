@@ -181,6 +181,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     if (!pDecl.getName().startsWith("__")
         && !state.getDeclarations().add(pDecl)
         && isReferenced(name)) {
+      // inc addressOf index
       incSSAIndex(name);
     }
     CType type = pDecl.getType();
@@ -431,6 +432,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     return false;
   }
 
+  @SuppressWarnings("unused")
   private Formula isAllocated(Formula pLoc, boolean usePredContext, Map<Formula, Formula> pHeap) {
     if (pHeap.containsKey(pLoc)) {
       return pLoc;
@@ -577,7 +579,8 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     PathFormula context = usePredContext ? getPredPathFormula() : state.getPathFormula();
     Formula f = pfm.expressionToFormula(context, pExp, edge);
     final String dummyVarName = "0_allocationSize"; // must not be a valid C variable name.
-    f = fm.makeEqual(bvfm.makeVariable(32, dummyVarName), f);
+    assert f instanceof BitvectorFormula;
+    f = fm.makeEqual(bvfm.makeVariable(bvfm.getLength((BitvectorFormula) f), dummyVarName), f);
 
     try (ProverEnvironment env = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       env.addConstraint(context.getFormula());
