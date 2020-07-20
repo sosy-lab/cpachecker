@@ -67,5 +67,6 @@
 	<classpathentry kind="lib" path="lib/java/runtime/batik-util.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/batik-xml.jar"/>
 	<classpathentry kind="lib" path="lib/java/runtime/antlr4-runtime.jar"/>
+	<classpathentry kind="lib" path="lib/java/runtime/CVC4.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
