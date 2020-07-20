@@ -152,4 +152,32 @@ public class StatementContract implements ACSLAnnotation {
         completenessClauses,
         false);
   }
+
+  @Override
+  public int hashCode() {
+    int hash = 23 * requiresClause.hashCode() * ensuresClause.hashCode();
+    for (Behavior behavior : enclosingBehaviors) {
+      hash *= behavior.hashCode();
+    }
+    for (Behavior behavior : ownBehaviors) {
+      hash *= behavior.hashCode();
+    }
+    for (CompletenessClause completenessClause : completenessClauses) {
+      hash *= completenessClause.hashCode();
+    }
+    return hash;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof StatementContract) {
+      StatementContract other = (StatementContract) obj;
+      return requiresClause.equals(other.requiresClause)
+          && ensuresClause.equals(other.ensuresClause)
+          && enclosingBehaviors.equals(other.enclosingBehaviors)
+          && ownBehaviors.equals(other.ownBehaviors)
+          && completenessClauses.equals(other.completenessClauses);
+    }
+    return false;
+  }
 }

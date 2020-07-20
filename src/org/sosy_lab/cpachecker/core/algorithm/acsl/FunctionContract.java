@@ -122,4 +122,28 @@ public class FunctionContract implements ACSLAnnotation {
     return new FunctionContract(
         requiresClause, ensuresClause, behaviors, completenessClauses, false);
   }
+
+  @Override
+  public int hashCode() {
+    int hash = 17 * requiresClause.hashCode() * ensuresClause.hashCode();
+    for (Behavior behavior : behaviors) {
+      hash *= behavior.hashCode();
+    }
+    for (CompletenessClause completenessClause : completenessClauses) {
+      hash *= completenessClause.hashCode();
+    }
+    return hash;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof FunctionContract) {
+      FunctionContract other = (FunctionContract) obj;
+      return requiresClause.equals(other.requiresClause)
+          && ensuresClause.equals(other.ensuresClause)
+          && behaviors.equals(other.behaviors)
+          && completenessClauses.equals(other.completenessClauses);
+    }
+    return false;
+  }
 }
