@@ -71,7 +71,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private boolean deriveInterpolantFromSuffix = true;
 
   @Option(secure = true, description = "toggle collecting formulas by traversing ARG")
-  private boolean collectFormulasByTraversingARG = false;
+  private boolean collectFormulasByTraversingARG = true;
 
   @Option(secure = true, description = "toggle checking existence of covered states in ARG")
   private boolean checkExistenceOfCoveredStates = false;
