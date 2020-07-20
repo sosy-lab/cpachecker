@@ -17,7 +17,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
@@ -342,10 +342,10 @@ public class SymbolicCandiateInvariant implements CandidateInvariant {
   public static Multimap<Set<AbstractState>, SymbolicCandiateInvariant> indexByApplicableStates(
       Iterable<SymbolicCandiateInvariant> pCandidateInvariants, Iterable<AbstractState> pStates) {
     if (Iterables.isEmpty(pCandidateInvariants)) {
-      return ImmutableMultimap.of();
+      return ImmutableListMultimap.of();
     }
-    ImmutableMultimap.Builder<Set<AbstractState>, SymbolicCandiateInvariant> builder =
-        ImmutableMultimap.builder();
+    ImmutableListMultimap.Builder<Set<AbstractState>, SymbolicCandiateInvariant> builder =
+        ImmutableListMultimap.builder();
 
     Iterator<SymbolicCandiateInvariant> candidateIterator = pCandidateInvariants.iterator();
     SymbolicCandiateInvariant first = candidateIterator.next();

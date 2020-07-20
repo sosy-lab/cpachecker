@@ -19,7 +19,6 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
@@ -199,7 +198,7 @@ public class CProgramScope implements Scope {
     qualifiedTypes = ImmutableMap.of();
     qualifiedTypeDefs = ImmutableMap.of();
     retValDeclarations = ImmutableMap.of();
-    uses = ImmutableMultimap.of();
+    uses = ImmutableListMultimap.of();
     functionName = null;
     locationDescriptor = Predicates.alwaysTrue();
   }

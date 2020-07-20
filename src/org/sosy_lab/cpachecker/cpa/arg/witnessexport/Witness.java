@@ -9,8 +9,8 @@
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
@@ -73,17 +73,17 @@ public class Witness {
     cfa = pCfa;
     metaData = pMetaData;
     entryStateNodeId = pEntryStateNodeId;
-    leavingEdges = ImmutableMultimap.copyOf(pLeavingEdges);
-    enteringEdges = ImmutableMultimap.copyOf(pEnteringEdges);
+    leavingEdges = ImmutableListMultimap.copyOf(pLeavingEdges);
+    enteringEdges = ImmutableListMultimap.copyOf(pEnteringEdges);
     witnessOptions = pWitnessOptions;
     nodeFlags = ImmutableSetMultimap.copyOf(pNodeFlags);
-    violatedProperties = ImmutableMultimap.copyOf(pViolatedProperties);
+    violatedProperties = ImmutableListMultimap.copyOf(pViolatedProperties);
     stateInvariants = ImmutableMap.copyOf(pStateInvariants);
     stateQuasiInvariants = ImmutableMap.copyOf(pStateQuasiInvariants);
     stateScopes = ImmutableMap.copyOf(pStateScopes);
     invariantExportStates = ImmutableSet.copyOf(pInvariantExportStates);
-    stateToARGStates = ImmutableMultimap.copyOf(pStateToARGStates);
-    edgeToCFAEdges = ImmutableMultimap.copyOf(pEdgeToCFAEdges);
+    stateToARGStates = ImmutableListMultimap.copyOf(pStateToARGStates);
+    edgeToCFAEdges = ImmutableListMultimap.copyOf(pEdgeToCFAEdges);
   }
 
   public WitnessType getWitnessType() {

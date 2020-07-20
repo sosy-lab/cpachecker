@@ -15,23 +15,17 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
-import org.sosy_lab.cpachecker.util.CFATraversal;
-import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.TraversalDirection;
@@ -48,13 +42,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
  *
  * @see SlicerFactory
  */
-@Options(prefix = "slicing")
 public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
-
-  @Option(secure = true, name = "preserveTargetPaths",
-      description = "Whether to create slices that are behaviorally equivalent not only to "
-          + "the target location, but also on the paths to that target location.")
-  private boolean preserveTargetPaths = false;
 
   private DependenceGraph depGraph;
 
@@ -75,8 +63,6 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       CFA pCfa)
       throws InvalidConfigurationException {
     super(pExtractor, pLogger, pShutdownNotifier, pConfig);
-
-    pConfig.inject(this);
 
     depGraph =
         pCfa.getDependenceGraph()
@@ -110,24 +96,6 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
           realSlices++;
         }
         relevantEdges.addAll(depGraph.getReachable(g, TraversalDirection.BACKWARD));
-      }
-
-      if (preserveTargetPaths) {
-        // we do this only after we computed the slices for all slicing criteria,
-        // because this would otherwise disturb our optimization above that stops
-        // if a criterion is already part of the criteria edges (because we don't
-        // add any dependences for assumptions on cfa paths)
-        for (CFAEdge g : criteriaEdges) {
-          EdgeCollectingCFAVisitor visitor = new EdgeCollectingCFAVisitor();
-          CFATraversal.dfs().backwards().traverseOnce(g.getPredecessor(), visitor);
-          Set<CFAEdge> assumptions =
-              visitor
-                  .getVisitedEdges()
-                  .stream()
-                  .filter(x -> x.getEdgeType().equals(CFAEdgeType.AssumeEdge))
-                  .collect(Collectors.toSet());
-          relevantEdges.addAll(assumptions);
-        }
       }
 
       final Slice slice = new Slice(pCfa, relevantEdges, pSlicingCriteria);

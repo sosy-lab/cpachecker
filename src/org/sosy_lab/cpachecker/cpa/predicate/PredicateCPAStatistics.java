@@ -370,5 +370,6 @@ class PredicateCPAStatistics implements Statistics {
     pfmgr.printStatistics(out);
     out.println();
     rmgr.printStatistics(out);
+    solver.printStatistics(out);
   }
 }

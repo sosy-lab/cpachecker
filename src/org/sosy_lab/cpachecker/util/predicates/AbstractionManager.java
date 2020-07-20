@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.util.predicates;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.primitives.ImmutableIntArray;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -458,15 +457,14 @@ public final class AbstractionManager {
     // This class does not care whether this happens, if the RegionManager implementation
     // can work without AbstractionPredicates for each atom so can we.
     // This will affect statistics, however.
-    return rmgr.fromFormula(pF, fmgr,
-        new Function<BooleanFormula, Region>() {
-          @Override
-          public Region apply(BooleanFormula pInput) {
-            if (atomToPredicate.containsKey(pInput)) {
-              return atomToPredicate.get(pInput).getAbstractVariable();
-            }
-            return makePredicate(pInput).getAbstractVariable();
+    return rmgr.fromFormula(
+        pF,
+        fmgr,
+        atom -> {
+          if (atomToPredicate.containsKey(atom)) {
+            return atomToPredicate.get(atom).getAbstractVariable();
           }
+          return makePredicate(atom).getAbstractVariable();
         });
   }
 
