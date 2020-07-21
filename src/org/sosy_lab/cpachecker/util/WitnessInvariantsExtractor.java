@@ -198,7 +198,6 @@ public class WitnessInvariantsExtractor {
    *
    * @param pInvariants the set of location invariants that stores the extracted location invariants
    */
-  @SuppressWarnings("unchecked")
   public void extractInvariantsFromReachedSet(
       final Set<ExpressionTreeLocationInvariant> pInvariants) {
     Map<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = Maps.newConcurrentMap();
@@ -220,8 +219,10 @@ public class WitnessInvariantsExtractor {
           }
           ExpressionTree<AExpression> previousExpression = ExpressionTrees.getTrue();
           if (previousInv != null) {
-            ExpressionTree<?> expr = previousInv.asExpressionTree();
-            previousExpression = (ExpressionTree<AExpression>) expr;
+            @SuppressWarnings("unchecked")
+            ExpressionTree<AExpression> expr =
+                (ExpressionTree<AExpression>) (ExpressionTree<?>) previousInv.asExpressionTree();
+            previousExpression = expr;
             pInvariants.remove(previousInv);
           }
           pInvariants.add(
