@@ -284,10 +284,6 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  @SuppressFBWarnings(
-    value = "DM_DEFAULT_ENCODING",
-    justification = "Encoding is irrelevant for null output stream"
-  )
   @Override
   public AlgorithmStatus run(ReachedSet pReached) throws CPAException, InterruptedException {
     checkArgument(
@@ -478,6 +474,9 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
+  @SuppressFBWarnings(
+      value = "DM_DEFAULT_ENCODING",
+      justification = "Encoding is irrelevant for null output stream")
   @SuppressForbidden("System.out is correct for statistics")
   private void printIntermediateStatistics(ReachedSet pReached, AlgorithmContext currentContext) {
     switch (intermediateStatistics) {
