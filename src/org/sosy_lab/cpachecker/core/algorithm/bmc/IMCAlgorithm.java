@@ -64,20 +64,20 @@ import org.sosy_lab.java_smt.api.SolverException;
 @Options(prefix="imc")
 public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
-  @Option(secure = true, description = "try using interpolation to verify programs with loops")
+  @Option(secure = true, description = "toggle using interpolation to verify programs with loops")
   private boolean interpolation = true;
 
   @Option(secure = true, description = "toggle deriving the interpolants from suffix formulas")
   private boolean deriveInterpolantFromSuffix = true;
 
   @Option(secure = true, description = "toggle collecting formulas by traversing ARG")
-  private boolean collectFormulasByTraversingARG = false;
+  private boolean collectFormulasByTraversingARG = true;
+
+  @Option(secure = true, description = "toggle checking forward conditions")
+  private boolean checkForwardConditions = true;
 
   @Option(secure = true, description = "toggle checking existence of covered states in ARG")
-  private boolean checkExistenceOfCoveredStates = false;
-
-  @Option(secure = true, description = "toggle checking existence of target states in ARG")
-  private boolean checkExistenceOfTargetStates = false;
+  private boolean checkExistenceOfCoveredStates = true;
 
   @Option(secure = true, description = "toggle sanity check of collected formulas")
   private boolean checkSanityOfFormulas = false;
@@ -145,7 +145,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * The main method for interpolation-based model checking.
    *
    * @param pReachedSet Abstract Reachability Graph (ARG)
-   *
    * @return {@code AlgorithmStatus.UNSOUND_AND_PRECISE} if an error location is reached, i.e.,
    *         unsafe; {@code AlgorithmStatus.SOUND_AND_PRECISE} if a fixed point is derived, i.e.,
    *         safe.
@@ -173,33 +172,15 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         throw new CPAException("Covered states exist in ARG, analysis result could be wrong.");
       }
 
-      if (checkExistenceOfTargetStates && AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
-        logger.log(Level.WARNING, "No target states at maxLoopIterations =", maxLoopIterations);
-        if (maxLoopIterations == 1) {
-          adjustConditions();
-          continue;
-        } else {
-          return AlgorithmStatus.SOUND_AND_PRECISE;
-        }
-      }
-
       logger.log(Level.FINE, "Collecting prefix, loop, and suffix formulas");
       PartitionedFormulas formulas = collectFormulas(pReachedSet, maxLoopIterations);
-      logger.log(Level.ALL, "The prefix is", formulas.prefixFormula.getFormula());
-      logger.log(Level.ALL, "The loop is", formulas.loopFormula);
-      logger.log(Level.ALL, "The suffix is", formulas.suffixFormula);
+      formulas.printCollectedFormulas(logger);
 
       if (checkSanityOfFormulas && !checkSanityOfFormulas(formulas)) {
         throw new CPAException("Collected formulas are insane, analysis result could be wrong.");
       }
 
-      BooleanFormula reachErrorFormula =
-          bfmgr.or(
-              bfmgr.and(
-                  formulas.prefixFormula.getFormula(),
-                  formulas.loopFormula,
-                  formulas.suffixFormula),
-              formulas.errorBeforeLoopFormula);
+      BooleanFormula reachErrorFormula = buildReachErrorFormula(formulas);
       if (!solver.isUnsat(reachErrorFormula)) {
         logger.log(Level.FINE, "A target state is reached by BMC");
         return AlgorithmStatus.UNSOUND_AND_PRECISE;
@@ -207,6 +188,14 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         logger.log(Level.FINE, "No error is found up to maxLoopIterations = ", maxLoopIterations);
         if (pReachedSet.hasViolatedProperties()) {
           TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
+        }
+      }
+
+      if (checkForwardConditions) {
+        BooleanFormula boundingAssertionFormula = buildBoundingAssertionFormula(formulas);
+        if (solver.isUnsat(boundingAssertionFormula)) {
+          logger.log(Level.FINE, "The program cannot be further unrolled");
+          return AlgorithmStatus.SOUND_AND_PRECISE;
         }
       }
 
@@ -224,29 +213,17 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   /**
-   * A helper method to collect formulas needed by IMC algorithm. Three formulas are collected:
-   * prefix, loop, and suffix. Prefix formula describes all paths from the initial state to the
-   * first LH. Loop formula describes all paths from the first LH to the second LH. Suffix formula
-   * is the conjunction of the all paths from the second LH to the second last LH and the block
-   * formulas at target states. The second LH to the second last LH was stored in a formula called
-   * tail formula before, in order to save the effort to compute the conjunction in every unrolling
-   * iteration. However, to make the code easier to understand, the tail formula is not stored in
-   * {@link PartitionedFormulas} now. Considering the conjunction is only a syntactic operation, and
-   * the unrolling numbers are typically not large, this trade-off between efficiency and
-   * readability should be acceptable. Two subroutines to collect formulas are available: one
-   * syntactic and the other semantic. The old implementation relies on {@link CFANode} to detect
-   * syntactic loops, but it turns out that syntactic LHs are not always abstraction states, and
-   * hence it might not always collect block formulas from abstraction states. To solve this
-   * mismatch, a new implementation which directly traverses ARG was developed, and it guarantees to
-   * collect block formulas from abstraction states. The new method can be enabled by setting
-   * {@code imc.collectFormulasByTraversingARG=true}.
+   * A helper method to collect formulas needed by IMC algorithm. Two subroutines to collect
+   * formulas are available: one syntactic and the other semantic. The old implementation relies on
+   * {@link CFANode} to detect syntactic loops, but it turns out that syntactic LHs are not always
+   * abstraction states, and hence it might not always collect block formulas at abstraction states.
+   * To solve this mismatch, a new implementation which directly traverses ARG was developed, and it
+   * guarantees to collect block formulas always at abstraction states. The new method can be
+   * enabled by setting {@code imc.collectFormulasByTraversingARG=true}.
    *
    * @param pReachedSet Abstract Reachability Graph
-   *
    * @param maxLoopIterations The upper bound of unrolling times
-   *
    * @throws InterruptedException On shutdown request.
-   *
    */
   private PartitionedFormulas collectFormulas(final ReachedSet pReachedSet, int maxLoopIterations)
       throws InterruptedException {
@@ -257,8 +234,14 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
   }
 
+  /**
+   * The semantic subroutine to collect formulas.
+   *
+   * @param pReachedSet Abstract Reachability Graph
+   */
   private PartitionedFormulas
       collectFormulasByTraversingARG(final ReachedSet pReachedSet) {
+    // Collect prefix, loop, tail, and target formulas
     PathFormula prefixFormula =
         new PathFormula(
             bfmgr.makeFalse(),
@@ -267,60 +250,76 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
             0);
     BooleanFormula loopFormula = bfmgr.makeTrue();
     BooleanFormula tailFormula = bfmgr.makeTrue();
-    BooleanFormula targetFormula = bfmgr.makeFalse();
-    BooleanFormula errorBeforeLoopFormula = bfmgr.makeFalse();
-    for (AbstractState targetStateBeforeLoop : getTargetStatesBeforeLoop(pReachedSet)) {
-      errorBeforeLoopFormula =
-          bfmgr.or(
-              errorBeforeLoopFormula,
-              getPredicateAbstractionBlockFormula(targetStateBeforeLoop).getFormula());
-    }
-    if (!AbstractStates.getTargetStates(pReachedSet)
-        .filter(e -> !isTargetStateBeforeLoopStart(e))
-        .isEmpty()) {
-      List<AbstractState> targetStatesAfterLoop = getTargetStatesAfterLoop(pReachedSet);
+    FluentIterable<AbstractState> targetStatesAfterLoop = getTargetStatesAfterLoop(pReachedSet);
+    BooleanFormula targetFormula = createDisjunctionFromStates(targetStatesAfterLoop);
+    if (!targetStatesAfterLoop.isEmpty()) {
       // Initialize prefix, loop, and tail using the first target state after the loop
       // Assumption: every target state after the loop has the same abstraction-state path to root
       List<ARGState> abstractionStates = getAbstractionStatesToRoot(targetStatesAfterLoop.get(0));
-      prefixFormula = getPredicateAbstractionBlockFormula(abstractionStates.get(1));
-      if (abstractionStates.size() > 3) {
-        loopFormula = getPredicateAbstractionBlockFormula(abstractionStates.get(2)).getFormula();
-      }
-      if (abstractionStates.size() > 4) {
-        for (int i = 3; i < abstractionStates.size() - 1; ++i) {
-          tailFormula =
-              bfmgr.and(
-                  tailFormula,
-                  getPredicateAbstractionBlockFormula(abstractionStates.get(i)).getFormula());
-        }
-      }
-      // Collect target formulas from each target state
-      for (AbstractState targetState : targetStatesAfterLoop) {
-        targetFormula =
-            bfmgr.or(targetFormula, getPredicateAbstractionBlockFormula(targetState).getFormula());
-      }
+      prefixFormula = buildPrefixFormula(abstractionStates);
+      loopFormula = buildLoopFormula(abstractionStates);
+      tailFormula = buildTailFormula(abstractionStates);
     }
+    // Collect bound formula
+    FluentIterable<AbstractState> stopStates =
+        from(pReachedSet).filter(AbstractBMCAlgorithm::isStopState)
+            .filter(AbstractBMCAlgorithm::isRelevantForReachability);
+    BooleanFormula boundFormula = createDisjunctionFromStates(stopStates);
+    // Collect error before loop formula
+    BooleanFormula errorBeforeLoopFormula =
+        createDisjunctionFromStates(getTargetStatesBeforeLoop(pReachedSet));
     return new PartitionedFormulas(
         prefixFormula,
         loopFormula,
-        bfmgr.and(tailFormula, targetFormula),
+        tailFormula,
+        targetFormula,
+        boundFormula,
         errorBeforeLoopFormula);
+  }
+
+  private PathFormula buildPrefixFormula(final List<ARGState> pAbstractionStates) {
+    return getPredicateAbstractionBlockFormula(pAbstractionStates.get(1));
+  }
+
+  private BooleanFormula buildLoopFormula(final List<ARGState> pAbstractionStates) {
+    return pAbstractionStates.size() > 3
+        ? getPredicateAbstractionBlockFormula(pAbstractionStates.get(2)).getFormula()
+        : bfmgr.makeTrue();
+  }
+
+  private BooleanFormula buildTailFormula(final List<ARGState> pAbstractionStates) {
+    BooleanFormula tailFormula = bfmgr.makeTrue();
+    if (pAbstractionStates.size() > 4) {
+      for (int i = 3; i < pAbstractionStates.size() - 1; ++i) {
+        tailFormula =
+            bfmgr.and(
+                tailFormula,
+                getPredicateAbstractionBlockFormula(pAbstractionStates.get(i)).getFormula());
+      }
+    }
+    return tailFormula;
+  }
+
+  private BooleanFormula createDisjunctionFromStates(final FluentIterable<AbstractState> pStates) {
+    return pStates.transform(e -> getPredicateAbstractionBlockFormula(e).getFormula())
+        .stream()
+        .collect(bfmgr.toDisjunction());
   }
 
   private static boolean isTargetStateBeforeLoopStart(AbstractState pTargetState) {
     return getAbstractionStatesToRoot(pTargetState).size() == 2;
   }
 
-  private static List<AbstractState> getTargetStatesBeforeLoop(final ReachedSet pReachedSet) {
+  private static FluentIterable<AbstractState>
+      getTargetStatesBeforeLoop(final ReachedSet pReachedSet) {
     return AbstractStates.getTargetStates(pReachedSet)
-        .filter(IMCAlgorithm::isTargetStateBeforeLoopStart)
-        .toList();
+        .filter(IMCAlgorithm::isTargetStateBeforeLoopStart);
   }
 
-  private static List<AbstractState> getTargetStatesAfterLoop(final ReachedSet pReachedSet) {
+  private static FluentIterable<AbstractState>
+      getTargetStatesAfterLoop(final ReachedSet pReachedSet) {
     return AbstractStates.getTargetStates(pReachedSet)
-        .filter(e -> !isTargetStateBeforeLoopStart(e))
-        .toList();
+        .filter(e -> !isTargetStateBeforeLoopStart(e));
   }
 
   private static List<ARGState> getAbstractionStatesToRoot(AbstractState pTargetState) {
@@ -335,6 +334,13 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         .getBlockFormula();
   }
 
+  /**
+   * The syntactical subroutine to collect formulas.
+   *
+   * @param pReachedSet Abstract Reachability Graph
+   * @param maxLoopIterations The current unrolling upper bound
+   * @throws InterruptedException On shutdown request.
+   */
   private PartitionedFormulas collectFormulasBySyntacticLoop(
       final ReachedSet pReachedSet,
       int maxLoopIterations)
@@ -350,24 +356,13 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         tailFormula = bfmgr.and(tailFormula, getLoopHeadFormula(pReachedSet, k).getFormula());
       }
     }
-    BooleanFormula suffixFormula =
-        bfmgr.and(tailFormula, getErrorFormula(pReachedSet, maxLoopIterations - 1));
     return new PartitionedFormulas(
         prefixFormula,
         loopFormula,
-        suffixFormula,
+        tailFormula,
+        getErrorFormula(pReachedSet, maxLoopIterations - 1),
+        getLoopHeadFormula(pReachedSet, maxLoopIterations).getFormula(),
         getErrorFormula(pReachedSet, -1));
-  }
-
-  private boolean checkSanityOfFormulas(final PartitionedFormulas formulas)
-      throws SolverException, InterruptedException {
-    if (!bfmgr.isFalse(formulas.prefixFormula.getFormula())
-        && !bfmgr.isTrue(formulas.loopFormula)
-        && solver.isUnsat(bfmgr.and(formulas.prefixFormula.getFormula(), formulas.loopFormula))) {
-      logger.log(Level.SEVERE, "The conjunction of prefix and loop should not be UNSAT!");
-      return false;
-    }
-    return true;
   }
 
   /**
@@ -379,13 +374,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * returns the disjunction of the block formulas to each loop head state.
    *
    * @param pReachedSet Abstract Reachability Graph
-   *
    * @param numEncounterLoopHead The encounter times of the loop head location
-   *
    * @return The {@code PathFormula} at the specified loop head location if the loop head is unique.
-   *
    * @throws InterruptedException On shutdown request.
-   *
    */
   private PathFormula getLoopHeadFormula(final ReachedSet pReachedSet, int numEncounterLoopHead)
       throws InterruptedException {
@@ -430,35 +421,26 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * A helper method to get the block formula at the specified error locations.
    *
    * @param pReachedSet Abstract Reachability Graph
-   *
    * @param numEncounterLoopHead The times to encounter LH before reaching the error
-   *
    * @return A {@code BooleanFormula} of the disjunction of block formulas at every error location
    *         if they exist; {@code False} if there is no error location with the specified encounter
    *         times.
-   *
    */
   private BooleanFormula getErrorFormula(final ReachedSet pReachedSet, int numEncounterLoopHead) {
-    return getLoopHeadEncounterState(
+    return createDisjunctionFromStates(
+        getLoopHeadEncounterState(
         AbstractStates.getTargetStates(pReachedSet),
-        numEncounterLoopHead).transform(es -> getPredicateAbstractionBlockFormula(es).getFormula())
-            .stream()
-            .collect(bfmgr.toDisjunction());
+            numEncounterLoopHead));
   }
 
   /**
-   * A helper method to derive an interpolant. It computes C=itp(A,B) or C'=!itp(B,A).
+   * A helper method to derive an interpolant. It computes either C=itp(A,B) or C'=!itp(B,A).
    *
    * @param itpProver SMT solver stack
-   *
    * @param pFormulaA Formula A (prefix and loop)
-   *
    * @param pFormulaB Formula B (suffix)
-   *
    * @return A {@code BooleanFormula} interpolant
-   *
    * @throws InterruptedException On shutdown request.
-   *
    */
   private <T> BooleanFormula getInterpolantFrom(
       InterpolatingProverEnvironment<T> itpProver,
@@ -478,18 +460,16 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    * The method to iteratively compute fixed points by interpolation.
    *
    * @param itpProver the prover with interpolation enabled
-   *
    * @return {@code true} if a fixed point is reached, i.e., property is proved; {@code false} if
    *         the current over-approximation is unsafe.
-   *
    * @throws InterruptedException On shutdown request.
-   *
    */
   private <T> boolean reachFixedPointByInterpolation(
       InterpolatingProverEnvironment<T> itpProver,
       final PartitionedFormulas formulas)
       throws InterruptedException, SolverException {
     BooleanFormula prefixBooleanFormula = formulas.prefixFormula.getFormula();
+    BooleanFormula suffixFormula = bfmgr.and(formulas.tailFormula, formulas.targetFormula);
     SSAMap prefixSsaMap = formulas.prefixFormula.getSsa();
     logger.log(Level.ALL, "The SSA map is", prefixSsaMap);
     BooleanFormula currentImage = bfmgr.makeFalse();
@@ -497,7 +477,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
     List<T> formulaA = new ArrayList<>();
     List<T> formulaB = new ArrayList<>();
-    formulaB.add(itpProver.push(formulas.suffixFormula));
+    formulaB.add(itpProver.push(suffixFormula));
     formulaA.add(itpProver.push(formulas.loopFormula));
     formulaA.add(itpProver.push(prefixBooleanFormula));
 
@@ -527,28 +507,75 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   /**
-   * This class wraps three formulas used in IMC algorithm in order to avoid long parameter lists.
-   * In addition, it also stores the disjunction of block formulas for the target states before the
-   * loop. Therefore, a BMC query is the disjunction of 1) the conjunction of prefix, loop, and
-   * suffix and 2) the errors before the loop. Note that prefixFormula is a {@link PathFormula} as
-   * we need its {@link SSAMap} to update the SSA indices of derived interpolants.
+   * This class wraps formulas used in IMC algorithm in order to avoid long parameter lists. These
+   * formulas include: prefix (LH, k=0), loop (LH, k=1), tail (LH, k=2~k_max-1), target (ERR,
+   * k=k_max-1), and bound (LH, k=k_max). In addition, it also stores the disjunction of block
+   * formulas for the target states (ERR, -1) before the loop. Therefore, the BMC query is the
+   * disjunction of 1) the conjunction of prefix, loop, tail, and target, and 2) the errors before
+   * the loop, and the bounding assertion query is the conjunction of prefix, loop, tail, and bound.
+   * Note that prefixFormula is a {@link PathFormula} as we need its {@link SSAMap} to update the
+   * SSA indices of derived interpolants.
    */
   private static class PartitionedFormulas {
 
     private final PathFormula prefixFormula;
     private final BooleanFormula loopFormula;
-    private final BooleanFormula suffixFormula;
+    private final BooleanFormula tailFormula;
+    private final BooleanFormula targetFormula;
+    private final BooleanFormula boundFormula;
     private final BooleanFormula errorBeforeLoopFormula;
+
+    public void printCollectedFormulas(LogManager pLogger) {
+      pLogger.log(Level.ALL, "Prefix:", prefixFormula.getFormula());
+      pLogger.log(Level.ALL, "Loop:", loopFormula);
+      pLogger.log(Level.ALL, "Tail:", tailFormula);
+      pLogger.log(Level.ALL, "Target:", targetFormula);
+      pLogger.log(Level.ALL, "Bound:", boundFormula);
+      pLogger.log(Level.ALL, "Error before loop:", errorBeforeLoopFormula);
+    }
 
     public PartitionedFormulas(
         PathFormula pPrefixFormula,
         BooleanFormula pLoopFormula,
-        BooleanFormula pSuffixFormula,
+        BooleanFormula pTailFormula,
+        BooleanFormula pTargetFormula,
+        BooleanFormula pBoundFormula,
         BooleanFormula pErrorBeforeLoopFormula) {
       prefixFormula = pPrefixFormula;
       loopFormula = pLoopFormula;
-      suffixFormula = pSuffixFormula;
+      tailFormula = pTailFormula;
+      targetFormula = pTargetFormula;
+      boundFormula = pBoundFormula;
       errorBeforeLoopFormula = pErrorBeforeLoopFormula;
     }
+  }
+
+  private BooleanFormula buildReachErrorFormula(final PartitionedFormulas pFormulas) {
+    return bfmgr.or(
+        bfmgr.and(
+            pFormulas.prefixFormula.getFormula(),
+            pFormulas.loopFormula,
+            pFormulas.tailFormula,
+            pFormulas.targetFormula),
+        pFormulas.errorBeforeLoopFormula);
+  }
+
+  private BooleanFormula buildBoundingAssertionFormula(final PartitionedFormulas pFormulas) {
+    return bfmgr.and(
+        pFormulas.prefixFormula.getFormula(),
+        pFormulas.loopFormula,
+        pFormulas.tailFormula,
+        pFormulas.boundFormula);
+  }
+
+  private boolean checkSanityOfFormulas(final PartitionedFormulas pFormulas)
+      throws SolverException, InterruptedException {
+    if (!bfmgr.isFalse(pFormulas.prefixFormula.getFormula())
+        && !bfmgr.isTrue(pFormulas.loopFormula)
+        && solver.isUnsat(bfmgr.and(pFormulas.prefixFormula.getFormula(), pFormulas.loopFormula))) {
+      logger.log(Level.SEVERE, "The conjunction of prefix and loop should not be UNSAT!");
+      return false;
+    }
+    return true;
   }
 }
