@@ -11,9 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentMap;
+import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -66,10 +68,9 @@ public class ExpressionTreeLocationInvariant extends SingleLocationFormulaInvari
     try {
       return expressionTree.accept(toFormulaVisitor);
     } catch (ToFormulaException e) {
-      if (e.isInterruptedException()) {
-        throw e.asInterruptedException();
-      }
-      throw e.asTransferException();
+      Throwables.propagateIfPossible(
+          e.getCause(), CPATransferException.class, InterruptedException.class);
+      throw new UnexpectedCheckedException("expression tree to formula", e);
     }
   }
 
