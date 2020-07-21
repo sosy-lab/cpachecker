@@ -80,6 +80,17 @@ configuration-plot:
       - "ConfigurationPlot.dot.svg"
 
 
+forbidden-apis:
+  <<: *binary_check
+  script: "ant $ANT_PROPS_CHECKS forbiddenapis"
+  dependencies:
+    - build-dependencies
+    - build:jdk-11
+  needs:
+    - build-dependencies
+    - build:jdk-11
+
+
 .python-unit-tests: &python-unit-tests
   <<: *binary_check
   script: "ant $ANT_PROPS_CHECKS python-unit-tests"

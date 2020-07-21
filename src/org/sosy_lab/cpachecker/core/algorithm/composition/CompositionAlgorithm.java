@@ -39,6 +39,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.configuration.AnnotatedValue;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -477,6 +478,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
+  @SuppressForbidden("System.out is correct for statistics")
   private void printIntermediateStatistics(ReachedSet pReached, AlgorithmContext currentContext) {
     switch (intermediateStatistics) {
       case PRINT:

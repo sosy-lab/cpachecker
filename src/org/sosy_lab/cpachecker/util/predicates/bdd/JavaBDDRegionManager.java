@@ -34,6 +34,7 @@ import net.sf.javabdd.BDDFactory;
 import net.sf.javabdd.BDDPairing;
 import net.sf.javabdd.JFactory;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.IntegerOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -60,8 +61,8 @@ import org.sosy_lab.java_smt.api.visitors.BooleanFormulaVisitor;
 /**
  * A wrapper for the javabdd (http://javabdd.sf.net) package.
  *
- * This class is not thread-safe, but it could be easily made so by synchronizing
- * the {@link #createNewVar()} method (assuming the BDDFactory is thread-safe).
+ * <p>This class is not thread-safe, but it could be easily made so by synchronizing the {@link
+ * #createNewVar()} method (assuming the BDDFactory is thread-safe).
  */
 @Options(prefix = "bdd.javabdd")
 class JavaBDDRegionManager implements RegionManager {
@@ -97,8 +98,9 @@ class JavaBDDRegionManager implements RegionManager {
   private int nextvar = 0;
   private int varcount = 100;
 
-  JavaBDDRegionManager(String bddPackage, Configuration config,
-      LogManager pLogger) throws InvalidConfigurationException {
+  @SuppressForbidden("reflection on own methods")
+  JavaBDDRegionManager(String bddPackage, Configuration config, LogManager pLogger)
+      throws InvalidConfigurationException {
     config.inject(this);
     logger = pLogger;
     if (initTableRatio <= 0 || initTableRatio >= 1) {
@@ -228,9 +230,9 @@ class JavaBDDRegionManager implements RegionManager {
   }
 
   /**
-   * Return the current size of the cache of the BDD library.
-   * Returns -1 if value cannot be read.
+   * Return the current size of the cache of the BDD library. Returns -1 if value cannot be read.
    */
+  @SuppressForbidden("reflection only for statistics")
   private int readCacheSize() {
     if (factory instanceof JFactory) {
       // Unfortunately JFactory does not update its reported size on cache resizes.

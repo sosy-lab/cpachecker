@@ -121,6 +121,10 @@ SPDX-License-Identifier: Apache-2.0
         <dependency org="com.google.errorprone" name="error_prone_core" rev="2.4.0" conf="build->default" />
         <dependency org="com.google.errorprone" name="error_prone_annotations" rev="2.4.0" conf="build->default; contrib->sources" />
 
+        <!-- Policeman's Forbidden API Checker
+             Useful for detecting uses of unwanted API -->
+        <dependency org="de.thetaphi" name="forbiddenapis" rev="3.0.1" conf="build->default" />
+
         <!-- Eclipse JDT Compiler
              For additional compiler warnings. -->
         <dependency org="org.eclipse.jdt.core.compiler" name="ecj" rev="4.16" conf="build->default"/>
