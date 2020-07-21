@@ -437,16 +437,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
       }
 
       if (configFilesIterator.hasNext()) {
-        if (printIntermediateStatistics) {
-          stats.printIntermediateStatistics(System.out, Result.UNKNOWN, currentReached);
-        } else {
-          @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
-          final PrintStream dummyStream = new PrintStream(ByteStreams.nullOutputStream());
-          stats.printIntermediateStatistics(dummyStream, Result.UNKNOWN, currentReached);
-        }
-        if (writeIntermediateOutputFiles) {
-          stats.writeOutputFiles(Result.UNKNOWN, currentReached);
-        }
+        printIntermediateStatistics(currentReached);
         stats.resetSubStatistics();
 
         if (currentCpa != null && !provideReachedForNextAlgorithm) {
@@ -467,6 +458,19 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
     // no further configuration available, and analysis has not finished
     logger.log(Level.INFO, "No further configuration available.");
     return status;
+  }
+
+  private void printIntermediateStatistics(ReachedSet currentReached) {
+    if (printIntermediateStatistics) {
+      stats.printIntermediateStatistics(System.out, Result.UNKNOWN, currentReached);
+    } else {
+      @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
+      final PrintStream dummyStream = new PrintStream(ByteStreams.nullOutputStream());
+      stats.printIntermediateStatistics(dummyStream, Result.UNKNOWN, currentReached);
+    }
+    if (writeIntermediateOutputFiles) {
+      stats.writeOutputFiles(Result.UNKNOWN, currentReached);
+    }
   }
 
   private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createNextAlgorithm(

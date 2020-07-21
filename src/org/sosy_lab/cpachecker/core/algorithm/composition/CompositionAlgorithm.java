@@ -436,29 +436,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
                 && !shutdownNotifier.shouldShutdown()
                 && selectionStrategy.hasNextAlgorithm()) {
 
-              switch (intermediateStatistics) {
-                case PRINT:
-                  stats.printIntermediateStatistics(
-                      System.out,
-                      Result.UNKNOWN,
-                      currentContext.getReachedSet());
-                  break;
-                case EXECUTE:
-                  @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
-                  final PrintStream dummyStream = new PrintStream(ByteStreams.nullOutputStream());
-                  stats.printIntermediateStatistics(
-                      dummyStream,
-                      Result.UNKNOWN,
-                      currentContext.getReachedSet());
-                  break;
-                default: // do nothing
-              }
-
-              if (writeIntermediateOutputFiles) {
-                stats.writeOutputFiles(Result.UNKNOWN, pReached);
-              }
-
-              stats.resetSubStatistics();
+              printIntermediateStatistics(pReached, currentContext);
 
               if (!currentContext.reuseCPA()) {
                 CPAs.closeCpaIfPossible(currentContext.getCPA(), logger);
@@ -497,6 +475,32 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     } finally {
       stats.totalTimer.stop();
     }
+  }
+
+  private void printIntermediateStatistics(ReachedSet pReached, AlgorithmContext currentContext) {
+    switch (intermediateStatistics) {
+      case PRINT:
+        stats.printIntermediateStatistics(
+            System.out,
+            Result.UNKNOWN,
+            currentContext.getReachedSet());
+        break;
+      case EXECUTE:
+        @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
+        final PrintStream dummyStream = new PrintStream(ByteStreams.nullOutputStream());
+        stats.printIntermediateStatistics(
+            dummyStream,
+            Result.UNKNOWN,
+            currentContext.getReachedSet());
+        break;
+      default: // do nothing
+    }
+
+    if (writeIntermediateOutputFiles) {
+      stats.writeOutputFiles(Result.UNKNOWN, pReached);
+    }
+
+    stats.resetSubStatistics();
   }
 
 
