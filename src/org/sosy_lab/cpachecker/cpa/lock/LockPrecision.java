@@ -13,6 +13,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -69,6 +70,6 @@ public class LockPrecision implements AdjustablePrecision {
   }
 
   String getValues() {
-    return Sets.newHashSet(precision.values()).toString();
+    return new HashSet<>(precision.values()).toString();
   }
 }

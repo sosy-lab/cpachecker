@@ -13,12 +13,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.ImmutableIntArray;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
@@ -284,7 +284,7 @@ public class NamedRegionManager implements RegionManager {
     synchronized (regionMap) {
       // sort predicates according to BDD ordering.
       // create small BDDs "AND(A,B)" and check which node is the root.
-      List<String> predicates = Lists.newArrayList(regionMap.keySet());
+      List<String> predicates = new ArrayList<>(regionMap.keySet());
       Collections.sort(predicates, (a, b) -> {
         Region ra = regionMap.get(a);
         Region rb = regionMap.get(b);

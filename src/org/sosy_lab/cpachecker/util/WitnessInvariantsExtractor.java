@@ -11,16 +11,17 @@ package org.sosy_lab.cpachecker.util;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -203,7 +204,7 @@ public class WitnessInvariantsExtractor {
   public Set<ExpressionTreeLocationInvariant> extractInvariantsFromReachedSet()
       throws InterruptedException {
     Set<ExpressionTreeLocationInvariant> invariants = new LinkedHashSet<>();
-    ConcurrentMap<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = Maps.newConcurrentMap();
+    ConcurrentMap<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = new ConcurrentHashMap<>();
     for (AbstractState abstractState : reachedSet) {
       shutdownNotifier.shutdownIfNecessary();
       CFANode location = AbstractStates.extractLocation(abstractState);
@@ -249,12 +250,12 @@ public class WitnessInvariantsExtractor {
       final Set<CandidateInvariant> pCandidates,
       final Multimap<String, CFANode> pCandidateGroupLocations)
       throws InterruptedException {
-    Set<ExpressionTreeLocationInvariant> expressionTreeLocationInvariants = Sets.newHashSet();
-    Map<String, ExpressionTree<AExpression>> expressionTrees = Maps.newHashMap();
-    Set<CFANode> visited = Sets.newHashSet();
+    Set<ExpressionTreeLocationInvariant> expressionTreeLocationInvariants = new HashSet<>();
+    Map<String, ExpressionTree<AExpression>> expressionTrees = new HashMap<>();
+    Set<CFANode> visited = new HashSet<>();
     Multimap<CFANode, ExpressionTreeLocationInvariant> potentialAdditionalCandidates =
         HashMultimap.create();
-    ConcurrentMap<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = Maps.newConcurrentMap();
+    ConcurrentMap<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = new ConcurrentHashMap<>();
     for (AbstractState abstractState : reachedSet) {
       shutdownNotifier.shutdownIfNecessary();
       Iterable<CFANode> locations = AbstractStates.extractLocations(abstractState);
