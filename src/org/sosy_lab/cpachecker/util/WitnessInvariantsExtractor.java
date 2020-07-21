@@ -199,12 +199,10 @@ public class WitnessInvariantsExtractor {
    * @param pInvariants the set of location invariants that stores the extracted location invariants
    */
   public void extractInvariantsFromReachedSet(
-      final Set<ExpressionTreeLocationInvariant> pInvariants) {
+      final Set<ExpressionTreeLocationInvariant> pInvariants) throws InterruptedException {
     Map<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = Maps.newConcurrentMap();
     for (AbstractState abstractState : reachedSet) {
-      if (shutdownNotifier.shouldShutdown()) {
-        return;
-      }
+      shutdownNotifier.shutdownIfNecessary();
       CFANode location = AbstractStates.extractLocation(abstractState);
       for (AutomatonState automatonState :
           AbstractStates.asIterable(abstractState).filter(AutomatonState.class)) {
@@ -245,7 +243,8 @@ public class WitnessInvariantsExtractor {
    */
   public void extractCandidatesFromReachedSet(
       final Set<CandidateInvariant> pCandidates,
-      final Multimap<String, CFANode> pCandidateGroupLocations) {
+      final Multimap<String, CFANode> pCandidateGroupLocations)
+      throws InterruptedException {
     Set<ExpressionTreeLocationInvariant> expressionTreeLocationInvariants = Sets.newHashSet();
     Map<String, ExpressionTree<AExpression>> expressionTrees = Maps.newHashMap();
     Set<CFANode> visited = Sets.newHashSet();
@@ -253,9 +252,7 @@ public class WitnessInvariantsExtractor {
         HashMultimap.create();
     Map<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = Maps.newConcurrentMap();
     for (AbstractState abstractState : reachedSet) {
-      if (shutdownNotifier.shouldShutdown()) {
-        return;
-      }
+      shutdownNotifier.shutdownIfNecessary();
       Iterable<CFANode> locations = AbstractStates.extractLocations(abstractState);
       Iterables.addAll(visited, locations);
       for (AutomatonState automatonState :

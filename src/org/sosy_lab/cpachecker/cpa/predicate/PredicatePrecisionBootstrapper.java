@@ -183,7 +183,8 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     return result;
   }
 
-  private PredicatePrecision parseInvariantsFromCorrectnessWitnessAsPredicates(Path pWitnessFile) {
+  private PredicatePrecision parseInvariantsFromCorrectnessWitnessAsPredicates(Path pWitnessFile)
+      throws InterruptedException {
     PredicatePrecision result = PredicatePrecision.empty();
     try {
       final Set<ExpressionTreeLocationInvariant> invariants = Sets.newLinkedHashSet();
@@ -234,7 +235,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
           result = result.addGlobalPredicates(globalPredicates);
         }
       }
-    } catch (CPAException | InterruptedException | InvalidConfigurationException e) {
+    } catch (CPAException | InvalidConfigurationException e) {
       logger.logUserException(
           Level.WARNING, e, "Predicate from correctness witness invariants could not be computed");
     }

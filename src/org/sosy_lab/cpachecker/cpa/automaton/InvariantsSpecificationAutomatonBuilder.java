@@ -15,7 +15,6 @@ import com.google.common.collect.Sets;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
@@ -42,13 +41,18 @@ public enum InvariantsSpecificationAutomatonBuilder {
 
   /**
    * Lets the automaton unchanged when calling {@link
-   * InvariantsSpecificationAutomatonBuilder#build(Automaton, Configuration, LogManager, CFA)}.
+   * InvariantsSpecificationAutomatonBuilder#build(Automaton, Configuration, LogManager,
+   * ShutdownNotifier, CFA)}.
    */
   NO_ISA {
 
     @Override
     public Automaton build(
-        Automaton pAutomaton, Configuration pConfig, LogManager pLogger, CFA pCfa) {
+        Automaton pAutomaton,
+        Configuration pConfig,
+        LogManager pLogger,
+        ShutdownNotifier pShutdownNotifier,
+        CFA pCfa) {
       return pAutomaton;
     }
   },
@@ -56,10 +60,10 @@ public enum InvariantsSpecificationAutomatonBuilder {
   /**
    * Defines an invariant specification automaton that refers to the structure of the original
    * witness automaton and that is extended with invariant based error states. Calling {@link
-   * InvariantsSpecificationAutomatonBuilder#build(Automaton, Configuration, LogManager, CFA)} only
-   * changes the name of the {@code Automaton} because the {@code Automaton} already includes the
-   * invariant based error states when {@code WITNESSBASED_INVARIANTSAUTOMATON} has been specified
-   * in {@link AutomatonGraphmlParser}.
+   * InvariantsSpecificationAutomatonBuilder#build(Automaton, Configuration, LogManager,
+   * ShutdownNotifier, CFA)} only changes the name of the {@code Automaton} because the {@code
+   * Automaton} already includes the invariant based error states when {@code
+   * WITNESSBASED_INVARIANTSAUTOMATON} has been specified in {@link AutomatonGraphmlParser}.
    */
   WITNESSBASED_ISA {
 
@@ -67,7 +71,11 @@ public enum InvariantsSpecificationAutomatonBuilder {
 
     @Override
     public Automaton build(
-        Automaton pAutomaton, Configuration pConfig, LogManager pLogger, CFA pCfa) {
+        Automaton pAutomaton,
+        Configuration pConfig,
+        LogManager pLogger,
+        ShutdownNotifier pShutdownNotifier,
+        CFA pCfa) {
       try {
         return new Automaton(
             WITNESS_AUTOMATON_NAME,
@@ -93,12 +101,11 @@ public enum InvariantsSpecificationAutomatonBuilder {
 
     @Override
     public Automaton build(
-        Automaton pAutomaton, Configuration pConfig, LogManager pLogger, CFA pCfa) {
-      ShutdownManager shutdownManager = ShutdownManager.create();
-      ShutdownNotifier shutdownNotifier = shutdownManager.getNotifier();
+        Automaton pAutomaton, Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
+        throws InterruptedException {
       try {
         WitnessInvariantsExtractor extractor =
-            new WitnessInvariantsExtractor(pConfig, pAutomaton, pLogger, pCfa, shutdownNotifier);
+            new WitnessInvariantsExtractor(pConfig, pAutomaton, pLogger, pCfa, pShutdownNotifier);
         final Set<ExpressionTreeLocationInvariant> invariants = Sets.newLinkedHashSet();
         extractor.extractInvariantsFromReachedSet(invariants);
         return buildInvariantsAutomaton(pCfa, pLogger, invariants);
@@ -185,12 +192,15 @@ public enum InvariantsSpecificationAutomatonBuilder {
 
     @Override
     public Automaton build(
-        Automaton pAutomaton, Configuration pConfig, LogManager pLogger, CFA pCfa) {
-      ShutdownManager shutdownManager = ShutdownManager.create();
-      ShutdownNotifier shutdownNotifier = shutdownManager.getNotifier();
+        Automaton pAutomaton,
+        Configuration pConfig,
+        LogManager pLogger,
+        ShutdownNotifier pShutdownNotifier,
+        CFA pCfa)
+        throws InterruptedException {
       try {
         WitnessInvariantsExtractor extractor =
-            new WitnessInvariantsExtractor(pConfig, pAutomaton, pLogger, pCfa, shutdownNotifier);
+            new WitnessInvariantsExtractor(pConfig, pAutomaton, pLogger, pCfa, pShutdownNotifier);
         final Set<ExpressionTreeLocationInvariant> invariants = Sets.newLinkedHashSet();
         extractor.extractInvariantsFromReachedSet(invariants);
         return buildInvariantsAutomaton(pCfa, pLogger, invariants);
@@ -323,11 +333,13 @@ public enum InvariantsSpecificationAutomatonBuilder {
    * changes.
    *
    * @param pAutomaton - the correctness witness automaton used
-   * @param pConfig - the configuration
-   * @param pLogger - the logger
-   * @param pCfa - the cfa
    * @return the invariants specification automaton if specified
    */
   public abstract Automaton build(
-      Automaton pAutomaton, Configuration pConfig, LogManager pLogger, CFA pCfa);
+      Automaton pAutomaton,
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCfa)
+      throws InterruptedException;
 }

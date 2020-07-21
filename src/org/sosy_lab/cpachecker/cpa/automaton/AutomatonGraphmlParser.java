@@ -124,7 +124,7 @@ public class AutomatonGraphmlParser {
   private static final String TOO_MANY_GRAPHS_ERROR_MESSAGE =
       "The witness file must describe exactly one witness automaton.";
 
-  
+
 
   private static final String INVALID_AUTOMATON_ERROR_MESSAGE =
       "The witness automaton provided is invalid!";
@@ -314,7 +314,7 @@ public class AutomatonGraphmlParser {
     }
 
     // the automaton will be an ISA if specified
-    automaton = invariantsSpecAutomaton.build(automaton, config, logger, cfa);
+    automaton = invariantsSpecAutomaton.build(automaton, config, logger, shutdownNotifier, cfa);
 
     if (automatonDumpFile != null) {
       try (Writer w = IO.openOutputFile(automatonDumpFile, Charset.defaultCharset())) {
