@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -106,8 +105,8 @@ public enum InvariantsSpecificationAutomatonBuilder {
       try {
         WitnessInvariantsExtractor extractor =
             new WitnessInvariantsExtractor(pConfig, pAutomaton, pLogger, pCfa, pShutdownNotifier);
-        final Set<ExpressionTreeLocationInvariant> invariants = Sets.newLinkedHashSet();
-        extractor.extractInvariantsFromReachedSet(invariants);
+        final Set<ExpressionTreeLocationInvariant> invariants =
+            extractor.extractInvariantsFromReachedSet();
         return buildInvariantsAutomaton(pCfa, pLogger, invariants);
       } catch (InvalidConfigurationException | CPAException e) {
         throw new RuntimeException(
@@ -201,8 +200,8 @@ public enum InvariantsSpecificationAutomatonBuilder {
       try {
         WitnessInvariantsExtractor extractor =
             new WitnessInvariantsExtractor(pConfig, pAutomaton, pLogger, pCfa, pShutdownNotifier);
-        final Set<ExpressionTreeLocationInvariant> invariants = Sets.newLinkedHashSet();
-        extractor.extractInvariantsFromReachedSet(invariants);
+        final Set<ExpressionTreeLocationInvariant> invariants =
+            extractor.extractInvariantsFromReachedSet();
         return buildInvariantsAutomaton(pCfa, pLogger, invariants);
       } catch (InvalidConfigurationException | CPAException e) {
         throw new RuntimeException(

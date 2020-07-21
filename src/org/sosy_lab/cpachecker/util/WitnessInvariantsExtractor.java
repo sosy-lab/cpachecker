@@ -17,6 +17,7 @@ import com.google.common.collect.Sets;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -196,10 +197,11 @@ public class WitnessInvariantsExtractor {
    * WitnessInvariantsExtractor#reachedSet}. For two invariants at the same CFA location the
    * conjunction is applied for the two invariants.
    *
-   * @param pInvariants the set of location invariants that stores the extracted location invariants
+   * @return the set of location invariants that stores the extracted location invariants
    */
-  public void extractInvariantsFromReachedSet(
-      final Set<ExpressionTreeLocationInvariant> pInvariants) throws InterruptedException {
+  public Set<ExpressionTreeLocationInvariant> extractInvariantsFromReachedSet()
+      throws InterruptedException {
+    Set<ExpressionTreeLocationInvariant> invariants = new LinkedHashSet<>();
     Map<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = Maps.newConcurrentMap();
     for (AbstractState abstractState : reachedSet) {
       shutdownNotifier.shutdownIfNecessary();
@@ -210,7 +212,7 @@ public class WitnessInvariantsExtractor {
         String groupId = automatonState.getInternalStateName();
         ExpressionTreeLocationInvariant previousInv = null;
         if (!candidate.equals(ExpressionTrees.getTrue())) {
-          for (ExpressionTreeLocationInvariant inv : pInvariants) {
+          for (ExpressionTreeLocationInvariant inv : invariants) {
             if (inv.getLocation().equals(location)) {
               previousInv = inv;
             }
@@ -221,14 +223,15 @@ public class WitnessInvariantsExtractor {
             ExpressionTree<AExpression> expr =
                 (ExpressionTree<AExpression>) (ExpressionTree<?>) previousInv.asExpressionTree();
             previousExpression = expr;
-            pInvariants.remove(previousInv);
+            invariants.remove(previousInv);
           }
-          pInvariants.add(
+          invariants.add(
               new ExpressionTreeLocationInvariant(
                   groupId, location, And.of(previousExpression, candidate), toCodeVisitorCache));
         }
       }
     }
+    return invariants;
   }
 
   /**

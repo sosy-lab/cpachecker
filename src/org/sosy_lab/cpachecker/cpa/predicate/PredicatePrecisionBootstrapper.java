@@ -187,11 +187,11 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
       throws InterruptedException {
     PredicatePrecision result = PredicatePrecision.empty();
     try {
-      final Set<ExpressionTreeLocationInvariant> invariants = Sets.newLinkedHashSet();
       WitnessInvariantsExtractor extractor =
           new WitnessInvariantsExtractor(
               config, specification, logger, cfa, shutdownNotifier, pWitnessFile);
-      extractor.extractInvariantsFromReachedSet(invariants);
+      final Set<ExpressionTreeLocationInvariant> invariants =
+          extractor.extractInvariantsFromReachedSet();
 
       for (ExpressionTreeLocationInvariant invariant : invariants) {
 
