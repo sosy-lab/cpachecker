@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -119,8 +118,8 @@ public enum InvariantsSpecificationAutomatonBuilder {
       try {
         String automatonName = WITNESS_AUTOMATON_NAME;
         String initialStateName = INITIAL_STATE_NAME;
-        List<AutomatonInternalState> states = Lists.newLinkedList();
-        List<AutomatonTransition> initTransitions = Lists.newLinkedList();
+        ImmutableList.Builder<AutomatonInternalState> states = ImmutableList.builder();
+        ImmutableList.Builder<AutomatonTransition> initTransitions = ImmutableList.builder();
         for (ExpressionTreeLocationInvariant invariant : pInvariants) {
           @SuppressWarnings("unchecked")
           ExpressionTree<AExpression> inv =
@@ -146,10 +145,11 @@ public enum InvariantsSpecificationAutomatonBuilder {
                   invariant.getLocation(), ImmutableList.of(cExpr)));
         }
         AutomatonInternalState initState =
-            new AutomatonInternalState(initialStateName, initTransitions, false, true, false);
+            new AutomatonInternalState(
+                initialStateName, initTransitions.build(), false, true, false);
         states.add(initState);
         Map<String, AutomatonVariable> vars = ImmutableMap.of();
-        return new Automaton(automatonName, vars, states, initialStateName);
+        return new Automaton(automatonName, vars, states.build(), initialStateName);
       } catch (InvalidAutomatonException | UnrecognizedCodeException e) {
         throw new RuntimeException("The passed invariants produce an inconsistent automaton", e);
       }
