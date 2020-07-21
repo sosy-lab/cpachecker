@@ -425,7 +425,8 @@ public class SliceExporter {
 
       FunctionEntryNode entryNode = originalCfa.getFunctionHead(functionName);
 
-      Collection<CFANode> functionNodes = CFATraversal.dfs().collectNodesReachableFrom(entryNode);
+      Collection<CFANode> functionNodes =
+          CFATraversal.dfs().collectNodesReachableFromTo(entryNode, entryNode.getExitNode());
 
       if (isMainFunction || containsRelevantEdge(functionNodes, relevantEdges)) {
         final FunctionEntryNode newEntryNode =
