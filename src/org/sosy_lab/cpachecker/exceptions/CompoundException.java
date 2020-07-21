@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.exceptions;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -40,7 +39,6 @@ public class CompoundException extends CPAException {
       return messages.get(0);
     }
     return "Several exceptions occured during the analysis:\n -> "
-        + Joiner.on("\n -> ")
-            .join(Lists.transform(pExceptions, e -> e.getMessage()).stream().distinct().iterator());
+        + Joiner.on("\n -> ").join(messages);
   }
 }
