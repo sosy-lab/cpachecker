@@ -3281,10 +3281,10 @@ heuristicSelection.preAnalysisAlgorithmConfig = no default value
 heuristicSelection.recursionConfig = no default value
 
 # toggle checking existence of covered states in ARG
-imc.checkExistenceOfCoveredStates = false
+imc.checkExistenceOfCoveredStates = true
 
 # toggle checking forward conditions
-imc.checkForwardConditions = false
+imc.checkForwardConditions = true
 
 # toggle sanity check of collected formulas
 imc.checkSanityOfFormulas = false
@@ -3295,7 +3295,7 @@ imc.collectFormulasByTraversingARG = true
 # toggle deriving the interpolants from suffix formulas
 imc.deriveInterpolantFromSuffix = true
 
-# try using interpolation to verify programs with loops
+# toggle using interpolation to verify programs with loops
 imc.interpolation = true
 
 # enable the Forced Covering optimization
