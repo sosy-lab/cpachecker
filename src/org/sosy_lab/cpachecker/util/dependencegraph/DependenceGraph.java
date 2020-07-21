@@ -117,9 +117,7 @@ public final class DependenceGraph implements Serializable {
     nodes.getNodesForEdge(pStart).forEach(waitlist::offer);
 
     while (!waitlist.isEmpty()) {
-      if (shutdownNotifier.shouldShutdown()) {
-        throw new InterruptedException();
-      }
+      shutdownNotifier.shutdownIfNecessary();
       DGNode current = waitlist.poll();
 
       if (!visited.contains(current)) {
