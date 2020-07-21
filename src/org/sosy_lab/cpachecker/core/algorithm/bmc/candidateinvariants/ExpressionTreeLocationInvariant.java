@@ -8,12 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableList;
-import java.util.Map;
 import java.util.Objects;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import java.util.concurrent.ConcurrentMap;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -39,42 +39,30 @@ public class ExpressionTreeLocationInvariant extends SingleLocationFormulaInvari
 
   private final String groupId;
 
-  private final @Nullable Map<ManagerKey, ToFormulaVisitor> visitorCache;
-
-  public ExpressionTreeLocationInvariant(
-      String pGroupId, CFANode pLocation, ExpressionTree<AExpression> pExpressionTree) {
-    this(pGroupId, pLocation, pExpressionTree, null);
-  }
+  private final ConcurrentMap<ManagerKey, ToFormulaVisitor> visitorCache;
 
   public ExpressionTreeLocationInvariant(
       String pGroupId,
       CFANode pLocation,
       ExpressionTree<AExpression> pExpressionTree,
-      @Nullable Map<ManagerKey, ToFormulaVisitor> pVisitorCache) {
+      ConcurrentMap<ManagerKey, ToFormulaVisitor> pVisitorCache) {
     super(pLocation);
     groupId = Objects.requireNonNull(pGroupId);
     location = Objects.requireNonNull(pLocation);
     expressionTree = Objects.requireNonNull(pExpressionTree);
-    visitorCache = pVisitorCache;
+    visitorCache = checkNotNull(pVisitorCache);
   }
 
   @Override
   public BooleanFormula getFormula(
       FormulaManagerView pFMGR, PathFormulaManager pPFMGR, PathFormula pContext)
       throws CPATransferException, InterruptedException {
-    ManagerKey key = null;
     PathFormula clearContext = pContext == null ? null : pPFMGR.makeEmptyPathFormula(pContext);
-    ToFormulaVisitor toFormulaVisitor = null;
-    if (visitorCache != null) {
-      key = new ManagerKey(pFMGR, pPFMGR, clearContext);
-      toFormulaVisitor = visitorCache.get(key);
-    }
-    if (toFormulaVisitor == null) {
-      toFormulaVisitor = new ToFormulaVisitor(pFMGR, pPFMGR, clearContext);
-      if (visitorCache != null) {
-        visitorCache.put(key, toFormulaVisitor);
-      }
-    }
+    ManagerKey key = new ManagerKey(pFMGR, pPFMGR, clearContext);
+    ToFormulaVisitor toFormulaVisitor =
+        visitorCache.computeIfAbsent(
+            key,
+            k -> new ToFormulaVisitor(k.formulaManagerView, k.pathFormulaManager, k.clearContext));
     try {
       return expressionTree.accept(toFormulaVisitor);
     } catch (ToFormulaException e) {

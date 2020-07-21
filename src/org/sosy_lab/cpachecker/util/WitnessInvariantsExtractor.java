@@ -21,6 +21,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -202,7 +203,7 @@ public class WitnessInvariantsExtractor {
   public Set<ExpressionTreeLocationInvariant> extractInvariantsFromReachedSet()
       throws InterruptedException {
     Set<ExpressionTreeLocationInvariant> invariants = new LinkedHashSet<>();
-    Map<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = Maps.newConcurrentMap();
+    ConcurrentMap<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = Maps.newConcurrentMap();
     for (AbstractState abstractState : reachedSet) {
       shutdownNotifier.shutdownIfNecessary();
       CFANode location = AbstractStates.extractLocation(abstractState);
@@ -253,7 +254,7 @@ public class WitnessInvariantsExtractor {
     Set<CFANode> visited = Sets.newHashSet();
     Multimap<CFANode, ExpressionTreeLocationInvariant> potentialAdditionalCandidates =
         HashMultimap.create();
-    Map<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = Maps.newConcurrentMap();
+    ConcurrentMap<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = Maps.newConcurrentMap();
     for (AbstractState abstractState : reachedSet) {
       shutdownNotifier.shutdownIfNecessary();
       Iterable<CFANode> locations = AbstractStates.extractLocations(abstractState);
