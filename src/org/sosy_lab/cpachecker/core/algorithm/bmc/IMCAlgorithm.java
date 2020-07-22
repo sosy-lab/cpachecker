@@ -166,21 +166,19 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       stats.bmcPreparation.stop();
       shutdownNotifier.shutdownIfNecessary();
 
-      if (checkExistenceOfCoveredStates
-          && !from(pReachedSet).transformAndConcat(e -> ((ARGState) e).getCoveredByThis())
-              .isEmpty()) {
-        throw new CPAException("Covered states exist in ARG, analysis result could be wrong.");
+      if (interpolation && !checkSanityOfARG(pReachedSet)) {
+        logger.log(Level.WARNING, "Disable interpolation as ARG does not meet the requirements");
+        interpolation = false;
       }
 
       logger.log(Level.FINE, "Collecting prefix, loop, and suffix formulas");
       PartitionedFormulas formulas = collectFormulas(pReachedSet, maxLoopIterations);
       formulas.printCollectedFormulas(logger);
-
       if (checkSanityOfFormulas && !checkSanityOfFormulas(formulas)) {
         throw new CPAException("Collected formulas are insane, analysis result could be wrong.");
       }
 
-      BooleanFormula reachErrorFormula = buildReachErrorFormula(formulas);
+      BooleanFormula reachErrorFormula = buildReachErrorFormula(pReachedSet);
       if (!solver.isUnsat(reachErrorFormula)) {
         logger.log(Level.FINE, "A target state is reached by BMC");
         return AlgorithmStatus.UNSOUND_AND_PRECISE;
@@ -192,7 +190,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
 
       if (checkForwardConditions) {
-        BooleanFormula boundingAssertionFormula = buildBoundingAssertionFormula(formulas);
+        BooleanFormula boundingAssertionFormula = buildBoundingAssertionFormula(pReachedSet);
         if (solver.isUnsat(boundingAssertionFormula)) {
           logger.log(Level.FINE, "The program cannot be further unrolled");
           return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -210,6 +208,20 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
     } while (adjustConditions());
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
+  }
+
+  private boolean checkSanityOfARG(final ReachedSet pReachedSet) {
+    if (checkExistenceOfCoveredStates
+        && !from(pReachedSet).transformAndConcat(e -> ((ARGState) e).getCoveredByThis())
+            .isEmpty()) {
+      logger.log(Level.WARNING, "Covered states exist in ARG, interpolation might be wrong!");
+      return false;
+    }
+    if (getStopStates(pReachedSet).size() > 1) {
+      logger.log(Level.WARNING, "More than one stop state, interpolation might be wrong!");
+      return false;
+    }
+    return true;
   }
 
   /**
@@ -255,15 +267,14 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     if (!targetStatesAfterLoop.isEmpty()) {
       // Initialize prefix, loop, and tail using the first target state after the loop
       // Assumption: every target state after the loop has the same abstraction-state path to root
-      List<ARGState> abstractionStates = getAbstractionStatesToRoot(targetStatesAfterLoop.get(0));
+      List<ARGState> abstractionStates =
+          getAbstractionStatesToRoot(targetStatesAfterLoop.get(0)).toList();
       prefixFormula = buildPrefixFormula(abstractionStates);
       loopFormula = buildLoopFormula(abstractionStates);
       tailFormula = buildTailFormula(abstractionStates);
     }
     // Collect bound formula
-    FluentIterable<AbstractState> stopStates =
-        from(pReachedSet).filter(AbstractBMCAlgorithm::isStopState)
-            .filter(AbstractBMCAlgorithm::isRelevantForReachability);
+    FluentIterable<AbstractState> stopStates = getStopStates(pReachedSet);
     BooleanFormula boundFormula = createDisjunctionFromStates(stopStates);
     // Collect error before loop formula
     BooleanFormula errorBeforeLoopFormula =
@@ -300,14 +311,13 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return tailFormula;
   }
 
-  private BooleanFormula createDisjunctionFromStates(final FluentIterable<AbstractState> pStates) {
-    return pStates.transform(e -> getPredicateAbstractionBlockFormula(e).getFormula())
-        .stream()
-        .collect(bfmgr.toDisjunction());
-  }
-
   private static boolean isTargetStateBeforeLoopStart(AbstractState pTargetState) {
     return getAbstractionStatesToRoot(pTargetState).size() == 2;
+  }
+
+  private static FluentIterable<AbstractState> getStopStates(final ReachedSet pReachedSet) {
+    return from(pReachedSet).filter(AbstractBMCAlgorithm::isStopState)
+        .filter(AbstractBMCAlgorithm::isRelevantForReachability);
   }
 
   private static FluentIterable<AbstractState>
@@ -322,10 +332,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         .filter(e -> !isTargetStateBeforeLoopStart(e));
   }
 
-  private static List<ARGState> getAbstractionStatesToRoot(AbstractState pTargetState) {
+  private static FluentIterable<ARGState> getAbstractionStatesToRoot(AbstractState pTargetState) {
     return from(ARGUtils.getOnePathTo((ARGState) pTargetState).asStatesList())
-        .filter(e -> PredicateAbstractState.containsAbstractionState(e))
-        .toList();
+        .filter(e -> PredicateAbstractState.containsAbstractionState(e));
   }
 
   private static PathFormula getPredicateAbstractionBlockFormula(AbstractState pState) {
@@ -550,22 +559,31 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
   }
 
-  private BooleanFormula buildReachErrorFormula(final PartitionedFormulas pFormulas) {
-    return bfmgr.or(
-        bfmgr.and(
-            pFormulas.prefixFormula.getFormula(),
-            pFormulas.loopFormula,
-            pFormulas.tailFormula,
-            pFormulas.targetFormula),
-        pFormulas.errorBeforeLoopFormula);
+  private BooleanFormula createDisjunctionFromStates(final FluentIterable<AbstractState> pStates) {
+    return pStates.transform(e -> getPredicateAbstractionBlockFormula(e).getFormula())
+        .stream()
+        .collect(bfmgr.toDisjunction());
   }
 
-  private BooleanFormula buildBoundingAssertionFormula(final PartitionedFormulas pFormulas) {
-    return bfmgr.and(
-        pFormulas.prefixFormula.getFormula(),
-        pFormulas.loopFormula,
-        pFormulas.tailFormula,
-        pFormulas.boundFormula);
+  private BooleanFormula buildReachFormulaForStates(final FluentIterable<AbstractState> pGoalStates) {
+    BooleanFormula reachStatesFormula = bfmgr.makeFalse();
+    for (AbstractState goalState : pGoalStates) {
+      BooleanFormula pathFormula =
+          getAbstractionStatesToRoot(goalState)
+              .transform(e -> getPredicateAbstractionBlockFormula(e).getFormula())
+              .stream()
+              .collect(bfmgr.toConjunction());
+      reachStatesFormula = bfmgr.or(reachStatesFormula, pathFormula);
+    }
+    return reachStatesFormula;
+  }
+
+  private BooleanFormula buildReachErrorFormula(final ReachedSet pReachedSet) {
+    return buildReachFormulaForStates(AbstractStates.getTargetStates(pReachedSet));
+  }
+
+  private BooleanFormula buildBoundingAssertionFormula(final ReachedSet pReachedSet) {
+    return buildReachFormulaForStates(getStopStates(pReachedSet));
   }
 
   private boolean checkSanityOfFormulas(final PartitionedFormulas pFormulas)
