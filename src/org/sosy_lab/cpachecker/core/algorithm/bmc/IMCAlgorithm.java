@@ -176,8 +176,12 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       shutdownNotifier.shutdownIfNecessary();
 
       if (interpolation && !checkSanityOfARG(pReachedSet)) {
-        logger.log(Level.WARNING, "Disable interpolation as ARG does not meet the requirements");
-        interpolation = false;
+        if (rollBackToBMC) {
+          logger.log(Level.WARNING, "Rolling back to plain BMC");
+          interpolation = false;
+        } else {
+          throw new CPAException("ARG does not meet the requirements");
+        }
       }
 
       logger.log(Level.FINE, "Collecting prefix, loop, and suffix formulas");
@@ -224,10 +228,12 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         && pCfa.getAllLoopHeads().orElseThrow().size() <= 1);
   }
 
+  private static boolean hasCoveredStates(final ReachedSet pReachedSet) {
+    return !from(pReachedSet).transformAndConcat(e -> ((ARGState) e).getCoveredByThis()).isEmpty();
+  }
+
   private boolean checkSanityOfARG(final ReachedSet pReachedSet) {
-    if (checkExistenceOfCoveredStates
-        && !from(pReachedSet).transformAndConcat(e -> ((ARGState) e).getCoveredByThis())
-            .isEmpty()) {
+    if (checkExistenceOfCoveredStates && hasCoveredStates(pReachedSet)) {
       logger.log(Level.WARNING, "Covered states exist in ARG, interpolation might be wrong!");
       return false;
     }
