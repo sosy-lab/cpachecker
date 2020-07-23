@@ -18,6 +18,7 @@ SPDX-License-Identifier: Apache-2.0
     <column title="flowDeps">Number of flow dependences</column>
     <column title="ctrlDepTime">Time for control deps.</column>
     <column title="ctrlDeps">Number of control dependences</column>
+    <column title="sliceRatio">Slice/Program ratio</column>
   </columns>
 
   <option name="-noout"/>
