@@ -290,6 +290,8 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         GlobalPointerState.createFlowSensitive(cfa, logger, shutdownNotifier);
 
     boolean unknownPointer = false;
+
+    outer:
     for (CFANode node : cfa.getAllNodes()) {
       for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
 
@@ -297,9 +299,24 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
         for (CExpression expression :
             Iterables.concat(edgeDefUseData.getPointeeDefs(), edgeDefUseData.getPointeeUses())) {
-          if (pointerState.getPossiblePointees(edge, expression).isEmpty()) {
+
+          Set<MemoryLocation> possiblePointees = pointerState.getPossiblePointees(edge, expression);
+
+          // if there are no possible pointees, the pointer is unknown
+          if (possiblePointees.isEmpty()) {
             unknownPointer = true;
-            break;
+            break outer;
+          }
+
+          // the current pointer analysis doesn't support structs and unions
+          // potential pointers to struct instances point to the struct-type declaration
+          // if such an unsupported usage is encountered, the pointer is unknown
+          for (MemoryLocation possiblePointee : possiblePointees) {
+            String identifier = possiblePointee.getIdentifier();
+            if (identifier.contains("struct ") || identifier.contains("union ")) {
+              unknownPointer = true;
+              break outer;
+            }
           }
         }
       }
