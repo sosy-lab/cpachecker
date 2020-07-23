@@ -18,6 +18,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -119,6 +120,8 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   private final Precision fullPrecision;
   private final AbstractState initialState;
 
+  private final LogManager logger;
+
   private Set<Integer> previousTargetPaths = new HashSet<>();
 
   private int refinementCount = 0;
@@ -172,7 +175,8 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
         initialCompositeState,
         compositePrecision,
         fullArgPrecision,
-        config);
+        config,
+        logger);
   }
 
   private SlicingRefiner(
@@ -184,7 +188,8 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
       final AbstractState pInitialState,
       final WrapperPrecision pCurrentArgPrecision,
       final Precision pFullPrecision,
-      final Configuration pConfig)
+      final Configuration pConfig,
+      final LogManager pLogger)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     pathExtractor = pPathExtractor;
@@ -195,6 +200,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
     fullPrecision = pFullPrecision;
     transfer = pTransferRelation;
     initialState = pInitialState;
+    logger = pLogger;
   }
 
   @Override
@@ -349,6 +355,16 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
     List<CFAEdge> criteriaEdges = new ArrayList<>(1);
     if (takeEagerSlice) {
       criteriaEdges.addAll(cexConstraints);
+    } else {
+      boolean isFeasible = false;
+      try {
+        isFeasible = isFeasible(pPath);
+      } catch (CPAException ex) {
+        logger.logException(Level.SEVERE, ex, "Counterexample feasibility check failed");
+      }
+      if (!isFeasible) {
+        criteriaEdges.addAll(pPath.getFullPath());
+      }
     }
     CFANode finalNode = AbstractStates.extractLocation(pPath.getLastState());
     List<CFAEdge> edgesToTarget =
