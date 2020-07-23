@@ -70,8 +70,10 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(secure = true, description = "toggle using interpolation to verify programs with loops")
   private boolean interpolation = true;
 
-  @Option(secure = true, description = "toggle rolling back to BMC if interpolation is disabled")
-  private boolean rollBackToBMC = true;
+  @Option(
+    secure = true,
+    description = "toggle rolling back if interpolation or forward-condition is disabled")
+  private boolean rollBack = true;
 
   @Option(secure = true, description = "toggle deriving the interpolants from suffix formulas")
   private boolean deriveInterpolantFromSuffix = true;
@@ -157,9 +159,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
     if (interpolation && cfa.getLoopStructure().orElseThrow().getCount() > 1) {
       logger.log(Level.WARNING, "Interpolation is not yet supported for multi-loop programs");
-      if (rollBackToBMC) {
-        logger.log(Level.WARNING, "Rolling back to plain BMC");
-        interpolation = false;
+      if (rollBack) {
+        rollBackToBMC();
       } else {
         throw new CPAException("Multi-loop programs are not supported yet");
       }
@@ -176,11 +177,20 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       stats.bmcPreparation.stop();
       shutdownNotifier.shutdownIfNecessary();
 
-      if ((interpolation || checkForwardConditions) && !checkRequirementOfARG(pReachedSet)) {
-        if (rollBackToBMC) {
-          logger.log(Level.WARNING, "Rolling back to plain BMC");
-          interpolation = false;
-          checkForwardConditions = false;
+      if (interpolation && !checkRequirementOfARG(pReachedSet)) {
+        if (rollBack) {
+          rollBackToBMC();
+        } else {
+          throw new CPAException("ARG does not meet the requirements");
+        }
+      }
+
+      if (checkForwardConditions
+          && checkExistenceOfCoveredStates
+          && hasCoveredStates(pReachedSet)) {
+        logger.log(Level.WARNING, "Covered states exist in ARG, forward-condition might be wrong!");
+        if (rollBack) {
+          rollBackToBMCWithoutForwardCondition();
         } else {
           throw new CPAException("ARG does not meet the requirements");
         }
@@ -220,6 +230,16 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
     } while (adjustConditions());
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
+  }
+
+  private void rollBackToBMC() {
+    logger.log(Level.WARNING, "Rolling back to BMC");
+    interpolation = false;
+  }
+
+  private void rollBackToBMCWithoutForwardCondition() {
+    logger.log(Level.WARNING, "Rolling back to BMC without forward-condition check");
+    checkForwardConditions = false;
   }
 
   private static boolean hasCoveredStates(final ReachedSet pReachedSet) {

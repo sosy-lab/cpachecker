@@ -3295,8 +3295,8 @@ imc.deriveInterpolantFromSuffix = true
 # toggle using interpolation to verify programs with loops
 imc.interpolation = true
 
-# toggle rolling back to BMC if interpolation is disabled
-imc.rollBackToBMC = true
+# toggle rolling back if interpolation or forward-condition is disabled
+imc.rollBack = true
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
