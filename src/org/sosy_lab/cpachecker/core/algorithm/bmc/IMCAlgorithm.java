@@ -64,6 +64,9 @@ import org.sosy_lab.java_smt.api.SolverException;
 @Options(prefix="imc")
 public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
+  @Option(secure = true, description = "toggle checking forward conditions")
+  private boolean checkForwardConditions = true;
+
   @Option(secure = true, description = "toggle using interpolation to verify programs with loops")
   private boolean interpolation = true;
 
@@ -75,9 +78,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   @Option(secure = true, description = "toggle collecting formulas by traversing ARG")
   private boolean collectFormulasByTraversingARG = true;
-
-  @Option(secure = true, description = "toggle checking forward conditions")
-  private boolean checkForwardConditions = true;
 
   @Option(secure = true, description = "toggle checking existence of covered states in ARG")
   private boolean checkExistenceOfCoveredStates = true;
@@ -172,10 +172,11 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       stats.bmcPreparation.stop();
       shutdownNotifier.shutdownIfNecessary();
 
-      if (interpolation && !checkSanityOfARG(pReachedSet)) {
+      if ((interpolation || checkForwardConditions) && !checkRequirementOfARG(pReachedSet)) {
         if (rollBackToBMC) {
           logger.log(Level.WARNING, "Rolling back to plain BMC");
           interpolation = false;
+          checkForwardConditions = false;
         } else {
           throw new CPAException("ARG does not meet the requirements");
         }
@@ -226,7 +227,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return !from(pReachedSet).transformAndConcat(e -> ((ARGState) e).getCoveredByThis()).isEmpty();
   }
 
-  private boolean checkSanityOfARG(final ReachedSet pReachedSet) {
+  private boolean checkRequirementOfARG(final ReachedSet pReachedSet) {
     if (checkExistenceOfCoveredStates && hasCoveredStates(pReachedSet)) {
       logger.log(Level.WARNING, "Covered states exist in ARG, interpolation might be wrong!");
       return false;
