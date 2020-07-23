@@ -151,7 +151,11 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    */
   private AlgorithmStatus interpolationModelChecking(final ReachedSet pReachedSet)
       throws CPAException, SolverException, InterruptedException {
-    if (interpolation && isCFAMultiLoop(cfa)) {
+    if (interpolation && !cfa.getLoopStructure().isPresent()) {
+      logger.log(Level.WARNING, "Disable interpolation as loop structure could not be determined.");
+      interpolation = false;
+    }
+    if (interpolation && cfa.getLoopStructure().orElseThrow().getCount() > 1) {
       logger.log(Level.WARNING, "Interpolation is not yet supported for multi-loop programs");
       if (rollBackToBMC) {
         logger.log(Level.WARNING, "Rolling back to plain BMC");
@@ -216,11 +220,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
     } while (adjustConditions());
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
-  }
-
-  private static boolean isCFAMultiLoop(final CFA pCfa) {
-    return !(pCfa.getAllLoopHeads().isPresent()
-        && pCfa.getAllLoopHeads().orElseThrow().size() <= 1);
   }
 
   private static boolean hasCoveredStates(final ReachedSet pReachedSet) {
