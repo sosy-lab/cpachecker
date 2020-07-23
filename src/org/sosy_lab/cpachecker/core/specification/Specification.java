@@ -220,6 +220,19 @@ public final class Specification {
             .build());
   }
 
+  /**
+   * Return a new specification instance that has everything that the current instance has, and
+   * additionally some new properties.
+   */
+  public Specification withAdditionalProperties(Set<SpecificationProperty> pProperties) {
+    Set<SpecificationProperty> newProperties = Sets.union(properties, pProperties).immutableCopy();
+    if (newProperties.size() == properties.size()) {
+      return this;
+    }
+
+    return new Specification(newProperties, pathToSpecificationAutomata);
+  }
+
   private Specification(Iterable<Automaton> pSpecificationAutomata) {
     properties = ImmutableSet.of();
     ImmutableListMultimap.Builder<Path, Automaton> multiplePropertiesBuilder =

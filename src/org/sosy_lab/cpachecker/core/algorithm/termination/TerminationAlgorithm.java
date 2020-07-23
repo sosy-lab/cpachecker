@@ -198,7 +198,10 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
     statistics =
         new TerminationStatistics(
-            pConfig, logger, loopStructure.getAllLoops().size(), pSpecification, pCfa);
+            pConfig,
+            logger,
+            loopStructure.getAllLoops().size(),
+            pCfa);
     lassoAnalysis = LassoAnalysis.create(pLogger, pConfig, pShutdownNotifier, pCfa, statistics);
   }
 
