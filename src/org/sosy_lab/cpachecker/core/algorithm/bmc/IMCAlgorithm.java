@@ -67,6 +67,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(secure = true, description = "toggle using interpolation to verify programs with loops")
   private boolean interpolation = true;
 
+  @Option(secure = true, description = "toggle rolling back to BMC if interpolation is disabled")
+  private boolean rollBackToBMC = true;
+
   @Option(secure = true, description = "toggle deriving the interpolants from suffix formulas")
   private boolean deriveInterpolantFromSuffix = true;
 
@@ -151,11 +154,14 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    */
   private AlgorithmStatus interpolationModelChecking(final ReachedSet pReachedSet)
       throws CPAException, SolverException, InterruptedException {
-    if (interpolation
-        && !(cfa.getAllLoopHeads().isPresent()
-            && cfa.getAllLoopHeads().orElseThrow().size() <= 1)) {
+    if (interpolation && isCFAMultiLoop(cfa)) {
       logger.log(Level.WARNING, "Interpolation is not yet supported for multi-loop programs");
-      interpolation = false;
+      if (rollBackToBMC) {
+        logger.log(Level.WARNING, "Rolling back to plain BMC");
+        interpolation = false;
+      } else {
+        throw new CPAException("Multi-loop programs are not supported yet");
+      }
     }
 
     logger.log(Level.FINE, "Performing interpolation-based model checking");
@@ -211,6 +217,11 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
     } while (adjustConditions());
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
+  }
+
+  private static boolean isCFAMultiLoop(final CFA pCfa) {
+    return !(pCfa.getAllLoopHeads().isPresent()
+        && pCfa.getAllLoopHeads().orElseThrow().size() <= 1);
   }
 
   private boolean checkSanityOfARG(final ReachedSet pReachedSet) {
