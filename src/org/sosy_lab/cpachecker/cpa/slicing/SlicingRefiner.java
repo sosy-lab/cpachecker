@@ -28,6 +28,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -363,7 +364,10 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
         logger.logException(Level.SEVERE, ex, "Counterexample feasibility check failed");
       }
       if (!isFeasible) {
-        criteriaEdges.addAll(pPath.getFullPath());
+        criteriaEdges.addAll(
+            pPath.getFullPath().stream()
+                .filter(edge -> edge.getEdgeType() == CFAEdgeType.AssumeEdge)
+                .collect(Collectors.toList()));
       }
     }
     CFANode finalNode = AbstractStates.extractLocation(pPath.getLastState());
