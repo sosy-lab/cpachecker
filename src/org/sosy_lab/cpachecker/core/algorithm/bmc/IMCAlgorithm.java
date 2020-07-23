@@ -517,7 +517,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     public void printCollectedFormulas(LogManager pLogger) {
       pLogger.log(Level.ALL, "Prefix:", prefixFormula.getFormula());
       pLogger.log(Level.ALL, "Loop:", loopFormula);
-      pLogger.log(Level.ALL, "Tail:", suffixFormula);
+      pLogger.log(Level.ALL, "Suffix:", suffixFormula);
     }
 
     public PartitionedFormulas(
