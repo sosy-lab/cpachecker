@@ -305,21 +305,19 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private BooleanFormula buildTailFormula(final List<ARGState> pAbstractionStates) {
-    BooleanFormula tailFormula = bfmgr.makeTrue();
+    List<BooleanFormula> blockFormulas = new ArrayList<>();
     if (pAbstractionStates.size() > 4) {
       for (int i = 3; i < pAbstractionStates.size() - 1; ++i) {
-        tailFormula =
-            bfmgr.and(
-                tailFormula,
-                getPredicateAbstractionBlockFormula(pAbstractionStates.get(i)).getFormula());
+        blockFormulas
+            .add(getPredicateAbstractionBlockFormula(pAbstractionStates.get(i)).getFormula());
       }
     }
-    return tailFormula;
+    return bfmgr.and(blockFormulas);
   }
 
   private static FluentIterable<ARGState> getAbstractionStatesToRoot(AbstractState pTargetState) {
     return from(ARGUtils.getOnePathTo((ARGState) pTargetState).asStatesList())
-        .filter(e -> PredicateAbstractState.containsAbstractionState(e));
+        .filter(PredicateAbstractState::containsAbstractionState);
   }
 
   private static boolean isTargetStateAfterLoopStart(AbstractState pTargetState) {
@@ -356,9 +354,11 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       loopFormula = getLoopHeadFormula(pReachedSet, 1).getFormula();
     }
     if (maxLoopIterations > 2) {
+      List<BooleanFormula> blockFormulas = new ArrayList<>();
       for (int k = 2; k < maxLoopIterations; ++k) {
-        tailFormula = bfmgr.and(tailFormula, getLoopHeadFormula(pReachedSet, k).getFormula());
+        blockFormulas.add(getLoopHeadFormula(pReachedSet, k).getFormula());
       }
+      tailFormula = bfmgr.and(blockFormulas);
     }
     return new PartitionedFormulas(
         prefixFormula,
@@ -537,16 +537,22 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private BooleanFormula buildReachFormulaForStates(final FluentIterable<AbstractState> pGoalStates) {
-    BooleanFormula reachStatesFormula = bfmgr.makeFalse();
+    List<BooleanFormula> pathFormulas = new ArrayList<>();
     for (AbstractState goalState : pGoalStates) {
       BooleanFormula pathFormula =
           getAbstractionStatesToRoot(goalState)
               .transform(e -> getPredicateAbstractionBlockFormula(e).getFormula())
               .stream()
               .collect(bfmgr.toConjunction());
-      reachStatesFormula = bfmgr.or(reachStatesFormula, pathFormula);
+      if (!PredicateAbstractState.containsAbstractionState(goalState)) {
+        pathFormula =
+            bfmgr.and(
+                pathFormula,
+                PredicateAbstractState.getPredicateState(goalState).getPathFormula().getFormula());
+      }
+      pathFormulas.add(pathFormula);
     }
-    return reachStatesFormula;
+    return bfmgr.or(pathFormulas);
   }
 
   private static FluentIterable<AbstractState> getStopStates(final ReachedSet pReachedSet) {
