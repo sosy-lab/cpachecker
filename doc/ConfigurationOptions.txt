@@ -3308,9 +3308,6 @@ imc.checkExistenceOfCoveredStates = true
 # toggle checking forward conditions
 imc.checkForwardConditions = true
 
-# toggle sanity check of collected formulas
-imc.checkSanityOfFormulas = false
-
 # toggle collecting formulas by traversing ARG
 imc.collectFormulasByTraversingARG = true
 
@@ -3319,6 +3316,9 @@ imc.deriveInterpolantFromSuffix = true
 
 # toggle using interpolation to verify programs with loops
 imc.interpolation = true
+
+# toggle rolling back to BMC if interpolation is disabled
+imc.rollBackToBMC = true
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
