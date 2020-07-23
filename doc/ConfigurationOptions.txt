@@ -3286,9 +3286,6 @@ imc.checkExistenceOfCoveredStates = true
 # toggle checking forward conditions
 imc.checkForwardConditions = true
 
-# toggle sanity check of collected formulas
-imc.checkSanityOfFormulas = false
-
 # toggle collecting formulas by traversing ARG
 imc.collectFormulasByTraversingARG = true
 
