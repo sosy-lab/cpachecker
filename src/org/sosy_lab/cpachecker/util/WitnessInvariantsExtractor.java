@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.nio.file.Path;
@@ -89,7 +90,6 @@ public class WitnessInvariantsExtractor {
    * called.
    *
    * @param pConfig the configuration
-   * @param pSpecification the specification
    * @param pLogger the logger
    * @param pCFA the cfa
    * @param pShutdownNotifier the shutdown notifier
@@ -98,7 +98,6 @@ public class WitnessInvariantsExtractor {
    */
   public WitnessInvariantsExtractor(
       Configuration pConfig,
-      Specification pSpecification,
       LogManager pLogger,
       CFA pCFA,
       ShutdownNotifier pShutdownNotifier,
@@ -109,7 +108,7 @@ public class WitnessInvariantsExtractor {
     this.logger = pLogger;
     this.cfa = pCFA;
     this.shutdownNotifier = pShutdownNotifier;
-    this.automatonAsSpec = buildSpecification(pSpecification, pPathToWitnessFile);
+    this.automatonAsSpec = buildSpecification(pPathToWitnessFile);
     analyzeWitness();
   }
 
@@ -159,10 +158,10 @@ public class WitnessInvariantsExtractor {
     return configBuilder.build();
   }
 
-  private Specification buildSpecification(Specification pSpecification, Path pathToWitnessFile)
+  private Specification buildSpecification(Path pathToWitnessFile)
       throws InvalidConfigurationException, InterruptedException {
     return Specification.fromFiles(
-        pSpecification.getProperties(),
+        ImmutableSet.of(),
         ImmutableList.of(pathToWitnessFile),
         cfa,
         config,

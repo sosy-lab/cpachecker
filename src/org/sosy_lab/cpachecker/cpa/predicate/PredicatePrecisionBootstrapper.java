@@ -33,7 +33,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateMapParser;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
@@ -101,7 +100,6 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
   private final LogManager logger;
   private final CFA cfa;
 
-  private final Specification specification;
   private final ShutdownNotifier shutdownNotifier;
   private final PathFormulaManager pathFormulaManager;
   private final PredicateAbstractionManager predicateAbstractionManager;
@@ -116,7 +114,6 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
       CFA cfa,
       AbstractionManager abstractionManager,
       FormulaManagerView formulaManagerView,
-      Specification specification,
       ShutdownNotifier shutdownNotifier,
       PathFormulaManager pathFormulaManager,
       PredicateAbstractionManager predicateAbstractionManager)
@@ -128,7 +125,6 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     this.abstractionManager = abstractionManager;
     this.formulaManagerView = formulaManagerView;
 
-    this.specification = specification;
     this.shutdownNotifier = shutdownNotifier;
     this.pathFormulaManager = pathFormulaManager;
     this.predicateAbstractionManager = predicateAbstractionManager;
@@ -188,8 +184,7 @@ public class PredicatePrecisionBootstrapper implements StatisticsProvider {
     PredicatePrecision result = PredicatePrecision.empty();
     try {
       WitnessInvariantsExtractor extractor =
-          new WitnessInvariantsExtractor(
-              config, specification, logger, cfa, shutdownNotifier, pWitnessFile);
+          new WitnessInvariantsExtractor(config, logger, cfa, shutdownNotifier, pWitnessFile);
       final Set<ExpressionTreeLocationInvariant> invariants =
           extractor.extractInvariantsFromReachedSet();
 
