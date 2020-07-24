@@ -169,14 +169,20 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     logger.log(Level.FINE, "Performing interpolation-based model checking");
     do {
       int maxLoopIterations = CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
-
+      // Unroll
       shutdownNotifier.shutdownIfNecessary();
       logger.log(Level.FINE, "Unrolling with LBE, maxLoopIterations =", maxLoopIterations);
       stats.bmcPreparation.start();
       BMCHelper.unroll(logger, pReachedSet, algorithm, cpa);
       stats.bmcPreparation.stop();
       shutdownNotifier.shutdownIfNecessary();
-
+      // BMC
+      boolean isTargetStateReachable = !solver.isUnsat(buildReachTargetStateFormula(pReachedSet));
+      if (isTargetStateReachable) {
+        logger.log(Level.FINE, "A target state is reached by BMC");
+        return AlgorithmStatus.UNSOUND_AND_PRECISE;
+      }
+      // Check if interpolation or forward-condition check is applicable
       if (interpolation && !checkRequirementOfARG(pReachedSet)) {
         if (rollBack) {
           rollBackToBMC();
@@ -184,7 +190,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           throw new CPAException("ARG does not meet the requirements");
         }
       }
-
       if (checkForwardConditions
           && checkExistenceOfCoveredStates
           && hasCoveredStates(pReachedSet)) {
@@ -195,39 +200,30 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           throw new CPAException("ARG does not meet the requirements");
         }
       }
-
-      logger.log(Level.FINE, "Collecting prefix, loop, and suffix formulas");
-      PartitionedFormulas formulas = collectFormulas(pReachedSet, maxLoopIterations);
-      formulas.printCollectedFormulas(logger);
-
-      BooleanFormula reachErrorFormula = buildReachErrorFormula(pReachedSet);
-      if (!solver.isUnsat(reachErrorFormula)) {
-        logger.log(Level.FINE, "A target state is reached by BMC");
-        return AlgorithmStatus.UNSOUND_AND_PRECISE;
-      } else {
-        logger.log(Level.FINE, "No error is found up to maxLoopIterations = ", maxLoopIterations);
-        if (pReachedSet.hasViolatedProperties()) {
-          TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
-        }
-      }
-
+      // Forward-condition check
       if (checkForwardConditions) {
-        BooleanFormula boundingAssertionFormula = buildBoundingAssertionFormula(pReachedSet);
-        if (solver.isUnsat(boundingAssertionFormula)) {
+        boolean isStopStateUnreachable = solver.isUnsat(buildBoundingAssertionFormula(pReachedSet));
+        if (isStopStateUnreachable) {
           logger.log(Level.FINE, "The program cannot be further unrolled");
+          removeUnreachableTargetStates(pReachedSet);
           return AlgorithmStatus.SOUND_AND_PRECISE;
         }
       }
-
+      // Interpolation
       if (interpolation && maxLoopIterations > 1) {
+        logger.log(Level.FINE, "Collecting prefix, loop, and suffix formulas");
+        PartitionedFormulas formulas = collectFormulas(pReachedSet, maxLoopIterations);
+        formulas.printCollectedFormulas(logger);
         logger.log(Level.FINE, "Computing fixed points by interpolation");
         try (InterpolatingProverEnvironment<?> itpProver =
             solver.newProverEnvironmentWithInterpolation()) {
           if (reachFixedPointByInterpolation(itpProver, formulas)) {
+            removeUnreachableTargetStates(pReachedSet);
             return AlgorithmStatus.SOUND_AND_PRECISE;
           }
         }
       }
+      removeUnreachableTargetStates(pReachedSet);
     } while (adjustConditions());
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
@@ -244,6 +240,12 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private static boolean hasCoveredStates(final ReachedSet pReachedSet) {
     return !from(pReachedSet).transformAndConcat(e -> ((ARGState) e).getCoveredByThis()).isEmpty();
+  }
+
+  private static void removeUnreachableTargetStates(ReachedSet pReachedSet) {
+    if (pReachedSet.hasViolatedProperties()) {
+      TargetLocationCandidateInvariant.INSTANCE.assumeTruth(pReachedSet);
+    }
   }
 
   private boolean checkRequirementOfARG(final ReachedSet pReachedSet) {
@@ -580,7 +582,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         .filter(AbstractBMCAlgorithm::isRelevantForReachability);
   }
 
-  private BooleanFormula buildReachErrorFormula(final ReachedSet pReachedSet) {
+  private BooleanFormula buildReachTargetStateFormula(final ReachedSet pReachedSet) {
     return buildReachFormulaForStates(AbstractStates.getTargetStates(pReachedSet));
   }
 
