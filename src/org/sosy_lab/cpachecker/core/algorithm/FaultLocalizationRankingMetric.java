@@ -5,7 +5,8 @@
 // SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
-package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.ochiai;
+
+package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.collect.FluentIterable.from;
 
@@ -18,13 +19,19 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics.CoverageInformation;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics.FailedCase;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics.FaultLocalizationFault;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics.SafeCase;
+import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.dstar.DStarRanking;
+import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.ochiai.OchiaiRanking;
+import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.tarantula.TarantulaRanking;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -40,72 +47,85 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.Info
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-public class OchiaiAlgorithm implements Algorithm, StatisticsProvider, Statistics {
+@Options(prefix = "FaultLocalization")
+public class FaultLocalizationRankingMetric implements Algorithm, StatisticsProvider, Statistics {
+  @Option(
+      secure = true,
+      name = "type",
+      toUppercase = true,
+      values = {"TARANTULA", "OCHIAI", "DSTAR"},
+      description = "please select a ranking algorithm")
+  String rankingAlgorithmType = "TARANTULA";
+
+  private final StatTimer totalTime = new StatTimer("Total time");
   private final Algorithm algorithm;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  StatTimer totalAnalysisTime = new StatTimer("Time for fault localization with Ochiai");
 
-  public OchiaiAlgorithm(
-      Algorithm analysisAlgorithm, ShutdownNotifier pShutdownNotifier, final LogManager pLogger) {
-    algorithm = analysisAlgorithm;
+  public FaultLocalizationRankingMetric(
+      Algorithm pAlgorithm,
+      ShutdownNotifier pShutdownNotifier,
+      final LogManager pLogger,
+      Configuration config) {
+    algorithm = pAlgorithm;
     this.shutdownNotifier = pShutdownNotifier;
     this.logger = pLogger;
+    try {
+      config.inject(this);
+    } catch (InvalidConfigurationException e) {
+      pLogger.log(
+          Level.INFO,
+          "Invalid configuration given to "
+              + getClass().getSimpleName()
+              + ". Using defaults instead.");
+    }
   }
 
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
-    totalAnalysisTime.start();
+    AlgorithmStatus status = algorithm.run(reachedSet);
     FluentIterable<CounterexampleInfo> counterExamples =
         Optionals.presentInstances(
             from(reachedSet)
                 .filter(AbstractStates::isTargetState)
                 .filter(ARGState.class)
                 .transform(ARGState::getCounterexampleInformation));
-    try {
 
-      AlgorithmStatus result = algorithm.run(reachedSet);
-      SafeCase safeCase = new SafeCase(reachedSet);
-      FailedCase failedCase = new FailedCase(reachedSet);
-      // Checks if there is any error paths before starting the algorithm
-      if (failedCase.existsErrorPath()) {
+    SafeCase safeCase = new SafeCase(reachedSet);
+    FailedCase failedCase = new FailedCase(reachedSet);
 
-        logger.log(Level.INFO, "Start ochiai algorithm ... ");
-
-        runOchiaiProcess(counterExamples, safeCase, failedCase);
-
-      } else {
-        logger.log(Level.INFO, "There is no counterexample. No bugs found.");
-      }
-      return result;
-    } finally {
-      totalAnalysisTime.stop();
-    }
-  }
-
-  /**
-   * Prints result after calculating suspicious and make the ranking for all edges and then store
-   * the results <code>CPALog.txt</code> and make the graphical representations possible
-   */
-  public void runOchiaiProcess(
-      FluentIterable<CounterexampleInfo> pCounterexampleInfo,
-      SafeCase safeCase,
-      FailedCase failedCase)
-      throws InterruptedException {
     FaultLocalizationInfo info;
     Set<ARGPath> safePaths = safeCase.getSafePaths();
     Set<ARGPath> errorPaths = failedCase.getErrorPaths();
+
     CoverageInformation coverageInformation = new CoverageInformation(failedCase, shutdownNotifier);
-    OchiaiRanking ochiaiRanking = new OchiaiRanking();
-    List<Fault> faults =
-        new FaultLocalizationFault()
-            .getFaults(ochiaiRanking.getRanked(safePaths, errorPaths, coverageInformation));
+    List<Fault> faults;
+    logger.log(Level.INFO, "ranking algorithm with " + rankingAlgorithmType + " starts");
+    if (rankingAlgorithmType.equals("TARANTULA")) {
+      TarantulaRanking tarantulaRanking = new TarantulaRanking();
+      faults =
+          new FaultLocalizationFault()
+              .getFaults(tarantulaRanking.getRanked(safePaths, errorPaths, coverageInformation));
+    } else if (rankingAlgorithmType.equals("DSTAR")) {
+      DStarRanking dStarRanking = new DStarRanking();
+      faults =
+          new FaultLocalizationFault()
+              .getFaults(dStarRanking.getRanked(safePaths, errorPaths, coverageInformation));
+    } else {
+      OchiaiRanking ochiaiRanking = new OchiaiRanking();
+      faults =
+          new FaultLocalizationFault()
+              .getFaults(ochiaiRanking.getRanked(safePaths, errorPaths, coverageInformation));
+    }
+
     logger.log(Level.INFO, faults);
-    for (CounterexampleInfo counterexample : pCounterexampleInfo) {
+    for (CounterexampleInfo counterexample : counterExamples) {
       info = new FaultLocalizationInfo(faults, counterexample);
       info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
       info.apply();
     }
+
+    return status;
   }
 
   @Override
@@ -119,11 +139,11 @@ public class OchiaiAlgorithm implements Algorithm, StatisticsProvider, Statistic
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
     StatisticsWriter w0 = StatisticsWriter.writingStatisticsTo(out);
-    w0.put("Ochiai total time", totalAnalysisTime);
+    w0.put("Total time with " + rankingAlgorithmType + "  ", totalTime);
   }
 
   @Override
   public @Nullable String getName() {
-    return "Fault Localization wich Ochiai";
+    return "Fault Localization with " + rankingAlgorithmType;
   }
 }
