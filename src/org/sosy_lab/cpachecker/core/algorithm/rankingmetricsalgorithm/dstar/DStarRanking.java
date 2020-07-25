@@ -7,31 +7,9 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.dstar;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics.CoverageInformation;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics.FailedCase;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics.FaultInformation;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics.FaultLocalizationCasesStatus;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics.SafeCase;
-import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
+import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.Ranking;
 
-public class DStarRanking {
-  private final SafeCase safeCase;
-  private final FailedCase failedCase;
-  private final CoverageInformation coverageInformation;
-
-  public DStarRanking(
-      SafeCase pSafeCase, FailedCase pFailedCase, ShutdownNotifier pShutdownNotifier) {
-    this.safeCase = pSafeCase;
-    this.failedCase = pFailedCase;
-    this.coverageInformation = new CoverageInformation(pFailedCase, pShutdownNotifier);
-  }
-
+public class DStarRanking extends Ranking {
   /**
    * Calculates suspicious of DStar algorithm.
    *
@@ -40,43 +18,14 @@ public class DStarRanking {
    * @param totalFailed Is the total number of all possible error paths.
    * @return Calculated suspicious.
    */
-  private double computeSuspicious(double pFailed, double pPassed, double totalFailed) {
+  @Override
+  public double computeSuspicious(
+      double pFailed, double pPassed, double totalFailed, double totalPassed) {
     double numerator = Math.pow(pFailed, 2);
     double denominator = (pPassed + (totalFailed - pFailed));
     if (denominator == 0.0) {
       return 0.0;
     }
     return numerator / denominator;
-  }
-  /**
-   * Gets ranking information with calculated Suspiciousness
-   *
-   * @return Calculated DStar ranking.
-   */
-  public Map<FaultInformation, FaultContribution> getRanked() throws InterruptedException {
-    Set<ARGPath> safePaths = safeCase.getSafePaths();
-    Set<ARGPath> errorPaths = failedCase.getErrorPaths();
-    int totalErrorPaths = errorPaths.size();
-    Map<CFAEdge, FaultLocalizationCasesStatus> coverage =
-        coverageInformation.getCoverageInformation(safePaths, errorPaths);
-    Map<FaultInformation, FaultContribution> rankedInfo = new HashMap<>();
-    coverage.forEach(
-        (pCFAEdge, pFaultLocalizationCasesStatus) -> {
-          double suspicious =
-              computeSuspicious(
-                  pFaultLocalizationCasesStatus.getFailedCases(),
-                  pFaultLocalizationCasesStatus.getPassedCases(),
-                  totalErrorPaths);
-
-          FaultContribution pFaultContribution = new FaultContribution(pCFAEdge);
-          if (suspicious != 0) {
-            pFaultContribution.setScore(suspicious);
-            rankedInfo.put(
-                new FaultInformation(
-                    suspicious, null, pFaultContribution.correspondingEdge().getLineNumber()),
-                pFaultContribution);
-          }
-        });
-    return rankedInfo;
   }
 }

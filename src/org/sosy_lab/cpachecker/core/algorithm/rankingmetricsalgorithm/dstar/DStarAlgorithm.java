@@ -13,6 +13,7 @@ import com.google.common.collect.FluentIterable;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Optionals;
@@ -20,6 +21,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics.CoverageInformation;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics.FailedCase;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics.FaultLocalizationFault;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics.SafeCase;
@@ -29,6 +31,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
@@ -41,7 +44,7 @@ public class DStarAlgorithm implements Algorithm, StatisticsProvider, Statistics
   private final Algorithm algorithm;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
-  StatTimer totalAnalysisTime = new StatTimer("Time for fault localization");
+  StatTimer totalAnalysisTime = new StatTimer("Time for fault localization with DStar");
 
   public DStarAlgorithm(
       Algorithm analysisAlgorithm, ShutdownNotifier pShutdownNotifier, final LogManager pLogger) {
@@ -95,8 +98,13 @@ public class DStarAlgorithm implements Algorithm, StatisticsProvider, Statistics
       FailedCase failedCase)
       throws InterruptedException {
     FaultLocalizationInfo info;
-    DStarRanking ranking = new DStarRanking(safeCase, failedCase, shutdownNotifier);
-    List<Fault> faults = new FaultLocalizationFault().getFaults(ranking.getRanked());
+    Set<ARGPath> safePaths = safeCase.getSafePaths();
+    Set<ARGPath> errorPaths = failedCase.getErrorPaths();
+    CoverageInformation coverageInformation = new CoverageInformation(failedCase, shutdownNotifier);
+    DStarRanking dStarRanking = new DStarRanking();
+    List<Fault> faults =
+        new FaultLocalizationFault()
+            .getFaults(dStarRanking.getRanked(safePaths, errorPaths, coverageInformation));
     logger.log(Level.INFO, faults);
     for (CounterexampleInfo counterexample : pCounterexampleInfo) {
       info = new FaultLocalizationInfo(faults, counterexample);
@@ -121,6 +129,6 @@ public class DStarAlgorithm implements Algorithm, StatisticsProvider, Statistics
 
   @Override
   public @Nullable String getName() {
-    return "Fault Localization With DStar";
+    return "Fault Localization wich DStar";
   }
 }
