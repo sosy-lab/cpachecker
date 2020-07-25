@@ -83,6 +83,7 @@ public class FaultLocalizationRankingMetric implements Algorithm, StatisticsProv
 
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
+    totalTime.start();
     AlgorithmStatus status = algorithm.run(reachedSet);
     FluentIterable<CounterexampleInfo> counterExamples =
         Optionals.presentInstances(
@@ -124,7 +125,7 @@ public class FaultLocalizationRankingMetric implements Algorithm, StatisticsProv
       info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
       info.apply();
     }
-
+    totalTime.stop();
     return status;
   }
 
