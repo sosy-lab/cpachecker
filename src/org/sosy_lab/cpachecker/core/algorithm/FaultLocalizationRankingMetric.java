@@ -55,7 +55,7 @@ public class FaultLocalizationRankingMetric implements Algorithm, StatisticsProv
       toUppercase = true,
       values = {"TARANTULA", "OCHIAI", "DSTAR"},
       description = "please select a ranking algorithm")
-  String rankingAlgorithmType = "TARANTULA";
+  private final String rankingAlgorithmType = "TARANTULA";
 
   private final StatTimer totalTime = new StatTimer("Total time");
   private final Algorithm algorithm;
