@@ -7,19 +7,21 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.ochiai;
 
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.Ranking;
+import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.SuspiciousBuilder;
 
-public class OchiaiRanking extends Ranking {
+public class OchiaiSuspiciousBuilder extends SuspiciousBuilder {
   /**
    * Calculates suspicious of Ochiai algorithm.
    *
    * @param pFailed Is the number of pFailed cases in each edge.
    * @param pPassed Is the number of pPassed cases in each edge.
    * @param totalFailed Is the total number of all possible error paths.
+   * @param totalPassed Is the total number of all possible safe paths. This variable is not used in
+   *     the method and therefore is in case of Ochiai always `0`.
    * @return Calculated suspicious.
    */
   @Override
-  public double computeSuspicious(
+  public double defineSuspicious(
       double pFailed, double pPassed, double totalFailed, double totalPassed) {
 
     double denominator = Math.sqrt(totalFailed * (pFailed + pPassed));

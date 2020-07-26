@@ -6,4 +6,4 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 /** All Relevant Data structures for Fault localization technique with ranking metrics. */
-package org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics;
+package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation;

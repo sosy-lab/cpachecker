@@ -16,6 +16,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -25,13 +26,13 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics.CoverageInformation;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics.FailedCase;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics.FaultLocalizationFault;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalizationrankingmetrics.SafeCase;
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.dstar.DStarRanking;
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.ochiai.OchiaiRanking;
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.tarantula.TarantulaRanking;
+import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation.CoverageInformation;
+import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation.FailedCase;
+import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation.FaultLocalizationFault;
+import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation.SafeCase;
+import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.dstar.DStarSuspiciousBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.ochiai.OchiaiSuspiciousBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.tarantula.TarantulaSuspiciousBuilder;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -85,12 +86,7 @@ public class FaultLocalizationRankingMetric implements Algorithm, StatisticsProv
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     totalTime.start();
     AlgorithmStatus status = algorithm.run(reachedSet);
-    FluentIterable<CounterexampleInfo> counterExamples =
-        Optionals.presentInstances(
-            from(reachedSet)
-                .filter(AbstractStates::isTargetState)
-                .filter(ARGState.class)
-                .transform(ARGState::getCounterexampleInformation));
+    FluentIterable<CounterexampleInfo> counterExamples = getCounterexampleInfos(reachedSet);
 
     SafeCase safeCase = new SafeCase(reachedSet);
     FailedCase failedCase = new FailedCase(reachedSet);
@@ -101,23 +97,7 @@ public class FaultLocalizationRankingMetric implements Algorithm, StatisticsProv
 
     CoverageInformation coverageInformation = new CoverageInformation(failedCase, shutdownNotifier);
     List<Fault> faults;
-    logger.log(Level.INFO, "ranking algorithm with " + rankingAlgorithmType + " starts");
-    if (rankingAlgorithmType.equals("TARANTULA")) {
-      TarantulaRanking tarantulaRanking = new TarantulaRanking();
-      faults =
-          new FaultLocalizationFault()
-              .getFaults(tarantulaRanking.getRanked(safePaths, errorPaths, coverageInformation));
-    } else if (rankingAlgorithmType.equals("DSTAR")) {
-      DStarRanking dStarRanking = new DStarRanking();
-      faults =
-          new FaultLocalizationFault()
-              .getFaults(dStarRanking.getRanked(safePaths, errorPaths, coverageInformation));
-    } else {
-      OchiaiRanking ochiaiRanking = new OchiaiRanking();
-      faults =
-          new FaultLocalizationFault()
-              .getFaults(ochiaiRanking.getRanked(safePaths, errorPaths, coverageInformation));
-    }
+    faults = getFaultsByOption(safePaths, errorPaths, coverageInformation);
 
     logger.log(Level.INFO, faults);
     for (CounterexampleInfo counterexample : counterExamples) {
@@ -127,6 +107,47 @@ public class FaultLocalizationRankingMetric implements Algorithm, StatisticsProv
     }
     totalTime.stop();
     return status;
+  }
+  /** Find and return all error labels */
+  @Nonnull
+  private FluentIterable<CounterexampleInfo> getCounterexampleInfos(ReachedSet reachedSet) {
+    return Optionals.presentInstances(
+        from(reachedSet)
+            .filter(AbstractStates::isTargetState)
+            .filter(ARGState.class)
+            .transform(ARGState::getCounterexampleInformation));
+  }
+  /**
+   * Gets list of corresponding faults by option which is set by variable <code>rankingAlgorithmType<code/>
+   *
+   * @param pSafePaths set of all safe paths
+   * @param pErrorPaths set of all error paths
+   * @param pCoverageInformation coverage information of each CFAEdge
+   * @return list of faults
+   */
+  private List<Fault> getFaultsByOption(
+      Set<ARGPath> pSafePaths, Set<ARGPath> pErrorPaths, CoverageInformation pCoverageInformation)
+      throws InterruptedException {
+    List<Fault> faults;
+    logger.log(Level.INFO, "ranking algorithm with " + rankingAlgorithmType + " starts");
+
+    if (rankingAlgorithmType.equals("TARANTULA")) {
+      TarantulaSuspiciousBuilder tarantulaRanking = new TarantulaSuspiciousBuilder();
+      faults =
+          new FaultLocalizationFault()
+              .getFaults(tarantulaRanking.getCovered(pSafePaths, pErrorPaths, pCoverageInformation));
+    } else if (rankingAlgorithmType.equals("DSTAR")) {
+      DStarSuspiciousBuilder dStarRanking = new DStarSuspiciousBuilder();
+      faults =
+          new FaultLocalizationFault()
+              .getFaults(dStarRanking.getCovered(pSafePaths, pErrorPaths, pCoverageInformation));
+    } else {
+      OchiaiSuspiciousBuilder ochiaiRanking = new OchiaiSuspiciousBuilder();
+      faults =
+          new FaultLocalizationFault()
+              .getFaults(ochiaiRanking.getCovered(pSafePaths, pErrorPaths, pCoverageInformation));
+    }
+    return faults;
   }
 
   @Override
