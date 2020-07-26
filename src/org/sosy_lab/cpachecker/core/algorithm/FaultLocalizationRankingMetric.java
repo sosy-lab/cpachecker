@@ -26,13 +26,13 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.dstar.DStarSuspiciousBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.ochiai.OchiaiSuspiciousBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.tarantula.TarantulaSuspiciousBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation.CoverageInformation;
 import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation.FailedCase;
 import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation.FaultLocalizationFault;
 import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation.SafeCase;
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.dstar.DStarSuspiciousBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.ochiai.OchiaiSuspiciousBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.tarantula.TarantulaSuspiciousBuilder;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -109,7 +109,6 @@ public class FaultLocalizationRankingMetric implements Algorithm, StatisticsProv
     return status;
   }
   /** Find and return all error labels */
-  @Nonnull
   private FluentIterable<CounterexampleInfo> getCounterexampleInfos(ReachedSet reachedSet) {
     return Optionals.presentInstances(
         from(reachedSet)
@@ -135,17 +134,23 @@ public class FaultLocalizationRankingMetric implements Algorithm, StatisticsProv
       TarantulaSuspiciousBuilder tarantulaRanking = new TarantulaSuspiciousBuilder();
       faults =
           new FaultLocalizationFault()
-              .getFaults(tarantulaRanking.calculateSuspiciousForCFAEdge(pSafePaths, pErrorPaths, pCoverageInformation));
+              .getFaults(
+                  tarantulaRanking.calculateSuspiciousForCFAEdge(
+                      pSafePaths, pErrorPaths, pCoverageInformation));
     } else if (rankingAlgorithmType.equals("DSTAR")) {
       DStarSuspiciousBuilder dStarRanking = new DStarSuspiciousBuilder();
       faults =
           new FaultLocalizationFault()
-              .getFaults(dStarRanking.calculateSuspiciousForCFAEdge(pSafePaths, pErrorPaths, pCoverageInformation));
+              .getFaults(
+                  dStarRanking.calculateSuspiciousForCFAEdge(
+                      pSafePaths, pErrorPaths, pCoverageInformation));
     } else {
       OchiaiSuspiciousBuilder ochiaiRanking = new OchiaiSuspiciousBuilder();
       faults =
           new FaultLocalizationFault()
-              .getFaults(ochiaiRanking.calculateSuspiciousForCFAEdge(pSafePaths, pErrorPaths, pCoverageInformation));
+              .getFaults(
+                  ochiaiRanking.calculateSuspiciousForCFAEdge(
+                      pSafePaths, pErrorPaths, pCoverageInformation));
     }
     return faults;
   }
