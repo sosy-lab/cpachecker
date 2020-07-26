@@ -135,17 +135,17 @@ public class FaultLocalizationRankingMetric implements Algorithm, StatisticsProv
       TarantulaSuspiciousBuilder tarantulaRanking = new TarantulaSuspiciousBuilder();
       faults =
           new FaultLocalizationFault()
-              .getFaults(tarantulaRanking.getCovered(pSafePaths, pErrorPaths, pCoverageInformation));
+              .getFaults(tarantulaRanking.calculateSuspiciousForCFAEdge(pSafePaths, pErrorPaths, pCoverageInformation));
     } else if (rankingAlgorithmType.equals("DSTAR")) {
       DStarSuspiciousBuilder dStarRanking = new DStarSuspiciousBuilder();
       faults =
           new FaultLocalizationFault()
-              .getFaults(dStarRanking.getCovered(pSafePaths, pErrorPaths, pCoverageInformation));
+              .getFaults(dStarRanking.calculateSuspiciousForCFAEdge(pSafePaths, pErrorPaths, pCoverageInformation));
     } else {
       OchiaiSuspiciousBuilder ochiaiRanking = new OchiaiSuspiciousBuilder();
       faults =
           new FaultLocalizationFault()
-              .getFaults(ochiaiRanking.getCovered(pSafePaths, pErrorPaths, pCoverageInformation));
+              .getFaults(ochiaiRanking.calculateSuspiciousForCFAEdge(pSafePaths, pErrorPaths, pCoverageInformation));
     }
     return faults;
   }

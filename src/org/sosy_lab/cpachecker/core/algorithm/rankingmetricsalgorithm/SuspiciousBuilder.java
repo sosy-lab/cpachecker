@@ -20,46 +20,34 @@ import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 
 public abstract class SuspiciousBuilder {
 
-  public Map<FaultInformation, FaultContribution> getCovered(
+  public Map<FaultInformation, FaultContribution> calculateSuspiciousForCFAEdge(
       Set<ARGPath> safePaths, Set<ARGPath> errorPaths, CoverageInformation coverageInformation)
       throws InterruptedException {
     int totalSafePaths = safePaths.size();
     int totalErrorPaths = errorPaths.size();
-
     Map<CFAEdge, FaultLocalizationCasesStatus> coverage =
         coverageInformation.getCoverageInformation(safePaths, errorPaths);
-
     Map<FaultInformation, FaultContribution> coverageResult = new HashMap<>();
-
-    calculateSuspiciousForCFAEdge(totalSafePaths, totalErrorPaths, coverage, coverageResult);
-
-    return coverageResult;
-  }
-
-  private void calculateSuspiciousForCFAEdge(
-      int pTotalSafePaths,
-      int pTotalErrorPaths,
-      Map<CFAEdge, FaultLocalizationCasesStatus> pCoverage,
-      Map<FaultInformation, FaultContribution> pCoverageInfo) {
-
-    pCoverage.forEach(
+    coverage.forEach(
         (pCFAEdge, pFaultLocalizationCasesStatus) -> {
           double suspicious =
               defineSuspicious(
                   pFaultLocalizationCasesStatus.getFailedCases(),
                   pFaultLocalizationCasesStatus.getPassedCases(),
-                  pTotalErrorPaths,
-                  pTotalSafePaths);
+                  totalErrorPaths,
+                  totalSafePaths);
 
           FaultContribution pFaultContribution = new FaultContribution(pCFAEdge);
           if (suspicious != 0) {
             pFaultContribution.setScore(suspicious);
-            pCoverageInfo.put(
+            coverageResult.put(
                 new FaultInformation(
                     suspicious, null, pFaultContribution.correspondingEdge().getLineNumber()),
                 pFaultContribution);
           }
         });
+
+    return coverageResult;
   }
 
   public abstract double defineSuspicious(
