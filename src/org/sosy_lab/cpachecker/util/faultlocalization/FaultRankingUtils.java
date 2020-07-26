@@ -68,8 +68,8 @@ public class FaultRankingUtils {
    * the FaultContribution. If more than one ranking is used, the resulting list gets sorted
    * by the provided function.
    *
-   * <p>Example: Assume objects I,J to be objects that extend FaultContribution. SuspiciousBuilder 1
-   * assigns a score of .75 to I and a score of .25 to J. SuspiciousBuilder 2 assigns a score of .66 to I
+   * <p>Example: Assume objects I,J to be objects that extend FaultContribution. Ranking 1
+   * assigns a score of .75 to I and a score of .25 to J. Ranking 2 assigns a score of .66 to I
    * and a score of .34 to J.
    *
    * <p>In the final ranking I will be on the top with a score of (.75 + .66)/2 = .705 J will be
