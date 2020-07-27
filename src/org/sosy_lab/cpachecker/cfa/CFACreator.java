@@ -458,7 +458,9 @@ public class CFACreator {
 
       CFA cfa = createCFA(c, mainFunction);
 
-      cfa = ACSLParser.parseACSLAnnotations(sourceFiles, cfa, logger);
+      if (language.equals(Language.C)) {
+        cfa = ACSLParser.parseACSLAnnotations(sourceFiles, cfa, logger);
+      }
 
       return cfa;
 
