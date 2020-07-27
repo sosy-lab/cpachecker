@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Classes;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.configuration.OptionCollector;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArgument.CmdLineArgument1;
@@ -183,6 +184,7 @@ class CmdLineArguments {
           new CmdLineArgument("-printOptions") {
 
             @SuppressFBWarnings("DM_EXIT")
+            @SuppressForbidden("System.out is correct here")
             @Override
             void apply0(
                 Map<String, String> properties, String pCurrentArg, Iterator<String> argsIt) {
@@ -204,6 +206,7 @@ class CmdLineArguments {
           new CmdLineArgument("-version") {
 
             @SuppressFBWarnings("DM_EXIT")
+            @SuppressForbidden("System.out is correct here")
             @Override
             void apply0(
                 Map<String, String> pProperties, String pCurrentArg, Iterator<String> pArgsIt) {
@@ -214,6 +217,7 @@ class CmdLineArguments {
           new CmdLineArgument("-h", "-help") {
 
             @SuppressFBWarnings("DM_EXIT")
+            @SuppressForbidden("System.out is correct here")
             @Override
             void apply0(
                 Map<String, String> pProperties, String pCurrentArg, Iterator<String> pArgsIt) {

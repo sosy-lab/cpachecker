@@ -197,7 +197,6 @@ public class PredicateCPA
             cfa,
             abstractionManager,
             formulaManager,
-            specification,
             shutdownNotifier,
             pathFormulaManager,
             predicateManager);

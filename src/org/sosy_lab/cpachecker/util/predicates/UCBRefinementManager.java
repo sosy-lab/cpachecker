@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -153,7 +152,7 @@ public class UCBRefinementManager {
                                                     final Set<CFANode> visitedNodes)
       throws CPAException, InterruptedException {
 
-    Set<CFANode> visited = Sets.newHashSet(visitedNodes);
+    Set<CFANode> visited = new HashSet<>(visitedNodes);
     visited.add(src);
 
     BooleanFormula res = bfmgr.makeFalse();

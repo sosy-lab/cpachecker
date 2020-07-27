@@ -16,6 +16,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.Constructor;
 import org.junit.Before;
 import org.junit.Test;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -30,6 +31,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 @SuppressFBWarnings("NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
 public class PathFormulaTest {
 
+  @SuppressForbidden("reflection only in test")
   private ClassSanityTester classSanityTester() throws Exception {
     // hacky way to get a non-empty PointerTargetSet
     // until that class gets mockable

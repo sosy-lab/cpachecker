@@ -27,6 +27,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
@@ -102,6 +103,7 @@ public class AutomaticCPAFactory implements CPAFactory {
   }
 
   @Override
+  @SuppressForbidden("reflection necessary")
   public ConfigurableProgramAnalysis createInstance()
       throws InvalidConfigurationException, CPAException {
 
