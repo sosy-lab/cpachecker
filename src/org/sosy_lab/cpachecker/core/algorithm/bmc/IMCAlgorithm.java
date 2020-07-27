@@ -153,11 +153,11 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    */
   private AlgorithmStatus interpolationModelChecking(final ReachedSet pReachedSet)
       throws CPAException, SolverException, InterruptedException {
-    if (interpolation && !cfa.getLoopStructure().isPresent()) {
+    if (interpolation && !cfa.getAllLoopHeads().isPresent()) {
       logger.log(Level.WARNING, "Disable interpolation as loop structure could not be determined");
       interpolation = false;
     }
-    if (interpolation && cfa.getLoopStructure().orElseThrow().getCount() > 1) {
+    if (interpolation && cfa.getAllLoopHeads().orElseThrow().size() > 1) {
       logger.log(Level.WARNING, "Interpolation is not supported for multi-loop programs yet");
       if (rollBack) {
         rollBackToBMC();
