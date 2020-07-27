@@ -1,5 +1,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
+import com.google.common.collect.ImmutableSet;
+import java.util.Set;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.Or;
@@ -98,5 +100,15 @@ public class TernaryCondition extends ACSLPredicate {
     return condition.isAllowedIn(clauseType)
         && then.isAllowedIn(clauseType)
         && otherwise.isAllowedIn(clauseType);
+  }
+
+  @Override
+  public Set<ACSLBuiltin> getUsedBuiltins() {
+    ImmutableSet.Builder<ACSLBuiltin> builder = ImmutableSet.builder();
+    return builder
+        .addAll(condition.getUsedBuiltins())
+        .addAll(then.getUsedBuiltins())
+        .addAll(otherwise.getUsedBuiltins())
+        .build();
   }
 }

@@ -1,5 +1,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
+import com.google.common.collect.ImmutableSet;
+import java.util.Set;
 import org.sosy_lab.cpachecker.util.expressions.And;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.Or;
@@ -160,5 +162,12 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
   @Override
   public boolean isAllowedIn(Class<?> clauseType) {
     return left.isAllowedIn(clauseType) && right.isAllowedIn(clauseType);
+  }
+
+  @Override
+  public Set<ACSLBuiltin> getUsedBuiltins() {
+    ImmutableSet.Builder<ACSLBuiltin> builder = ImmutableSet.builder();
+    builder.addAll(left.getUsedBuiltins()).addAll(right.getUsedBuiltins());
+    return builder.build();
   }
 }

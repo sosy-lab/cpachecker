@@ -1,5 +1,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
+import com.google.common.collect.ImmutableSet;
+import java.util.Set;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
 
@@ -85,6 +87,11 @@ public abstract class ACSLPredicate {
    */
   public abstract boolean isAllowedIn(Class<?> clauseType);
 
+  /**
+   * Returns a set of all subterms of the predicate that represent ACSL builtins.
+   */
+  public abstract Set<ACSLBuiltin> getUsedBuiltins();
+
   private static class TRUE extends ACSLPredicate {
 
     private static final TRUE singleton = new TRUE();
@@ -150,6 +157,11 @@ public abstract class ACSLPredicate {
     @Override
     public boolean isAllowedIn(Class<?> clauseType) {
       return true;
+    }
+
+    @Override
+    public Set<ACSLBuiltin> getUsedBuiltins() {
+      return ImmutableSet.of();
     }
   }
 
@@ -218,6 +230,11 @@ public abstract class ACSLPredicate {
     @Override
     public boolean isAllowedIn(Class<?> clauseType) {
       return true;
+    }
+
+    @Override
+    public Set<ACSLBuiltin> getUsedBuiltins() {
+      return ImmutableSet.of();
     }
   }
 }

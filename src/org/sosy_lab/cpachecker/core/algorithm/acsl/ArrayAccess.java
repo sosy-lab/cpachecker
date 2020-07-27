@@ -1,6 +1,8 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -56,5 +58,11 @@ public class ArrayAccess implements ACSLTerm {
   @Override
   public boolean isAllowedIn(Class<?> clauseType) {
     return array.isAllowedIn(clauseType) && index.isAllowedIn(clauseType);
+  }
+
+  @Override
+  public Set<ACSLBuiltin> getUsedBuiltins() {
+    ImmutableSet.Builder<ACSLBuiltin> builder = ImmutableSet.builder();
+    return builder.addAll(array.getUsedBuiltins()).addAll(index.getUsedBuiltins()).build();
   }
 }

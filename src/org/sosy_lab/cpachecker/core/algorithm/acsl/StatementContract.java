@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 
@@ -39,6 +40,10 @@ public class StatementContract implements ACSLAnnotation {
 
   public static StatementContract fromFunctionContract(
       List<Behavior> enclosing, FunctionContract fcontract) {
+    assert FluentIterable.from(fcontract.getEnsures().getPredicate().getUsedBuiltins())
+            .filter(ACSLBuiltin.Result.class)
+            .isEmpty()
+        : "\\result is only allowed in function contracts";
     return new StatementContract(
         fcontract.getRequires(),
         fcontract.getEnsures(),

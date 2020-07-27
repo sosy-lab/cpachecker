@@ -1,5 +1,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
+import com.google.common.collect.ImmutableSet;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -47,5 +49,10 @@ public class StringLiteral implements ACSLTerm {
   @Override
   public boolean isAllowedIn(Class<?> clauseType) {
     return true;
+  }
+
+  @Override
+  public Set<ACSLBuiltin> getUsedBuiltins() {
+    return ImmutableSet.of();
   }
 }

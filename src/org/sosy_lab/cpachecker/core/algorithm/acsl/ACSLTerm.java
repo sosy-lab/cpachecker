@@ -1,5 +1,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
@@ -20,4 +21,6 @@ public interface ACSLTerm {
    * @return true if the term may be used in a clause of the given type, false otherwise
    */
   boolean isAllowedIn(Class<?> clauseType);
+
+  Set<ACSLBuiltin> getUsedBuiltins();
 }

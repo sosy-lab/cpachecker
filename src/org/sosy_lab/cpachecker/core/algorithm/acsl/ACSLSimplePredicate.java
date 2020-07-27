@@ -1,6 +1,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
 import com.google.common.base.Preconditions;
+import java.util.Set;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
@@ -80,5 +81,10 @@ public class ACSLSimplePredicate extends ACSLPredicate {
   @Override
   public boolean isAllowedIn(Class<?> clauseType) {
     return term.isAllowedIn(clauseType);
+  }
+
+  @Override
+  public Set<ACSLBuiltin> getUsedBuiltins() {
+    return term.getUsedBuiltins();
   }
 }
