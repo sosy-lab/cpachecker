@@ -12,7 +12,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -24,6 +23,7 @@ import java_cup.runtime.ComplexSymbolFactory;
 import java_cup.runtime.Symbol;
 import java_cup.runtime.SymbolFactory;
 import org.eclipse.cdt.core.dom.ast.IASTFileLocation;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotationLocations;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -35,22 +35,23 @@ import org.sosy_lab.cpachecker.util.Pair;
 parser code {:
 
     private ACSLScanner scanner;
+    private ACSLTermToCExpressionVisitor visitor;
     // Maps function names to behaviors declared in the function contract or in statement contracts
     // inside the function along with the node where the originating contract is annotated
-    private Multimap<String, Pair<Behavior, CFANode>> behaviors;
+    private final Multimap<String, Pair<Behavior, CFANode>> behaviors = LinkedHashMultimap.create();
     private CFAWithACSLAnnotationLocations cfa;
     private List<IASTFileLocation> orderedLocs;
 
     private ACSLParser(ACSLScanner pScanner, SymbolFactory sf, CFAWithACSLAnnotationLocations pCfa,
-      List<IASTFileLocation> pOrderedLocs) {
+      List<IASTFileLocation> pOrderedLocs, LogManager pLogger) {
         super(pScanner, sf);
         scanner = pScanner;
-        behaviors = LinkedHashMultimap.create();
         cfa = pCfa;
+        visitor = new ACSLTermToCExpressionVisitor(cfa, pLogger);
         orderedLocs = pOrderedLocs;
     }
 
-    public static CFA parseACSLAnnotations(List<String> files, CFA pCfa) throws CParserException, IOException {
+    public static CFA parseACSLAnnotations(List<String> files, CFA pCfa, LogManager logger) throws CParserException, IOException {
       Comparator<IASTFileLocation> locationComparator =
           (loc1, loc2) -> loc1.getNodeOffset() < loc2.getNodeOffset() ? -1 : 1;
 
@@ -61,11 +62,11 @@ parser code {:
         if (pCfa instanceof CFAWithACSLAnnotationLocations) {
           CFAWithACSLAnnotationLocations cfaWithLocs = (CFAWithACSLAnnotationLocations) pCfa;
 
-          List<IASTFileLocation> orderedLocs = new ArrayList<>();
-          orderedLocs.addAll(cfaWithLocs.getCommentPositions().keySet());
-          Collections.sort(orderedLocs, locationComparator);
+          List<IASTFileLocation> orderedLocs =
+              new ArrayList<>(cfaWithLocs.getCommentPositions().keySet());
+          orderedLocs.sort(locationComparator);
           orderedLocs = FluentIterable.from(orderedLocs).filter(x -> x.getFileName().equals(filename)).toList();
-          List<ACSLAnnotation> annotations = new ACSLParser(scanner, sf, cfaWithLocs, orderedLocs).parseACSLAnnotations();
+          List<ACSLAnnotation> annotations = new ACSLParser(scanner, sf, cfaWithLocs, orderedLocs, logger).parseACSLAnnotations();
           for (int i = 0; i < orderedLocs.size(); i++) {
             cfaWithLocs.getEdgesToAnnotations().put(cfaWithLocs.getCommentPositions().get(orderedLocs.get(i)), annotations.get(i));
           }
@@ -391,6 +392,10 @@ parser code {:
     public ACSLScanner getScanner() {
       return scanner;
     }
+
+    public void checkIdentifier(Identifier i) {
+      visitor.visit(i);
+    }
 :}
 
 scan with {: return scanner.getNext(); :}
@@ -621,7 +626,8 @@ desc_base ::= term:t1 desc_rel_op:op term:t2  {: RESULT = new ACSLSimplePredicat
 term ::= PRED_START term:t                              {: RESULT = t; :}
         | LITERAL:l                                     {: RESULT = new IntegerLiteral(l); :}
         | STRING_LITERAL:l                              {: RESULT = new StringLiteral(l); :}
-        | IDENTIFIER:i                                  {: RESULT = new Identifier(i, parser.getCurrentNode().getFunctionName()); :}
+        | IDENTIFIER:i                                  {: Identifier identifier = new Identifier(i, parser.getCurrentNode().getFunctionName());
+                                                           checkIdentifier(identifier); RESULT = identifier; :}
         | term:t1 LBRACKET term:t2 RBRACKET             {: RESULT = new ArrayAccess(t1, t2); :}
         | unary_op:op term:t                            {: RESULT = new ACSLUnaryTerm(t, op); :}
         | SIZEOF LPAREN term:t RPAREN                   {: RESULT = new ACSLUnaryTerm(t, UnaryOperator.SIZEOF); :}
