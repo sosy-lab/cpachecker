@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.arg;
 
-import java.util.HashSet;
+import com.google.common.collect.ImmutableSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -58,8 +58,8 @@ public class ARGMergeJoin implements MergeOperator {
 
     boolean continueMerge = !retElement.equals(wrappedState2);
     if (mergeOnWrappedSubsumption) {
-      Set<ARGState> parents1 = new HashSet<>(argElement1.getParents());
-      Set<ARGState> parents2 = new HashSet<>(argElement2.getParents());
+      Set<ARGState> parents1 = ImmutableSet.copyOf(argElement1.getParents());
+      Set<ARGState> parents2 = ImmutableSet.copyOf(argElement2.getParents());
       continueMerge =
           continueMerge
               || (!parents2.containsAll(parents1)
