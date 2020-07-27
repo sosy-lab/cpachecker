@@ -153,12 +153,12 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
    */
   private AlgorithmStatus interpolationModelChecking(final ReachedSet pReachedSet)
       throws CPAException, SolverException, InterruptedException {
-    if (interpolation && !cfa.getLoopStructure().isPresent()) {
-      logger.log(Level.WARNING, "Disable interpolation as loop structure could not be determined.");
+    if (interpolation && !cfa.getAllLoopHeads().isPresent()) {
+      logger.log(Level.WARNING, "Disable interpolation as loop structure could not be determined");
       interpolation = false;
     }
-    if (interpolation && cfa.getLoopStructure().orElseThrow().getCount() > 1) {
-      logger.log(Level.WARNING, "Interpolation is not yet supported for multi-loop programs");
+    if (interpolation && cfa.getAllLoopHeads().orElseThrow().size() > 1) {
+      logger.log(Level.WARNING, "Interpolation is not supported for multi-loop programs yet");
       if (rollBack) {
         rollBackToBMC();
       } else {
@@ -171,7 +171,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       int maxLoopIterations = CPAs.retrieveCPA(cpa, LoopBoundCPA.class).getMaxLoopIterations();
       // Unroll
       shutdownNotifier.shutdownIfNecessary();
-      logger.log(Level.FINE, "Unrolling with LBE, maxLoopIterations =", maxLoopIterations);
       stats.bmcPreparation.start();
       BMCHelper.unroll(logger, pReachedSet, algorithm, cpa);
       stats.bmcPreparation.stop();
@@ -235,6 +234,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private void rollBackToBMCWithoutForwardCondition() {
     logger.log(Level.WARNING, "Rolling back to BMC without forward-condition check");
+    interpolation = false;
     checkForwardConditions = false;
   }
 
