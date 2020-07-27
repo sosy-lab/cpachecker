@@ -19,9 +19,11 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -164,8 +166,8 @@ public final class BMCHelper {
       BooleanFormulaManager pBFMGR,
       Optional<ShutdownNotifier> pShutdownNotifier)
       throws InterruptedException {
-    BooleanFormula f = pBFMGR.makeFalse();
 
+    List<BooleanFormula> pathFormulas = new ArrayList<>();
     for (PredicateAbstractState e :
         AbstractStates.projectToType(states, PredicateAbstractState.class)) {
       if (pShutdownNotifier.isPresent()) {
@@ -177,10 +179,11 @@ public final class BMCHelper {
           pBFMGR.and(
               e.getAbstractionFormula().getBlockFormula().getFormula(),
               e.getPathFormula().getFormula());
-      f = pBFMGR.or(f, pathFormula);
+      pathFormulas.add(pathFormula);
     }
+    final BooleanFormula pathFormulasDisjunction = pBFMGR.or(pathFormulas);
 
-    return f;
+    return pathFormulasDisjunction;
   }
 
   /**
