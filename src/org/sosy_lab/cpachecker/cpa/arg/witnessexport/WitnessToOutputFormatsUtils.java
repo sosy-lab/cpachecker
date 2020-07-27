@@ -12,10 +12,10 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.util.logging.Level.WARNING;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Queues;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashMap;
@@ -82,7 +82,7 @@ public class WitnessToOutputFormatsUtils {
     NumericIdProvider idProvider = NumericIdProvider.create();
     String entryStateNode = witness.getEntryStateNodeId();
     Set<String> nodes = new HashSet<>();
-    Deque<String> waitlist = Queues.newArrayDeque();
+    Deque<String> waitlist = new ArrayDeque<>();
     waitlist.push(entryStateNode);
     // Element entryNode = createNewNode(doc, entryStateNodeId, witness);
     // addInvariantsData(doc, entryNode, entryStateNodeId, witness);
