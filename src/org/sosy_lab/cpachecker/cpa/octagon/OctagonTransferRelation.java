@@ -1554,10 +1554,10 @@ public class OctagonTransferRelation extends ForwardingTransferRelation<Collecti
 
     @Override
     public Set<Pair<IOctagonCoefficients, OctagonState>> visit(CCharLiteralExpression e) throws CPATransferException {
+      final OctagonIntValue value = OctagonIntValue.of(e.getCharacter());
       return ImmutableSet.of(
           Pair.of(
-              new OctagonSimpleCoefficients(
-                  visitorState.sizeOfVariables(), OctagonIntValue.of(e.getValue()), visitorState),
+              new OctagonSimpleCoefficients(visitorState.sizeOfVariables(), value, visitorState),
               visitorState));
     }
 

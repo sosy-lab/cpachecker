@@ -192,7 +192,7 @@ public class PointerTransferRelation extends SingleEdgeTransferRelation {
           }
         } else if (pOperand2 instanceof CCharLiteralExpression) {
           CCharLiteralExpression op2 = (CCharLiteralExpression) pOperand2;
-          if (op2.getValue() == 0) {
+          if (op2.getCharacter() == 0) {
             return negate(areEqual(pPointerState, op1.getOperand1(), op1.getOperand2()));
           }
         }

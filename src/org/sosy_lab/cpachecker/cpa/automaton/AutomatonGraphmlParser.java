@@ -15,9 +15,9 @@ import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.io.ByteSource;
 import com.google.common.io.MoreFiles;
@@ -34,6 +34,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -124,7 +125,7 @@ public class AutomatonGraphmlParser {
   private static final String TOO_MANY_GRAPHS_ERROR_MESSAGE =
       "The witness file must describe exactly one witness automaton.";
 
-  
+
 
   private static final String INVALID_AUTOMATON_ERROR_MESSAGE =
       "The witness automaton provided is invalid!";
@@ -240,22 +241,21 @@ public class AutomatonGraphmlParser {
     this.config = pConfig;
     this.parserTools =
         ParserTools.create(ExpressionTrees.newFactory(), cfa.getMachineModel(), logger);
-    this.stateInvariantsMap = Maps.newHashMap();
+    this.stateInvariantsMap = new HashMap<>();
   }
 
   /**
    * Parses a witness specification from a file and returns the Automata found in the file.
    *
    * @param pInputFile the path to the input file to parse the witness from.
-   * @param pProperties which are assumed to be witnessed.
    * @throws InvalidConfigurationException if the configuration is invalid.
    * @return the automata representing the witnesses found in the file.
    */
-  public Automaton parseAutomatonFile(Path pInputFile, Set<Property> pProperties)
+  public Automaton parseAutomatonFile(Path pInputFile)
       throws InvalidConfigurationException, InterruptedException {
     return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
         MoreFiles.asByteSource(pInputFile),
-        inputStream -> parseAutomatonFile(inputStream, pProperties),
+        inputStream -> parseAutomatonFile(inputStream),
         e -> new WitnessParseException(e));
   }
 
@@ -263,12 +263,11 @@ public class AutomatonGraphmlParser {
    * Parses a specification from an InputStream and returns the Automata found in the file.
    *
    * @param pInputStream the input stream to parse the witness from.
-   * @param pProperties which are assumed to be witnessed.
    * @throws InvalidConfigurationException if the configuration is invalid.
    * @throws IOException if there occurs an IOException while reading from the stream.
    * @return the automata representing the witnesses found in the stream.
    */
-  private Automaton parseAutomatonFile(InputStream pInputStream, Set<Property> pProperties)
+  private Automaton parseAutomatonFile(InputStream pInputStream)
       throws InvalidConfigurationException, IOException, InterruptedException {
     final CParser cparser =
         CParser.Factory.getParser(
@@ -283,7 +282,7 @@ public class AutomatonGraphmlParser {
             cfa.getMachineModel(),
             shutdownNotifier);
 
-    AutomatonGraphmlParserState graphMLParserState = setupGraphMLParser(pInputStream, pProperties);
+    AutomatonGraphmlParserState graphMLParserState = setupGraphMLParser(pInputStream);
 
     WitnessType graphType = graphMLParserState.getWitnessType();
     if ((noCorrectnessValidation && graphType.equals(WitnessType.CORRECTNESS_WITNESS))
@@ -314,7 +313,7 @@ public class AutomatonGraphmlParser {
     }
 
     // the automaton will be an ISA if specified
-    automaton = invariantsSpecAutomaton.build(automaton, config, logger, cfa);
+    automaton = invariantsSpecAutomaton.build(automaton, config, logger, shutdownNotifier, cfa);
 
     if (automatonDumpFile != null) {
       try (Writer w = IO.openOutputFile(automatonDumpFile, Charset.defaultCharset())) {
@@ -1011,14 +1010,12 @@ public class AutomatonGraphmlParser {
    * into an intermediate representation.
    *
    * @param pInputStream the input stream to read from.
-   * @param pProperties which are assumed to be witnessed.
    * @return the initialized parser state.
    * @throws IOException if reading from the input stream fails.
    * @throws WitnessParseException if the initial validity checks for conformity with the witness
    *     format fail.
    */
-  private AutomatonGraphmlParserState setupGraphMLParser(
-      InputStream pInputStream, Set<Property> pProperties)
+  private AutomatonGraphmlParserState setupGraphMLParser(InputStream pInputStream)
       throws IOException, WitnessParseException {
 
     GraphMLDocumentData docDat = parseXML(pInputStream);
@@ -1026,6 +1023,7 @@ public class AutomatonGraphmlParser {
     checkFields(docDat.getGraph());
 
     WitnessType graphType = getWitnessType(docDat.getGraph());
+    Set<Property> specType = getSpecAsProperties(docDat.getGraph());
 
     // Extract the information on the automaton ----
     Node nameAttribute = docDat.getGraph().getAttributes().getNamedItem("name");
@@ -1061,7 +1059,7 @@ public class AutomatonGraphmlParser {
         AutomatonGraphmlParserState.initialize(
             automatonName,
             graphType,
-            pProperties,
+            specType,
             states.values(),
             enteringTransitions,
             leavingTransitions,
@@ -1561,6 +1559,45 @@ public class AutomatonGraphmlParser {
       }
     }
     return witnessType;
+  }
+
+  private Set<Property> getSpecAsProperties(final Node pAutomaton) {
+    Set<String> specText = GraphMLDocumentData.getDataOnNode(pAutomaton, KeyDef.SPECIFICATION);
+    if (specText.isEmpty()) {
+      return ImmutableSet.of(CommonPropertyType.REACHABILITY);
+    } else {
+      ImmutableSet.Builder<Property> properties =
+          ImmutableSet.builderWithExpectedSize(specText.size());
+      for (String prop : specText) {
+        try {
+          properties.add(getProperty(prop));
+        } catch (IllegalArgumentException | IndexOutOfBoundsException e) {
+          logger.logf(
+              Level.WARNING, "Cannot map specification %s to property type. Will ignore it.", prop);
+        }
+      }
+      return properties.build();
+    }
+  }
+
+  private Property getProperty(final String pProperty) {
+    String prop;
+    if (pProperty.trim().startsWith("CHECK")) {
+      prop = pProperty.substring(pProperty.indexOf(",") + 1, pProperty.lastIndexOf(")")).trim();
+      if (prop.startsWith("LTL")) {
+        prop = prop.substring(prop.indexOf("(") + 1, prop.lastIndexOf(")"));
+      }
+    } else {
+      prop = pProperty;
+    }
+
+    for (CommonPropertyType propType : CommonPropertyType.values()) {
+      if (propType.toString().equals(prop)) {
+        return propType;
+      }
+    }
+
+    return CommonPropertyType.valueOf(prop.trim());
   }
 
   private static String transitionToString(Node pTransition) {

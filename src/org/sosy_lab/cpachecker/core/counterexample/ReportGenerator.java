@@ -49,6 +49,7 @@ import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.Optionals;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -146,6 +147,7 @@ public class ReportGenerator {
     producer = htmlEscaper().escape(CPAchecker.getVersion(pConfig));
   }
 
+  @SuppressForbidden("System.out is correct here")
   public void generate(
       Result pResult, CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics) {
     checkNotNull(pResult);
