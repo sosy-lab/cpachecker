@@ -467,7 +467,7 @@ precedence left LSHIFT, RSHIFT;
 precedence left PLUS, MINUS;
 precedence left TIMES, DIVIDE, MOD;
 precedence right NEG, BNEG, UPLUS, UMINUS, STAR, AMPERSAND, RPAREN;
-precedence left RBRACKET;
+precedence right LBRACKET;
 
 annotations ::= annotations:as annotation:a {: assert !a.getCompletenessPredicate().equals(ACSLPredicate.getFalse());
                                                as.add(a); RESULT = as; :}
@@ -622,9 +622,7 @@ term ::= PRED_START term:t                              {: RESULT = t; :}
         | LITERAL:l                                     {: RESULT = new IntegerLiteral(l); :}
         | STRING_LITERAL:l                              {: RESULT = new StringLiteral(l); :}
         | IDENTIFIER:i                                  {: RESULT = new Identifier(i, parser.getCurrentNode().getFunctionName()); :}
-        | IDENTIFIER:i LBRACKET LITERAL:l RBRACKET      {: ACSLTerm t1 = new Identifier(i, parser.getCurrentNode().getFunctionName());
-                                                           ACSLTerm t2 = new IntegerLiteral(l);
-                                                           RESULT = new ArrayAccess(t1, t2); :}
+        | term:t1 LBRACKET term:t2 RBRACKET             {: RESULT = new ArrayAccess(t1, t2); :}
         | unary_op:op term:t                            {: RESULT = new ACSLUnaryTerm(t, op); :}
         | SIZEOF LPAREN term:t RPAREN                   {: RESULT = new ACSLUnaryTerm(t, UnaryOperator.SIZEOF); :}
         | LPAREN PRED_START IDENTIFIER:i RPAREN term:t  {: RESULT = new Cast(new Type(i), t); :}
