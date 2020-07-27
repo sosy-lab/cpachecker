@@ -632,7 +632,7 @@ term ::= PRED_START term:t                              {: RESULT = t; :}
         | term:t1 bit_op:op term:t2                     {: RESULT = new ACSLBinaryTerm(t1, t2, op); :}
         | LPAREN term:t RPAREN                          {: RESULT = t; :}
         | OLD LPAREN term:t RPAREN                      {: RESULT = t.useOldValues(); :}
-        | RETVAL                                        {: RESULT = new Identifier(Identifier.RESULT, parser.getCurrentNode().getFunctionName()); :};
+        | RETVAL                                        {: RESULT = new ACSLBuiltin.Result(parser.getCurrentNode().getFunctionName()); :};
 log_op ::= AND  {: RESULT = BinaryOperator.AND; :}
         | OR    {: RESULT = BinaryOperator.OR; :}
         | IMP   {: RESULT = BinaryOperator.IMP; :}

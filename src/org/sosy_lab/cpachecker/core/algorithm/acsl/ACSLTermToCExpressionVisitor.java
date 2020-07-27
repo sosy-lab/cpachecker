@@ -44,6 +44,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLBuiltin.Old;
+import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLBuiltin.Result;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class ACSLTermToCExpressionVisitor {
@@ -187,24 +189,13 @@ public class ACSLTermToCExpressionVisitor {
   public CExpression visit(Identifier identifier) {
     CExpression result = cache.get(identifier);
     if (result == null) {
-      if (identifier.shouldUseOldValue()) {
-        result = cache.get(new Identifier(identifier.getName(), identifier.getFunctionName()));
-        assert result != null : "Expected to have seen the old value already";
+      CProgramScope scope = new CProgramScope(cfa, logger);
+      CSimpleDeclaration variableDeclaration = scope.lookupVariable(identifier.getName());
+      if (variableDeclaration != null) {
+        result = new CIdExpression(variableDeclaration.getFileLocation(), variableDeclaration);
         cache.put(identifier, result);
       } else {
-        CProgramScope scope = new CProgramScope(cfa, logger);
-        CSimpleDeclaration variableDeclaration;
-        if (identifier.getName().equals(Identifier.RESULT)) {
-          variableDeclaration = scope.getFunctionReturnVariable(identifier.getFunctionName());
-        } else {
-          variableDeclaration = scope.lookupVariable(identifier.getName());
-        }
-        if (variableDeclaration != null) {
-          result = new CIdExpression(variableDeclaration.getFileLocation(), variableDeclaration);
-          cache.put(identifier, result);
-        } else {
-          throw new AssertionError("Unknown variable identifier: " + identifier.getName());
-        }
+        throw new AssertionError("Unknown variable identifier: " + identifier.getName());
       }
     }
     return result;
@@ -232,6 +223,28 @@ public class ACSLTermToCExpressionVisitor {
               new CPointerType(false, false, CNumericTypes.UNSIGNED_CHAR),
               stringLiteral.getLiteral());
       cache.put(stringLiteral, result);
+    }
+    return result;
+  }
+
+  public CExpression visit(Result acslResult) {
+    CExpression result = cache.get(acslResult);
+    if (result == null) {
+      CProgramScope scope = new CProgramScope(cfa, logger);
+      CSimpleDeclaration variableDeclaration =
+          scope.getFunctionReturnVariable(acslResult.getFunctionName());
+      result = new CIdExpression(variableDeclaration.getFileLocation(), variableDeclaration);
+      cache.put(acslResult, result);
+    }
+    return result;
+  }
+
+  public CExpression visit(Old old) {
+    CExpression result = cache.get(old);
+    if (result == null) {
+      result = cache.get(old.getInner());
+      assert result != null : "Expected to have seen the old value already";
+      cache.put(old, result);
     }
     return result;
   }
