@@ -49,59 +49,130 @@ import org.sosy_lab.java_smt.api.FormulaType;
 
 public interface PointerTargetSetBuilder {
 
-  void prepareBase(String name, CType type, @Nullable Formula size, Constraints constraints);
+  @SuppressWarnings("unused")
+  default void
+      prepareBase(String name, CType type, @Nullable Formula size, Constraints constraints) {
+    throw new UnsupportedOperationException();
+  }
 
-  void shareBase(String name, CType type);
+  @SuppressWarnings("unused")
+  default void shareBase(String name, CType type) {
+    throw new UnsupportedOperationException();
+  }
 
   /**
    * Adds the newly allocated base of the given type for tracking along with all its tracked (sub)fields
    * (if its a structure/union) or all its elements (if its an array).
    */
-  void addBase(String name, CType type, @Nullable Formula size, Constraints constraints);
+  @SuppressWarnings("unused")
+  default void addBase(String name, CType type, @Nullable Formula size, Constraints constraints) {
+    throw new UnsupportedOperationException();
+  }
 
-  boolean tracksField(CompositeField field);
+  @SuppressWarnings("unused")
+  default boolean tracksField(CompositeField field) {
+    throw new UnsupportedOperationException();
+  }
 
-  boolean addField(CompositeField field);
+  @SuppressWarnings("unused")
+  default boolean addField(CompositeField field) {
+    throw new UnsupportedOperationException();
+  }
 
-  void addEssentialFields(final List<CompositeField> fields);
+  @SuppressWarnings("unused")
+  default void addEssentialFields(final List<CompositeField> fields) {
+    throw new UnsupportedOperationException();
+  }
 
-  void addTemporaryDeferredAllocation(
-      boolean isZeroed, Optional<CIntegerLiteralExpression> size, Formula sizeExp, String base);
+  @SuppressWarnings("unused")
+  default void addTemporaryDeferredAllocation(
+      boolean isZeroed,
+      Optional<CIntegerLiteralExpression> size,
+      Formula sizeExp,
+      String base) {
+    throw new UnsupportedOperationException();
+  }
 
-  void addDeferredAllocationPointer(String newPointer, String originalPointer);
+  @SuppressWarnings("unused")
+  default void addDeferredAllocationPointer(String newPointer, String originalPointer) {
+    throw new UnsupportedOperationException();
+  }
 
-  ImmutableSet<DeferredAllocation> removeDeferredAllocationPointer(String pointer);
+  @SuppressWarnings("unused")
+  default ImmutableSet<DeferredAllocation> removeDeferredAllocationPointer(String pointer) {
+    throw new UnsupportedOperationException();
+  }
 
-  boolean canRemoveDeferredAllocationPointer(String pointer);
+  @SuppressWarnings("unused")
+  default boolean canRemoveDeferredAllocationPointer(String pointer) {
+    throw new UnsupportedOperationException();
+  }
 
-  ImmutableSet<DeferredAllocation> removeDeferredAllocations(String pointer);
+  @SuppressWarnings("unused")
+  default ImmutableSet<DeferredAllocation> removeDeferredAllocations(String pointer) {
+    throw new UnsupportedOperationException();
+  }
 
-  ImmutableSet<String> getDeferredAllocationPointers();
+  default ImmutableSet<String> getDeferredAllocationPointers() {
+    throw new UnsupportedOperationException();
+  }
 
-  boolean isTemporaryDeferredAllocationPointer(String pointer);
+  @SuppressWarnings("unused")
+  default boolean isTemporaryDeferredAllocationPointer(String pointer) {
+    throw new UnsupportedOperationException();
+  }
 
-  boolean isDeferredAllocationPointer(String pointer);
+  @SuppressWarnings("unused")
+  default boolean isDeferredAllocationPointer(String pointer) {
+    throw new UnsupportedOperationException();
+  }
 
-  boolean isActualBase(String name);
+  @SuppressWarnings("unused")
+  default boolean isActualBase(String name) {
+    throw new UnsupportedOperationException();
+  }
 
-  boolean isPreparedBase(String name);
+  @SuppressWarnings("unused")
+  default boolean isPreparedBase(String name) {
+    throw new UnsupportedOperationException();
+  }
 
-  boolean isBase(String name, CType type);
+  @SuppressWarnings("unused")
+  default boolean isBase(String name, CType type) {
+    throw new UnsupportedOperationException();
+  }
 
-  NavigableSet<String> getAllBases();
+  default NavigableSet<String> getAllBases() {
+    throw new UnsupportedOperationException();
+  }
 
-  PersistentList<PointerTarget> getAllTargets(MemoryRegion region);
+  @SuppressWarnings("unused")
+  default PersistentList<PointerTarget> getAllTargets(MemoryRegion region) {
+    throw new UnsupportedOperationException();
+  }
 
-  Iterable<PointerTarget> getMatchingTargets(MemoryRegion region, Predicate<PointerTarget> pattern);
+  @SuppressWarnings("unused")
+  default Iterable<PointerTarget>
+      getMatchingTargets(MemoryRegion region, Predicate<PointerTarget> pattern) {
+    throw new UnsupportedOperationException();
+  }
 
-  Iterable<PointerTarget> getNonMatchingTargets(MemoryRegion region, Predicate<PointerTarget> pattern);
+  @SuppressWarnings("unused")
+  default Iterable<PointerTarget>
+      getNonMatchingTargets(MemoryRegion region, Predicate<PointerTarget> pattern) {
+    throw new UnsupportedOperationException();
+  }
 
-  int getFreshAllocationId();
+  default int getFreshAllocationId() {
+    throw new UnsupportedOperationException();
+  }
 
   /**
    * Returns an immutable PointerTargetSet with all the changes made to the builder.
    */
-  PointerTargetSet build();
+  default PointerTargetSet build() {
+    throw new UnsupportedOperationException();
+  }
 
   /**
    * Actual builder implementation for PointerTargetSet.
@@ -773,7 +844,6 @@ public interface PointerTargetSetBuilder {
     }
   }
 
-
   /**
    * Dummy implementation of {@link PointerTargetSetBuilder}
    * that throws an exception on all methods except for {@link #build()},
@@ -781,128 +851,9 @@ public interface PointerTargetSetBuilder {
    */
   enum DummyPointerTargetSetBuilder implements PointerTargetSetBuilder {
     INSTANCE;
-
-    @Override
-    public void prepareBase(
-        String pName, CType pType, @Nullable Formula pSize, Constraints constraints) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void shareBase(String pName, CType pType) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void addBase(
-        String pName, CType pType, @Nullable Formula pSize, Constraints constraints) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean tracksField(CompositeField pField) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean addField(CompositeField pField) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void addEssentialFields(List<CompositeField> pFields) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void addTemporaryDeferredAllocation(
-        boolean pIsZeroed,
-        Optional<CIntegerLiteralExpression> pSize,
-        Formula pSizeExp,
-        String pBase) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void addDeferredAllocationPointer(String pNewPointer, String pOriginalPointer) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public ImmutableSet<DeferredAllocation> removeDeferredAllocationPointer(String pPointer) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public ImmutableSet<DeferredAllocation> removeDeferredAllocations(String pPointer) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public ImmutableSet<String> getDeferredAllocationPointers() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean isTemporaryDeferredAllocationPointer(String pPointerVariable) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean isDeferredAllocationPointer(String pPointerVariable) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean isActualBase(String pName) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean isPreparedBase(String pName) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public boolean isBase(String pName, CType pType) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public NavigableSet<String> getAllBases() {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public PersistentList<PointerTarget> getAllTargets(MemoryRegion region) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Iterable<PointerTarget> getMatchingTargets(
-        MemoryRegion region, Predicate<PointerTarget> pPattern) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Iterable<PointerTarget> getNonMatchingTargets(
-        MemoryRegion region, Predicate<PointerTarget> pPattern) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public int getFreshAllocationId() {
-      throw new UnsupportedOperationException();
-    }
-
     @Override
     public PointerTargetSet build() {
       return PointerTargetSet.emptyPointerTargetSet();
-    }
-
-    @Override
-    public boolean canRemoveDeferredAllocationPointer(String pPointer) {
-      throw new UnsupportedOperationException();
     }
   }
 }

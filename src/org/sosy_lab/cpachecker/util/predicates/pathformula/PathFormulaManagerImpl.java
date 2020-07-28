@@ -49,6 +49,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.sl.CToFormulaConverterWithSL;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -66,6 +67,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.TypeHandlerWithPointerAliasing;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
@@ -84,6 +86,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   @Option(secure=true, description = "Handle aliasing of pointers. "
       + "This adds disjunctions to the formulas, so be careful when using cartesian abstraction.")
   private boolean handlePointerAliasing = true;
+
+  @Option(secure = true, description = "Handle pointer analysis with Separation Logic.")
+  private boolean handleSL = false;
 
   @Option(secure=true, description="Call 'simplify' on generated formulas.")
   private boolean simplifyGeneratedPathFormulas = false;
@@ -110,6 +115,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private static final CType NONDET_TYPE = CNumericTypes.SIGNED_INT;
   private final FormulaType<?> NONDET_FORMULA_TYPE;
 
+  private final Solver solver;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final CtoFormulaConverter converter;
@@ -124,6 +130,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   )
   private boolean useNondetFlags = false;
 
+
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
       Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
       CFA pCfa, AnalysisDirection pDirection)
@@ -133,7 +140,29 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         pCfa.getVarClassification(), pDirection);
   }
 
-  public PathFormulaManagerImpl(FormulaManagerView pFmgr,
+  public PathFormulaManagerImpl(
+      FormulaManagerView pFmgr,
+      Configuration config,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      MachineModel pMachineModel,
+      Optional<VariableClassification> pVariableClassification,
+      AnalysisDirection pDirection)
+      throws InvalidConfigurationException {
+    this(
+        null,
+        pFmgr,
+        config,
+        pLogger,
+        pShutdownNotifier,
+        pMachineModel,
+        pVariableClassification,
+        pDirection);
+  }
+
+  public PathFormulaManagerImpl(
+      Solver pSolver,
+      FormulaManagerView pFmgr,
       Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
       MachineModel pMachineModel,
       Optional<VariableClassification> pVariableClassification, AnalysisDirection pDirection)
@@ -141,11 +170,18 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
     config.inject(this, PathFormulaManagerImpl.class);
 
+    solver = pSolver;
     fmgr = pFmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
 
+    try {
+      assert !(handlePointerAliasing && handleSL);
+    } catch (AssertionError e) {
+      throw new InvalidConfigurationException(
+          "PointerAliasing and SeparationLogic can not be handled at once.");
+    }
     if (handlePointerAliasing) {
       final FormulaEncodingWithPointerAliasingOptions options = new FormulaEncodingWithPointerAliasingOptions(config);
       if (options.useQuantifiersOnArrays()) {
@@ -175,16 +211,30 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     } else {
       final FormulaEncodingOptions options = new FormulaEncodingOptions(config);
       CtoFormulaTypeHandler typeHandler = new CtoFormulaTypeHandler(pLogger, pMachineModel);
-      converter =
-          new CtoFormulaConverter(
-              options,
-              fmgr,
-              pMachineModel,
-              pVariableClassification,
-              logger,
-              shutdownNotifier,
-              typeHandler,
-              pDirection);
+
+      if (handleSL) {
+        converter =
+            new CToFormulaConverterWithSL(
+                options,
+                solver,
+                pMachineModel,
+                pVariableClassification,
+                logger,
+                shutdownNotifier,
+                typeHandler,
+                pDirection);
+      } else {
+        converter =
+            new CtoFormulaConverter(
+                options,
+                fmgr,
+                pMachineModel,
+                pVariableClassification,
+                logger,
+                shutdownNotifier,
+                typeHandler,
+                pDirection);
+      }
 
       wpConverter =
           new CtoWpConverter(
