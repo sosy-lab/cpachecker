@@ -1,30 +1,14 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm.termination.validation;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Functions;
 import com.google.common.base.Optional;
@@ -42,9 +26,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.logging.Level;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -77,22 +59,20 @@ import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
+import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
@@ -126,6 +106,9 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 @Options(prefix = "witness.validation.termination")
 public class NonTerminationWitnessValidator implements Algorithm, StatisticsProvider {
+
+  private static final DummyTargetState DUMMY_TARGET_STATE =
+      DummyTargetState.withSingleProperty("termination");
 
   private static final String REACHABILITY_SPEC_NAME = "ReachabilityObserver";
   private static final String STEM_SPEC_NAME = "StemEndController";
@@ -311,8 +294,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
               logger.log(Level.INFO, "Non-termination witness confirmed.");
               if (reportSuccessfulCheckAsViolation) {
                 pReachedSet.add(
-                    new ARGState(TerminationViolatingDummyState.INSTANCE, null),
-                    SingletonPrecision.getInstance());
+                    new ARGState(DUMMY_TARGET_STATE, null), SingletonPrecision.getInstance());
               }
               return AlgorithmStatus.SOUND_AND_PRECISE; // TODO correct choice here?
             }
@@ -383,7 +365,7 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
           "Search for program location at which infinite path(s) split into stem and looping part");
       algorithm.run(reached);
 
-      Optional<AbstractState> stemState = from(reached).firstMatch(IS_TARGET_STATE);
+      Optional<AbstractState> stemState = from(reached).firstMatch(AbstractStates::isTargetState);
 
       return stemState;
 
@@ -1133,24 +1115,6 @@ public class NonTerminationWitnessValidator implements Algorithm, StatisticsProv
     @Override
     public @Nullable String getName() {
       return "Nontermination Witness Validation";
-    }
-  }
-
-  private static class TerminationViolatingDummyState implements AbstractState, Targetable {
-
-    private TerminationViolatingDummyState() {}
-
-    public static final TerminationViolatingDummyState INSTANCE =
-        new TerminationViolatingDummyState();
-
-    @Override
-    public boolean isTarget() {
-      return true;
-    }
-
-    @Override
-    public @NonNull Set<Property> getViolatedProperties() throws IllegalStateException {
-      return NamedProperty.singleton("termination");
     }
   }
 }

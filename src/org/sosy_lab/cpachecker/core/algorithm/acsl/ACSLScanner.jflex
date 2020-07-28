@@ -5,8 +5,6 @@ import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Queue;
 
-@javax.annotation.processing.Generated("JFlex")
-@SuppressWarnings("all")
 %%
 
 %class ACSLScanner
@@ -16,7 +14,7 @@ import java.util.Queue;
 %column
 
 %{
-    StringBuffer buf = new StringBuffer();
+    StringBuilder builder = new StringBuilder();
     int currentAnnotation = -1;
     Queue<java_cup.runtime.Symbol> deq = new ArrayDeque<>(1);
 
@@ -122,12 +120,12 @@ Identifier  = [_a-zA-Z][_a-zA-Z0-9]*
     ";"                 {return symbol(sym.SEMI);}
     "\\old"             {return symbol(sym.OLD);}
     "\\result"          {return symbol(sym.RETVAL);}
-    {DecInt}            {buf.setLength(0);
-                        return symbol(sym.LITERAL, Integer.valueOf(buf.append(yytext()).toString()));}
-    {Identifier}        {buf.setLength(0);
-                        return symbol(sym.IDENTIFIER, buf.append(yytext()).toString());}
-    {String}            {buf.setLength(0);
-                        return symbol(sym.STRING_LITERAL, buf.append(yytext()).toString());}
+    {DecInt}            {builder.setLength(0);
+                        return symbol(sym.LITERAL, Integer.valueOf(builder.append(yytext()).toString()));}
+    {Identifier}        {builder.setLength(0);
+                        return symbol(sym.IDENTIFIER, builder.append(yytext()).toString());}
+    {String}            {builder.setLength(0);
+                        return symbol(sym.STRING_LITERAL, builder.append(yytext()).toString());}
     {Space}             {/* do nothing */}
 }
 

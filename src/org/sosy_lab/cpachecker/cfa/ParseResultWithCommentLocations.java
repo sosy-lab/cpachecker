@@ -23,7 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import com.google.common.collect.SortedSetMultimap;
+import com.google.common.collect.TreeMultimap;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +41,7 @@ public class ParseResultWithCommentLocations extends ParseResult {
 
   public ParseResultWithCommentLocations(
       NavigableMap<String, FunctionEntryNode> pFunctions,
-      SortedSetMultimap<String, CFANode> pCfaNodes,
+      TreeMultimap<String, CFANode> pCfaNodes,
       List<Pair<ADeclaration, String>> pGlobalDeclarations,
       List<Path> pFileNames,
       Map<IASTFileLocation, CFAEdge> pCommentLocations) {

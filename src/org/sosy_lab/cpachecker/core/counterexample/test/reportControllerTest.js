@@ -1,3 +1,12 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2018 Lokesh Nandanwar
+// SPDX-FileCopyrightText: 2018-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 describe("ReportController", function () {
     var $rootScope,
         $scope,
@@ -81,28 +90,6 @@ describe("ReportController", function () {
 
         it("Should be defined", function () {
             expect($scope.makeFullScreen).not.toBeUndefined();
-        });
-
-        it("Should enable/disable full screen mode", function () {
-
-            if ((document.fullScreenElement && document.fullScreenElement !== null) || (!document.mozFullScreen && !
-                    document.webkitIsFullScreen)) {
-                if (document.documentElement.requestFullScreen) {
-                    expect($scope.makeFullScreen()).toEqual(document.documentElement.requestFullScreen());
-                } else if (document.documentElement.mozRequestFullScreen) {
-                    expect($scope.makeFullScreen()).toEqual(document.documentElement.mozRequestFullScreen());
-                } else if (document.documentElement.webkitRequestFullScreen) {
-                    expect($scope.makeFullScreen()).toEqual(document.documentElement.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT));
-                }
-            } else {
-                if (document.cancelFullScreen) {
-                    expect($scope.makeFullScreen()).toEqual(document.cancelFullScreen());
-                } else if (document.mozCancelFullScreen) {
-                    expect($scope.makeFullScreen()).toEqual(document.mozCancelFullScreen());
-                } else if (document.webkitCancelFullScreen) {
-                    expect($scope.makeFullScreen()).toEqual(document.webkitCancelFullScreen());
-                }
-            }
         });
 
     });

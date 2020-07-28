@@ -1,6 +1,14 @@
 # This is an auto-generated file, DO NOT EDIT!
 # Run ant to generate it.
 
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # Possible log levels in descending order 
 # (lower levels include higher ones):
 # OFF:      no logs published
@@ -46,6 +54,7 @@ output.path = "output/"
 # (except for the configuration file itself)
 rootDirectory = "."
 
+
 # Further options for Boolector in addition to the default options. Format: 
 # "Optionname=value" with ’,’ to seperate options. Optionname and value can
 # be found in BtorOption or Boolector C Api.Example:
@@ -53,8 +62,11 @@ rootDirectory = "."
 solver.boolector.furtherOptions = ""
 
 # The SAT solver used by Boolector.
-solver.boolector.satSolver = PICOSAT
-  enum:     [LINGELING, PICOSAT, MINISAT, CADICAL]
+solver.boolector.satSolver = CADICAL
+  enum:     [LINGELING, PICOSAT, MINISAT, CMS, CADICAL]
+
+# Counts all operations and interactions towards the SMT solver.
+solver.collectStatistics = false
 
 # Default rounding mode for floating point operations.
 solver.floatingPointRoundingMode = NEAREST_TIES_TO_EVEN
@@ -107,11 +119,15 @@ solver.smtinterpol.furtherOptions = []
 solver.solver = SMTINTERPOL
   enum:     [MATHSAT5, SMTINTERPOL, Z3, PRINCESS, BOOLECTOR, CVC4]
 
+# Sequentialize all solver actions to allow concurrent access!
+solver.synchronize = false
+
+# Use provers from a seperate context to solve queries. This allows more
+# parallelity when solving larger queries.
+solver.synchronized.useSeperateProvers = false
+
 # Log solver actions, this may be slow!
 solver.useLogger = false
-
-# Dump failed interpolation queries to this file in SMTLIB2 format
-solver.z3.dumpFailedInterpolationQueries = no default value
 
 # Activate replayable logging in Z3. The log can be given as an input to the
 # solver and replayed.
@@ -126,10 +142,16 @@ solver.z3.optimizationEngine = "basic"
   allowed values: [basic, farkas, symba]
 
 # Require proofs from SMT solver
-solver.z3.requireProofs = true
+solver.z3.requireProofs = false
 
 # Whether to use PhantomReferences for discarding Z3 AST
 solver.z3.usePhantomReferences = false
+
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+# SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
+# SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
 
 # Refiner that SlicingDelegatingRefiner should delegate to
 SlicingDelegatingRefiner.refiner = no default value
@@ -155,6 +177,15 @@ analysis.algorithm.CBMC = false
 # You need to specify a refiner with the cegar.refiner option.
 # Currently all refiner require the use of the ARGCPA.
 analysis.algorithm.CEGAR = false
+
+# use McMillan's interpolation-based model checking algorithm, works only
+# with PredicateCPA and large-block encoding
+analysis.algorithm.IMC = false
+
+# Use MPI for running analyses in new subprocesses. The resulting reachedset
+# is the one of the first analysis returning in time. All other mpi-processes
+# will get aborted.
+analysis.algorithm.MPI = false
 
 # use MPV algorithm for checking multiple properties
 analysis.algorithm.MPV = false
@@ -195,7 +226,9 @@ analysis.algorithm.proofCheckWithARGCMCStrategy = false
 # ConfigurableProgramAnalysisWithPropertyChecker
 analysis.algorithm.propertyCheck = false
 
-# Use termination algorithm to prove (non-)termination.
+# Use termination algorithm to prove (non-)termination. This needs the
+# TerminationCPA as root CPA and an automaton CPA with
+# termination_as_reach.spc in the tree of CPAs.
 analysis.algorithm.termination = false
 
 # collect undefined functions
@@ -431,11 +464,11 @@ analysis.unknownAsTrue = false
 # certain restrictions.
 analysis.unknownIfUnrestrictedProgram = false
 
+# select an analysis from a set of analyses after unknown result
+analysis.useCompositionAnalysis = false
+
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
-
-# start different analyses interleaved and continue after unknown result
-analysis.useInterleavedAnalyses = false
 
 # add loop-structure information to CFA.
 analysis.useLoopStructure = true
@@ -798,6 +831,45 @@ cinvariants.prefix = no default value
 
 # Attempt to simplify the invariant before exporting [may be very expensive].
 cinvariants.simplify = false
+
+# If adaptTimeLimits is set and all configurations support progress reports,
+# in each cycle the time limits per configuration are newly calculated based
+# on the progress
+compositionAlgorithm.circular.adaptTimeLimits = false
+
+# where to store initial condition, when generated
+compositionAlgorithm.condition.file = "AssumptionAutomaton.txt"
+
+# list of files with configurations to use, which are optionally suffixed
+# according to one of the followig schemes:either ::MODE or ::MODE_LIMIT,
+# where MODE and LIMIT are place holders.MODE may take one of the following
+# values continue (i.e., continue analysis with same CPA and reached set),
+# reuse-precision (i.e., reuse the aggregation of the precisions from the
+# previous analysis run), noreuse (i.e., start from scratch).LIMIT is a
+# positive integer number specifying the time limit of the analysis in each
+# round.If no (correct) limit is given a default limit is used.
+compositionAlgorithm.configFiles = no default value
+
+# Whether or not to create an initial condition, that excludes no paths,
+# before first analysis is run.Required when first analysis uses condition
+# from conditional model checking
+compositionAlgorithm.initCondition = false
+
+# print the statistics of each component of the composition algorithm
+# directly after the component's computation is finished
+compositionAlgorithm.intermediateStatistics = NONE
+  enum:     [EXECUTE, NONE, PRINT]
+
+# Enable when composition algorithm is used to check a specification
+compositionAlgorithm.propertyChecked = true
+
+# Qualified name for class which implements strategy that decides how to
+# compose given analyses
+compositionAlgorithm.strategy = no default value
+
+# let each analysis part of the composition algorithm write output files and
+# not only the last one that is executed
+compositionAlgorithm.writeIntermediateOutputFiles = true
 
 # configuration of the residual program generator
 conditional.verifier.generatorConfig = no default value
@@ -1467,8 +1539,11 @@ cpa.congruence.useCachingPathFormulaManager = true
 # Whether to perform caching of constraint satisfiability results
 cpa.constraints.cache = true
 
-# Whether to use subset/superset caching
+# Whether to use subset caching
 cpa.constraints.cacheSubsets = true
+
+# Whether to use superset caching
+cpa.constraints.cacheSupersets = true
 
 # Type of less-or-equal operator to use
 cpa.constraints.lessOrEqualType = SUBSET
@@ -1500,9 +1575,6 @@ cpa.constraints.resolveDefinites = true
 # When to check the satisfiability of constraints
 cpa.constraints.satCheckStrategy = AT_ASSUME
   enum:     [AT_ASSUME, AT_TARGET]
-
-# Try model of predecessor constraints state before running SMT solver
-cpa.constraints.useLastModel = true
 
 # Keep infeasible dummy states that allow for better debugging
 cpa.dca.refiner.keepInfeasibleStates = false
@@ -1679,6 +1751,16 @@ cpa.lock.stopAfterLockLimit = false
 cpa.lock.stopMode = DEFAULT
   enum:     [DEFAULT, EMPTYLOCKSET]
 
+# Only checks for targets after loops were unrolled exactly a number of times
+# that is contained in this list. The default is an empty list, which means
+# targets are checked in every iteration
+cpa.loopbound.checkOnlyAtBounds = []
+
+# Use a stop operator that will identify loop states who's depth is congruent
+# regarding the modulus of this number. Values smaller or equal to zero will
+# deactivate this feature.
+cpa.loopbound.cyclicStopModulus = -1
+
 # Number of loop iterations before the loop counter is abstracted. Zero is
 # equivalent to no limit.
 cpa.loopbound.loopIterationsBeforeAbstraction = 0
@@ -1699,7 +1781,7 @@ cpa.loopbound.maxLoopIterations = 0
 # adjuster.
 cpa.loopbound.maxLoopIterationsUpperBound = 0
 
-# Only checks for errror after loops were unrolled at least this amount of
+# Only checks for error after loops were unrolled at least this amount of
 # times.
 cpa.loopbound.startAtBound = 0
 
@@ -1882,6 +1964,11 @@ cpa.predicate.abstractions.file = "abstractions.txt"
 # 'MIN<=X<=MAX', where MIN and MAX are computed from the type of the method
 # (signature, not name!).
 cpa.predicate.addRangeConstraintsForNondet = false
+
+# Allow the given extern functions and interpret them as pure functions
+# although the predicate analysis does not support their semantics and this
+# can produce wrong results.
+cpa.predicate.allowedUnsupportedFunctions = {}
 
 # Check satisfiability for plain conjunction of edge and assumptions.
 cpa.predicate.assumptionStrengtheningSatCheck = false
@@ -2142,6 +2229,10 @@ cpa.predicate.memoryFreeFunctionName = "free"
 # which merge operator to use for predicate cpa (usually ABE should be used)
 cpa.predicate.merge = "ABE"
   allowed values: [SEP, ABE]
+
+# merge two abstraction states if their preceeding abstraction states are the
+# same
+cpa.predicate.merge.mergeAbstractionStatesWithSamePredecessor = false
 
 # Set of functions that should be considered as giving a non-deterministic
 # return value. If you specify this option, the default values are not added
@@ -2619,6 +2710,10 @@ cpa.smg.handleUnknownDereferenceAsSafe = false
 # Sets how unknown functions are handled.
 cpa.smg.handleUnknownFunctions = STRICT
   enum:     [STRICT, ASSUME_SAFE, ASSUME_EXTERNAL_ALLOCATED]
+
+# Perform merge SMGStates by SMGJoin on ends of code block. Works with
+# 'merge=JOIN'
+cpa.smg.joinOnBlockEnd = true
 
 # Memory allocation functions
 cpa.smg.memoryAllocationFunctions = {"malloc", "__kmalloc", "kmalloc", "realloc"}
@@ -3182,43 +3277,14 @@ heuristicSelection.preAnalysisAlgorithmConfig = no default value
 # Configuration for programs containing recursion.
 heuristicSelection.recursionConfig = no default value
 
+# toggle deriving the interpolants from suffix formulas
+imc.deriveInterpolantFromSuffix = false
+
+# try using interpolation to verify programs with loops
+imc.interpolation = false
+
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
-
-# If adaptTimeLimits is set and all configurations support progress reports,
-# in each cycle the time limits per configuration are newly calculated based
-# on the progress
-interleavedAlgorithm.adaptTimeLimits = false
-
-# where to store initial condition, when generated
-interleavedAlgorithm.condition.file = "AssumptionAutomaton.txt"
-
-# list of files with configurations to use, which are optionally suffixed
-# according to one of the followig schemes:either ::MODE or ::MODE_LIMIT,
-# where MODE and LIMIT are place holders.MODE may take one of the following
-# values continue (i.e., continue analysis with same CPA and reached set),
-# reuse-precision (i.e., reuse the aggregation of the precisions from the
-# previous analysis run), noreuse (i.e., start from scratch).LIMIT is a
-# positive integer number specifying the time limit of the analysis in each
-# round.If no (correct) limit is given a default limit is used.
-interleavedAlgorithm.configFiles = no default value
-
-# Whether or not to create an initial condition, that excludes no paths,
-# before first analysis is run.Required when first analysis uses condition
-# from conditional model checking
-interleavedAlgorithm.initCondition = false
-
-# print the statistics of each component of the interleaved algorithm
-# directly after the component's computation is finished
-interleavedAlgorithm.intermediateStatistics = NONE
-  enum:     [EXECUTE, NONE, PRINT]
-
-# Enable when interleaved algorithm is used to check a specification
-interleavedAlgorithm.propertyChecked = true
-
-# let each analysis part of the interleaved algorithm write output files and
-# not only the last one that is executed
-interleavedAlgorithm.writeIntermediateOutputFiles = true
 
 # Configuration file for the K-Induction algorithm for checking candidates on
 # invariance.
@@ -3322,6 +3388,15 @@ memorysafety.config = no default value
 # which merge operator to use for LiveVariablesCPA
 merge = "JOIN"
   allowed values: [SEP, JOIN]
+
+# List of property-files to be run by the subprocesses.
+mpiAlgorithm.configFiles = no default value
+
+# File containing the ip addresses to be used by MPI.
+mpiAlgorithm.hostfile = no default value
+
+# Number of processes to be used by MPI.
+mpiAlgorithm.numberProcesses = no default value
 
 # Find all violations of each checked property.
 mpv.findAllViolations = false
@@ -3797,10 +3872,10 @@ slicing.conditionFile = "output/AssumptionAutomaton.txt"
 
 # path to condition files plus additional assumption guiding automaton when
 # condition itself is in propriertary format and not in witness format
-slicing.conditionFiles = [
+slicing.conditionFiles = {
           Paths.get("output/AssumptionAutomaton.txt"),
           Classes.getCodeLocation(ReducerExtractor.class)
-              .resolveSibling("config/specification/AssumptionGuidingAutomaton.spc")]
+              .resolveSibling("config/specification/AssumptionGuidingAutomaton.spc")}
 
 # Export the used slicing criteria to file
 slicing.exportCriteria.enable = false
@@ -3987,6 +4062,10 @@ testcase.generate.parallel = false
 # display all test targets and non-covered test targets in statistics
 testcase.inStats = false
 
+# defines how progress is computed
+testcase.progress = RELATIVE_TOTAL
+  enum:     [ABSOLUTE, RELATIVE_TOTAL]
+
 # when generating tests covering error call stop as soon as generated one
 # test case and report false (only possible in combination with error call
 # property specification
@@ -4032,6 +4111,9 @@ undefinedFunctionsCollector.externAllocFunction = "external_alloc"
 
 # export undefined functions as C file
 undefinedFunctionsCollector.stubsFile = "stubs.c"
+
+# select an analysis from a set of analyses after unknown result
+useCompositionAnalysis = false
 
 # File for exporting the witness automaton in DOT format.
 witness.automatonDumpFile = no default value

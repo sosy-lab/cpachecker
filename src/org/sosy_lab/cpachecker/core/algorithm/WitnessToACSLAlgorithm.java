@@ -54,7 +54,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.WitnessInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
@@ -62,6 +61,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.Expression
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator.KInductionInvariantGeneratorOptions;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
