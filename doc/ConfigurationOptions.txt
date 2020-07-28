@@ -2526,7 +2526,7 @@ cpa.predicate.solver.ufCheckingProver.maxIterationNum = 5
 # which stop operator to use for predicate cpa (usually SEP should be used in
 # analysis)
 cpa.predicate.stop = "SEP"
-  allowed values: [SEP, SEPPCC]
+  allowed values: [SEP, SEPPCC, NEVER]
 
 # Use formula reporting states for strengthening.
 cpa.predicate.strengthenWithFormulaReportingStates = false
