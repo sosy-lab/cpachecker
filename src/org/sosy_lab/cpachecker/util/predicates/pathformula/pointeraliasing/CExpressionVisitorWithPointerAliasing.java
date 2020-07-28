@@ -655,7 +655,18 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
     // Other cases should trigger additional dereference, so we use
     // #dereference() to resolve the ambiguity
     final CExpression operand = e.getOperand();
-    return dereference(operand, operand.accept(this));
+    final CExpressionVisitorWithPointerAliasing freshVisitor =
+        new CExpressionVisitorWithPointerAliasing(
+            conv,
+            edge,
+            function,
+            ssa,
+            constraints,
+            errorConditions,
+            pts,
+            regionMgr,
+            Optional.of(typeHandler.getPointerType()));
+    return freshVisitor.dereference(operand, operand.accept(this));
   }
 
   /**
