@@ -366,4 +366,3 @@ public class SLVisitor implements CAstNodeVisitor<SLStateError, Exception> {
         CReturnStatement.class.getSimpleName() + "is not implemented yet.");
   }
 }
-
