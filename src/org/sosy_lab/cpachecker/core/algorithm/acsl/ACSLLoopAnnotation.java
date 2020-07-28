@@ -1,3 +1,11 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
 import com.google.common.base.Joiner;
@@ -28,7 +36,8 @@ public class ACSLLoopAnnotation implements ACSLAnnotation {
   @Override
   public ACSLPredicate getPredicateRepresentation() {
     ACSLPredicate predicateRepresentation = lInvariant.getPredicate();
-    for (List<Behavior> behaviors : additionalInvariants.keySet()) {
+    for (Entry<List<Behavior>, LoopInvariant> entry : additionalInvariants.entrySet()) {
+      List<Behavior> behaviors = entry.getKey();
       ACSLPredicate enclosingConjunction = ACSLPredicate.getTrue();
       ACSLPredicate enclosingDisjunction = ACSLPredicate.getFalse();
       for (Behavior behavior : behaviors) {
@@ -41,7 +50,7 @@ public class ACSLLoopAnnotation implements ACSLAnnotation {
       ACSLPredicate behaviorRepresentation =
           new ACSLLogicalPredicate(
               enclosingDisjunction,
-              additionalInvariants.get(behaviors).getPredicate(),
+              entry.getValue().getPredicate(),
               BinaryOperator.AND);
       behaviorRepresentation =
           new ACSLLogicalPredicate(behaviorRepresentation, enclosingConjunction, BinaryOperator.OR);
