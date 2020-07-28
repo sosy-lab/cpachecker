@@ -571,6 +571,13 @@ public class ExpressionToFormulaVisitor
     // we just take the byte value
     FormulaType<?> t;
     if (forceFormulaType.isPresent()) {
+      if (forceFormulaType.get().equals(FormulaType.BooleanType)) {
+        if (cExp.getCharacter() == 0) {
+          return mgr.getBooleanFormulaManager().makeFalse();
+        } else {
+          return mgr.getBooleanFormulaManager().makeTrue();
+        }
+      }
       t = forceFormulaType.get();
     } else {
       t = conv.getFormulaTypeFromCType(cExp.getExpressionType());
@@ -582,6 +589,13 @@ public class ExpressionToFormulaVisitor
   public Formula visit(CIntegerLiteralExpression iExp) throws UnrecognizedCodeException {
     FormulaType<?> t;
     if (forceFormulaType.isPresent()) {
+      if (forceFormulaType.get().equals(FormulaType.BooleanType)) {
+        if (iExp.getValue().equals(BigInteger.ZERO)) {
+          return mgr.getBooleanFormulaManager().makeFalse();
+        } else {
+          return mgr.getBooleanFormulaManager().makeTrue();
+        }
+      }
       t = forceFormulaType.get();
     } else {
       t = conv.getFormulaTypeFromCType(iExp.getExpressionType());
