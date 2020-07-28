@@ -61,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
@@ -158,8 +159,33 @@ class AssignmentHandler {
     final CType rhsType =
         rhs != null ? typeHandler.getSimplifiedType(rhs) : CNumericTypes.SIGNED_CHAR;
 
+    final CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
+    final Expression lhsExpression = lhs.accept(lhsVisitor);
+    if (lhsExpression.isNondetValue()) {
+      // only because of CExpressionVisitorWithPointerAliasing.visit(CFieldReference)
+      conv.logger.logfOnce(
+          Level.WARNING,
+          "%s: Ignoring assignment to %s because bit fields are currently not fully supported",
+          edge.getFileLocation(),
+          lhs);
+      return conv.bfmgr.makeTrue();
+    }
+    final Location lhsLocation = lhsExpression.asLocation();
+
     // RHS handling
-    final CExpressionVisitorWithPointerAliasing rhsVisitor = newExpressionVisitor();
+    final Optional<FormulaType<?>> lhsFormulaType;
+    if (options.useVariableClassification()) {
+      if (lhsLocation.isUnaliasedLocation()) {
+        final String lhsVarName = lhsLocation.asUnaliasedLocation().getVariableName();
+        lhsFormulaType = Optional.of(conv.getFormulaType(lhsType, lhsVarName));
+      } else {
+        lhsFormulaType = Optional.of(conv.getFormulaTypeFromCType(lhsType));
+      }
+    } else {
+      lhsFormulaType = Optional.empty();
+    }
+
+    final CExpressionVisitorWithPointerAliasing rhsVisitor = newExpressionVisitor(lhsFormulaType);
 
     final Expression rhsExpression;
 
@@ -176,18 +202,6 @@ class AssignmentHandler {
     final Map<String, CType> rhsLearnedPointersTypes = rhsVisitor.getLearnedPointerTypes();
 
     // LHS handling
-    final CExpressionVisitorWithPointerAliasing lhsVisitor = newExpressionVisitor();
-    final Expression lhsExpression = lhs.accept(lhsVisitor);
-    if (lhsExpression.isNondetValue()) {
-      // only because of CExpressionVisitorWithPointerAliasing.visit(CFieldReference)
-      conv.logger.logfOnce(
-          Level.WARNING,
-          "%s: Ignoring assignment to %s because bit fields are currently not fully supported",
-          edge.getFileLocation(),
-          lhs);
-      return conv.bfmgr.makeTrue();
-    }
-    final Location lhsLocation = lhsExpression.asLocation();
     final boolean useOldSSAIndices = useOldSSAIndicesIfAliased && lhsLocation.isAliased();
 
     final Map<String, CType> lhsLearnedPointerTypes = lhsVisitor.getLearnedPointerTypes();
@@ -273,6 +287,20 @@ class AssignmentHandler {
       r = conv.convertLiteralToFloatIfNecessary((CExpression) r, pLhsType);
     }
     return r.accept(pRhsVisitor);
+  }
+
+  private CExpressionVisitorWithPointerAliasing
+      newExpressionVisitor(Optional<FormulaType<?>> forceFormulaType) {
+    return new CExpressionVisitorWithPointerAliasing(
+        conv,
+        edge,
+        function,
+        ssa,
+        constraints,
+        errorConditions,
+        pts,
+        regionMgr,
+        forceFormulaType);
   }
 
   private CExpressionVisitorWithPointerAliasing newExpressionVisitor() {
@@ -406,8 +434,22 @@ class AssignmentHandler {
 
       final Formula newDereference =
           conv.ptsMgr.makePointerDereference(targetName, targetType, newIndex, counter);
-      final Formula rhs =
-          conv.makeCast(rhsType, lhsType, rhsValue.asValue().getValue(), constraints, edge);
+      final Formula rhs;
+      final Formula rhsValueFormula = rhsValue.asValue().getValue();
+      if (CTypes.isIntegerType(lhsType)
+          && (fmgr.getFormulaType(rhsValueFormula).equals(FormulaType.IntegerType)
+              || rhsValueFormula instanceof BooleanFormula)) {
+        rhs = rhsValueFormula;
+      } else {
+        Formula fRhs =
+            conv.makeFormulaTypeCast(
+                conv.getFormulaTypeFromCType(lhsType),
+                rhsType,
+                rhsValueFormula,
+                ssa,
+                constraints);
+        rhs = conv.makeCast(rhsType, lhsType, fRhs, constraints, edge);
+      }
 
       final BooleanFormula assignNewValue = fmgr.assignment(newDereference, rhs);
 
