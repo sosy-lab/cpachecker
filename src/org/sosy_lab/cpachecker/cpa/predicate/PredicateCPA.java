@@ -267,7 +267,7 @@ public class PredicateCPA
       case "SEPPCC":
         return new PredicatePCCStopOperator(pathFormulaManager, predicateManager);
       case "NEVER":
-        return new PredicateNeverStopOperator();
+        return new PredicateNeverAtAbstractionStopOperator(getAbstractDomain());
       default:
         throw new InternalError("Update list of allowed stop operators");
     }
