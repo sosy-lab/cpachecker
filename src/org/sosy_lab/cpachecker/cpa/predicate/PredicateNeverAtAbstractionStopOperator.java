@@ -29,7 +29,12 @@ public class PredicateNeverAtAbstractionStopOperator implements StopOperator {
     PredicateAbstractState e1 = (PredicateAbstractState) pState;
     for (AbstractState reachedState : pReached) {
       PredicateAbstractState e2 = (PredicateAbstractState) reachedState;
-      if (!(e1.isAbstractionState() && e2.isAbstractionState()) && domain.isLessOrEqual(e1, e2)) {
+      if (e1.isAbstractionState()
+          && e2.isAbstractionState()
+          && !e1.getPreviousAbstractionState().equals(e2.getPreviousAbstractionState())) {
+        continue;
+      }
+      if (domain.isLessOrEqual(e1, e2)) {
         return true;
       }
     }
