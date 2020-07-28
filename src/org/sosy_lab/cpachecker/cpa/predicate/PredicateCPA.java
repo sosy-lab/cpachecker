@@ -89,7 +89,11 @@ public class PredicateCPA
     description = "merge two abstraction states if their preceeding abstraction states are the same")
   private boolean mergeAbstractionStates = false;
 
-  @Option(secure=true, name="stop", values={"SEP", "SEPPCC"}, toUppercase=true,
+  @Option(
+    secure = true,
+    name = "stop",
+    values = {"SEP", "SEPPCC", "NEVER"},
+    toUppercase = true,
       description="which stop operator to use for predicate cpa (usually SEP should be used in analysis)")
   private String stopType = "SEP";
 
@@ -262,6 +266,8 @@ public class PredicateCPA
         return new PredicateStopOperator(getAbstractDomain());
       case "SEPPCC":
         return new PredicatePCCStopOperator(pathFormulaManager, predicateManager);
+      case "NEVER":
+        return new PredicateNeverStopOperator();
       default:
         throw new InternalError("Update list of allowed stop operators");
     }
