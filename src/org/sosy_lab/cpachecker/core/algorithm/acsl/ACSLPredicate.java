@@ -17,7 +17,7 @@ public abstract class ACSLPredicate {
 
   private final boolean negated;
 
-  public ACSLPredicate(boolean pNegated) {
+  protected ACSLPredicate(boolean pNegated) {
     negated = pNegated;
   }
 
