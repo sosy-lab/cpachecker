@@ -71,9 +71,10 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
 
   @Override
   public ACSLPredicate simplify() {
-    // TODO: Add more simplifications
     ACSLPredicate simpleLeft = left.simplify();
+    ACSLPredicate simpleNegatedLeft = left.negate().simplify();
     ACSLPredicate simpleRight = right.simplify();
+    ACSLPredicate simpleNegatedRight = right.negate().simplify();
     switch (operator) {
       case AND:
         if (simpleLeft.equals(getFalse())
@@ -81,11 +82,13 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
             || simpleLeft.isNegationOf(simpleRight)) {
           return isNegated() ? getTrue() : getFalse();
         } else if (simpleLeft.equals(simpleRight)) {
-          return isNegated() ? simpleLeft.negate() : simpleLeft;
+          return isNegated() ? simpleNegatedLeft : simpleLeft;
         } else if (simpleLeft.equals(getTrue())) {
-          return isNegated() ? simpleRight.negate() : simpleRight;
+          return isNegated() ? simpleNegatedRight : simpleRight;
         } else if (simpleRight.equals(getTrue())) {
-          return isNegated() ? simpleLeft.negate() : simpleLeft;
+          return isNegated() ? simpleNegatedLeft : simpleLeft;
+        } else if (isNegated()) {
+          return new ACSLLogicalPredicate(simpleNegatedLeft, simpleNegatedRight, BinaryOperator.OR);
         }
         break;
       case OR:
@@ -94,34 +97,40 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
             || simpleLeft.isNegationOf(simpleRight)) {
           return isNegated() ? getFalse() : getTrue();
         } else if (simpleLeft.equals(simpleRight)) {
-          return isNegated() ? simpleLeft.negate() : simpleLeft;
+          return isNegated() ? simpleNegatedLeft : simpleLeft;
         } else if (simpleLeft.equals(getFalse())) {
-          return isNegated() ? simpleRight.negate() : simpleRight;
+          return isNegated() ? simpleNegatedRight : simpleRight;
         } else if (simpleRight.equals(getFalse())) {
-          return isNegated() ? simpleLeft.negate() : simpleLeft;
+          return isNegated() ? simpleNegatedLeft : simpleLeft;
+        } else if (isNegated()) {
+          return new ACSLLogicalPredicate(
+              simpleNegatedLeft, simpleNegatedRight, BinaryOperator.AND);
         }
         break;
       default:
         throw new AssertionError("Unknown C logical operator: " + operator);
     }
-    return new ACSLLogicalPredicate(simpleLeft, simpleRight, operator, isNegated());
+    assert !isNegated();
+    return new ACSLLogicalPredicate(simpleLeft, simpleRight, operator);
   }
 
   @Override
   public boolean equals(Object o) {
     if (o instanceof ACSLLogicalPredicate) {
       ACSLLogicalPredicate other = (ACSLLogicalPredicate) o;
-      return super.equals(o)
-          && left.equals(other.left)
-          && right.equals(other.right)
-          && operator.equals(other.operator);
+      if (super.equals(o) && operator.equals(other.operator)) {
+        return left.equals(other.left) && right.equals(other.right)
+            || BinaryOperator.isCommutative(operator)
+                && left.equals(other.right)
+                && right.equals(other.left);
+      }
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return super.hashCode() * (17 * left.hashCode() + 13 * right.hashCode() + operator.hashCode());
+    return super.hashCode() * (13 * left.hashCode() + 13 * right.hashCode() + operator.hashCode());
   }
 
   @Override

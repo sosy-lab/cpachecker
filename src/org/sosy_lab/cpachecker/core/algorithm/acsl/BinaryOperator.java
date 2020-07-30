@@ -94,6 +94,26 @@ public enum BinaryOperator {
     }
   }
 
+  public static boolean isCommutative(BinaryOperator op) {
+    switch (op) {
+      case EQ:
+      case NEQ:
+      case AND:
+      case OR:
+      case EQV:
+      case XOR:
+      case BAND:
+      case BOR:
+      case BEQV:
+      case BXOR:
+      case PLUS:
+      case TIMES:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   @Override
   public String toString() {
     return operator;

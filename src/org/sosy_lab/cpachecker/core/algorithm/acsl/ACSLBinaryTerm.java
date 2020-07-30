@@ -70,16 +70,19 @@ public class ACSLBinaryTerm implements ACSLTerm {
   public boolean equals(Object o) {
     if (o instanceof ACSLBinaryTerm) {
       ACSLBinaryTerm other = (ACSLBinaryTerm) o;
-      return left.equals(other.left)
-          && right.equals(other.right)
-          && operator.equals(other.operator);
+      if (operator.equals(other.operator)) {
+        return left.equals(other.left) && right.equals(other.right)
+            || BinaryOperator.isCommutative(operator)
+                && left.equals(other.right)
+                && right.equals(other.left);
+      }
     }
     return false;
   }
 
   @Override
   public int hashCode() {
-    return 31 * left.hashCode() + 17 * right.hashCode() + operator.hashCode();
+    return 31 * left.hashCode() + 31 * right.hashCode() + operator.hashCode();
   }
 
   public ACSLTerm getLeft() {
@@ -92,6 +95,34 @@ public class ACSLBinaryTerm implements ACSLTerm {
 
   public BinaryOperator getOperator() {
     return operator;
+  }
+
+  public ACSLBinaryTerm flipOperator() {
+    assert BinaryOperator.isComparisonOperator(operator);
+    BinaryOperator op;
+    switch (operator) {
+      case EQ:
+        op = BinaryOperator.NEQ;
+        break;
+      case NEQ:
+        op = BinaryOperator.EQ;
+        break;
+      case LEQ:
+        op = BinaryOperator.GEQ;
+        break;
+      case GEQ:
+        op = BinaryOperator.LEQ;
+        break;
+      case LT:
+        op = BinaryOperator.GT;
+        break;
+      case GT:
+        op = BinaryOperator.LT;
+        break;
+      default:
+        throw new AssertionError("Unknown BinaryOperator: " + operator);
+    }
+    return new ACSLBinaryTerm(left, right, op);
   }
 
   @Override

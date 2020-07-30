@@ -44,16 +44,24 @@ public class TernaryCondition extends ACSLPredicate {
   @Override
   public ACSLPredicate simplify() {
     ACSLPredicate simpleCondition = condition.simplify();
+    ACSLPredicate simpleNegatedCondition = condition.negate().simplify();
     ACSLPredicate simpleThen = then.simplify();
+    ACSLPredicate simpleNegatedThen = then.negate().simplify();
     ACSLPredicate simpleOtherwise = otherwise.simplify();
+    ACSLPredicate simpleNegatedOtherwise = otherwise.negate().simplify();
     if (simpleCondition.equals(getTrue())) {
-      return simpleThen;
+      return isNegated() ? simpleNegatedThen : simpleThen;
     } else if (simpleCondition.equals(getFalse())) {
-      return simpleOtherwise;
-    } else if (simpleThen.equals(simpleOtherwise)) {
-      return simpleThen;
+      return isNegated() ? simpleNegatedOtherwise : simpleOtherwise;
+    } else if (then.equals(otherwise) || simpleThen.equals(simpleOtherwise)) {
+      return isNegated() ? simpleNegatedThen : simpleThen;
     }
-    return new TernaryCondition(simpleCondition, simpleThen, simpleOtherwise, isNegated());
+    return isNegated()
+        ? new ACSLLogicalPredicate(simpleNegatedCondition, simpleNegatedThen, BinaryOperator.OR)
+            .and(
+                new ACSLLogicalPredicate(
+                    simpleCondition, simpleNegatedOtherwise, BinaryOperator.OR))
+        : new TernaryCondition(simpleCondition, simpleThen, simpleOtherwise);
   }
 
   @Override

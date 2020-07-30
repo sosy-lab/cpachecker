@@ -46,6 +46,9 @@ public class ACSLSimplePredicate extends ACSLPredicate {
 
   @Override
   public ACSLPredicate simplify() {
+    if (isNegated()) {
+      return new ACSLSimplePredicate(((ACSLBinaryTerm) term).flipOperator());
+    }
     return this;
   }
 

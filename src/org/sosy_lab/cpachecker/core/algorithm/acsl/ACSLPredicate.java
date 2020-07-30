@@ -70,7 +70,6 @@ public abstract class ACSLPredicate {
    * @param other The predicate that shall be compared with <code>this</code>.
    * @return true if <code>this</code> is a negation of <code>other</code>, false otherwise.
    */
-  // TODO: All non-trivial implementations of isNegationOf are currently too weak
   public abstract boolean isNegationOf(ACSLPredicate other);
 
   /**
