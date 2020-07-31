@@ -26,6 +26,7 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -54,6 +55,7 @@ public class CustomInstructionTest {
   private ARGState end;
 
   @Before
+  @SuppressForbidden("reflection only in test")
   public void init()
       throws NoSuchMethodException, SecurityException, InstantiationException,
           IllegalAccessException, IllegalArgumentException, InvocationTargetException,

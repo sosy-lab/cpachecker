@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -27,50 +28,52 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.InterpolatingProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class NestedInterpolation<T> extends AbstractTreeInterpolation<T> {
+public class NestedInterpolation extends AbstractTreeInterpolation {
 
   /**
-   * This strategy returns a sequence of interpolants.
-   * It uses the callstack and previous interpolants to compute the interpolants
-   * (see 'Nested Interpolants' from Heizmann, Hoenicke, and Podelski).
-   * The resulting interpolants are based on a tree-like scheme.
+   * This strategy returns a sequence of interpolants. It uses the callstack and previous
+   * interpolants to compute the interpolants (see 'Nested Interpolants' from Heizmann, Hoenicke,
+   * and Podelski). The resulting interpolants are based on a tree-like scheme.
    */
-  public NestedInterpolation(LogManager pLogger, ShutdownNotifier pShutdownNotifier,
-                             FormulaManagerView pFmgr, BooleanFormulaManager pBfmgr) {
-    super(pLogger, pShutdownNotifier, pFmgr, pBfmgr);
+  public NestedInterpolation(
+      LogManager pLogger, ShutdownNotifier pShutdownNotifier, FormulaManagerView pFmgr) {
+    super(pLogger, pShutdownNotifier, pFmgr);
   }
 
   @Override
-  public List<BooleanFormula> getInterpolants(
-          final InterpolationManager.Interpolator<T> interpolator,
-          final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
-          throws InterruptedException, SolverException {
-    List<BooleanFormula> interpolants = new ArrayList<>(formulasWithStatesAndGroupdIds.size() - 1);
+  public <T> List<BooleanFormula> getInterpolants(
+      final InterpolationManager.Interpolator<T> interpolator,
+      final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
+      throws InterruptedException, SolverException {
+    final ImmutableList.Builder<BooleanFormula> interpolants =
+        ImmutableList.builderWithExpectedSize(formulasWithStatesAndGroupdIds.size() - 1);
     BooleanFormula lastItp = bfmgr.makeTrue(); // PSI_0 = True
     final Deque<Pair<BooleanFormula, BooleanFormula>> callstack = new ArrayDeque<>();
     for (int positionOfA = 0; positionOfA < formulasWithStatesAndGroupdIds.size() - 1; positionOfA++) {
       // use a new prover, because we use several distinct queries
       lastItp = getNestedInterpolant(formulasWithStatesAndGroupdIds, interpolants, callstack, interpolator, positionOfA, lastItp);
     }
-    assert formulasWithStatesAndGroupdIds.size() == interpolants.size() + 1;
-    if (!interpolants.isEmpty()) {
-      assert lastItp == Iterables.getLast(interpolants);
+    final ImmutableList<BooleanFormula> result = interpolants.build();
+    assert formulasWithStatesAndGroupdIds.size() == result.size() + 1;
+    if (!result.isEmpty()) {
+      assert lastItp == Iterables.getLast(result);
     } // else: single block with unsatisfiable path formula -> no interpolant
-    return interpolants;
+    return result;
   }
 
-  /** This function implements the paper "Nested Interpolants" with a small modification:
-   * instead of a return-edge, we use dummy-edges with simple pathformula "true".
-   * Actually the implementation does not use "true", but omits it completely and
-   * returns the conjunction of the two interpolants (before and after the (non-existing) dummy edge).
-   * TODO simplify this algorithm, it is soo ugly! Maybe it is 'equal' with the normal tree-interpolation. */
-  private BooleanFormula getNestedInterpolant(
+  /**
+   * This function implements the paper "Nested Interpolants" with a small modification: instead of
+   * a return-edge, we use dummy-edges with simple pathformula "true". Actually the implementation
+   * does not use "true", but omits it completely and returns the conjunction of the two
+   * interpolants (before and after the (non-existing) dummy edge). TODO simplify this algorithm, it
+   * is soo ugly! Maybe it is 'equal' with the normal tree-interpolation.
+   */
+  private <T> BooleanFormula getNestedInterpolant(
       final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds,
-      final List<BooleanFormula> interpolants,
+      final ImmutableList.Builder<BooleanFormula> interpolants,
       final Deque<Pair<BooleanFormula, BooleanFormula>> callstack,
       final InterpolationManager.Interpolator<T> interpolator,
       final int positionOfA,

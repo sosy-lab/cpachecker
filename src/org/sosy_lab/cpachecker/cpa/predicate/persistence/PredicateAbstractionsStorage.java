@@ -12,8 +12,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
@@ -23,7 +23,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -85,7 +85,7 @@ public class PredicateAbstractionsStorage {
 
   private Integer rootAbstractionId = null;
   private ImmutableMap<Integer, AbstractionNode> abstractions = ImmutableMap.of();
-  private ImmutableMultimap<Integer, Integer> abstractionTree = ImmutableMultimap.of();
+  private ImmutableListMultimap<Integer, Integer> abstractionTree = ImmutableListMultimap.of();
   private Set<Integer> reusedAbstractions = new TreeSet<>();
 
   public PredicateAbstractionsStorage(Path pFile, LogManager pLogger, FormulaManagerView pFmgr, @Nullable Converter pConverter) throws PredicateParsingFailedException {
@@ -208,7 +208,7 @@ public class PredicateAbstractionsStorage {
 
     // Set results
     this.abstractions = ImmutableMap.copyOf(resultAbstractions);
-    this.abstractionTree = ImmutableMultimap.copyOf(resultTree);
+    this.abstractionTree = ImmutableListMultimap.copyOf(resultTree);
   }
 
   private String convert(String str) {
@@ -232,7 +232,7 @@ public class PredicateAbstractionsStorage {
     return abstractions.get(abstractionId);
   }
 
-  public ImmutableMultimap<Integer, Integer> getAbstractionTree() {
+  public ImmutableListMultimap<Integer, Integer> getAbstractionTree() {
     return abstractionTree;
   }
 
@@ -241,7 +241,7 @@ public class PredicateAbstractionsStorage {
   }
 
   public Set<AbstractionNode> getSuccessorAbstractions(Integer ofAbstractionWithId) {
-    Set<AbstractionNode> result = new HashSet<>();
+    Set<AbstractionNode> result = new LinkedHashSet<>();
 
     if (abstractionTree != null) {
       for (Integer successorId : abstractionTree.get(ofAbstractionWithId)) {

@@ -96,6 +96,12 @@ public class CustomInstructionRequirementsExtractor {
    */
   public void extractRequirements(final ARGState root, final CustomInstructionApplications cia)
       throws InterruptedException, CPAException {
+    if (dumpCIRequirements == null) {
+      logger.log(
+          Level.WARNING,
+          "Output files for saving requirements for custom instruction not specified.");
+      return;
+    }
     CustomInstructionRequirementsWriter writer =
         new CustomInstructionRequirementsWriter(
             dumpCIRequirements, requirementsStateClass, logger, cpa, enableRequirementsSlicing);

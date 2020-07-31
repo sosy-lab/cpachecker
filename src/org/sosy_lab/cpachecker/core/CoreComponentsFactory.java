@@ -555,7 +555,6 @@ public class CoreComponentsFactory {
                 cfa,
                 reachedSetFactory,
                 aggregatedReachedSetManager,
-                specification,
                 algorithm,
                 cpa);
       }

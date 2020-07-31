@@ -18,26 +18,25 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class TreeInterpolationWithSolver<T> extends AbstractTreeInterpolation<T> {
+public class TreeInterpolationWithSolver extends AbstractTreeInterpolation {
 
   /**
-   * This strategy uses a SMT solver that directly computes tree interpolants.
-   * The layout of the tree is explained in {@link AbstractTreeInterpolation}.
-   * Currently only SMTInterpol and Z3 support this.
+   * This strategy uses a SMT solver that directly computes tree interpolants. The layout of the
+   * tree is explained in {@link AbstractTreeInterpolation}. Currently only SMTInterpol and Z3
+   * support this.
    */
-  public TreeInterpolationWithSolver(LogManager pLogger, ShutdownNotifier pShutdownNotifier,
-                                     FormulaManagerView pFmgr, BooleanFormulaManager pBfmgr) {
-    super(pLogger, pShutdownNotifier, pFmgr, pBfmgr);
+  public TreeInterpolationWithSolver(
+      LogManager pLogger, ShutdownNotifier pShutdownNotifier, FormulaManagerView pFmgr) {
+    super(pLogger, pShutdownNotifier, pFmgr);
   }
 
   @Override
-  public List<BooleanFormula> getInterpolants(
-          final InterpolationManager.Interpolator<T> interpolator,
-          final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
-          throws InterruptedException, SolverException {
+  public <T> List<BooleanFormula> getInterpolants(
+      final InterpolationManager.Interpolator<T> interpolator,
+      final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
+      throws InterruptedException, SolverException {
     final Pair<List<Triple<BooleanFormula, AbstractState, T>>, ImmutableIntArray> p =
         buildTreeStructure(formulasWithStatesAndGroupdIds);
     final List<BooleanFormula> itps =

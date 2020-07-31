@@ -504,7 +504,6 @@ public class KInductionInvariantGenerator extends AbstractInvariantGenerator
       WitnessInvariantsExtractor extractor =
           new WitnessInvariantsExtractor(
               pConfig,
-              pSpecification,
               pLogger,
               pCFA,
               pShutdownManager.getNotifier(),

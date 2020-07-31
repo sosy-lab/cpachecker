@@ -187,7 +187,9 @@ class AutomatonASTComparator {
     @Override
     public ASTMatcher visit(CCharLiteralExpression exp) {
       return createMatcher(
-          CCharLiteralExpression.class, exp, compareField(exp, CCharLiteralExpression::getValue));
+          CCharLiteralExpression.class,
+          exp,
+          compareField(exp, CCharLiteralExpression::getCharacter));
     }
 
     @Override

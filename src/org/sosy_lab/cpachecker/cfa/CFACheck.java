@@ -339,7 +339,7 @@ public class CFACheck {
 
     @Override
     public Void visit(CCharLiteralExpression pLiteral) {
-      checkValueRange(pLiteral.getExpressionType(), BigInteger.valueOf(pLiteral.getValue()));
+      checkValueRange(pLiteral.getExpressionType(), BigInteger.valueOf(pLiteral.getCharacter()));
       return null;
     }
 

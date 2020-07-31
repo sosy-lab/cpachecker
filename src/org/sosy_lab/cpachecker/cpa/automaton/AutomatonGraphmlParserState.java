@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -55,10 +56,10 @@ public class AutomatonGraphmlParserState {
   private final ImmutableSet<GraphMLState> states;
 
   /** States and the transitions leaving them, represented in the GraphML model. */
-  private final ImmutableMultimap<GraphMLState, GraphMLTransition> leavingTransitions;
+  private final ImmutableListMultimap<GraphMLState, GraphMLTransition> leavingTransitions;
 
   /** States and the transitions entering them, represented in the GraphML model. */
-  private final ImmutableMultimap<GraphMLState, GraphMLTransition> enteringTransitions;
+  private final ImmutableListMultimap<GraphMLState, GraphMLTransition> enteringTransitions;
 
   /** Distances to violation states (in the GraphML model). */
   private final Map<GraphMLState, Integer> distances;
@@ -111,8 +112,8 @@ public class AutomatonGraphmlParserState {
       WitnessType pWitnessType,
       ImmutableSet<Property> pSpecificationTypes,
       ImmutableSet<GraphMLState> pStates,
-      ImmutableMultimap<GraphMLState, GraphMLTransition> pEnteringTransitions,
-      ImmutableMultimap<GraphMLState, GraphMLTransition> pLeavingTransitions,
+      ImmutableListMultimap<GraphMLState, GraphMLTransition> pEnteringTransitions,
+      ImmutableListMultimap<GraphMLState, GraphMLTransition> pLeavingTransitions,
       ImmutableSet<String> pFunctionNames)
       throws WitnessParseException {
 
@@ -211,8 +212,8 @@ public class AutomatonGraphmlParserState {
         pWitnessType,
         ImmutableSet.copyOf(pSpecificationTypes),
         ImmutableSet.copyOf(pStates),
-        ImmutableMultimap.copyOf(pEnteringTransitions),
-        ImmutableMultimap.copyOf(pLeavingTransitions),
+        ImmutableListMultimap.copyOf(pEnteringTransitions),
+        ImmutableListMultimap.copyOf(pLeavingTransitions),
         ImmutableSet.copyOf(pFunctionNames));
   }
 

@@ -34,6 +34,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.configuration.AnnotatedValue;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -222,8 +223,6 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
     return algorithm;
   }
 
-  @SuppressFBWarnings(value="DM_DEFAULT_ENCODING",
-      justification="Encoding is irrelevant for null output stream")
   @Override
   public AlgorithmStatus run(ReachedSet pReached) throws CPAException, InterruptedException {
     checkArgument(pReached instanceof ForwardingReachedSet, "RestartAlgorithm needs ForwardingReachedSet");
@@ -437,16 +436,7 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
       }
 
       if (configFilesIterator.hasNext()) {
-        if (printIntermediateStatistics) {
-          stats.printIntermediateStatistics(System.out, Result.UNKNOWN, currentReached);
-        } else {
-          @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
-          final PrintStream dummyStream = new PrintStream(ByteStreams.nullOutputStream());
-          stats.printIntermediateStatistics(dummyStream, Result.UNKNOWN, currentReached);
-        }
-        if (writeIntermediateOutputFiles) {
-          stats.writeOutputFiles(Result.UNKNOWN, pReached);
-        }
+        printIntermediateStatistics(currentReached);
         stats.resetSubStatistics();
 
         if (currentCpa != null && !provideReachedForNextAlgorithm) {
@@ -467,6 +457,23 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
     // no further configuration available, and analysis has not finished
     logger.log(Level.INFO, "No further configuration available.");
     return status;
+  }
+
+  @SuppressFBWarnings(
+      value = "DM_DEFAULT_ENCODING",
+      justification = "Encoding is irrelevant for null output stream")
+  @SuppressForbidden("System.out is correct for statistics")
+  private void printIntermediateStatistics(ReachedSet currentReached) {
+    if (printIntermediateStatistics) {
+      stats.printIntermediateStatistics(System.out, Result.UNKNOWN, currentReached);
+    } else {
+      @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
+      final PrintStream dummyStream = new PrintStream(ByteStreams.nullOutputStream());
+      stats.printIntermediateStatistics(dummyStream, Result.UNKNOWN, currentReached);
+    }
+    if (writeIntermediateOutputFiles) {
+      stats.writeOutputFiles(Result.UNKNOWN, currentReached);
+    }
   }
 
   private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createNextAlgorithm(

@@ -16,6 +16,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
@@ -38,6 +39,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.configuration.AnnotatedValue;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -282,10 +284,6 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  @SuppressFBWarnings(
-    value = "DM_DEFAULT_ENCODING",
-    justification = "Encoding is irrelevant for null output stream"
-  )
   @Override
   public AlgorithmStatus run(ReachedSet pReached) throws CPAException, InterruptedException {
     checkArgument(
@@ -435,29 +433,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
                 && !shutdownNotifier.shouldShutdown()
                 && selectionStrategy.hasNextAlgorithm()) {
 
-              switch (intermediateStatistics) {
-                case PRINT:
-                  stats.printIntermediateStatistics(
-                      System.out,
-                      Result.UNKNOWN,
-                      currentContext.getReachedSet());
-                  break;
-                case EXECUTE:
-                  @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
-                  final PrintStream dummyStream = new PrintStream(ByteStreams.nullOutputStream());
-                  stats.printIntermediateStatistics(
-                      dummyStream,
-                      Result.UNKNOWN,
-                      currentContext.getReachedSet());
-                  break;
-                default: // do nothing
-              }
-
-              if (writeIntermediateOutputFiles) {
-                stats.writeOutputFiles(Result.UNKNOWN, pReached);
-              }
-
-              stats.resetSubStatistics();
+              printIntermediateStatistics(pReached, currentContext);
 
               if (!currentContext.reuseCPA()) {
                 CPAs.closeCpaIfPossible(currentContext.getCPA(), logger);
@@ -496,6 +472,36 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     } finally {
       stats.totalTimer.stop();
     }
+  }
+
+  @SuppressFBWarnings(
+      value = "DM_DEFAULT_ENCODING",
+      justification = "Encoding is irrelevant for null output stream")
+  @SuppressForbidden("System.out is correct for statistics")
+  private void printIntermediateStatistics(ReachedSet pReached, AlgorithmContext currentContext) {
+    switch (intermediateStatistics) {
+      case PRINT:
+        stats.printIntermediateStatistics(
+            System.out,
+            Result.UNKNOWN,
+            currentContext.getReachedSet());
+        break;
+      case EXECUTE:
+        @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
+        final PrintStream dummyStream = new PrintStream(ByteStreams.nullOutputStream());
+        stats.printIntermediateStatistics(
+            dummyStream,
+            Result.UNKNOWN,
+            currentContext.getReachedSet());
+        break;
+      default: // do nothing
+    }
+
+    if (writeIntermediateOutputFiles) {
+      stats.writeOutputFiles(Result.UNKNOWN, pReached);
+    }
+
+    stats.resetSubStatistics();
   }
 
 
@@ -676,9 +682,6 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     Preconditions.checkArgument(!pPreviousReachedSets.isEmpty());
     Precision resultPrec = pInitialPrecision;
 
-    PredicatePrecision predPrec;
-    LoopBoundPrecision loopPrec;
-    ConstraintsPrecision constrPrec;
     VariableTrackingPrecision varPrec =
         Precisions.extractPrecisionByType(resultPrec, VariableTrackingPrecision.class);
     if (varPrec != null) {
@@ -700,7 +703,8 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
                 changed = true;
               }
 
-              predPrec = Precisions.extractPrecisionByType(resultPrec, PredicatePrecision.class);
+              PredicatePrecision predPrec =
+                  Precisions.extractPrecisionByType(resultPrec, PredicatePrecision.class);
               if (predPrec != null && pFMgr != null) {
                 varPrec =
                     varPrec.withIncrement(convertPredPrecToVariableTrackingPrec(predPrec, pFMgr));
@@ -719,7 +723,8 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
 
-    constrPrec = Precisions.extractPrecisionByType(resultPrec, ConstraintsPrecision.class);
+    ConstraintsPrecision constrPrec =
+        Precisions.extractPrecisionByType(resultPrec, ConstraintsPrecision.class);
     if (constrPrec != null) {
       try {
         if (!(constrPrec instanceof RefinableConstraintsPrecision)) {
@@ -750,28 +755,25 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
 
-    loopPrec = Precisions.extractPrecisionByType(resultPrec, LoopBoundPrecision.class);
+    LoopBoundPrecision loopPrec =
+        Precisions.extractPrecisionByType(resultPrec, LoopBoundPrecision.class);
     if (loopPrec != null && pPreviousReachedSets.get(0) != null) {
       resultPrec =
           Precisions.replaceByType(
               resultPrec, loopPrec, Predicates.instanceOf(LoopBoundPrecision.class));
     }
 
-    predPrec = Precisions.extractPrecisionByType(resultPrec, PredicatePrecision.class);
+    PredicatePrecision predPrec =
+        Precisions.extractPrecisionByType(resultPrec, PredicatePrecision.class);
 
     if (predPrec != null && pPreviousReachedSets.get(0) != null) {
-      Collection<PredicatePrecision> predPrecs =
-          new HashSet<>(pPreviousReachedSets.get(0).getPrecisions().size());
-      predPrecs.add(predPrec);
-      for (Precision prec : pPreviousReachedSets.get(0).getPrecisions()) {
-        predPrec = Precisions.extractPrecisionByType(prec, PredicatePrecision.class);
-        predPrecs.add(predPrec);
-      }
+      Iterable<Precision> allPrecisions =
+          from(ImmutableList.of(resultPrec)).append(pPreviousReachedSets.get(0).getPrecisions());
 
       resultPrec =
           Precisions.replaceByType(
               resultPrec,
-              PredicatePrecision.unionOf(predPrecs),
+              PredicatePrecision.unionOf(allPrecisions),
               Predicates.instanceOf(PredicatePrecision.class));
     }
 

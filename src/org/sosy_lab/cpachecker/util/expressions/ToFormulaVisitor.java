@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.expressions;
 
-import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -87,9 +86,7 @@ public class ToFormulaVisitor
     PathFormula invariantPathFormula;
     try {
       invariantPathFormula = pathFormulaManager.makeAnd(clearContext, edge);
-    } catch (CPATransferException e) {
-      throw new ToFormulaException(e);
-    } catch (InterruptedException e) {
+    } catch (InterruptedException | CPATransferException e) {
       throw new ToFormulaException(e);
     }
     return formulaManagerView.uninstantiate(invariantPathFormula.getFormula());
@@ -105,44 +102,17 @@ public class ToFormulaVisitor
     return formulaManagerView.getBooleanFormulaManager().makeFalse();
   }
 
+  /**
+   * An exception that wraps either an {@link InterruptedException} or a {@link
+   * CPATransferException}.
+   */
   public static class ToFormulaException extends Exception {
 
     private static final long serialVersionUID = -3849941975554955994L;
 
-    private final CPATransferException transferException;
-
-    private final InterruptedException interruptedException;
-
-    private ToFormulaException(CPATransferException pTransferException) {
-      super(pTransferException);
-      this.transferException = Objects.requireNonNull(pTransferException);
-      this.interruptedException = null;
+    private ToFormulaException(Exception pCause) {
+      super(pCause);
     }
-
-    private ToFormulaException(InterruptedException pInterruptedException) {
-      super(pInterruptedException);
-      this.transferException = null;
-      this.interruptedException = Objects.requireNonNull(pInterruptedException);
-    }
-
-    public boolean isTransferException() {
-      return transferException != null;
-    }
-
-    public boolean isInterruptedException() {
-      return interruptedException != null;
-    }
-
-    public CPATransferException asTransferException() {
-      Preconditions.checkState(isTransferException());
-      return transferException;
-    }
-
-    public InterruptedException asInterruptedException() {
-      Preconditions.checkState(isInterruptedException());
-      return interruptedException;
-    }
-
   }
 
 }
