@@ -73,8 +73,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   @Option(
     secure = true,
-    description = "toggle rolling back if interpolation or forward-condition is disabled")
-  private boolean rollBack = true;
+    description = "toggle falling back if interpolation or forward-condition is disabled")
+  private boolean fallBack = true;
 
   @Option(secure = true, description = "toggle deriving the interpolants from suffix formulas")
   private boolean deriveInterpolantFromSuffix = true;
@@ -167,8 +167,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
     if (interpolation && cfa.getAllLoopHeads().orElseThrow().size() > 1) {
       logger.log(Level.WARNING, "Interpolation is not supported for multi-loop programs yet");
-      if (rollBack) {
-        rollBackToBMC();
+      if (fallBack) {
+        fallBackToBMC();
       } else {
         throw new CPAException("Multi-loop programs are not supported yet");
       }
@@ -191,8 +191,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
       // Check if interpolation or forward-condition check is applicable
       if (interpolation && !checkRequirementOfARG(pReachedSet)) {
-        if (rollBack) {
-          rollBackToBMC();
+        if (fallBack) {
+          fallBackToBMC();
         } else {
           throw new CPAException("ARG does not meet the requirements");
         }
@@ -201,8 +201,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           && checkExistenceOfCoveredStates
           && hasCoveredStates(pReachedSet)) {
         logger.log(Level.WARNING, "Covered states exist in ARG, forward-condition might be wrong!");
-        if (rollBack) {
-          rollBackToBMCWithoutForwardCondition();
+        if (fallBack) {
+          fallBackToBMCWithoutForwardCondition();
         } else {
           throw new CPAException("ARG does not meet the requirements");
         }
@@ -235,13 +235,13 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
 
-  private void rollBackToBMC() {
-    logger.log(Level.WARNING, "Rolling back to BMC");
+  private void fallBackToBMC() {
+    logger.log(Level.WARNING, "Falling back to BMC");
     interpolation = false;
   }
 
-  private void rollBackToBMCWithoutForwardCondition() {
-    logger.log(Level.WARNING, "Rolling back to BMC without forward-condition check");
+  private void fallBackToBMCWithoutForwardCondition() {
+    logger.log(Level.WARNING, "Falling back to BMC without forward-condition check");
     interpolation = false;
     checkForwardConditions = false;
   }

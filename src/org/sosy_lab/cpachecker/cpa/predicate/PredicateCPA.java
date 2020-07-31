@@ -92,7 +92,7 @@ public class PredicateCPA
   @Option(
     secure = true,
     name = "stop",
-    values = {"SEP", "SEPPCC", "NEVER"},
+    values = {"SEP", "SEPPCC", "NEVERAA"},
     toUppercase = true,
       description="which stop operator to use for predicate cpa (usually SEP should be used in analysis)")
   private String stopType = "SEP";
@@ -266,7 +266,7 @@ public class PredicateCPA
         return new PredicateStopOperator(getAbstractDomain());
       case "SEPPCC":
         return new PredicatePCCStopOperator(pathFormulaManager, predicateManager);
-      case "NEVER":
+      case "NEVERAA":
         return new PredicateNeverAtAbstractionStopOperator(getAbstractDomain());
       default:
         throw new InternalError("Update list of allowed stop operators");
