@@ -217,7 +217,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         }
       }
       // Interpolation
-      if (interpolation && maxLoopIterations > 1) {
+      if (interpolation
+          && maxLoopIterations > 1
+          && !AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
         logger.log(Level.FINE, "Collecting prefix, loop, and suffix formulas");
         PartitionedFormulas formulas = collectFormulas(pReachedSet, maxLoopIterations);
         formulas.printCollectedFormulas(logger);
