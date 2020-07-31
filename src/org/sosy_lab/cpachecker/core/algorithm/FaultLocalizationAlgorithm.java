@@ -39,12 +39,14 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.ErrorInvariantsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.FaultLocalizationAlgorithmInterface;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.MaxSatAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.MaxSatOriginalAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.SingleUnsatCoreAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.ExpressionConverter;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula.TraceFormulaOptions;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula.TraceFormulaType;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.rankings.CallHierarchyRanking;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.rankings.EdgeTypeRanking;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.rankings.ForwardPreConditionRanking;
@@ -89,7 +91,7 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
   private final FaultLocalizationAlgorithmInterface faultAlgorithm;
   private final StatTimer totalTime = new StatTimer("Total time");
 
-  @Option(secure=true, name="type", toUppercase=true, values={"UNSAT", "MAXSAT", "ERRINV"},
+  @Option(secure=true, name="type", toUppercase=true, values={"UNSAT", "MAXSAT", "ERRINV", "MAXORG"},
       description="which algorithm to use")
   private String algorithmType = "UNSAT";
 
@@ -137,6 +139,9 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
     context = new FormulaContext(solver, manager, new ExpressionConverter(pConfig));
 
     switch (algorithmType){
+      case "MAXORG":
+        faultAlgorithm = new MaxSatOriginalAlgorithm();
+        break;
       case "MAXSAT":
         faultAlgorithm = new MaxSatAlgorithm();
         break;
@@ -236,18 +241,13 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
         return;
       }
 
-      TraceFormula tf = new TraceFormula(context, options, edgeList);
-      if(tf.isAlwaysUnsat()){
-        logger.log(Level.INFO, "Pre and post condition are unsatisfiable when conjugated. This means the initial variable assignment contradicts the post condition. No further analysis required.");
-        return;
-      }
-
-      Set<Fault> errorIndicators = pAlgorithm.run(context, tf);
-
+      TraceFormula tf;
       //Find correct ranking
       FaultRanking ranking;
       switch(algorithmType){
+        case "MAXORG":
         case "MAXSAT": {
+          tf = new TraceFormula(TraceFormulaType.SELECTOR, context, options, edgeList);
           ranking =  FaultRankingUtils.concatHeuristicsDefaultFinalScoring(
               new ForwardPreConditionRanking(tf, context),
               new EdgeTypeRanking(),
@@ -255,26 +255,30 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
               new HintRanking(3),
               new OverallOccurrenceRanking(),
               new MinimalLineDistanceRanking(edgeList.get(edgeList.size()-1)),
-              new CallHierarchyRanking(edgeList, tf.getNegated().size()));
+              new CallHierarchyRanking(edgeList, tf.getPostConditionOffset()));
           break;
         }
         case "ERRINV": {
+          tf = new TraceFormula(TraceFormulaType.DEFAULT, context, options, edgeList);
           ranking = FaultRankingUtils.concatHeuristicsDefaultFinalScoring(
               new ForwardPreConditionRanking(tf, context),
               new EdgeTypeRanking(),
               new HintRanking(3),
               // new MinimalLineDistanceRanking(edgeList.get(edgeList.size()-1)),
-              new CallHierarchyRanking(edgeList, tf.getNegated().size()));
+              new CallHierarchyRanking(edgeList, tf.getPostConditionOffset()));
           break;
         }
         default: {
+          tf = new TraceFormula(TraceFormulaType.DEFAULT, context, options, edgeList);
           ranking = FaultRankingUtils.concatHeuristicsDefaultFinalScoring(
               new ForwardPreConditionRanking(tf, context),
               new EdgeTypeRanking(),
               new HintRanking(-1),
-              new CallHierarchyRanking(edgeList, tf.getNegated().size()));
+              new CallHierarchyRanking(edgeList, tf.getPostConditionOffset()));
         }
       }
+
+      Set<Fault> errorIndicators = pAlgorithm.run(context, tf);
 
       if(!algorithmType.equals("ERRINV")) {
         ban(errorIndicators);

@@ -31,7 +31,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface, Statistics {
+public class MaxSatOriginalAlgorithm implements FaultLocalizationAlgorithmInterface, Statistics {
 
   private Solver solver;
   private BooleanFormulaManager bmgr;
@@ -49,38 +49,28 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface, Sta
 
     Set<Fault> hard = new HashSet<>();
 
+    //if selectors are reduced the set ensures to remove duplicates
     Set<FaultContribution> soft = new HashSet<>(tf.getEntries().toSelectorList());
-    int initSize = soft.size();
     //if a selector is true (i. e. enabled) it cannot be part of the result set. This usually happens if the selector is a part of the pre-condition
     soft.removeIf(fc -> bmgr.isTrue(((Selector)fc).getFormula()) || bmgr.isFalse(((Selector)fc).getFormula()));
-    int numberSelectors = soft.size();
 
-    Fault minUnsatCore = new Fault();
-
+    Fault complement;
     totalTime.start();
-    // loop as long as new unsat cores are found.
-    // if the newly found unsat core has the size of all left selectors break.
-    while(minUnsatCore.size() != numberSelectors){
-      minUnsatCore = getMinUnsatCore(soft, tf, hard);
-      if (minUnsatCore.size() == 1) {
-        soft.removeAll(minUnsatCore);
-        numberSelectors = soft.size();
+    // loop as long as new maxsat cores are found.
+    while(true){
+      complement = coMSS(soft, tf, hard);
+      if (complement.isEmpty()) {
+        break;
       }
-      // adding all possible selectors yields no information because the user knows that the program
-      // has bugs
-      if(minUnsatCore.size() != initSize) {
-        hard.add(minUnsatCore);
-      }
+      hard.add(complement);
+      soft.removeAll(complement);
     }
     totalTime.stop();
     return hard;
   }
 
   /**
-   * Get a minimal subset of selectors considering the already found ones
-   * Minimal means that we cannot remove a single selector from the returned set and maintain unsatisfiability.
-   * Minimal does not mean that there does not exist a smaller unsat-core here.
-   * Since we find all solutions the order does not matter.
+   * Get the complement of a maximal satisfiable set considering the already found ones
    *
    * @param pTraceFormula TraceFormula to the error
    * @param pHardSet already found minimal sets
@@ -88,49 +78,53 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface, Sta
    * @throws SolverException thrown if tf is satisfiable
    * @throws InterruptedException thrown if interrupted
    */
-  private Fault getMinUnsatCore(
+  private Fault coMSS(
       Set<FaultContribution> pSoftSet, TraceFormula pTraceFormula, Set<Fault> pHardSet)
       throws SolverException, InterruptedException {
-    Fault result = new Fault(new HashSet<>(pSoftSet));
+    Set<FaultContribution> selectors = new HashSet<>(pSoftSet);
+    Fault result = new Fault();
+    BooleanFormula composedFormula =
+        bmgr.and(
+            pTraceFormula.getTraceFormula(),
+            hardSetFormula(pHardSet));
     boolean changed;
     do {
       changed = false;
-      for (FaultContribution fc : result) {
+      for (FaultContribution fc : selectors) {
         Selector s = (Selector)fc;
         Fault copy = new Fault(new HashSet<>(result));
-        copy.remove(s);
-        if (!isSubsetOrSupersetOf(copy, pHardSet)) {
-          unsatCalls.inc();
-          if (solver.isUnsat(bmgr.and(pTraceFormula.getTraceFormula(), softSetFormula(copy)))) {
-            changed = true;
-            result.remove(s);
-            break;
-          }
-        } else {
-          savedCalls.inc();
+        copy.add(s);
+        unsatCalls.inc();
+        if (!solver.isUnsat(bmgr.and(composedFormula, softSetFormula(copy)))) {
+          changed = true;
+          result.add(s);
+          selectors.remove(s);
+          break;
         }
       }
     } while (changed);
-    return result;
-  }
-
-  private boolean isSubsetOrSupersetOf(Fault pSet, Set<Fault> pHardSet) {
-    for (Set<FaultContribution> hardSet : pHardSet) {
-      if (hardSet.containsAll(pSet) || pSet.containsAll(hardSet)) {
-        return true;
-      }
-    }
-    return false;
+    return new Fault(selectors);
   }
 
   /**
    * Conjunct of all selector-formulas
-   *
    * @param softSet left selectors
    * @return boolean formula as conjunct of all selector formulas
    */
   private BooleanFormula softSetFormula(Fault softSet) {
-    return softSet.stream().map(f -> ((Selector) f).getFormula()).collect(bmgr.toConjunction());
+    return softSet.stream().map(f -> ((Selector)f).getFormula()).collect(bmgr.toConjunction());
+  }
+
+  /**
+   * Creates the formula (a1 or a2 or a3) and (b1 or b2) ... for the input [[a1,a2,a3],[b1,b2]]
+   *
+   * @param hardSet the current hard set
+   * @return conjunction of the disjunction of the sets
+   */
+  private BooleanFormula hardSetFormula(Set<Fault> hardSet) {
+    return hardSet.stream()
+        .map(l -> l.stream().map(f -> ((Selector)f).getFormula()).collect(bmgr.toDisjunction()))
+        .collect(bmgr.toConjunction());
   }
 
   @Override
@@ -138,7 +132,7 @@ public class MaxSatAlgorithm implements FaultLocalizationAlgorithmInterface, Sta
       PrintStream out, Result result, UnmodifiableReachedSet reached) {
     StatisticsWriter w0 = StatisticsWriter.writingStatisticsTo(out);
     w0.put("Total time", totalTime).put("Total calls to solver", unsatCalls)
-    .put("Total calls saved", savedCalls);
+        .put("Total calls saved", savedCalls);
   }
 
   @Override

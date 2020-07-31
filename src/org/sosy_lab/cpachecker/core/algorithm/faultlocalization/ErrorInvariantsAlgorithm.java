@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.faultlocalization;
 import com.google.common.base.Splitter;
 import com.google.common.base.VerifyException;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -63,6 +64,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
   //(commented out, needed for flowsensitive traceformula)private CFA cfa;
   //private boolean useImproved;
   private boolean useMem;
+  private List<SSAMap> maps;
 
   //Memorize already processed interpolants to minimize solver calls
   private Multimap<BooleanFormula, Integer> memorize;
@@ -107,9 +109,9 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
             logger);
 
     List<BooleanFormula> allFormulas = new ArrayList<>();
-    allFormulas.add(errorTrace.getPreCondition());
-    allFormulas.addAll(errorTrace.getAtoms());
-    allFormulas.add(errorTrace.getPostCondition());
+    allFormulas.add(errorTrace.getPrecondition());
+    allFormulas.addAll(errorTrace.getEntries().toAtomList());
+    allFormulas.add(errorTrace.getPostcondition());
     CounterexampleTraceInfo counterexampleTraceInfo =
         interpolationManager.buildCounterexampleTrace(new BlockFormulas(allFormulas));
     return counterexampleTraceInfo.getInterpolants();
@@ -121,7 +123,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
           InvalidConfigurationException {
     formulaContext = context;
     errorTrace = tf;
-
+    maps = tf.getEntries().toSSAMapList();
     totalTime.start();
 
     List<BooleanFormula> interpolants = getInterpolants();
@@ -141,6 +143,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
 
     //sort the intervals and calculate abstrace error trace
     List<Interval> sortedIntervals = allIntervals.stream().sorted().collect(Collectors.toList());
+    List<Selector> selectors = errorTrace.getEntries().toSelectorList();
     Interval maxInterval = sortedIntervals.get(0);
     int prevEnd = 0;
     List<AbstractTraceElement> abstractTrace = new ArrayList<>();
@@ -148,7 +151,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
       if (currInterval.start > prevEnd) {
         abstractTrace.add(maxInterval);
         if (maxInterval.end < tf.traceSize()) {
-          abstractTrace.add(errorTrace.getSelectors().get(maxInterval.end));
+          abstractTrace.add(selectors.get(maxInterval.end));
         }
         prevEnd = maxInterval.end;
         maxInterval = currInterval;
@@ -211,8 +214,8 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     // we can only state that the post-condition holds in every location (no gain of information)
     if (abstractTrace.size() == 1) {
       if(abstractTrace.get(0) instanceof Interval){
-        CFAEdge lastEdge = errorTrace.getEdges().get(errorTrace.getEdges().size()-1);
-        Fault f = new Fault(Selector.makeSelector(formulaContext, bmgr.makeTrue(), lastEdge));
+        Selector last = Iterables.getLast(errorTrace.getEntries().toSelectorList());
+        Fault f = new Fault(last);
         f.addInfo(FaultInfo.justify("The whole program can be described by: " + description));
         f.addInfo(FaultInfo.hint("NOTE: The algorithm did not find a suitable abstraction."));
         faults.add(f);
@@ -303,16 +306,16 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     // shift the interpolant to the correct time stamp
     SSAMap shift =
         SSAMap.merge(
-            errorTrace.getSsaMap(i),
-            errorTrace.getSsaMap(0),
+            maps.get(i),
+            maps.get(0),
             MapsDifference.collectMapsDifferenceTo(new ArrayList<>()));
     BooleanFormula shiftedInterpolant = fmgr.instantiate(plainInterpolant, shift);
 
     BooleanFormula firstFormula =
         bmgr.implication(
-            bmgr.and(errorTrace.getPreCondition(), errorTrace.slice(i)), shiftedInterpolant);
+            bmgr.and(errorTrace.getPrecondition(), errorTrace.slice(i)), shiftedInterpolant);
     BooleanFormula secondFormula =
-            bmgr.and(shiftedInterpolant, errorTrace.slice(i, n), errorTrace.getPostCondition());
+            bmgr.and(shiftedInterpolant, errorTrace.slice(i, n), errorTrace.getPostcondition());
 
     try {
       //isValid

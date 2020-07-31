@@ -43,12 +43,12 @@ public class ForwardPreConditionRanking implements FaultRanking {
   public List<Fault> rank(Set<Fault> result) {
     // check if alternative precondition was used
     List<Fault> rankedList = new ArrayList<>(result);
-    if(!traceFormula.getPreCondition().toString().contains("_VERIFIER_nondet_")){
+    if(!traceFormula.getPrecondition().toString().contains("_VERIFIER_nondet_")){
       return rankedList;
     }
 
     BooleanFormulaManager bmgr = context.getSolver().getFormulaManager().getBooleanFormulaManager();
-    Set<BooleanFormula> preconditions = bmgr.toConjunctionArgs(traceFormula.getPreCondition(), true);
+    Set<BooleanFormula> preconditions = bmgr.toConjunctionArgs(traceFormula.getPrecondition(), true);
 
     Map<String, String> mapFormulaToValue = new HashMap<>();
     List<String> assignments = new ArrayList<>();
@@ -82,9 +82,10 @@ public class ForwardPreConditionRanking implements FaultRanking {
 
     String hint = "The program fails for the initial variable assignment ";
 
+    List<BooleanFormula> atoms = traceFormula.getEntries().toAtomList();
     for(Entry<String, String> entry: mapFormulaToValue.entrySet()){
-      for (int i = 0 ; i < traceFormula.getAtoms().size(); i++) {
-        BooleanFormula atom = traceFormula.getAtom(i);
+      for (int i = 0 ; i < atoms.size(); i++) {
+        BooleanFormula atom = atoms.get(i);
         if(atom.toString().contains(entry.getKey())){
           atom = context.getSolver().getFormulaManager().uninstantiate(atom);
           String assignment = context.getConverter().convert(atom.toString().replaceAll(entry.getKey(), entry.getValue()));
