@@ -14,7 +14,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -57,11 +56,11 @@ public class SLTransferRelation0 extends SingleEdgeTransferRelation {
     info += state + "\n";
     info += "---------------------------";
     logger.log(Level.INFO, info);
-    if (pCfaEdge instanceof AssumeEdge) {
-      return handleAssumption();
-    } else {
-      return ImmutableList.of(state);
-    }
+    // if (pCfaEdge instanceof AssumeEdge) {
+    // return handleAssumption();
+    // }
+    return ImmutableList.of(state);
+
   }
 
   private List<SLState>
