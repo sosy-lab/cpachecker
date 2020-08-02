@@ -171,6 +171,9 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
   public Formula visit(CIdExpression pIdExp) throws UnrecognizedCodeException {
     String varName = UnaryOperator.AMPER.getOperator() + pIdExp.getDeclaration().getQualifiedName();
     CType type = pIdExp.getExpressionType();
+    if (type instanceof CArrayType) {
+      type = ((CArrayType) type).asPointerType();
+    }
     Formula loc = converter.makeVariable(varName, type, ssa);
     return delegate.dereference(loc, converter.getSizeof(type)).get();
   }
