@@ -297,6 +297,9 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
       r = buildTerm(rhs, edge, function, ssa, pts, constraints, errorConditions);
       l = buildLvalueTerm(lhs, edge, function, ssa, pts, constraints, errorConditions);
     }
+    if (l == null) {
+      return bfmgr.makeFalse();
+    }
 
     r = makeCast(rhs.getExpressionType(), lhsType, r, constraints, edge);
 
@@ -406,7 +409,8 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
       Formula var = makeVariable(varNameWithAmper, ret.get().getType(), pSsa);
       delegate.deallocateFromStack(var);
     }
-
+    // Deallocate alloca segments.
+    delegate.releaseAllocas(pCalledFunction);
     return res;
   }
 

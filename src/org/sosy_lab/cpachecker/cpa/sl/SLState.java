@@ -22,6 +22,7 @@ package org.sosy_lab.cpachecker.cpa.sl;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -53,8 +54,8 @@ public class SLState implements AbstractState, AbstractQueryableState {
 
 
   private PathFormula pathFormula;
-  private final Map<Formula, Formula> heap;
-  private final Map<Formula, Formula> stack;
+  private final LinkedHashMap<Formula, Formula> heap;
+  private final LinkedHashMap<Formula, Formula> stack;
   private final LinkedHashSet<BooleanFormula> constraints;
 
   private final Map<Formula, BigInteger> allocationSizes;
@@ -67,8 +68,8 @@ public class SLState implements AbstractState, AbstractQueryableState {
 
   public SLState(
       PathFormula pPathFormula,
-      Map<Formula, Formula> pHeap,
-      Map<Formula, Formula> pStack,
+      LinkedHashMap<Formula, Formula> pHeap,
+      LinkedHashMap<Formula, Formula> pStack,
       LinkedHashSet<BooleanFormula> pConstraints,
       Map<Formula, BigInteger> pAllocationSizes,
       Set<CSimpleDeclaration> pInScopePtrs,
@@ -92,8 +93,8 @@ public class SLState implements AbstractState, AbstractQueryableState {
   public SLState(PathFormula pStore) {
     this(
         pStore,
-        new HashMap<>(),
-        new HashMap<>(),
+        new LinkedHashMap<>(),
+        new LinkedHashMap<>(),
         new LinkedHashSet<>(),
         new HashMap<>(),
         new HashSet<>(),
@@ -165,8 +166,8 @@ public class SLState implements AbstractState, AbstractQueryableState {
     SLState s =
         new SLState(
         newFormula,
-            new HashMap<>(heap),
-            new HashMap<>(stack),
+            new LinkedHashMap<>(heap),
+            new LinkedHashMap<>(stack),
             new LinkedHashSet<>(constraints),
             new HashMap<>(allocationSizes),
             new HashSet<>(inScopePtrs),

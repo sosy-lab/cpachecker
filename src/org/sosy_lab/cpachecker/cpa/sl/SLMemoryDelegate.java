@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
@@ -181,6 +182,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
       Formula address = fm.makePlus(pLoc, fm.makeNumber(heapAddressFormulaType, i));
       if (pMemory.containsKey(address)) {
         res = fm.makeConcat(pMemory.get(address), res);
+        // res = fm.makeConcat(res, pMemory.get(address)); ENDIANESS?
       } else {
         return Optional.empty();
       }
@@ -369,6 +371,15 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
   public void handleAlloca(Formula pLoc, int pSize, String functionName) {
     allocateOnStack(pLoc, pSize);
     state.addAlloca(pLoc, functionName);
+  }
+
+  public void releaseAllocas(String functionScope) {
+    if (state.getAllocas().containsKey(functionScope)) {
+      Set<Formula> segments = state.getAllocas().get(functionScope);
+      for (Formula formula : segments) {
+        deallocateFromStack(formula);
+      }
+    }
   }
 
   public void handleVarDeclaration(Formula pVar, int pSize) {

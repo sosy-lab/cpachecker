@@ -88,7 +88,7 @@ public class SLLhsToFormulaVisitor extends LvalueVisitor {
       return allocated.get();
     } else {
       delegate.addError(SLStateError.INVALID_WRITE);
-      return super.visit(pPointerExpression);
+      return null;
     }
   }
 
