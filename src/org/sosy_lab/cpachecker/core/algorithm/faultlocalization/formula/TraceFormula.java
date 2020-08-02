@@ -10,11 +10,11 @@ package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Stack;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -119,7 +119,7 @@ public class TraceFormula {
    * @param pEdges counterexample
    */
   public TraceFormula(TraceFormulaType pType, FormulaContext pContext, TraceFormulaOptions pOptions, List<CFAEdge> pEdges)
-      throws CPAException, InterruptedException, SolverException, InvalidConfigurationException {
+      throws CPAException, InterruptedException, SolverException {
     entries = new FormulaEntryList();
     edges = pEdges;
     options = pOptions;
@@ -184,8 +184,7 @@ public class TraceFormula {
    * @param type the trace formula type
    * @return the trace pi according to the inputted type
    */
-  private BooleanFormula calculateTrace(TraceFormulaType type)
-      throws InvalidConfigurationException, InterruptedException {
+  private BooleanFormula calculateTrace(TraceFormulaType type) {
     switch(type) {
       case SELECTOR:
         return entries
@@ -195,9 +194,9 @@ public class TraceFormula {
           .collect(bmgr.toConjunction());
       case FLOW_SENSITIVE:
         makeFlowSensitive();
-        // fall through
+        //$FALL-THROUGH$
       case DEFAULT:
-        //fall through
+        //$FALL-THROUGH$
       default:
         return bmgr.and(entries.toAtomList());
     }
@@ -324,18 +323,18 @@ public class TraceFormula {
 
     AnnotatedCounterexample cex = new AnnotatedCounterexample(entries, context);
 
-    Stack<BooleanFormula> conditions = new Stack<>();
+    ArrayDeque<BooleanFormula> conditions = new ArrayDeque<>();
 
-    for (int i = 0; i < cex.size(); i++) {
-      FormulaNode edge = cex.get(i);
-      if(edge.getLabel().equals(FormulaLabel.IF)) {
+    for (FormulaNode edge : cex) {
+      if (edge.getLabel().equals(FormulaLabel.IF)) {
         conditions.push(edge.getEntry().getAtom());
         edge.getEntry().setAtom(frame());
       } else {
         BooleanFormula conditionsConjunct = bmgr.and(conditions);
-        BooleanFormula implication = bmgr.implication(conditionsConjunct, edge.getEntry().getAtom());
+        BooleanFormula implication =
+            bmgr.implication(conditionsConjunct, edge.getEntry().getAtom());
         edge.getEntry().setAtom(implication);
-        if (edge.getLabel().equals(FormulaLabel.ENDIF)){
+        if (edge.getLabel().equals(FormulaLabel.ENDIF)) {
           conditions.pop();
           edge.getEntry().setAtom(frame());
         }

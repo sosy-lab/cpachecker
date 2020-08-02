@@ -46,7 +46,7 @@ final class AnnotatedCounterexample extends ForwardingList<FormulaNode> {
     Preconditions.checkState(
         pCfa.getDependenceGraph().isPresent(),
         "to use the improved version of the error invariants algorithm please enable cfa.createDependenceGraph with -setprop");
-    DependenceGraph graph = pCfa.getDependenceGraph().get();
+    DependenceGraph graph = pCfa.getDependenceGraph().orElseThrow();
    /* DomTree<CFAEdge>
         tree = Dominance.createDomTree(pCounterexample.get(0).getSelector().getEdge(), l -> {
       try {
@@ -81,7 +81,7 @@ final class AnnotatedCounterexample extends ForwardingList<FormulaNode> {
   }
 
 
-  class FormulaNode {
+  static class FormulaNode {
 
     private FormulaEntry entry;
     private FormulaLabel label;
