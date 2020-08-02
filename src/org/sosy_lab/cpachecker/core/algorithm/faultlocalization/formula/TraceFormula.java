@@ -172,7 +172,7 @@ public class TraceFormula {
     }
 
     if (options.forcePre && bmgr.isTrue(precond)) {
-      return new AlternativePrecondition(options.filter, options.ignore, precond).createFormula(context, entries);
+      return AlternativePrecondition.of(options.filter, options.ignore, precond, context, entries);
     } else {
       entries.addEntry(0,-1, SSAMap.emptySSAMap(), null, null);
     }
@@ -181,9 +181,11 @@ public class TraceFormula {
 
   /**
    * Calculate trace
+   * @param type the trace formula type
+   * @return the trace pi according to the inputted type
    */
   private BooleanFormula calculateTrace(TraceFormulaType type)
-      throws InvalidConfigurationException, InterruptedException, CPAException {
+      throws InvalidConfigurationException, InterruptedException {
     switch(type) {
       case SELECTOR:
         return entries
@@ -236,7 +238,6 @@ public class TraceFormula {
 
   /**
    * Calculate the boolean formulas for every edge including the SSA-maps and the selectors.
-   * @param altPre Creates the alternative precondition on the fly regardless of set options
    */
   private void calculateEntries() throws CPATransferException, InterruptedException {
     PathFormulaManagerImpl manager = context.getManager();
@@ -292,6 +293,11 @@ public class TraceFormula {
     }
   }
 
+  /**
+   * Get all trace elements up to position end
+   * @param end cut the trace at position end
+   * @return all elements from the trace up to position end
+   */
   public BooleanFormula slice(int end) {
     return slice(0, end);
   }
@@ -309,6 +315,9 @@ public class TraceFormula {
     return entries.toAtomList().size();
   }
 
+  /**
+   * Modify statements such that all dominating assumes imply the statement
+   */
   private void makeFlowSensitive() {
     // Last statement before exiting the if block is considered to be endif
     // check if entry in TF is modified???

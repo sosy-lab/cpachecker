@@ -28,49 +28,48 @@ import org.sosy_lab.java_smt.api.Formula;
 
 public class AlternativePrecondition {
 
-  private FormulaContext context;
-  private String ignoreOption;
-  private String filterOption;
-  private BooleanFormula defaultPrecond;
-
-  public AlternativePrecondition(String pFilter, String pIgnore, BooleanFormula pDefaultPrecondition) {
-    filterOption = pFilter;
-    ignoreOption = pIgnore;
-    defaultPrecond = pDefaultPrecondition;
-  }
-
-  public BooleanFormula createFormula(
-      FormulaContext pFormulaContext, FormulaEntryList pEntries) {
-    context = pFormulaContext;
-    AlternativePreconditionHelper altpre = new AlternativePreconditionHelper();
+  /**
+   * The Alternative Precondition extracts edges of the form <code>datatype name = value;</code> *
+   * and adds it to the precondition. Additionally all entries that will be part of the
+   * AlternativePrecondition * are removed from the entryset.
+   * @param pFilter functions which will be part of the precondition
+   * @param pIgnore variables that will not be part of the precondition
+   * @param pDefaultPrecondition model of the trace formula where the post condition is negated
+   * @param pFormulaContext the context
+   * @param pEntries all available entries based on the counterexample
+   * @return conjunct of the alternative precondition with the default precondition
+   */
+  public static BooleanFormula of(String pFilter, String pIgnore, BooleanFormula pDefaultPrecondition, FormulaContext pFormulaContext, FormulaEntryList pEntries) {
+    AlternativePreconditionHelper altpre = new AlternativePreconditionHelper(pFormulaContext, pIgnore, pFilter);
     pEntries.removeIf(entry -> altpre.add(entry));
     pEntries.addEntry(0,-1, altpre.preConditionMap, null, null);
-    BooleanFormulaManager bmgr = context.getSolver().getFormulaManager().getBooleanFormulaManager();
-    BooleanFormula alternative = bmgr.and(altpre.preCondition);
-    return bmgr.and(alternative, defaultPrecond);
+    BooleanFormulaManager bmgr = pFormulaContext.getSolver().getFormulaManager().getBooleanFormulaManager();
+    return bmgr.and(altpre.toFormula(), pDefaultPrecondition);
   }
 
-  class AlternativePreconditionHelper {
+  static class AlternativePreconditionHelper {
 
     private Map<Formula, Integer> variableToIndexMap;
     private List<BooleanFormula> preCondition;
     private List<String> ignore;
     private List<String> filter;
     private SSAMap preConditionMap;
+    private FormulaContext context;
 
-    AlternativePreconditionHelper(){
+    AlternativePreconditionHelper(FormulaContext pContext, String pIngnore, String pFilter){
+      context = pContext;
       variableToIndexMap = new HashMap<>();
       preCondition = new ArrayList<>();
       preConditionMap = SSAMap.emptySSAMap();
-      if(ignoreOption.isBlank()){
+      if(pIngnore.isBlank()){
         ignore = ImmutableList.of();
       } else {
-        ignore = Splitter.on(",").splitToList(ignoreOption);
+        ignore = Splitter.on(",").splitToList(pIngnore);
       }
-      if(filterOption.isBlank()){
+      if(pFilter.isBlank()){
         filter = ImmutableList.of();
       } else {
-        filter = Splitter.on(",").splitToList(filterOption);
+        filter = Splitter.on(",").splitToList(pFilter);
       }
     }
 
@@ -101,10 +100,6 @@ public class AlternativePrecondition {
 
     BooleanFormula toFormula(){
       return context.getSolver().getFormulaManager().getBooleanFormulaManager().and(preCondition);
-    }
-
-    public List<BooleanFormula> getPreCondition() {
-      return preCondition;
     }
 
     /**

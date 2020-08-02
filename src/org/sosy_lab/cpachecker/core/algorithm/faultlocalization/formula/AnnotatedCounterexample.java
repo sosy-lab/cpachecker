@@ -14,14 +14,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.AnnotatedCounterexample.FormulaNode;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaEntryList.FormulaEntry;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
-import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.TraversalDirection;
-import org.sosy_lab.cpachecker.util.dependencegraph.Dominance;
-import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
 
 final class AnnotatedCounterexample extends ForwardingList<FormulaNode> {
 
@@ -31,6 +27,11 @@ final class AnnotatedCounterexample extends ForwardingList<FormulaNode> {
 
   private List<FormulaNode> annotatedCounterexample;
 
+  /**
+   * The AnnotatedCounterexample adds the labels IF, ENDIF and OTHER to every statement in the counterexample
+   * @param pCounterexample the counterexample for which we want to compute the labels
+   * @param pContext the context
+   */
   public AnnotatedCounterexample(FormulaEntryList pCounterexample, FormulaContext pContext) {
     annotatedCounterexample = new ArrayList<>();
     CFA cfa = pContext.getMutableCFA();
@@ -85,6 +86,11 @@ final class AnnotatedCounterexample extends ForwardingList<FormulaNode> {
     private FormulaEntry entry;
     private FormulaLabel label;
 
+    /**
+     * Adds a label to an FormulaEntry
+     * @param pLabel a label for the entry
+     * @param pEntry the corresponding entry
+     */
     public FormulaNode(FormulaLabel pLabel, FormulaEntry pEntry) {
       label = pLabel;
       entry = pEntry;
