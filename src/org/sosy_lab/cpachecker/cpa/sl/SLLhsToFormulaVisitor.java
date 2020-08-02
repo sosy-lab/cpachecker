@@ -80,8 +80,10 @@ public class SLLhsToFormulaVisitor extends LvalueVisitor {
   @Override
   public Formula visit(CPointerExpression pPointerExpression) throws UnrecognizedCodeException {
     CExpression e = pPointerExpression.getOperand();
+    Formula loc =
+        converter.buildTerm(e, edge, function, ssa, delegate, constraints, errorConditions);
     int size = converter.getSizeof(pPointerExpression.getExpressionType());
-    Optional<Formula> allocated = delegate.checkAllocation(e.accept(this), size);
+    Optional<Formula> allocated = delegate.checkAllocation(loc, size);
     if (allocated.isPresent()) {
       return allocated.get();
     } else {
