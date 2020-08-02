@@ -36,7 +36,6 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
 
   private final SLMemoryDelegate delegate;
   private final CToFormulaConverterWithSL converter;
-  private final FormulaManagerView fm;
   private final Constraints constraints;
   private final CFAEdge edge;
   private final String functionName;
@@ -54,7 +53,6 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
     converter = (CToFormulaConverterWithSL) pCtoFormulaConverter;
     assert pPts instanceof SLMemoryDelegate;
     delegate = (SLMemoryDelegate) pPts;
-    fm = pFmgr;
     constraints = pConstraints;
     edge = pEdge;
     functionName = pFunction;
