@@ -60,14 +60,17 @@ final class AnnotatedCounterexample extends ForwardingList<FormulaNode> {
 
     FormulaNode prev = null;
     for (FormulaEntry entry : pCounterexample) {
-      FormulaLabel label;
+      // set OTHER as default label
+      FormulaLabel label = FormulaLabel.OTHER;
+
+      // if current node is out of the if-block, the previous node was an ENDIF statement
+      if (prev != null/*&& if node has less dominators*/) {
+        prev.setLabel(FormulaLabel.ENDIF);
+      }
+
+      // all assume edges are labeled as IF
       if (entry.getSelector().getEdge().getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
         label = FormulaLabel.IF;
-      } else {
-        // if one node less then before && prev != null:
-        prev.setLabel(FormulaLabel.ENDIF);
-        // else
-        label = FormulaLabel.OTHER;
       }
       FormulaNode node = new FormulaNode(label, entry);
       annotatedCounterexample.add(node);
