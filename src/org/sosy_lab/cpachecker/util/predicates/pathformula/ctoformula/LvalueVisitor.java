@@ -29,17 +29,21 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
-class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCodeException> {
+public class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCodeException> {
 
   private final CtoFormulaConverter conv;
-  private final CFAEdge       edge;
-  private final String        function;
-  private final SSAMapBuilder ssa;
-  private final PointerTargetSetBuilder pts;
-  private final Constraints   constraints;
-  private final ErrorConditions errorConditions;
+  protected final CFAEdge edge;
+  protected final String function;
+  protected final SSAMapBuilder ssa;
+  protected final PointerTargetSetBuilder pts;
+  protected final Constraints constraints;
+  protected final ErrorConditions errorConditions;
 
-  LvalueVisitor(CtoFormulaConverter pConv, CFAEdge pEdge, String pFunction, SSAMapBuilder pSsa,
+  public LvalueVisitor(
+      CtoFormulaConverter pConv,
+      CFAEdge pEdge,
+      String pFunction,
+      SSAMapBuilder pSsa,
       PointerTargetSetBuilder pPts, Constraints pConstraints, ErrorConditions pErrorConditions) {
 
     conv = pConv;

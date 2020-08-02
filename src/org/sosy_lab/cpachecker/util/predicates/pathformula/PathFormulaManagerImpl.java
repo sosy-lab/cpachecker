@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.sl.CToFormulaConverterWithSL;
@@ -660,5 +661,10 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   public Formula expressionToFormula(PathFormula pFormula, CIdExpression pExpr, CFAEdge pEdge)
       throws UnrecognizedCodeException {
     return expressionToFormula(pFormula, (CExpression) pExpr, pEdge);
+  }
+
+  @Override
+  public void setContext(AbstractState pState) {
+    converter.setContext(pState);
   }
 }

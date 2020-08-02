@@ -1161,7 +1161,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   /** {@inheritDoc} */
   @Override
-  protected Formula makeCast(
+  public Formula makeCast(
       CType pFromType, CType pToType, Formula pFormula, Constraints constraints, CFAEdge pEdge)
       throws UnrecognizedCodeException {
     return super.makeCast(pFromType, pToType, pFormula, constraints, pEdge);
@@ -1184,7 +1184,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
    * {@inheritDoc}
    */
   @Override
-  protected Formula makeVariable(String pName, CType pType, SSAMapBuilder pSsa) {
+  public Formula makeVariable(String pName, CType pType, SSAMapBuilder pSsa) {
     return super.makeVariable(pName, pType, pSsa);
   }
 
@@ -1248,7 +1248,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   /** {@inheritDoc} */
   @Override
-  protected Formula buildTerm(
+  public Formula buildTerm(
       CRightHandSide pExp,
       CFAEdge pEdge,
       String pFunction,
@@ -1306,7 +1306,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   /** {@inheritDoc} */
   @Override
-  protected int getSizeof(CType pType) {
+  public int getSizeof(CType pType) {
     return super.getSizeof(pType);
   }
 

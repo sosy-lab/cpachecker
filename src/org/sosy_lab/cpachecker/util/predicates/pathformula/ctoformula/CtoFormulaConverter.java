@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerList;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
@@ -81,6 +82,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.value.AbstractExpressionValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -191,6 +193,12 @@ public class CtoFormulaConverter {
 
   protected final Set<CVariableDeclaration> globalDeclarations = new HashSet<>();
 
+  protected AbstractState context;
+
+  public void setContext(AbstractState pContext) {
+    context = pContext;
+  }
+
   public CtoFormulaConverter(FormulaEncodingOptions pOptions, FormulaManagerView fmgr,
       MachineModel pMachineModel, Optional<VariableClassification> pVariableClassification,
       LogManager logger, ShutdownNotifier pShutdownNotifier,
@@ -242,7 +250,7 @@ public class CtoFormulaConverter {
    * @param pType the type to calculate the size of.
    * @return the size in bytes of the given type.
    */
-  protected int getSizeof(CType pType) {
+  public int getSizeof(CType pType) {
     return typeHandler.getSizeof(pType);
   }
 
@@ -467,7 +475,7 @@ public class CtoFormulaConverter {
    *
    * This method does not update the index of the variable.
    */
-  protected Formula makeVariable(String name, CType type, SSAMapBuilder ssa) {
+  public Formula makeVariable(String name, CType type, SSAMapBuilder ssa) {
     int useIndex = getIndex(name, type, ssa);
     return fmgr.makeVariable(this.getFormulaTypeFromCType(type), name, useIndex);
   }
@@ -631,7 +639,9 @@ public class CtoFormulaConverter {
    * @param formula the formula of the expression.
    * @return the new formula after the cast.
    */
-  protected Formula makeCast(final CType pFromType, final CType pToType,
+  public Formula makeCast(
+      final CType pFromType,
+      final CType pToType,
       Formula formula, Constraints constraints, CFAEdge edge) throws UnrecognizedCodeException {
     Formula result = makeCast0(pFromType, pToType, formula, edge);
 
@@ -1083,7 +1093,7 @@ public class CtoFormulaConverter {
    * @param constraints the current constraints
    * @return the formula for the edge
    */
-  private BooleanFormula createFormulaForEdge(
+  protected BooleanFormula createFormulaForEdge(
       final CFAEdge edge, final String function,
       final SSAMapBuilder ssa, final PointerTargetSetBuilder pts,
       final Constraints constraints, final ErrorConditions errorConditions)
@@ -1470,14 +1480,14 @@ public class CtoFormulaConverter {
     }
 
     r = makeCast(
-          rhs.getExpressionType(),
+            rhs.getExpressionType(),
           lhsType,
           r,
           constraints,
           edge);
-
     return fmgr.assignment(l, r);
   }
+
 
   /**
    * Convert a simple C expression to a formula consistent with the
@@ -1507,7 +1517,7 @@ public class CtoFormulaConverter {
     );
   }
 
-  protected Formula buildTerm(
+  public Formula buildTerm(
       CRightHandSide exp,
       CFAEdge edge,
       String function,
@@ -1528,7 +1538,8 @@ public class CtoFormulaConverter {
       Constraints constraints,
       ErrorConditions errorConditions)
       throws UnrecognizedCodeException {
-    return exp.accept(new LvalueVisitor(this, edge, function, ssa, pts, constraints, errorConditions));
+    return exp
+        .accept(createCLeftHandSideVisitor(edge, function, ssa, pts, constraints, errorConditions));
   }
 
   <T extends Formula> T ifTrueThenOneElseZero(FormulaType<T> type, BooleanFormula pCond) {
@@ -1634,6 +1645,16 @@ public class CtoFormulaConverter {
       SSAMapBuilder ssa, PointerTargetSetBuilder pts,
       Constraints constraints, ErrorConditions errorConditions) {
     return new ExpressionToFormulaVisitor(this, fmgr, pEdge, pFunction, ssa, constraints);
+  }
+
+  protected CLeftHandSideVisitor<Formula, UnrecognizedCodeException> createCLeftHandSideVisitor(
+      CFAEdge pEdge,
+      String pFunction,
+      SSAMapBuilder ssa,
+      PointerTargetSetBuilder pts,
+      Constraints constraints,
+      ErrorConditions errorConditions) {
+    return new LvalueVisitor(this, pEdge, pFunction, ssa, pts, constraints, errorConditions);
   }
 
   /**
@@ -1764,7 +1785,8 @@ public class CtoFormulaConverter {
   /**
    * We call this method for unsupported Expressions and just make a new Variable.
    */
-  Formula makeVariableUnsafe(CExpression exp, String function, SSAMapBuilder ssa,
+  public Formula
+      makeVariableUnsafe(CExpression exp, String function, SSAMapBuilder ssa,
       boolean makeFresh) {
 
     if (makeFresh) {
