@@ -30,10 +30,8 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
@@ -53,7 +51,6 @@ import org.sosy_lab.cpachecker.cpa.sl.SLState.SLStateError;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 
 //TODO implement shutdown notifier handling.
@@ -201,19 +198,6 @@ public class SLTransferRelation
   protected List<SLState>
       handleStatementEdge(CStatementEdge pCfaEdge, CStatement pStatement)
           throws CPATransferException {
-    // if (pStatement instanceof CAssignment) {
-    // CAssignment a = (CAssignment) pStatement;
-    // return handleAssignment(a.getLeftHandSide(), a.getRightHandSide());
-    // } else if (pStatement instanceof CFunctionCallStatement) {
-    // CFunctionCallStatement fctStmt = (CFunctionCallStatement) pStatement;
-    // return handleFunctionCall(fctStmt.getFunctionCallExpression());
-    // } else if (pStatement instanceof CExpressionStatement) {
-    // CExpressionStatement expStmt = (CExpressionStatement) pStatement;
-    // return handleExpression(expStmt.getExpression());
-    // } else {
-    // throw new UnrecognizedCodeException("Did not recognize Statement", pStatement);
-    // }
-
     SLStateError error = null;
     try {
       error = pStatement.accept(slVisitor);
@@ -224,40 +208,9 @@ public class SLTransferRelation
       logger.log(Level.SEVERE, e.getMessage());
     }
     return ImmutableList.of(state);
-
   }
 
-  private List<SLState> handleAssignment(CExpression pLeft, CRightHandSide pRight)
-      throws CPATransferException {
 
-    Formula value = evaluate(state, pRight);
-    Formula loc = evaluate(state, pLeft);
-
-    return ImmutableList.of(state);
-  }
-
-  /**
-   * Handles a function call statement without LHS assignment (e.g. free())
-   *
-   * @throws CPATransferException
-   */
-  private List<SLState> handleFunctionCall(CFunctionCallExpression pFctExp)
-      throws CPATransferException {
-    String fctName = pFctExp.getFunctionNameExpression().toASTString();
-    if (SLOptions.isHeapAllocationFunction(fctName)) {
-      logger.log(Level.SEVERE, "Result of heap allocation not used.");
-      state.addError(SLStateError.MEMORY_LEAK);
-    } else {
-      evaluate(state, pFctExp);
-    }
-    return ImmutableList
-        .of(state);
-  }
-
-  private List<SLState> handleExpression(CExpression pExp) throws CPATransferException {
-    evaluate(state, pExp);
-    return ImmutableList.of(state);
-  }
 
   @Override
   protected Collection<SLState> handleReturnStatementEdge(CReturnStatementEdge pCfaEdge)
@@ -268,19 +221,6 @@ public class SLTransferRelation
   @Override
   protected Set<SLState> handleBlankEdge(BlankEdge pCfaEdge) {
     return Collections.singleton(state);
-  }
-
-  private Formula evaluate(SLState pState, CRightHandSide pRHS) throws CPATransferException {
-    SLMemSafetyVisitor visitor = new SLMemSafetyVisitor(memDel, state);
-    Formula res = null;
-    try {
-      res = pRHS.accept(visitor);
-    } catch (Exception e) {
-      String msg = "MemSafety evaluation failed for: " + pRHS;
-      logger.log(Level.SEVERE, msg);
-      throw new CPATransferException(msg);
-    }
-    return res;
   }
 
 }
