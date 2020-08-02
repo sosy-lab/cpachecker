@@ -22,6 +22,7 @@ package org.sosy_lab.cpachecker.cpa.sl;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
@@ -32,6 +33,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
 public class SLState implements AbstractState, AbstractQueryableState {
@@ -53,6 +55,7 @@ public class SLState implements AbstractState, AbstractQueryableState {
   private PathFormula pathFormula;
   private final Map<Formula, Formula> heap;
   private final Map<Formula, Formula> stack;
+  private final LinkedHashSet<BooleanFormula> constraints;
 
   private final Map<Formula, BigInteger> allocationSizes;
   private final Set<CSimpleDeclaration> inScopePtrs;
@@ -66,6 +69,7 @@ public class SLState implements AbstractState, AbstractQueryableState {
       PathFormula pPathFormula,
       Map<Formula, Formula> pHeap,
       Map<Formula, Formula> pStack,
+      LinkedHashSet<BooleanFormula> pConstraints,
       Map<Formula, BigInteger> pAllocationSizes,
       Set<CSimpleDeclaration> pInScopePtrs,
       Set<CVariableDeclaration> pDeclarations,
@@ -74,6 +78,7 @@ public class SLState implements AbstractState, AbstractQueryableState {
     pathFormula = pPathFormula;
     heap = pHeap;
     stack = pStack;
+    constraints = pConstraints;
     allocationSizes = pAllocationSizes;
     inScopePtrs = pInScopePtrs;
     declarations = pDeclarations;
@@ -89,6 +94,7 @@ public class SLState implements AbstractState, AbstractQueryableState {
         pStore,
         new HashMap<>(),
         new HashMap<>(),
+        new LinkedHashSet<>(),
         new HashMap<>(),
         new HashSet<>(),
         new HashSet<>(),
@@ -161,6 +167,7 @@ public class SLState implements AbstractState, AbstractQueryableState {
         newFormula,
             new HashMap<>(heap),
             new HashMap<>(stack),
+            new LinkedHashSet<>(constraints),
             new HashMap<>(allocationSizes),
             new HashSet<>(inScopePtrs),
             new HashSet<>(declarations),
@@ -203,5 +210,13 @@ public class SLState implements AbstractState, AbstractQueryableState {
     }
     allocas.get(pCaller).add(pLoc);
 
+  }
+
+  public void addConstraint(BooleanFormula pConstraint) {
+    constraints.add(pConstraint);
+  }
+
+  public LinkedHashSet<BooleanFormula> getConstraints() {
+    return constraints;
   }
 }
