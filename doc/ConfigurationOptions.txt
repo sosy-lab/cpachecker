@@ -2109,6 +2109,9 @@ cpa.predicate.handleImplicitInitialization = true
 # careful when using cartesian abstraction.
 cpa.predicate.handlePointerAliasing = true
 
+# Handle pointer analysis with Separation Logic.
+cpa.predicate.handleSL = false
+
 # When a string literal initializer is encountered, initialize the contents
 # of the char array with the contents of the string literal instead of just
 # assigning a fresh non-det address to it

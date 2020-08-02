@@ -93,7 +93,7 @@ public class SLCPA extends AbstractCPA implements StatisticsProvider {
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new SLTransferRelation(logger, stats, solver, pfm, cfa.getMachineModel());
+    return new SLTransferRelation0(logger, solver, pfm);
   }
 
   @Override
