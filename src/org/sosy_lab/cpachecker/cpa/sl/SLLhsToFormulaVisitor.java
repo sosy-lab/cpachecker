@@ -16,6 +16,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.sl.SLState.SLStateError;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
@@ -47,6 +50,7 @@ public class SLLhsToFormulaVisitor extends LvalueVisitor {
   @Override
   public Formula visit(CArraySubscriptExpression pIastArraySubscriptExpression)
       throws UnrecognizedCodeException {
+    CExpression arrayExp = pIastArraySubscriptExpression.getArrayExpression();
     CExpression subscriptExp = pIastArraySubscriptExpression.getSubscriptExpression();
     Formula subscript =
         converter.buildTerm(
@@ -57,10 +61,23 @@ public class SLLhsToFormulaVisitor extends LvalueVisitor {
             delegate,
             constraints,
             errorConditions);
-
-    CExpression arrayExp = pIastArraySubscriptExpression.getArrayExpression();
-    Formula loc = converter.buildTerm(arrayExp, edge, function, ssa, delegate, constraints, errorConditions);
-    int size = converter.getSizeof(arrayExp.getExpressionType());
+    CType type = arrayExp.getExpressionType();
+    int size;
+    Formula loc;
+    if (type instanceof CArrayType) {
+      size = converter.getSizeof(type);
+      type = ((CArrayType) type).asPointerType();
+      loc = arrayExp.accept(this);
+    } else {
+      size = converter.getSizeof(((CPointerType) type).getType());
+      loc =
+          converter
+              .buildTerm(arrayExp, edge, function, ssa, delegate, constraints, errorConditions);
+    }
+    subscript =
+        converter.makeCast(subscriptExp.getExpressionType(), type, subscript, constraints, edge);
+    // Formula loc = arrayExp.accept(this);
+    // int size = converter.getSizeof(arrayExp.getExpressionType());
     Optional<Formula> allocated = delegate.checkAllocation(loc, subscript, size);
     if (allocated.isPresent()) {
       return allocated.get();
@@ -94,7 +111,11 @@ public class SLLhsToFormulaVisitor extends LvalueVisitor {
 
   @Override
   public Formula visit(CIdExpression pIdExp) {
+    CType type = pIdExp.getExpressionType();
+    if (type instanceof CArrayType) {
+      type = ((CArrayType) type).asPointerType();
+    }
     String varName = UnaryOperator.AMPER.getOperator() + pIdExp.getDeclaration().getQualifiedName();
-    return converter.makeVariable(varName, pIdExp.getExpressionType(), ssa);
+    return converter.makeVariable(varName, type, ssa);
   }
 }

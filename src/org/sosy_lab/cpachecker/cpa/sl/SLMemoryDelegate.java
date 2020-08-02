@@ -408,9 +408,13 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     } else {
       res = slfm.makeStar(heap, stack);
     }
-    BooleanFormula constraints = fm.getBooleanFormulaManager().and(state.getConstraints());
-    return fm.makeAnd(res, constraints);
+    // BooleanFormula constraints = fm.getBooleanFormulaManager().and(state.getConstraints());
+    // return fm.makeAnd(res, constraints);
+    return res;
+  }
 
+  public BooleanFormula makeConstraints() {
+    return fm.getBooleanFormulaManager().and(state.getConstraints());
   }
 
   private BooleanFormula makeSLFormula(Map<Formula, Formula> pMemory) {

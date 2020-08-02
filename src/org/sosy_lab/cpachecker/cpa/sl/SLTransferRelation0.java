@@ -16,20 +16,20 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 
 public class SLTransferRelation0 extends SingleEdgeTransferRelation {
 
   private final LogManager logger;
-
+  private final MachineModel machineModel;
   private final Solver solver;
   private final PathFormulaManager pfm;
 
@@ -38,10 +38,12 @@ public class SLTransferRelation0 extends SingleEdgeTransferRelation {
   public SLTransferRelation0(
       LogManager pLogger,
       Solver pSolver,
-      PathFormulaManager pPfm) {
+      PathFormulaManager pPfm,
+      MachineModel pMachineModel) {
     logger = pLogger;
     solver = pSolver;
     pfm = pPfm;
+    machineModel = pMachineModel;
   }
 
   @Override
@@ -58,7 +60,7 @@ public class SLTransferRelation0 extends SingleEdgeTransferRelation {
     info += "---------------------------";
     logger.log(Level.INFO, info);
     if (pCfaEdge instanceof AssumeEdge) {
-      // return handleAssumption();
+      return handleAssumption();
     }
     return ImmutableList.of(state);
 
@@ -69,8 +71,10 @@ public class SLTransferRelation0 extends SingleEdgeTransferRelation {
     ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.ENABLE_SEPARATION_LOGIC);
     boolean unsat = false;
     try {
-      BooleanFormula constraint = state.getPathFormula().getFormula();
-      prover.addConstraint(constraint);
+      SLMemoryDelegate delegate = new SLMemoryDelegate(solver, state, machineModel, logger);
+      // BooleanFormula constraint = state.getPathFormula().getFormula();
+      prover.addConstraint(delegate.makeSLFormula());
+      prover.addConstraint(delegate.makeConstraints());
       unsat = prover.isUnsat();
     } catch (Exception e) {
       logger.log(Level.SEVERE, e.getMessage());
