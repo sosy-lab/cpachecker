@@ -119,10 +119,10 @@ public class ACSLLogicalPredicate extends ACSLPredicate {
     if (o instanceof ACSLLogicalPredicate) {
       ACSLLogicalPredicate other = (ACSLLogicalPredicate) o;
       if (super.equals(o) && operator.equals(other.operator)) {
-        return left.equals(other.left) && right.equals(other.right)
-            || BinaryOperator.isCommutative(operator)
+        return (left.equals(other.left) && right.equals(other.right))
+            || (BinaryOperator.isCommutative(operator)
                 && left.equals(other.right)
-                && right.equals(other.left);
+                && right.equals(other.left));
       }
     }
     return false;

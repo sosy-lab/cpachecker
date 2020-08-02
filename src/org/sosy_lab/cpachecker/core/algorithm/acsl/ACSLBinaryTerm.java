@@ -71,10 +71,10 @@ public class ACSLBinaryTerm implements ACSLTerm {
     if (o instanceof ACSLBinaryTerm) {
       ACSLBinaryTerm other = (ACSLBinaryTerm) o;
       if (operator.equals(other.operator)) {
-        return left.equals(other.left) && right.equals(other.right)
-            || BinaryOperator.isCommutative(operator)
+        return (left.equals(other.left) && right.equals(other.right))
+            || (BinaryOperator.isCommutative(operator)
                 && left.equals(other.right)
-                && right.equals(other.left);
+                && right.equals(other.left));
       }
     }
     return false;
