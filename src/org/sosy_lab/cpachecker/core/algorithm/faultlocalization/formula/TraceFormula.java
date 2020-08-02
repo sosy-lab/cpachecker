@@ -22,7 +22,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.AnnotatedCounterexample.FormulaLabel;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.AnnotatedCounterexample.FormulaNode;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.AnnotatedCounterexample.LabeledFormula;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -325,7 +325,7 @@ public class TraceFormula {
 
     ArrayDeque<BooleanFormula> conditions = new ArrayDeque<>();
 
-    for (FormulaNode edge : cex) {
+    for (LabeledFormula edge : cex) {
       if (edge.getLabel().equals(FormulaLabel.IF)) {
         conditions.push(edge.getEntry().getAtom());
         edge.getEntry().setAtom(frame());

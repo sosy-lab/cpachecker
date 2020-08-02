@@ -15,17 +15,16 @@ import java.util.List;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.AnnotatedCounterexample.FormulaNode;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.AnnotatedCounterexample.LabeledFormula;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaEntryList.FormulaEntry;
-import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
 
-final class AnnotatedCounterexample extends ForwardingList<FormulaNode> {
+final class AnnotatedCounterexample extends ForwardingList<LabeledFormula> {
 
   enum FormulaLabel {
     IF, ENDIF, OTHER
   }
 
-  private List<FormulaNode> annotatedCounterexample;
+  private List<LabeledFormula> annotatedCounterexample;
 
   /**
    * The AnnotatedCounterexample adds the labels IF, ENDIF and OTHER to every statement in the counterexample
@@ -46,7 +45,7 @@ final class AnnotatedCounterexample extends ForwardingList<FormulaNode> {
     Preconditions.checkState(
         pCfa.getDependenceGraph().isPresent(),
         "to use the improved version of the error invariants algorithm please enable cfa.createDependenceGraph with -setprop");
-    DependenceGraph graph = pCfa.getDependenceGraph().orElseThrow();
+    //DependenceGraph graph = pCfa.getDependenceGraph().orElseThrow();
    /* DomTree<CFAEdge>
         tree = Dominance.createDomTree(pCounterexample.get(0).getSelector().getEdge(), l -> {
       try {
@@ -58,13 +57,13 @@ final class AnnotatedCounterexample extends ForwardingList<FormulaNode> {
 
     Dominance.createDomTraversable()*/
 
-    FormulaNode prev = null;
+    LabeledFormula prev = null;
     for (FormulaEntry entry : pCounterexample) {
       // set OTHER as default label
       FormulaLabel label = FormulaLabel.OTHER;
 
-      // if current node is out of the if-block, the previous node was an ENDIF statement
-      if (prev != null/*&& if node has less dominators*/) {
+      // if current labeledFormula is out of the if-block, the previous labeledFormula was an ENDIF statement
+      if (prev != null/*&& if labeledFormula has less dominators*/) {
         prev.setLabel(FormulaLabel.ENDIF);
       }
 
@@ -72,19 +71,20 @@ final class AnnotatedCounterexample extends ForwardingList<FormulaNode> {
       if (entry.getSelector().getEdge().getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
         label = FormulaLabel.IF;
       }
-      FormulaNode node = new FormulaNode(label, entry);
-      annotatedCounterexample.add(node);
-      prev = node;
+
+      LabeledFormula labeledFormula = new LabeledFormula(label, entry);
+      annotatedCounterexample.add(labeledFormula);
+      prev = labeledFormula;
     }
   }
 
   @Override
-  protected List<FormulaNode> delegate() {
+  protected List<LabeledFormula> delegate() {
     return annotatedCounterexample;
   }
 
 
-  static class FormulaNode {
+  static class LabeledFormula {
 
     private FormulaEntry entry;
     private FormulaLabel label;
@@ -94,7 +94,7 @@ final class AnnotatedCounterexample extends ForwardingList<FormulaNode> {
      * @param pLabel a label for the entry
      * @param pEntry the corresponding entry
      */
-    public FormulaNode(FormulaLabel pLabel, FormulaEntry pEntry) {
+    public LabeledFormula(FormulaLabel pLabel, FormulaEntry pEntry) {
       label = pLabel;
       entry = pEntry;
     }
@@ -113,10 +113,10 @@ final class AnnotatedCounterexample extends ForwardingList<FormulaNode> {
 
     @Override
     public boolean equals(Object pO) {
-      if (!(pO instanceof FormulaNode)) {
+      if (!(pO instanceof LabeledFormula)) {
         return false;
       }
-      FormulaNode that = (FormulaNode) pO;
+      LabeledFormula that = (LabeledFormula) pO;
       return label == that.label &&
           Objects.equals(entry, that.entry);
     }
