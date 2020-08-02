@@ -136,7 +136,7 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
             pCfa,
             AnalysisDirection.FORWARD);
     bmgr = solver.getFormulaManager().getBooleanFormulaManager();
-    context = new FormulaContext(solver, manager, new ExpressionConverter(pConfig));
+    context = new FormulaContext(solver, manager, new ExpressionConverter(pConfig), pCfa, logger, pConfig, pShutdownNotifier);
 
     switch (algorithmType){
       case "MAXORG":
@@ -363,4 +363,5 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
   public @Nullable String getName() {
     return "Fault Localization";
   }
+
 }

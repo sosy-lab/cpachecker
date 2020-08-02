@@ -8,6 +8,10 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula;
 
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
@@ -19,6 +23,10 @@ public class FormulaContext {
   private PathFormulaManagerImpl manager;
   private ProverEnvironment prover;
   private ExpressionConverter converter;
+  private CFA cfa;
+  private LogManager logger;
+  private Configuration configuration;
+  private ShutdownNotifier shutdownNotifier;
 
   /**
    * This class maintains the most often used objects in fault localization.
@@ -26,11 +34,15 @@ public class FormulaContext {
    * @param pManager manager to concatenate CFAEdges to a boolean formula
    * @param pConverter converter to convert formulas to infix notation.
    */
-  public FormulaContext(Solver pSolver, PathFormulaManagerImpl pManager, ExpressionConverter pConverter) {
+  public FormulaContext(Solver pSolver, PathFormulaManagerImpl pManager, ExpressionConverter pConverter, CFA pMutableCFA, LogManager pLogManager, Configuration pConfiguration, ShutdownNotifier pShutdownNotifier) {
     solver = pSolver;
     manager = pManager;
     prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
     converter = pConverter;
+    cfa = pMutableCFA;
+    logger = pLogManager;
+    configuration = pConfiguration;
+    shutdownNotifier = pShutdownNotifier;
   }
 
   public ExpressionConverter getConverter() {
@@ -47,5 +59,21 @@ public class FormulaContext {
 
   public ProverEnvironment getProver() {
     return prover;
+  }
+
+  public LogManager getLogger() {
+    return logger;
+  }
+
+  public Configuration getConfiguration() {
+    return configuration;
+  }
+
+  public CFA getMutableCFA() {
+    return cfa;
+  }
+
+  public ShutdownNotifier getShutdownNotifier() {
+    return shutdownNotifier;
   }
 }

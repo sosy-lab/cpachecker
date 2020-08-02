@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
-import org.sosy_lab.java_smt.api.SolverException;
 
 public class AlternativePrecondition {
 
@@ -41,12 +40,11 @@ public class AlternativePrecondition {
   }
 
   public BooleanFormula createFormula(
-      FormulaContext pFormulaContext, List<CFAEdge> pCFAEdgeList, FormulaEntryList pEntries)
-      throws SolverException, InterruptedException {
+      FormulaContext pFormulaContext, FormulaEntryList pEntries) {
     context = pFormulaContext;
     AlternativePreconditionHelper altpre = new AlternativePreconditionHelper();
     pEntries.removeIf(entry -> altpre.add(entry));
-    pEntries.addEntry(-1, altpre.preConditionMap, null, null);
+    pEntries.addEntry(0,-1, altpre.preConditionMap, null, null);
     BooleanFormulaManager bmgr = context.getSolver().getFormulaManager().getBooleanFormulaManager();
     BooleanFormula alternative = bmgr.and(altpre.preCondition);
     return bmgr.and(alternative, defaultPrecond);

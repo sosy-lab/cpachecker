@@ -10,12 +10,12 @@ package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula;
 
 import com.google.common.collect.ForwardingList;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaEntryList.FormulaEntry;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -26,6 +26,9 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
 
   public FormulaEntryList(){
     entries = new ArrayList<>();
+  }
+  public FormulaEntryList(List<FormulaEntry> pList){
+    entries = new ArrayList<>(pList);
   }
 
   public void addEntry(int pos, int pAtomId, SSAMap pSSAMap, Selector pSelector, BooleanFormula pAtom){
@@ -76,11 +79,14 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
         .collect(Collectors.toList());
   }
 
-  public List<FormulaEntry> toList() {
+  public List<CFAEdge> toEdgeList() {
     return entries.stream()
-        .sorted(Comparator.comparingInt(entry -> entry.atomId))
+        .filter(entry -> !Objects.isNull(entry.selector))
+        .map(entry -> entry.selector.getEdge())
         .collect(Collectors.toList());
   }
+
+
 
   @Override
   protected List<FormulaEntry> delegate() {

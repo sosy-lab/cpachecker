@@ -14,12 +14,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Stack;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.AnnotatedCounterexample.FormulaLabel;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.AnnotatedCounterexample.FormulaNode;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
@@ -110,13 +114,12 @@ public class TraceFormula {
 
   /**
    * Creates the trace formula for a given list of CFAEdges.
-   * Additionally creates a trace formula with selectors.
    * @param pContext commonly used objects
    * @param pOptions set options for trace formula
    * @param pEdges counterexample
    */
   public TraceFormula(TraceFormulaType pType, FormulaContext pContext, TraceFormulaOptions pOptions, List<CFAEdge> pEdges)
-      throws CPATransferException, InterruptedException, SolverException {
+      throws CPAException, InterruptedException, SolverException, InvalidConfigurationException {
     entries = new FormulaEntryList();
     edges = pEdges;
     options = pOptions;
@@ -129,6 +132,7 @@ public class TraceFormula {
         "Pre- and post-condition are unsatisfiable. Further analysis is not possible.");
     trace = calculateTrace(pType);
   }
+
 
   public BooleanFormula getPostcondition() {
     return postcondition;
@@ -168,25 +172,32 @@ public class TraceFormula {
     }
 
     if (options.forcePre && bmgr.isTrue(precond)) {
-      return new AlternativePrecondition(options.filter, options.ignore, precond).createFormula(context, edges, entries);
+      return new AlternativePrecondition(options.filter, options.ignore, precond).createFormula(context, entries);
+    } else {
+      entries.addEntry(0,-1, SSAMap.emptySSAMap(), null, null);
     }
-    entries.addEntry(0,-1, SSAMap.emptySSAMap(), null, null);
     return precond;
   }
 
   /**
    * Calculate trace
    */
-  private BooleanFormula calculateTrace(TraceFormulaType type) {
+  private BooleanFormula calculateTrace(TraceFormulaType type)
+      throws InvalidConfigurationException, InterruptedException, CPAException {
     switch(type) {
-      case SELECTOR: return entries
+      case SELECTOR:
+        return entries
           .toSelectorList()
           .stream()
           .map(entry -> bmgr.implication(entry.getFormula(), entry.getEdgeFormula()))
           .collect(bmgr.toConjunction());
-      case FLOW_SENSITIVE: //fall through //TODO
-      case DEFAULT: //fall through
-      default: return bmgr.and(entries.toAtomList());
+      case FLOW_SENSITIVE:
+        makeFlowSensitive();
+        // fall through
+      case DEFAULT:
+        //fall through
+      default:
+        return bmgr.and(entries.toAtomList());
     }
   }
 
@@ -296,5 +307,34 @@ public class TraceFormula {
 
   public int traceSize() {
     return entries.toAtomList().size();
+  }
+
+  private void makeFlowSensitive() {
+    // Last statement before exiting the if block is considered to be endif
+    // check if entry in TF is modified???
+
+    AnnotatedCounterexample cex = new AnnotatedCounterexample(entries, context);
+
+    Stack<BooleanFormula> conditions = new Stack<>();
+
+    for (int i = 0; i < cex.size(); i++) {
+      FormulaNode edge = cex.get(i);
+      if(edge.getLabel().equals(FormulaLabel.IF)) {
+        conditions.push(edge.getEntry().getAtom());
+        edge.getEntry().setAtom(frame());
+      } else {
+        BooleanFormula conditionsConjunct = bmgr.and(conditions);
+        BooleanFormula implication = bmgr.implication(conditionsConjunct, edge.getEntry().getAtom());
+        edge.getEntry().setAtom(implication);
+        if (edge.getLabel().equals(FormulaLabel.ENDIF)){
+          conditions.pop();
+          edge.getEntry().setAtom(frame());
+        }
+      }
+    }
+  }
+
+  private BooleanFormula frame() {
+    return null;
   }
 }

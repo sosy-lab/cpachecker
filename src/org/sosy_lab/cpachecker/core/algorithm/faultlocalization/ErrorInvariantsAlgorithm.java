@@ -29,7 +29,6 @@ import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.AbstractTraceElement;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
@@ -185,7 +184,6 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     Set<String> variablesToTrack = new HashSet<>();
     Set<Fault> faults = new HashSet<>();
     FormulaManagerView fmgr = formulaContext.getSolver().getFormulaManager();
-    BooleanFormulaManager bmgr = fmgr.getBooleanFormulaManager();
     for (AbstractTraceElement errorInvariant : abstractTrace) {
       if (errorInvariant instanceof Selector) {
         //Create fault and append the description of the previous and the next interval
