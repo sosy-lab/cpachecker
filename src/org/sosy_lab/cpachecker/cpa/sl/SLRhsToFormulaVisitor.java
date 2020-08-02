@@ -142,14 +142,12 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
         delegate.handleMalloc(loc, size.intValueExact());
         break;
       case CALLOC:
-        int yx = 0;
-        break;
+        throw new UnrecognizedCodeException("Calloc not implemented yet", edge);
       case REALLOC:
-        int h;
-        break;
+        throw new UnrecognizedCodeException("Realloc not implemented yet", edge);
       case FREE:
         Formula locToFree = params.get(0).accept(this);
-        if (delegate.handleFree(locToFree)) {
+        if (!delegate.handleFree(locToFree)) {
           delegate.addError(SLStateError.INVALID_FREE);
         }
         break;

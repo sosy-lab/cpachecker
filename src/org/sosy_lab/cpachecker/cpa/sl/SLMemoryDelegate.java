@@ -83,15 +83,17 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
    * @return The value the pointer is pointing to or null.
    */
   public Optional<Formula> dereference(Formula pLoc, int segmentSize) {
-    Optional<Formula> allocatedLoc = checkAllocation(state.getHeap(), pLoc);
+    Optional<Formula> allocatedLoc = checkAllocation(pLoc, segmentSize);
     if (allocatedLoc.isPresent()) {
-      return getValueForLocation(state.getHeap(), allocatedLoc.get(), segmentSize);
+      Formula loc = allocatedLoc.get();
+      if(state.getHeap().containsKey(loc) ) {
+        return getValueForLocation(state.getHeap(), loc, segmentSize);
+      } else {
+        return getValueForLocation(state.getStack(), loc, segmentSize);
+      }
+    } else {
+      return Optional.empty();
     }
-    allocatedLoc = checkAllocation(state.getStack(), pLoc);
-    if (allocatedLoc.isPresent()) {
-      return getValueForLocation(state.getStack(), allocatedLoc.get(), segmentSize);
-    }
-    return Optional.empty();
   }
 
   public Optional<Formula> dereference(Formula pLoc, Formula pOffset, int segmentSize) {
@@ -106,6 +108,22 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
    * @return The allocated equivalent in the memory if allocated. Empty if not allocated.
    */
   public Optional<Formula> checkAllocation(Formula pLoc, int segmentSize) {
+    // Trivial checks first to increase performance.
+    if (state.getHeap().containsKey(pLoc)) {
+      if (checkBytes(state.getHeap(), pLoc, segmentSize)) {
+        return Optional.of(pLoc);
+      } else {
+        return Optional.empty();
+      }
+    }
+    if (state.getStack().containsKey(pLoc)) {
+      if (checkBytes(state.getStack(), pLoc, segmentSize)) {
+        return Optional.of(pLoc);
+      } else {
+        Optional.empty();
+      }
+    }
+
     Optional<Formula> allocatedLoc = checkAllocation(state.getHeap(), pLoc);
     if (allocatedLoc.isPresent() && checkBytes(state.getHeap(), allocatedLoc.get(), segmentSize)) {
       return allocatedLoc;
@@ -142,15 +160,18 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
    * @return True if successful, false otherwise.
    */
   public boolean dereferenceAssign(Formula pLoc, Formula pVal, int segmentSize) {
-    Optional<Formula> allocatedLoc = checkAllocation(state.getHeap(), pLoc);
+    Optional<Formula> allocatedLoc = checkAllocation(pLoc, segmentSize);
     if (allocatedLoc.isPresent()) {
-      return assignValueToLocation(state.getHeap(), allocatedLoc.get(), pVal, segmentSize);
+      Formula loc = allocatedLoc.get();
+      if (state.getHeap().containsKey(loc)) {
+        return assignValueToLocation(state.getHeap(), allocatedLoc.get(), pVal, segmentSize);
+      } else {
+        return assignValueToLocation(state.getStack(), allocatedLoc.get(), pVal, segmentSize);
+      }
+    } else {
+      return false;
     }
-    allocatedLoc = checkAllocation(state.getStack(), pLoc);
-    if (allocatedLoc.isPresent()) {
-      return assignValueToLocation(state.getStack(), allocatedLoc.get(), pVal, segmentSize);
-    }
-    return false;
+
   }
 
   private Optional<Formula>
@@ -197,24 +218,46 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     }
     // Semantical check.
     // return isAllocated(fLoc, usePredContext, pMemory);
-    for (Formula formulaOnHeap : pMemory.keySet()) {
-      if (checkEquivalence(fLoc, formulaOnHeap)) {
-        return Optional.of(formulaOnHeap);
+    for (Formula formulaInMemory : pMemory.keySet()) {
+      // if (checkEquivalence(fLoc, formulaInMemory)) {
+      // return Optional.of(formulaInMemory);
+      // }
+      if (checkEquivalenceSL(fLoc, formulaInMemory, pMemory)) {
+        return Optional.of(formulaInMemory);
       }
     }
     return Optional.empty();
   }
 
+  private boolean
+      checkEquivalenceSL(Formula pLoc, Formula pHeaplet, Map<Formula, Formula> pMemory) {
+    BooleanFormula toCheck =
+        slfm.makePointsTo(pLoc, fm.makeVariable(heapValueFormulaType, "__dummyVal"));
+    BooleanFormula onHeap = slfm.makePointsTo(pHeaplet, pMemory.get(pHeaplet));
+    try (ProverEnvironment prover =
+        solver.newProverEnvironment(ProverOptions.ENABLE_SEPARATION_LOGIC)) {
+      prover.addConstraint(slfm.makeStar(toCheck, onHeap));
+      stats.startSolverTime();
+      return prover.isUnsat();
+    } catch (Exception e) {
+      logger.log(Level.SEVERE, e.getMessage());
+    } finally {
+      stats.stopSolverTime();
+    }
+    return false;
+  }
 
 
   public boolean checkEquivalence(Formula pF0, Formula pF1) {
-    if (!fm.getFormulaType(pF0).equals(fm.getFormulaType(pF1))) {
+    FormulaType<Formula> type0 = fm.getFormulaType(pF0);
+    FormulaType<Formula> type1 = fm.getFormulaType(pF1);
+    if (!type0.equals(type1)) {
       return false;
     }
     BooleanFormula tmp = fm.makeEqual(pF0, pF1);
     try (ProverEnvironment prover =
         solver.newProverEnvironment(ProverOptions.ENABLE_SEPARATION_LOGIC)) {
-      prover.addConstraint(state.getPathFormula().getFormula());
+      prover.addConstraint(makeSLFormula());
       prover.addConstraint(tmp);
       stats.startSolverTime();
       if (prover.isUnsat()) {
@@ -222,13 +265,14 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
       }
     } catch (Exception e) {
       logger.log(Level.SEVERE, e.getMessage());
+      return false;
     } finally {
       stats.stopSolverTime();
     }
     // Check tautology.
     try (ProverEnvironment prover =
         solver.newProverEnvironment(ProverOptions.ENABLE_SEPARATION_LOGIC)) {
-      prover.addConstraint(state.getPathFormula().getFormula());
+      prover.addConstraint(makeSLFormula());
       prover.addConstraint(fm.makeNot(tmp));
       stats.startSolverTime();
       return prover.isUnsat();

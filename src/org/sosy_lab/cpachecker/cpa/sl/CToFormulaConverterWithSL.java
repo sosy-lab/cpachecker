@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.sl;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -19,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializers;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSideVisitor;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
@@ -27,6 +29,9 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
@@ -122,8 +127,6 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
   public PathFormula
       makeAnd(PathFormula pOldFormula, CFAEdge pEdge, ErrorConditions pErrorConditions)
           throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
-    //PathFormula res = super.makeAnd(pOldFormula, pEdge, pErrorConditions);
-
     String function =
         (pEdge.getPredecessor() != null) ? pEdge.getPredecessor().getFunctionName() : null;
 
@@ -157,7 +160,7 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
     SLMemoryDelegate delegate = makeDelegate();
     for (CSimpleDeclaration v : pEdge.getSuccessor().getOutOfScopeVariables()) {
       if (v instanceof CVariableDeclaration) {
-        handleOutOfScopeVar(pEdge, state, delegate, (CVariableDeclaration) v);
+        handleOutOfScopeVar(pEdge, state, delegate, (CVariableDeclaration) v, ssa);
       }
     }
     return res;
@@ -167,7 +170,8 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
       CFAEdge pEdge,
       SLState pState,
       SLMemoryDelegate pDelegate,
-      CVariableDeclaration pVar)
+      CVariableDeclaration pVar,
+      SSAMapBuilder pSsa)
       throws UnrecognizedCodeException {
 
     PathFormula pf = pState.getPathFormula();
@@ -181,12 +185,7 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
     if (!(type instanceof CPointerType || type instanceof CArrayType)) {
       return;
     }
-    loc =
-        makeFormulaForVariable(
-            pf.getSsa(),
-            pf.getPointerTargetSet(),
-            pVar.getQualifiedName(),
-            type);
+    loc = makeVariable(pVar.getQualifiedName(), type, pSsa);
     // Check if the discarded pointer was a heap pointer alias.
     Optional<Formula> match = pDelegate.checkAllocation(loc, getSizeof(type));
     if (match.isPresent()) {
@@ -208,7 +207,7 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
 
   }
 
-  private CUnaryExpression createSymbolicLocation(CVariableDeclaration pDecl) {
+  private CUnaryExpression createSymbolicLocation(CSimpleDeclaration pDecl) {
     CIdExpression e = new CIdExpression(FileLocation.DUMMY, pDecl);
     CType t = new CPointerType(false, false, e.getExpressionType());
     return new CUnaryExpression(FileLocation.DUMMY, t, e, UnaryOperator.AMPER);
@@ -331,4 +330,85 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
     ((SLState) context).addConstraint(constraint);
     return constraint;
   }
+
+  @Override
+  protected BooleanFormula makeFunctionCall(
+      CFunctionCallEdge edge,
+      String callerFunction,
+      SSAMapBuilder ssa,
+      PointerTargetSetBuilder pts,
+      Constraints constraints,
+      ErrorConditions errorConditions)
+      throws UnrecognizedCodeException, InterruptedException {
+    SLMemoryDelegate delegate = makeDelegate();
+    List<CExpression> actualParams = edge.getArguments();
+    CFunctionEntryNode fn = edge.getSuccessor();
+    List<CParameterDeclaration> formalParams = fn.getFunctionParameters();
+    if (formalParams.size() != actualParams.size()) {
+      throw new UnrecognizedCodeException(
+          "Number of parameters on function call does " + "not match function definition",
+          edge);
+    }
+
+    for (int i = 0; i < formalParams.size(); i++) {
+      CParameterDeclaration param = formalParams.get(i);
+      String varNameWithAmper = UnaryOperator.AMPER.getOperator() + param.getQualifiedName();
+      Formula var = makeFreshVariable(varNameWithAmper, param.getType(), ssa);
+      delegate.handleVarDeclaration(var, getSizeof(param.getType()));
+
+      CIdExpression lhs = new CIdExpression(param.getFileLocation(), param);
+      makeAssignment(
+          lhs,
+          lhs,
+          actualParams.get(i),
+          edge,
+          callerFunction,
+          ssa,
+          pts,
+          constraints,
+          errorConditions);
+    }
+    // Retval allocation??
+    com.google.common.base.Optional<CVariableDeclaration> ret = fn.getReturnVariable();
+    if (ret.isPresent()) {
+      CVariableDeclaration decl = ret.get();
+      String varNameWithAmper = UnaryOperator.AMPER.getOperator() + decl.getQualifiedName();
+      Formula var = makeFreshVariable(varNameWithAmper, decl.getType(), ssa);
+      delegate.handleVarDeclaration(var, getSizeof(decl.getType()));
+    }
+
+    return bfmgr.makeTrue();
+  }
+
+  @Override
+  protected BooleanFormula makeExitFunction(
+      CFunctionSummaryEdge pCe,
+      String pCalledFunction,
+      SSAMapBuilder pSsa,
+      PointerTargetSetBuilder pPts,
+      Constraints pConstraints,
+      ErrorConditions pErrorConditions)
+      throws UnrecognizedCodeException, InterruptedException {
+    BooleanFormula res =
+        super.makeExitFunction(pCe, pCalledFunction, pSsa, pPts, pConstraints, pErrorConditions);
+    SLMemoryDelegate delegate = makeDelegate();
+    // Deallocate parameters
+    CFunctionEntryNode fe = pCe.getFunctionEntry();
+    for (CParameterDeclaration param : fe.getFunctionParameters()) {
+      String varNameWithAmper = UnaryOperator.AMPER.getOperator() + param.getQualifiedName();
+      Formula var = makeVariable(varNameWithAmper, param.getType(), pSsa);
+      delegate.deallocateFromStack(var);
+    }
+    // Deallocate temp return variable.
+    com.google.common.base.Optional<CVariableDeclaration> ret = fe.getReturnVariable();
+    if (ret.isPresent()) {
+      String varNameWithAmper = UnaryOperator.AMPER.getOperator() + ret.get().getQualifiedName();
+      Formula var = makeVariable(varNameWithAmper, ret.get().getType(), pSsa);
+      delegate.deallocateFromStack(var);
+    }
+
+    return res;
+  }
+
+
 }
