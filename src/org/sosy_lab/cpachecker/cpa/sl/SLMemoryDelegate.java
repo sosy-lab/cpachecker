@@ -22,7 +22,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.cpa.sl.SLState.SLStateError;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
@@ -100,7 +99,8 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
   }
 
   public Optional<Formula> dereference(Formula pLoc, Formula pOffset, int segmentSize) {
-    Formula loc = fm.makePlus(pLoc, pOffset);
+    Formula loc = fm.makeMultiply(pOffset, fm.makeNumber(fm.getFormulaType(pOffset), segmentSize));
+    loc = fm.makePlus(loc, pOffset);
     return dereference(loc, segmentSize);
   }
 
@@ -187,8 +187,9 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     Formula res = pMemory.get(pLoc);
     for (int i = 1; i < size; i++) {
       Formula address = fm.makePlus(pLoc, fm.makeNumber(heapAddressFormulaType, i));
-      if (pMemory.containsKey(address)) {
-        res = fm.makeConcat(pMemory.get(address), res);
+      Optional<Formula> nthByte = dereference(address, 1);
+      if (nthByte.isPresent()) {
+        res = fm.makeConcat(nthByte.get(), res);
         // res = fm.makeConcat(res, pMemory.get(address)); ENDIANESS?
       } else {
         return Optional.empty();
@@ -347,7 +348,6 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
   }
 
   public BigInteger calculateValue(Formula pVal) {
-    PathFormula context = state.getPathFormula();
     final String dummyVarName = "0_calculatedValue"; // must not be a valid C variable name.
     assert pVal instanceof BitvectorFormula;
     BooleanFormula eq = fm.makeEqual(fm.makeVariable(fm.getFormulaType(pVal), dummyVarName), pVal);
@@ -356,7 +356,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
             ProverOptions.GENERATE_MODELS,
             ProverOptions.ENABLE_SEPARATION_LOGIC)) {
       env.addConstraint(makeSLFormula());
-      env.addConstraint(makeConstraints());
+      // env.addConstraint(makeConstraints());
       env.addConstraint(eq);
       stats.startSolverTime();
       if (!env.isUnsat()) {

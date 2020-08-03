@@ -135,10 +135,7 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
     PointerTargetSetBuilder pts = createPointerTargetSetBuilder(pOldFormula.getPointerTargetSet());
 
     // handle the edge
-    BooleanFormula edgeFormula =
-        createFormulaForEdge(pEdge, function, ssa, pts, constraints, pErrorConditions);
-
-    edgeFormula = bfmgr.and(edgeFormula, constraints.get());
+    createFormulaForEdge(pEdge, function, ssa, pts, constraints, pErrorConditions);
 
     SSAMap newSsa = ssa.build();
     PointerTargetSet newPts = pts.build();
@@ -151,7 +148,7 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
     state.setPathFormula(res); // Update SSAIndices.
     SLMemoryDelegate delegate = makeDelegate();
     for (CSimpleDeclaration v : pEdge.getSuccessor().getOutOfScopeVariables()) {
-      if (v instanceof CVariableDeclaration) {
+      if (v instanceof CVariableDeclaration && !((CVariableDeclaration) v).isGlobal()) {
         handleOutOfScopeVar(pEdge, state, delegate, (CVariableDeclaration) v, ssa);
       }
     }
