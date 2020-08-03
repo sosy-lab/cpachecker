@@ -64,12 +64,16 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
     boolean endif;
     LabeledFormula prev = null;
     for (FormulaEntry entry : withoutPrecond) {
-      // set OTHER as default label
       CFAEdge treeNode = entry.getSelector().getEdge();
+
+      // check if previous node ended an if-statement
       endif = handler.addWithNotificationIfMerged(treeNode);
+
+      // set OTHER as default label
       FormulaLabel label = FormulaLabel.OTHER;
 
-      // if current labeledFormula is out of the if-block, the previous labeledFormula was an ENDIF statement
+      // if current labeledFormula is not part of the if-block anymore,
+      // the previous labeledFormula was an ENDIF statement
       if (prev != null && endif) {
         if (prev.label.equals(FormulaLabel.IF)) {
           prev.setLabel(FormulaLabel.BOTH);
@@ -99,12 +103,20 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
     private ArrayDeque<List<Integer>> stack;
     private DomTree<CFAEdge> tree;
 
+    private final int DOMINATED = -1;
+
     DomTreeHandler(DomTree<CFAEdge> pTree) {
       stack = new ArrayDeque<>();
       tree = pTree;
     }
 
+    /**
+     * Handles the addition of new edges to the paths
+     * @param edge edge to be processed
+     * @return true if the edge caused a merge operation, false else
+     */
     public boolean addWithNotificationIfMerged(CFAEdge edge) {
+      // create a new path on the first if statement, else ignore the edge
       if (stack.isEmpty()) {
         if (!edge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
           return false;
@@ -113,48 +125,72 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
         return false;
       }
 
+      // extract the id of the given edge
       int id = tree.getId(edge);
       List<Integer> currPath = stack.peek();
       Set<Integer> dominators = getDominators(id);
       // 2 = root element and at least one statement
       if (currPath.size() >= 2) {
-        if (dominators.contains(currPath.get(0)));
-        for (int i = 1; i < currPath.size(); i++) {
-          if (dominators.contains(currPath.get(i))) {
-            if (edge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
-              split(edge);
-            } else {
-              currPath.add(id);
+        // the current node has potential to end an if statement
+        // we have to check two conditions for that:
+        // 1) it is dominated by the most recent assume edge
+        // 2) no edge between the current edge and the most recent assume edge dominates the current edge
+        if (dominators.contains(currPath.get(0))) {
+          // 1) holds. Check now every edge on the path.
+          int i;
+          for (i = 1; i < currPath.size(); i++) {
+            //check every node on the path (2))
+            if (dominators.contains(currPath.get(i))) {
+              i = DOMINATED;
+              break;
             }
-            return false;
+          }
+          if (i != DOMINATED) {
+            // 2) holds
+            merge();
+            addWithNotificationIfMerged(edge);
+            return true;
           }
         }
-        merge();
-        addWithNotificationIfMerged(edge);
-        return true;
       }
+      // the edge is neither the first assume edge nor an ENDIF statement
       if (edge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
+        // create a new path if the edge is an assume edge
         split(edge);
       } else {
+        // add the edge to the most recent path otherwise
         currPath.add(id);
       }
       return false;
     }
 
-    public void split(CFAEdge edge){
+    /**
+     * Add a new path to the stack.
+     * @param edge the path starts with this edge
+     */
+    private void split(CFAEdge edge){
+      Preconditions.checkArgument(edge.getEdgeType().equals(CFAEdgeType.AssumeEdge), "the split is not performed on an assume edge");
       int id = tree.getId(edge);
       List<Integer> currPath = new ArrayList<>();
       currPath.add(id);
       stack.push(currPath);
     }
 
-    public void merge() {
+    /**
+     * whenever an ENDIF-label is reached merge the most recent path with the previous path.
+     */
+    private void merge() {
       List<Integer> currPath = stack.pop();
       if (!stack.isEmpty()) {
         stack.peek().addAll(currPath);
       }
     }
 
+    /**
+     * Calculate dominators of a certain node
+     * @param id the id of a node
+     * @return the dominators of the node referred to the given id
+     */
     private Set<Integer> getDominators(int id) {
       Set<Integer> dominators = new HashSet<>();
 
@@ -174,7 +210,7 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
     private FormulaLabel label;
 
     /**
-     * Adds a label to an FormulaEntry
+     * Adds a label to a FormulaEntry
      * @param pLabel a label for the entry
      * @param pEntry the corresponding entry
      */
