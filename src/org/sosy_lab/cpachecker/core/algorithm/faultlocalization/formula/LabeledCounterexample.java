@@ -28,13 +28,20 @@ import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
 final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
 
   enum FormulaLabel {
-    IF, ENDIF, BOTH, OTHER
+    // assume edges are IF statements
+    IF,
+    // edges that are the last statement of an if-block are ENDIF statements
+    ENDIF,
+    // edges that have both of the above properties are BOTH statements
+    BOTH,
+    // edges that do not belong to any of the above categories are OTHER statements
+    OTHER
   }
 
   private List<LabeledFormula> annotatedCounterexample;
 
   /**
-   * The LabeledCounterexample adds the labels IF, ENDIF and OTHER to every statement in the counterexample
+   * The LabeledCounterexample adds the labels IF, ENDIF, BOTH and OTHER to every statement in the counterexample
    * @param pCounterexample the counterexample for which we want to compute the labels
    * @param pContext the context
    */
@@ -103,8 +110,6 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
     private ArrayDeque<List<Integer>> stack;
     private DomTree<CFAEdge> tree;
 
-    private final int DOMINATED = -1;
-
     DomTreeHandler(DomTree<CFAEdge> pTree) {
       stack = new ArrayDeque<>();
       tree = pTree;
@@ -136,10 +141,11 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
         // 1) it is dominated by the most recent assume edge
         // 2) no edge between the current edge and the most recent assume edge dominates the current edge
         if (dominators.contains(currPath.get(0))) {
-          // 1) holds. Check now every edge on the path.
+          // 1) holds.
+          // check every edge on the path.
+          int DOMINATED = -1;
           int i;
           for (i = 1; i < currPath.size(); i++) {
-            //check every node on the path (2))
             if (dominators.contains(currPath.get(i))) {
               i = DOMINATED;
               break;
@@ -148,6 +154,8 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
           if (i != DOMINATED) {
             // 2) holds
             merge();
+            // process the edge again.
+            // we ignored that this edge may be an assume edge or member of the current most recent path
             addWithNotificationIfMerged(edge);
             return true;
           }

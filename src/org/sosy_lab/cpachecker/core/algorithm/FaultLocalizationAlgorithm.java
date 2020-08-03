@@ -269,7 +269,7 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
           break;
         }
         default: {
-          tf = new TraceFormula(TraceFormulaType.DEFAULT, context, options, edgeList);
+          tf = new TraceFormula(TraceFormulaType.TRACE, context, options, edgeList);
           ranking = FaultRankingUtils.concatHeuristicsDefaultFinalScoring(
               new ForwardPreConditionRanking(tf, context),
               new EdgeTypeRanking(),

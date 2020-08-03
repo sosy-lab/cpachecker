@@ -38,7 +38,7 @@ public class TraceFormula {
 
   public enum TraceFormulaType {
     // conjunct of pre trace and post
-    DEFAULT,
+    TRACE,
     // selectors for every atom in trace
     SELECTOR,
     // fstf (implies if blocks)
@@ -195,7 +195,7 @@ public class TraceFormula {
       case FLOW_SENSITIVE:
         makeFlowSensitive();
         //$FALL-THROUGH$
-      case DEFAULT:
+      case TRACE:
         //$FALL-THROUGH$
       default:
         return bmgr.and(entries.toAtomList());
@@ -331,6 +331,12 @@ public class TraceFormula {
     ArrayDeque<BooleanFormula> conditions = new ArrayDeque<>();
 
     for (LabeledFormula edge : cex) {
+      if (edge.getLabel().equals(FormulaLabel.BOTH)) {
+        conditions.pop();
+        conditions.push(edge.getEntry().getAtom());
+        edge.getEntry().setAtom(frame());
+        continue;
+      }
       if (edge.getLabel().equals(FormulaLabel.IF)) {
         conditions.push(edge.getEntry().getAtom());
         edge.getEntry().setAtom(frame());
@@ -339,9 +345,8 @@ public class TraceFormula {
         BooleanFormula implication =
             bmgr.implication(conditionsConjunct, edge.getEntry().getAtom());
         edge.getEntry().setAtom(implication);
-        if (edge.getLabel().equals(FormulaLabel.ENDIF)) {
+        if (edge.getLabel().equals(FormulaLabel.ENDIF) || edge.getLabel().equals(FormulaLabel.BOTH)) {
           conditions.pop();
-          //edge.getEntry().setAtom(frame());
         }
       }
     }
