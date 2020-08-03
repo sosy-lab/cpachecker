@@ -322,25 +322,28 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     allocate(state.getHeap(), var, size);
   }
 
-  public void deallocate(Map<Formula, Formula> pMemory, Formula var) {
+  public boolean deallocate(Map<Formula, Formula> pMemory, Formula var) {
     BigInteger size = state.getAllocationSizes().remove(var);
     if (size == null) {
       logger.log(Level.SEVERE, "Deallocate: " + var + " not found in SSAMap");
-      return;
+      return false;
     }
-    pMemory.remove(var);
+    if (pMemory.remove(var) == null) {
+      return false;
+    }
     for (int i = 1; i < size.intValueExact(); i++) {
       Formula loc = fm.makePlus(var, fm.makeNumber(heapAddressFormulaType, i));
       pMemory.remove(loc);
     }
+    return true;
   }
 
-  public void deallocateFromStack(Formula pVar) {
-    deallocate(state.getStack(), pVar);
+  public boolean deallocateFromStack(Formula pVar) {
+    return deallocate(state.getStack(), pVar);
   }
 
-  public void deallocateFromHeap(Formula pVar) {
-    deallocate(state.getHeap(), pVar);
+  public boolean deallocateFromHeap(Formula pVar) {
+    return deallocate(state.getHeap(), pVar);
   }
 
   public BigInteger calculateValue(Formula pVal) {

@@ -125,9 +125,13 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
 
   @Override
   public Formula visit(CFunctionCallExpression pE) throws UnrecognizedCodeException {
+    final List<CExpression> params = pE.getParameterExpressions();
+    for (CExpression p : params) {
+      p.accept(this);
+    }
     Formula loc = super.visit(pE);
     CIdExpression fctExp = (CIdExpression) pE.getFunctionNameExpression();
-    final List<CExpression> params = pE.getParameterExpressions();
+
     Formula sizeValueFormula = null;
     BigInteger size = null;
     switch (SLHeapFunction.get(fctExp.getName())) {
