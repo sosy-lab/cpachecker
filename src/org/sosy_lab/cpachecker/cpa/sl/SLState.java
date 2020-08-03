@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -59,7 +58,7 @@ public class SLState implements AbstractState, AbstractQueryableState {
   private final LinkedHashSet<BooleanFormula> constraints;
 
   private final Map<Formula, BigInteger> allocationSizes;
-  private final Set<CSimpleDeclaration> inScopePtrs;
+  private final Set<Formula> inScopePtrs;
   private final Set<CVariableDeclaration> declarations;
   private final Map<String, Set<Formula>> allocas;
 
@@ -72,7 +71,7 @@ public class SLState implements AbstractState, AbstractQueryableState {
       LinkedHashMap<Formula, Formula> pStack,
       LinkedHashSet<BooleanFormula> pConstraints,
       Map<Formula, BigInteger> pAllocationSizes,
-      Set<CSimpleDeclaration> pInScopePtrs,
+      Set<Formula> pInScopePtrs,
       Set<CVariableDeclaration> pDeclarations,
       Map<String, Set<Formula>> pAllocas,
       SLStateError pError) {
@@ -110,13 +109,13 @@ public class SLState implements AbstractState, AbstractQueryableState {
   @Override
   public String toString() {
     return "Errors:   "
-        + errors
-        + "\nFormula:  "
-        + pathFormula
-        + "\nHeap:     "
-        + heap
-        + "\nStack:    "
-        + stack;
+        + errors;
+    // + "\nFormula: "
+    // + pathFormula
+    // + "\nHeap: "
+    // + heap
+    // + "\nStack: "
+    // + stack;
   }
 
   public Map<Formula, Formula> getHeap() {
@@ -185,7 +184,7 @@ public class SLState implements AbstractState, AbstractQueryableState {
     return declarations;
   }
 
-  public Set<CSimpleDeclaration> getInScopePtrs() {
+  public Set<Formula> getInScopePtrs() {
     return inScopePtrs;
   }
 
@@ -193,11 +192,11 @@ public class SLState implements AbstractState, AbstractQueryableState {
     return allocas;
   }
 
-  public void addInScopePtr(CSimpleDeclaration pPtr) {
+  public void addInScopePtr(Formula pPtr) {
     inScopePtrs.add(pPtr);
   }
 
-  public void removeInScopePtr(CSimpleDeclaration pPtr) {
+  public void removeInScopePtr(Formula pPtr) {
     inScopePtrs.remove(pPtr);
   }
 

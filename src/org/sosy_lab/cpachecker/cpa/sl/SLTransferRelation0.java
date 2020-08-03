@@ -55,11 +55,11 @@ public class SLTransferRelation0 extends SingleEdgeTransferRelation {
     pfm.setContext(state);
     pfm.makeAnd(state.getPathFormula(), pCfaEdge);
 
-    // String info = "";
-    // info += pCfaEdge.getCode() + "\n";
-    // info += state + "\n";
-    // info += "---------------------------";
-    // logger.log(Level.INFO, info);
+    String info = "";
+    info += pCfaEdge.getCode() + "\n";
+    info += state + "\n";
+    info += "---------------------------";
+    logger.log(Level.INFO, info);
     if (pCfaEdge instanceof AssumeEdge) {
       try {
         return handleAssumption();

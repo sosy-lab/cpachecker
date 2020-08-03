@@ -13,7 +13,6 @@ import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
@@ -24,7 +23,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -32,12 +30,11 @@ import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
-import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
-import org.sosy_lab.cpachecker.cpa.sl.SLState.SLStateError;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
@@ -149,7 +146,7 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
     SLMemoryDelegate delegate = makeDelegate();
     for (CSimpleDeclaration v : pEdge.getSuccessor().getOutOfScopeVariables()) {
       if (v instanceof CVariableDeclaration && !((CVariableDeclaration) v).isGlobal()) {
-        handleOutOfScopeVar(pEdge, state, delegate, (CVariableDeclaration) v, ssa);
+        handleOutOfScopeVar(pEdge, delegate, (CVariableDeclaration) v, ssa);
       }
     }
     return res;
@@ -157,56 +154,28 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
 
   private void handleOutOfScopeVar(
       CFAEdge pEdge,
-      SLState pState,
       SLMemoryDelegate pDelegate,
       CVariableDeclaration pVar,
       SSAMapBuilder pSsa)
       throws UnrecognizedCodeException {
 
-    PathFormula pf = pState.getPathFormula();
+    // PathFormula pf = pState.getPathFormula();
     // Remove from stack.
-    CUnaryExpression expLoc = createSymbolicLocation(pVar);
-    Formula loc = buildTermFromPathFormula(pf, expLoc, pEdge);
-    boolean success = pDelegate.deallocateFromStack(loc);
-    if (!success) {
-      throw new UnrecognizedCodeException("Could not deallocate " + loc, pEdge);
-    }
-
-    // Check for memory leak.
+    // CUnaryExpression expLoc = createSymbolicLocation(pVar);
+    // Formula loc = buildTermFromPathFormula(pf, expLoc, pEdge);
     CType type = pVar.getType();
-    if (!(type instanceof CPointerType || type instanceof CArrayType)) {
-      return;
-    }
     CType t = pDelegate.makeLocationTypeForVariableType(type);
-    loc = makeVariable(pVar.getQualifiedName(), t, pSsa);
-    // Check if the discarded pointer was a heap pointer alias.
-    Optional<Formula> match = pDelegate.checkAllocation(loc, getSizeof(type));
-    if (match.isPresent()) {
-      // Check if another alias exists.
-      for (CSimpleDeclaration ptr : pState.getInScopePtrs()) {
-        CType t0 = pDelegate.makeLocationTypeForVariableType(ptr.getType());
-        Formula tmp = makeVariable(ptr.getQualifiedName(), t0, pSsa);
-        // Formula tmp =
-        // makeFormulaForVariable(
-        // pf.getSsa(),
-        // pf.getPointerTargetSet(),
-        // ptr.getQualifiedName(),
-        // type);
-        if (pDelegate.checkEquivalence(loc, tmp)) {
-          return;
-        }
-      }
-      // No alias found => Leak.
-      pDelegate.addError(SLStateError.MEMORY_LEAK);
+    Formula var =
+        makeVariable(UnaryOperator.AMPER.getOperator() + pVar.getQualifiedName(), t, pSsa);
+
+
+    boolean success = pDelegate.handleOutOfScopeVar(var, pVar.getType());
+    if (!success) {
+      throw new UnrecognizedCodeException("Could not deallocate " + var, pEdge);
     }
-
   }
 
-  private CUnaryExpression createSymbolicLocation(CSimpleDeclaration pDecl) {
-    CIdExpression e = new CIdExpression(FileLocation.DUMMY, pDecl);
-    CType t = new CPointerType(false, false, e.getExpressionType());
-    return new CUnaryExpression(FileLocation.DUMMY, t, e, UnaryOperator.AMPER);
-  }
+
 
   @Override
   protected BooleanFormula makeDeclaration(
@@ -225,20 +194,12 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
     CVariableDeclaration decl = (CVariableDeclaration) pEdge.getDeclaration();
     final String varName = decl.getQualifiedName();
 
-    SLState state = (SLState) context;
     CType type = decl.getType();
-    int size = getSizeof(type);
-    if (type instanceof CArrayType || type instanceof CPointerType) {
-      state.addInScopePtr(decl);
-      if (type instanceof CArrayType) {
-        type = ((CArrayType) type).asPointerType();
-      }
-    }
     String varNameWithAmper = UnaryOperator.AMPER.getOperator() + varName;
     SLMemoryDelegate delegate = makeDelegate();
     CType t = delegate.makeLocationTypeForVariableType(type);
     Formula var = makeFreshVariable(varNameWithAmper, t, pSsa);
-    delegate.handleVarDeclaration(var, size);
+    delegate.handleVarDeclaration(var, type);
 
     // Initializer
     for (CAssignment assignment : CInitializers.convertToAssignments(decl, pEdge)) {
@@ -300,8 +261,10 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
     r = makeCast(rhs.getExpressionType(), lhsType, r, constraints, edge);
 
     SLMemoryDelegate delegate = makeDelegate();
-    delegate.dereferenceAssign(l, r, getSizeof(lhsType));
-
+    // Skip main return statement assignment.
+    if (!(edge instanceof CReturnStatementEdge && function.equals("main"))) {
+      delegate.dereferenceAssign(l, r, getSizeof(lhsType));
+    }
     return bfmgr.makeTrue();
   }
 
@@ -352,8 +315,9 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
     for (int i = 0; i < formalParams.size(); i++) {
       CParameterDeclaration param = formalParams.get(i);
       String varNameWithAmper = UnaryOperator.AMPER.getOperator() + param.getQualifiedName();
-      Formula var = makeFreshVariable(varNameWithAmper, param.getType(), ssa);
-      delegate.handleVarDeclaration(var, getSizeof(param.getType()));
+      CType t = delegate.makeLocationTypeForVariableType(param.getType());
+      Formula var = makeFreshVariable(varNameWithAmper, t, ssa);
+      delegate.handleVarDeclaration(var, param.getType());
 
       CIdExpression lhs = new CIdExpression(param.getFileLocation(), param);
       makeAssignment(
@@ -372,8 +336,9 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
     if (ret.isPresent()) {
       CVariableDeclaration decl = ret.get();
       String varNameWithAmper = UnaryOperator.AMPER.getOperator() + decl.getQualifiedName();
-      Formula var = makeFreshVariable(varNameWithAmper, decl.getType(), ssa);
-      delegate.handleVarDeclaration(var, getSizeof(decl.getType()));
+      CType t = delegate.makeLocationTypeForVariableType(decl.getType());
+      Formula var = makeFreshVariable(varNameWithAmper, t, ssa);
+      delegate.handleVarDeclaration(var, decl.getType());
     }
 
     return bfmgr.makeTrue();

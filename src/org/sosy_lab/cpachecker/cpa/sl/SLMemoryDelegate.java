@@ -17,6 +17,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -114,19 +115,9 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     // Trivial checks first to increase performance.
     if (state.getHeap().containsKey(pLoc)) {
       return Optional.of(pLoc);
-      // if (checkBytes(state.getHeap(), pLoc, segmentSize)) {
-      // return Optional.of(pLoc);
-      // } else {
-      // return Optional.empty();
-      // }
     }
     if (state.getStack().containsKey(pLoc)) {
       return Optional.of(pLoc);
-      // if (checkBytes(state.getStack(), pLoc, segmentSize)) {
-      // return Optional.of(pLoc);
-      // } else {
-      // Optional.empty();
-      // }
     }
 
     Optional<Formula> allocatedLoc = checkAllocation(state.getHeap(), pLoc);
@@ -140,6 +131,13 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
       return allocatedLoc;
     }
     return Optional.empty();
+  }
+
+  public Optional<Formula> checkHeapAllocation(Formula pLoc) {
+    if (state.getHeap().containsKey(pLoc)) {
+      return Optional.of(pLoc);
+    }
+    return checkAllocation(state.getHeap(), pLoc);
   }
 
   public Optional<Formula> checkAllocation(Formula pLoc, Formula pOffset, int segmentSize) {
@@ -258,7 +256,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
   }
 
 
-  public boolean checkEquivalence(Formula pF0, Formula pF1) {
+  private boolean checkEquivalence(Formula pF0, Formula pF1) {
     FormulaType<Formula> type0 = fm.getFormulaType(pF0);
     FormulaType<Formula> type1 = fm.getFormulaType(pF1);
     if (!type0.equals(type1)) {
@@ -396,8 +394,41 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     }
   }
 
-  public void handleVarDeclaration(Formula pVar, int pSize) {
-    allocateOnStack(pVar, pSize);
+  public void handleVarDeclaration(Formula pVar, CType pType) {
+    int size = machineModel.getSizeof(pType).intValueExact();
+    allocateOnStack(pVar, size);
+    if (pType instanceof CPointerType || pType instanceof CArrayType) {
+      state.addInScopePtr(pVar);
+    }
+  }
+
+  public boolean handleOutOfScopeVar(Formula var, CType type) {
+    int size = machineModel.getSizeof(type).intValueExact();
+    Optional<Formula> val = getValueForLocation(state.getStack(), var, size);
+    // Deallocate
+    if (val.isEmpty() || !deallocateFromStack(var)) {
+      return false;
+    }
+    if (type instanceof CPointerType || type instanceof CArrayType) {
+      state.removeInScopePtr(var);
+      // Check value for heap ptr alias.
+      Formula heapPtrAlias = val.get();
+      Optional<Formula> heapPtr = checkHeapAllocation(heapPtrAlias);
+      if (heapPtr.isEmpty()) {
+        return true; // No heap ptr. No leak.
+      }
+      // Check for copy.
+      for (Formula ptr : state.getInScopePtrs()) {
+        Formula ptrVal = state.getStack().get(ptr);
+        boolean isAlias = checkEquivalenceSL(ptrVal, heapPtr.get(), state.getHeap());
+        if (isAlias) {
+          return true;
+        }
+      }
+      state.addError(SLStateError.MEMORY_LEAK);
+    }
+
+    return true;
   }
 
   public boolean handleFree(Formula pLoc) {
