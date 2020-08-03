@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
+import org.sosy_lab.java_smt.api.SolverException;
 
 public class SLTransferRelation0 extends SingleEdgeTransferRelation {
 
@@ -60,14 +61,18 @@ public class SLTransferRelation0 extends SingleEdgeTransferRelation {
     info += "---------------------------";
     logger.log(Level.INFO, info);
     if (pCfaEdge instanceof AssumeEdge) {
-      return handleAssumption();
+      // try {
+      // return handleAssumption();
+      // } catch (SolverException e) {
+      // throw new CPATransferException("Termination check failed.", e);
+      // }
     }
     return ImmutableList.of(state);
 
   }
 
   private List<SLState>
-      handleAssumption() {
+      handleAssumption() throws SolverException, InterruptedException {
     ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.ENABLE_SEPARATION_LOGIC);
     boolean unsat = false;
     try {
@@ -76,8 +81,9 @@ public class SLTransferRelation0 extends SingleEdgeTransferRelation {
       prover.addConstraint(delegate.makeSLFormula());
       prover.addConstraint(delegate.makeConstraints());
       unsat = prover.isUnsat();
-    } catch (Exception e) {
+    } catch (SolverException | InterruptedException e) {
       logger.log(Level.SEVERE, e.getMessage());
+      throw e;
     }
     if (unsat) {
       return Collections.emptyList();
