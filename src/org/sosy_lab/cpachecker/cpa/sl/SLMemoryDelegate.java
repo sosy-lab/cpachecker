@@ -256,6 +256,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
   }
 
 
+  @SuppressWarnings("unused")
   private boolean checkEquivalence(Formula pF0, Formula pF1) {
     FormulaType<Formula> type0 = fm.getFormulaType(pF0);
     FormulaType<Formula> type1 = fm.getFormulaType(pF1);

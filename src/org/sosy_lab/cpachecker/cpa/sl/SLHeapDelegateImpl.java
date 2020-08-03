@@ -187,9 +187,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     CType type = pDecl.getType();
     BigInteger length = machineModel.getSizeof(type);
     Formula f;
-    if (type instanceof CArrayType || type instanceof CPointerType) {
-      state.addInScopePtr(pDecl);
-    }
+
     if (type instanceof CArrayType) {
       CArrayType aType = (CArrayType) type;
       CType arrayType = aType.getType();
@@ -214,6 +212,9 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
       CExpression e = createSymbolicLocation(pDecl);
       f = getFormulaForExpression(e, false);
 
+    }
+    if (type instanceof CArrayType || type instanceof CPointerType) {
+      state.addInScopePtr(f);
     }
     addToMemory(state.getStack(), f, length);
 
@@ -293,7 +294,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
 
   @Override
   public SLStateError handleOutOfScopeVariable(CSimpleDeclaration pDecl) throws Exception {
-    state.removeInScopePtr(pDecl);
+
     CType type = pDecl.getType();
     Formula loc;
     // if (type instanceof CArrayType) {
@@ -303,6 +304,7 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
       loc = getFormulaForExpression(e, false);
     // }
     CVariableDeclaration c = (CVariableDeclaration) pDecl;
+    state.removeInScopePtr(loc);
     if (!c.isGlobal()) {
       removeFromMemory(state.getStack(), loc);
     }
@@ -316,9 +318,8 @@ public class SLHeapDelegateImpl implements SLHeapDelegate, SLFormulaBuilder {
     Formula match = checkHeapAllocation(loc, false);
     if (match != null) {
       // Check if a copy of the dropped heap pointer exists.
-      for (CSimpleDeclaration ptr : state.getInScopePtrs()) {
-        Formula tmp = getFormulaForVariableName(ptr.getQualifiedName(), false);
-        if (checkEquivalence(loc, tmp, getPathFormula())) {
+      for (Formula ptr : state.getInScopePtrs()) {
+        if (checkEquivalence(loc, ptr, getPathFormula())) {
           return null;
         }
       }
