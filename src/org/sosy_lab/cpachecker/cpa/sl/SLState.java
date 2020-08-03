@@ -168,7 +168,7 @@ public class SLState implements AbstractState, AbstractQueryableState {
         newFormula,
             new LinkedHashMap<>(heap),
             new LinkedHashMap<>(stack),
-            new LinkedHashSet<>(constraints),
+            new LinkedHashSet<>(),
             new HashMap<>(allocationSizes),
             new HashSet<>(inScopePtrs),
             new HashSet<>(declarations),
