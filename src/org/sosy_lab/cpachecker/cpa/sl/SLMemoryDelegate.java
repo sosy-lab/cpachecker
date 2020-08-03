@@ -17,6 +17,8 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.cpa.sl.SLState.SLStateError;
@@ -111,18 +113,20 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
   public Optional<Formula> checkAllocation(Formula pLoc, int segmentSize) {
     // Trivial checks first to increase performance.
     if (state.getHeap().containsKey(pLoc)) {
-      if (checkBytes(state.getHeap(), pLoc, segmentSize)) {
-        return Optional.of(pLoc);
-      } else {
-        return Optional.empty();
-      }
+      return Optional.of(pLoc);
+      // if (checkBytes(state.getHeap(), pLoc, segmentSize)) {
+      // return Optional.of(pLoc);
+      // } else {
+      // return Optional.empty();
+      // }
     }
     if (state.getStack().containsKey(pLoc)) {
-      if (checkBytes(state.getStack(), pLoc, segmentSize)) {
-        return Optional.of(pLoc);
-      } else {
-        Optional.empty();
-      }
+      return Optional.of(pLoc);
+      // if (checkBytes(state.getStack(), pLoc, segmentSize)) {
+      // return Optional.of(pLoc);
+      // } else {
+      // Optional.empty();
+      // }
     }
 
     Optional<Formula> allocatedLoc = checkAllocation(state.getHeap(), pLoc);
@@ -296,6 +300,9 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
   }
 
   private void allocate(Map<Formula, Formula> pMemory, Formula var, int size) {
+    BitvectorFormula key = (BitvectorFormula) var;
+    assert fm.getFormulaType(key).equals(heapAddressFormulaType) : String
+        .format("Type:%s Var:%s HeapType:%s", fm.getFormulaType(key), var, heapAddressFormulaType);
     pMemory.put(var, fm.makeNumber(heapValueFormulaType, 0L));
     state.getAllocationSizes().put(var, BigInteger.valueOf(size));
     for (int i = 1; i < size; i++) {
@@ -420,7 +427,9 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
   private BooleanFormula makeSLFormula(Map<Formula, Formula> pMemory) {
     BooleanFormula formula = null;
     for (Formula f : pMemory.keySet()) {
-      Formula target = pMemory.get(f);
+      BitvectorFormula key = (BitvectorFormula) f;
+      assert fm.getFormulaType(key).equals(heapAddressFormulaType) : key;
+      BitvectorFormula target = (BitvectorFormula) pMemory.get(f);
       BooleanFormula ptsTo = slfm.makePointsTo(f, target);
       if (formula == null) {
         formula = ptsTo;
@@ -430,6 +439,10 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
 
     }
     return formula;
+  }
+
+  public CType makeLocationTypeForVariableType(CType type) {
+    return new CPointerType(type.isConst(), type.isVolatile(), type);
   }
 
 }
