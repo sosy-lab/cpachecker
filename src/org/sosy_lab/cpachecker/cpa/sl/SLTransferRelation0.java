@@ -61,11 +61,11 @@ public class SLTransferRelation0 extends SingleEdgeTransferRelation {
     info += "---------------------------";
     logger.log(Level.INFO, info);
     if (pCfaEdge instanceof AssumeEdge) {
-      try {
-        return handleAssumption();
-      } catch (SolverException e) {
-        throw new CPATransferException("Termination check failed.", e);
-      }
+      // try {
+      // return handleAssumption();
+      // } catch (SolverException e) {
+      // throw new CPATransferException("Termination check failed.", e);
+      // }
     }
     return ImmutableList.of(state);
 
