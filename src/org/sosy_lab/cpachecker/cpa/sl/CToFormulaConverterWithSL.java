@@ -151,7 +151,7 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
       return pOldFormula;
     }
 
-    BooleanFormula newFormula = makeDelegate().makeSLFormula();
+    BooleanFormula newFormula = bfmgr.makeTrue();
     int newLength = pOldFormula.getLength() + 1;
 
     PathFormula res = new PathFormula(newFormula, newSsa, newPts, newLength);
@@ -241,7 +241,8 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
     }
     String varNameWithAmper = UnaryOperator.AMPER.getOperator() + varName;
     SLMemoryDelegate delegate = makeDelegate();
-    Formula var = makeFreshVariable(varNameWithAmper, type, pSsa);
+    CType t = delegate.makeLocationTypeForVariableType(type);
+    Formula var = makeFreshVariable(varNameWithAmper, t, pSsa);
     delegate.handleVarDeclaration(var, size);
 
     // Initializer
@@ -257,7 +258,7 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
           pConstraints,
           pErrorConditions);
     }
-    return delegate.makeSLFormula();
+    return bfmgr.makeTrue();
   }
 
   @Override
@@ -306,7 +307,7 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
     SLMemoryDelegate delegate = makeDelegate();
     delegate.dereferenceAssign(l, r, getSizeof(lhsType));
 
-    return delegate.makeSLFormula();
+    return bfmgr.makeTrue();
   }
 
   @Override

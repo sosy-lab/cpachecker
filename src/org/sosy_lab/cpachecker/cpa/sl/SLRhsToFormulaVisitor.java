@@ -109,7 +109,9 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
     }
     String varName = idExp.getDeclaration().getQualifiedName();
     String varNameWithAmper = op.getOperator() + varName;
-    return converter.makeVariable(varNameWithAmper, type, ssa);
+
+    CType t = delegate.makeLocationTypeForVariableType(type);
+    return converter.makeVariable(varNameWithAmper, t, ssa);
   }
 
   private int getBaseTypeSize(CType type) {
@@ -172,7 +174,8 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
     if (type instanceof CArrayType) {
       type = ((CArrayType) type).asPointerType();
     }
-    Formula loc = converter.makeVariable(varName, type, ssa);
+    CPointerType t = new CPointerType(type.isConst(), type.isVolatile(), type);
+    Formula loc = converter.makeVariable(varName, t, ssa);
     return delegate.dereference(loc, converter.getSizeof(type)).get();
   }
 }

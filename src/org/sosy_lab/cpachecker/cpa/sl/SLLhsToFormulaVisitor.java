@@ -65,7 +65,8 @@ public class SLLhsToFormulaVisitor extends LvalueVisitor {
     int size;
     Formula loc;
     if (type instanceof CArrayType) {
-      size = converter.getSizeof(type);
+      CType tmp = ((CArrayType) type).asPointerType().getType();
+      size = converter.getSizeof(tmp);
       type = ((CArrayType) type).asPointerType();
       loc = arrayExp.accept(this);
     } else {
@@ -83,7 +84,7 @@ public class SLLhsToFormulaVisitor extends LvalueVisitor {
       return allocated.get();
     } else {
       delegate.addError(SLStateError.INVALID_WRITE);
-      return super.visit(pIastArraySubscriptExpression);
+      return null;
     }
   }
 
@@ -116,6 +117,7 @@ public class SLLhsToFormulaVisitor extends LvalueVisitor {
       type = ((CArrayType) type).asPointerType();
     }
     String varName = UnaryOperator.AMPER.getOperator() + pIdExp.getDeclaration().getQualifiedName();
-    return converter.makeVariable(varName, type, ssa);
+    CType t = delegate.makeLocationTypeForVariableType(type);
+    return converter.makeVariable(varName, t, ssa);
   }
 }
