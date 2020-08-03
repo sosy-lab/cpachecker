@@ -100,7 +100,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
 
   public Optional<Formula> dereference(Formula pLoc, Formula pOffset, int segmentSize) {
     Formula loc = fm.makeMultiply(pOffset, fm.makeNumber(fm.getFormulaType(pOffset), segmentSize));
-    loc = fm.makePlus(loc, pOffset);
+    loc = fm.makePlus(pLoc, loc);
     return dereference(loc, segmentSize);
   }
 
@@ -148,15 +148,15 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     return checkAllocation(loc, segmentSize);
   }
 
-  private boolean checkBytes(Map<Formula, Formula> pMemory, Formula pLoc, int segmentSize) {
-    for (int i = 1; i < segmentSize; i++) {
-      Formula loc = fm.makePlus(pLoc, fm.makeNumber(heapAddressFormulaType, i));
-      if (!pMemory.containsKey(loc)) {
-        return false;
-      }
-    }
-    return true;
-  }
+  // private boolean checkBytes(Map<Formula, Formula> pMemory, Formula pLoc, int segmentSize) {
+  // for (int i = 1; i < segmentSize; i++) {
+  // Formula loc = fm.makePlus(pLoc, fm.makeNumber(heapAddressFormulaType, i));
+  // if (!pMemory.containsKey(loc)) {
+  // return false;
+  // }
+  // }
+  // return true;
+  // }
 
   /**
    * Checks whether the given location is allocated in the memory and assigns the given value to
