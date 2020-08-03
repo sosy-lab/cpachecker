@@ -143,14 +143,6 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
     SSAMap newSsa = ssa.build();
     PointerTargetSet newPts = pts.build();
 
-    if (bfmgr.isTrue(edgeFormula)
-        && (newSsa == pOldFormula.getSsa())
-        && newPts.equals(pOldFormula.getPointerTargetSet())) {
-      // formula is just "true" and rest is equal
-      // i.e. no writes to SSAMap, no branching and length should stay the same
-      return pOldFormula;
-    }
-
     BooleanFormula newFormula = bfmgr.makeTrue();
     int newLength = pOldFormula.getLength() + 1;
 
