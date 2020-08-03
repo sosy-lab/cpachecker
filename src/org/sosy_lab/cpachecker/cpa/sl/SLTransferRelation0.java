@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
@@ -54,11 +55,11 @@ public class SLTransferRelation0 extends SingleEdgeTransferRelation {
     pfm.setContext(state);
     pfm.makeAnd(state.getPathFormula(), pCfaEdge);
 
-    String info = "";
-    info += pCfaEdge.getCode() + "\n";
-    info += state + "\n";
-    info += "---------------------------";
-    logger.log(Level.INFO, info);
+    // String info = "";
+    // info += pCfaEdge.getCode() + "\n";
+    // info += state + "\n";
+    // info += "---------------------------";
+    // logger.log(Level.INFO, info);
     if (pCfaEdge instanceof AssumeEdge) {
       try {
         return handleAssumption();
@@ -75,7 +76,8 @@ public class SLTransferRelation0 extends SingleEdgeTransferRelation {
     boolean unsat = false;
     try {
       SLMemoryDelegate delegate = new SLMemoryDelegate(solver, state, machineModel, logger);
-      prover.addConstraint(delegate.makeConstraints());
+      BooleanFormula constraints = delegate.makeConstraints();
+      prover.addConstraint(constraints);
       unsat = prover.isUnsat();
     } catch (SolverException | InterruptedException e) {
       logger.log(Level.SEVERE, e.getMessage());
