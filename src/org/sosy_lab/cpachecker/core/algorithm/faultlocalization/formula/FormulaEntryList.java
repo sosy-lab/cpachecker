@@ -145,6 +145,14 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
     }
 
     @Override
+    public String toString() {
+      return "FormulaEntry{" +
+          "atomId=" + atomId +
+          ", selector=" + selector +
+          '}';
+    }
+
+    @Override
     public int hashCode() {
       return Objects.hash(atomId);
     }

@@ -21,8 +21,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.AnnotatedCounterexample.FormulaLabel;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.AnnotatedCounterexample.LabeledFormula;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.LabeledCounterexample.FormulaLabel;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.LabeledCounterexample.LabeledFormula;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -129,7 +129,7 @@ public class TraceFormula {
     postcondition = calculatePostCondition();
     precondition = calculatePrecondition();
     Preconditions.checkArgument(!context.getSolver().isUnsat(bmgr.and(postcondition, precondition)),
-        "Pre- and post-condition are unsatisfiable. Further analysis is not possible.");
+        "Pre- and post-condition are unsatisfiable. Further analysis is not possible. This usually happens if variables that occur in both, the pre- and the post-condition, never change their values.");
     trace = calculateTrace(pType);
   }
 
@@ -202,6 +202,10 @@ public class TraceFormula {
     }
   }
 
+  /**
+   * Calculates the post-condition as the conjunct of the last consecutive assume edges
+   * @return post-condition
+   */
   private BooleanFormula calculatePostCondition() {
     BooleanFormula postCond = bmgr.makeTrue();
     int lastAssume = -1;
@@ -315,13 +319,14 @@ public class TraceFormula {
   }
 
   /**
-   * Modify statements such that all dominating assumes imply the statement
+   * Modify statements such that all dominating assumes imply the statement.
+   * Cannot be undone.
    */
   private void makeFlowSensitive() {
     // Last statement before exiting the if block is considered to be endif
     // check if entry in TF is modified???
 
-    AnnotatedCounterexample cex = new AnnotatedCounterexample(entries, context);
+    LabeledCounterexample cex = new LabeledCounterexample(entries, context);
 
     ArrayDeque<BooleanFormula> conditions = new ArrayDeque<>();
 
@@ -336,13 +341,13 @@ public class TraceFormula {
         edge.getEntry().setAtom(implication);
         if (edge.getLabel().equals(FormulaLabel.ENDIF)) {
           conditions.pop();
-          edge.getEntry().setAtom(frame());
+          //edge.getEntry().setAtom(frame());
         }
       }
     }
   }
 
   private BooleanFormula frame() {
-    return null;
+    return bmgr.makeTrue();
   }
 }
