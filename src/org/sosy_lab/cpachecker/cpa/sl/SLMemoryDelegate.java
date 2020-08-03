@@ -130,18 +130,21 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     }
 
     Optional<Formula> allocatedLoc = checkAllocation(state.getHeap(), pLoc);
-    if (allocatedLoc.isPresent() && checkBytes(state.getHeap(), allocatedLoc.get(), segmentSize)) {
+    if (allocatedLoc.isPresent()) { // && checkBytes(state.getHeap(), allocatedLoc.get(),
+                                    // segmentSize)) {
       return allocatedLoc;
     }
     allocatedLoc = checkAllocation(state.getStack(), pLoc);
-    if (allocatedLoc.isPresent() && checkBytes(state.getStack(), allocatedLoc.get(), segmentSize)) {
+    if (allocatedLoc.isPresent()) { // && checkBytes(state.getStack(), allocatedLoc.get(),
+                                    // segmentSize)) {
       return allocatedLoc;
     }
     return Optional.empty();
   }
 
   public Optional<Formula> checkAllocation(Formula pLoc, Formula pOffset, int segmentSize) {
-    Formula loc = fm.makePlus(pLoc, pOffset);
+    Formula loc = fm.makeMultiply(pOffset, fm.makeNumber(fm.getFormulaType(pOffset), segmentSize));
+    loc = fm.makePlus(pLoc, loc);
     return checkAllocation(loc, segmentSize);
   }
 
@@ -349,7 +352,8 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
         solver.newProverEnvironment(
             ProverOptions.GENERATE_MODELS,
             ProverOptions.ENABLE_SEPARATION_LOGIC)) {
-      env.addConstraint(context.getFormula());
+      env.addConstraint(makeSLFormula());
+      env.addConstraint(makeConstraints());
       env.addConstraint(eq);
       stats.startSolverTime();
       if (!env.isUnsat()) {
