@@ -84,7 +84,6 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
   @Override
   public Formula visit(CPointerExpression pE) throws UnrecognizedCodeException {
     Formula loc = pE.getOperand().accept(this);
-    // int size = getBaseTypeSize(pE.getExpressionType());
     int size = converter.getSizeof(pE.getExpressionType());
     Optional<Formula> value = delegate.dereference(loc, size);
     if (value.isEmpty()) {
