@@ -170,25 +170,31 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
     // Remove from stack.
     CUnaryExpression expLoc = createSymbolicLocation(pVar);
     Formula loc = buildTermFromPathFormula(pf, expLoc, pEdge);
-    pDelegate.deallocateFromStack(loc);
+    boolean success = pDelegate.deallocateFromStack(loc);
+    if (!success) {
+      throw new UnrecognizedCodeException("Could not deallocate " + loc, pEdge);
+    }
 
     // Check for memory leak.
     CType type = pVar.getType();
     if (!(type instanceof CPointerType || type instanceof CArrayType)) {
       return;
     }
-    loc = makeVariable(pVar.getQualifiedName(), type, pSsa);
+    CType t = pDelegate.makeLocationTypeForVariableType(type);
+    loc = makeVariable(pVar.getQualifiedName(), t, pSsa);
     // Check if the discarded pointer was a heap pointer alias.
     Optional<Formula> match = pDelegate.checkAllocation(loc, getSizeof(type));
     if (match.isPresent()) {
       // Check if another alias exists.
       for (CSimpleDeclaration ptr : pState.getInScopePtrs()) {
-        Formula tmp =
-            makeFormulaForVariable(
-                pf.getSsa(),
-                pf.getPointerTargetSet(),
-                ptr.getQualifiedName(),
-                type);
+        CType t0 = pDelegate.makeLocationTypeForVariableType(ptr.getType());
+        Formula tmp = makeVariable(ptr.getQualifiedName(), t0, pSsa);
+        // Formula tmp =
+        // makeFormulaForVariable(
+        // pf.getSsa(),
+        // pf.getPointerTargetSet(),
+        // ptr.getQualifiedName(),
+        // type);
         if (pDelegate.checkEquivalence(loc, tmp)) {
           return;
         }
@@ -406,6 +412,4 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
     delegate.releaseAllocas(pCalledFunction);
     return res;
   }
-
-
 }
