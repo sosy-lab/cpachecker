@@ -16,7 +16,6 @@ import static java.util.function.Predicate.not;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.base.Verify;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -334,7 +333,6 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
                 lines.filter(not(String::isBlank)).collect(ImmutableList.toImmutableList());
           }
 
-          verifyNotNull(subanalysisLog);
           subconf.addResultLog(subanalysisLog);
 
           Optional<String> subanalysisResultOpt =
@@ -400,7 +398,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
         ImmutableList<String> resultLog = successfulAnalysis.getResultLog();
         verifyNotNull(resultLog);
-        Verify.verify(!resultLog.isEmpty(), "Result log may not be empty");
+        verify(!resultLog.isEmpty(), "Result log may not be empty");
         logger.log(Level.INFO, Joiner.on("\n\n").join(resultLog));
 
         logger.log(Level.WARNING, "-------------------- END SUBANALYSIS LOG --------------------");
@@ -423,6 +421,11 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
     private static final String OUTPUT_DIR = "output";
     private static final String SUBANALYSIS_DIR = "output_portfolio-analysis_";
+
+    private static final String ANALYSIS_KEY = "analysis";
+    private static final String CMD_KEY = "cmd";
+    private static final String OUPUT_KEY = "output";
+    private static final String LOGFILE_KEY = "logfile";
 
     private final int subanalysis_index;
 
@@ -479,10 +482,10 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
     ImmutableMap<String, ImmutableMap<String, Object>> buildCommandLine() {
       ImmutableMap.Builder<String, Object> builder = new ImmutableMap.Builder<>();
-      builder.put("analysis", configPath.getFileName().toString());
-      builder.put("cmd", cmdLine);
-      builder.put(OUTPUT_DIR, outputPath.toString());
-      builder.put("logfile", outputPath.resolve(logfileName).toString());
+      builder.put(ANALYSIS_KEY, configPath.getFileName().toString());
+      builder.put(CMD_KEY, cmdLine);
+      builder.put(OUPUT_KEY, outputPath.toString());
+      builder.put(LOGFILE_KEY, outputPath.resolve(logfileName).toString());
 
       return ImmutableMap.of("Analysis_" + subanalysis_index, builder.build());
     }
@@ -499,7 +502,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       return logfileName;
     }
 
-    public ImmutableList<String> getCmdLine() {
+    ImmutableList<String> getCmdLine() {
       return cmdLine;
     }
 
@@ -538,7 +541,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
     private int noOfAlgorithmsExecuted = 0;
     private String hostfilePath = null;
-    final Timer mpiBinaryTotalTimer = new Timer();
+    private final Timer mpiBinaryTotalTimer = new Timer();
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
