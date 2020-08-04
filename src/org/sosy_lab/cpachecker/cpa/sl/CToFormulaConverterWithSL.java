@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
+import org.sosy_lab.cpachecker.cpa.sl.SLState.SLStateError;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
@@ -271,7 +272,9 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
     SLMemoryDelegate delegate = makeDelegate();
     // Skip main return statement assignment.
     if (!(edge instanceof CReturnStatementEdge && function.equals("main"))) {
-      delegate.dereferenceAssign(l, r, getSizeof(lhsType));
+      if (!delegate.dereferenceAssign(l, r, getSizeof(lhsType))) {
+        delegate.addError(SLStateError.INVALID_WRITE);
+      }
     }
     return bfmgr.makeTrue();
   }

@@ -86,7 +86,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
    * @return The value the pointer is pointing to or null.
    */
   public Optional<Formula> dereference(Formula pLoc, int segmentSize) {
-    Optional<Formula> allocatedLoc = checkAllocation(pLoc, segmentSize);
+    Optional<Formula> allocatedLoc = checkAllocation(pLoc);
     if (allocatedLoc.isPresent()) {
       Formula loc = allocatedLoc.get();
       if(state.getHeap().containsKey(loc) ) {
@@ -111,7 +111,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
    * @param pLoc The location to be checked if allocated.
    * @return The allocated equivalent in the memory if allocated. Empty if not allocated.
    */
-  public Optional<Formula> checkAllocation(Formula pLoc, int segmentSize) {
+  public Optional<Formula> checkAllocation(Formula pLoc) {
     // Trivial checks first to increase performance.
     if (state.getHeap().containsKey(pLoc)) {
       return Optional.of(pLoc);
@@ -121,13 +121,11 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     }
 
     Optional<Formula> allocatedLoc = checkAllocation(state.getHeap(), pLoc);
-    if (allocatedLoc.isPresent()) { // && checkBytes(state.getHeap(), allocatedLoc.get(),
-                                    // segmentSize)) {
+    if (allocatedLoc.isPresent()) {
       return allocatedLoc;
     }
     allocatedLoc = checkAllocation(state.getStack(), pLoc);
-    if (allocatedLoc.isPresent()) { // && checkBytes(state.getStack(), allocatedLoc.get(),
-                                    // segmentSize)) {
+    if (allocatedLoc.isPresent()) {
       return allocatedLoc;
     }
     return Optional.empty();
@@ -143,7 +141,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
   public Optional<Formula> checkAllocation(Formula pLoc, Formula pOffset, int segmentSize) {
     Formula loc = fm.makeMultiply(pOffset, fm.makeNumber(fm.getFormulaType(pOffset), segmentSize));
     loc = fm.makePlus(pLoc, loc);
-    return checkAllocation(loc, segmentSize);
+    return checkAllocation(loc);
   }
 
   // private boolean checkBytes(Map<Formula, Formula> pMemory, Formula pLoc, int segmentSize) {
@@ -166,7 +164,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
    * @return True if successful, false otherwise.
    */
   public boolean dereferenceAssign(Formula pLoc, Formula pVal, int segmentSize) {
-    Optional<Formula> allocatedLoc = checkAllocation(pLoc, segmentSize);
+    Optional<Formula> allocatedLoc = checkAllocation(pLoc);
     if (allocatedLoc.isPresent()) {
       Formula loc = allocatedLoc.get();
       if (state.getHeap().containsKey(loc)) {
@@ -203,15 +201,17 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     for (int i = 0; i < size; i++) {
       if(i > 0) {
         address = fm.makePlus(pLoc, fm.makeNumber(heapAddressFormulaType, i));
+        Optional<Formula> tmp = checkAllocation(pMemory, address);
+        if (tmp.isEmpty()) {
+          return false;
+        } else {
+          address = tmp.get();
+        }
       }
-      if (pMemory.containsKey(address)) {
-        int lsb = i * heapValueFormulaType.getSize();
-        int msb = lsb + heapValueFormulaType.getSize() - 1;
-        Formula nthByte = fm.makeExtract(pVal, msb, lsb, true);
-        pMemory.put(address, nthByte);
-      } else {
-        return false;
-      }
+      int lsb = i * heapValueFormulaType.getSize();
+      int msb = lsb + heapValueFormulaType.getSize() - 1;
+      Formula nthByte = fm.makeExtract(pVal, msb, lsb, true);
+      pMemory.put(address, nthByte);
     }
     return true;
   }
@@ -491,8 +491,13 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
       allocateOnHeap(pLoc, pSize);
     } else {
       addError(SLStateError.INVALID_FREE);
-    } ;
-
+    }
   }
 
+  public void checkMemLeak() {
+    if (!state.getHeap().isEmpty()) {
+      state.addError(SLStateError.MEMORY_LEAK);
+    }
+
+  }
 }

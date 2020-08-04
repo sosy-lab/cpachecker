@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
@@ -39,6 +40,7 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
   private final Constraints constraints;
   private final CFAEdge edge;
   private final String functionName;
+  private final FormulaManagerView fm;
 
   public SLRhsToFormulaVisitor(
       CtoFormulaConverter pCtoFormulaConverter,
@@ -56,6 +58,7 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
     constraints = pConstraints;
     edge = pEdge;
     functionName = pFunction;
+    fm = pFmgr;
   }
 
   @Override
@@ -183,5 +186,16 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
     CPointerType t = new CPointerType(type.isConst(), type.isVolatile(), type);
     Formula loc = converter.makeVariable(varName, t, ssa);
     return delegate.dereference(loc, converter.getSizeof(type)).get();
+  }
+
+  @Override
+  public Formula visit(CFieldReference pFExp) throws UnrecognizedCodeException {
+    Formula loc = pFExp.getFieldOwner().accept(this);
+    SLFieldToOffsetVisitor v = new SLFieldToOffsetVisitor(converter);
+    BigInteger offset = v.getOffset(pFExp, edge);
+    Formula off = fm.makeNumber(fm.getFormulaType(loc), offset.longValueExact());
+    loc = fm.makePlus(loc, off);
+    int size = converter.getSizeof(pFExp.getExpressionType());
+    return delegate.dereference(loc, size).get();
   }
 }

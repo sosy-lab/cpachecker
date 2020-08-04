@@ -58,14 +58,8 @@ public class SLLhsToFormulaVisitor extends LvalueVisitor {
     CExpression arrayExp = pIastArraySubscriptExpression.getArrayExpression();
     CExpression subscriptExp = pIastArraySubscriptExpression.getSubscriptExpression();
     Formula subscript =
-        converter.buildTerm(
-           subscriptExp,
-            edge,
-            function,
-            ssa,
-            delegate,
-            constraints,
-            errorConditions);
+        converter
+            .buildTerm(subscriptExp, edge, function, ssa, delegate, constraints, errorConditions);
     CType type = arrayExp.getExpressionType();
     int size;
     Formula loc;
@@ -95,21 +89,23 @@ public class SLLhsToFormulaVisitor extends LvalueVisitor {
 
   @Override
   public Formula visit(CFieldReference pIastFieldReference) throws UnrecognizedCodeException {
+    CExpression owner = pIastFieldReference.getFieldOwner();
+    Formula loc =
+        converter.buildTerm(owner, edge, function, ssa, delegate, constraints, errorConditions);
     SLFieldToOffsetVisitor v = new SLFieldToOffsetVisitor(converter);
     BigInteger offset = v.getOffset(pIastFieldReference, edge);
-    Formula loc = pIastFieldReference.getFieldOwner().accept(this);
+
     Formula off = fm.makeNumber(fm.getFormulaType(loc), offset.longValueExact());
+
     return fm.makePlus(loc, off);
   }
-
 
   @Override
   public Formula visit(CPointerExpression pPointerExpression) throws UnrecognizedCodeException {
     CExpression e = pPointerExpression.getOperand();
     Formula loc =
         converter.buildTerm(e, edge, function, ssa, delegate, constraints, errorConditions);
-    int size = converter.getSizeof(pPointerExpression.getExpressionType());
-    Optional<Formula> allocated = delegate.checkAllocation(loc, size);
+    Optional<Formula> allocated = delegate.checkAllocation(loc);
     if (allocated.isPresent()) {
       return allocated.get();
     } else {

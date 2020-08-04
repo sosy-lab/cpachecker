@@ -67,6 +67,7 @@ public class SLTransferRelation0 extends SingleEdgeTransferRelation {
         throw new CPATransferException("Termination check failed.", e);
       }
     }
+    // TODO check last node for memory leak. structs with malloc etc.
     return ImmutableList.of(state);
 
   }
