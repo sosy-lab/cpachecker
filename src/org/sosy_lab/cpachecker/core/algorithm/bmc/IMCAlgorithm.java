@@ -203,7 +203,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       if (checkForwardConditions
           && checkExistenceOfCoveredStates
           && hasCoveredStates(pReachedSet)) {
-        logger.log(Level.WARNING, "Covered states exist in ARG, forward-condition might be wrong!");
+        logger
+            .log(Level.WARNING, "Covered states exist in ARG: forward-condition might be unsound!");
         if (fallBack) {
           fallBackToBMCWithoutForwardCondition();
         } else {
@@ -241,12 +242,12 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   private void fallBackToBMC() {
-    logger.log(Level.WARNING, "Falling back to BMC");
+    logger.log(Level.WARNING, "Interpolation disabled: falling back to BMC");
     interpolation = false;
   }
 
   private void fallBackToBMCWithoutForwardCondition() {
-    logger.log(Level.WARNING, "Falling back to BMC without forward-condition check");
+    logger.log(Level.WARNING, "Forward-condition disabled: falling back to plain BMC");
     interpolation = false;
     checkForwardConditions = false;
   }
@@ -264,16 +265,17 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private boolean checkRequirementOfARG(ReachedSet pReachedSet)
       throws SolverException, InterruptedException {
     if (checkExistenceOfCoveredStates && hasCoveredStates(pReachedSet)) {
-      logger.log(Level.WARNING, "Covered states exist in ARG, interpolation might be wrong!");
+      logger.log(Level.WARNING, "Covered states exist in ARG: interpolation might be unsound!");
       return false;
     }
     if (getStopStates(pReachedSet).size() > 1) {
       if (!removeUnreachableStopStates) {
-        logger.log(Level.WARNING, "More than one stop state, interpolation might be wrong!");
+        logger.log(Level.WARNING, "More than one stop state: interpolation might be unsound!");
         return false;
       }
       if (hasMultipleReachableStopStates(pReachedSet)) {
-        logger.log(Level.WARNING, "Multiple reachable stop states, interpolation might be wrong!");
+        logger
+            .log(Level.WARNING, "Multiple reachable stop states: interpolation might be unsound!");
         return false;
       }
     }
@@ -298,6 +300,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       }
     }
     if (!unreachableStopStates.isEmpty()) {
+      logger
+          .log(Level.WARNING, "Removing", unreachableStopStates.size(), "unreachable stop states");
       pReachedSet.removeAll(unreachableStopStates);
       for (ARGState s : from(unreachableStopStates).filter(ARGState.class)) {
         s.removeFromARG();
