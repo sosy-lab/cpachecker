@@ -484,4 +484,15 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     return new CPointerType(type.isConst(), type.isVolatile(), type);
   }
 
+  public void handleRealloc(Formula pLoc, Formula pOldLoc, int pSize) {
+    Optional<Formula> loc = checkHeapAllocation(pOldLoc);
+    if (loc.isPresent()) {
+      deallocateFromHeap(loc.get());
+      allocateOnHeap(pLoc, pSize);
+    } else {
+      addError(SLStateError.INVALID_FREE);
+    } ;
+
+  }
+
 }

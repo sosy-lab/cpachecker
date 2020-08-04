@@ -88,7 +88,14 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
       PointerTargetSetBuilder pPts,
       Constraints pConstraints,
       ErrorConditions pErrorConditions) {
-    return new SLRhsToFormulaVisitor(this, fmgr, pEdge, pFunction, pSsa, pPts, pConstraints);
+    return new SLRhsToFormulaVisitor(
+        this,
+        fmgr,
+        pEdge,
+        pFunction,
+        pSsa,
+        pPts,
+        pConstraints);
   }
 
   @Override
@@ -106,7 +113,8 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
         pSsa,
         pPts,
         pConstraints,
-        pErrorConditions);
+        pErrorConditions,
+        solver.getFormulaManager());
   }
 
   @Override

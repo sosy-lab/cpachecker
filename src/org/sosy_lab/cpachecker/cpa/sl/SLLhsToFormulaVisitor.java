@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.sl;
 
+import java.math.BigInteger;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -26,12 +27,14 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.LvalueVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.Formula;
 
 public class SLLhsToFormulaVisitor extends LvalueVisitor {
 
   private CToFormulaConverterWithSL converter;
   private SLMemoryDelegate delegate;
+  private FormulaManagerView fm;
 
   public SLLhsToFormulaVisitor(
       CToFormulaConverterWithSL pConverter,
@@ -40,11 +43,13 @@ public class SLLhsToFormulaVisitor extends LvalueVisitor {
       SSAMapBuilder pSsa,
       PointerTargetSetBuilder pPts,
       Constraints pConstraints,
-      ErrorConditions pErrorConditions) {
+      ErrorConditions pErrorConditions,
+      FormulaManagerView pFm) {
     super(pConverter, pEdge, pFunction, pSsa, pPts, pConstraints, pErrorConditions);
     converter = pConverter;
     assert pPts instanceof SLMemoryDelegate;
     delegate = (SLMemoryDelegate) pPts;
+    fm = pFm;
   }
 
   @Override
@@ -90,8 +95,11 @@ public class SLLhsToFormulaVisitor extends LvalueVisitor {
 
   @Override
   public Formula visit(CFieldReference pIastFieldReference) throws UnrecognizedCodeException {
-    // TODO Auto-generated method stub
-    return super.visit(pIastFieldReference);
+    SLFieldToOffsetVisitor v = new SLFieldToOffsetVisitor(converter);
+    BigInteger offset = v.getOffset(pIastFieldReference, edge);
+    Formula loc = pIastFieldReference.getFieldOwner().accept(this);
+    Formula off = fm.makeNumber(fm.getFormulaType(loc), offset.longValueExact());
+    return fm.makePlus(loc, off);
   }
 
 

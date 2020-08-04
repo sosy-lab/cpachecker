@@ -134,7 +134,8 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
     Formula sizeValueFormula = null;
     BigInteger size = null;
     switch (SLHeapFunction.get(fctExp.getName())) {
-      case MALLOC:
+      case CALLOC:
+      case MALLOC: // always initialized with 0
         sizeValueFormula = params.get(0).accept(this);
         size = delegate.calculateValue(sizeValueFormula);
         if (size == null) {
@@ -144,10 +145,12 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
         }
         delegate.handleMalloc(loc, size.intValueExact());
         break;
-      case CALLOC:
-        throw new UnrecognizedCodeException("Calloc not implemented yet", edge);
       case REALLOC:
-        throw new UnrecognizedCodeException("Realloc not implemented yet", edge);
+        Formula oldLoc = params.get(0).accept(this);
+        sizeValueFormula = params.get(1).accept(this);
+        size = delegate.calculateValue(sizeValueFormula);
+        delegate.handleRealloc(loc, oldLoc, size.intValueExact());
+        break;
       case FREE:
         Formula locToFree = params.get(0).accept(this);
         if (!delegate.handleFree(locToFree)) {
