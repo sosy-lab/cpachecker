@@ -3322,6 +3322,9 @@ imc.fallBack = true
 # toggle using interpolation to verify programs with loops
 imc.interpolation = true
 
+# toggle removing unreachable stop states in ARG
+imc.removeUnreachableStopStates = false
+
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
 

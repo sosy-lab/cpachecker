@@ -85,6 +85,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(secure = true, description = "toggle checking existence of covered states in ARG")
   private boolean checkExistenceOfCoveredStates = true;
 
+  @Option(secure = true, description = "toggle removing unreachable stop states in ARG")
+  private boolean removeUnreachableStopStates = false;
+
   private final ConfigurableProgramAnalysis cpa;
 
   private final Algorithm algorithm;
@@ -264,9 +267,15 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       logger.log(Level.WARNING, "Covered states exist in ARG, interpolation might be wrong!");
       return false;
     }
-    if (hasMultipleReachableStopStates(pReachedSet)) {
-      logger.log(Level.WARNING, "Multiple reachable stop states, interpolation might be wrong!");
-      return false;
+    if (getStopStates(pReachedSet).size() > 1) {
+      if (!removeUnreachableStopStates) {
+        logger.log(Level.WARNING, "More than one stop state, interpolation might be wrong!");
+        return false;
+      }
+      if (hasMultipleReachableStopStates(pReachedSet)) {
+        logger.log(Level.WARNING, "Multiple reachable stop states, interpolation might be wrong!");
+        return false;
+      }
     }
     return true;
   }
