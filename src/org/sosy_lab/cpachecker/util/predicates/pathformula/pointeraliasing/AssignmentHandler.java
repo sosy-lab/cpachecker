@@ -79,7 +79,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.ArrayFormula;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
@@ -794,15 +793,16 @@ class AssignmentHandler {
     } else {
       final Optional<Formula> value = getValueFormula(rvalueType, rvalue);
       if (value.isPresent()) {
-        rhs =
-            conv.makeFormulaTypeCast(
-                targetType,
-                pRvalueType,
-                value.orElseThrow(),
-                ssa,
-                constraints);
-        if (rhs instanceof BitvectorFormula || rhs instanceof FloatingPointFormula) {
-          rhs = conv.makeCast(rvalueType, lvalueType, rhs, constraints, edge);
+        if (options.useVariableClassification()) {
+          rhs =
+              conv.makeFormulaTypeCast(
+                  targetType,
+                  pRvalueType,
+                  value.orElseThrow(),
+                  ssa,
+                  constraints);
+        } else {
+          rhs = conv.makeCast(rvalueType, lvalueType, value.orElseThrow(), constraints, edge);
         }
       } else {
         rhs = null;
