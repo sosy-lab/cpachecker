@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
+import LoopAcc.LoopAbstractionHeader;
 import LoopAcc.LoopInformation;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
@@ -231,7 +232,7 @@ public class CFACreator {
             + "If set to 'null', no pixel graphic is exported."
   )
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportCfaPixelFile = Paths.get("cfaPixel");
+  private Path exportCfaPixelFile = null;// Paths.get("cfaPixel");
 
   @Option(secure=true, name="cfa.checkNullPointers",
       description="while this option is activated, before each use of a "
@@ -579,6 +580,7 @@ public class CFACreator {
     if (language == Language.C) {
       LoopInformation builder = new LoopInformation(config, logger, cfa);
       builder.collectStatistics(stats.statisticsCollection);
+      LoopAbstractionHeader loopAbstraction = new LoopAbstractionHeader(builder, config, logger);
     }
 
     stats.processingTime.stop();

@@ -17,27 +17,10 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package LoopAcc;
+package org.sosy_lab.cpachecker.cpa.loopacceleration;
 
-import org.eclipse.cdt.core.dom.ast.IASTNode;
-import org.eclipse.cdt.core.dom.ast.IASTTranslationUnit;
-import org.eclipse.cdt.core.index.IPDOMASTProcessor.Abstract;
-import org.sosy_lab.cpachecker.cfa.CFA;;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.ConvertingTags;
 
-public class LoopAST extends Abstract {
-
-  private CFA cfa;
-  private IASTTranslationUnit trans;
-
-  public LoopAST(CFA cfa) {
-    this.cfa = cfa;
-    trans = new CFileToAST(cfa).getAST();
-    loopstructure();
-  }
-
-  private void loopstructure() {
-    for (IASTNode x : trans.getChildren()) {
-    }
-  }
-
+public enum LoopIOConvertingTags implements ConvertingTags {
+  NOTE;
 }

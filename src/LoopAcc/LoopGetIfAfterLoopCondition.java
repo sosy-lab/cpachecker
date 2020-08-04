@@ -1,5 +1,4 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
+/*CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
  *  Copyright (C) 2007-2020  Dirk Beyer
@@ -23,9 +22,15 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
+/**
+ * This class looks for if cases directly after loops since they aren't any different in the cfa to
+ * the loop condition, so this class will look for it in the file itself
+ */
 public class LoopGetIfAfterLoopCondition {
 
   private FileLocation fileLocation;
@@ -34,9 +39,16 @@ public class LoopGetIfAfterLoopCondition {
   private int biggestLineNumber;
   private ArrayList<Integer> linesWithIf;
   private int smallestIf;
+  private LogManager logger;
 
-  public LoopGetIfAfterLoopCondition(ArrayList<CFANode> nodes) {
+  public LoopGetIfAfterLoopCondition(ArrayList<CFANode> nodes, LogManager pLogger) {
+    logger = pLogger;
+    for (int i = 0; i < nodes.size(); i++) {
+      if (nodes.get(i).getNumLeavingEdges() > 0) {
     fileLocation = nodes.get(0).getLeavingEdge(0).getFileLocation();
+    break;
+  }
+}
     content = "";
     smallestLineNumber = getSmallestLineNumber(nodes);
     biggestLineNumber = getBiggestLineNumber(nodes);
@@ -53,14 +65,17 @@ public class LoopGetIfAfterLoopCondition {
       int lineNumber = 1;
       while (line != null) {
         line = reader.readLine();
-        if(lineNumber >= smallestLineNumber && lineNumber <= biggestLineNumber) {
+        if (lineNumber >= smallestLineNumber && lineNumber <= biggestLineNumber && line != null) {
           findIf(line, lineNumber);
         content = content + line + System.lineSeparator();
         }
         lineNumber++;
       }
     } catch (IOException e) {
-      // TODO Auto-generated catch block
+      logger.logUserException(
+          Level.WARNING,
+          e,
+          "Something is not working with the file you try to import");
     }
     return content;
   }
@@ -87,24 +102,38 @@ public class LoopGetIfAfterLoopCondition {
   }
 
   private int getSmallestLineNumber(ArrayList<CFANode> nodes) {
-    int small = nodes.get(0).getLeavingEdge(0).getLineNumber();
-
-    for (CFANode node : nodes) {
-      if (node.getLeavingEdge(0).getLineNumber() < small) {
-        small = node.getLeavingEdge(0).getLineNumber();
+    int small = -1;
+    for (int i = 0; i < nodes.size(); i++) {
+      if (nodes.get(i).getNumLeavingEdges() > 0) {
+        small = nodes.get(i).getLeavingEdge(0).getFileLocation().getStartingLineInOrigin();
+        break;
       }
     }
+    if (small != -1) {
+    for (CFANode node : nodes) {
+      if (node.getLeavingEdge(0).getFileLocation().getStartingLineInOrigin() < small) {
+        small = node.getLeavingEdge(0).getFileLocation().getStartingLineInOrigin();
+      }
+    }
+  }
     return small;
   }
 
   private int getBiggestLineNumber(ArrayList<CFANode> nodes) {
-    int big = nodes.get(0).getLeavingEdge(0).getLineNumber();
-
-    for (CFANode node : nodes) {
-      if (node.getLeavingEdge(0).getLineNumber() > big) {
-        big = node.getLeavingEdge(0).getLineNumber();
+    int big = -1;
+    for (int i = 0; i < nodes.size(); i++) {
+      if (nodes.get(i).getNumLeavingEdges() > 0) {
+        big = nodes.get(i).getLeavingEdge(0).getFileLocation().getStartingLineInOrigin();
+        break;
       }
     }
+    if (big != -1) {
+    for (CFANode node : nodes) {
+      if (node.getLeavingEdge(0).getFileLocation().getStartingLineInOrigin() > big) {
+        big = node.getLeavingEdge(0).getFileLocation().getStartingLineInOrigin();
+      }
+    }
+  }
     return big;
   }
 

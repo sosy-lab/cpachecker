@@ -22,12 +22,16 @@ package LoopAcc;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Iterator;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
+/**
+ * This class collects and saves all of the data in one loop
+ */
 public class LoopData implements Comparable<LoopData> {
 
   private CFANode loopStart;
@@ -70,48 +74,69 @@ public class LoopData implements Comparable<LoopData> {
       CFANode endCondition,
       CFA cfa,
       ArrayList<CFANode> loopNodes,
-      Loop loop) {
+      Loop loop,
+      LogManager pLogger) {
     this.loopStart = nameStart;
     this.endOfCondition = new ArrayList<>();
     conditionInFor = new ArrayList<>();
     output = new ArrayList<>();
 
     this.endOfCondition.add(endCondition);
+    loopInLoop = isInnerLoop(loop, cfa);
     loopType = findLoopType();
     nodesInLoop = loopNodes;
     loopEnd = nodesInLoop.get(nodesInLoop.size() - LAST_POSITION_OF_LIST);
-    nodesInCondition = nodesInCondition(cfa);
+    nodesInCondition = nodesInCondition(cfa, pLogger);
     output = getAllOutputs();
     condition = nodesToCondition();
     getAllPaths();
     inputOutput = getAllIO();
-    loopInLoop = isInnerLoop(loop, cfa);
+
     canBeAccelerated = canLoopBeAccelerated();
     amountOfPaths = getAllPaths();
   }
 
+  /**
+   * looks for the looptype of a loop
+   *
+   * @return returns the type of the loop, possible solutions are "while", "for" at the moment
+   */
   private String findLoopType() {
     String tempLoopType = "";
 
-    if (loopStart.getEnteringEdge(ONLY_ENTERING_EDGE).getDescription().equals("while")) {
+    if (loopStart.getNumEnteringEdges() > 0
+        && loopStart.getEnteringEdge(ONLY_ENTERING_EDGE).getDescription().equals("while")) {
       tempLoopType = loopStart.getEnteringEdge(ONLY_ENTERING_EDGE).getDescription();
     } else {
       CFANode temp = loopStart.getEnteringEdge(ONLY_ENTERING_EDGE).getPredecessor();
       boolean flag = true;
 
       while (flag) {
-        if (temp.getEnteringEdge(ONLY_ENTERING_EDGE).getDescription().contains("for")) {
+        if (temp.getNumEnteringEdges() > 0
+            && temp.getEnteringEdge(ONLY_ENTERING_EDGE).getDescription().contains("for")) {
           tempLoopType = temp.getEnteringEdge(ONLY_ENTERING_EDGE).getDescription();
           forStart = temp;
           flag = false;
         }
-        temp = temp.getEnteringEdge(ONLY_ENTERING_EDGE).getPredecessor();
+        if (temp.getNumEnteringEdges() > 0) {
+          temp = temp.getEnteringEdge(ONLY_ENTERING_EDGE).getPredecessor();
+        } else {
+          flag = false;
+        }
       }
     }
 
     return tempLoopType;
   }
 
+  /**
+   * Checks if this loop is part of another loop
+   *
+   * @param loop This loop
+   * @param cfa used to get a list of all loops to test if there is another loop that's an outer
+   *        loop of this one
+   * @return true if this is a inner loop or false if this isn't a inner loop
+   */
   private boolean isInnerLoop(Loop loop, CFA cfa) {
     boolean innerLoop = false;
 
@@ -124,6 +149,11 @@ public class LoopData implements Comparable<LoopData> {
     return innerLoop;
   }
 
+  /**
+   * This method looks for all the outputs a loop can have
+   *
+   * @return returns a list with all of the variable names that are outputs in a loop
+   */
   private ArrayList<String> getAllOutputs() {
     ArrayList<String> tempOutput = new ArrayList<>();
 
@@ -154,6 +184,12 @@ public class LoopData implements Comparable<LoopData> {
     return tempOutput;
   }
 
+  /**
+   * This method compares the input-variable names and output-variable names to see if there are
+   * some that are equal since these are inputs and outputs and used for the loopabstraction
+   *
+   * @return returns a list of variables that are inputs and outputs at the same time
+   */
   private ArrayList<String> getAllIO() {
     ArrayList<String> inputs = getAllInputs();
     ArrayList<String> outputs = output;
@@ -167,6 +203,11 @@ public class LoopData implements Comparable<LoopData> {
     return temp;
   }
 
+  /**
+   * This method looks for all of the input-variables in the loop
+   *
+   * @return returns a list with the names of all the input variables
+   */
   private ArrayList<String> getAllInputs() {
     ArrayList<String> temp = new ArrayList<>();
 
@@ -216,6 +257,11 @@ public class LoopData implements Comparable<LoopData> {
     temp.addAll(tempS);
   }
 
+  /**
+   * This method looks for all the possible path that the loop can go in one iteration
+   *
+   * @return number of possible paths in one iteration
+   */
   private int getAllPaths() {
     int paths = 1;
     for (CFANode node : nodesInLoop) {
@@ -228,7 +274,14 @@ public class LoopData implements Comparable<LoopData> {
     return paths;
   }
 
-  public ArrayList<CFANode> nodesInCondition(CFA cfa) {
+  /**
+   * This method looks for all of the nodes in the condition and even cuts out the nodes that belong
+   * to an if-case
+   *
+   * @param cfa
+   * @return returns a list with all the nodes that are part of the condition
+   */
+  public ArrayList<CFANode> nodesInCondition(CFA cfa, LogManager pLogger) {
 
     ArrayList<CFANode> nodes = new ArrayList<>();
     ArrayList<CFANode> tempNodes = new ArrayList<>();
@@ -296,12 +349,13 @@ public class LoopData implements Comparable<LoopData> {
     }
     }
 
-    LoopGetIfAfterLoopCondition l = new LoopGetIfAfterLoopCondition(nodes);
+    LoopGetIfAfterLoopCondition l = new LoopGetIfAfterLoopCondition(nodes, pLogger);
     if (l.getSmallestIf() != NO_IF_CASE) {
       ArrayList<CFANode> tempN = (ArrayList<CFANode>) nodes.clone();
       for (Iterator<CFANode> tempIterator = tempN.iterator(); tempIterator.hasNext();) {
         CFANode temps = tempIterator.next();
-        if (temps.getLeavingEdge(VALID_STATE).getLineNumber() >= l.getSmallestIf()) {
+        if (temps.getLeavingEdge(VALID_STATE).getFileLocation().getStartingLineInOrigin() >= l
+            .getSmallestIf()) {
           endOfCondition.add(temps);
           tempIterator.remove();
       }
@@ -312,7 +366,14 @@ public class LoopData implements Comparable<LoopData> {
     return nodes;
   }
 
+  /**
+   * This method takes all of the nodes in the condition of this loop and returns a readable string
+   * that shows the condition of the loop
+   *
+   * @return string that shows the condition of the loop
+   */
   public String nodesToCondition() {
+
     String cond = "";
     ArrayList<CFANode> temp = (ArrayList<CFANode>) nodesInCondition.clone();
     CFANode node;
@@ -359,8 +420,8 @@ public class LoopData implements Comparable<LoopData> {
         }
       }
 
-      CFANode end = temp.get(FIRST_POSITION_OF_LIST);
-      temp.remove(FIRST_POSITION_OF_LIST);
+      // CFANode end = temp.get(FIRST_POSITION_OF_LIST);
+      // temp.remove(FIRST_POSITION_OF_LIST);
 
       conditionInFor = (ArrayList<CFANode>) forCondition.clone();
 
@@ -393,14 +454,21 @@ public class LoopData implements Comparable<LoopData> {
 
       cond += ";";
 
-      String x = end.getLeavingEdge(VALID_STATE).getDescription();
-      x = x.substring(0, x.length() - LAST_POSITION_OF_LIST);
-      cond += x + ";";
+      // String x = end.getLeavingEdge(VALID_STATE).getDescription();
+      // x = x.substring(0, x.length() - LAST_POSITION_OF_LIST);
+      // cond += x + ";";
     }
 
     return cond;
   }
 
+  /**
+   * This method looks for hints if it makes any sense to accelerate the loop or if a
+   * Bounded-Model-Checker should be able to handle it
+   *
+   * @return returns true if the loop should be accelerated or false if it doesn't make that much
+   *         sense to accelerate it
+   */
   private boolean canLoopBeAccelerated() {
     ArrayList<CFANode> nodes = (ArrayList<CFANode>) nodesInCondition.clone();
     boolean canAccelerate = false;
@@ -534,6 +602,10 @@ public class LoopData implements Comparable<LoopData> {
 
   public CFANode getFaileState() {
     return failedState;
+  }
+
+  public ArrayList<CFANode> getNodesInCondition() {
+    return nodesInCondition;
   }
 
   public String outputToString() {

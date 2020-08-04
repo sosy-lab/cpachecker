@@ -46,6 +46,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
+/**
+ * This class initiates the information collection from all the loops in the specified program
+ */
 @Options(prefix = "LoopAcc.LoopInformation")
 public class LoopInformation implements StatisticsProvider {
 
@@ -71,6 +74,10 @@ public class LoopInformation implements StatisticsProvider {
 
   }
 
+  /**
+   * This Method looks for all the loops in the specified program, collects the information and
+   * "dumps" a information file in the output that gives the user all of the information
+   */
   public void lookForLoops() {
 
     ImmutableCollection<Loop> allLoops = cfa.getLoopStructure().get().getAllLoops();
@@ -99,8 +106,8 @@ public class LoopInformation implements StatisticsProvider {
         }
         tempEdge = tempEdge.getSuccessor().getLeavingEdge(VALID_STATE);
       }
-      if(!tempNode.equals(null)) {
-        loopData.add(new LoopData(loopHead, tempNode, cfa, loopNodes, loop));
+      if (!(tempNode == null)) {
+        loopData.add(new LoopData(loopHead, tempNode, cfa, loopNodes, loop, logger));
       }
     }
 
@@ -126,6 +133,10 @@ public class LoopInformation implements StatisticsProvider {
 
   public ArrayList<LoopData> getLoopData() {
     return loopData;
+  }
+
+  public CFA getCFA() {
+    return cfa;
   }
 
   @Override
