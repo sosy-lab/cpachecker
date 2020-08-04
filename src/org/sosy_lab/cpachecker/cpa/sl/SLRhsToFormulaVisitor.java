@@ -102,18 +102,29 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
     if (op != UnaryOperator.AMPER) {
       return super.visit(pExp);
     }
-    CExpression operand = pExp.getOperand();
-    assert operand instanceof CIdExpression;
-    CIdExpression idExp = (CIdExpression) operand;
-    CType type = operand.getExpressionType();
-    if (type instanceof CArrayType) {
-      type = ((CArrayType) type).asPointerType();
-    }
-    String varName = idExp.getDeclaration().getQualifiedName();
-    String varNameWithAmper = op.getOperator() + varName;
 
-    CType t = delegate.makeLocationTypeForVariableType(type);
-    return converter.makeVariable(varNameWithAmper, t, ssa);
+    CExpression operand = pExp.getOperand();
+    return operand.accept(
+        new SLLhsToFormulaVisitor(
+            converter,
+            edge,
+            functionName,
+            ssa,
+            delegate,
+            constraints,
+            null,
+            fm));
+    // assert operand instanceof CIdExpression;
+    // CIdExpression idExp = (CIdExpression) operand;
+    // CType type = operand.getExpressionType();
+    // if (type instanceof CArrayType) {
+    // type = ((CArrayType) type).asPointerType();
+    // }
+    // String varName = idExp.getDeclaration().getQualifiedName();
+    // String varNameWithAmper = op.getOperator() + varName;
+    //
+    // CType t = delegate.makeLocationTypeForVariableType(type);
+    // return converter.makeVariable(varNameWithAmper, t, ssa);
   }
 
   private int getBaseTypeSize(CType type) {
