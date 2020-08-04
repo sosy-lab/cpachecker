@@ -258,16 +258,37 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
   }
 
-  private boolean checkRequirementOfARG(final ReachedSet pReachedSet) {
+  private boolean checkRequirementOfARG(ReachedSet pReachedSet)
+      throws SolverException, InterruptedException {
     if (checkExistenceOfCoveredStates && hasCoveredStates(pReachedSet)) {
       logger.log(Level.WARNING, "Covered states exist in ARG, interpolation might be wrong!");
       return false;
     }
-    if (getStopStates(pReachedSet).size() > 1) {
-      logger.log(Level.WARNING, "More than one stop state, interpolation might be wrong!");
+    if (hasMultipleReachableStopStates(pReachedSet)) {
+      logger.log(Level.WARNING, "Multiple reachable stop states, interpolation might be wrong!");
       return false;
     }
     return true;
+  }
+
+  private boolean hasMultipleReachableStopStates(ReachedSet pReachedSet)
+      throws SolverException, InterruptedException {
+    FluentIterable<AbstractState> stopStates = getStopStates(pReachedSet);
+    if (stopStates.size() <= 1) {
+      return false;
+    }
+    int reachCount = 0;
+    for (AbstractState stopState : stopStates) {
+      BooleanFormula reachFormula = buildReachFormulaForStates(FluentIterable.of(stopState));
+      if (solver.isUnsat(reachFormula)) {
+        pReachedSet.remove(stopState);
+        AbstractStates.extractStateByType(stopState, ARGState.class).removeFromARG();
+      }
+      else {
+        ++reachCount;
+      }
+    }
+    return reachCount > 1;
   }
 
   /**
