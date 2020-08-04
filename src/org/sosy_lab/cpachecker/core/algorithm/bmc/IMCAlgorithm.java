@@ -278,14 +278,20 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       return false;
     }
     int reachCount = 0;
+    List<AbstractState> unreachableStopStates = new ArrayList<>();
     for (AbstractState stopState : stopStates) {
       BooleanFormula reachFormula = buildReachFormulaForStates(FluentIterable.of(stopState));
       if (solver.isUnsat(reachFormula)) {
-        pReachedSet.remove(stopState);
-        AbstractStates.extractStateByType(stopState, ARGState.class).removeFromARG();
+        unreachableStopStates.add(stopState);
       }
       else {
         ++reachCount;
+      }
+    }
+    if (!unreachableStopStates.isEmpty()) {
+      pReachedSet.removeAll(unreachableStopStates);
+      for (ARGState s : from(unreachableStopStates).filter(ARGState.class)) {
+        s.removeFromARG();
       }
     }
     return reachCount > 1;
