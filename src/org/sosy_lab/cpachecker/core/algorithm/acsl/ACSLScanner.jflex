@@ -23,6 +23,7 @@ import java.util.Queue;
 
 %{
     StringBuilder builder = new StringBuilder();
+    boolean nextAnnotation = false;
     int currentAnnotation = -1;
     Queue<java_cup.runtime.Symbol> deq = new ArrayDeque<>(1);
 
@@ -35,6 +36,10 @@ import java.util.Queue;
     }
 
     public java_cup.runtime.Symbol getNext() throws IOException {
+        if (nextAnnotation) {
+          currentAnnotation++;
+          nextAnnotation = false;
+        }
         if (!deq.isEmpty()) {
             return deq.remove();
         } else {
@@ -62,9 +67,9 @@ Identifier  = [_a-zA-Z][_a-zA-Z0-9]*
 %%
 
 <YYINITIAL> {
-   "//@"                {yybegin(SINGLE_LINE_ANNOTATION); currentAnnotation++;
+   "//@"                {yybegin(SINGLE_LINE_ANNOTATION); nextAnnotation = true;
                         return symbol(sym.NEXTCONTRACT);}
-   "/*@"                {yybegin(MULTI_LINE_ANNOTATION);  currentAnnotation++;
+   "/*@"                {yybegin(MULTI_LINE_ANNOTATION);  nextAnnotation = true;
                         return symbol(sym.NEXTCONTRACT);}
    {LineBreak}          {/* do nothing */}
    .                    {/* do nothing */}
