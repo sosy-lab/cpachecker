@@ -217,21 +217,27 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
 
   private boolean
       assignValueToLocation(Map<Formula, Formula> pMemory, Formula pLoc, Formula pVal, int size) {
-    Formula address = pLoc;
-    for (int i = 0; i < size; i++) {
-      if(i > 0) {
-        address = fm.makePlus(pLoc, fm.makeNumber(heapAddressFormulaType, i));
-        Optional<Formula> tmp = checkAllocation(pMemory, address);
-        if (tmp.isEmpty()) {
-          return false;
-        } else {
-          address = tmp.get();
-        }
+    int bytesToProcess = size;
+    boolean found = false;
+    List<Formula> byteLocs = new LinkedList<>();
+    for (Formula key : pMemory.keySet()) {
+      if (bytesToProcess == 0) {
+        break;
       }
+      if (found || key.equals(pLoc)) {
+        found = true;
+        byteLocs.add(key);
+        bytesToProcess--;
+      }
+    }
+    if (!found) {
+      return false;
+    }
+    for (int i = 0; i < size; i++) {
       int lsb = i * heapValueFormulaType.getSize();
       int msb = lsb + heapValueFormulaType.getSize() - 1;
       Formula nthByte = fm.makeExtract(pVal, msb, lsb, true);
-      pMemory.put(address, nthByte);
+      pMemory.put(byteLocs.get(i), nthByte);
     }
     return true;
   }
