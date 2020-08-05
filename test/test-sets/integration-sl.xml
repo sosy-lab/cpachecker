@@ -1,17 +1,14 @@
 <?xml version="1.0"?>
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
-<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="8 GB" cpuCores="2">
+<benchmark tool="cpachecker" timelimit="90s" hardtimelimit="120 s" memlimit="8 GB" cpuCores="2">
 
   <rundefinition/>
   
   <option name="-stats"/>
   <tasks name="MemSafety-ext3">
     <includesfile>../programs/benchmarks/MemSafety-SL.set</includesfile>
-    <!--<include>../programs/benchmarks/memsafety-ext3/getNumbers4-1.yml</include>-->
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
     <option name="-sl"/>
-    <!--<exclude>../programs/benchmarks/memsafety-ext3/getNumbers4-2.yml</exclude>-->
-    <!--<exclude>../programs/benchmarks/memsafety-ext3/getNumbers4-1.yml</exclude>-->
   </tasks>
   
   <columns>
