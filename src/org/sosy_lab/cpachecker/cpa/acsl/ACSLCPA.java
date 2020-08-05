@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.acsl;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotationLocations;
@@ -42,7 +44,8 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
     if (pCFA instanceof CFAWithACSLAnnotationLocations) {
       cfa = (CFAWithACSLAnnotationLocations) pCFA;
     } else {
-      throw new AssertionError("No annotations in CFA");
+      cfa = new CFAWithACSLAnnotationLocations(pCFA, ImmutableMap.of());
+      pLogManager.log(Level.WARNING, "No ACSL annotations in CFA, ACSLCPA is useless.");
     }
     visitor = new ACSLTermToCExpressionVisitor(cfa, pLogManager);
   }

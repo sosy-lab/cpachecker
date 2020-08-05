@@ -443,7 +443,7 @@ public class CFACreator {
 
       CFA cfa = createCFA(c, mainFunction);
 
-      if (language.equals(Language.C)) {
+      if (cfa instanceof CFAWithACSLAnnotationLocations) {
         cfa = ACSLParser.parseACSLAnnotations(sourceFiles, cfa, logger);
       }
 
