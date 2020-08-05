@@ -189,6 +189,13 @@ parser code {:
       }
       // Add statement contracts directly after the statement as well because some clauses have to
       // be evaluated in the post-state
+      if (edge.getDescription().equals("for")) {
+        while (edge.getSuccessor().getNumLeavingEdges() == 1) {
+          edge = edge.getSuccessor().getLeavingEdge(0);
+        }
+        edge = edge.getSuccessor().getLeavingEdge(0);
+        // edge is now "cond" or "!cond" edge of for-loop
+      }
       int currentDepth = edge.getPredecessor().getStatementStackDepth();
       Queue<CFAEdge> waitlist = new ArrayDeque<>();
       for (int i = 0; i < edge.getPredecessor().getNumLeavingEdges(); i++) {
@@ -203,7 +210,9 @@ parser code {:
         if (successor.getStatementStackDepth() == currentDepth) {
           if (currentEdge == edge) {
             remove = false;
-          } else {
+          } else if (!currentEdge.getSuccessor().equals(edge.getPredecessor())) {
+            // we do not want to add the statement contract after a loop iteration, only after the
+            // whole loop
             cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation.getCopyForPostState());
           }
         } else {
@@ -286,7 +295,7 @@ parser code {:
         throws IOException {
       CFAEdge prev = cfaWithLocs.getCommentPositions().get(loc).getFirst();
       CFAEdge next = cfaWithLocs.getCommentPositions().get(loc).getSecond();
-      int stackDiff = prev.getPredecessor().getStatementStackDepth() - next.getSuccessor().getStatementStackDepth();
+      int stackDiff = prev.getPredecessor().getStatementStackDepth() - next.getPredecessor().getStatementStackDepth();
       if (stackDiff > 0) {
         // annotation is either placed at very end of block or directly after block
         String fileContent = Files.asCharSource(new File(loc.getFileName()), Charsets.UTF_8).read();
@@ -296,7 +305,7 @@ parser code {:
           closingBraces++;
           fileContentAfterAnnotation = fileContentAfterAnnotation.stripLeading().substring(1);
         }
-        int seekedDepth = next.getSuccessor().getStatementStackDepth() + closingBraces;
+        int seekedDepth = next.getPredecessor().getStatementStackDepth() + closingBraces;
         if (prev.getPredecessor().getStatementStackDepth() == seekedDepth) {
           cfaWithLocs.getEdgesToAnnotations().put(prev, annotation);
           return;

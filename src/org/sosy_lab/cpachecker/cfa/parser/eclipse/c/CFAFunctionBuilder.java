@@ -1588,6 +1588,7 @@ class CFAFunctionBuilder extends ASTVisitor {
     } else {
       loopEnd = loopStart;
     }
+    loopEnd.setStatementStackDepth(prevNode.getStatementStackDepth() + 1);
     loopStartStack.push(loopEnd);
 
     // firstLoopNode is Node after "counter < 5"
