@@ -246,6 +246,9 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
 
   private Optional<Formula>
       checkAllocation(Map<Formula, Formula> pMemory, Formula fLoc) {
+    if (pMemory.isEmpty()) {
+      return Optional.empty();
+    }
     // Syntactical check for performance.
     if (pMemory.containsKey(fLoc)) {
       return Optional.of(fLoc);
