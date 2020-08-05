@@ -425,7 +425,15 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
   }
 
   public void handleVarDeclaration(Formula pVar, CType pType) {
-    int size = machineModel.getSizeof(pType).intValueExact();
+    int size = 0;
+    if (pType.isIncomplete()) {
+      if (pType instanceof CArrayType) {
+        CArrayType type = (CArrayType) pType;
+        size = type.getLengthAsInt().getAsInt();
+      }
+    } else {
+      size = machineModel.getSizeof(pType).intValueExact();
+    }
     allocateOnStack(pVar, size);
     if (pType instanceof CPointerType || pType instanceof CArrayType) {
       state.addInScopePtr(pVar);

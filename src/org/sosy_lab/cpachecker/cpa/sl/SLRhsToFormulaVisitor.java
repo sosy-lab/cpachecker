@@ -69,13 +69,13 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
     Formula loc = arrayExp.accept(this);
     int size = getBaseTypeSize(arrayExp.getExpressionType());
     // int size = converter.getSizeof(arrayExp.getExpressionType());
-    offset =
-        converter.makeCast(
-            subscriptExp.getExpressionType(),
-            arrayExp.getExpressionType(),
-            offset,
-            constraints,
-            edge);
+    // offset =
+//        converter.makeCast(
+//            subscriptExp.getExpressionType(),
+//            arrayExp.getExpressionType(),
+//            offset,
+//            constraints,
+//            edge);
     Optional<Formula> value = delegate.dereference(loc, offset, size);
     if (value.isEmpty()) {
       delegate.addError(SLStateError.INVALID_READ);

@@ -328,7 +328,11 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
       String varNameWithAmper = UnaryOperator.AMPER.getOperator() + param.getQualifiedName();
       CType t = delegate.makeLocationTypeForVariableType(param.getType());
       Formula var = makeFreshVariable(varNameWithAmper, t, ssa);
-      delegate.handleVarDeclaration(var, param.getType());
+      CType paramType = param.getType();
+      if (paramType.isIncomplete()) {
+        paramType = actualParams.get(i).getExpressionType();
+      }
+      delegate.handleVarDeclaration(var, paramType);
 
       CIdExpression lhs = new CIdExpression(param.getFileLocation(), param);
       makeAssignment(
