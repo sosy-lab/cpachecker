@@ -118,11 +118,11 @@ public class SLState implements AbstractState, AbstractQueryableState {
     // + stack;
   }
 
-  public Map<Formula, Formula> getHeap() {
+  public LinkedHashMap<Formula, Formula> getHeap() {
     return heap;
   }
 
-  public Map<Formula, Formula> getStack() {
+  public LinkedHashMap<Formula, Formula> getStack() {
     return stack;
   }
 

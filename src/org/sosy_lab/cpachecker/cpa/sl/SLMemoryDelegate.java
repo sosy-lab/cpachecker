@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.cpa.sl;
 
 import java.math.BigInteger;
 import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -90,9 +92,9 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     if (allocatedLoc.isPresent()) {
       Formula loc = allocatedLoc.get();
       if(state.getHeap().containsKey(loc) ) {
-        return getValueForLocation(state.getHeap(), loc, segmentSize);
+        return Optional.of(getValueForLocation(state.getHeap(), loc, segmentSize));
       } else {
-        return getValueForLocation(state.getStack(), loc, segmentSize);
+        return Optional.of(getValueForLocation(state.getStack(), loc, segmentSize));
       }
     } else {
       return Optional.empty();
@@ -178,21 +180,39 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
 
   }
 
-  private Optional<Formula>
-      getValueForLocation(Map<Formula, Formula> pMemory, Formula pLoc, int size) {
-    Formula res = pMemory.get(pLoc);
-    for (int i = 1; i < size; i++) {
-      Formula address = fm.makePlus(pLoc, fm.makeNumber(heapAddressFormulaType, i));
-      Optional<Formula> nthByte = dereference(address, 1);
-      if (nthByte.isPresent()) {
-        res = fm.makeConcat(nthByte.get(), res);
-        // res = fm.makeConcat(res, pMemory.get(address)); ENDIANESS?
-      } else {
-        return Optional.empty();
+  private Formula
+      getValueForLocation(LinkedHashMap<Formula, Formula> pMemory, Formula pLoc, int size) {
+    int bytesToProcess = size;
+    boolean found = false;
+    List<Formula> byteLocs = new LinkedList<>();
+    for (Formula key : pMemory.keySet()) {
+      if(bytesToProcess == 0) {
+        break;
       }
-
+      if (found || key.equals(pLoc)) {
+        found = true;
+        byteLocs.add(key);
+        bytesToProcess--;
+      }
     }
-    return Optional.of(res);
+    Formula res = pMemory.get(byteLocs.remove(0));
+    for (Formula loc : byteLocs) {
+      res = fm.makeConcat(pMemory.get(loc), res);
+    }
+    return res;
+
+//    for (int i = 1; i < size; i++) {
+//      Formula address = fm.makePlus(pLoc, fm.makeNumber(heapAddressFormulaType, i));
+//      Optional<Formula> nthByte = dereference(address, 1);
+//      if (nthByte.isPresent()) {
+//        res = fm.makeConcat(nthByte.get(), res);
+//        // res = fm.makeConcat(res, pMemory.get(address)); ENDIANESS?
+//      } else {
+//        return Optional.empty();
+//      }
+//
+//    }
+//    return Optional.of(res);
   }
 
   private boolean
@@ -302,7 +322,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     state.addError(pError);
   }
 
-  private void allocate(Map<Formula, Formula> pMemory, Formula var, int size) {
+  private void allocate(LinkedHashMap<Formula, Formula> pMemory, Formula var, int size) {
     BitvectorFormula key = (BitvectorFormula) var;
     assert fm.getFormulaType(key).equals(heapAddressFormulaType) : String
         .format("Type:%s Var:%s HeapType:%s", fm.getFormulaType(key), var, heapAddressFormulaType);
@@ -405,15 +425,15 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
 
   public boolean handleOutOfScopeVar(Formula var, CType type) {
     int size = machineModel.getSizeof(type).intValueExact();
-    Optional<Formula> val = getValueForLocation(state.getStack(), var, size);
+    Formula val = getValueForLocation(state.getStack(), var, size);
     // Deallocate
-    if (val.isEmpty() || !deallocateFromStack(var)) {
+    if (!deallocateFromStack(var)) {
       return false;
     }
     if (type instanceof CPointerType || type instanceof CArrayType) {
       state.removeInScopePtr(var);
       // Check value for heap ptr alias.
-      Formula heapPtrAlias = val.get();
+      Formula heapPtrAlias = val;
       Optional<Formula> heapPtr = checkHeapAllocation(heapPtrAlias);
       if (heapPtr.isEmpty()) {
         return true; // No heap ptr. No leak.
