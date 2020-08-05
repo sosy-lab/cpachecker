@@ -10,12 +10,18 @@ package org.sosy_lab.cpachecker.cfa.parser.eclipse.c;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
+import com.google.common.base.Charsets;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.TreeMultimap;
+import com.google.common.io.Files;
+import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -87,8 +93,8 @@ class CFABuilder extends ASTVisitor {
   private final Set<String> globalInitializedVariables = new HashSet<>();
 
   // Data structures for mapping ACSL annotations to CFA edges
-  private List<IASTFileLocation> acslCommentPositions = new ArrayList<>();
-  private Map<IASTFileLocation, CFAEdge> edgesForAnnotations = new HashMap<>();
+  private final List<IASTFileLocation> acslCommentPositions = new ArrayList<>();
+  private final Map<IASTFileLocation, Pair<CFAEdge, CFAEdge>> edgesForAnnotations = new HashMap<>();
 
   private final List<Path> parsedFiles = new ArrayList<>();
 
@@ -368,27 +374,41 @@ class CFABuilder extends ASTVisitor {
       throw new CParserException("Invalid C code because of undefined identifiers mentioned above.");
     }
 
-
+    if (acslCommentPositions.isEmpty()) {
+      return new ParseResult(cfas, cfaNodes, globalDecls, parsedFiles);
+    }
 
     for (IASTFileLocation loc : acslCommentPositions) {
-      int smallestDiff = 0;
-      for (Entry<String, CFANode> entry : cfaNodes.entries()) {
-        CFANode node = entry.getValue();
-        for (int i = 0; i < node.getNumEnteringEdges(); i++) {
-          CFAEdge edge = node.getEnteringEdge(i);
-          int offset = edge.getFileLocation().getNodeOffset();
-          int diff = offset - (loc.getNodeOffset() + loc.getNodeLength());
-          if (diff >= 0 && (diff < smallestDiff || edgesForAnnotations.get(loc) == null)) {
-            edgesForAnnotations.put(loc, edge);
-            smallestDiff = diff;
-          }
+      addCommentPosition(loc);
+    }
+
+    return new ParseResultWithCommentLocations(
+        cfas, cfaNodes, globalDecls, parsedFiles, edgesForAnnotations);
+  }
+
+  private void addCommentPosition(IASTFileLocation loc) {
+    CFAEdge prev = null;
+    CFAEdge next = null;
+    int smallestDiffPrev = 0;
+    int smallestDiffNext = 0;
+    for (Entry<String, CFANode> entry : cfaNodes.entries()) {
+      CFANode node = entry.getValue();
+      for (int i = 0; i < node.getNumEnteringEdges(); i++) {
+        CFAEdge edge = node.getEnteringEdge(i);
+        int offset = edge.getFileLocation().getNodeOffset();
+        int diffPrev = (loc.getNodeOffset() + loc.getNodeLength()) - offset;
+        int diffNext = offset - (loc.getNodeOffset() + loc.getNodeLength());
+        if (diffNext >= 0 && (diffNext < smallestDiffNext || next == null)) {
+          next = edge;
+          smallestDiffNext = diffNext;
+        }
+        if (diffPrev >= 0 && (diffPrev < smallestDiffPrev || prev == null)) {
+          prev = edge;
+          smallestDiffPrev = diffPrev;
         }
       }
     }
-
-    ParseResult result = new ParseResultWithCommentLocations(cfas, cfaNodes, globalDecls, parsedFiles, edgesForAnnotations);
-
-    return result;
+    edgesForAnnotations.put(loc, Pair.of(prev, next));
   }
 
   private void handleFunctionDefinition(

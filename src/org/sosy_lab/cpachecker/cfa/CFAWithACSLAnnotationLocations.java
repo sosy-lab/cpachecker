@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLAnnotation;
 import org.sosy_lab.cpachecker.util.LiveVariables;
 import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 
@@ -33,15 +34,15 @@ public class CFAWithACSLAnnotationLocations implements CFA {
 
   private CFA delegate;
 
-  private Map<IASTFileLocation, CFAEdge> commentPositions;
+  private Map<IASTFileLocation, Pair<CFAEdge, CFAEdge>> commentPositions;
   private Multimap<CFAEdge, ACSLAnnotation> edgesToAnnotations = LinkedHashMultimap.create();
 
-  public CFAWithACSLAnnotationLocations(CFA pCFA, Map<IASTFileLocation, CFAEdge> pCommentPositions) {
+  public CFAWithACSLAnnotationLocations(CFA pCFA, Map<IASTFileLocation, Pair<CFAEdge, CFAEdge>> pCommentPositions) {
     delegate = pCFA;
     commentPositions = pCommentPositions;
   }
 
-  public Map<IASTFileLocation, CFAEdge> getCommentPositions() {
+  public Map<IASTFileLocation, Pair<CFAEdge, CFAEdge>> getCommentPositions() {
     return commentPositions;
   }
 

@@ -8,10 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
+import com.google.common.base.Charsets;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.io.Files;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -21,6 +23,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -61,7 +64,7 @@ parser code {:
 
     public static CFA parseACSLAnnotations(List<String> files, CFA pCfa, LogManager logger) throws CParserException, IOException {
       Comparator<IASTFileLocation> locationComparator =
-          (loc1, loc2) -> loc1.getNodeOffset() < loc2.getNodeOffset() ? -1 : 1;
+          (loc1, loc2) -> Integer.compare(loc1.getNodeOffset(), loc2.getNodeOffset());
 
       for (String filename : files) {
         Reader reader = new FileReader(new File(filename), StandardCharsets.UTF_8);
@@ -76,7 +79,15 @@ parser code {:
           orderedLocs = FluentIterable.from(orderedLocs).filter(x -> x.getFileName().equals(filename)).toList();
           List<ACSLAnnotation> annotations = new ACSLParser(scanner, sf, cfaWithLocs, orderedLocs, logger).parseACSLAnnotations();
           for (int i = 0; i < orderedLocs.size(); i++) {
-            cfaWithLocs.getEdgesToAnnotations().put(cfaWithLocs.getCommentPositions().get(orderedLocs.get(i)), annotations.get(i));
+            if (annotations.get(i) instanceof ACSLAssertion) {
+              handleAssertion(cfaWithLocs, orderedLocs.get(i), (ACSLAssertion) annotations.get(i));
+            } else {
+              cfaWithLocs
+                  .getEdgesToAnnotations()
+                  .put(
+                      cfaWithLocs.getCommentPositions().get(orderedLocs.get(i)).getSecond(),
+                      annotations.get(i));
+            }
           }
 
           convertFunctionContractsIfNecessary(cfaWithLocs);
@@ -142,9 +153,7 @@ parser code {:
                 toRemove.add(annotation);
               }
             } else if (annotation instanceof ACSLAssertion) {
-              if (handleAssertion(cfaWithLocs, key, (ACSLAssertion) annotation)) {
-                toRemove.add(annotation);
-              }
+              // already handled
             } else {
               throw new AssertionError(
                   "Unknown annotation type for annotation\n" + annotation.toString());
@@ -266,28 +275,70 @@ parser code {:
     }
 
     /**
-     * Adds the given assertion to the correct edges in the CFA and signals to remove it from the
-     * current one if necessary.
+     * Adds the given assertion to the correct edges in the CFA.
      *
      * @param cfaWithLocs A CFA holding location information about the annotation.
-     * @param edge The edge on which the annotation was originally placed.
+     * @param loc The location at which the annotation was originally placed.
      * @param annotation The annotation to be handled.
-     * @return true if the annotation should be removed from the current edge, false otherwise.
      */
-    private static boolean handleAssertion(
-        CFAWithACSLAnnotationLocations cfaWithLocs, CFAEdge edge, ACSLAssertion annotation) {
-      CFANode predecessor = edge.getPredecessor();
-      for (int i = 0; i < predecessor.getNumEnteringEdges(); i++) {
-        CFAEdge currentEdge = predecessor.getEnteringEdge(i);
-        while (edge.getFileLocation().getNodeOffset()
-            == currentEdge.getFileLocation().getNodeOffset()) {
-          assert currentEdge.getPredecessor().getNumEnteringEdges() == 1;
-          currentEdge = currentEdge.getPredecessor().getEnteringEdge(0);
+    private static void handleAssertion(
+        CFAWithACSLAnnotationLocations cfaWithLocs, IASTFileLocation loc, ACSLAssertion annotation)
+        throws IOException {
+      CFAEdge prev = cfaWithLocs.getCommentPositions().get(loc).getFirst();
+      CFAEdge next = cfaWithLocs.getCommentPositions().get(loc).getSecond();
+      int stackDiff = prev.getPredecessor().getStatementStackDepth() - next.getSuccessor().getStatementStackDepth();
+      if (stackDiff > 0) {
+        // annotation is either placed at very end of block or directly after block
+        String fileContent = Files.asCharSource(new File(loc.getFileName()), Charsets.UTF_8).read();
+        String fileContentAfterAnnotation = fileContent.substring(loc.getNodeOffset() + loc.getNodeLength());
+        int closingBraces = 0;
+        while(fileContentAfterAnnotation.stripLeading().charAt(0) == '}') {
+          closingBraces++;
+          fileContentAfterAnnotation = fileContentAfterAnnotation.stripLeading().substring(1);
         }
-        cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
+        int seekedDepth = next.getSuccessor().getStatementStackDepth() + closingBraces;
+        if (prev.getPredecessor().getStatementStackDepth() == seekedDepth) {
+          cfaWithLocs.getEdgesToAnnotations().put(prev, annotation);
+          return;
+        }
+        Deque<CFAEdge> waitlist = new ArrayDeque<>();
+        Set<CFAEdge> reached = new HashSet<>();
+        Set<CFAEdge> result = new HashSet<>();
+        waitlist.add(prev);
+        while (!waitlist.isEmpty()) {
+          CFAEdge current = waitlist.poll();
+          reached.add(current);
+          if (current.getPredecessor().getStatementStackDepth() == seekedDepth) {
+            for (int i = 0; i < current.getPredecessor().getNumLeavingEdges(); i++) {
+              CFAEdge candidate = current.getPredecessor().getLeavingEdge(i);
+              if (candidate != current) {
+                result.add(candidate);
+              }
+            }
+          } else if (current.getPredecessor().getStatementStackDepth() > seekedDepth) {
+            for (int i = 0; i < current.getPredecessor().getNumEnteringEdges(); i++) {
+              CFAEdge predEdge = current.getPredecessor().getEnteringEdge(i);
+              if (!reached.contains(predEdge)) {
+                waitlist.add(predEdge);
+              }
+            }
+          }
+        }
+        for (CFAEdge edge : result) {
+          cfaWithLocs.getEdgesToAnnotations().put(edge, annotation);
+        }
+      } else {
+        CFANode predecessor = next.getPredecessor();
+        for (int i = 0; i < predecessor.getNumEnteringEdges(); i++) {
+          CFAEdge currentEdge = predecessor.getEnteringEdge(i);
+          while (currentEdge.getFileLocation().getNodeOffset()
+              == next.getFileLocation().getNodeOffset()) {
+            assert currentEdge.getPredecessor().getNumEnteringEdges() == 1;
+            currentEdge = currentEdge.getPredecessor().getEnteringEdge(0);
+          }
+          cfaWithLocs.getEdgesToAnnotations().put(currentEdge, annotation);
+        }
       }
-      // currently we always want to move assertions
-      return true;
     }
 
     public List<ACSLAnnotation> parseACSLAnnotations() throws CParserException {
@@ -304,7 +355,10 @@ parser code {:
     }
 
     public CFANode getCurrentNode() {
-      return cfa.getCommentPositions().get(orderedLocs.get(scanner.getCurrentAnnotation())).getSuccessor();
+      return cfa.getCommentPositions()
+          .get(orderedLocs.get(scanner.getCurrentAnnotation()))
+          .getSecond()
+          .getSuccessor();
     }
 
     public void putBehavior(String functionName, Pair<Behavior, CFANode> p) {
