@@ -25,6 +25,7 @@ import java.util.Map;
 public enum SLHeapFunction {
 
   MALLOC("malloc"),
+  LDVMALLOC("ldv_malloc"),
   REALLOC("realloc"),
   CALLOC("calloc"),
   FREE("free"),
