@@ -924,7 +924,7 @@ class CFAFunctionBuilder extends ASTVisitor {
       }
       CFANode nextNode = loopNextStack.pop();
       assert nextNode.equals(locStack.peek());
-      if (locStack.size() > 0) {
+      if (!locStack.isEmpty()) {
         nextNode.setStatementStackDepth(locStack.size());
         locStack.peek().setStatementStackDepth(locStack.size());
       }

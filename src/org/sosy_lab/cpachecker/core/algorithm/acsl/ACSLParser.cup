@@ -414,7 +414,6 @@ parser code {:
       Set<CFAEdge> initialWaitset = new HashSet<>();
       Queue<CFAEdge> waitlist = new ArrayDeque<>();
       int targetStatementStackDepth = pNode.getStatementStackDepth();
-      CFANode currentNode = pNode;
       if (targetStatementStackDepth <= 0) {
         // not inside a function
         return ImmutableSet.copyOf(cfa.getAllNodes());

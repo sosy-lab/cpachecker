@@ -13,6 +13,8 @@ import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.Queue;
 
+@javax.annotation.processing.Generated("JFlex")
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings({"URF_UNREAD_FIELD", "DLS_DEAD_LOCAL_STORE"})
 %%
 
 %class ACSLScanner
