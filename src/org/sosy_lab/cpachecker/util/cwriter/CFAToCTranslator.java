@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -204,8 +205,8 @@ public class CFAToCTranslator {
   }
 
   private boolean isSameOuterBlockForAll(Collection<NodeAndBlock> pBlocks) {
-    return pBlocks.stream().map(n -> n.getCurrentBlock().getSurroundingBlock()).distinct().count()
-        == 1;
+    return Collections3.allElementsEqual(
+        pBlocks.stream().map(n -> n.getCurrentBlock().getSurroundingBlock()));
   }
 
   private boolean isLastStatementOfBlock(CompoundStatement pStatement, CompoundStatement pBlock) {

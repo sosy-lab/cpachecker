@@ -197,7 +197,7 @@ class MPIMain:
                     result = data.get(SUBANALYSIS_RESULT)
                     # only shut this process down if another subanalysis reported
                     # a TRUE or FALSE result.
-                    if result is not None and result == results["SUCCESS"].name:
+                    if result is not None and result == results.SUCCESS.name:
                         logger.info(
                             "RECEIVING: received signal for shutting this process "
                             "down."
@@ -219,16 +219,16 @@ class MPIMain:
         if len(result) == 1:
             result = result[0][21:].strip()
             if result.startswith("TRUE") or result.startswith("FALSE"):
-                status = results.SUCCESS.value
+                status = results.SUCCESS
             else:
-                status = results.UNKNOWN.value
+                status = results.UNKNOWN
         elif len(result) > 1:
             raise ValueError("Unexpected number of result lines received")
 
         if status is None:
-            status = results.EXCEPTION.value
+            status = results.EXCEPTION
 
-        return {SUBANALYSIS_RESULT: results(status).name}
+        return {SUBANALYSIS_RESULT: status.name}
 
     def publish_completion_of_subprocess(self, proc_output):
         data = self.parse_data(proc_output)

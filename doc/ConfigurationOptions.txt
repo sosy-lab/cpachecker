@@ -37,7 +37,9 @@ log.fileExclude = []
 # log level of file output
 log.level = Level.OFF
 
-# maximum size of log output strings before they will be truncated
+# Maximum size of log output strings before they will be truncated. Note that
+# truncation is not precise and truncation to small values has no effect. Use
+# 0 for disabling truncation completely.
 log.truncateSize = 10000
 
 # use colors for log messages on console
