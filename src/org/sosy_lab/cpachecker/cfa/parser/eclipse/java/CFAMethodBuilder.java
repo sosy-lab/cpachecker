@@ -104,7 +104,6 @@ import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
-import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
@@ -135,7 +134,7 @@ class CFAMethodBuilder extends ASTVisitor {
   private final Deque<CFANode> switchCaseStack = new ArrayDeque<>();
 
   // Data structure for handling try catch throw
-  // First value of list is post try node, second is post finally node
+  // First value of list is post catch nodes, second is post finally node
   private final Deque<List<Optional<CFANode>>> tryStack = new ArrayDeque<>();
 
   // Data structures for label , continue , break
@@ -1746,29 +1745,35 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     cfaNodes.add(tryNode);
     locStack.push(tryNode);
 
-    CFANode postTryNode = new CFANode(cfa.getFunction());
-    cfaNodes.add(postTryNode);
+    CFANode preCatchNode = new CFANode(cfa.getFunction());
+    cfaNodes.add(preCatchNode);
+
+    CFANode postCatchNode = new CFANode(cfa.getFunction());
+    cfaNodes.add(postCatchNode);
 
     if (pTryStatement.getFinally() != null) {
       CFANode postFinallyNode = new CFANode(cfa.getFunction());
       cfaNodes.add(postFinallyNode);
 
-      tryStack.push(ImmutableList.of(Optional.of(postTryNode), Optional.of(postFinallyNode)));
+      tryStack.push(
+          ImmutableList.of(
+              Optional.of(preCatchNode), Optional.of(postCatchNode), Optional.of(postFinallyNode)));
     } else {
-      tryStack.push(ImmutableList.of(Optional.of(postTryNode), Optional.empty()));
+      tryStack.push(
+          ImmutableList.of(
+              Optional.of(preCatchNode), Optional.of(postCatchNode), Optional.empty()));
     }
     CFANode hasPendingExceptionNode = new CFANode(cfa.getFunction());
     cfaNodes.add(hasPendingExceptionNode);
 
-    JIdExpression jIdExpression =
-        new JIdExpressionIsPendingExceptionThrown();
+    JIdExpression jIdExpression = new JIdExpressionIsPendingExceptionThrown();
 
     final Optional<CFANode> postFinallyNode = getPostFinallyNode();
     createConditionEdges(
         jIdExpression,
         fileloc,
         prevNode,
-        postFinallyNode.isEmpty() ? postTryNode : postFinallyNode.get(),
+        postFinallyNode.isEmpty() ? postCatchNode : postFinallyNode.get(),
         hasPendingExceptionNode);
 
     BlankEdge blankEdge =
@@ -1805,9 +1810,18 @@ private void handleTernaryExpression(ConditionalExpression condExp,
   @Override
   public boolean visit(CatchClause pCatchClauseNode) {
 
-    FileLocation fileloc = astCreator.getFileLocation(pCatchClauseNode);
-
     CFANode prevNode = locStack.pop();
+
+    if (isFirstCatchClause(pCatchClauseNode)) {
+      CFANode preCatchNode = getPreCatchNode().get();
+
+      BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, prevNode, preCatchNode, "");
+      addToCFA(blankEdge);
+
+      prevNode = preCatchNode;
+    }
+
+    FileLocation fileloc = astCreator.getFileLocation(pCatchClauseNode);
 
     CFANode exceptionDoesNotMatchNode = new CFANode(cfa.getFunction());
 
@@ -1863,19 +1877,27 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
       if (prevNode.getNumEnteringEdges() > 0) {
         BlankEdge blankEdge =
-            new BlankEdge("", FileLocation.DUMMY, prevNode, getPostTryNode().get(), "");
+            new BlankEdge("", FileLocation.DUMMY, prevNode, getPostCatchNode().get(), "");
         addToCFA(blankEdge);
       }
     }
 
     if (isLastCatchClause(pCatchClause)) {
-      final CFANode tryEndNode = getPostTryNode().get();
+      final CFANode postCatchNode = getPostCatchNode().get();
       BlankEdge blankEdge =
-          new BlankEdge("", FileLocation.DUMMY, nextNode, tryEndNode, "go to end of try");
+          new BlankEdge("", FileLocation.DUMMY, nextNode, postCatchNode, "go to end of try");
       addToCFA(blankEdge);
       locStack.pop();
-      locStack.push(tryEndNode);
+      locStack.push(postCatchNode);
     }
+  }
+
+  private boolean isFirstCatchClause(CatchClause pCatchClause){
+    final List<?> catchClauses = ((TryStatement) pCatchClause.getParent()).catchClauses();
+    if( pCatchClause == (catchClauses.get(0))){
+      return true;
+    }
+    return false;
   }
 
   private boolean isLastCatchClause(CatchClause pCatchClause){
@@ -1886,14 +1908,19 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     return false;
   }
 
-  private Optional<CFANode> getPostTryNode() {
-    assert tryStack.peek() != null && tryStack.peek().size() == 2;
+  private Optional<CFANode> getPreCatchNode() {
+    assert tryStack.peek() != null && tryStack.peek().size() == 3;
     return tryStack.peek().get(0);
   }
 
-  private Optional<CFANode> getPostFinallyNode() {
-    assert tryStack.peek() != null && tryStack.peek().size() == 2;
+  private Optional<CFANode> getPostCatchNode() {
+    assert tryStack.peek() != null && tryStack.peek().size() == 3;
     return tryStack.peek().get(1);
+  }
+
+  private Optional<CFANode> getPostFinallyNode() {
+    assert tryStack.peek() != null && tryStack.peek().size() == 3;
+    return tryStack.peek().get(2);
   }
 
   @Override
@@ -1903,15 +1930,20 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     FileLocation fileloc = astCreator.getFileLocation(pThrowStatement);
 
     CFANode prevNode = locStack.pop();
-    CFANode throwNode = new CFANode(cfa.getFunction());
 
-    cfaNodes.add(throwNode);
-    locStack.push(throwNode);
+    final Optional<CFANode> preCatchNode = getPreCatchNode();
 
-    BlankEdge blankEdge =
+    BlankEdge blankEdge;
+    blankEdge =
         new BlankEdge(
-            pThrowStatement.toString(), fileloc, prevNode, throwNode, "throw " + thrown.getName());
+            pThrowStatement.toString(),
+            fileloc,
+            prevNode,
+            preCatchNode.orElseGet(() -> cfa.getExitNode()),
+            "throw " + thrown.getName());
+
     addToCFA(blankEdge);
+    locStack.push(locStack.peek());
   }
 
   @Override

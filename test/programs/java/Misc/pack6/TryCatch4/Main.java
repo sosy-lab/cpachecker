@@ -20,7 +20,7 @@ public class Main {
       } else {
         System.out.println("No Exception thrown");
       }
-
+      System.out.println("This statement is only reached after else clause");
     } catch (ArrayIndexOutOfBoundsException e) {
       System.out.println("Error message: " + e);
       System.out.println("caught exception");
