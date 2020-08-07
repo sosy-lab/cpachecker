@@ -12,15 +12,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.octagon.OctagonState;
 import org.sosy_lab.cpachecker.cpa.octagon.values.OctagonInterval;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-
 
 public class OctagonRequirementsTranslator extends CartesianRequirementsTranslator<OctagonState>{
 
@@ -31,8 +28,8 @@ public class OctagonRequirementsTranslator extends CartesianRequirementsTranslat
   @Override
   protected List<String> getVarsInRequirements(OctagonState pRequirement) {
     List<String> list = new ArrayList<>();
-    for (Entry<MemoryLocation, OctagonInterval> entry : pRequirement.getVariablesWithBounds().entrySet()) {
-      list.add(entry.getKey().getAsSimpleString());
+    for (MemoryLocation key : pRequirement.getVariablesWithBounds().keySet()) {
+      list.add(key.getAsSimpleString());
     }
     return list;
   }

@@ -11,11 +11,10 @@ package org.sosy_lab.cpachecker.cpa.arg;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -128,7 +127,7 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
    * @param pReachedSet the current reached set
    */
   private void removeUnreachedSiblingsFromARG(ARGState element, UnmodifiableReachedSet pReachedSet) {
-    Set<ARGState> scheduledForDeletion = new HashSet<>();
+    ImmutableList.Builder<ARGState> scheduledForDeletion = ImmutableList.builder();
 
     for (ARGState sibling : Iterables.getOnlyElement(element.getParents()).getChildren()) {
       if (!Objects.equals(sibling, element) && !pReachedSet.contains(sibling)) {
@@ -136,7 +135,7 @@ public class ARGPrecisionAdjustment implements PrecisionAdjustment {
       }
     }
 
-    for (ARGState sibling : scheduledForDeletion) {
+    for (ARGState sibling : scheduledForDeletion.build()) {
       sibling.removeFromARG();
     }
   }

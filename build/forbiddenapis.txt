@@ -1,0 +1,104 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Format: https://github.com/policeman-tools/forbidden-apis/wiki/SignaturesSyntax
+# Can contain either class names, field names, or method signatures.
+# All names need to be fully qualified and as they appear in class files
+# (with "$" for nested classes, "<init>" for constructors, no generics, etc.).
+# In most cases a more detailed description of why an API is unwanted
+# can be found in doc/StyleGuide.md
+
+com.google.common.base.Objects @ use java.util.Objects instead
+
+@defaultMessage CPAchecker should be deterministic, use Random with constant seed
+java.lang.Math#random()
+java.util.Collections#shuffle(java.util.List)
+java.util.Random#<init>()
+
+@defaultMessage useless utility method, use constructor directly (can be applied automatically with Refaster)
+com.google.common.collect.Lists#newArrayList()
+com.google.common.collect.Lists#newArrayListWithCapacity(int)
+com.google.common.collect.Lists#newCopyOnWriteArrayList()
+com.google.common.collect.Lists#newLinkedList()
+com.google.common.collect.Sets#newCopyOnWriteArraySet()
+com.google.common.collect.Sets#newHashSet()
+com.google.common.collect.Sets#newLinkedHashSet()
+com.google.common.collect.Sets#newTreeSet()
+com.google.common.collect.Maps#newConcurrentMap()
+com.google.common.collect.Maps#newEnumMap(java.lang.Class)
+com.google.common.collect.Maps#newEnumMap(java.util.Map)
+com.google.common.collect.Maps#newHashMap()
+com.google.common.collect.Maps#newHashMap(java.util.Map)
+com.google.common.collect.Maps#newIdentityHashMap()
+com.google.common.collect.Maps#newLinkedHashMap()
+com.google.common.collect.Maps#newLinkedHashMap(java.util.Map)
+com.google.common.collect.Maps#newTreeMap()
+com.google.common.collect.Maps#newTreeMap(java.util.Comparator)
+com.google.common.collect.Maps#newTreeMap(java.util.SortedMap)
+com.google.common.collect.Queues#newArrayBlockingQueue(int)
+com.google.common.collect.Queues#newArrayDeque()
+com.google.common.collect.Queues#newConcurrentLinkedQueue()
+com.google.common.collect.Queues#newLinkedBlockingDeque()
+com.google.common.collect.Queues#newLinkedBlockingDeque(int)
+com.google.common.collect.Queues#newLinkedBlockingQueue()
+com.google.common.collect.Queues#newLinkedBlockingQueue(int)
+com.google.common.collect.Queues#newPriorityBlockingQueue()
+com.google.common.collect.Queues#newPriorityQueue()
+com.google.common.collect.Queues#newSynchronousQueue()
+
+@defaultMessage use Guava's ImmutableList (can often be applied automatically with Refaster)
+java.util.Collections#emptyList()
+java.util.List#copyOf(java.util.Collection)
+java.util.List#of()
+java.util.List#of(java.lang.Object)
+java.util.List#of(java.lang.Object, java.lang.Object)
+java.util.List#of(java.lang.Object, java.lang.Object, java.lang.Object)
+java.util.List#of(java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object)
+java.util.List#of(java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object)
+java.util.List#of(java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object)
+java.util.List#of(java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object)
+java.util.List#of(java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object)
+java.util.List#of(java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object)
+java.util.List#of(java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object)
+java.util.List#of(java.lang.Object[])
+java.util.stream.Collectors#toUnmodifiableList()
+
+@defaultMessage use Guava's ImmutableSet (can often be applied automatically with Refaster)
+java.util.Collections#emptySet()
+java.util.Set#copyOf(java.util.Collection)
+java.util.Set#of()
+java.util.Set#of(java.lang.Object)
+java.util.Set#of(java.lang.Object, java.lang.Object)
+java.util.Set#of(java.lang.Object, java.lang.Object, java.lang.Object)
+java.util.Set#of(java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object)
+java.util.Set#of(java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object)
+java.util.Set#of(java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object)
+java.util.Set#of(java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object)
+java.util.Set#of(java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object)
+java.util.Set#of(java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object)
+java.util.Set#of(java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object)
+java.util.Set#of(java.lang.Object[])
+java.util.stream.Collectors#toUnmodifiableSet()
+
+@defaultMessage use Guava's ImmutableMap (can often be applied automatically with Refaster)
+java.util.Collections#emptyMap()
+java.util.Map#copyOf(java.util.Map)
+java.util.Map#of()
+java.util.Map#of(java.lang.Object, java.lang.Object)
+java.util.Map#of(java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object)
+java.util.Map#of(java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object)
+java.util.Map#of(java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object)
+java.util.Map#of(java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object)
+java.util.Map#of(java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object)
+java.util.Map#of(java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object)
+java.util.Map#of(java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object)
+java.util.Map#of(java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object)
+java.util.Map#of(java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object, java.lang.Object)
+java.util.Map#ofEntries(java.util.Map$Entry[])
+java.util.stream.Collectors#toUnmodifiableMap(java.util.function.Function, java.util.function.Function)
+java.util.stream.Collectors#toUnmodifiableMap(java.util.function.Function, java.util.function.Function, java.util.function.BinaryOperator)

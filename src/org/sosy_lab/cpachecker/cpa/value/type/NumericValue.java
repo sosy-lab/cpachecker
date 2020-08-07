@@ -13,6 +13,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
+
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -81,7 +83,7 @@ public class NumericValue implements Value, Serializable {
       return BigDecimal.valueOf(number.doubleValue());
     } else if (number instanceof Rational) {
       Rational rat = (Rational) number;
-      return new BigDecimal(rat.getNum()).divide(new BigDecimal(rat.getDen()));
+      return new BigDecimal(rat.getNum()).divide(new BigDecimal(rat.getDen()), 100, RoundingMode.HALF_UP);
     } else {
       return new BigDecimal(number.toString());
     }
@@ -91,6 +93,16 @@ public class NumericValue implements Value, Serializable {
   public BigInteger bigInteger() {
     if (number instanceof BigInteger) {
       return (BigInteger) number;
+    }
+    if (number instanceof Double || number instanceof Float) {
+      long x = (long)number.doubleValue();
+      return BigInteger.valueOf(x);
+    }
+    if (number instanceof BigDecimal) {
+      return ((BigDecimal)number).toBigInteger();
+    }
+    if (number instanceof Rational) {
+      return new NumericValue(number).bigDecimalValue().toBigInteger();
     }
     return new BigInteger(number.toString());
   }

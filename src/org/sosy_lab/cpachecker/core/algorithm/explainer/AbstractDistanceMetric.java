@@ -7,7 +7,9 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.core.algorithm.explainer;
 
+import com.google.common.base.Preconditions;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -18,6 +20,11 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
+/**
+ * Abstract Distance Metric
+ *
+ * @see Explainer
+ */
 public class AbstractDistanceMetric {
 
   private DistanceCalculationHelper distanceHelper;
@@ -28,12 +35,13 @@ public class AbstractDistanceMetric {
 
   /** Start Method */
   public List<CFAEdge> startDistanceMetric(List<ARGPath> safePaths, ARGPath counterexample) {
-    assert distanceHelper != null;
+    Preconditions.checkNotNull(distanceHelper);
     List<CFAEdge> ce = distanceHelper.cleanPath(counterexample);
     List<List<CFAEdge>> paths = new ArrayList<>();
     // clean the paths from useless Statements
-    for (int i = 0; i < safePaths.size(); i++) {
-      paths.add(distanceHelper.cleanPath(safePaths.get(i)));
+
+    for (ARGPath p : safePaths) {
+      paths.add(distanceHelper.cleanPath(p));
     }
 
     List<CFAEdge> closestSuccessfulExecution =
@@ -43,34 +51,34 @@ public class AbstractDistanceMetric {
   }
 
   /**
-   * @param ce := Counterexample
-   * @param sp := Safe paths
+   * @param counterexample := Counterexample
+   * @param safePaths := Safe paths
    */
   private List<CFAEdge> comparePaths(
-      List<CFAEdge> ce,
-      List<List<CFAEdge>> sp,
-      List<ARGState> ce_states,
+      List<CFAEdge> counterexample,
+      List<List<CFAEdge>> safePaths,
+      List<ARGState> ceStates,
       List<ARGPath> pathsStates) {
 
     // Make sure that the safe path list is not empty
-    assert !sp.isEmpty();
+    assert !safePaths.isEmpty();
 
     List<Integer> distances = new ArrayList<>();
     // Distance := predicateWeight * predicateDistance + unalignedStatesWeight * unalignedStates
     int predicateWeight = 1;
     int unalignedStatesWeight = 2;
 
-    // "sp" here stands for "Safe Path"
-    for (int i = 0; i < sp.size(); i++) {
+    for (int i = 0; i < safePaths.size(); i++) {
       // Step 1: CREATE ALIGNMENTS
-      List<List<CFAEdge>> alignments = createAlignments(ce, sp.get(i));
+      Alignment<CFAEdge> alignments = createAlignments(counterexample, safePaths.get(i));
 
       // Step 2: Get Differences between Predicates
       int predicateDistance =
-          calculatePredicateDistance(alignments, ce_states, pathsStates.get(i).asStatesList());
+          calculatePredicateDistance(alignments, ceStates, pathsStates.get(i).asStatesList());
 
       // Step 3: Get Differences between Actions
-      List<CFAEdge> better_choice = (sp.get(i).size() > ce.size()) ? sp.get(i) : ce;
+      List<CFAEdge> better_choice =
+          (safePaths.get(i).size() > counterexample.size()) ? safePaths.get(i) : counterexample;
       int unalignedStates = getNumberOfUnalignedStates(alignments, better_choice);
 
       // calculate the distance
@@ -79,89 +87,81 @@ public class AbstractDistanceMetric {
     }
 
     // clean distance = 0
+    List<Integer> finalDistances = new ArrayList<>();
     for (int i = 0; i < distances.size(); i++) {
-      if (distances.get(i) == 0) {
-        distances.remove(i);
-        sp.remove(i);
+      int distance = distances.get(i);
+      if (distance == 0) {
+        safePaths.remove(i);
+      } else {
+        finalDistances.add(distance);
       }
     }
+    distances = finalDistances;
 
     // Make sure that distances is not empty
-    assert !distances.isEmpty();
+    Preconditions.checkNotNull(distances);
+    int minimumDistance = Collections.min(distances);
+    int index = distances.indexOf(minimumDistance);
 
-    int index = 0;
-    int minimumDistance = distances.get(0);
-    for (int i = 0; i < distances.size(); i++) {
-      if (distances.get(i) <= minimumDistance) {
-        index = i;
-        minimumDistance = distances.get(i);
-      }
-    }
-
-    return sp.get(index);
+    return safePaths.get(index);
   }
 
-  /** Calculate the Number of Unaligned States */
-  private int getNumberOfUnalignedStates(List<List<CFAEdge>> alignments, List<CFAEdge> safePath) {
-    return Math.abs((alignments.get(0).size() - safePath.size()));
+  /**
+   * Calculate the Number of Unaligned States. Unaligned states are the Nodes that haven't been
+   * considered for comparison, because they didn't fulfill the official criteria of the aligned
+   * states.
+   */
+  private int getNumberOfUnalignedStates(Alignment<CFAEdge> alignments, List<CFAEdge> safePath) {
+    return Math.abs((alignments.getCounterexample().size() - safePath.size()));
   }
 
   /** Calculates the distance of the predicates */
   private int calculatePredicateDistance(
-      List<List<CFAEdge>> alignments, List<ARGState> ce_states, List<ARGState> pathsStates) {
-    assert alignments.get(0).size() == alignments.get(1).size();
+      Alignment<CFAEdge> alignments, List<ARGState> ceStates, List<ARGState> pathsStates) {
     int distance = 0;
-    List<List<ARGState>> stateAlignments = new ArrayList<>();
-    stateAlignments.add(new ArrayList<>());
-    stateAlignments.add(new ArrayList<>());
-
+    Alignment<ARGState> stateAlignments = new Alignment<>();
     // First find the ARGStates that are mapped to the equivalent CFANode
     // and put them in a List
 
     // COMPUTATIONS FOR THE COUNTEREXAMPLE
-    for (CFAEdge alignedEdge : alignments.get(0)) {
-      for (ARGState ceState : ce_states) {
+    for (CFAEdge alignedEdge : alignments.getCounterexample()) {
+      for (ARGState ceState : ceStates) {
         if (alignedEdge
             .getPredecessor()
             .equals(
                 AbstractStates.extractStateByType(ceState, AbstractStateWithLocation.class)
                     .getLocationNode())) {
-          stateAlignments.get(0).add(ceState);
+          stateAlignments.addToCounterexample(ceState);
           break;
         }
       }
     }
 
     // COMPUTATIONS FOR THE SAFE PATH
-    for (CFAEdge alignedEdge : alignments.get(1)) {
+    for (CFAEdge alignedEdge : alignments.getSafePath()) {
       for (ARGState pathState : pathsStates) {
         if (alignedEdge
             .getPredecessor()
             .equals(
                 AbstractStates.extractStateByType(pathState, AbstractStateWithLocation.class)
                     .getLocationNode())) {
-          stateAlignments.get(1).add(pathState);
+          stateAlignments.addToSafePath(pathState);
           break;
         }
       }
     }
 
-    assert stateAlignments.get(0).size() == stateAlignments.get(1).size();
-    assert stateAlignments.get(0).size() == alignments.get(0).size();
-    assert stateAlignments.get(1).size() == alignments.get(1).size();
-
-    // THE alignments List has only 2 Lists with the same size
-    for (int j = 0; j < stateAlignments.get(0).size(); j++) {
+    for (int j = 0; j < stateAlignments.getCounterexample().size(); j++) {
       Set<BooleanFormula> predicatesCE =
           distanceHelper.splitPredicates(
               AbstractStates.extractStateByType(
-                      stateAlignments.get(0).get(j), PredicateAbstractState.class)
+                      stateAlignments.getCounterexampleElement(j), PredicateAbstractState.class)
                   .getAbstractionFormula()
                   .asFormula());
       Set<BooleanFormula> predicatesSafePath =
           distanceHelper.splitPredicates(
               AbstractStates.extractStateByType(
-                      stateAlignments.get(1).get(j), PredicateAbstractState.class)
+                      stateAlignments.getSafePathElement(j), PredicateAbstractState.class)
                   .getAbstractionFormula()
                   .asFormula());
 
@@ -179,33 +179,67 @@ public class AbstractDistanceMetric {
     return distance;
   }
 
-  /** Create Alignments between CE and Safe Path */
-  private List<List<CFAEdge>> createAlignments(List<CFAEdge> ce, List<CFAEdge> safePath) {
-    List<CFAEdge> ce_1 = new ArrayList<>(ce);
-    List<CFAEdge> safePath_1 = new ArrayList<>(safePath);
-    List<CFAEdge> ce_2 = new ArrayList<>();
-    List<CFAEdge> safePath_2 = new ArrayList<>();
+  /** Create Alignments between Counterexample and Safe Path */
+  private Alignment<CFAEdge> createAlignments(List<CFAEdge> ce, List<CFAEdge> safePath) {
+    List<CFAEdge> ceCopy1 = new ArrayList<>(ce);
+    List<CFAEdge> safePath1 = new ArrayList<>(safePath);
+    Alignment<CFAEdge> alignment = new Alignment<>();
 
     // MAKING ALIGNMENTS
-    for (int i = 0; i < ce_1.size(); i++) {
-      for (int j = 0; j < safePath_1.size(); j++) {
-        if (ce_1.get(i).getPredecessor().getNodeNumber()
-            == safePath_1.get(j).getPredecessor().getNodeNumber()) {
-          if (ce_1.get(i).getSuccessor().getNodeNumber()
-              != safePath_1.get(j).getSuccessor().getNodeNumber()) {
-            ce_2.add(ce_1.get(i));
-            safePath_2.add(safePath_1.get(j));
-            // remove the aligned Node
-            safePath_1.remove(j);
+    for (CFAEdge ceEdge : ceCopy1) {
+      for (CFAEdge spEdge : safePath1) {
+        if (ceEdge.getPredecessor().getNodeNumber() == spEdge.getPredecessor().getNodeNumber()) {
+          if (ceEdge.getSuccessor().getNodeNumber() != spEdge.getSuccessor().getNodeNumber()) {
+            // add the two aligned Edges in the Alignment Class
+            alignment.addPair(ceEdge, spEdge);
+            // remove the aligned Edge
+            safePath1.remove(spEdge);
             break;
           }
         }
       }
     }
 
-    List<List<CFAEdge>> result = new ArrayList<>();
-    result.add(ce_2);
-    result.add(safePath_2);
-    return result;
+    return alignment;
+  }
+}
+
+/**
+ * Class Alignment is used for making alignments between two Elements
+ *
+ * @param <T> T is here either a CFAEdge or a ARGState
+ */
+class Alignment<T> {
+
+  private List<T> counterexample = new ArrayList<T>();
+  private List<T> safePath = new ArrayList<T>();
+
+  public void addToCounterexample(T element) {
+    counterexample.add(element);
+  }
+
+  public void addToSafePath(T element) {
+    safePath.add(element);
+  }
+
+  public void addPair(T counterexampleElement, T safePathElement) {
+    counterexample.add(counterexampleElement);
+    safePath.add(safePathElement);
+  }
+
+  public T getSafePathElement(int i) {
+    return safePath.get(i);
+  }
+
+  public T getCounterexampleElement(int i) {
+    return counterexample.get(i);
+  }
+
+  public List<T> getCounterexample() {
+    return counterexample;
+  }
+
+  public List<T> getSafePath() {
+    return safePath;
   }
 }

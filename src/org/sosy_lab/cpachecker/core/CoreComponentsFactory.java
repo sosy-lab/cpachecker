@@ -406,7 +406,8 @@ public class CoreComponentsFactory {
       algorithm = new MPIPortfolioAlgorithm(config, logger, shutdownNotifier, specification);
 
     } else if (useExplainer) {
-      algorithm = new Explainer(
+      algorithm = new
+          Explainer(
           config,
           logger,
           shutdownNotifier,
@@ -562,7 +563,6 @@ public class CoreComponentsFactory {
                 cfa,
                 reachedSetFactory,
                 aggregatedReachedSetManager,
-                specification,
                 algorithm,
                 cpa);
       }

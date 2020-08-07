@@ -34,30 +34,30 @@ public class ExplainTool {
     logger.log(Level.INFO, "Explain Tool Started");
     counterexample = cleanPath(counterexample);
     closestExecution = cleanPath(closestExecution);
-    List<CFAEdge> deltas_ce = new ArrayList<>();
-    List<CFAEdge> deltas_sp = new ArrayList<>();
+    List<CFAEdge> deltasCe = new ArrayList<>();
+    List<CFAEdge> deltasSp = new ArrayList<>();
 
     for (int i = 0; i < counterexample.size(); i++) {
       if (!closestExecution.contains(counterexample.get(i))) {
-        deltas_ce.add(counterexample.get(i));
+        deltasCe.add(counterexample.get(i));
       }
     }
 
     for (int i = 0; i < closestExecution.size(); i++) {
       if (!counterexample.contains(closestExecution.get(i))) {
-        deltas_sp.add(closestExecution.get(i));
+        deltasSp.add(closestExecution.get(i));
       }
     }
     logger.log(Level.INFO, "COUNTEREXAMPLE DIFFERENCES");
-    for (int i = 0; i < deltas_ce.size(); i++) {
+    for (int i = 0; i < deltasCe.size(); i++) {
       logger.log(Level.INFO,
-          deltas_ce.get(i).getLineNumber() + ": " + deltas_ce.get(i).getDescription());
+          deltasCe.get(i).getLineNumber() + ": " + deltasCe.get(i).getDescription());
     }
     logger.log(Level.INFO, "-------------------------------------------");
     logger.log(Level.INFO, "CLOSEST SUCCESSFUL EXECUTION DIFFERENCES");
-    for (int i = 0; i < deltas_sp.size(); i++) {
+    for (int i = 0; i < deltasSp.size(); i++) {
       logger.log(Level.INFO,
-          deltas_sp.get(i).getLineNumber() + ": " + deltas_sp.get(i).getDescription());
+          deltasSp.get(i).getLineNumber() + ": " + deltasSp.get(i).getDescription());
     }
 
   }
@@ -72,6 +72,7 @@ public class ExplainTool {
     List<CFAEdge> flow = path;
     List<CFAEdge> filteredEdges = new ArrayList<>();
 
+    //TODO: Review: filteredEdges contain all the Edges of a path up until the Node that VERIFIES the spec
     for (int i = 0; i < flow.size(); i++) {
       if (flow.get(i).getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
         List<String> code = Splitter.onPattern("\\s*[()]\\s*").splitToList(flow.get(i).getCode());

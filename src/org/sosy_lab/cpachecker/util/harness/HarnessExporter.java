@@ -17,7 +17,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -276,7 +276,7 @@ public class HarnessExporter {
     if (useModel && pCounterexampleInfo.isPreciseCounterExample()) {
       return pCounterexampleInfo.getExactVariableValues();
     }
-    return ImmutableMultimap.of();
+    return ImmutableListMultimap.of();
   }
 
   public Optional<TargetTestVector> extractTestVector(

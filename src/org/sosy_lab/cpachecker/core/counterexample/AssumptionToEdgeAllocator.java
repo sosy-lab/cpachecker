@@ -21,7 +21,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -185,7 +184,8 @@ public class AssumptionToEdgeAllocator {
    *          represented as assumptions
    */
   public CFAEdgeWithAssumptions allocateAssumptionsToEdge(CFAEdge pCFAEdge, ConcreteState pConcreteState) {
-    Collection<AExpressionStatement> assignmentsAtEdge = createAssignmentsAtEdge(pCFAEdge, pConcreteState);
+    ImmutableSet<AExpressionStatement> assignmentsAtEdge =
+        createAssignmentsAtEdge(pCFAEdge, pConcreteState);
     String comment = createComment(pCFAEdge, pConcreteState);
     return new CFAEdgeWithAssumptions(pCFAEdge, assignmentsAtEdge, comment);
   }
@@ -250,8 +250,9 @@ public class AssumptionToEdgeAllocator {
     return "&" + dcl.getName() + " == " + address.getCommentRepresentation();
   }
 
-  private Collection<AExpressionStatement> createAssignmentsAtEdge(CFAEdge pCFAEdge, ConcreteState pConcreteState) {
-    Set<AExpressionStatement> result = new LinkedHashSet<>();
+  private ImmutableSet<AExpressionStatement> createAssignmentsAtEdge(
+      CFAEdge pCFAEdge, ConcreteState pConcreteState) {
+    ImmutableSet.Builder<AExpressionStatement> result = ImmutableSet.builder();
 
     // Get all Assumptions of this edge
     switch (pCFAEdge.getEdgeType()) {
@@ -280,7 +281,7 @@ public class AssumptionToEdgeAllocator {
       result.addAll(parameterAssumptions);
     }
 
-    return result;
+    return result.build();
   }
 
   private String handleAssumeComment(AssumeEdge pCfaEdge, ConcreteState pConcreteState) {

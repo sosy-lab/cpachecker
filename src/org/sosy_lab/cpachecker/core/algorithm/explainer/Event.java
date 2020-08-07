@@ -23,10 +23,10 @@ public class Event {
   private final List<CFAEdge> path;
 
   public Event(CFAEdge pExecution, List<CFAEdge> pPath) {
-    this.line = pExecution.getLineNumber();
-    this.execution = pExecution;
-    this.node = pExecution.getPredecessor();
-    this.path = pPath;
+    line = pExecution.getLineNumber();
+    execution = pExecution;
+    node = pExecution.getPredecessor();
+    path = pPath;
   }
 
   /**
@@ -35,22 +35,22 @@ public class Event {
   public int getDistanceFromTheEnd() {
     for (int i = 0; i < path.size(); i++) {
       if (path.get(i) == execution) {
-        return (path.size() - i);
+        return path.size() - i;
       }
     }
     return 0;
   }
 
   int getLine() {
-    return this.line;
+    return line;
   }
 
   String getStatement() {
-    return this.execution.getCode();
+    return execution.getCode();
   }
 
   CFANode getNode() {
-    return this.node;
+    return node;
   }
 
 

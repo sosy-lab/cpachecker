@@ -13,10 +13,8 @@ import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -261,14 +259,14 @@ public class SLARGState extends ARGState
     // counterexample check will not work correctly (the advance()-method in DefaultFullPathIterator
     // expects there to be some location information for determining the right CFAEdge)
     ImmutableSet.Builder<CFANode> locations = ImmutableSet.builder();
-    for (Entry<SLARGState, EdgeSet> entry : parentsToEdgeSets.entrySet()) {
-      for (Iterator<CFAEdge> it = entry.getValue().iterator(); it.hasNext(); ) {
-        locations.add(it.next().getSuccessor());
+    for (EdgeSet value : parentsToEdgeSets.values()) {
+      for (CFAEdge edge : value) {
+        locations.add(edge.getSuccessor());
       }
     }
-    for (Entry<SLARGState, EdgeSet> entry : childrenToEdgeSets.entrySet()) {
-      for (Iterator<CFAEdge> it = entry.getValue().iterator(); it.hasNext(); ) {
-        locations.add(it.next().getPredecessor());
+    for (EdgeSet value : childrenToEdgeSets.values()) {
+      for (CFAEdge edge : value) {
+        locations.add(edge.getPredecessor());
       }
     }
     return locations.build();

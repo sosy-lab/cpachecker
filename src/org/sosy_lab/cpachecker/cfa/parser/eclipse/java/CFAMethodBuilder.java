@@ -1545,7 +1545,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
   private CONDITION getConditionKind(JExpression condition) {
     if (condition instanceof JBooleanLiteralExpression) {
-      if (((JBooleanLiteralExpression) condition).getValue()) {
+      if (((JBooleanLiteralExpression) condition).getBoolean()) {
         return CONDITION.ALWAYS_TRUE;
       } else {
         return CONDITION.ALWAYS_FALSE;

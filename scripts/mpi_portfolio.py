@@ -25,12 +25,16 @@ import threading
 # MPI message tags
 tags = Enum("Status", "READY DONE")
 
+results = Enum("Status", "SUCCESS UNKNOWN EXCEPTION")
+
 MPI_PROBE_INTERVAL = 1
 
 ANALYSIS = "analysis"
 CMDLINE = "cmd"
 OUTPUT_PATH = "output"
 LOGFILE = "logfile"
+
+SUBANALYSIS_RESULT = "subanalysis_result"
 
 logger = None
 mpi = None
@@ -166,38 +170,68 @@ class MPIMain:
 
     def mpi_broadcast_listener(self, event_listener, wait_time):
         logger.debug("Setting up mpi_broadcast_listener")
-        probe = False
         while not self.event_listener.isSet():
             self.event_listener.wait(timeout=wait_time)
             # TODO: I have not found a proper way to interrupt an MPI-recv command,
             # hence the current implemenatation polls periodically for new
             # messages
+            probe = False
             probe = self.comm.iprobe(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG)
-            if probe:
-                self.interrupt_mpi_listener()
-            logger.debug("event set? %s", event_listener.isSet())
 
-        if probe:
-            status = MPI.Status()
-            data = self.comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
-            tag = status.Get_tag()
-            source = status.Get_source()
-            logger.info(
-                "RECEIVING: Process %d received msg from process %d with tag '%s': %s",
-                self.rank,
-                source,
-                tags(tag).name,
-                data,
-            )
-            self.shutdown_processes()
+            if probe:
+                status = MPI.Status()
+                data = self.comm.recv(
+                    source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status
+                )
+                tag = status.Get_tag()
+                source = status.Get_source()
+                logger.info(
+                    "RECEIVING: Process %d received msg from process %d with tag '%s': %s",
+                    self.rank,
+                    source,
+                    tags(tag).name,
+                    data,
+                )
+
+                if isinstance(data, dict):
+                    result = data.get(SUBANALYSIS_RESULT)
+                    # only shut this process down if another subanalysis reported
+                    # a TRUE or FALSE result.
+                    if result is not None and result == results.SUCCESS.name:
+                        logger.info(
+                            "RECEIVING: received signal for shutting this process "
+                            "down."
+                        )
+                        self.interrupt_mpi_listener()
+                        self.shutdown_processes()
+
+            logger.debug("event set? %s", event_listener.isSet())
 
     def broadcast_except_to_self(self, data, tag):
         for i in range(0, self.size):
             if self.rank != i:
                 self.comm.send(data, dest=i, tag=tag)
 
-    def publish_completion_of_subprocess(self):
-        data = ["subanalysis", "finished"]  # input is not yet used
+    def parse_data(self, data):
+        status = None
+
+        result = [x for x in data if x.startswith("Verification result: ")]
+        if len(result) == 1:
+            result = result[0][21:].strip()
+            if result.startswith("TRUE") or result.startswith("FALSE"):
+                status = results.SUCCESS
+            else:
+                status = results.UNKNOWN
+        elif len(result) > 1:
+            raise ValueError("Unexpected number of result lines received")
+
+        if status is None:
+            status = results.EXCEPTION
+
+        return {SUBANALYSIS_RESULT: status.name}
+
+    def publish_completion_of_subprocess(self, proc_output):
+        data = self.parse_data(proc_output)
         logger.info("SENDING: Process %d broadcasts msg: %s", self.rank, data)
         self.broadcast_except_to_self(data, tags.DONE.value)
         self.interrupt_mpi_listener()
@@ -216,9 +250,10 @@ class MPIMain:
         """Print an info about the proccesor name, the rank of the executed process, and
         the number of total processes."""
         logger.info(
-            "Executing process on '{}' (rank {} of {})".format(
-                self.name, self.rank, self.size
-            )
+            "Executing process on '%s' (rank %d of %d)",
+            self.name,
+            self.rank,
+            self.size,
         )
 
     def execute_verifier(self):
@@ -242,24 +277,29 @@ class MPIMain:
                 os.makedirs(self.analysis_param[OUTPUT_PATH])
 
             logger.info("Executing cmd: %s", cmdline)
-            with open(self.analysis_param[LOGFILE], "w+") as outputfile:
+            with open(self.analysis_param[LOGFILE], "w+", buffering=1) as outputfile:
+                with subprocess.Popen(
+                    cmdline,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    universal_newlines=True,
+                ) as self.process:
 
-                # Redirect all output from the errorstream to stdout, such that the
-                # output log stays consistent in the child CPAchecker instances
-                self.process = subprocess.Popen(
-                    cmdline, stdout=outputfile, stderr=subprocess.STDOUT,
-                )
-                try:
-                    self.process.communicate()
-                except KeyboardInterrupt:
-                    mpi.interrupt_mpi_listener()
+                    try:
+                        proc_stdout, _ = self.process.communicate()
+                    except KeyboardInterrupt:
+                        mpi.interrupt_mpi_listener()
+
+                    if proc_stdout is not None:
+                        outputfile.write(proc_stdout)
+                        proc_output = proc_stdout.split("\n")
 
             logger.info(
                 "Process returned with status code %d", self.process.returncode,
             )
             if not self.shutdown_requested:
                 self.shutdown_requested = True
-                self.publish_completion_of_subprocess()
+                self.publish_completion_of_subprocess(proc_output)
                 logger.debug("Rank %d is about to shut itself down", self.rank)
 
     def prepare_cmdline(self):
@@ -288,7 +328,7 @@ class MPIMain:
 
     def push_results_to_master(self):
         if self.main_node_network_config is None:
-            logger.warning(
+            logger.info(
                 "No network parameters received. The process was executed "
                 "on the main node only. The result files are hence "
                 "already in their correct location."
@@ -301,8 +341,15 @@ class MPIMain:
             main_node_ip_address = self.main_node_network_config.get(
                 "main_node_ipv4_address"
             )
-            local_ip_address = socket.gethostbyname(os.environ.get("USER"))
+            try:
+                local_ip_address = socket.gethostbyname(os.environ.get("USER"))
+            except socket.gaierror:
+                # hostfile was provided, but ip address could not be found
+                # process is most likely running on localhost
+                local_ip_address = socket.gethostbyname(socket.gethostname())
+
             logger.debug("Local ip address: %s ", local_ip_address)
+
             if (
                 main_node_ip_address is not None
                 and main_node_ip_address != local_ip_address
@@ -332,14 +379,14 @@ class MPIMain:
                     ]
                     logger.debug("Command for scp: %s", scp_cmd)
                     scp_proc = subprocess.run(scp_cmd)
-                    logger.info(
+                    logger.debug(
                         "Process for copying the output back to the main node "
                         "completed with status code %d",
                         scp_proc.returncode,
                     )
 
             else:
-                logger.debug(
+                logger.info(
                     "The current process is executed on the main node. The result "
                     "files are already in the correct place."
                 )

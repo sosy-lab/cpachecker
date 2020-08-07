@@ -151,7 +151,7 @@ public class CLangSMG extends SMG implements UnmodifiableCLangSMG {
    * @param pObject Object to add
    */
   public void addGlobalObject(SMGRegion pObject) {
-    if (CLangSMG.performChecks() && global_objects.values().contains(pObject)) {
+    if (CLangSMG.performChecks() && global_objects.containsValue(pObject)) {
       throw new IllegalArgumentException("Global object already in the SMG: [" + pObject + "]");
     }
 

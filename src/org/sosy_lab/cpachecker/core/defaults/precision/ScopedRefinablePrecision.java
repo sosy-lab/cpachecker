@@ -13,13 +13,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.NavigableSet;
-import java.util.TreeSet;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -39,9 +38,9 @@ public class ScopedRefinablePrecision extends RefinablePrecision {
   }
 
   private ScopedRefinablePrecision(
-      VariableTrackingPrecision pBaseline, ImmutableSortedSet<MemoryLocation> pRawPrecision) {
+      VariableTrackingPrecision pBaseline, Iterable<MemoryLocation> pRawPrecision) {
     super(pBaseline);
-    rawPrecision = pRawPrecision;
+    rawPrecision = ImmutableSortedSet.copyOf(pRawPrecision);
   }
 
   @Override
@@ -49,10 +48,8 @@ public class ScopedRefinablePrecision extends RefinablePrecision {
     if (this.rawPrecision.containsAll(increment.values())) {
       return this;
     } else {
-      NavigableSet<MemoryLocation> refinedPrec = new TreeSet<>(rawPrecision);
-      refinedPrec.addAll(increment.values());
-
-      return new ScopedRefinablePrecision(super.getBaseline(), ImmutableSortedSet.copyOf(refinedPrec));
+      Iterable<MemoryLocation> refinedPrec = Iterables.concat(rawPrecision, increment.values());
+      return new ScopedRefinablePrecision(super.getBaseline(), refinedPrec);
     }
   }
 
@@ -84,14 +81,15 @@ public class ScopedRefinablePrecision extends RefinablePrecision {
   }
 
   @Override
-  public VariableTrackingPrecision join(VariableTrackingPrecision consolidatedPrecision) {
-    Preconditions.checkArgument(getClass().equals(consolidatedPrecision.getClass()));
-    checkArgument(
-        super.getBaseline().equals(((ScopedRefinablePrecision) consolidatedPrecision).getBaseline()));
+  public VariableTrackingPrecision join(VariableTrackingPrecision pConsolidatedPrecision) {
+    Preconditions.checkArgument(getClass().equals(pConsolidatedPrecision.getClass()));
+    ScopedRefinablePrecision consolidatedPrecision =
+        (ScopedRefinablePrecision) pConsolidatedPrecision;
+    checkArgument(super.getBaseline().equals(consolidatedPrecision.getBaseline()));
 
-    NavigableSet<MemoryLocation> joinedPrec = new TreeSet<>(rawPrecision);
-    joinedPrec.addAll(((ScopedRefinablePrecision) consolidatedPrecision).rawPrecision);
-    return new ScopedRefinablePrecision(super.getBaseline(), ImmutableSortedSet.copyOf(joinedPrec));
+    Iterable<MemoryLocation> joinedPrec =
+        Iterables.concat(rawPrecision, consolidatedPrecision.rawPrecision);
+    return new ScopedRefinablePrecision(super.getBaseline(), joinedPrec);
   }
 
   @Override

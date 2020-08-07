@@ -14,10 +14,9 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -337,10 +336,10 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             shutdownNotifier,
             NONDET_FORMULA_TYPE);
     final MergeResult<SSAMap> mergeSSAResult = merger.mergeSSAMaps(ssa1, pts1, ssa2, pts2);
-    final SSAMap newSSA = mergeSSAResult.getResult();
+    final SSAMapBuilder newSSA = mergeSSAResult.getResult().builder();
 
     final MergeResult<PointerTargetSet> mergePtsResult =
-        converter.mergePointerTargetSets(pts1, pts2, mergeSSAResult.getResult());
+        converter.mergePointerTargetSets(pts1, pts2, newSSA);
 
     // (?) Do not swap these two lines, that makes a huge difference in performance (?) !
     final BooleanFormula newFormula1 = bfmgr.and(formula1,
@@ -352,7 +351,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final PointerTargetSet newPTS = mergePtsResult.getResult();
     final int newLength = Math.max(pathFormula1.getLength(), pathFormula2.getLength());
 
-    PathFormula out = new PathFormula(newFormula, newSSA, newPTS, newLength);
+    PathFormula out = new PathFormula(newFormula, newSSA.build(), newPTS, newLength);
     if (simplifyGeneratedPathFormulas) {
       out = out.updateFormula(fmgr.simplify(out.getFormula()));
     }
@@ -360,7 +359,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   }
 
   @Override
-  public PointerTargetSet mergePts(PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMap pSSA)
+  public PointerTargetSet mergePts(
+      PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMapBuilder pSSA)
       throws InterruptedException {
     return converter.mergePointerTargetSets(pPts1, pPts2, pSSA).getResult();
   }
@@ -433,8 +433,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     // build the branching formula that will help us find the real error path
     List<BooleanFormula> branchingFormula = new ArrayList<>();
     for (final ARGState pathElement : elementsOnPath) {
-      Set<ARGState> children = new HashSet<>(pathElement.getChildren());
-      Set<ARGState> childrenOnPath = Sets.intersection(children, elementsOnPath).immutableCopy();
+      final ImmutableSet<ARGState> childrenOnPath =
+          from(pathElement.getChildren()).filter(elementsOnPath::contains).toSet();
 
       if (childrenOnPath.size() > 1) {
         if (childrenOnPath.size() > 2) {

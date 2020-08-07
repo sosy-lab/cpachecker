@@ -22,7 +22,9 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Sets;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -196,10 +198,8 @@ public final class PredicatePrecision implements AdjustablePrecision {
     return EMPTY;
   }
 
-  /**
-   * Create a new precision that is the union of all given precisions.
-   */
-  public static PredicatePrecision unionOf(Collection<PredicatePrecision> precisions) {
+  /** Create a new precision that is the union of all given precisions. */
+  private static PredicatePrecision unionOf(Collection<PredicatePrecision> precisions) {
     if (precisions.isEmpty()) {
       return empty();
     }
@@ -221,13 +221,25 @@ public final class PredicatePrecision implements AdjustablePrecision {
    * and will handle the union computation efficiently.
    */
   public static PredicatePrecision unionOf(Iterable<Precision> precisions) {
-    // Find all distinct elements to avoid computing the union over lots of identical objects.
-    Set<PredicatePrecision> predicatePrecisions = Sets.newIdentityHashSet();
+    // We want to do a fast deduplication of precisions in order to speed up the actual union
+    // computation, which would use a lot of memory if it is passed a lot of precisions with lots of
+    // predicates. Use case is large iterables of precisions with only a few distinct elements
+    // (e.g., a reached set). The predicates themselves will be deduplicated later on anyway,
+    // so we do not need to fully deduplicate.
+    // Equality comparison of PredicatePrecisions are expensive, so we approximate with identity.
+    // But we should keep the input order to avoid nondeterminism.
+    Set<PredicatePrecision> distinctPrecisions = Sets.newIdentityHashSet();
+    List<PredicatePrecision> orderedPrecisions = new ArrayList<>();
     for (Precision prec : precisions) {
-      predicatePrecisions.add(Precisions.extractPrecisionByType(prec, PredicatePrecision.class));
+      PredicatePrecision predicatePrec =
+          Precisions.extractPrecisionByType(prec, PredicatePrecision.class);
+      // check for EMPTY because union over empty precision is pointless
+      if (predicatePrec != EMPTY && distinctPrecisions.add(predicatePrec)) {
+        orderedPrecisions.add(predicatePrec);
+      }
     }
-    predicatePrecisions.remove(EMPTY); // union over empty precision is pointless
-    return unionOf(predicatePrecisions);
+    assert distinctPrecisions.size() == orderedPrecisions.size();
+    return unionOf(orderedPrecisions);
   }
 
   /**

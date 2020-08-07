@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
@@ -195,7 +196,6 @@ public interface PathFormulaManager {
   BooleanFormula buildWeakestPrecondition(CFAEdge pEdge, BooleanFormula pPostcond)
       throws UnrecognizedCFAEdgeException, UnrecognizedCodeException, InterruptedException;
 
-  PointerTargetSet
-      mergePts(PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMap pSSA)
-          throws InterruptedException;
+  PointerTargetSet mergePts(PointerTargetSet pPts1, PointerTargetSet pPts2, SSAMapBuilder pSSA)
+      throws InterruptedException;
 }

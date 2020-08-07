@@ -21,26 +21,20 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * This class contains various methods that are essential for
- * the calculation of the distance between 2 Executions
+ * This class contains various methods that are essential for the calculation of the distance
+ * between 2 Executions
  */
 public class DistanceCalculationHelper {
 
   private BooleanFormulaManagerView bfmgr;
 
-  /**
-   * For the Alignments Distance Metric
-   */
+  /** For the Alignments Distance Metric */
   public DistanceCalculationHelper(BooleanFormulaManagerView pBooleanFormulaManagerView) {
     this.bfmgr = pBooleanFormulaManagerView;
   }
 
-  /**
-   * For the Control Flow Distance Metric
-   */
-  public DistanceCalculationHelper() {
-
-  }
+  /** For the Control Flow Distance Metric */
+  public DistanceCalculationHelper() {}
 
   /**
    * Filter the path to stop at the __Verifier__assert Node
@@ -49,21 +43,25 @@ public class DistanceCalculationHelper {
    */
   public List<CFAEdge> cleanPath(ARGPath path) {
     List<CFAEdge> flow = path.getFullPath();
-    List<CFAEdge> clean_flow = new ArrayList<>();
 
-    for (int i = 0; i < flow.size(); i++) {
-      if (flow.get(i).getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
-        List<String> code = Splitter.onPattern("\\s*[()]\\s*").splitToList(flow.get(i).getCode());
+    return cleanPath(flow);
+
+    /*List<CFAEdge> clean_flow = new ArrayList<>();
+
+    for (CFAEdge f : flow) {
+      if (f.getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
+        List<String> code = Splitter.onPattern("\\s*[()]\\s*").splitToList(f.getCode());
         if (!code.isEmpty()) {
           if (code.get(0).equals("__VERIFIER_assert")) {
-            clean_flow.add(flow.get(i));
+            clean_flow.add(f);
             return clean_flow;
           }
         }
       }
-      clean_flow.add(flow.get(i));
+      clean_flow.add(f);
     }
-    return clean_flow;
+
+    return clean_flow;*/
   }
 
   /**
@@ -75,24 +73,23 @@ public class DistanceCalculationHelper {
     List<CFAEdge> flow = path;
     List<CFAEdge> filteredEdges = new ArrayList<>();
 
-    for (int i = 0; i < flow.size(); i++) {
-      if (flow.get(i).getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
-        List<String> code = Splitter.onPattern("\\s*[()]\\s*").splitToList(flow.get(i).getCode());
+    for (CFAEdge f : flow) {
+      if (f.getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
+        List<String> code = Splitter.onPattern("\\s*[()]\\s*").splitToList(f.getCode());
         if (!code.isEmpty()) {
           if (code.get(0).equals("__VERIFIER_assert")) {
-            filteredEdges.add(flow.get(i));
+            filteredEdges.add(f);
             return filteredEdges;
           }
         }
       }
-      filteredEdges.add(flow.get(i));
+      filteredEdges.add(f);
     }
+
     return filteredEdges;
   }
 
-  /**
-   * Convert a list of ARGPaths to a List of Lists of CFAEdges
-   */
+  /** Convert a list of ARGPaths to a List of Lists of CFAEdges */
   public List<List<CFAEdge>> convertPathsToEdges(List<ARGPath> paths) {
     List<List<CFAEdge>> result = new ArrayList<>();
     for (int i = 0; i < paths.size(); i++) {
@@ -109,15 +106,8 @@ public class DistanceCalculationHelper {
    */
   public boolean isConj(BooleanFormula f) {
     Set<BooleanFormula> after = bfmgr.toConjunctionArgs(f, true);
-    if (after.size() >= 2) {
-      return true;
-    }
-    if (after.size() == 1) {
-      return false;
-    }
-    return false;
+    return after.size() >= 2;
   }
-
 
   /**
    * Checks if a BooleanFormula can be further splitted through the "toDisjunctionArgs" Method
@@ -127,14 +117,7 @@ public class DistanceCalculationHelper {
    */
   public boolean isDisj(BooleanFormula f) {
     Set<BooleanFormula> after = bfmgr.toDisjunctionArgs(f, true);
-    if (after.size() >= 2) {
-      return true;
-    }
-    if (after.size() == 1) {
-      return false;
-    }
-
-    return false;
+    return after.size() >= 2;
   }
 
   /**
@@ -143,14 +126,14 @@ public class DistanceCalculationHelper {
    * @return the same BooleanFormula but splitted in pieces
    */
   public Set<BooleanFormula> splitPredicates(BooleanFormula form) {
-    BooleanFormula current;
     Set<BooleanFormula> result = new HashSet<>();
     Set<BooleanFormula> modulo = new HashSet<>();
     modulo.add(form);
-    Set<BooleanFormula> temp;
-    Iterator<BooleanFormula> iterator;
+
     while (true) {
-      iterator = modulo.iterator();
+      Set<BooleanFormula> temp;
+      BooleanFormula current;
+      Iterator<BooleanFormula> iterator = modulo.iterator();
 
       if (iterator.hasNext()) {
         current = iterator.next();
@@ -181,8 +164,5 @@ public class DistanceCalculationHelper {
     }
 
     return result;
-
   }
-
-
 }
