@@ -181,7 +181,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         return AlgorithmStatus.UNSOUND_AND_PRECISE;
       }
       // Check if interpolation or forward-condition check is applicable
-      if (interpolation && !checkRequirementOfARG(pReachedSet)) {
+      if (interpolation && !checkAndAdjustARG(pReachedSet)) {
         if (fallBack) {
           fallBackToBMC();
         } else {
@@ -247,18 +247,37 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     }
   }
 
-  private boolean checkRequirementOfARG(ReachedSet pReachedSet)
+  /**
+   * A method to check whether interpolation is applicable. For interpolation to be applicable, ARG
+   * must satisfy 1) no covered states exist and 2) there is a unique stop state. If there are
+   * multiple stop states and the option {@code removeUnreachableStopStates} is {@code true}, this
+   * method will remove unreachable stop states and only disable interpolation if there are multiple
+   * reachable stop states. Enabling this option indeed increases the number of solved tasks, but
+   * also results in some wrong proofs.
+   *
+   * @param pReachedSet Abstract Reachability Graph
+   */
+  private boolean checkAndAdjustARG(ReachedSet pReachedSet)
       throws SolverException, InterruptedException {
     if (hasCoveredStates(pReachedSet)) {
       logger.log(Level.WARNING, "Covered states in ARG: interpolation might be unsound!");
       return false;
     }
-    if (getStopStates(pReachedSet).size() > 1) {
+    FluentIterable<AbstractState> stopStates = getStopStates(pReachedSet);
+    if (stopStates.size() > 1) {
       if (!removeUnreachableStopStates) {
         logger.log(Level.WARNING, "Multiple stop states: interpolation might be unsound!");
         return false;
       }
-      if (hasMultipleReachableStopStates(pReachedSet)) {
+      List<AbstractState> unreachableStopStates = getUnreachableStopStates(stopStates);
+      if (!unreachableStopStates.isEmpty()) {
+        logger.log(Level.FINE, "Removing", unreachableStopStates.size(), "unreachable stop states");
+        pReachedSet.removeAll(unreachableStopStates);
+        for (ARGState s : from(unreachableStopStates).filter(ARGState.class)) {
+          s.removeFromARG();
+        }
+      }
+      if (stopStates.size() - unreachableStopStates.size() > 1) {
         logger.log(Level.WARNING, "Multi reachable stop states: interpolation might be unsound!");
         return false;
       }
@@ -266,32 +285,17 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return true;
   }
 
-  private boolean hasMultipleReachableStopStates(ReachedSet pReachedSet)
+  private List<AbstractState>
+      getUnreachableStopStates(final FluentIterable<AbstractState> pStopStates)
       throws SolverException, InterruptedException {
-    FluentIterable<AbstractState> stopStates = getStopStates(pReachedSet);
-    if (stopStates.size() <= 1) {
-      return false;
-    }
-    int reachCount = 0;
     List<AbstractState> unreachableStopStates = new ArrayList<>();
-    for (AbstractState stopState : stopStates) {
+    for (AbstractState stopState : pStopStates) {
       BooleanFormula reachFormula = buildReachFormulaForStates(FluentIterable.of(stopState));
       if (solver.isUnsat(reachFormula)) {
         unreachableStopStates.add(stopState);
       }
-      else {
-        ++reachCount;
-      }
     }
-    if (!unreachableStopStates.isEmpty()) {
-      logger
-          .log(Level.WARNING, "Removing", unreachableStopStates.size(), "unreachable stop states");
-      pReachedSet.removeAll(unreachableStopStates);
-      for (ARGState s : from(unreachableStopStates).filter(ARGState.class)) {
-        s.removeFromARG();
-      }
-    }
-    return reachCount > 1;
+    return unreachableStopStates;
   }
 
   /**
