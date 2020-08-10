@@ -270,6 +270,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
         return false;
       }
       List<AbstractState> unreachableStopStates = getUnreachableStopStates(stopStates);
+      boolean hasMultiReachableStopStates = (stopStates.size() - unreachableStopStates.size() > 1);
       if (!unreachableStopStates.isEmpty()) {
         logger.log(Level.FINE, "Removing", unreachableStopStates.size(), "unreachable stop states");
         pReachedSet.removeAll(unreachableStopStates);
@@ -277,7 +278,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           s.removeFromARG();
         }
       }
-      if (stopStates.size() - unreachableStopStates.size() > 1) {
+      if (hasMultiReachableStopStates) {
         logger.log(Level.WARNING, "Multi reachable stop states: interpolation might be unsound!");
         return false;
       }
