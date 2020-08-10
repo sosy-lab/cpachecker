@@ -3304,14 +3304,8 @@ heuristicSelection.preAnalysisAlgorithmConfig = no default value
 # Configuration for programs containing recursion.
 heuristicSelection.recursionConfig = no default value
 
-# toggle checking existence of covered states in ARG
-imc.checkExistenceOfCoveredStates = true
-
 # toggle checking forward conditions
 imc.checkForwardConditions = true
-
-# toggle collecting formulas by traversing ARG
-imc.collectFormulasByTraversingARG = true
 
 # toggle deriving the interpolants from suffix formulas
 imc.deriveInterpolantFromSuffix = true
