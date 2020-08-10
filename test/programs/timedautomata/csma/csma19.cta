@@ -1,0 +1,810 @@
+
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+MODULE Sender
+{
+  INPUT
+    propTime:    CONST;
+    transmTime:  CONST;
+    collDetect:  SYNC;
+    begin:       SYNC;
+    end:         SYNC;
+    busy:        SYNC;
+  LOCAL
+    x:  CLOCK;
+  INITIAL init;
+  AUTOMATON Sender
+  {
+    STATE init
+    {
+      TRANS
+      {
+        SYNC collDetect;
+        GOTO init;
+      }
+      TRANS
+      {
+        RESET x;
+        GOTO send;
+      }
+    }
+    STATE send
+    {
+      INV x = 0;
+      TRANS
+      {
+        SYNC begin;
+        RESET x;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC busy;
+        RESET x;
+        GOTO collDetected;
+      }
+      TRANS
+      {
+        SYNC collDetect;
+        RESET x;
+        GOTO collDetected;
+      }
+    }
+    STATE collDetected
+    {
+      INV x <= propTime;
+      TRANS
+      {
+        SYNC collDetect;
+        GOTO collDetected;
+      }
+      TRANS
+      {
+        RESET x;
+        GOTO send;
+      }
+    }
+    STATE transmit
+    {
+      INV x <= transmTime;
+      TRANS
+      {
+        SYNC collDetect;
+        RESET x;
+        GOTO collDetected;
+      }
+      TRANS
+      {
+        GUARD x = transmTime;
+        SYNC end;
+        RESET x;
+        GOTO sent;
+      }
+    }
+    STATE sent(ERROR)
+    {
+      TRANS
+      {
+        GOTO init;
+      }
+    }
+  }
+}
+MODULE ROOT Medium
+{
+  LOCAL
+    propTime = 1:        CONST;
+    propTimeDouble = 2:  CONST;
+    transmTime = 4:      CONST;
+    collDetect:          SYNC;
+    x:                   CLOCK;
+    begin1:              SYNC;
+    end1:                SYNC;
+    busy1:               SYNC;
+    begin2:              SYNC;
+    end2:                SYNC;
+    busy2:               SYNC;
+    begin3:              SYNC;
+    end3:                SYNC;
+    busy3:               SYNC;
+    begin4:              SYNC;
+    end4:                SYNC;
+    busy4:               SYNC;
+    begin5:              SYNC;
+    end5:                SYNC;
+    busy5:               SYNC;
+    begin6:              SYNC;
+    end6:                SYNC;
+    busy6:               SYNC;
+    begin7:              SYNC;
+    end7:                SYNC;
+    busy7:               SYNC;
+    begin8:              SYNC;
+    end8:                SYNC;
+    busy8:               SYNC;
+    begin9:              SYNC;
+    end9:                SYNC;
+    busy9:               SYNC;
+    begin10:             SYNC;
+    end10:               SYNC;
+    busy10:              SYNC;
+    begin11:             SYNC;
+    end11:               SYNC;
+    busy11:              SYNC;
+    begin12:             SYNC;
+    end12:               SYNC;
+    busy12:              SYNC;
+    begin13:             SYNC;
+    end13:               SYNC;
+    busy13:              SYNC;
+    begin14:             SYNC;
+    end14:               SYNC;
+    busy14:              SYNC;
+    begin15:             SYNC;
+    end15:               SYNC;
+    busy15:              SYNC;
+    begin16:             SYNC;
+    end16:               SYNC;
+    busy16:              SYNC;
+    begin17:             SYNC;
+    end17:               SYNC;
+    busy17:              SYNC;
+    begin18:             SYNC;
+    end18:               SYNC;
+    busy18:              SYNC;
+    begin19:             SYNC;
+    end19:               SYNC;
+    busy19:              SYNC;
+  INST sender_1 FROM Sender WITH
+  {
+    propTime   AS propTimeDouble;
+    transmTime AS transmTime;
+    collDetect AS collDetect;
+    begin      AS begin1;
+    end        AS end1;
+    busy       AS busy1;
+  }
+  INST sender_2 FROM Sender WITH
+  {
+    propTime   AS propTimeDouble;
+    transmTime AS transmTime;
+    collDetect AS collDetect;
+    begin      AS begin2;
+    end        AS end2;
+    busy       AS busy2;
+  }
+  INST sender_3 FROM Sender WITH
+  {
+    propTime   AS propTimeDouble;
+    transmTime AS transmTime;
+    collDetect AS collDetect;
+    begin      AS begin3;
+    end        AS end3;
+    busy       AS busy3;
+  }
+  INST sender_4 FROM Sender WITH
+  {
+    propTime   AS propTimeDouble;
+    transmTime AS transmTime;
+    collDetect AS collDetect;
+    begin      AS begin4;
+    end        AS end4;
+    busy       AS busy4;
+  }
+  INST sender_5 FROM Sender WITH
+  {
+    propTime   AS propTimeDouble;
+    transmTime AS transmTime;
+    collDetect AS collDetect;
+    begin      AS begin5;
+    end        AS end5;
+    busy       AS busy5;
+  }
+  INST sender_6 FROM Sender WITH
+  {
+    propTime   AS propTimeDouble;
+    transmTime AS transmTime;
+    collDetect AS collDetect;
+    begin      AS begin6;
+    end        AS end6;
+    busy       AS busy6;
+  }
+  INST sender_7 FROM Sender WITH
+  {
+    propTime   AS propTimeDouble;
+    transmTime AS transmTime;
+    collDetect AS collDetect;
+    begin      AS begin7;
+    end        AS end7;
+    busy       AS busy7;
+  }
+  INST sender_8 FROM Sender WITH
+  {
+    propTime   AS propTimeDouble;
+    transmTime AS transmTime;
+    collDetect AS collDetect;
+    begin      AS begin8;
+    end        AS end8;
+    busy       AS busy8;
+  }
+  INST sender_9 FROM Sender WITH
+  {
+    propTime   AS propTimeDouble;
+    transmTime AS transmTime;
+    collDetect AS collDetect;
+    begin      AS begin9;
+    end        AS end9;
+    busy       AS busy9;
+  }
+  INST sender_10 FROM Sender WITH
+  {
+    propTime   AS propTimeDouble;
+    transmTime AS transmTime;
+    collDetect AS collDetect;
+    begin      AS begin10;
+    end        AS end10;
+    busy       AS busy10;
+  }
+  INST sender_11 FROM Sender WITH
+  {
+    propTime   AS propTimeDouble;
+    transmTime AS transmTime;
+    collDetect AS collDetect;
+    begin      AS begin11;
+    end        AS end11;
+    busy       AS busy11;
+  }
+  INST sender_12 FROM Sender WITH
+  {
+    propTime   AS propTimeDouble;
+    transmTime AS transmTime;
+    collDetect AS collDetect;
+    begin      AS begin12;
+    end        AS end12;
+    busy       AS busy12;
+  }
+  INST sender_13 FROM Sender WITH
+  {
+    propTime   AS propTimeDouble;
+    transmTime AS transmTime;
+    collDetect AS collDetect;
+    begin      AS begin13;
+    end        AS end13;
+    busy       AS busy13;
+  }
+  INST sender_14 FROM Sender WITH
+  {
+    propTime   AS propTimeDouble;
+    transmTime AS transmTime;
+    collDetect AS collDetect;
+    begin      AS begin14;
+    end        AS end14;
+    busy       AS busy14;
+  }
+  INST sender_15 FROM Sender WITH
+  {
+    propTime   AS propTimeDouble;
+    transmTime AS transmTime;
+    collDetect AS collDetect;
+    begin      AS begin15;
+    end        AS end15;
+    busy       AS busy15;
+  }
+  INST sender_16 FROM Sender WITH
+  {
+    propTime   AS propTimeDouble;
+    transmTime AS transmTime;
+    collDetect AS collDetect;
+    begin      AS begin16;
+    end        AS end16;
+    busy       AS busy16;
+  }
+  INST sender_17 FROM Sender WITH
+  {
+    propTime   AS propTimeDouble;
+    transmTime AS transmTime;
+    collDetect AS collDetect;
+    begin      AS begin17;
+    end        AS end17;
+    busy       AS busy17;
+  }
+  INST sender_18 FROM Sender WITH
+  {
+    propTime   AS propTimeDouble;
+    transmTime AS transmTime;
+    collDetect AS collDetect;
+    begin      AS begin18;
+    end        AS end18;
+    busy       AS busy18;
+  }
+  INST sender_19 FROM Sender WITH
+  {
+    propTime   AS propTimeDouble;
+    transmTime AS transmTime;
+    collDetect AS collDetect;
+    begin      AS begin19;
+    end        AS end19;
+    busy       AS busy19;
+  }
+  INITIAL init;
+  AUTOMATON Medium
+  {
+    STATE init
+    {
+      TRANS
+      {
+        SYNC begin1;
+        RESET x;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC begin2;
+        RESET x;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC begin3;
+        RESET x;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC begin4;
+        RESET x;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC begin5;
+        RESET x;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC begin6;
+        RESET x;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC begin7;
+        RESET x;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC begin8;
+        RESET x;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC begin9;
+        RESET x;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC begin10;
+        RESET x;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC begin11;
+        RESET x;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC begin12;
+        RESET x;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC begin13;
+        RESET x;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC begin14;
+        RESET x;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC begin15;
+        RESET x;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC begin16;
+        RESET x;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC begin17;
+        RESET x;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC begin18;
+        RESET x;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC begin19;
+        RESET x;
+        GOTO transmit;
+      }
+    }
+    STATE transmit
+    {
+      TRANS
+      {
+        GUARD x < propTime;
+        SYNC begin1;
+        RESET x;
+        GOTO collDetected;
+      }
+      TRANS
+      {
+        GUARD x >= propTime;
+        SYNC busy1;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC end1;
+        GOTO init;
+      }
+      TRANS
+      {
+        GUARD x < propTime;
+        SYNC begin2;
+        RESET x;
+        GOTO collDetected;
+      }
+      TRANS
+      {
+        GUARD x >= propTime;
+        SYNC busy2;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC end2;
+        GOTO init;
+      }
+      TRANS
+      {
+        GUARD x < propTime;
+        SYNC begin3;
+        RESET x;
+        GOTO collDetected;
+      }
+      TRANS
+      {
+        GUARD x >= propTime;
+        SYNC busy3;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC end3;
+        GOTO init;
+      }
+      TRANS
+      {
+        GUARD x < propTime;
+        SYNC begin4;
+        RESET x;
+        GOTO collDetected;
+      }
+      TRANS
+      {
+        GUARD x >= propTime;
+        SYNC busy4;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC end4;
+        GOTO init;
+      }
+      TRANS
+      {
+        GUARD x < propTime;
+        SYNC begin5;
+        RESET x;
+        GOTO collDetected;
+      }
+      TRANS
+      {
+        GUARD x >= propTime;
+        SYNC busy5;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC end5;
+        GOTO init;
+      }
+      TRANS
+      {
+        GUARD x < propTime;
+        SYNC begin6;
+        RESET x;
+        GOTO collDetected;
+      }
+      TRANS
+      {
+        GUARD x >= propTime;
+        SYNC busy6;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC end6;
+        GOTO init;
+      }
+      TRANS
+      {
+        GUARD x < propTime;
+        SYNC begin7;
+        RESET x;
+        GOTO collDetected;
+      }
+      TRANS
+      {
+        GUARD x >= propTime;
+        SYNC busy7;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC end7;
+        GOTO init;
+      }
+      TRANS
+      {
+        GUARD x < propTime;
+        SYNC begin8;
+        RESET x;
+        GOTO collDetected;
+      }
+      TRANS
+      {
+        GUARD x >= propTime;
+        SYNC busy8;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC end8;
+        GOTO init;
+      }
+      TRANS
+      {
+        GUARD x < propTime;
+        SYNC begin9;
+        RESET x;
+        GOTO collDetected;
+      }
+      TRANS
+      {
+        GUARD x >= propTime;
+        SYNC busy9;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC end9;
+        GOTO init;
+      }
+      TRANS
+      {
+        GUARD x < propTime;
+        SYNC begin10;
+        RESET x;
+        GOTO collDetected;
+      }
+      TRANS
+      {
+        GUARD x >= propTime;
+        SYNC busy10;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC end10;
+        GOTO init;
+      }
+      TRANS
+      {
+        GUARD x < propTime;
+        SYNC begin11;
+        RESET x;
+        GOTO collDetected;
+      }
+      TRANS
+      {
+        GUARD x >= propTime;
+        SYNC busy11;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC end11;
+        GOTO init;
+      }
+      TRANS
+      {
+        GUARD x < propTime;
+        SYNC begin12;
+        RESET x;
+        GOTO collDetected;
+      }
+      TRANS
+      {
+        GUARD x >= propTime;
+        SYNC busy12;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC end12;
+        GOTO init;
+      }
+      TRANS
+      {
+        GUARD x < propTime;
+        SYNC begin13;
+        RESET x;
+        GOTO collDetected;
+      }
+      TRANS
+      {
+        GUARD x >= propTime;
+        SYNC busy13;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC end13;
+        GOTO init;
+      }
+      TRANS
+      {
+        GUARD x < propTime;
+        SYNC begin14;
+        RESET x;
+        GOTO collDetected;
+      }
+      TRANS
+      {
+        GUARD x >= propTime;
+        SYNC busy14;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC end14;
+        GOTO init;
+      }
+      TRANS
+      {
+        GUARD x < propTime;
+        SYNC begin15;
+        RESET x;
+        GOTO collDetected;
+      }
+      TRANS
+      {
+        GUARD x >= propTime;
+        SYNC busy15;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC end15;
+        GOTO init;
+      }
+      TRANS
+      {
+        GUARD x < propTime;
+        SYNC begin16;
+        RESET x;
+        GOTO collDetected;
+      }
+      TRANS
+      {
+        GUARD x >= propTime;
+        SYNC busy16;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC end16;
+        GOTO init;
+      }
+      TRANS
+      {
+        GUARD x < propTime;
+        SYNC begin17;
+        RESET x;
+        GOTO collDetected;
+      }
+      TRANS
+      {
+        GUARD x >= propTime;
+        SYNC busy17;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC end17;
+        GOTO init;
+      }
+      TRANS
+      {
+        GUARD x < propTime;
+        SYNC begin18;
+        RESET x;
+        GOTO collDetected;
+      }
+      TRANS
+      {
+        GUARD x >= propTime;
+        SYNC busy18;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC end18;
+        GOTO init;
+      }
+      TRANS
+      {
+        GUARD x < propTime;
+        SYNC begin19;
+        RESET x;
+        GOTO collDetected;
+      }
+      TRANS
+      {
+        GUARD x >= propTime;
+        SYNC busy19;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC end19;
+        GOTO init;
+      }
+    }
+    STATE collDetected
+    {
+      INV x <= propTime;
+      TRANS
+      {
+        SYNC collDetect;
+        GOTO init;
+      }
+    }
+  }
+}

@@ -1,0 +1,259 @@
+
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+MODULE ROOT Tree
+{
+  LOCAL
+    receive:    SYNC;
+    broadcast:  SYNC;
+  INST tree FROM Tree127 WITH
+  {
+    receive  AS broadcast;
+    send_ack AS receive;
+  }
+  INITIAL init;
+  AUTOMATON Tree
+  {
+    STATE init
+    {
+      TRANS { SYNC broadcast; GOTO await; }
+    }
+    STATE await
+    {
+      TRANS { SYNC receive; GOTO done; }
+    }
+    STATE done(ERROR)
+    {
+    }
+  }
+}
+MODULE Leaf
+{
+  INPUT
+    receive:   SYNC;
+    send_ack:  SYNC;
+  INITIAL await;
+  AUTOMATON Leaf
+  {
+    STATE await
+    {
+      TRANS { SYNC receive; GOTO ack; }
+    }
+    STATE ack
+    {
+      TRANS { SYNC send_ack; GOTO await; }
+    }
+  }
+}
+MODULE Node
+{
+  INPUT
+    receive:    SYNC;
+    send_ack:   SYNC;
+    get_ack_1:  SYNC;
+    get_ack_2:  SYNC;
+    broadcast:  SYNC;
+  INITIAL await;
+  AUTOMATON Node
+  {
+    STATE await
+    {
+      TRANS { SYNC receive; GOTO send; }
+    }
+    STATE send
+    {
+      TRANS { SYNC broadcast; GOTO await_ack; }
+    }
+    STATE await_ack
+    {
+      TRANS { SYNC get_ack_1; GOTO acked_1; }
+      TRANS { SYNC get_ack_2; GOTO acked_2; }
+    }
+    STATE acked_1
+    {
+      TRANS { SYNC get_ack_2; GOTO acked_both; }
+    }
+    STATE acked_2
+    {
+      TRANS { SYNC get_ack_1; GOTO acked_both; }
+    }
+    STATE acked_both
+    {
+      TRANS { SYNC send_ack; GOTO await; }
+    }
+  }
+}
+MODULE Tree127
+{
+  INPUT
+    receive:   SYNC;
+    send_ack:  SYNC;
+  LOCAL
+    get_ack_1:  SYNC;
+    get_ack_2:  SYNC;
+    broadcast:  SYNC;
+  INST root FROM Node WITH
+  {
+    receive   AS receive;
+    send_ack  AS send_ack;
+    get_ack_1 AS get_ack_1;
+    get_ack_2 AS get_ack_2;
+    broadcast AS broadcast;
+  }
+  INST left FROM Tree63 WITH
+  {
+    receive  AS broadcast;
+    send_ack AS get_ack_1;
+  }
+  INST right FROM Tree63 WITH
+  {
+    receive  AS broadcast;
+    send_ack AS get_ack_2;
+  }
+}
+MODULE Tree63
+{
+  INPUT
+    receive:   SYNC;
+    send_ack:  SYNC;
+  LOCAL
+    get_ack_1:  SYNC;
+    get_ack_2:  SYNC;
+    broadcast:  SYNC;
+  INST root FROM Node WITH
+  {
+    receive   AS receive;
+    send_ack  AS send_ack;
+    get_ack_1 AS get_ack_1;
+    get_ack_2 AS get_ack_2;
+    broadcast AS broadcast;
+  }
+  INST left FROM Tree31 WITH
+  {
+    receive  AS broadcast;
+    send_ack AS get_ack_1;
+  }
+  INST right FROM Tree31 WITH
+  {
+    receive  AS broadcast;
+    send_ack AS get_ack_2;
+  }
+}
+MODULE Tree31
+{
+  INPUT
+    receive:   SYNC;
+    send_ack:  SYNC;
+  LOCAL
+    get_ack_1:  SYNC;
+    get_ack_2:  SYNC;
+    broadcast:  SYNC;
+  INST root FROM Node WITH
+  {
+    receive   AS receive;
+    send_ack  AS send_ack;
+    get_ack_1 AS get_ack_1;
+    get_ack_2 AS get_ack_2;
+    broadcast AS broadcast;
+  }
+  INST left FROM Tree15 WITH
+  {
+    receive  AS broadcast;
+    send_ack AS get_ack_1;
+  }
+  INST right FROM Tree15 WITH
+  {
+    receive  AS broadcast;
+    send_ack AS get_ack_2;
+  }
+}
+MODULE Tree15
+{
+  INPUT
+    receive:   SYNC;
+    send_ack:  SYNC;
+  LOCAL
+    get_ack_1:  SYNC;
+    get_ack_2:  SYNC;
+    broadcast:  SYNC;
+  INST root FROM Node WITH
+  {
+    receive   AS receive;
+    send_ack  AS send_ack;
+    get_ack_1 AS get_ack_1;
+    get_ack_2 AS get_ack_2;
+    broadcast AS broadcast;
+  }
+  INST left FROM Tree7 WITH
+  {
+    receive  AS broadcast;
+    send_ack AS get_ack_1;
+  }
+  INST right FROM Tree7 WITH
+  {
+    receive  AS broadcast;
+    send_ack AS get_ack_2;
+  }
+}
+MODULE Tree7
+{
+  INPUT
+    receive:   SYNC;
+    send_ack:  SYNC;
+  LOCAL
+    get_ack_1:  SYNC;
+    get_ack_2:  SYNC;
+    broadcast:  SYNC;
+  INST root FROM Node WITH
+  {
+    receive   AS receive;
+    send_ack  AS send_ack;
+    get_ack_1 AS get_ack_1;
+    get_ack_2 AS get_ack_2;
+    broadcast AS broadcast;
+  }
+  INST left FROM Tree3 WITH
+  {
+    receive  AS broadcast;
+    send_ack AS get_ack_1;
+  }
+  INST right FROM Tree3 WITH
+  {
+    receive  AS broadcast;
+    send_ack AS get_ack_2;
+  }
+}
+MODULE Tree3
+{
+  INPUT
+    receive:   SYNC;
+    send_ack:  SYNC;
+  LOCAL
+    get_ack_1:  SYNC;
+    get_ack_2:  SYNC;
+    broadcast:  SYNC;
+  INST root FROM Node WITH
+  {
+    receive   AS receive;
+    send_ack  AS send_ack;
+    get_ack_1 AS get_ack_1;
+    get_ack_2 AS get_ack_2;
+    broadcast AS broadcast;
+  }
+  INST left FROM Leaf WITH
+  {
+    receive  AS broadcast;
+    send_ack AS get_ack_1;
+  }
+  INST right FROM Leaf WITH
+  {
+    receive  AS broadcast;
+    send_ack AS get_ack_2;
+  }
+}

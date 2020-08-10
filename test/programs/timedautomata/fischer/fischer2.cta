@@ -1,3 +1,11 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+// 
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+// 
+// SPDX-License-Identifier: Apache-2.0
+
 MODULE Process
 {
   INPUT
@@ -113,8 +121,8 @@ MODULE ROOT System
     is_not_2:  SYNC;
     set_2:     SYNC;
     set_0_p2:  SYNC;
-    a = 10:   CONST;
-    b = 0:     CONST;
+    a = 100:   CONST;
+    b = 10:    CONST;
   INST variable FROM Variable WITH
   {
     is_0_p1  AS is_0_p1;

@@ -1,0 +1,193 @@
+
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+MODULE Station
+{
+  INPUT
+    rt_0:  SYNC;
+    rt_1:  SYNC;
+    sa:    CONST;
+    ttrt:  CONST;
+  LOCAL
+    x:  CLOCK;
+    y:  CLOCK;
+    z:  CLOCK;
+  INITIAL z_idle;
+  AUTOMATON Station
+  {
+    STATE z_idle
+    {
+      TRANS
+      {
+        SYNC rt_0;
+        RESET x, y;
+        GOTO z_sync;
+      }
+    }
+    STATE z_sync
+    {
+      INV x <= sa;
+      TRANS
+      {
+        GUARD x = sa AND z < ttrt;
+        GOTO z_async;
+      }
+      TRANS
+      {
+        GUARD x = sa AND z >= ttrt;
+        SYNC rt_1;
+        GOTO y_idle;
+      }
+    }
+    STATE z_async
+    {
+      INV z <= ttrt;
+      TRANS
+      {
+        SYNC rt_1;
+        GOTO y_idle;
+      }
+    }
+    STATE y_idle(ERROR)
+    {
+      TRANS
+      {
+        RESET x, z;
+        GOTO y_sync;
+      }
+    }
+    STATE y_sync
+    {
+      INV x <= sa;
+      TRANS
+      {
+        GUARD x = sa AND y < ttrt;
+        GOTO y_async;
+      }
+      TRANS
+      {
+        GUARD x = sa AND y >= ttrt;
+        SYNC rt_1;
+        GOTO z_idle;
+      }
+    }
+    STATE y_async
+    {
+      INV y <= ttrt;
+      TRANS
+      {
+        SYNC rt_1;
+        GOTO z_idle;
+      }
+    }
+  }
+}
+MODULE ROOT System
+{
+  LOCAL
+    tt_0:        SYNC;
+    tt_1:        SYNC;
+    tt_2:        SYNC;
+    tt_3:        SYNC;
+    tt_4:        SYNC;
+    tt_5:        SYNC;
+    tt_6:        SYNC;
+    tt_7:        SYNC;
+    tt_8:        SYNC;
+    tt_9:        SYNC;
+    tt_10:       SYNC;
+    tt_11:       SYNC;
+    tt_12:       SYNC;
+    sa = 20:     CONST;
+    ttrt = 620:  CONST;
+  INST station_1 FROM Station WITH
+  {
+    rt_0 AS tt_0;
+    rt_1 AS tt_1;
+    sa   AS sa;
+    ttrt AS ttrt;
+  }
+  INST station_2 FROM Station WITH
+  {
+    rt_0 AS tt_1;
+    rt_1 AS tt_2;
+    sa   AS sa;
+    ttrt AS ttrt;
+  }
+  INST station_3 FROM Station WITH
+  {
+    rt_0 AS tt_2;
+    rt_1 AS tt_3;
+    sa   AS sa;
+    ttrt AS ttrt;
+  }
+  INST station_4 FROM Station WITH
+  {
+    rt_0 AS tt_3;
+    rt_1 AS tt_4;
+    sa   AS sa;
+    ttrt AS ttrt;
+  }
+  INST station_5 FROM Station WITH
+  {
+    rt_0 AS tt_4;
+    rt_1 AS tt_5;
+    sa   AS sa;
+    ttrt AS ttrt;
+  }
+  INST station_6 FROM Station WITH
+  {
+    rt_0 AS tt_5;
+    rt_1 AS tt_6;
+    sa   AS sa;
+    ttrt AS ttrt;
+  }
+  INST station_7 FROM Station WITH
+  {
+    rt_0 AS tt_6;
+    rt_1 AS tt_7;
+    sa   AS sa;
+    ttrt AS ttrt;
+  }
+  INST station_8 FROM Station WITH
+  {
+    rt_0 AS tt_7;
+    rt_1 AS tt_8;
+    sa   AS sa;
+    ttrt AS ttrt;
+  }
+  INST station_9 FROM Station WITH
+  {
+    rt_0 AS tt_8;
+    rt_1 AS tt_9;
+    sa   AS sa;
+    ttrt AS ttrt;
+  }
+  INST station_10 FROM Station WITH
+  {
+    rt_0 AS tt_9;
+    rt_1 AS tt_10;
+    sa   AS sa;
+    ttrt AS ttrt;
+  }
+  INST station_11 FROM Station WITH
+  {
+    rt_0 AS tt_10;
+    rt_1 AS tt_11;
+    sa   AS sa;
+    ttrt AS ttrt;
+  }
+  INST station_12 FROM Station WITH
+  {
+    rt_0 AS tt_11;
+    rt_1 AS tt_12;
+    sa   AS sa;
+    ttrt AS ttrt;
+  }
+}

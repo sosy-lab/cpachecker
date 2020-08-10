@@ -68,46 +68,56 @@ MODULE Process
 MODULE Variable
 {
   INPUT
-    is_0_p1:   SYNC;
-    is_1:      SYNC;
-    is_not_1:  SYNC;
-    set_1:     SYNC;
-    set_0_p1:  SYNC;
-    is_0_p2:   SYNC;
-    is_2:      SYNC;
-    is_not_2:  SYNC;
-    set_2:     SYNC;
-    set_0_p2:  SYNC;
-    is_0_p3:   SYNC;
-    is_3:      SYNC;
-    is_not_3:  SYNC;
-    set_3:     SYNC;
-    set_0_p3:  SYNC;
-    is_0_p4:   SYNC;
-    is_4:      SYNC;
-    is_not_4:  SYNC;
-    set_4:     SYNC;
-    set_0_p4:  SYNC;
-    is_0_p5:   SYNC;
-    is_5:      SYNC;
-    is_not_5:  SYNC;
-    set_5:     SYNC;
-    set_0_p5:  SYNC;
-    is_0_p6:   SYNC;
-    is_6:      SYNC;
-    is_not_6:  SYNC;
-    set_6:     SYNC;
-    set_0_p6:  SYNC;
-    is_0_p7:   SYNC;
-    is_7:      SYNC;
-    is_not_7:  SYNC;
-    set_7:     SYNC;
-    set_0_p7:  SYNC;
-    is_0_p8:   SYNC;
-    is_8:      SYNC;
-    is_not_8:  SYNC;
-    set_8:     SYNC;
-    set_0_p8:  SYNC;
+    is_0_p1:    SYNC;
+    is_1:       SYNC;
+    is_not_1:   SYNC;
+    set_1:      SYNC;
+    set_0_p1:   SYNC;
+    is_0_p2:    SYNC;
+    is_2:       SYNC;
+    is_not_2:   SYNC;
+    set_2:      SYNC;
+    set_0_p2:   SYNC;
+    is_0_p3:    SYNC;
+    is_3:       SYNC;
+    is_not_3:   SYNC;
+    set_3:      SYNC;
+    set_0_p3:   SYNC;
+    is_0_p4:    SYNC;
+    is_4:       SYNC;
+    is_not_4:   SYNC;
+    set_4:      SYNC;
+    set_0_p4:   SYNC;
+    is_0_p5:    SYNC;
+    is_5:       SYNC;
+    is_not_5:   SYNC;
+    set_5:      SYNC;
+    set_0_p5:   SYNC;
+    is_0_p6:    SYNC;
+    is_6:       SYNC;
+    is_not_6:   SYNC;
+    set_6:      SYNC;
+    set_0_p6:   SYNC;
+    is_0_p7:    SYNC;
+    is_7:       SYNC;
+    is_not_7:   SYNC;
+    set_7:      SYNC;
+    set_0_p7:   SYNC;
+    is_0_p8:    SYNC;
+    is_8:       SYNC;
+    is_not_8:   SYNC;
+    set_8:      SYNC;
+    set_0_p8:   SYNC;
+    is_0_p9:    SYNC;
+    is_9:       SYNC;
+    is_not_9:   SYNC;
+    set_9:      SYNC;
+    set_0_p9:   SYNC;
+    is_0_p10:   SYNC;
+    is_10:      SYNC;
+    is_not_10:  SYNC;
+    set_10:     SYNC;
+    set_0_p10:  SYNC;
   INITIAL s_0;
   AUTOMATON Variable
   {
@@ -137,6 +147,12 @@ MODULE Variable
       TRANS { SYNC is_0_p8; GOTO s_0; }
       TRANS { SYNC is_not_8; GOTO s_0; }
       TRANS { SYNC set_8; GOTO s_8; }
+      TRANS { SYNC is_0_p9; GOTO s_0; }
+      TRANS { SYNC is_not_9; GOTO s_0; }
+      TRANS { SYNC set_9; GOTO s_9; }
+      TRANS { SYNC is_0_p10; GOTO s_0; }
+      TRANS { SYNC is_not_10; GOTO s_0; }
+      TRANS { SYNC set_10; GOTO s_10; }
     }
     STATE s_1
     {
@@ -163,6 +179,12 @@ MODULE Variable
       TRANS { SYNC is_not_8; GOTO s_1; }
       TRANS { SYNC set_8; GOTO s_8; }
       TRANS { SYNC set_0_p8; GOTO s_0; }
+      TRANS { SYNC is_not_9; GOTO s_1; }
+      TRANS { SYNC set_9; GOTO s_9; }
+      TRANS { SYNC set_0_p9; GOTO s_0; }
+      TRANS { SYNC is_not_10; GOTO s_1; }
+      TRANS { SYNC set_10; GOTO s_10; }
+      TRANS { SYNC set_0_p10; GOTO s_0; }
     }
     STATE s_2
     {
@@ -189,6 +211,12 @@ MODULE Variable
       TRANS { SYNC is_not_8; GOTO s_2; }
       TRANS { SYNC set_8; GOTO s_8; }
       TRANS { SYNC set_0_p8; GOTO s_0; }
+      TRANS { SYNC is_not_9; GOTO s_2; }
+      TRANS { SYNC set_9; GOTO s_9; }
+      TRANS { SYNC set_0_p9; GOTO s_0; }
+      TRANS { SYNC is_not_10; GOTO s_2; }
+      TRANS { SYNC set_10; GOTO s_10; }
+      TRANS { SYNC set_0_p10; GOTO s_0; }
     }
     STATE s_3
     {
@@ -215,6 +243,12 @@ MODULE Variable
       TRANS { SYNC is_not_8; GOTO s_3; }
       TRANS { SYNC set_8; GOTO s_8; }
       TRANS { SYNC set_0_p8; GOTO s_0; }
+      TRANS { SYNC is_not_9; GOTO s_3; }
+      TRANS { SYNC set_9; GOTO s_9; }
+      TRANS { SYNC set_0_p9; GOTO s_0; }
+      TRANS { SYNC is_not_10; GOTO s_3; }
+      TRANS { SYNC set_10; GOTO s_10; }
+      TRANS { SYNC set_0_p10; GOTO s_0; }
     }
     STATE s_4
     {
@@ -241,6 +275,12 @@ MODULE Variable
       TRANS { SYNC is_not_8; GOTO s_4; }
       TRANS { SYNC set_8; GOTO s_8; }
       TRANS { SYNC set_0_p8; GOTO s_0; }
+      TRANS { SYNC is_not_9; GOTO s_4; }
+      TRANS { SYNC set_9; GOTO s_9; }
+      TRANS { SYNC set_0_p9; GOTO s_0; }
+      TRANS { SYNC is_not_10; GOTO s_4; }
+      TRANS { SYNC set_10; GOTO s_10; }
+      TRANS { SYNC set_0_p10; GOTO s_0; }
     }
     STATE s_5
     {
@@ -267,6 +307,12 @@ MODULE Variable
       TRANS { SYNC is_not_8; GOTO s_5; }
       TRANS { SYNC set_8; GOTO s_8; }
       TRANS { SYNC set_0_p8; GOTO s_0; }
+      TRANS { SYNC is_not_9; GOTO s_5; }
+      TRANS { SYNC set_9; GOTO s_9; }
+      TRANS { SYNC set_0_p9; GOTO s_0; }
+      TRANS { SYNC is_not_10; GOTO s_5; }
+      TRANS { SYNC set_10; GOTO s_10; }
+      TRANS { SYNC set_0_p10; GOTO s_0; }
     }
     STATE s_6
     {
@@ -293,6 +339,12 @@ MODULE Variable
       TRANS { SYNC is_not_8; GOTO s_6; }
       TRANS { SYNC set_8; GOTO s_8; }
       TRANS { SYNC set_0_p8; GOTO s_0; }
+      TRANS { SYNC is_not_9; GOTO s_6; }
+      TRANS { SYNC set_9; GOTO s_9; }
+      TRANS { SYNC set_0_p9; GOTO s_0; }
+      TRANS { SYNC is_not_10; GOTO s_6; }
+      TRANS { SYNC set_10; GOTO s_10; }
+      TRANS { SYNC set_0_p10; GOTO s_0; }
     }
     STATE s_7
     {
@@ -319,6 +371,12 @@ MODULE Variable
       TRANS { SYNC is_not_8; GOTO s_7; }
       TRANS { SYNC set_8; GOTO s_8; }
       TRANS { SYNC set_0_p8; GOTO s_0; }
+      TRANS { SYNC is_not_9; GOTO s_7; }
+      TRANS { SYNC set_9; GOTO s_9; }
+      TRANS { SYNC set_0_p9; GOTO s_0; }
+      TRANS { SYNC is_not_10; GOTO s_7; }
+      TRANS { SYNC set_10; GOTO s_10; }
+      TRANS { SYNC set_0_p10; GOTO s_0; }
     }
     STATE s_8
     {
@@ -345,96 +403,186 @@ MODULE Variable
       TRANS { SYNC set_7; GOTO s_7; }
       TRANS { SYNC set_0_p7; GOTO s_0; }
       TRANS { SYNC set_0_p8; GOTO s_0; }
+      TRANS { SYNC is_not_9; GOTO s_8; }
+      TRANS { SYNC set_9; GOTO s_9; }
+      TRANS { SYNC set_0_p9; GOTO s_0; }
+      TRANS { SYNC is_not_10; GOTO s_8; }
+      TRANS { SYNC set_10; GOTO s_10; }
+      TRANS { SYNC set_0_p10; GOTO s_0; }
+    }
+    STATE s_9
+    {
+      TRANS { SYNC is_9; GOTO s_9; }
+      TRANS { SYNC is_not_1; GOTO s_9; }
+      TRANS { SYNC set_1; GOTO s_1; }
+      TRANS { SYNC set_0_p1; GOTO s_0; }
+      TRANS { SYNC is_not_2; GOTO s_9; }
+      TRANS { SYNC set_2; GOTO s_2; }
+      TRANS { SYNC set_0_p2; GOTO s_0; }
+      TRANS { SYNC is_not_3; GOTO s_9; }
+      TRANS { SYNC set_3; GOTO s_3; }
+      TRANS { SYNC set_0_p3; GOTO s_0; }
+      TRANS { SYNC is_not_4; GOTO s_9; }
+      TRANS { SYNC set_4; GOTO s_4; }
+      TRANS { SYNC set_0_p4; GOTO s_0; }
+      TRANS { SYNC is_not_5; GOTO s_9; }
+      TRANS { SYNC set_5; GOTO s_5; }
+      TRANS { SYNC set_0_p5; GOTO s_0; }
+      TRANS { SYNC is_not_6; GOTO s_9; }
+      TRANS { SYNC set_6; GOTO s_6; }
+      TRANS { SYNC set_0_p6; GOTO s_0; }
+      TRANS { SYNC is_not_7; GOTO s_9; }
+      TRANS { SYNC set_7; GOTO s_7; }
+      TRANS { SYNC set_0_p7; GOTO s_0; }
+      TRANS { SYNC is_not_8; GOTO s_9; }
+      TRANS { SYNC set_8; GOTO s_8; }
+      TRANS { SYNC set_0_p8; GOTO s_0; }
+      TRANS { SYNC set_0_p9; GOTO s_0; }
+      TRANS { SYNC is_not_10; GOTO s_9; }
+      TRANS { SYNC set_10; GOTO s_10; }
+      TRANS { SYNC set_0_p10; GOTO s_0; }
+    }
+    STATE s_10
+    {
+      TRANS { SYNC is_10; GOTO s_10; }
+      TRANS { SYNC is_not_1; GOTO s_10; }
+      TRANS { SYNC set_1; GOTO s_1; }
+      TRANS { SYNC set_0_p1; GOTO s_0; }
+      TRANS { SYNC is_not_2; GOTO s_10; }
+      TRANS { SYNC set_2; GOTO s_2; }
+      TRANS { SYNC set_0_p2; GOTO s_0; }
+      TRANS { SYNC is_not_3; GOTO s_10; }
+      TRANS { SYNC set_3; GOTO s_3; }
+      TRANS { SYNC set_0_p3; GOTO s_0; }
+      TRANS { SYNC is_not_4; GOTO s_10; }
+      TRANS { SYNC set_4; GOTO s_4; }
+      TRANS { SYNC set_0_p4; GOTO s_0; }
+      TRANS { SYNC is_not_5; GOTO s_10; }
+      TRANS { SYNC set_5; GOTO s_5; }
+      TRANS { SYNC set_0_p5; GOTO s_0; }
+      TRANS { SYNC is_not_6; GOTO s_10; }
+      TRANS { SYNC set_6; GOTO s_6; }
+      TRANS { SYNC set_0_p6; GOTO s_0; }
+      TRANS { SYNC is_not_7; GOTO s_10; }
+      TRANS { SYNC set_7; GOTO s_7; }
+      TRANS { SYNC set_0_p7; GOTO s_0; }
+      TRANS { SYNC is_not_8; GOTO s_10; }
+      TRANS { SYNC set_8; GOTO s_8; }
+      TRANS { SYNC set_0_p8; GOTO s_0; }
+      TRANS { SYNC is_not_9; GOTO s_10; }
+      TRANS { SYNC set_9; GOTO s_9; }
+      TRANS { SYNC set_0_p9; GOTO s_0; }
+      TRANS { SYNC set_0_p10; GOTO s_0; }
     }
   }
 }
 MODULE ROOT System
 {
   LOCAL
-    is_0_p1:   SYNC;
-    is_1:      SYNC;
-    is_not_1:  SYNC;
-    set_1:     SYNC;
-    set_0_p1:  SYNC;
-    is_0_p2:   SYNC;
-    is_2:      SYNC;
-    is_not_2:  SYNC;
-    set_2:     SYNC;
-    set_0_p2:  SYNC;
-    is_0_p3:   SYNC;
-    is_3:      SYNC;
-    is_not_3:  SYNC;
-    set_3:     SYNC;
-    set_0_p3:  SYNC;
-    is_0_p4:   SYNC;
-    is_4:      SYNC;
-    is_not_4:  SYNC;
-    set_4:     SYNC;
-    set_0_p4:  SYNC;
-    is_0_p5:   SYNC;
-    is_5:      SYNC;
-    is_not_5:  SYNC;
-    set_5:     SYNC;
-    set_0_p5:  SYNC;
-    is_0_p6:   SYNC;
-    is_6:      SYNC;
-    is_not_6:  SYNC;
-    set_6:     SYNC;
-    set_0_p6:  SYNC;
-    is_0_p7:   SYNC;
-    is_7:      SYNC;
-    is_not_7:  SYNC;
-    set_7:     SYNC;
-    set_0_p7:  SYNC;
-    is_0_p8:   SYNC;
-    is_8:      SYNC;
-    is_not_8:  SYNC;
-    set_8:     SYNC;
-    set_0_p8:  SYNC;
-    a = 100:   CONST;
-    b = 10:    CONST;
+    is_0_p1:    SYNC;
+    is_1:       SYNC;
+    is_not_1:   SYNC;
+    set_1:      SYNC;
+    set_0_p1:   SYNC;
+    is_0_p2:    SYNC;
+    is_2:       SYNC;
+    is_not_2:   SYNC;
+    set_2:      SYNC;
+    set_0_p2:   SYNC;
+    is_0_p3:    SYNC;
+    is_3:       SYNC;
+    is_not_3:   SYNC;
+    set_3:      SYNC;
+    set_0_p3:   SYNC;
+    is_0_p4:    SYNC;
+    is_4:       SYNC;
+    is_not_4:   SYNC;
+    set_4:      SYNC;
+    set_0_p4:   SYNC;
+    is_0_p5:    SYNC;
+    is_5:       SYNC;
+    is_not_5:   SYNC;
+    set_5:      SYNC;
+    set_0_p5:   SYNC;
+    is_0_p6:    SYNC;
+    is_6:       SYNC;
+    is_not_6:   SYNC;
+    set_6:      SYNC;
+    set_0_p6:   SYNC;
+    is_0_p7:    SYNC;
+    is_7:       SYNC;
+    is_not_7:   SYNC;
+    set_7:      SYNC;
+    set_0_p7:   SYNC;
+    is_0_p8:    SYNC;
+    is_8:       SYNC;
+    is_not_8:   SYNC;
+    set_8:      SYNC;
+    set_0_p8:   SYNC;
+    is_0_p9:    SYNC;
+    is_9:       SYNC;
+    is_not_9:   SYNC;
+    set_9:      SYNC;
+    set_0_p9:   SYNC;
+    is_0_p10:   SYNC;
+    is_10:      SYNC;
+    is_not_10:  SYNC;
+    set_10:     SYNC;
+    set_0_p10:  SYNC;
+    a = 100:    CONST;
+    b = 10:     CONST;
   INST variable FROM Variable WITH
   {
-    is_0_p1  AS is_0_p1;
-    is_1     AS is_1;
-    is_not_1 AS is_not_1;
-    set_1    AS set_1;
-    set_0_p1 AS set_0_p1;
-    is_0_p2  AS is_0_p2;
-    is_2     AS is_2;
-    is_not_2 AS is_not_2;
-    set_2    AS set_2;
-    set_0_p2 AS set_0_p2;
-    is_0_p3  AS is_0_p3;
-    is_3     AS is_3;
-    is_not_3 AS is_not_3;
-    set_3    AS set_3;
-    set_0_p3 AS set_0_p3;
-    is_0_p4  AS is_0_p4;
-    is_4     AS is_4;
-    is_not_4 AS is_not_4;
-    set_4    AS set_4;
-    set_0_p4 AS set_0_p4;
-    is_0_p5  AS is_0_p5;
-    is_5     AS is_5;
-    is_not_5 AS is_not_5;
-    set_5    AS set_5;
-    set_0_p5 AS set_0_p5;
-    is_0_p6  AS is_0_p6;
-    is_6     AS is_6;
-    is_not_6 AS is_not_6;
-    set_6    AS set_6;
-    set_0_p6 AS set_0_p6;
-    is_0_p7  AS is_0_p7;
-    is_7     AS is_7;
-    is_not_7 AS is_not_7;
-    set_7    AS set_7;
-    set_0_p7 AS set_0_p7;
-    is_0_p8  AS is_0_p8;
-    is_8     AS is_8;
-    is_not_8 AS is_not_8;
-    set_8    AS set_8;
-    set_0_p8 AS set_0_p8;
+    is_0_p1   AS is_0_p1;
+    is_1      AS is_1;
+    is_not_1  AS is_not_1;
+    set_1     AS set_1;
+    set_0_p1  AS set_0_p1;
+    is_0_p2   AS is_0_p2;
+    is_2      AS is_2;
+    is_not_2  AS is_not_2;
+    set_2     AS set_2;
+    set_0_p2  AS set_0_p2;
+    is_0_p3   AS is_0_p3;
+    is_3      AS is_3;
+    is_not_3  AS is_not_3;
+    set_3     AS set_3;
+    set_0_p3  AS set_0_p3;
+    is_0_p4   AS is_0_p4;
+    is_4      AS is_4;
+    is_not_4  AS is_not_4;
+    set_4     AS set_4;
+    set_0_p4  AS set_0_p4;
+    is_0_p5   AS is_0_p5;
+    is_5      AS is_5;
+    is_not_5  AS is_not_5;
+    set_5     AS set_5;
+    set_0_p5  AS set_0_p5;
+    is_0_p6   AS is_0_p6;
+    is_6      AS is_6;
+    is_not_6  AS is_not_6;
+    set_6     AS set_6;
+    set_0_p6  AS set_0_p6;
+    is_0_p7   AS is_0_p7;
+    is_7      AS is_7;
+    is_not_7  AS is_not_7;
+    set_7     AS set_7;
+    set_0_p7  AS set_0_p7;
+    is_0_p8   AS is_0_p8;
+    is_8      AS is_8;
+    is_not_8  AS is_not_8;
+    set_8     AS set_8;
+    set_0_p8  AS set_0_p8;
+    is_0_p9   AS is_0_p9;
+    is_9      AS is_9;
+    is_not_9  AS is_not_9;
+    set_9     AS set_9;
+    set_0_p9  AS set_0_p9;
+    is_0_p10  AS is_0_p10;
+    is_10     AS is_10;
+    is_not_10 AS is_not_10;
+    set_10    AS set_10;
+    set_0_p10 AS set_0_p10;
   }
   INST process_1 FROM Process WITH
   {
@@ -513,6 +661,26 @@ MODULE ROOT System
     is_pid_id     AS is_8;
     is_pid_not_id AS is_not_8;
     set_pid_id    AS set_8;
+    a             AS a;
+    b             AS b;
+  }
+  INST process_9 FROM Process WITH
+  {
+    is_pid_0      AS is_0_p9;
+    set_pid_0     AS set_0_p9;
+    is_pid_id     AS is_9;
+    is_pid_not_id AS is_not_9;
+    set_pid_id    AS set_9;
+    a             AS a;
+    b             AS b;
+  }
+  INST process_10 FROM Process WITH
+  {
+    is_pid_0      AS is_0_p10;
+    set_pid_0     AS set_0_p10;
+    is_pid_id     AS is_10;
+    is_pid_not_id AS is_not_10;
+    set_pid_id    AS set_10;
     a             AS a;
     b             AS b;
   }

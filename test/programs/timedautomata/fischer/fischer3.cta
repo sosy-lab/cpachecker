@@ -83,11 +83,6 @@ MODULE Variable
     is_not_3:  SYNC;
     set_3:     SYNC;
     set_0_p3:  SYNC;
-    is_0_p4:   SYNC;
-    is_4:      SYNC;
-    is_not_4:  SYNC;
-    set_4:     SYNC;
-    set_0_p4:  SYNC;
   INITIAL s_0;
   AUTOMATON Variable
   {
@@ -102,9 +97,6 @@ MODULE Variable
       TRANS { SYNC is_0_p3; GOTO s_0; }
       TRANS { SYNC is_not_3; GOTO s_0; }
       TRANS { SYNC set_3; GOTO s_3; }
-      TRANS { SYNC is_0_p4; GOTO s_0; }
-      TRANS { SYNC is_not_4; GOTO s_0; }
-      TRANS { SYNC set_4; GOTO s_4; }
     }
     STATE s_1
     {
@@ -116,9 +108,6 @@ MODULE Variable
       TRANS { SYNC is_not_3; GOTO s_1; }
       TRANS { SYNC set_3; GOTO s_3; }
       TRANS { SYNC set_0_p3; GOTO s_0; }
-      TRANS { SYNC is_not_4; GOTO s_1; }
-      TRANS { SYNC set_4; GOTO s_4; }
-      TRANS { SYNC set_0_p4; GOTO s_0; }
     }
     STATE s_2
     {
@@ -130,9 +119,6 @@ MODULE Variable
       TRANS { SYNC is_not_3; GOTO s_2; }
       TRANS { SYNC set_3; GOTO s_3; }
       TRANS { SYNC set_0_p3; GOTO s_0; }
-      TRANS { SYNC is_not_4; GOTO s_2; }
-      TRANS { SYNC set_4; GOTO s_4; }
-      TRANS { SYNC set_0_p4; GOTO s_0; }
     }
     STATE s_3
     {
@@ -144,23 +130,6 @@ MODULE Variable
       TRANS { SYNC set_2; GOTO s_2; }
       TRANS { SYNC set_0_p2; GOTO s_0; }
       TRANS { SYNC set_0_p3; GOTO s_0; }
-      TRANS { SYNC is_not_4; GOTO s_3; }
-      TRANS { SYNC set_4; GOTO s_4; }
-      TRANS { SYNC set_0_p4; GOTO s_0; }
-    }
-    STATE s_4
-    {
-      TRANS { SYNC is_4; GOTO s_4; }
-      TRANS { SYNC is_not_1; GOTO s_4; }
-      TRANS { SYNC set_1; GOTO s_1; }
-      TRANS { SYNC set_0_p1; GOTO s_0; }
-      TRANS { SYNC is_not_2; GOTO s_4; }
-      TRANS { SYNC set_2; GOTO s_2; }
-      TRANS { SYNC set_0_p2; GOTO s_0; }
-      TRANS { SYNC is_not_3; GOTO s_4; }
-      TRANS { SYNC set_3; GOTO s_3; }
-      TRANS { SYNC set_0_p3; GOTO s_0; }
-      TRANS { SYNC set_0_p4; GOTO s_0; }
     }
   }
 }
@@ -182,11 +151,6 @@ MODULE ROOT System
     is_not_3:  SYNC;
     set_3:     SYNC;
     set_0_p3:  SYNC;
-    is_0_p4:   SYNC;
-    is_4:      SYNC;
-    is_not_4:  SYNC;
-    set_4:     SYNC;
-    set_0_p4:  SYNC;
     a = 100:   CONST;
     b = 10:    CONST;
   INST variable FROM Variable WITH
@@ -206,11 +170,6 @@ MODULE ROOT System
     is_not_3 AS is_not_3;
     set_3    AS set_3;
     set_0_p3 AS set_0_p3;
-    is_0_p4  AS is_0_p4;
-    is_4     AS is_4;
-    is_not_4 AS is_not_4;
-    set_4    AS set_4;
-    set_0_p4 AS set_0_p4;
   }
   INST process_1 FROM Process WITH
   {
@@ -239,16 +198,6 @@ MODULE ROOT System
     is_pid_id     AS is_3;
     is_pid_not_id AS is_not_3;
     set_pid_id    AS set_3;
-    a             AS a;
-    b             AS b;
-  }
-  INST process_4 FROM Process WITH
-  {
-    is_pid_0      AS is_0_p4;
-    set_pid_0     AS set_0_p4;
-    is_pid_id     AS is_4;
-    is_pid_not_id AS is_not_4;
-    set_pid_id    AS set_4;
     a             AS a;
     b             AS b;
   }

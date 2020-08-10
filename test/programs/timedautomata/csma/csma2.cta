@@ -1,0 +1,198 @@
+
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
+MODULE Sender
+{
+  INPUT
+    propTime:    CONST;
+    transmTime:  CONST;
+    collDetect:  SYNC;
+    begin:       SYNC;
+    end:         SYNC;
+    busy:        SYNC;
+  LOCAL
+    x:  CLOCK;
+  INITIAL init;
+  AUTOMATON Sender
+  {
+    STATE init
+    {
+      TRANS
+      {
+        SYNC collDetect;
+        GOTO init;
+      }
+      TRANS
+      {
+        RESET x;
+        GOTO send;
+      }
+    }
+    STATE send
+    {
+      INV x = 0;
+      TRANS
+      {
+        SYNC begin;
+        RESET x;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC busy;
+        RESET x;
+        GOTO collDetected;
+      }
+      TRANS
+      {
+        SYNC collDetect;
+        RESET x;
+        GOTO collDetected;
+      }
+    }
+    STATE collDetected
+    {
+      INV x <= propTime;
+      TRANS
+      {
+        SYNC collDetect;
+        GOTO collDetected;
+      }
+      TRANS
+      {
+        RESET x;
+        GOTO send;
+      }
+    }
+    STATE transmit
+    {
+      INV x <= transmTime;
+      TRANS
+      {
+        SYNC collDetect;
+        RESET x;
+        GOTO collDetected;
+      }
+      TRANS
+      {
+        GUARD x = transmTime;
+        SYNC end;
+        RESET x;
+        GOTO sent;
+      }
+    }
+    STATE sent(ERROR)
+    {
+      TRANS
+      {
+        GOTO init;
+      }
+    }
+  }
+}
+MODULE ROOT Medium
+{
+  LOCAL
+    propTime = 1:        CONST;
+    propTimeDouble = 2:  CONST;
+    transmTime = 4:      CONST;
+    collDetect:          SYNC;
+    x:                   CLOCK;
+    begin1:              SYNC;
+    end1:                SYNC;
+    busy1:               SYNC;
+    begin2:              SYNC;
+    end2:                SYNC;
+    busy2:               SYNC;
+  INST sender_1 FROM Sender WITH
+  {
+    propTime   AS propTimeDouble;
+    transmTime AS transmTime;
+    collDetect AS collDetect;
+    begin      AS begin1;
+    end        AS end1;
+    busy       AS busy1;
+  }
+  INST sender_2 FROM Sender WITH
+  {
+    propTime   AS propTimeDouble;
+    transmTime AS transmTime;
+    collDetect AS collDetect;
+    begin      AS begin2;
+    end        AS end2;
+    busy       AS busy2;
+  }
+  INITIAL init;
+  AUTOMATON Medium
+  {
+    STATE init
+    {
+      TRANS
+      {
+        SYNC begin1;
+        RESET x;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC begin2;
+        RESET x;
+        GOTO transmit;
+      }
+    }
+    STATE transmit
+    {
+      TRANS
+      {
+        GUARD x < propTime;
+        SYNC begin1;
+        RESET x;
+        GOTO collDetected;
+      }
+      TRANS
+      {
+        GUARD x >= propTime;
+        SYNC busy1;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC end1;
+        GOTO init;
+      }
+      TRANS
+      {
+        GUARD x < propTime;
+        SYNC begin2;
+        RESET x;
+        GOTO collDetected;
+      }
+      TRANS
+      {
+        GUARD x >= propTime;
+        SYNC busy2;
+        GOTO transmit;
+      }
+      TRANS
+      {
+        SYNC end2;
+        GOTO init;
+      }
+    }
+    STATE collDetected
+    {
+      INV x <= propTime;
+      TRANS
+      {
+        SYNC collDetect;
+        GOTO init;
+      }
+    }
+  }
+}
