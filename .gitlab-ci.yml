@@ -12,7 +12,7 @@ variables:
   PROJECT_PATH: "sosy-lab/software/cpachecker"
   GH_REF: "github.com/sosy-lab/cpachecker"
   # Version of https://gitlab.com/sosy-lab/software/refaster/ to use
-  REFASTER_REPO_REVISION: c3cfebbc7ce069fd9a2b1434f50821792c6153e0
+  REFASTER_REPO_REVISION: 673d65a54133408a2936656271aa67b9aa4035fe
   # Needs to be synchronized with Error Prone version in lib/ivy.xml
   REFASTER_VERSION: 2.4.0
 
