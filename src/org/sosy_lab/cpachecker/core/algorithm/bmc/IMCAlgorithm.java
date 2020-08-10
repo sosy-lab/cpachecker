@@ -22,7 +22,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.TargetLocationCandidateInvariant;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -33,16 +32,13 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
-import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
@@ -79,9 +75,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(secure = true, description = "toggle deriving the interpolants from suffix formulas")
   private boolean deriveInterpolantFromSuffix = true;
 
-  @Option(secure = true, description = "toggle collecting formulas by traversing ARG")
-  private boolean collectFormulasByTraversingARG = true;
-
   @Option(secure = true, description = "toggle removing unreachable stop states in ARG")
   private boolean removeUnreachableStopStates = false;
 
@@ -90,7 +83,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   private final Algorithm algorithm;
 
   private final FormulaManagerView fmgr;
-  private final PathFormulaManager pmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final Solver solver;
 
@@ -130,7 +122,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     solver = predCpa.getSolver();
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
-    pmgr = predCpa.getPathFormulaManager();
   }
 
   @Override
@@ -219,7 +210,7 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           && maxLoopIterations > 1
           && !AbstractStates.getTargetStates(pReachedSet).isEmpty()) {
         logger.log(Level.FINE, "Collecting prefix, loop, and suffix formulas");
-        PartitionedFormulas formulas = collectFormulas(pReachedSet, maxLoopIterations);
+        PartitionedFormulas formulas = collectFormulas(pReachedSet);
         formulas.printCollectedFormulas(logger);
         logger.log(Level.FINE, "Computing fixed points by interpolation");
         try (InterpolatingProverEnvironment<?> itpProver =
@@ -304,41 +295,18 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   }
 
   /**
-   * A helper method to collect formulas needed by IMC algorithm. Two subroutines to collect
-   * formulas are available: one syntactic and the other semantic. The old implementation relies on
-   * {@link CFANode} to detect syntactic loops, but it turns out that syntactic LHs are not always
-   * abstraction states, and hence it might not always collect block formulas at abstraction states.
-   * To solve this mismatch, a new implementation which directly traverses ARG was developed, and it
-   * guarantees to collect block formulas always at abstraction states. The new method can be
-   * enabled by setting {@code imc.collectFormulasByTraversingARG=true}.
-   *
-   * @param pReachedSet Abstract Reachability Graph
-   * @param maxLoopIterations The upper bound of unrolling times
-   * @throws InterruptedException On shutdown request.
-   */
-  private PartitionedFormulas collectFormulas(final ReachedSet pReachedSet, int maxLoopIterations)
-      throws InterruptedException {
-    if (collectFormulasByTraversingARG) {
-      return collectFormulasByTraversingARG(pReachedSet);
-    } else {
-      return collectFormulasBySyntacticLoop(pReachedSet, maxLoopIterations);
-    }
-  }
-
-  /**
-   * The semantic subroutine to collect formulas.
+   * A helper method to collect formulas needed by IMC algorithm. It assumes every target state
+   * after the loop has the same abstraction-state path to root.
    *
    * @param pReachedSet Abstract Reachability Graph
    */
-  private PartitionedFormulas
-      collectFormulasByTraversingARG(final ReachedSet pReachedSet) {
+  private PartitionedFormulas collectFormulas(final ReachedSet pReachedSet) {
     PathFormula prefixFormula = makeFalsePathFormula();
     BooleanFormula loopFormula = bfmgr.makeTrue();
     BooleanFormula tailFormula = bfmgr.makeTrue();
     FluentIterable<AbstractState> targetStatesAfterLoop = getTargetStatesAfterLoop(pReachedSet);
     if (!targetStatesAfterLoop.isEmpty()) {
       // Initialize prefix, loop, and tail using the first target state after the loop
-      // Assumption: every target state after the loop has the same abstraction-state path to root
       List<ARGState> abstractionStates =
           getAbstractionStatesToRoot(targetStatesAfterLoop.get(0)).toList();
       prefixFormula = buildPrefixFormula(abstractionStates);
@@ -399,99 +367,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return PredicateAbstractState.getPredicateState(pState)
         .getAbstractionFormula()
         .getBlockFormula();
-  }
-
-  /**
-   * The syntactical subroutine to collect formulas.
-   *
-   * @param pReachedSet Abstract Reachability Graph
-   * @param maxLoopIterations The current unrolling upper bound
-   * @throws InterruptedException On shutdown request.
-   */
-  private PartitionedFormulas collectFormulasBySyntacticLoop(
-      final ReachedSet pReachedSet,
-      int maxLoopIterations)
-      throws InterruptedException {
-    PathFormula prefixFormula = getLoopHeadFormula(pReachedSet, 0);
-    BooleanFormula loopFormula = bfmgr.makeTrue();
-    BooleanFormula tailFormula = bfmgr.makeTrue();
-    if (maxLoopIterations > 1) {
-      loopFormula = getLoopHeadFormula(pReachedSet, 1).getFormula();
-    }
-    if (maxLoopIterations > 2) {
-      List<BooleanFormula> blockFormulas = new ArrayList<>();
-      for (int k = 2; k < maxLoopIterations; ++k) {
-        blockFormulas.add(getLoopHeadFormula(pReachedSet, k).getFormula());
-      }
-      tailFormula = bfmgr.and(blockFormulas);
-    }
-    return new PartitionedFormulas(
-        prefixFormula,
-        loopFormula,
-        bfmgr.and(tailFormula, getErrorFormula(pReachedSet, maxLoopIterations - 1)));
-  }
-
-  /**
-   * A helper method to get the block formula at the specified loop head location. Typically it
-   * expects zero or one loop head state in ARG with the specified encountering number, because
-   * multi-loop programs are excluded in the beginning. In this case, it returns a false block
-   * formula if there is no loop head, or the block formula at the unique loop head. However, an
-   * exception is caused by the pattern "{@code ERROR: goto ERROR;}". Under this situation, it
-   * returns the disjunction of the block formulas to each loop head state.
-   *
-   * @param pReachedSet Abstract Reachability Graph
-   * @param numEncounterLoopHead The encounter times of the loop head location
-   * @return The {@code PathFormula} at the specified loop head location if the loop head is unique.
-   * @throws InterruptedException On shutdown request.
-   */
-  private PathFormula getLoopHeadFormula(final ReachedSet pReachedSet, int numEncounterLoopHead)
-      throws InterruptedException {
-    List<AbstractState> loopHeads =
-        getLoopHeadEncounterState(getLoopStart(pReachedSet), numEncounterLoopHead).toList();
-    PathFormula formulaToLoopHeads = makeFalsePathFormula();
-    for (AbstractState loopHeadState : loopHeads) {
-      formulaToLoopHeads =
-          pmgr.makeOr(formulaToLoopHeads, getPredicateAbstractionBlockFormula(loopHeadState));
-    }
-    return formulaToLoopHeads;
-  }
-
-  private static boolean isLoopStart(final AbstractState pState) {
-    return AbstractStates.extractStateByType(pState, LocationState.class)
-        .getLocationNode()
-        .isLoopStart();
-  }
-
-  private static FluentIterable<AbstractState> getLoopStart(final ReachedSet pReachedSet) {
-    return from(pReachedSet).filter(IMCAlgorithm::isLoopStart);
-  }
-
-  private static boolean
-      isLoopHeadEncounterTime(final AbstractState pState, int numEncounterLoopHead) {
-    return AbstractStates.extractStateByType(pState, LoopBoundState.class).getDeepestIteration()
-        - 1 == numEncounterLoopHead;
-  }
-
-  private static FluentIterable<AbstractState> getLoopHeadEncounterState(
-      final FluentIterable<AbstractState> pFluentIterable,
-      final int numEncounterLoopHead) {
-    return pFluentIterable.filter(e -> isLoopHeadEncounterTime(e, numEncounterLoopHead));
-  }
-
-  /**
-   * A helper method to get the block formula at the specified error locations.
-   *
-   * @param pReachedSet Abstract Reachability Graph
-   * @param numEncounterLoopHead The times to encounter LH before reaching the error
-   * @return A {@code BooleanFormula} of the disjunction of block formulas at every error location
-   *         if they exist; {@code False} if there is no error location with the specified encounter
-   *         times.
-   */
-  private BooleanFormula getErrorFormula(final ReachedSet pReachedSet, int numEncounterLoopHead) {
-    return createDisjunctionFromStates(
-        getLoopHeadEncounterState(
-        AbstractStates.getTargetStates(pReachedSet),
-            numEncounterLoopHead));
   }
 
   /**

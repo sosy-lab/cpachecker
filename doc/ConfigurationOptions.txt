@@ -3285,9 +3285,6 @@ heuristicSelection.recursionConfig = no default value
 # toggle checking forward conditions
 imc.checkForwardConditions = true
 
-# toggle collecting formulas by traversing ARG
-imc.collectFormulasByTraversingARG = true
-
 # toggle deriving the interpolants from suffix formulas
 imc.deriveInterpolantFromSuffix = true
 
