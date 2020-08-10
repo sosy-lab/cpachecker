@@ -82,9 +82,6 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
   @Option(secure = true, description = "toggle collecting formulas by traversing ARG")
   private boolean collectFormulasByTraversingARG = true;
 
-  @Option(secure = true, description = "toggle checking existence of covered states in ARG")
-  private boolean checkExistenceOfCoveredStates = true;
-
   @Option(secure = true, description = "toggle removing unreachable stop states in ARG")
   private boolean removeUnreachableStopStates = false;
 
@@ -200,11 +197,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
           throw new CPAException("ARG does not meet the requirements");
         }
       }
-      if (checkForwardConditions
-          && checkExistenceOfCoveredStates
-          && hasCoveredStates(pReachedSet)) {
-        logger
-            .log(Level.WARNING, "Covered states exist in ARG: forward-condition might be unsound!");
+      if (checkForwardConditions && hasCoveredStates(pReachedSet)) {
+        logger.log(Level.WARNING, "Covered states in ARG: forward-condition might be unsound!");
         if (fallBack) {
           fallBackToBMCWithoutForwardCondition();
         } else {
@@ -264,18 +258,17 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
 
   private boolean checkRequirementOfARG(ReachedSet pReachedSet)
       throws SolverException, InterruptedException {
-    if (checkExistenceOfCoveredStates && hasCoveredStates(pReachedSet)) {
-      logger.log(Level.WARNING, "Covered states exist in ARG: interpolation might be unsound!");
+    if (hasCoveredStates(pReachedSet)) {
+      logger.log(Level.WARNING, "Covered states in ARG: interpolation might be unsound!");
       return false;
     }
     if (getStopStates(pReachedSet).size() > 1) {
       if (!removeUnreachableStopStates) {
-        logger.log(Level.WARNING, "More than one stop state: interpolation might be unsound!");
+        logger.log(Level.WARNING, "Multiple stop states: interpolation might be unsound!");
         return false;
       }
       if (hasMultipleReachableStopStates(pReachedSet)) {
-        logger
-            .log(Level.WARNING, "Multiple reachable stop states: interpolation might be unsound!");
+        logger.log(Level.WARNING, "Multi reachable stop states: interpolation might be unsound!");
         return false;
       }
     }

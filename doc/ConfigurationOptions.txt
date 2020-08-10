@@ -3282,9 +3282,6 @@ heuristicSelection.preAnalysisAlgorithmConfig = no default value
 # Configuration for programs containing recursion.
 heuristicSelection.recursionConfig = no default value
 
-# toggle checking existence of covered states in ARG
-imc.checkExistenceOfCoveredStates = true
-
 # toggle checking forward conditions
 imc.checkForwardConditions = true
 
