@@ -1927,21 +1927,27 @@ private void handleTernaryExpression(ConditionalExpression condExp,
   @Override
   public void endVisit(ThrowStatement pThrowStatement) {
     JSimpleDeclaration thrown = scope.lookupVariable(pThrowStatement.getExpression().toString());
-
+    final String thrownName;
+    if (thrown != null) {
+      thrownName = thrown.getName();
+    }
+    else{
+      thrownName = pThrowStatement.getExpression().toString();
+    }
     FileLocation fileloc = astCreator.getFileLocation(pThrowStatement);
 
     CFANode prevNode = locStack.pop();
 
     final Optional<CFANode> preCatchNode = getPreCatchNode();
 
-    BlankEdge blankEdge;
-    blankEdge =
-        new BlankEdge(
-            pThrowStatement.toString(),
-            fileloc,
-            prevNode,
-            preCatchNode.orElseGet(() -> cfa.getExitNode()),
-            "throw " + thrown.getName());
+      BlankEdge blankEdge;
+      blankEdge =
+          new BlankEdge(
+              pThrowStatement.toString(),
+              fileloc,
+              prevNode,
+              preCatchNode.orElseGet(() -> cfa.getExitNode()),
+              "throw " + thrownName);
 
     addToCFA(blankEdge);
 
