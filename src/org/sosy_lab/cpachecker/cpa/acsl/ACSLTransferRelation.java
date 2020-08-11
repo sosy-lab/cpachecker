@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.acsl;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
@@ -25,19 +26,30 @@ public class ACSLTransferRelation extends SingleEdgeTransferRelation {
 
   private final CFAWithACSLAnnotationLocations cfa;
   private final ACSLTermToCExpressionVisitor visitor;
+  private final boolean usePureExpressionsOnly;
 
   public ACSLTransferRelation(
-      CFAWithACSLAnnotationLocations pCFA, ACSLTermToCExpressionVisitor pVisitor) {
+      CFAWithACSLAnnotationLocations pCFA,
+      ACSLTermToCExpressionVisitor pVisitor,
+      boolean pUsePureExpressionsOnly) {
     cfa = pCFA;
     visitor = pVisitor;
+    usePureExpressionsOnly = pUsePureExpressionsOnly;
   }
 
   @Override
   public Collection<? extends AbstractState> getAbstractSuccessorsForEdge(
       AbstractState state, Precision precision, CFAEdge cfaEdge)
       throws CPATransferException, InterruptedException {
-    Set<ACSLAnnotation> annotationsForState =
+    Set<ACSLAnnotation> annotationsForEdge =
         ImmutableSet.copyOf(cfa.getEdgesToAnnotations().get(cfaEdge));
-    return ImmutableList.of(new ACSLState(annotationsForState, visitor));
+    if (usePureExpressionsOnly) {
+      Set<ACSLAnnotation> annotations =
+          FluentIterable.from(annotationsForEdge)
+              .filter(x -> x.getPredicateRepresentation().getUsedBuiltins().isEmpty())
+              .toSet();
+      return ImmutableList.of(new ACSLState(annotations, visitor));
+    }
+    return ImmutableList.of(new ACSLState(annotationsForEdge, visitor));
   }
 }

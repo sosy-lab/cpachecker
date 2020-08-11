@@ -8,10 +8,14 @@
 
 package org.sosy_lab.cpachecker.cpa.acsl;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotationLocations;
@@ -30,7 +34,13 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 /**
  * This CPA is for deriving invariants from ACSL annotations.
  */
+@Options(prefix = "cpa.acsl")
 public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis {
+
+  @Option(
+      secure = true,
+      description = "only store pure C expressions without ACSL-specific constructs")
+  private boolean usePureExpressionsOnly = true;
 
   private final CFAWithACSLAnnotationLocations cfa;
   private final ACSLTermToCExpressionVisitor visitor;
@@ -52,7 +62,7 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new ACSLTransferRelation(cfa, visitor);
+    return new ACSLTransferRelation(cfa, visitor, usePureExpressionsOnly);
   }
 
   @Override
@@ -61,7 +71,14 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
     Set<ACSLAnnotation> annotations = new HashSet<>();
     for (int i = 0; i < node.getNumEnteringEdges(); i++) {
       CFAEdge edge = node.getEnteringEdge(i);
-      annotations.addAll(cfa.getEdgesToAnnotations().get(edge));
+      Collection<ACSLAnnotation> annotationsForEdge = cfa.getEdgesToAnnotations().get(edge);
+      if (usePureExpressionsOnly) {
+        annotationsForEdge =
+            FluentIterable.from(annotationsForEdge)
+                .filter(x -> x.getPredicateRepresentation().getUsedBuiltins().isEmpty())
+                .toSet();
+      }
+      annotations.addAll(annotationsForEdge);
     }
     return new ACSLState(annotations, visitor);
   }
