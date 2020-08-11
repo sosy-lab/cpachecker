@@ -685,7 +685,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
     CFANode prevNode = locStack.pop();
 
-    //Create CFA Node for end of assert Location and push to local Stack
+    // Create CFA Node for end of assert Location and push to local Stack
     CFANode postAssertNode = new CFANode(methodName);
     cfaNodes.add(postAssertNode);
     locStack.push(postAssertNode);
@@ -698,36 +698,30 @@ class CFAMethodBuilder extends ASTVisitor {
     CFANode unsuccessfulNode = new CFANode(methodName);
     cfaNodes.add(unsuccessfulNode);
 
-    CFANode endNode = new CFATerminationNode(methodName);
-    cfaNodes.add(endNode);
-
     CONDITION kind = getConditionKind(condition);
 
-    createConditionEdges(condition, fileloc, prevNode,
-        successfulNode, unsuccessfulNode);
+    createConditionEdges(condition, fileloc, prevNode, successfulNode, unsuccessfulNode);
 
     boolean createUnsuccessfulEdge = true;
     boolean createSuccessfulEdge = true;
 
     switch (kind) {
-    case ALWAYS_TRUE:
-      createUnsuccessfulEdge = false;
-      break;
-    case ALWAYS_FALSE:
-      createSuccessfulEdge = false;
-      break;
-    default:
-      break;
+      case ALWAYS_TRUE:
+        createUnsuccessfulEdge = false;
+        break;
+      case ALWAYS_FALSE:
+        createSuccessfulEdge = false;
+        break;
+      default:
+        break;
     }
-
 
     BlankEdge blankEdge;
 
-    //Blank Edge from successful assert to  postAssert location
+    // Blank Edge from successful assert to  postAssert location
     if (createSuccessfulEdge) {
       blankEdge =
-          new BlankEdge(rawSignature, fileloc,
-              successfulNode, postAssertNode, "assert success");
+          new BlankEdge(rawSignature, fileloc, successfulNode, postAssertNode, "assert success");
       addToCFA(blankEdge);
     }
 
@@ -736,21 +730,21 @@ class CFAMethodBuilder extends ASTVisitor {
 
       boolean hasMessage = assertStatement.getMessage() != null;
 
-      if (!hasMessage) {
-        blankEdge = new BlankEdge(rawSignature,
-            fileloc,
-            unsuccessfulNode, endNode, "assert fail");
-        addToCFA(blankEdge);
-
-      } else {
+      if (hasMessage) {
 
         astCreator.convertExpressionWithoutSideEffects(assertStatement.getMessage());
 
-        unsuccessfulNode =
-            handleSideassignments(unsuccessfulNode, rawSignature, fileloc);
-
-        blankEdge = new BlankEdge(rawSignature, fileloc,
-            unsuccessfulNode, endNode, "assert fail");
+        unsuccessfulNode = handleSideassignments(unsuccessfulNode, rawSignature, fileloc);
+      }
+      if (nodeIsInTryClause(assertStatement)) {
+        blankEdge =
+            new BlankEdge(
+                rawSignature, fileloc, unsuccessfulNode, getPreCatchNode().get(), "assert fail");
+        addToCFA(blankEdge);
+      } else {
+        CFANode endNode = new CFATerminationNode(methodName);
+        cfaNodes.add(endNode);
+        blankEdge = new BlankEdge(rawSignature, fileloc, unsuccessfulNode, endNode, "assert fail");
         addToCFA(blankEdge);
       }
     }
