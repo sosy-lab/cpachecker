@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
  */
 public class IllegalArrayValue extends ArrayValue {
 
+  private static final long serialVersionUID = 150716599436683060L;
   public IllegalArrayValue(JArrayType pType) {
     super(pType, 0);
   }

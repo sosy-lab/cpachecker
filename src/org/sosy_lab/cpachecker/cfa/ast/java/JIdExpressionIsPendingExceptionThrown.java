@@ -12,6 +12,8 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 
 public class JIdExpressionIsPendingExceptionThrown extends JIdExpression {
+  private static final long serialVersionUID = 400773883593631874L;
+
   public JIdExpressionIsPendingExceptionThrown() {
     super(FileLocation.DUMMY, JSimpleType.getBoolean(), "isPendingExceptionThrown", null);
   }

@@ -1888,7 +1888,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
   private boolean isFirstCatchClause(CatchClause pCatchClause){
     final List<?> catchClauses = ((TryStatement) pCatchClause.getParent()).catchClauses();
-    if( pCatchClause == (catchClauses.get(0))){
+    if( pCatchClause == catchClauses.get(0)){
       return true;
     }
     return false;
@@ -1896,7 +1896,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
   private boolean isLastCatchClause(CatchClause pCatchClause){
     final List<?> catchClauses = ((TryStatement) pCatchClause.getParent()).catchClauses();
-    if( pCatchClause == (catchClauses.get(catchClauses.size() - 1))){
+    if( pCatchClause == catchClauses.get(catchClauses.size() - 1)){
       return true;
     }
     return false;
