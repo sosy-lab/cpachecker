@@ -97,7 +97,7 @@ final class NameConverter {
       assert key.charAt(key.length() - 1) == ';';
       return key.substring(0, key.length() - 1);
 
-    } else {
+    } else if(classBinding.isRecovered()){
       // Dirty solution for MissingTypeBindings.
       try {
         Class.forName("java.lang." + classBinding.getBinaryName());
@@ -105,6 +105,9 @@ final class NameConverter {
       } catch (ClassNotFoundException e) {
         return classBinding.getQualifiedName();
       }
+    }
+    else{
+      return classBinding.getQualifiedName();
     }
   }
 
