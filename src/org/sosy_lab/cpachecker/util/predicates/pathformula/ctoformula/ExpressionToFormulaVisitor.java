@@ -69,7 +69,6 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FloatingPointRoundingMode;
@@ -123,20 +122,23 @@ public class ExpressionToFormulaVisitor
     e = conv.makeCastFromArrayToPointerIfNecessary(e, returnType);
     final CType t = e.getExpressionType();
     Formula f = toFormula(e);
-    if ((f instanceof BitvectorFormula) || (f instanceof FloatingPointFormula)) {
+    /*
+     * if ((f instanceof BitvectorFormula) || (f instanceof FloatingPointFormula)) { return
+     * conv.makeCast(t, calculationType, f, constraints, edge); } else if
+     * (CTypes.isRealType(calculationType)) { return conv.makeCast( t, calculationType,
+     * conv.makeFormulaTypeCast( conv.getFormulaTypeFromCType(calculationType), t, f, ssa,
+     * constraints), constraints, edge); } else { return f; }
+     */
+    if (!conv.options.useVariableClassification()) {
       return conv.makeCast(t, calculationType, f, constraints, edge);
-    } else if (CTypes.isRealType(calculationType)) {
-        return conv.makeCast(
+    }
+    if (CTypes.isRealType(calculationType)) {
+      return conv.makeFormulaTypeCast(
+          conv.getFormulaTypeFromCType(calculationType),
           t,
-          calculationType,
-          conv.makeFormulaTypeCast(
-              conv.getFormulaTypeFromCType(calculationType),
-              t,
-              f,
-              ssa,
-              constraints),
-          constraints,
-          edge);
+          f,
+          ssa,
+          constraints);
     } else {
       return f;
     }
