@@ -1939,7 +1939,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     CFANode prevNode = locStack.pop();
 
-    if (!tryStack.isEmpty()) {
+    if (!tryStack.isEmpty() && !nodeIsInCatchClause(pThrowStatement)) {
       final Optional<CFANode> preCatchNode = getPreCatchNode();
 
       BlankEdge blankEdge;
@@ -1975,6 +1975,20 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
       addToCFA(blankEdge);
     }
+  }
+
+  private boolean nodeIsInCatchClause(ASTNode pASTNode) {
+    ASTNode current = pASTNode.getParent();
+    while (current != null) { // null when root node is reached
+      if (current instanceof CatchClause) {
+        return true;
+      }
+      else if(current instanceof TryStatement){
+        return false;
+      }
+      current = current.getParent();
+    }
+    return false;
   }
 
   @Override
