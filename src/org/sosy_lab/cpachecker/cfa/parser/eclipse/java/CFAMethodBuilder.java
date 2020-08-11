@@ -1977,11 +1977,25 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
   private boolean nodeIsInCatchClause(ASTNode pASTNode) {
     ASTNode current = pASTNode.getParent();
-    while (current != null) { // null when root node is reached
+    while (current != null
+        && !(current instanceof MethodDeclaration)) { // null when root node is reached
       if (current instanceof CatchClause) {
         return true;
+      } else if (current instanceof TryStatement) {
+        return false;
       }
-      else if(current instanceof TryStatement){
+      current = current.getParent();
+    }
+    return false;
+  }
+
+  private boolean nodeIsInTryClause(ASTNode pASTNode) {
+    ASTNode current = pASTNode.getParent();
+    while (current != null
+        && !(current instanceof MethodDeclaration)) { // null when root node is reached
+      if (current instanceof TryStatement) {
+        return true;
+      } else if (current instanceof CatchClause) {
         return false;
       }
       current = current.getParent();
@@ -2666,9 +2680,20 @@ private void handleTernaryExpression(ConditionalExpression condExp,
       astCreator.resetConditionalExpression();
     }
 
-    JReturnStatementEdge edge =
-        new JReturnStatementEdge(
-            returnStatement.toString(), cfJReturnStatement, fileloc, prevNode, functionExitNode);
+    CFAEdge edge;
+    if (nodeIsInTryClause(returnStatement)) {
+      edge =
+          new BlankEdge(
+              returnStatement.toString(),
+              fileloc,
+              prevNode,
+              getPreCatchNode().get(),
+              returnStatement.toString());
+    } else {
+      edge =
+          new JReturnStatementEdge(
+              returnStatement.toString(), cfJReturnStatement, fileloc, prevNode, functionExitNode);
+    }
     addToCFA(edge);
 
     locStack.push(nextNode);
