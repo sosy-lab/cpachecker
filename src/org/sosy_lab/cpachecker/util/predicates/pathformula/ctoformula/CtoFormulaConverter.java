@@ -776,6 +776,11 @@ public class CtoFormulaConverter {
           return efmgr
               .extend((BitvectorFormula) formula, (toSize - fromSize), isSigned.test(cType));
         }
+      } else if (toType.isFloatingPointType()) {
+        final CSimpleType sType = (CSimpleType) cTypeNoPointer;
+        final boolean signed = machineModel.isSigned(sType);
+        return fmgr.getFloatingPointFormulaManager()
+            .castFrom(formula, signed, (FormulaType.FloatingPointType) toType);
       } else {
         throw new AssertionError("Cannot cast given formula types!");
       }
