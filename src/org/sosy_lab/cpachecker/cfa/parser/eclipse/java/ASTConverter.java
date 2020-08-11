@@ -1351,12 +1351,25 @@ class ASTConverter {
     if (constructorBinding != null) {
       final ModifierBean mb = ModifierBean.getModifiers(constructorBinding);
 
+      final JConstructorType jConstructorType = convertConstructorType(constructorBinding);
+
+      List<JParameterDeclaration> parameterDeclarations= new ArrayList<>();
+      for (JType parameter : jConstructorType.getParameters()) {
+        parameterDeclarations.add(
+            new JParameterDeclaration(
+                getFileLocation(pCIC),
+                parameter,
+                ((JClassOrInterfaceType) parameter).getSimpleName(),
+                ((JClassOrInterfaceType) parameter).getName(),
+                parameter instanceof JClassType && ((JClassType) parameter).isFinal()));
+      }
+
       return new JConstructorDeclaration(
           getFileLocation(pCIC),
-          convertConstructorType(constructorBinding),
+          jConstructorType,
           fullName,
           simpleName,
-          ImmutableList.of(),
+          ImmutableList.copyOf(parameterDeclarations),
           mb.getVisibility(),
           mb.isStrictFp(),
           getDeclaringClassType(constructorBinding));
