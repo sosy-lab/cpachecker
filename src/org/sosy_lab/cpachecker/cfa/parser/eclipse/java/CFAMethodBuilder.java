@@ -1363,7 +1363,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
       }
 
-      if (prevNode.getNumEnteringEdges() > 0) {
+      if (prevNode.getNumEnteringEdges() > 0 && prevNode != getPreCatchNode().get()) {
         BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY,
             prevNode, nextNode, "");
         addToCFA(blankEdge);
@@ -1813,12 +1813,13 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     CFANode prevNode = locStack.pop();
 
     if (isFirstCatchClause(pCatchClauseNode)) {
+      // True if throw statement was reached
       CFANode preCatchNode = getPreCatchNode().get();
-
-      BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, prevNode, preCatchNode, "");
-      addToCFA(blankEdge);
-
-      prevNode = preCatchNode;
+      if (preCatchNode != prevNode) {
+        BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, prevNode, preCatchNode, "");
+        addToCFA(blankEdge);
+        prevNode = preCatchNode;
+      }
     }
 
     FileLocation fileloc = astCreator.getFileLocation(pCatchClauseNode);
@@ -1943,7 +1944,12 @@ private void handleTernaryExpression(ConditionalExpression condExp,
             "throw " + thrown.getName());
 
     addToCFA(blankEdge);
-    locStack.push(locStack.peek());
+
+    if(!locStack.isEmpty() && !elseStack.isEmpty()){
+      locStack.push(locStack.peek());
+    }else {
+      locStack.push(preCatchNode.get());
+    }
   }
 
   @Override
