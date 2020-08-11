@@ -497,7 +497,9 @@ public class CtoFormulaConverter {
       final int newIndex,
       final PointerTargetSet pts)
       throws InterruptedException {
-    if (variableName.contains(INT_BOOL_TO_INT) || variableName.contains(INT_BOOL_TO_BITVECTOR)) {
+    if (variableName.contains(INT_BOOL_TO_INT)
+        || variableName.contains(INT_BOOL_TO_BITVECTOR)
+        || variableName.contains(INT_BOOL_TO_FLOATINGPOINT)) {
       return bfmgr.makeTrue();
     }
     checkArgument(oldIndex > 0 && newIndex > oldIndex);
