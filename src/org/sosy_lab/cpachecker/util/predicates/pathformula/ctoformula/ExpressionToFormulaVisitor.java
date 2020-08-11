@@ -584,6 +584,10 @@ public class ExpressionToFormulaVisitor
     } else {
       t = conv.getFormulaTypeFromCType(cExp.getExpressionType());
     }
+    if (t.isFloatingPointType()) {
+      return mgr.getFloatingPointFormulaManager()
+          .makeNumber(cExp.getCharacter(), (FloatingPointType) t);
+    }
     return mgr.makeNumber(t, cExp.getCharacter());
   }
 
@@ -601,6 +605,10 @@ public class ExpressionToFormulaVisitor
       t = forceFormulaType.get();
     } else {
       t = conv.getFormulaTypeFromCType(iExp.getExpressionType());
+    }
+    if (t.isFloatingPointType()) {
+      return mgr.getFloatingPointFormulaManager()
+          .makeNumber(iExp.getValue().doubleValue(), (FloatingPointType) t);
     }
     return mgr.makeNumber(t, iExp.getValue());
   }
