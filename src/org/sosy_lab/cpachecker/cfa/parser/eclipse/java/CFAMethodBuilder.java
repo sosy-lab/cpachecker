@@ -1363,9 +1363,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
       }
 
-      if (prevNode.getNumEnteringEdges() > 0
-          && !tryStack.isEmpty()
-          && prevNode != getPreCatchNode().get()) {
+      if (prevNode.getNumEnteringEdges() > 0) {
         BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, prevNode, nextNode, "");
         addToCFA(blankEdge);
       }
