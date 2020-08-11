@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
 import com.google.common.io.Files;
 import java.io.File;
@@ -22,20 +21,21 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
-import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -44,29 +44,29 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.WitnessInvariant;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
-import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator;
-import org.sosy_lab.cpachecker.core.algorithm.invariants.KInductionInvariantGenerator.KInductionInvariantGeneratorOptions;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.automaton.CachingTargetLocationProvider;
-import org.sosy_lab.cpachecker.util.automaton.TargetLocationProvider;
+import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
+@Options(prefix = "wacsl")
 public class WitnessToACSLAlgorithm implements Algorithm {
+
+  @Option(
+      secure = true,
+      description = "The witness from which ACSL annotations should be generated.")
+  @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
+  private Path witness;
 
   private final Configuration config;
   private final Specification specification;
   private final LogManager logger;
   private final CFA cfa;
-  private final ShutdownManager shutdownManager;
-  private final KInductionInvariantGeneratorOptions kindOptions;
-  private final TargetLocationProvider targetLocationProvider;
+  private final ShutdownNotifier shutdownNotifier;
   private final ToCExpressionVisitor toCExpressionVisitor;
   private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
@@ -78,13 +78,11 @@ public class WitnessToACSLAlgorithm implements Algorithm {
       CFA pCfa)
       throws InvalidConfigurationException {
     config = pConfig;
+    config.inject(this);
     specification = pSpecification;
     logger = pLogger;
     cfa = pCfa;
-    shutdownManager = ShutdownManager.createWithParent(pShutdownNotifier);
-    kindOptions = new KInductionInvariantGeneratorOptions();
-    config.inject(kindOptions);
-    targetLocationProvider = new CachingTargetLocationProvider(pShutdownNotifier, logger, cfa);
+    shutdownNotifier = pShutdownNotifier;
     toCExpressionVisitor = new ToCExpressionVisitor(cfa.getMachineModel(), logger);
     binaryExpressionBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
   }
@@ -93,52 +91,37 @@ public class WitnessToACSLAlgorithm implements Algorithm {
   public AlgorithmStatus run(ReachedSet pReachedSet)
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
 
-    final CandidateGenerator gen;
-    final Set<String> files = new LinkedHashSet<>();
     Map<CFANode, CExpression> invMap = new HashMap<>();
+    Set<String> files = new HashSet<>();
+    Set<ExpressionTreeLocationInvariant> invariants = new HashSet<>();
     try {
-      gen =
-          KInductionInvariantGenerator.getCandidateInvariants(
-              kindOptions,
+      WitnessInvariantsExtractor invariantsExtractor =
+          new WitnessInvariantsExtractor(
               config,
+              specification,
               logger,
               cfa,
-              shutdownManager,
-              targetLocationProvider,
-              specification);
-    } catch (InvalidConfigurationException e) {
-      throw new CPAException("Invalid Configuration while analyzing witness", e);
-    }
-    // this is important because otherwise the candidates will not be displayed!
-    gen.produceMoreCandidates();
-    List<ExpressionTreeLocationInvariant> cands = new ArrayList<>();
-    for (CandidateInvariant inv : gen) {
-      if (inv instanceof ExpressionTreeLocationInvariant) {
-        cands.add((ExpressionTreeLocationInvariant) inv);
-      }
+              shutdownNotifier,
+              witness);
+      invariantsExtractor.extractInvariantsFromReachedSet(invariants);
+    } catch (InvalidConfigurationException pE) {
+      throw new CPAException("Invalid Configuration while analyzing witness", pE);
     }
 
     // Extract invariants as CExpressions and nodes
-    for (ExpressionTreeLocationInvariant c : cands) {
+    for (ExpressionTreeLocationInvariant c : invariants) {
       CFANode loc = c.getLocation();
       if(loc instanceof FunctionExitNode) {
         continue;
       }
-      Optional<? extends AAstNode> astNodeOptional = loc.getLeavingEdge(0).getRawAST();
+      // TODO: Could be in a dummy function
+      files.add(loc.getFunction().getFileLocation().getFileName());
 
       @SuppressWarnings("unchecked")
       CExpression exp =
           ((ExpressionTree<AExpression>) (Object) c.asExpressionTree())
               .accept(toCExpressionVisitor);
-      //TODO: Do this only if astNodeOptional is present?
       invMap.put(loc, exp);
-      if (astNodeOptional.isPresent()) {
-        AAstNode astNode = astNodeOptional.get();
-        FileLocation fileLoc = astNode.getFileLocation();
-        files.add(fileLoc.getFileName());
-      } else {
-        //TODO
-      }
     }
 
     for (String file : files) {
