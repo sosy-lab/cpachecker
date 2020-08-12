@@ -28,8 +28,11 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
@@ -42,7 +45,8 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
 /** Represents one abstract state of the Usage CPA. */
 public class UsageState extends AbstractSingleWrapperState
-    implements LatticeAbstractState<UsageState>, AbstractStateWithEdge {
+    implements LatticeAbstractState<UsageState>, AbstractStateWithEdge, AliasInfoProvider {
+  /* Boilerplate code to avoid serializing this class */
 
   private static final long serialVersionUID = -898577877284268426L;
   private final transient StateStatistics stats;
@@ -194,6 +198,25 @@ public class UsageState extends AbstractSingleWrapperState
 
   public static UsageState get(AbstractState state) {
     return AbstractStates.extractStateByType(state, UsageState.class);
+  }
+
+
+  @Override
+  public Set<AbstractIdentifier> getAllPossibleAliases(AbstractIdentifier id) {
+    AbstractIdentifier newId = getLinksIfNecessary(id);
+    if (newId != id) {
+      return ImmutableSet.of(newId);
+    } else {
+      return ImmutableSet.of();
+    }
+  }
+
+  @Override
+  public void filterAliases(AbstractIdentifier pIdentifier, Collection<AbstractIdentifier> pSet) {
+    AbstractIdentifier newId = getLinksIfNecessary(pIdentifier);
+    if (newId != pIdentifier) {
+      pSet.remove(pIdentifier);
+    }
   }
 
   @Override

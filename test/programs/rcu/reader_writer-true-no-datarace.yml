@@ -1,0 +1,7 @@
+format_version: '1.0'
+
+input_files: 'reader_writer-true-no-datarace.i'
+
+properties:
+  - property_file: data-race.prp
+    expected_verdict: true

@@ -114,7 +114,8 @@ public class IdentifierCreator extends DefaultCExpressionVisitor<AbstractIdentif
     resultId1 = expression.getOperand1().accept(this);
     dereference = 0;
     resultId2 = expression.getOperand2().accept(this);
-    result = new BinaryIdentifier(resultId1, resultId2, oldDereference);
+    // to get rid of the offset in 'a + 1' and 'a[1]' expressions
+    result = getMainPart(new BinaryIdentifier(resultId1, resultId2, oldDereference));
     dereference = oldDereference;
     return result;
   }

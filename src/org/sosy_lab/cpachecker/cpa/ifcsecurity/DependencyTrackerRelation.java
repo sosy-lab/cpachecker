@@ -343,7 +343,7 @@ public class DependencyTrackerRelation extends ForwardingTransferRelation<Depend
     for(AbstractState astate: pOtherStates){
       if(astate instanceof PointerState){
         PointerState pointerstate=(PointerState)astate;
-        Map<MemoryLocation, LocationSet>  map = pointerstate.getPointsToMap();
+        Map<MemoryLocation, LocationSet> map = pointerstate.getPointsToMap();
         for(Entry<MemoryLocation, LocationSet> memloc: map.entrySet()){
           String varname=memloc.getKey().getIdentifier();
           Variable var=new Variable(varname);

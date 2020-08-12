@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="6 GB" cpuCores="4">
+  <!-- This file contains regression tests from the LDV project.
+       It expects the git repository git@bitbucket.org:dbeyer/ldv-benchmarks.git
+       to be checked out at test/programs/ldv-benchmarks. -->
+
+  <option name="-heap">5000M</option>
+
+  <tasks name="RCU-tests">
+    <includesfile>../programs/rcu/rcu-test.set</includesfile>
+    <option name="-rcucpa"/>
+    <option name="-skipRecursion"/>
+  </tasks> 
+
+  <rundefinition>
+  </rundefinition>
+</benchmark>

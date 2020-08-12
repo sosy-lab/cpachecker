@@ -298,7 +298,7 @@ public class KleverErrorTracePrinter extends ErrorTracePrinter {
     dumpCommonInfoForEdge(builder, result, edge);
 
     String note = getNoteFor(edge);
-    if (!note.isEmpty()) {
+    if (note != null && !note.isEmpty()) {
       builder.addDataElementChild(result, KeyDef.NOTE, note);
     }
     currentNode = builder.createNodeElement(nextId, NodeType.ONPATH);

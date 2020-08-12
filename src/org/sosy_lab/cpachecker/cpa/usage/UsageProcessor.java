@@ -31,6 +31,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -56,6 +57,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.local.LocalState.DataType;
+import org.sosy_lab.cpachecker.cpa.rcucpa.RCUState;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo.Access;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -156,7 +158,7 @@ public class UsageProcessor {
           if (b) {
             continue;
           }
-          createUsageAndAdd(id, node, child, pair.getSecond());
+          createUsages(id, node, child, pair.getSecond());
         }
         usagePreparationTimer.stop();
 
@@ -346,6 +348,38 @@ public class UsageProcessor {
     return handler.getProcessedExpressions();
   }
 
+  private void
+      createUsages(AbstractIdentifier pId, CFANode pNode, AbstractState pChild, Access pAccess) {
+
+    // TODO looks like a hack
+    if (pId instanceof SingleIdentifier) {
+      SingleIdentifier singleId = (SingleIdentifier) pId;
+      if (singleId.getName().contains("CPAchecker_TMP")) {
+        RCUState rcuState = AbstractStates.extractStateByType(pChild, RCUState.class);
+        if (rcuState != null) {
+          singleId = (SingleIdentifier) rcuState.getNonTemporaryId(singleId);
+        }
+      }
+    }
+
+    Iterable<AliasInfoProvider> providers =
+        AbstractStates.asIterable(pChild).filter(AliasInfoProvider.class);
+    Set<AbstractIdentifier> aliases = new TreeSet<>();
+
+    aliases.add(pId);
+    for (AliasInfoProvider provider : providers) {
+      aliases.addAll(provider.getAllPossibleAliases(pId));
+    }
+
+    for (AliasInfoProvider provider : providers) {
+      provider.filterAliases(pId, aliases);
+    }
+
+    for (AbstractIdentifier aliasId : aliases) {
+      createUsageAndAdd(aliasId, pNode, pChild, pAccess);
+    }
+  }
+
   private void createUsageAndAdd(
       AbstractIdentifier pId,
       CFANode pNode,
@@ -378,6 +412,8 @@ public class UsageProcessor {
         return;
       } else {
 
+        Iterable<LocalInfoProvider> itStates =
+            AbstractStates.asIterable(pChild).filter(LocalInfoProvider.class);
         boolean isLocal = false;
         boolean isGlobal = false;
 
@@ -392,7 +428,13 @@ public class UsageProcessor {
             } else if (type == DataType.LOCAL) {
               isLocal = true;
             }
+            for (LocalInfoProvider state : itStates) {
+              isLocal |= state.isLocal(gcId);
+            }
           }
+        }
+        for (LocalInfoProvider state : itStates) {
+          isLocal |= state.isLocal(gId);
         }
         if (isLocal && !isGlobal) {
           logger.log(

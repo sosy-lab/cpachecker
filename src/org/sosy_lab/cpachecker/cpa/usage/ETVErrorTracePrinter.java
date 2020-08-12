@@ -181,7 +181,7 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
         callstackDepth--;
       }
       String caption = getNoteFor(edge);
-      if (!caption.isEmpty() && !(edge instanceof CFunctionReturnEdge)) {
+      if (caption != null && !caption.isEmpty() && !(edge instanceof CFunctionReturnEdge)) {
         writer.write("Line 0:     N0 -{/*" + caption + "*/}-> N0\n");
         writer.write("Line 0:     N0 -{highlight}-> N0\n");
       } else if (edge.getSuccessor() == usage.getCFANode()
@@ -194,6 +194,8 @@ public class ETVErrorTracePrinter extends ErrorTracePrinter {
       writer.append("Line 0:     N0 -{return;}-> N0\n");
     }
     writer.write("\n");
+
+    logger.log(Level.ALL, "Print usage: ", usage);
   }
 
   private void printCountStatistics(

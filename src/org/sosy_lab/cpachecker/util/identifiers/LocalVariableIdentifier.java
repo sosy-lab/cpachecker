@@ -76,6 +76,11 @@ public class LocalVariableIdentifier extends VariableIdentifier {
   }
 
   @Override
+  public String toString() {
+    return function + "::" + super.toString();
+  }
+
+  @Override
   public GeneralIdentifier getGeneralId() {
     return new GeneralLocalVariableIdentifier(name, dereference);
   }

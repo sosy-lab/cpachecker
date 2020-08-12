@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="1000 s" memlimit="16 GB" cpuCores="4">
+  <!-- This file contains regression tests from the LDV project.
+       It expects the git repository git@bitbucket.org:dbeyer/ldv-benchmarks.git
+       to be checked out at test/programs/ldv-benchmarks. -->
+
+  <option name="-noout"/>
+  <option name="-heap">15000M</option>
+  <option name="-setprop">cpa.pointer2.noOutput=true</option>
+
+  <tasks name="DeviceDrivers64">
+    <includesfile>/media/sf__CPAchecker/sv-benchmarks/c/Systems_DeviceDriversLinux64_ReachSafety.set</includesfile>
+  </tasks>
+
+  <rundefinition name="DD64_No_fake_locs">
+    <option name="-pointer2"/>
+    <option name="-setprop">cpa.pointer2.useFakeLocs=false</option>
+  </rundefinition>
+
+  <rundefinition name="DD64_With_fake_locs">
+    <option name="-pointer2"/>
+    <option name="-setprop">cpa.pointer2.useFakeLocs=true</option>
+  </rundefinition>
+
+  <rundefinition name="DD64_BAM_No_fake_locs">
+    <option name="-pointer2-bam"/>
+    <option name="-setprop">cpa.pointer2.useFakeLocs=false</option>
+  </rundefinition>
+
+  <rundefinition name="DD64_BAM_With_fake_locs">
+    <option name="-pointer2-bam"/>
+    <option name="-setprop">cpa.pointer2.useFakeLocs=true</option>
+  </rundefinition>
+
+</benchmark>

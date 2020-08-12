@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * Represents a block as described in the BAM paper.
@@ -42,19 +43,22 @@ public class Block {
   private final ImmutableSet<CFANode> returnNodes;
   private final ImmutableSet<CFANode> nodes;
   private final ImmutableSet<LockIdentifier> capturedLocks;
+  private final Set<MemoryLocation> memoryLocations;
 
   public Block(
       Iterable<ReferencedVariable> pReferencedVariables,
       Set<CFANode> pCallNodes,
       Set<CFANode> pReturnNodes,
       Iterable<CFANode> allNodes,
-      Iterable<LockIdentifier> locks) {
+      Iterable<LockIdentifier> locks,
+      Iterable<MemoryLocation> locations) {
 
     referencedVariables = ImmutableSet.copyOf(pReferencedVariables);
     callNodes = ImmutableSortedSet.copyOf(pCallNodes);
     returnNodes = ImmutableSortedSet.copyOf(pReturnNodes);
     nodes = ImmutableSortedSet.copyOf(allNodes);
     capturedLocks = ImmutableSortedSet.copyOf(locks);
+    memoryLocations = ImmutableSortedSet.copyOf(locations);
   }
 
   public Set<CFANode> getCallNodes() {
@@ -142,11 +146,16 @@ public class Block {
     return callNodes.equals(other.callNodes)
         && returnNodes.equals(other.returnNodes)
         && nodes.equals(other.nodes)
-        && referencedVariables.equals(other.referencedVariables);
+        && referencedVariables.equals(other.referencedVariables)
+        && memoryLocations.equals(other.memoryLocations);
   }
 
   @Override
   public int hashCode() {
     return nodes.hashCode();
+  }
+
+  public Set<MemoryLocation> getMemoryLocations() {
+    return memoryLocations;
   }
 }
