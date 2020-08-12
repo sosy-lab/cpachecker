@@ -9,13 +9,13 @@
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
 
 import com.google.common.collect.ConcurrentHashMultiset;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.MultimapBuilder;
 import com.google.common.collect.Multiset;
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgument;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgument;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -45,7 +45,7 @@ public abstract class LassoAnalysisStatistics implements Statistics {
       MultimapBuilder.linkedHashKeys().arrayListValues().build();
 
   protected final Map<Loop, NonTerminationArgument> nonTerminationArguments =
-      Maps.newConcurrentMap();
+      new ConcurrentHashMap<>();
 
   protected LassoAnalysisStatistics() {}
 

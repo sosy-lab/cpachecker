@@ -17,6 +17,7 @@ import java.util.logging.Level;
 import java.util.regex.Pattern;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -28,11 +29,11 @@ import org.sosy_lab.cpachecker.cfa.Parser;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 
 /**
- * We load the parser in its own class loader, so both all Eclipse objects
- * and all Eclipse classes can be garbage collected when they are not needed anymore.
- * Without this, nothing could be garbage collected because all the parser objects
- * are referenced statically inside their classes.
+ * We load the parser in its own class loader, so both all Eclipse objects and all Eclipse classes
+ * can be garbage collected when they are not needed anymore. Without this, nothing could be garbage
+ * collected because all the parser objects are referenced statically inside their classes.
  */
+@SuppressForbidden("reflection necessary")
 public class Parsers {
 
   @Options(prefix = "cfa")

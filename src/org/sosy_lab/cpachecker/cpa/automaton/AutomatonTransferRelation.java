@@ -13,7 +13,6 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -361,7 +360,7 @@ public class AutomatonTransferRelation implements TransferRelation {
       AutomatonState state,
       ThreadingState threadingState)
       throws CPATransferException {
-    Collection<AutomatonState> result = new LinkedHashSet<>();
+    ImmutableSet.Builder<AutomatonState> result = ImmutableSet.builder();
     for (CFAEdge firstEdgeOfThread : threadingState.getOutgoingEdges()) {
       if (firstEdgeOfThread.getPredecessor() instanceof FunctionEntryNode
           && firstEdgeOfThread.getPredecessor().getNumEnteringEdges() == 0) {
@@ -387,14 +386,12 @@ public class AutomatonTransferRelation implements TransferRelation {
         // Assumption: "Every thread creation is directly followed by a function entry."
         // The witness automaton checks function names of CFA clones, thus the next line
         // cuts off all non-matching threads and limits the state space for the validation.
-        newStates = Collections2.filter(newStates, s -> !state.equals(s));
-
-        result.addAll(newStates);
+        result.addAll(from(newStates).filter(s -> !state.equals(s)));
       } else {
         result.add(state);
       }
     }
-    return result;
+    return result.build();
   }
 
   /**

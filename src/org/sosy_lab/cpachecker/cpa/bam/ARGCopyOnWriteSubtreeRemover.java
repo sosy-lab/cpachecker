@@ -9,21 +9,22 @@
 package org.sosy_lab.cpachecker.cpa.bam;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.logging.Level;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -205,10 +206,10 @@ public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
 
     assert pReached.contains(cutState);
 
-    // get subgraph, iteration order (natural state numbering -> Treeset) is important,
+    // get subgraph, iteration order (natural state numbering -> ImmutableSortedSet) is important,
     // because we have to keep it and create cloned states in the same order
-    Set<ARGState> reachedStates =
-        new TreeSet<>(((ARGState) pReached.getFirstState()).getSubgraph());
+    ImmutableSortedSet<ARGState> reachedStates =
+        ((ARGState) pReached.getFirstState()).getSubgraph().toSortedSet(Comparator.naturalOrder());
 
     // get all states that should not be part of the cloned reached-set,
     // because the states are below the cutState (including transitive coverage)
@@ -246,17 +247,10 @@ public class ARGCopyOnWriteSubtreeRemover extends ARGSubtreeRemover {
    * successors and all states that are covered by them.
    */
   private static Set<ARGState> getStatesToRemove(final ARGState cutState) {
-    Set<ARGState> toRemove = cutState.getSubgraph();
-
-    // collect all elements covered by the subtree,
-    // we assume there is no transitive coverage a->b->c, then we need a fixed-point algorithm
-    List<ARGState> newToUnreach = new ArrayList<>();
-    for (ARGState ae : toRemove) {
-      newToUnreach.addAll(ae.getCoveredByThis());
-    }
-    toRemove.addAll(newToUnreach);
-
-    return toRemove;
+    // get subgraph
+    List<ARGState> toRemove = cutState.getSubgraph().toList();
+    // and combine with covered states (there are no transitively covered states)
+    return from(toRemove).transformAndConcat(ARGState::getCoveredByThis).append(toRemove).toSet();
   }
 
   /** Build cloned ARG as a flat copy of existing states, but limited to only some states. */

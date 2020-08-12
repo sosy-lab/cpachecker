@@ -124,6 +124,7 @@ public class ConfigurationFileChecks {
           "limits.time.cpu::required",
           "limits.time.cpu.thread",
           "log.consoleLevel",
+          "log.truncateSize",
           "memorysafety.config",
           "memorycleanup.config",
           "overflow.config",
@@ -184,10 +185,9 @@ public class ConfigurationFileChecks {
 
     @Option(
       secure = true,
-      name = "analysis.useInterleavedAnalyses",
-      description = "start different analyses interleaved and continue after unknown result"
-    )
-    private boolean useInterleavedAlgorithm = false;
+      name = "useCompositionAnalysis",
+      description = "select an analysis from a set of analyses after unknown result")
+    private boolean useCompositionAlgorithm = false;
 
     @Option(
       secure = true,
@@ -533,7 +533,7 @@ public class ConfigurationFileChecks {
     }
 
     if (!(options.useParallelAlgorithm || options.useRestartingAlgorithm)
-        || options.useInterleavedAlgorithm) {
+        || options.useCompositionAlgorithm) {
       // TODO find a solution how to check for unused properties correctly even with
       // RestartAlgorithm
       assert_()

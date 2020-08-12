@@ -83,6 +83,12 @@ public class PredicateCPA
       description="which merge operator to use for predicate cpa (usually ABE should be used)")
   private String mergeType = "ABE";
 
+  @Option(
+    secure = true,
+    name = "merge.mergeAbstractionStatesWithSamePredecessor",
+    description = "merge two abstraction states if their preceeding abstraction states are the same")
+  private boolean mergeAbstractionStates = false;
+
   @Option(secure=true, name="stop", values={"SEP", "SEPPCC"}, toUppercase=true,
       description="which stop operator to use for predicate cpa (usually SEP should be used in analysis)")
   private String stopType = "SEP";
@@ -191,7 +197,6 @@ public class PredicateCPA
             cfa,
             abstractionManager,
             formulaManager,
-            specification,
             shutdownNotifier,
             pathFormulaManager,
             predicateManager);
@@ -239,7 +244,12 @@ public class PredicateCPA
       case "SEP":
         return MergeSepOperator.getInstance();
       case "ABE":
-        return new PredicateMergeOperator(logger, pathFormulaManager, statistics);
+        return new PredicateMergeOperator(
+            logger,
+            pathFormulaManager,
+            statistics,
+            mergeAbstractionStates,
+            predicateManager);
       default:
         throw new InternalError("Update list of allowed merge operators");
     }

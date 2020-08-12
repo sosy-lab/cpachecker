@@ -46,6 +46,7 @@ import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
@@ -77,6 +78,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
+@SuppressForbidden("System.out in this class is ok")
 public class CPAMain {
 
   static final int ERROR_EXIT_CODE = 1;

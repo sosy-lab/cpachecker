@@ -99,10 +99,9 @@ public class TemplatePrecision implements Precision {
       + "This option is redundant for `maxExpressionSize` >= 2.")
   private boolean generateDifferences = false;
 
-  @Option(secure=true, description="Allowed coefficients in a template.")
-  private Set<Rational> allowedCoefficients = ImmutableSet.of(
-      Rational.NEG_ONE, Rational.ONE
-  );
+  @Option(secure = true, description = "Allowed coefficients in a template.")
+  private ImmutableSet<Rational> allowedCoefficients =
+      ImmutableSet.of(Rational.NEG_ONE, Rational.ONE);
 
   @Option(secure=true,
     description="Strategy for filtering variables out of templates using "
@@ -194,8 +193,7 @@ public class TemplatePrecision implements Precision {
     cfa = pCfa;
     logger = pLogger;
 
-    allowedCoefficients =
-        ImmutableSet.copyOf(Sets.filter(allowedCoefficients, c -> !c.equals(Rational.ZERO)));
+    allowedCoefficients = from(allowedCoefficients).filter(c -> !c.equals(Rational.ZERO)).toSet();
 
     if (generateFromAsserts) {
       extractedFromAssertTemplates = ImmutableSet.copyOf(templatesFromAsserts());
@@ -645,9 +643,8 @@ public class TemplatePrecision implements Precision {
           && !allowedCoefficients.contains(Rational.ofLong(2))) {
         logger.log(Level.INFO, "Template Refinement: increasing the "
             + "coefficient size to 2");
-        allowedCoefficients = Sets.union(
-            allowedCoefficients, ImmutableSet.of(
-                Rational.ofLong(2), Rational.ofLong(-2)));
+        allowedCoefficients =
+            from(allowedCoefficients).append(Rational.ofLong(2), Rational.ofLong(-2)).toSet();
         return true;
       }
       if (maxExpressionSize == 2

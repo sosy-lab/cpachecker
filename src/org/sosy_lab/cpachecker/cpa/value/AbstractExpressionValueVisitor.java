@@ -2083,7 +2083,7 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(JBooleanLiteralExpression pE) {
-    return BooleanValue.valueOf(pE.getValue());
+    return BooleanValue.valueOf(pE.getBoolean());
   }
 
   @Override
