@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.cfa.parser.eclipse.java;
 
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
+
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.MoreFiles;
@@ -144,7 +146,10 @@ class EclipseJavaParser implements JavaParser {
       javaClassPaths = ImmutableList.of(pathToProgram.get(0).getParent());
     } else {
       javaClassPaths =
-          sourceFiles.stream().map(v -> Paths.get(v)).collect(ImmutableList.toImmutableList());
+          transformedImmutableListCopy(sourceFiles, v -> {
+            assert v != null;
+            return Paths.get(v);
+          });
     }
     if (javaSourcepath.isEmpty()) {
       javaSourcePaths = javaClassPaths;

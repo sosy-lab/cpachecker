@@ -739,7 +739,8 @@ class CFAMethodBuilder extends ASTVisitor {
       if (nodeIsInTryClause(assertStatement)) {
         blankEdge =
             new BlankEdge(
-                rawSignature, fileloc, unsuccessfulNode, getPreCatchNode().get(), "assert fail");
+                rawSignature, fileloc, unsuccessfulNode, getPreCatchNode().orElseThrow(),
+                "assert fail");
         addToCFA(blankEdge);
       } else {
         CFANode endNode = new CFATerminationNode(methodName);
@@ -1766,7 +1767,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
         jIdExpression,
         fileloc,
         prevNode,
-        postFinallyNode.isEmpty() ? postCatchNode : postFinallyNode.get(),
+        postFinallyNode.isEmpty() ? postCatchNode : postFinallyNode.orElseThrow(),
         hasPendingExceptionNode);
 
     BlankEdge blankEdge =
@@ -1782,7 +1783,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     if (getPostFinallyNode().isPresent()) {
 
       CFANode prevNode = locStack.pop();
-      final CFANode postFinallyNode = getPostFinallyNode().get();
+      final CFANode postFinallyNode = getPostFinallyNode().orElseThrow();
 
       FileLocation fileloc = astCreator.getFileLocation(pTryStatement);
 
@@ -1807,7 +1808,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     if (isFirstCatchClause(pCatchClauseNode)) {
       // True if throw statement was reached
-      CFANode preCatchNode = getPreCatchNode().get();
+      CFANode preCatchNode = getPreCatchNode().orElseThrow();
       if (preCatchNode != prevNode) {
         BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, prevNode, preCatchNode, "");
         addToCFA(blankEdge);
@@ -1871,13 +1872,13 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
       if (prevNode.getNumEnteringEdges() > 0) {
         BlankEdge blankEdge =
-            new BlankEdge("", FileLocation.DUMMY, prevNode, getPostCatchNode().get(), "");
+            new BlankEdge("", FileLocation.DUMMY, prevNode, getPostCatchNode().orElseThrow(), "");
         addToCFA(blankEdge);
       }
     }
 
     if (isLastCatchClause(pCatchClause)) {
-      final CFANode postCatchNode = getPostCatchNode().get();
+      final CFANode postCatchNode = getPostCatchNode().orElseThrow();
       BlankEdge blankEdge =
           new BlankEdge("", FileLocation.DUMMY, nextNode, postCatchNode, "go to end of try");
       addToCFA(blankEdge);
@@ -1948,7 +1949,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
       if (!locStack.isEmpty() && !elseStack.isEmpty()) {
         locStack.push(locStack.peek());
       } else {
-        locStack.push(preCatchNode.get());
+        locStack.push(preCatchNode.orElseThrow());
       }
     }
     else{
@@ -2681,7 +2682,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
               returnStatement.toString(),
               fileloc,
               prevNode,
-              getPreCatchNode().get(),
+              getPreCatchNode().orElseThrow(),
               returnStatement.toString());
     } else {
       edge =
