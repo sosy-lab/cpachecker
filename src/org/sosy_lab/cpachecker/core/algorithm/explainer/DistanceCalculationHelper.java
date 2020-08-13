@@ -43,25 +43,7 @@ public class DistanceCalculationHelper {
    */
   public List<CFAEdge> cleanPath(ARGPath path) {
     List<CFAEdge> flow = path.getFullPath();
-
     return cleanPath(flow);
-
-    /*List<CFAEdge> clean_flow = new ArrayList<>();
-
-    for (CFAEdge f : flow) {
-      if (f.getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
-        List<String> code = Splitter.onPattern("\\s*[()]\\s*").splitToList(f.getCode());
-        if (!code.isEmpty()) {
-          if (code.get(0).equals("__VERIFIER_assert")) {
-            clean_flow.add(f);
-            return clean_flow;
-          }
-        }
-      }
-      clean_flow.add(f);
-    }
-
-    return clean_flow;*/
   }
 
   /**

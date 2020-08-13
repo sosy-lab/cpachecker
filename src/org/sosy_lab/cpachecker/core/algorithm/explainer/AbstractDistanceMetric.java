@@ -22,12 +22,11 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
  * Abstract Distance Metric
- *
  * @see Explainer
  */
 public class AbstractDistanceMetric {
 
-  private DistanceCalculationHelper distanceHelper;
+  private final DistanceCalculationHelper distanceHelper;
 
   public AbstractDistanceMetric(DistanceCalculationHelper pDistanceCalculationHelper) {
     this.distanceHelper = pDistanceCalculationHelper;
@@ -44,10 +43,7 @@ public class AbstractDistanceMetric {
       paths.add(distanceHelper.cleanPath(p));
     }
 
-    List<CFAEdge> closestSuccessfulExecution =
-        comparePaths(ce, paths, counterexample.asStatesList(), safePaths);
-
-    return closestSuccessfulExecution;
+    return comparePaths(ce, paths, counterexample.asStatesList(), safePaths);
   }
 
   /**
@@ -77,16 +73,16 @@ public class AbstractDistanceMetric {
           calculatePredicateDistance(alignments, ceStates, pathsStates.get(i).asStatesList());
 
       // Step 3: Get Differences between Actions
-      List<CFAEdge> better_choice =
+      List<CFAEdge> betterChoice =
           (safePaths.get(i).size() > counterexample.size()) ? safePaths.get(i) : counterexample;
-      int unalignedStates = getNumberOfUnalignedStates(alignments, better_choice);
+      int unalignedStates = getNumberOfUnalignedStates(alignments, betterChoice);
 
       // calculate the distance
       int d = predicateWeight * predicateDistance + unalignedStatesWeight * unalignedStates;
       distances.add(d);
     }
 
-    // clean distance = 0
+    // eliminate zero distances
     List<Integer> finalDistances = new ArrayList<>();
     for (int i = 0; i < distances.size(); i++) {
       int distance = distances.get(i);

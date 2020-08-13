@@ -34,30 +34,38 @@ public class ExplainTool {
     logger.log(Level.INFO, "Explain Tool Started");
     counterexample = cleanPath(counterexample);
     closestExecution = cleanPath(closestExecution);
+    List<CFAEdge> ceEdges = cleanPath(counterexample);
+    List<CFAEdge> spEdges = cleanPath(closestExecution);
+
     List<CFAEdge> deltasCe = new ArrayList<>();
     List<CFAEdge> deltasSp = new ArrayList<>();
 
     for (int i = 0; i < counterexample.size(); i++) {
-      if (!closestExecution.contains(counterexample.get(i))) {
+      if (!spEdges.contains(counterexample.get(i))) {
         deltasCe.add(counterexample.get(i));
+      } else {
+        spEdges.remove(counterexample.get(i));
       }
     }
 
     for (int i = 0; i < closestExecution.size(); i++) {
-      if (!counterexample.contains(closestExecution.get(i))) {
+      if (!ceEdges.contains(closestExecution.get(i))) {
         deltasSp.add(closestExecution.get(i));
+      } else {
+        ceEdges.remove(closestExecution.get(i));
       }
     }
+
     logger.log(Level.INFO, "COUNTEREXAMPLE DIFFERENCES");
-    for (int i = 0; i < deltasCe.size(); i++) {
+    for (CFAEdge pCFAEdge : deltasCe) {
       logger.log(Level.INFO,
-          deltasCe.get(i).getLineNumber() + ": " + deltasCe.get(i).getDescription());
+          pCFAEdge.getLineNumber() + ": " + pCFAEdge.getDescription());
     }
     logger.log(Level.INFO, "-------------------------------------------");
     logger.log(Level.INFO, "CLOSEST SUCCESSFUL EXECUTION DIFFERENCES");
-    for (int i = 0; i < deltasSp.size(); i++) {
+    for (CFAEdge pCFAEdge : deltasSp) {
       logger.log(Level.INFO,
-          deltasSp.get(i).getLineNumber() + ": " + deltasSp.get(i).getDescription());
+          pCFAEdge.getLineNumber() + ": " + pCFAEdge.getDescription());
     }
 
   }

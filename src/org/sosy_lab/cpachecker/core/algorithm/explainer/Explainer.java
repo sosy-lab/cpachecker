@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.explainer;
 
 import static com.google.common.collect.FluentIterable.from;
-
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -142,7 +141,7 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
     // TODO: Review: What was the command ?
     // ARGPath targetPath = ARGUtils.getOnePathTo(allTargets.get(0));
 
-    // TODO: Review: Check that x is not in the Waitlist anymore
+    // TODO: Review: Check that x is not in the Wait-list anymore
     // Find All Safe Nodes
     List<ARGState> safeLeafNodes =
         from(currentReached)
@@ -151,6 +150,7 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
             .filter(x -> !x.isTarget())
             .toList();
 
+    // TODO: Need this ?
     // Find the Root Node
     /*ARGState rootNode =
     from(currentReached)
@@ -166,40 +166,40 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
 
     Collection<ARGState> statesOnPathTo;
 
+    // TODO: Generate Path --> Don't need the safe paths
     // Find all ARGStates that are in the Path
     List<ARGPath> safePaths = new ArrayList<>();
-    for (ARGState safeLeaf : safeLeafNodes) {
+    /*for (ARGState safeLeaf : safeLeafNodes) {
       statesOnPathTo = ARGUtils.getAllStatesOnPathsTo(safeLeaf);
       // path reconstruction
       safePaths = createPath(statesOnPathTo, rootNode);
-    }
+    }*/
 
     // TODO: Turn back on later
     // Constructor for the first 2 Techniques
     ControlFlowDistanceMetric metric =
-    new ControlFlowDistanceMetric(new DistanceCalculationHelper());
+        new ControlFlowDistanceMetric(new DistanceCalculationHelper());
     List<CFAEdge> closestSuccessfulExecution = null;
     // Compare all paths with the CE
     // Distance Metric No. 1
-     closestSuccessfulExecution = metric.startDistanceMetric(safePaths, targetPath);
+    closestSuccessfulExecution = metric.startDistanceMetric(safePaths, targetPath);
 
     // Generate the closest path to the CE with respect to the distance metric
     // Distance Metric No. 2
     // TODO: Change Descriptions, like Distance Metric No 1,2 etc..
-    // closestSuccessfulExecution = metric.generateClosestSuccessfulExecution(safePaths,
-    // targetPath);
+     //closestSuccessfulExecution = metric.generateClosestSuccessfulExecution(targetPath);
 
     // create a SOLVER for the 3rd Technique
-    try {
+    /*try {
       Solver solver = cpa.getSolver();
       BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
       // Create Distance Metric No. 3
       AbstractDistanceMetric metric2 =
           new AbstractDistanceMetric(new DistanceCalculationHelper(bfmgr));
-      //closestSuccessfulExecution = metric2.startDistanceMetric(safePaths, targetPath);
+       closestSuccessfulExecution = metric2.startDistanceMetric(safePaths, targetPath);
     } catch (Exception pE) {
       throw new AssertionError(pE);
-    }
+    }*/
 
     if (closestSuccessfulExecution == null) {
       // EXECUTION COLLAPSED
