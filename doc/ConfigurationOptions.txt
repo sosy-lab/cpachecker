@@ -1074,6 +1074,9 @@ cpa.abe.checkTargetStates = true
 # Cache formulas produced by path formula manager
 cpa.abe.useCachingPathFormulaManager = true
 
+# only store pure C expressions without ACSL-specific constructs
+cpa.acsl.usePureExpressionsOnly = true
+
 # Use this to change the underlying abstract domain in the APRON library
 cpa.apron.domain = OCTAGON
   enum:     [BOX, OCTAGON, POLKA, POLKA_STRICT, POLKA_EQ]
@@ -4114,6 +4117,9 @@ undefinedFunctionsCollector.stubsFile = "stubs.c"
 
 # select an analysis from a set of analyses after unknown result
 useCompositionAnalysis = false
+
+# The witness from which ACSL annotations should be generated.
+wacsl.witness = no default value
 
 # File for exporting the witness automaton in DOT format.
 witness.automatonDumpFile = no default value

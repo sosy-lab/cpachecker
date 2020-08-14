@@ -58,6 +58,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
 
   @Option(
       secure = true,
+      required = true,
       description = "The witness from which ACSL annotations should be generated.")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
   private Path witness;
