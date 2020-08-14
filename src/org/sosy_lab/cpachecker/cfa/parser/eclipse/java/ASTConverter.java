@@ -25,7 +25,6 @@ import java.math.BigInteger;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -82,6 +81,7 @@ import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
@@ -643,29 +643,33 @@ class ASTConverter {
     return tmp;
   }
 
-
   private JIdExpression createTemporaryVariable(Expression e) {
-
     String name = "__CPAchecker_TMP_";
+    return createTemporaryVariableWithName(e, name);
+  }
+
+  private JIdExpression createTemporaryVariableWithName(Expression e, String name) {
+
     int i = 0;
     while (scope.variableNameInUse(name + i, name + i)) {
       i++;
     }
-    name += i;
+    name += + i;
 
-    JVariableDeclaration decl = new JVariableDeclaration(getFileLocation(e),
-        convert(e.resolveTypeBinding()),
-        name,
-        name,
-        getQualifiedName(name),
-        null, NOT_FINAL);
+    JVariableDeclaration decl =
+        new JVariableDeclaration(
+            getFileLocation(e),
+            convert(e.resolveTypeBinding()),
+            name,
+            name,
+            getQualifiedName(name),
+            null,
+            NOT_FINAL);
 
     scope.registerDeclarationOfThisClass(decl);
     preSideAssignments.add(decl);
-    JIdExpression tmp = new JIdExpression(decl.getFileLocation(),
-        convert(e.resolveTypeBinding()),
-        name,
-        decl);
+    JIdExpression tmp =
+        new JIdExpression(decl.getFileLocation(), convert(e.resolveTypeBinding()), name, decl);
     return tmp;
   }
 
@@ -1050,9 +1054,17 @@ class ASTConverter {
   }
 
   private JExpression convert(InstanceofExpression e) {
-
     FileLocation fileloc = getFileLocation(e);
-    JExpression leftOperand = convertExpressionWithoutSideEffects(e.getLeftOperand());
+    JExpression leftOperand;
+    final Expression leftOperandOfExpression = e.getLeftOperand();
+
+    leftOperand = convertExpressionWithoutSideEffects(leftOperandOfExpression);
+    if (leftOperand instanceof ALiteralExpression
+        || leftOperand instanceof JArraySubscriptExpression) {
+      leftOperand =
+          createTemporaryVariableWithName(
+              leftOperandOfExpression, leftOperandOfExpression.toString() + "_");
+    }
     JType typeOfRightOperand = convert(e.getRightOperand().resolveBinding());
     assert leftOperand instanceof JIdExpression : "There are other expressions for instanceOf?";
     assert (typeOfRightOperand instanceof JReferenceType)
