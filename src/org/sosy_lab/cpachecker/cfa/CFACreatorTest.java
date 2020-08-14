@@ -52,7 +52,7 @@ public class CFACreatorTest {
   @Before
   public void init() {
 
-    MockitoAnnotations.initMocks(this);
+    MockitoAnnotations.openMocks(this);
     JMethodDeclaration functionDefinition1 =
         createFunctionDefinition("pack5.CallTests_true_assert", "main", "String[]");
     when(N1.getFunctionDefinition()).thenReturn(functionDefinition1);
