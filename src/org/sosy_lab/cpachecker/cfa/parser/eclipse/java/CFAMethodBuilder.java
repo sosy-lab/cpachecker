@@ -1351,14 +1351,14 @@ private void handleTernaryExpression(ConditionalExpression condExp,
           prevNode.removeEnteringEdge(prevEdge);
           prevPrevNode.removeLeavingEdge(prevEdge);
 
-          BlankEdge blankEdge = new BlankEdge("", prevEdge.getFileLocation(),
-              prevPrevNode, nextNode, "");
+          BlankEdge blankEdge =
+              new BlankEdge("", prevEdge.getFileLocation(), prevPrevNode, nextNode, "");
           addToCFA(blankEdge);
         }
-
       }
-
-      if (prevNode.getNumEnteringEdges() > 0) {
+      boolean isPreviousNodePreCatchNode =
+          !tryStack.isEmpty() && prevNode == getPreCatchNode().get();
+      if (prevNode.getNumEnteringEdges() > 0 && !isPreviousNodePreCatchNode) {
         BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, prevNode, nextNode, "");
         addToCFA(blankEdge);
       }
