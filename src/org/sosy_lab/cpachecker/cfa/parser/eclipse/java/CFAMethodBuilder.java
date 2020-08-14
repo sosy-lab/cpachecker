@@ -83,7 +83,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JReferencedMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypePendingException;
+import org.sosy_lab.cpachecker.cfa.ast.java.PendingExceptionOfJRunTimeType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSuperConstructorInvocation;
@@ -1357,7 +1357,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
         }
       }
       boolean isPreviousNodePreCatchNode =
-          !tryStack.isEmpty() && prevNode == getPreCatchNode().get();
+          !tryStack.isEmpty() && prevNode == getPreCatchNode().orElseThrow();
       if (prevNode.getNumEnteringEdges() > 0 && !isPreviousNodePreCatchNode) {
         BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, prevNode, nextNode, "");
         addToCFA(blankEdge);
@@ -1829,7 +1829,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
     JDeclaration jDeclarationOfException = astCreator.convert(pCatchClauseNode.getException());
 
-    JExpression jRunTimeTypePendingException = new JRunTimeTypePendingException();
+    JExpression jRunTimeTypePendingException = new PendingExceptionOfJRunTimeType();
 
     final JExpression instanceOfExpression =
         astCreator.createInstanceOfExpression(

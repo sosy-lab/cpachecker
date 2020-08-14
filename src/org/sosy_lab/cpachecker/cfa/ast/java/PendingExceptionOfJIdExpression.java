@@ -12,16 +12,16 @@ import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 
-public class JIdExpressionOfPendingException extends JIdExpression {
+public class PendingExceptionOfJIdExpression extends JIdExpression {
 
   private static final long serialVersionUID = 7788790137238292607L;
 
-  public JIdExpressionOfPendingException(
+  public PendingExceptionOfJIdExpression(
       FileLocation pFileLocation, JType pType, String pName, JSimpleDeclaration pDeclaration) {
     super(pFileLocation, pType, pName, pDeclaration);
   }
 
-  public static JIdExpressionOfPendingException create() {
+  public static PendingExceptionOfJIdExpression create() {
     final JVariableDeclaration jVariableDeclaration =
         new JVariableDeclaration(
             FileLocation.DUMMY,
@@ -31,7 +31,7 @@ public class JIdExpressionOfPendingException extends JIdExpression {
             "pending_Exception",
             null,
             false);
-    return new JIdExpressionOfPendingException(
+    return new PendingExceptionOfJIdExpression(
         FileLocation.DUMMY,
         jVariableDeclaration.getType(),
         "pending exception",
