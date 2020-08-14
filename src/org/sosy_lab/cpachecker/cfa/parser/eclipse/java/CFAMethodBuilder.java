@@ -1920,6 +1920,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
   @Override
   public void endVisit(ThrowStatement pThrowStatement) {
+    handleElseCondition(pThrowStatement);
     JSimpleDeclaration thrown = scope.lookupVariable(pThrowStatement.getExpression().toString());
     final String thrownName;
     if (thrown != null) {
