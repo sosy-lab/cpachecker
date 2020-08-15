@@ -17,16 +17,16 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
-import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
+import org.sosy_lab.cpachecker.cfa.types.java.JBasicType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
 
 public class ASTConverterTest {
-  private static JClassOrInterfaceType jClassOrInterfaceType;
+  private static JClassType jClassType;
 
   @BeforeClass
   public static void init() {
-    jClassOrInterfaceType = createStringJClassOrInterfaceType("java.lang.String", "String");
+    jClassType = createStringJClassType("java.lang.String", "String");
   }
 
   @Test
@@ -52,21 +52,20 @@ public class ASTConverterTest {
   @Test
   public void testGetClassOfJTypeForNonPrimitiveType() {
     Optional<Class<?>> optionalOfStringClass =
-        ASTConverter.getClassOfJType(jClassOrInterfaceType, ImmutableSet.of());
+        ASTConverter.getClassOfJType(jClassType, ImmutableSet.of());
     assertThat(optionalOfStringClass.get()).isEqualTo(String.class);
   }
 
   @Test
   public void testGetArrayClass() {
-    JArrayType jArrayTypeOfString = new JArrayType(jClassOrInterfaceType, 3);
+    JArrayType jArrayTypeOfString = new JArrayType(jClassType, 3);
     Optional<Class<?>> optionalOfArrayClass =
         ASTConverter.getClassOfJType(jArrayTypeOfString, ImmutableSet.of());
     assertThat(optionalOfArrayClass.get().isArray()).isTrue();
     assertThat(optionalOfArrayClass.get().toGenericString()).isEqualTo("java.lang.String[][][]");
   }
 
-  private static JClassOrInterfaceType createStringJClassOrInterfaceType(
-      String pFullyQualifiedName, String pString) {
+  private static JClassType createStringJClassType(String pFullyQualifiedName, String pString) {
     return JClassType.valueOf(
         pFullyQualifiedName,
         pString,
@@ -76,5 +75,11 @@ public class ASTConverterTest {
         false,
         JClassType.getTypeOfObject(),
         ImmutableSet.of());
+  }
+
+  @Test
+  public void testUnboxing() {
+    JClassType jClassTypeOfInteger = createStringJClassType("java.lang.Integer", "Integer");
+    assertThat(ASTConverter.unboxJClassType(jClassTypeOfInteger).get()).isEqualTo(JBasicType.INT);
   }
 }

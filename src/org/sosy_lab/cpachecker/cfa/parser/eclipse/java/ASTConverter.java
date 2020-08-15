@@ -15,7 +15,9 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableBiMap.Builder;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.lang.reflect.Array;
@@ -163,6 +165,19 @@ class ASTConverter {
 
   // Temporary stores forLoopIterator
   private JIdExpression enhancedForLoopIterator;
+
+  /** Map for unboxing of JClassTypes */
+  private static final ImmutableMap<String, JBasicType> unboxingMap =
+      new Builder<String, JBasicType>()
+          .put("java.lang.Boolean", JBasicType.BOOLEAN)
+          .put("java.lang.Byte", JBasicType.BYTE)
+          .put("java.lang.Character", JBasicType.CHAR)
+          .put("java.lang.Float", JBasicType.FLOAT)
+          .put("java.lang.Integer", JBasicType.INT)
+          .put("java.lang.Long", JBasicType.LONG)
+          .put("java.lang.Short", JBasicType.SHORT)
+          .put("java.lang.Double", JBasicType.DOUBLE)
+          .build();
 
   /**
    * Create a new AST Converter, which can be used to convert
@@ -2544,6 +2559,19 @@ class ASTConverter {
       basicTypeOp2 = ((JSimpleType) pOp2Type).getType();
     }
 
+    JBasicType jBasicType;
+    if (pOp1Type instanceof JClassType && basicTypeOp2 != null) {
+      jBasicType = unboxJClassType((JClassType) pOp1Type).orNull();
+      if (jBasicType == basicTypeOp2) {
+        basicTypeOp1 = jBasicType;
+      }
+    } else if (pOp2Type instanceof JClassType && basicTypeOp1 != null) {
+      jBasicType = unboxJClassType((JClassType) pOp2Type).orNull();
+      if (jBasicType == basicTypeOp1) {
+        basicTypeOp2 = jBasicType;
+      }
+    }
+
     if (basicTypeOp1 == null || basicTypeOp2 == null) {
       if (op.equals(InfixExpression.Operator.EQUALS)) {
         return BinaryOperator.EQUALS;
@@ -2562,6 +2590,11 @@ class ASTConverter {
     } else {
       throw new CFAGenerationRuntimeException(invalidTypeMsg);
     }
+  }
+
+  @VisibleForTesting
+  public static Optional<JBasicType> unboxJClassType(JClassType pJClassType) {
+    return Optional.fromNullable(unboxingMap.getOrDefault(pJClassType.getName(), null));
   }
 
   private boolean isNumericCompatible(JBasicType pType) {
