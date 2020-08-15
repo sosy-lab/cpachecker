@@ -80,6 +80,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.FunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
@@ -1590,6 +1591,19 @@ public class ValueAnalysisTransferRelation
       Value value = handleMissingInformationRightJExpression(rttState);
 
       if (!value.isUnknown()) {
+        if (missingInformationLeftJVariable == null) {
+          CFAEdge previousEdge = edge.getPredecessor().getEnteringEdge(0);
+          if (previousEdge instanceof JDeclarationEdge) {
+            final String name =
+                rttState.getClassObjectScope()
+                    + "::"
+                    + ((JDeclarationEdge) previousEdge).getDeclaration().getQualifiedName();
+            if (newElement.getConstants().stream()
+                .anyMatch(v -> v.getKey().toString().equals(name))) {
+              missingInformationLeftJVariable = name;
+            }
+          }
+        }
         newElement.assignConstant(missingInformationLeftJVariable, value);
         missingInformationRightJExpression = null;
         missingInformationLeftJVariable = null;
