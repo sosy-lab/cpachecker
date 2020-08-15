@@ -1591,6 +1591,7 @@ public class ValueAnalysisTransferRelation
       Value value = handleMissingInformationRightJExpression(rttState);
 
       if (!value.isUnknown()) {
+        // TODO This is a workaround. Fix actual problem. View debug info in commit message
         if (missingInformationLeftJVariable == null) {
           CFAEdge previousEdge = edge.getPredecessor().getEnteringEdge(0);
           if (previousEdge instanceof JDeclarationEdge) {
