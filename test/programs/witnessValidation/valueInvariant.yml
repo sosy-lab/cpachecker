@@ -1,5 +1,3 @@
-#!/bin/sh
-
 # This file is part of CPAchecker,
 # a tool for configurable software verification:
 # https://cpachecker.sosy-lab.org
@@ -8,8 +6,10 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-gcc -std='c11' -shared -fpic -o 'libFloatingPoints.so' \
- 	-I"$JAVA_HOME/include/" \
-	-I"$JAVA_HOME/include/linux/" \
-	-I"$JAVA_HOME/include/darwin/" \
-	floatingPoints.c
+format_version: '1.0'
+
+input_files: 'valueInvariant.c'
+
+properties:
+  - property_file: ../../config/properties/unreach-call.prp
+    expected_verdict: true

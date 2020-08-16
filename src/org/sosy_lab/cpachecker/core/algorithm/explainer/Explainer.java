@@ -169,11 +169,11 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
     // TODO: Generate Path --> Don't need the safe paths
     // Find all ARGStates that are in the Path
     List<ARGPath> safePaths = new ArrayList<>();
-    /*for (ARGState safeLeaf : safeLeafNodes) {
+    for (ARGState safeLeaf : safeLeafNodes) {
       statesOnPathTo = ARGUtils.getAllStatesOnPathsTo(safeLeaf);
       // path reconstruction
       safePaths = createPath(statesOnPathTo, rootNode);
-    }*/
+    }
 
     // TODO: Turn back on later
     // Constructor for the first 2 Techniques
@@ -182,7 +182,7 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
     List<CFAEdge> closestSuccessfulExecution = null;
     // Compare all paths with the CE
     // Distance Metric No. 1
-    closestSuccessfulExecution = metric.startDistanceMetric(safePaths, targetPath);
+    //closestSuccessfulExecution = metric.startDistanceMetric(safePaths, targetPath);
 
     // Generate the closest path to the CE with respect to the distance metric
     // Distance Metric No. 2
@@ -190,7 +190,7 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
      //closestSuccessfulExecution = metric.generateClosestSuccessfulExecution(targetPath);
 
     // create a SOLVER for the 3rd Technique
-    /*try {
+    try {
       Solver solver = cpa.getSolver();
       BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
       // Create Distance Metric No. 3
@@ -199,14 +199,16 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
        closestSuccessfulExecution = metric2.startDistanceMetric(safePaths, targetPath);
     } catch (Exception pE) {
       throw new AssertionError(pE);
-    }*/
+    }
 
     if (closestSuccessfulExecution == null) {
       // EXECUTION COLLAPSED
       logger.log(Level.INFO, "NO SUCCESSFUL EXECUTION WAS FOUND");
       return status;
     }
-    ExplainTool.explainDeltas(targetPath.getFullPath(), closestSuccessfulExecution, logger);
+    ExplainTool tool = new ExplainTool();
+    tool.explainDeltas(targetPath.getFullPath(), closestSuccessfulExecution, logger, counterExamples.get(0));
+
     return status;
   }
 
