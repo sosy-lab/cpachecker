@@ -99,6 +99,7 @@ import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
+import org.sosy_lab.cpachecker.cpa.acsl.ACSLState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.TransitionCondition.Scope;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -1742,6 +1743,13 @@ class WitnessFactory implements EdgeAppender {
             .map(AbstractStates.toState(PredicateAbstractState.class))
             .filter(s -> s != null)
             .anyMatch(PredicateAbstractState::containsAbstractionState)) {
+      return true;
+    }
+    if (pFromState.isPresent()
+        && pFromState.orElseThrow().stream()
+        .map(AbstractStates.toState(ACSLState.class))
+        .filter(s -> s != null)
+        .anyMatch(ACSLState::hasAnnotations)) {
       return true;
     }
     if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {

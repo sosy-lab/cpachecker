@@ -14,6 +14,8 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
@@ -49,7 +51,8 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
     return AutomaticCPAFactory.forType(ACSLCPA.class);
   }
 
-  private ACSLCPA(CFA pCFA, LogManager pLogManager) {
+  private ACSLCPA(CFA pCFA, LogManager pLogManager, Configuration pConfig)
+      throws InvalidConfigurationException {
     super("sep", "sep", null);
     if (pCFA instanceof CFAWithACSLAnnotationLocations) {
       cfa = (CFAWithACSLAnnotationLocations) pCFA;
@@ -58,6 +61,7 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
       pLogManager.log(Level.WARNING, "No ACSL annotations in CFA, ACSLCPA is useless.");
     }
     visitor = new ACSLTermToCExpressionVisitor(cfa, pLogManager);
+    pConfig.inject(this);
   }
 
   @Override

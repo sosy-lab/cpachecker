@@ -49,6 +49,10 @@ public class ACSLState implements AbstractState, ExpressionTreeReportingState {
     return factory.and(representations);
   }
 
+  public boolean hasAnnotations() {
+    return !annotations.isEmpty();
+  }
+
   @Override
   public int hashCode() {
     return Objects.hash(annotations);

@@ -108,16 +108,16 @@ public class ACSLBinaryTerm implements ACSLTerm {
         op = BinaryOperator.EQ;
         break;
       case LEQ:
-        op = BinaryOperator.GEQ;
-        break;
-      case GEQ:
-        op = BinaryOperator.LEQ;
-        break;
-      case LT:
         op = BinaryOperator.GT;
         break;
-      case GT:
+      case GEQ:
         op = BinaryOperator.LT;
+        break;
+      case LT:
+        op = BinaryOperator.GEQ;
+        break;
+      case GT:
+        op = BinaryOperator.LEQ;
         break;
       default:
         throw new AssertionError("Unknown BinaryOperator: " + operator);
