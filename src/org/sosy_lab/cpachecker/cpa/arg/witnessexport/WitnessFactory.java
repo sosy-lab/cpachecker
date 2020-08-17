@@ -1427,6 +1427,9 @@ class WitnessFactory implements EdgeAppender {
    * therefore be shortcut.
    */
   private final boolean isEdgeIrrelevant(Edge pEdge) {
+    if (witnessOptions.keepAllEdges()) {
+      return false;
+    }
     final String source = pEdge.getSource();
     final String target = pEdge.getTarget();
     final TransitionCondition label = pEdge.getLabel();

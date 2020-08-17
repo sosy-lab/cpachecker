@@ -341,6 +341,10 @@ parser code {:
         }
         for (CFAEdge edge : result) {
           cfaWithLocs.getEdgesToAnnotations().put(edge, annotation);
+          if (prev.getSuccessor().getLeavingEdge(0).getSuccessor().equals(edge.getSuccessor())) {
+            // annotation is placed after if- or else-block
+            cfaWithLocs.getEdgesToAnnotations().put(prev.getSuccessor().getLeavingEdge(0), annotation);
+          }
         }
       } else {
         CFANode predecessor = next.getPredecessor();
