@@ -575,12 +575,7 @@ abstract class AbstractBMCAlgorithm
   protected boolean adjustConditions() {
     FluentIterable<AdjustableConditionCPA> conditionCPAs =
         CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class);
-    boolean adjusted = false;
-    for (AdjustableConditionCPA condCpa : conditionCPAs) {
-      if (condCpa.adjustPrecision()) {
-        adjusted = true;
-      }
-    }
+    boolean adjusted = conditionCPAs.anyMatch(AdjustableConditionCPA::adjustPrecision);
     if (!adjusted) {
       // these cpas said "do not continue"
       logger.log(
@@ -590,9 +585,8 @@ abstract class AbstractBMCAlgorithm
               .join(
                   conditionCPAs.transform(
                       conditionCpa -> conditionCpa.getClass().getSimpleName())));
-      return false;
     }
-    return !Iterables.isEmpty(conditionCPAs);
+    return adjusted;
   }
 
   protected boolean boundedModelCheck(
