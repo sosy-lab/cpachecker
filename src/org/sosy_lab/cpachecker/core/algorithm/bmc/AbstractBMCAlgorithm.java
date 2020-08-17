@@ -112,14 +112,14 @@ import org.sosy_lab.java_smt.api.SolverException;
 abstract class AbstractBMCAlgorithm
     implements StatisticsProvider, ConditionAdjustmentEventSubscriber {
 
-  private static final boolean isStopState(AbstractState state) {
+  protected static final boolean isStopState(AbstractState state) {
     AssumptionStorageState assumptionState =
         AbstractStates.extractStateByType(state, AssumptionStorageState.class);
     return assumptionState != null && assumptionState.isStop();
   }
 
   /** Filters out states that were detected as irrelevant for reachability */
-  private static final boolean isRelevantForReachability(AbstractState state) {
+  protected static final boolean isRelevantForReachability(AbstractState state) {
     return AbstractStates.extractStateByType(state, ReachabilityState.class)
         != ReachabilityState.IRRELEVANT_TO_TARGET;
   }
