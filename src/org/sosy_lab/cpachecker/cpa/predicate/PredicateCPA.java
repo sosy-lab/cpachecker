@@ -92,9 +92,11 @@ public class PredicateCPA
   @Option(
     secure = true,
     name = "stop",
-    values = {"SEP", "SEPPCC", "NEVERAA"},
+    values = {"SEP", "SEPPCC", "SEPNAA"},
     toUppercase = true,
-      description="which stop operator to use for predicate cpa (usually SEP should be used in analysis)")
+    description = "which stop operator to use for predicate cpa (usually SEP should be used in analysis). "
+        + "SEPNAA works the same as SEP, except that it Never stops At Abstract states. "
+        + "SEPNAA is used in bmc-IMC.properties for config bmc-incremental-ABEl to keep exploring covered states.")
   private String stopType = "SEP";
 
   @Option(secure=true, description="Direction of the analysis?")
@@ -266,7 +268,7 @@ public class PredicateCPA
         return new PredicateStopOperator(getAbstractDomain());
       case "SEPPCC":
         return new PredicatePCCStopOperator(pathFormulaManager, predicateManager);
-      case "NEVERAA":
+      case "SEPNAA":
         return new PredicateNeverAtAbstractionStopOperator(getAbstractDomain());
       default:
         throw new InternalError("Update list of allowed stop operators");

@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
@@ -157,9 +158,8 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       interpolation = false;
     }
     if (interpolation && cfa.getAllLoopHeads().orElseThrow().size() > 1) {
-      logger.log(Level.WARNING, "Interpolation is not supported for multi-loop programs yet");
       if (fallBack) {
-        fallBackToBMC();
+        fallBackToBMC("Interpolation is not supported for multi-loop programs yet");
       } else {
         throw new CPAException("Multi-loop programs are not supported yet");
       }
@@ -183,15 +183,15 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       // Check if interpolation or forward-condition check is applicable
       if (interpolation && !checkAndAdjustARG(pReachedSet)) {
         if (fallBack) {
-          fallBackToBMC();
+          fallBackToBMC("The check of ARG failed");
         } else {
           throw new CPAException("ARG does not meet the requirements");
         }
       }
       if (checkForwardConditions && hasCoveredStates(pReachedSet)) {
-        logger.log(Level.WARNING, "Covered states in ARG: forward-condition might be unsound!");
         if (fallBack) {
-          fallBackToBMCWithoutForwardCondition();
+          fallBackToBMCWithoutForwardCondition(
+              "Covered states in ARG: forward-condition might be unsound!");
         } else {
           throw new CPAException("ARG does not meet the requirements");
         }
@@ -226,12 +226,14 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
     return AlgorithmStatus.UNSOUND_AND_PRECISE;
   }
 
-  private void fallBackToBMC() {
+  private void fallBackToBMC(final String pReason) {
+    logger.log(Level.WARNING, pReason);
     logger.log(Level.WARNING, "Interpolation disabled: falling back to BMC");
     interpolation = false;
   }
 
-  private void fallBackToBMCWithoutForwardCondition() {
+  private void fallBackToBMCWithoutForwardCondition(final String pReason) {
+    logger.log(Level.WARNING, pReason);
     logger.log(Level.WARNING, "Forward-condition disabled: falling back to plain BMC");
     interpolation = false;
     checkForwardConditions = false;
@@ -273,9 +275,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       boolean hasMultiReachableStopStates = (stopStates.size() - unreachableStopStates.size() > 1);
       if (!unreachableStopStates.isEmpty()) {
         logger.log(Level.FINE, "Removing", unreachableStopStates.size(), "unreachable stop states");
-        pReachedSet.removeAll(unreachableStopStates);
+        ARGReachedSet reachedSetARG = new ARGReachedSet(pReachedSet, cpa);
         for (ARGState s : from(unreachableStopStates).filter(ARGState.class)) {
-          s.removeFromARG();
+          reachedSetARG.removeInfeasiblePartofARG(s);
         }
       }
       if (hasMultiReachableStopStates) {
