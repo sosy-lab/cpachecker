@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.loopbound.LoopBoundCPA;
@@ -274,9 +275,9 @@ public class IMCAlgorithm extends AbstractBMCAlgorithm implements Algorithm {
       boolean hasMultiReachableStopStates = (stopStates.size() - unreachableStopStates.size() > 1);
       if (!unreachableStopStates.isEmpty()) {
         logger.log(Level.FINE, "Removing", unreachableStopStates.size(), "unreachable stop states");
-        pReachedSet.removeAll(unreachableStopStates);
+        ARGReachedSet reachedSetARG = new ARGReachedSet(pReachedSet, cpa);
         for (ARGState s : from(unreachableStopStates).filter(ARGState.class)) {
-          s.removeFromARG();
+          reachedSetARG.removeInfeasiblePartofARG(s);
         }
       }
       if (hasMultiReachableStopStates) {
