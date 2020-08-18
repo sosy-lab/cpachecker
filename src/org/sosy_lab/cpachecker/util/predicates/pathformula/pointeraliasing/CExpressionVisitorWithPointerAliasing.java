@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -259,18 +244,19 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   }
 
   /**
-   * Should be used whenever a location corresponding to a pointer dereference is required.
-   * This function properly handles the ambiguity arising from arrays vs. pointers.
-   * Consider {@code int *pa, a[]; int **ppa = &pa; *pa = 5; *a = 5;}.
-   * Here {@code *pa} should be encoded as <i>int (int*(ADDRESS_OF_pa))</i>, but
-   * {@code *a} should be encoded as <i>int (ADDRESS_OF_a)</i> while both {@code pa} and {@code a}
-   * will result in AliasedLocation with <i>ADDRESS_OF_pa</i> and <i>ADDRESS_OF_a</i> respectively.
-   * So this function will add the additional dereference if necessary.
+   * Should be used whenever a location corresponding to a pointer dereference is required. This
+   * function properly handles the ambiguity arising from arrays vs. pointers. Consider {@code int
+   * *pa, a[]; int **ppa = & pa; *pa = 5; *a = 5;}. Here {@code *pa} should be encoded as <i>int
+   * (int*(ADDRESS_OF_pa))</i>, but {@code *a} should be encoded as <i>int (ADDRESS_OF_a)</i> while
+   * both {@code pa} and {@code a} will result in AliasedLocation with <i>ADDRESS_OF_pa</i> and
+   * <i>ADDRESS_OF_a</i> respectively. So this function will add the additional dereference if
+   * necessary.
+   *
    * @param pE the source C expression form which the resulting {@code Expression} was obtained
    * @param pResult the {@code Expression} resulting from visiting the C expression {@code pE},
-   *        should normally be a Location, but in case of a value the corresponding location is
-   *        returned nontheless (e.g. *((int *)0) -- explicit access violation, may be used for
-   *        debugging in some cases)
+   *     should normally be a Location, but in case of a value the corresponding location is
+   *     returned nontheless (e.g. *((int *)0) -- explicit access violation, may be used for
+   *     debugging in some cases)
    * @return the result AliasedLocation of the pointed value
    */
   private AliasedLocation dereference(final CExpression pE, final Expression pResult) {
@@ -548,9 +534,6 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
             ssa,
             constraints,
             null);
-        if (conv.hasIndex(base.getName(), base.getType(), ssa)) {
-          ssa.deleteVariable(base.getName());
-        }
         if (pts.isPreparedBase(base.getName())) {
           pts.shareBase(base.getName(), base.getType());
         } else {

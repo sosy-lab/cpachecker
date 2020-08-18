@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -209,7 +194,7 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   @Override
   public Set<Property> getViolatedProperties() throws IllegalStateException {
     checkState(isTarget());
-    return ImmutableSet.<Property>of(violatedPropertyDescription);
+    return ImmutableSet.of(violatedPropertyDescription);
   }
 
   Optional<AutomatonSafetyProperty> getOptionalViolatedPropertyDescription() {
@@ -217,6 +202,8 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   }
 
   @Override
+  // refactoring would be better, but currently safe for the existing set of subclasses
+  @SuppressWarnings("EqualsGetClass")
   public boolean equals(Object pObj) {
     if (this == pObj) {
       return true;
@@ -280,6 +267,9 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
                     .map(AExpression::toASTString)
                     .collect(Collectors.joining("; "));
       }
+      if (!vars.isEmpty()) {
+        prettyPrintAsmpts += "\n" + Joiner.on(' ').withKeyValueSeparator("=").join(vars);
+      }
       return (automaton != null ? automaton.getName() + ": " : "")
           + internalState.getName()
           + prettyPrintAsmpts;
@@ -293,12 +283,13 @@ public class AutomatonState implements AbstractQueryableState, Targetable, Seria
   }
 
   /**
-   * The UnknownState represents one of the States following a normal State of the Automaton.
-   * Which State is the correct following state could not be determined so far.
-   * This Class is used if during a "getAbstractSuccessor" call the abstract successor could not be determined.
-   * During the subsequent "strengthen" call enough information should be available to determine a normal AutomatonState as following State.
+   * The UnknownState represents one of the States following a normal State of the Automaton. Which
+   * State is the correct following state could not be determined so far. This Class is used if
+   * during a "getAbstractSuccessor" call the abstract successor could not be determined. During the
+   * subsequent "strengthen" call enough information should be available to determine a normal
+   * AutomatonState as following State.
    */
-  static class AutomatonUnknownState extends AutomatonState {
+  static final class AutomatonUnknownState extends AutomatonState {
     private static final long serialVersionUID = -2010032222354565037L;
     private final AutomatonState previousState;
 

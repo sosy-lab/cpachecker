@@ -1,35 +1,21 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 
-import com.google.common.collect.FluentIterable;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ForwardingTable;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 import java.io.IOException;
@@ -38,19 +24,18 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.Queue;
 import java.util.Set;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -62,14 +47,21 @@ import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
-import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -82,8 +74,8 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.dominator.DominatorState;
 import org.sosy_lab.cpachecker.cpa.flowdep.FlowDependenceState;
 import org.sosy_lab.cpachecker.cpa.flowdep.FlowDependenceState.FlowDependence;
 import org.sosy_lab.cpachecker.cpa.reachdef.ReachingDefState;
@@ -92,9 +84,13 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.dependencegraph.DGNode.EdgeNode;
 import org.sosy_lab.cpachecker.util.dependencegraph.DGNode.UnknownPointerNode;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.DependenceType;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.NodeMap;
+import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomFrontiers;
+import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
+import org.sosy_lab.cpachecker.util.dependencegraph.FlowDepAnalysis.DependenceConsumer;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -123,11 +119,10 @@ public class DependenceGraphBuilder implements StatisticsProvider {
   private final StatTimer controlDependenceTimer = new StatTimer("Time for control deps.");
 
   @Option(
-    secure = true,
-    description =
-        "File to export dependence graph to. If `null`, dependence"
-            + " graph will not be exported as dot."
-  )
+      secure = true,
+      description =
+          "File to export dependence graph to. If `null`, dependence"
+              + " graph will not be exported as dot.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path exportDot = Paths.get("DependenceGraph.dot");
 
@@ -142,17 +137,6 @@ public class DependenceGraphBuilder implements StatisticsProvider {
       name = "flowdeps.use",
       description = "Whether to consider (data-)flow dependencies.")
   private boolean considerFlowDeps = true;
-
-  @Option(
-      secure = true,
-      name = "controldeps.considerInverseAssumption",
-      description =
-          "Whether to take an assumption edge 'p' as control dependence if edge 'not p' "
-              + "is a control dependence. This creates a larger slice, but may reduce the size of the "
-              + "state space for deterministic programs. This behavior is also closer to the static "
-              + "program slicing based on control-flow graphs (CFGs), where branching is "
-              + "represented by a single assumption (with true- and false-edges)")
-  private boolean controlDepsTakeBothAssumptions = false;
 
   public DependenceGraphBuilder(
       final MutableCFA pCfa,
@@ -186,7 +170,8 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     if (considerFlowDeps) {
       flowDependenceTimer.start();
       try {
-        addFlowDependences();
+        // addFlowDependences();
+        addFlowDependencesNew();
       } finally {
         flowDependenceTimer.stop();
       }
@@ -222,118 +207,302 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
     for (CFAEdge e : allEdges) {
       if (!nodes.containsANodeForEdge(e)) {
-        nodes.getNodesForEdges().put(e, Optional.empty(), new DGNode(e));
+        nodes.getNodesForEdges().put(e, Optional.empty(), new EdgeNode(e));
         isolatedNodes.inc();
       }
     }
   }
 
-  /**
-   * Adds control dependencies to dependence graph.
-   */
-  private void addControlDependences()
-      throws InterruptedException, InvalidConfigurationException, CPAException {
-    PostDominators postDoms = PostDominators.create(cfa, logger, shutdownNotifier);
-    Set<CFANode> reachableNodes = postDoms.getNodes();
-    List<CFANode> branchingNodes =
-        reachableNodes
-            .stream()
-            .filter(n -> n.getNumLeavingEdges() > 1)
-            .filter(n -> n.getLeavingEdge(0) instanceof CAssumeEdge)
-            .collect(Collectors.toList());
+  private static Iterable<CFANode> createNodeIterable(
+      CFANode pNode, boolean pForward, Predicate<CFANode> pStop, Predicate<CFANode> pFilter) {
 
-    for (CFANode branch : branchingNodes) {
-      Set<CFANode> postDominatorsOfBranchingNode = postDoms.getPostDominators(branch);
-      FluentIterable<CFAEdge> assumeEdges = CFAUtils.leavingEdges(branch);
-      assert assumeEdges.size() == 2;
-      for (CFAEdge g : assumeEdges) {
-        int controlDepCount = 0;
-        List<CFANode> nodesOnPath = new ArrayList<>();
-        Queue<CFAEdge> waitlist = new ArrayDeque<>(8);
-        Set<CFAEdge> reached = new HashSet<>();
-        waitlist.offer(g);
-        while (!waitlist.isEmpty()) {
-          CFAEdge current = waitlist.poll();
-          CFANode succ = current.getSuccessor();
-          if (!reachableNodes.contains(succ)) {
-            continue;
+    if (pStop.test(pNode)) {
+      return Collections::emptyIterator;
+    }
+
+    Iterator<CFANode> iterator =
+        (pForward ? CFAUtils.allSuccessorsOf(pNode) : CFAUtils.allPredecessorsOf(pNode)).iterator();
+
+    return () -> Iterators.filter(iterator, pFilter);
+  }
+
+  private static Iterable<CFANode> iteratePredecessors(CFANode pNode) {
+
+    return createNodeIterable(
+        pNode,
+        false,
+        node -> node instanceof FunctionEntryNode,
+        node -> !(node instanceof FunctionExitNode));
+  }
+
+  private static Iterable<CFANode> iterateSuccessors(CFANode pNode) {
+
+    return createNodeIterable(
+        pNode,
+        true,
+        node -> node instanceof FunctionExitNode,
+        node -> !(node instanceof FunctionEntryNode));
+  }
+
+  private static boolean dominates(
+      DomTree<CFANode> pDomTree, int pDominatingNodeId, int pDominatedNodeId) {
+
+    if (pDominatingNodeId == pDominatedNodeId) {
+      return true;
+    }
+
+    int node = pDominatedNodeId;
+    while (pDomTree.hasParent(node)) {
+
+      node = pDomTree.getParent(node);
+
+      if (node == pDominatingNodeId) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private boolean ignoreFunctionEdge(CFAEdge pEdge) {
+    return pEdge instanceof CFunctionCallEdge || pEdge instanceof CFunctionReturnEdge;
+  }
+
+  private static List<CFAEdge> getGlobalDeclarationEdges(CFA pCfa) {
+
+    CFANode node = pCfa.getMainFunction();
+    List<CFAEdge> declEdges = new ArrayList<>();
+    Set<CFANode> visited = new HashSet<>();
+
+    while (node.getNumLeavingEdges() == 1 && !visited.contains(node)) {
+
+      visited.add(node);
+
+      CFAEdge edge = node.getLeavingEdge(0);
+
+      if (edge instanceof CDeclarationEdge) {
+        CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
+        if (declaration.isGlobal()) {
+          declEdges.add(edge);
+        }
+      }
+
+      node = edge.getSuccessor();
+    }
+
+    return ImmutableList.copyOf(declEdges);
+  }
+
+  private void addFlowDependencesNew() throws InterruptedException, CPAException {
+
+    GlobalPointerState pointerState =
+        GlobalPointerState.createFlowSensitive(cfa, logger, shutdownNotifier);
+
+    boolean unknownPointer = false;
+    for (CFANode node : cfa.getAllNodes()) {
+      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
+
+        EdgeDefUseData edgeDefUseData = EdgeDefUseData.extract(edge);
+
+        for (CExpression expression :
+            Iterables.concat(edgeDefUseData.getPointeeDefs(), edgeDefUseData.getPointeeUses())) {
+          if (pointerState.getPossiblePointees(edge, expression).isEmpty()) {
+            unknownPointer = true;
+            break;
           }
-          if (!reached.contains(current)) {
-            reached.add(current);
-            CFANode precessorNode = current.getPredecessor();
-            if (precessorNode.equals(branch)) {
-              CFAUtils.leavingEdges(succ).forEach(waitlist::offer);
+        }
+      }
+    }
 
-            } else
-            // branch node is not post-dominated by current node (condition 2 of control dependence)
-            if (!postDominatorsOfBranchingNode.contains(precessorNode)) {
-              // all nodes on path from branch to current are post-dominated by current
-              // (condition 1 of control dependence)
-              if (isPostDomOfAll(precessorNode, nodesOnPath, postDoms)) {
-                Collection<DGNode> nodesDepending = getDGNodes(current);
-                for (DGNode nodeDepending : nodesDepending) {
-                  Iterable<CFAEdge> edgesDependingOn;
-                  if (controlDepsTakeBothAssumptions) {
-                    edgesDependingOn = assumeEdges;
-                  } else {
-                    edgesDependingOn = ImmutableList.of(g);
-                  }
-                  for (CFAEdge assumes : edgesDependingOn) {
-                    DGNode nodeDependentOn = getDGNode(assumes, Optional.empty());
-                    assert getDGNodes(assumes).size() == 1
-                        : "Only using one DG node, but multiple would exist: " + nodeDependentOn;
-                    addDependence(nodeDependentOn, nodeDepending, DependenceType.CONTROL);
-                  }
+    if (unknownPointer) {
+
+      for (CFANode node : cfa.getAllNodes()) {
+        for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
+          addDependence(
+              getDGNodeForUnknownPointer(), getDGNode(edge, Optional.empty()), DependenceType.FLOW);
+        }
+      }
+
+      return;
+    }
+
+    ForeignDefUseData foreignDefUseData = ForeignDefUseData.extract(cfa, pointerState);
+
+    List<CFAEdge> globalEdges = getGlobalDeclarationEdges(cfa);
+    Map<String, CFAEdge> declarationEdges = new HashMap<>();
+
+    for (CFAEdge edge : globalEdges) {
+      if (edge instanceof CDeclarationEdge) {
+        CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
+        if (declaration instanceof CFunctionDeclaration) {
+          String name = ((CFunctionDeclaration) declaration).getQualifiedName();
+          declarationEdges.put(name, edge);
+        } else if (declaration instanceof CComplexTypeDeclaration) {
+          CComplexType globalType = ((CComplexTypeDeclaration) declaration).getType();
+          String name = globalType.getQualifiedName();
+          declarationEdges.put(name, edge);
+        }
+      }
+    }
+
+    for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
+
+      // TODO: use more reasonable counter
+      var flowDepCount =
+          new Object() {
+            int value = 0;
+          };
+
+      CFAEdge funcDeclEdge = declarationEdges.get(entryNode.getFunctionName());
+      for (CFAEdge callEdge : CFAUtils.enteringEdges(entryNode)) {
+        addDependence(
+            getDGNode(funcDeclEdge, Optional.empty()),
+            getDGNode(callEdge, Optional.empty()),
+            DependenceType.FLOW);
+        flowDepCount.value++;
+      }
+
+      DomTree<CFANode> domTree =
+          Dominance.createDomTree(
+              entryNode,
+              DependenceGraphBuilder::iterateSuccessors,
+              DependenceGraphBuilder::iteratePredecessors);
+
+      DependenceConsumer dependenceConsumer =
+          (defEdge, useEdge, cause) -> {
+            Optional<MemoryLocation> defEdgeCause = Optional.empty();
+            Optional<MemoryLocation> useEdgeCause = Optional.empty();
+
+            if (defEdge instanceof CFunctionCallEdge || defEdge instanceof CFunctionReturnEdge) {
+              defEdgeCause = Optional.of(cause);
+            }
+
+            if (useEdge instanceof CFunctionCallEdge || useEdge instanceof CFunctionReturnEdge) {
+              useEdgeCause = Optional.of(cause);
+            }
+
+            addDependence(
+                getDGNode(defEdge, defEdgeCause),
+                getDGNode(useEdge, useEdgeCause),
+                DependenceType.FLOW);
+            flowDepCount.value++;
+          };
+
+      boolean isMain = entryNode.equals(cfa.getMainFunction());
+
+      new FlowDepAnalysis(
+              domTree,
+              Dominance.createDomFrontiers(domTree),
+              entryNode,
+              isMain ? ImmutableList.of() : globalEdges,
+              pointerState,
+              foreignDefUseData,
+              declarationEdges,
+              dependenceConsumer)
+          .run();
+
+      flowDependenceNumber.setNextValue(flowDepCount.value);
+    }
+  }
+
+  private void addControlDependences() {
+
+    int controlDepCount = 0;
+    for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
+
+      DomTree<CFANode> domTree =
+          Dominance.createDomTree(
+              entryNode.getExitNode(),
+              DependenceGraphBuilder::iteratePredecessors,
+              DependenceGraphBuilder::iterateSuccessors);
+
+      DomFrontiers<CFANode> frontiers = Dominance.createDomFrontiers(domTree);
+      Set<CFAEdge> dependentEdges = new HashSet<>();
+
+      for (CFANode dependentNode : domTree) {
+        int nodeId = domTree.getId(dependentNode);
+        for (CFANode branchNode : frontiers.getFrontier(dependentNode)) {
+          for (CFAEdge assumeEdge : CFAUtils.leavingEdges(branchNode)) {
+            int assumeNodeId = domTree.getId(assumeEdge.getSuccessor());
+            if (dominates(domTree, nodeId, assumeNodeId)) {
+              for (CFAEdge dependentEdge : CFAUtils.allLeavingEdges(dependentNode)) {
+                if (!ignoreFunctionEdge(dependentEdge) && !assumeEdge.equals(dependentEdge)) {
+                  addDependence(
+                      getDGNode(assumeEdge, Optional.empty()),
+                      getDGNode(dependentEdge, Optional.empty()),
+                      DependenceType.CONTROL);
                   controlDepCount++;
+                  dependentEdges.add(dependentEdge);
                 }
-                nodesOnPath.add(precessorNode);
-              }
-              CFAUtils.leavingEdges(current.getSuccessor()).forEach(waitlist::offer);
-            }
-          }
-        }
-        controlDependenceNumber.setNextValue(controlDepCount);
-      }
-    }
-
-    Collection<FunctionEntryNode> functionEntries = cfa.getAllFunctionHeads();
-    CFATraversal traversalInsideFunction = CFATraversal.dfs().ignoreFunctionCalls();
-    for (FunctionEntryNode fctEntry : functionEntries) {
-      Collection<DGNode> functionCalls =
-          CFAUtils.enteringEdges(fctEntry).transform(x -> getDGNode(x, Optional.empty())).toList();
-      assert CFAUtils.enteringEdges(fctEntry).allMatch(x -> x instanceof CFunctionCallEdge);
-      int depCount = 0;
-      Set<CFANode> functionNodes = traversalInsideFunction.collectNodesReachableFrom(fctEntry);
-      for (CFANode n : functionNodes) {
-        for (CFAEdge e : CFAUtils.leavingEdges(n)) {
-          Collection<DGNode> candidates = getDGNodes(e);
-          for (DGNode dgN : candidates) {
-            if (!adjacencyMatrix.column(dgN).values().contains(DependenceType.CONTROL)) {
-              for (DGNode nodeDependentOn : functionCalls) {
-                addDependence(nodeDependentOn, dgN, DependenceType.CONTROL);
-                depCount++;
               }
             }
           }
         }
       }
-      controlDependenceNumber.setNextValue(depCount);
-    }
-  }
 
-  private boolean isPostDomOfAll(
-      final CFANode pNode,
-      final Collection<CFANode> pNodeSet,
-      final PostDominators pPostDominators) {
-
-    for (CFANode n : pNodeSet) {
-      if (!pPostDominators.getPostDominators(n).contains(pNode)) {
-        return false;
+      Set<CFAEdge> noDomEdges = new HashSet<>();
+      for (CFANode node : cfa.getFunctionNodes(entryNode.getFunction().getQualifiedName())) {
+        int nodeId = domTree.getId(node);
+        if (nodeId == Dominance.UNDEFINED || !domTree.hasParent(nodeId)) {
+          Iterables.addAll(noDomEdges, CFAUtils.allEnteringEdges(node));
+          Iterables.addAll(noDomEdges, CFAUtils.allLeavingEdges(node));
+        }
       }
+
+      Set<CFAEdge> noDomAssumes = new HashSet<>();
+      for (CFAEdge edge : noDomEdges) {
+        if (edge.getEdgeType() == CFAEdgeType.AssumeEdge) {
+          noDomAssumes.add(edge);
+        }
+      }
+
+      for (CFAEdge dependentEdge : noDomEdges) {
+        if (!ignoreFunctionEdge(dependentEdge)) {
+          for (CFAEdge assumeEdge : noDomAssumes) {
+            if (!assumeEdge.equals(dependentEdge)) {
+              addDependence(
+                  getDGNode(assumeEdge, Optional.empty()),
+                  getDGNode(dependentEdge, Optional.empty()),
+                  DependenceType.CONTROL);
+              controlDepCount++;
+              dependentEdges.add(dependentEdge);
+            }
+          }
+        }
+      }
+
+      Set<CFAEdge> callEdges = new HashSet<>();
+      for (CFAEdge callEdge : CFAUtils.enteringEdges(entryNode)) {
+        if (callEdge instanceof CFunctionCallEdge) {
+          CFAEdge summaryEdge = ((CFunctionCallEdge) callEdge).getSummaryEdge();
+          callEdges.add(callEdge);
+          addDependence(
+              getDGNode(summaryEdge, Optional.empty()),
+              getDGNode(callEdge, Optional.empty()),
+              DependenceType.CONTROL);
+          controlDepCount++;
+        }
+      }
+
+      for (CFANode node : cfa.getFunctionNodes(entryNode.getFunction().getQualifiedName())) {
+        for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
+          if (!dependentEdges.contains(edge) && !ignoreFunctionEdge(edge)) {
+            for (CFAEdge callEdge : callEdges) {
+              addDependence(
+                  getDGNode(callEdge, Optional.empty()),
+                  getDGNode(edge, Optional.empty()),
+                  DependenceType.CONTROL);
+              controlDepCount++;
+            }
+          }
+        }
+      }
+
+      controlDependenceNumber.setNextValue(controlDepCount);
     }
-    return true;
   }
 
+  @SuppressWarnings("unused") // old method for computing flow dependences
   private void addFlowDependences()
       throws InvalidConfigurationException, InterruptedException, CPAException {
     FlowDependences flowDependences =
@@ -383,15 +552,6 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     return unk;
   }
 
-  private Collection<DGNode> getDGNodes(final CFAEdge pCfaEdge) {
-    if (!nodes.containsANodeForEdge(pCfaEdge)) {
-      nodes
-          .getNodesForEdges()
-          .put(pCfaEdge, Optional.empty(), createNode(pCfaEdge, Optional.empty()));
-    }
-    return nodes.getNodesForEdges().row(pCfaEdge).values();
-  }
-
   /**
    * Adds the given dependence edge to the set of dependence edges and tells the nodes of the edge
    * about the new edge.
@@ -406,9 +566,9 @@ public class DependenceGraphBuilder implements StatisticsProvider {
    */
   private DGNode createNode(final CFAEdge pCfaEdge, final Optional<MemoryLocation> pCause) {
     if (pCause.isPresent()) {
-      return new DGNode(pCfaEdge, pCause.orElseThrow());
+      return new EdgeNode(pCfaEdge, pCause.orElseThrow());
     } else {
-      return new DGNode(pCfaEdge);
+      return new EdgeNode(pCfaEdge);
     }
   }
 
@@ -586,90 +746,6 @@ public class DependenceGraphBuilder implements StatisticsProvider {
               + pState.toString();
 
       return s;
-    }
-  }
-
-  /**
-   * Map of {@link CFANode CFANodes} to their post-dominators.
-   *
-   * <p>Node <code>I</code> is post-dominated by node <code>J</code> if every path from <code>I
-   * </code> to the program exit goes through <code>J</code>.
-   */
-  private static class PostDominators {
-
-    private Map<CFANode, Set<CFANode>> postDominatorMap;
-
-    private PostDominators(final Map<CFANode, Set<CFANode>> pPostDominatorMap) {
-      postDominatorMap = pPostDominatorMap;
-    }
-
-    /**
-     * Get all post-dominators of the given node.
-     *
-     * <p>Node <code>I</code> is post-dominated by node <code>J</code> if every path from <code>I
-     * </code> to the program exit goes through <code>J</code>.
-     *
-     * <p>That means that every program path from the given node to the program exit has to go
-     * through each node that is in the returned collection
-     */
-    private Set<CFANode> getPostDominators(final CFANode pNode) {
-      checkState(
-          postDominatorMap.containsKey(pNode), "Node " + pNode + " not in post-dominator map");
-      return postDominatorMap.get(pNode);
-    }
-
-    public static PostDominators create(
-        final CFA pCfa, final LogManager pLogger, final ShutdownNotifier pShutdownNotifier)
-        throws InvalidConfigurationException, CPAException, InterruptedException {
-      String configFile = "postDominators.properties";
-
-      Configuration config =
-          Configuration.builder().loadFromResource(PostDominators.class, configFile).build();
-      ReachedSetFactory reachedFactory = new ReachedSetFactory(config, pLogger);
-      ConfigurableProgramAnalysis cpa =
-          new CPABuilder(config, pLogger, pShutdownNotifier, reachedFactory)
-              .buildCPAs(pCfa, Specification.alwaysSatisfied(), new AggregatedReachedSets());
-      Algorithm algorithm = CPAAlgorithm.create(cpa, pLogger, config, pShutdownNotifier);
-      ReachedSet reached = reachedFactory.create();
-
-      FunctionEntryNode mainFunction = pCfa.getMainFunction();
-      Collection<CFANode> startNodes =
-          CFAUtils.getProgramSinks(pCfa, pCfa.getLoopStructure().orElseThrow(), mainFunction);
-
-      for (CFANode n : startNodes) {
-        StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
-        AbstractState initialState = cpa.getInitialState(n, partition);
-        Precision initialPrecision = cpa.getInitialPrecision(n, partition);
-        reached.add(initialState, initialPrecision);
-      }
-
-      // populate reached set
-      algorithm.run(reached);
-      assert !reached.hasWaitingState()
-          : "CPA algorithm finished, but waitlist not empty: " + reached.getWaitlist();
-
-      Map<CFANode, Set<CFANode>> dependencyMap = new HashMap<>();
-      for (AbstractState s : reached) {
-        assert s instanceof ARGState : "AbstractState of reached set not a composite state: " + s;
-        DominatorState postDomState = AbstractStates.extractStateByType(s, DominatorState.class);
-        if (postDomState == null) {
-          throw new InvalidConfigurationException("No dominator state in computed composite "
-              + "states");
-        }
-        CFANode currNode = AbstractStates.extractLocation(s);
-
-        if (dependencyMap.containsKey(currNode)) {
-          dependencyMap.get(currNode).addAll(postDomState);
-        } else {
-          dependencyMap.put(currNode, postDomState);
-        }
-      }
-
-      return new PostDominators(dependencyMap);
-    }
-
-    public Set<CFANode> getNodes() {
-      return postDominatorMap.keySet();
     }
   }
 }

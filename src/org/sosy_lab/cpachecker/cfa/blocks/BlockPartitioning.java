@@ -1,31 +1,16 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa.blocks;
 
-import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Set;
@@ -37,13 +22,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 public class BlockPartitioning {
   private final Block mainBlock;
   private final ImmutableMap<CFANode, Block> callNodeToBlock;
-  private final ImmutableMultimap<CFANode, Block> returnNodeToBlock;
+  private final ImmutableListMultimap<CFANode, Block> returnNodeToBlock;
   private final ImmutableSet<Block> blocks;
 
   public BlockPartitioning(Collection<Block> subtrees, CFANode mainFunction) {
     final ImmutableMap.Builder<CFANode, Block> callNodeToSubtree = ImmutableMap.builder();
-    final ImmutableMultimap.Builder<CFANode, Block> returnNodeToSubtree =
-        ImmutableMultimap.builder();
+    final ImmutableListMultimap.Builder<CFANode, Block> returnNodeToSubtree =
+        ImmutableListMultimap.builder();
 
     for (Block subtree : subtrees) {
       for (CFANode callNode : subtree.getCallNodes()) {
@@ -62,8 +47,10 @@ public class BlockPartitioning {
   }
 
   /**
+   * Returns true, if there is a <code>Block</code> such that <code>node</code> is a callnode of the
+   * subtree.
+   *
    * @param node the node to be checked
-   * @return true, if there is a <code>Block</code> such that <code>node</code> is a callnode of the subtree.
    */
   public boolean isCallNode(CFANode node) {
     return callNodeToBlock.containsKey(node);
@@ -86,7 +73,7 @@ public class BlockPartitioning {
     return returnNodeToBlock.containsKey(node);
   }
 
-  public ImmutableCollection<Block> getBlocksForReturnNode(CFANode pCurrentNode) {
+  public ImmutableList<Block> getBlocksForReturnNode(CFANode pCurrentNode) {
     return returnNodeToBlock.get(pCurrentNode);
   }
 

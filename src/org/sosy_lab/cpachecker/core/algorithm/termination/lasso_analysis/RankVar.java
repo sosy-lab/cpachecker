@@ -1,66 +1,44 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2016  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-import javax.annotation.concurrent.Immutable;
-
+import de.uni_freiburg.informatik.ultimate.lib.modelcheckerutils.cfg.variables.IProgramVar;
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Logics;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
 import de.uni_freiburg.informatik.ultimate.logic.Theory;
-import de.uni_freiburg.informatik.ultimate.modelcheckerutils.cfg.variables.IProgramVar;
 
-@Immutable
+@SuppressWarnings("serial")
+@javax.annotation.concurrent.Immutable // cannot prove deep immutability
 public class RankVar implements IProgramVar {
 
-  private final Theory THEROY = new Theory(Logics.ALL);
+  private static final Theory THEORY = new Theory(Logics.ALL);
 
-  private final String idenifier;
+  private final String identifier;
   private final boolean isGlobal;
   private final Term term;
 
   public RankVar(String pIdenifier, boolean pIsGlobal, Term pTerm) {
-    idenifier = checkNotNull(pIdenifier);
+    identifier = checkNotNull(pIdenifier);
     isGlobal = pIsGlobal;
     term = checkNotNull(pTerm);
   }
 
-  public Term getDefinition() {
+  @Override
+  public Term getTerm() {
     return term;
   }
 
   @Override
-  public String getIdentifier() {
-    return getGloballyUniqueId();
-  }
-
-  @Override
-  @Nullable
   public String getProcedure() {
     throw new UnsupportedOperationException();
   }
@@ -77,7 +55,7 @@ public class RankVar implements IProgramVar {
 
   @Override
   public TermVariable getTermVariable() {
-    return THEROY.createTermVariable(idenifier, term.getSort());
+    return THEORY.createTermVariable(identifier, term.getSort());
   }
 
   @Override
@@ -92,7 +70,7 @@ public class RankVar implements IProgramVar {
 
   @Override
   public String getGloballyUniqueId() {
-    return idenifier;
+    return identifier;
   }
 
   @Override

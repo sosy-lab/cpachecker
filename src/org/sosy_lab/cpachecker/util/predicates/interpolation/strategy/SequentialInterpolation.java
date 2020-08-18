@@ -1,40 +1,28 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
 import com.google.common.base.Preconditions;
-import java.util.ArrayList;
+import com.google.common.collect.ImmutableList;
 import java.util.List;
-import java.util.logging.Level;
+import java.util.Random;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
@@ -42,7 +30,8 @@ import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.visitors.DefaultFormulaVisitor;
 import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 
-public class SequentialInterpolation<T> extends ITPStrategy<T> {
+@Options(prefix = "cpa.predicate.refinement")
+public class SequentialInterpolation extends ITPStrategy {
 
   private static final String FALLBACK_BWD_MSG =
       "Falling back to backward interpolant, because forward interpolant caused exception:";
@@ -61,21 +50,33 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
     RANDOM
   }
 
-  private final SeqInterpolationStrategy sequentialStrategy;
+  @Option(
+      secure = true,
+      description =
+          "In case we apply sequential interpolation, "
+              + "forward and backward directions return valid interpolants. "
+              + "We can either choose one of the directions, fallback to the other "
+              + "if one does not succeed, or even combine the interpolants.")
+  private SeqInterpolationStrategy sequentialStrategy = SeqInterpolationStrategy.FWD;
+
+  private final Random rnd = new Random(0);
 
   /**
-   * This strategy returns a sequence of interpolants by computing
-   * each interpolant for i={0..n-1} for the partitions A=[0 .. i] and B=[i+1 .. n] .
+   * This strategy returns a sequence of interpolants by computing each interpolant for i={0..n-1}
+   * for the partitions A=[0 .. i] and B=[i+1 .. n] .
    */
-  public SequentialInterpolation(LogManager pLogger, ShutdownNotifier pShutdownNotifier,
-      FormulaManagerView pFmgr, BooleanFormulaManager pBfmgr,
-      SeqInterpolationStrategy pSequentialStrategy) {
-    super(pLogger, pShutdownNotifier, pFmgr, pBfmgr);
-    sequentialStrategy = pSequentialStrategy;
+  public SequentialInterpolation(
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      FormulaManagerView pFmgr,
+      Configuration pConfig)
+      throws InvalidConfigurationException {
+    super(pLogger, pShutdownNotifier, pFmgr);
+    pConfig.inject(this);
   }
 
   @Override
-  public List<BooleanFormula> getInterpolants(
+  public <T> List<BooleanFormula> getInterpolants(
       final InterpolationManager.Interpolator<T> interpolator,
       final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStateAndGroupId)
       throws InterruptedException, SolverException {
@@ -86,7 +87,7 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
         try {
           return getFwdInterpolants(interpolator, formulas);
         } catch (SolverException e) {
-          logger.log(Level.ALL, FALLBACK_BWD_MSG, e);
+          logger.logDebugException(e, FALLBACK_BWD_MSG);
         }
         // $FALL-THROUGH$
       case BWD:
@@ -96,7 +97,7 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
         try {
           return getBwdInterpolants(interpolator, formulas);
         } catch (SolverException e) {
-          logger.log(Level.ALL, FALLBACK_FWD_MSG, e);
+          logger.logDebugException(e, FALLBACK_FWD_MSG);
         }
         // $FALL-THROUGH$
       case FWD:
@@ -109,7 +110,7 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
         try {
           forward = getFwdInterpolants(interpolator, formulas);
         } catch (SolverException e) {
-          logger.log(Level.ALL, FALLBACK_BWD_MSG, e);
+          logger.logDebugException(e, FALLBACK_BWD_MSG);
           return getBwdInterpolants(interpolator, formulas);
         }
 
@@ -120,7 +121,7 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
           if (forward == null) {
             throw e;
           } else {
-            logger.log(Level.ALL, FALLBACK_FWD_MSG, e);
+            logger.logDebugException(e, FALLBACK_FWD_MSG);
             return forward;
           }
         }
@@ -130,26 +131,32 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
     }
   }
 
-  /** Compute interpolants ITP(A,B) for i={0..n-1} for the partitions A=[0 .. i] and B=[i+1 .. n] . */
-  private List<BooleanFormula> getFwdInterpolants(
+  /**
+   * Compute interpolants ITP(A,B) for i={0..n-1} for the partitions A=[0 .. i] and B=[i+1 .. n] .
+   */
+  private <T> List<BooleanFormula> getFwdInterpolants(
       final InterpolationManager.Interpolator<T> interpolator, final List<T> formulas)
       throws InterruptedException, SolverException {
-    final List<BooleanFormula> interpolants = new ArrayList<>(formulas.size() - 1);
+    final ImmutableList.Builder<BooleanFormula> interpolants =
+        ImmutableList.builderWithExpectedSize(formulas.size() - 1);
     for (int end_of_A = 0; end_of_A < formulas.size() - 1; end_of_A++) {
       // last iteration is left out because B would be empty
       final int start_of_A = 0;
       interpolants.add(
           getInterpolantFromSublist(interpolator.itpProver, formulas, start_of_A, end_of_A));
     }
-    return interpolants;
+    return interpolants.build();
   }
 
-  /** Compute interpolants ITP(B,A) for i={0..n-1} for the partitions B=[0 .. i] and A=[i+1 .. n] ,
-   * then negate each interpolant. */
-  private List<BooleanFormula> getBwdInterpolants(
+  /**
+   * Compute interpolants ITP(B,A) for i={0..n-1} for the partitions B=[0 .. i] and A=[i+1 .. n] ,
+   * then negate each interpolant.
+   */
+  private <T> List<BooleanFormula> getBwdInterpolants(
       final InterpolationManager.Interpolator<T> interpolator, final List<T> formulas)
       throws InterruptedException, SolverException {
-    final List<BooleanFormula> interpolants = new ArrayList<>(formulas.size() - 1);
+    final ImmutableList.Builder<BooleanFormula> interpolants =
+        ImmutableList.builderWithExpectedSize(formulas.size() - 1);
     for (int start_of_A = 1; start_of_A < formulas.size(); start_of_A++) {
       // first iteration is left out because B would be empty
       final int end_of_A = formulas.size() - 1;
@@ -157,7 +164,7 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
           bfmgr.not(
               getInterpolantFromSublist(interpolator.itpProver, formulas, start_of_A, end_of_A)));
     }
-    return interpolants;
+    return interpolants.build();
   }
 
   /**
@@ -177,11 +184,12 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
 
     switch (sequentialStrategy) {
       case CONJUNCTION:
-        final List<BooleanFormula> interpolants = new ArrayList<>(forward.size());
+        final ImmutableList.Builder<BooleanFormula> interpolants =
+            ImmutableList.builderWithExpectedSize(forward.size());
         for (int i = 0; i < forward.size(); i++) {
           interpolants.add(bfmgr.and(forward.get(i), backward.get(i)));
         }
-        return interpolants;
+        return interpolants.build();
 
       case WEIGHTED:
         long weightFwd = getWeight(forward);
@@ -189,7 +197,7 @@ public class SequentialInterpolation<T> extends ITPStrategy<T> {
         return weightFwd <= weightBwd ? forward : backward;
 
       case RANDOM:
-        return Math.random() <= 0.5 ? forward : backward;
+        return rnd.nextBoolean() ? forward : backward;
 
       default:
         throw new AssertionError(UNEXPECTED_DIRECTION_MSG);

@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import com.google.common.collect.ImmutableSet;
@@ -37,14 +22,16 @@ public class SMGOptions {
 
   @Option(
       secure = true,
-      description = "with this option enabled, a check for unreachable memory occurs whenever a function returns, and not only at the end of the main function")
+      description =
+          "with this option enabled, a check for unreachable memory occurs whenever a function"
+              + " returns, and not only at the end of the main function")
   private boolean checkForMemLeaksAtEveryFrameDrop = true;
 
   @Option(
-    secure = true,
-    description =
-        "with this option enabled, memory that is not freed before the end of main is reported as memleak even if it is reachable from local variables in main"
-  )
+      secure = true,
+      description =
+          "with this option enabled, memory that is not freed before the end of main is reported"
+              + " as memleak even if it is reachable from local variables in main")
   private boolean handleNonFreedMemoryInMainAsMemLeak = true;
 
   @Option(
@@ -59,6 +46,13 @@ public class SMGOptions {
       name = "handleUnknownFunctions",
       description = "Sets how unknown functions are handled.")
   private UnknownFunctionHandling handleUnknownFunctions = UnknownFunctionHandling.STRICT;
+
+  @Option(
+      secure = true,
+      description =
+          "Which unknown function are always considered as safe functions, "
+              + "i.e., free of memory-related side-effects?")
+  private ImmutableSet<String> safeUnknownFunctions = ImmutableSet.of("abort");
 
   public enum UnknownFunctionHandling {
     STRICT,
@@ -201,8 +195,16 @@ public class SMGOptions {
       secure = true,
       name = "handleIncompleteExternalVariableAsExternalAllocation",
       description =
-          "Handle external variables with incomplete type (extern int array[]) as external allocation")
+          "Handle external variables with incomplete type (extern int array[]) as external"
+              + " allocation")
   private boolean handleIncompleteExternalVariableAsExternalAllocation = false;
+
+  @Option(
+      secure = true,
+      name = "joinOnBlockEnd",
+      description =
+          "Perform merge SMGStates by SMGJoin on ends of code block. Works with 'merge=JOIN'")
+  private boolean joinOnBlockEnd = true;
 
   public enum SMGExportLevel {
     NEVER,
@@ -229,6 +231,10 @@ public class SMGOptions {
 
   public UnknownFunctionHandling getHandleUnknownFunctions() {
     return handleUnknownFunctions;
+  }
+
+  public ImmutableSet<String> getSafeUnknownFunctions() {
+    return safeUnknownFunctions;
   }
 
   public boolean isGCCZeroLengthArray() {
@@ -317,5 +323,9 @@ public class SMGOptions {
 
   public boolean isHandleUnknownDereferenceAsSafe() {
     return handleUnknownDereferenceAsSafe;
+  }
+
+  public boolean getJoinOnBlockEnd() {
+    return joinOnBlockEnd;
   }
 }

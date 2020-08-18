@@ -1,26 +1,11 @@
-/*
- * CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2015  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.refinement;
 
 import static com.google.common.collect.FluentIterable.from;
@@ -28,6 +13,7 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCo
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.LinkedListMultimap;
@@ -46,6 +32,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.io.IO;
@@ -315,17 +302,17 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
   }
 
   /**
-   * This method obtains the refinement roots, i.e., for each disjunct path from target states
-   * to the root, it collects the highest state that has a non-trivial interpolant associated.
-   * With non-lazy abstraction, the root of the interpolation tree is used as refinement root.
+   * This method obtains the refinement roots, i.e., for each disjunct path from target states to
+   * the root, it collects the highest state that has a non-trivial interpolant associated. With
+   * non-lazy abstraction, the root of the interpolation tree is used as refinement root.
    *
    * @param pStrategy whether to perform lazy abstraction or not
    * @return the set of refinement roots
    */
-  public Collection<ARGState> obtainRefinementRoots(GenericRefiner.RestartStrategy pStrategy) {
+  public ImmutableSet<ARGState> obtainRefinementRoots(GenericRefiner.RestartStrategy pStrategy) {
     if (pStrategy == GenericRefiner.RestartStrategy.ROOT) {
       assert successorRelation.get(root).size() == 1 : "ARG root has more than one successor";
-      return ImmutableList.of(successorRelation.get(root).iterator().next());
+      return ImmutableSet.of(successorRelation.get(root).iterator().next());
     }
 
     ARGState commonRoot = null;
@@ -347,7 +334,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
 
         if (pStrategy == GenericRefiner.RestartStrategy.COMMON && refinementRoots.size() > 2) {
           assert commonRoot != null: "common root not yet set";
-          return ImmutableList.of(commonRoot);
+          return ImmutableSet.of(commonRoot);
         }
         continue;
       }
@@ -355,7 +342,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
       todo.addAll(successorRelation.get(currentState));
     }
 
-    return refinementRoots;
+    return ImmutableSet.copyOf(refinementRoots);
   }
 
   /**
@@ -504,7 +491,7 @@ public class InterpolationTree<S extends AbstractState, I extends Interpolant<S,
 
       // if the current state is not the root, it is a child of a branch , however, the path should not start with the
       // child, but with the branching node (children are stored on the stack because this needs less book-keeping)
-      if (current != root) {
+      if (!Objects.equals(current, root)) {
         errorPathBuilder.add(predecessorRelation.get(current), predecessorRelation.get(current).getEdgeToChild(current));
       }
 

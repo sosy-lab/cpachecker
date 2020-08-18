@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa.postprocessing.function;
 
 import com.google.common.collect.ImmutableList;
@@ -47,21 +32,20 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-/*
- * This class goes through the CFA and replace all assignments of the form
- * <code>
+/**
+ * This class goes through the CFA and replace all assignments of the form <code>
  * array[i] = ...
- * </code>
- * by
- * <code>
+ * </code> by <code>
  * if (i == 0) array[0] = ...
  * else if (i == 1) array[1] = ...
  * ...
- * </code>
- * if
- * - "array" is an array of function pointers
- * - "array" has a statically known length
- * - "i" is a simple variable (CIdExpression)
+ * </code> if
+ *
+ * <ul>
+ *   <li>{@code array} is an array of function pointers
+ *   <li>{code array} has a statically known length
+ *   <li>{code i} is a simple variable ({@link CIdExpression})
+ * </ul>
  */
 public class ExpandFunctionPointerArrayAssignments {
 
@@ -133,8 +117,8 @@ public class ExpandFunctionPointerArrayAssignments {
     CFANode predecessor = startNode;
     for (long i = 0; i < length; i++) {
 
-      CFANode trueNode = new CFANode(startNode.getFunctionName());
-      CFANode falseNode = new CFANode(startNode.getFunctionName());
+      CFANode trueNode = new CFANode(startNode.getFunction());
+      CFANode falseNode = new CFANode(startNode.getFunction());
       cfa.addNode(trueNode);
       cfa.addNode(falseNode);
 

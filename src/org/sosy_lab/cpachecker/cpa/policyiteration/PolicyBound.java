@@ -1,3 +1,12 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
 import com.google.common.collect.ImmutableSet;
@@ -15,7 +24,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 /**
  * Policy with a local bound.
  */
-public class PolicyBound {
+public final class PolicyBound {
 
   /**
    * Location of an abstracted state which has caused an update.
@@ -86,7 +95,7 @@ public class PolicyBound {
   }
 
   /**
-   * @return Unique identifier for value determination.
+   * Return unique identifier for value determination.
    *
    * <p>Based on triple {@code from, to, policy}.
    */

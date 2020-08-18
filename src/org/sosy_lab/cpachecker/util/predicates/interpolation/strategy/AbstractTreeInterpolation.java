@@ -1,31 +1,17 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.interpolation.strategy;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -51,36 +37,35 @@ import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManage
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public abstract class AbstractTreeInterpolation<T> extends ITPStrategy<T> {
+public abstract class AbstractTreeInterpolation extends ITPStrategy {
 
   /**
-   * Tree interpolants are used for the analysis recursive procedures
-   * and to have a modular analysis.
-   * Current status:
-   * - We need abstraction states at function entry and exit nodes (and maybe also at function calls).
-   * - Tree interpolants are useless for the 'normal' PredicateAnalysis.
-   * - Tree interpolants are useful in for PredicateAnalysis in combination with BAM and recursion.
+   * Tree interpolants are used for the analysis recursive procedures and to have a modular
+   * analysis. Current status: - We need abstraction states at function entry and exit nodes (and
+   * maybe also at function calls). - Tree interpolants are useless for the 'normal'
+   * PredicateAnalysis. - Tree interpolants are useful in for PredicateAnalysis in combination with
+   * BAM and recursion.
    */
-  AbstractTreeInterpolation(LogManager pLogger, ShutdownNotifier pShutdownNotifier,
-                            FormulaManagerView pFmgr, BooleanFormulaManager pBfmgr) {
-    super(pLogger, pShutdownNotifier, pFmgr, pBfmgr);
+  AbstractTreeInterpolation(
+      LogManager pLogger, ShutdownNotifier pShutdownNotifier, FormulaManagerView pFmgr) {
+    super(pLogger, pShutdownNotifier, pFmgr);
   }
 
-  /** This method checks the validity of the tree interpolants and
-   * overrides the default check.
+  /**
+   * This method checks the validity of the tree interpolants and overrides the default check.
    *
    * @param solver is for checking satisfiability
-   * @param formulasWithStatesAndGroupdIds is a list of (F,E,T) where
-   *          the path formula F starting at an abstract state E corresponds
-   *          with the ITP-group T. We assume the sorting of the list matches
-   *          the order of abstract states along the counterexample.
-   * @param interpolants computed with {@link InterpolationManager#getInterpolants} and will be checked.
+   * @param formulasWithStatesAndGroupdIds is a list of (F,E,T) where the path formula F starting at
+   *     an abstract state E corresponds with the ITP-group T. We assume the sorting of the list
+   *     matches the order of abstract states along the counterexample.
+   * @param interpolants computed with {@link InterpolationManager#getInterpolants} and will be
+   *     checked.
    */
   @Override
-  public void checkInterpolants(final Solver solver,
+  public <T> void checkInterpolants(
+      final Solver solver,
       final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds,
       final List<BooleanFormula> interpolants)
       throws SolverException, InterruptedException {
@@ -258,7 +243,7 @@ public abstract class AbstractTreeInterpolation<T> extends ITPStrategy<T> {
 
       final CFANode lastEntryNode = callstack.getLast();
       if ((node instanceof FunctionExitNode
-              && ((FunctionExitNode) node).getEntryNode() == lastEntryNode)
+          && ((FunctionExitNode) node).getEntryNode().equals(lastEntryNode))
         //|| (node.getEnteringSummaryEdge() != null
         // && node.getEnteringSummaryEdge().getPredecessor().getLeavingEdge(0).getSuccessor() == lastEntryNode)
               ) {
@@ -286,8 +271,8 @@ public abstract class AbstractTreeInterpolation<T> extends ITPStrategy<T> {
    *     tree-element is the asserted formula (as normal formula for logging and as ITP-group) and
    *     the corresponding abstract state.
    */
-  protected Pair<List<Triple<BooleanFormula, AbstractState, T>>, ImmutableIntArray>
-      buildTreeStructure(
+  protected <T>
+      Pair<List<Triple<BooleanFormula, AbstractState, T>>, ImmutableIntArray> buildTreeStructure(
           final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds) {
 
     final List<Triple<BooleanFormula, AbstractState, T>> formulas = new ArrayList<>();
@@ -344,7 +329,7 @@ public abstract class AbstractTreeInterpolation<T> extends ITPStrategy<T> {
     assert stack.isEmpty() : "after building the tree-structure there should not be formulas on the stack";
 
     logger.log(Level.ALL, "formulas of tree are:", formulas);
-    logger.log(Level.ALL, "subtree-structure is:", startOfSubTree);
+    logger.log(Level.ALL, "subtree-structure is:", resultingStartOfSubtree);
     assert formulas.size() == formulasWithStatesAndGroupdIds.size() :
             "invalid number of tree elements: " + formulas.size() + " vs " + formulasWithStatesAndGroupdIds.size();
 
@@ -352,27 +337,27 @@ public abstract class AbstractTreeInterpolation<T> extends ITPStrategy<T> {
   }
 
   /**
-   * The default Predicate Analysis can only handle a flat list of interpolants.
-   * Thus we convert the tree-structure back into a linear chain of interpolants.
-   * The analysis must handle special cases on its own, i.e. use BAM with function-rebuilding.
+   * The default Predicate Analysis can only handle a flat list of interpolants. Thus we convert the
+   * tree-structure back into a linear chain of interpolants. The analysis must handle special cases
+   * on its own, i.e. use BAM with function-rebuilding.
    *
-   * For function-entries (START-point) we use TRUE,
-   * for function-returns (END-point) both function-summary and function-execution (merged into one formula).
+   * <p>For function-entries (START-point) we use TRUE, for function-returns (END-point) both
+   * function-summary and function-execution (merged into one formula).
    *
    * @param formulasWithStatesAndGroupdIds contains the input formulas and abstract states
    * @param itps tree-interpolants
    * @return interpolants linear chain of interpolants, created from the tree-interpolants
    */
-  protected List<BooleanFormula> flattenTreeItps(
-          final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds,
-          final List<BooleanFormula> itps) {
+  protected <T> List<BooleanFormula> flattenTreeItps(
+      final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds,
+      final List<BooleanFormula> itps) {
 
     assert itps.size() == formulasWithStatesAndGroupdIds.size() - 1
         : String.format(
             "number of interpolants does not match formulas: %d vs %d",
             itps.size(), formulasWithStatesAndGroupdIds.size());
 
-    final List<BooleanFormula> interpolants = new ArrayList<>();
+    final ImmutableList.Builder<BooleanFormula> interpolants = ImmutableList.builder();
     final Iterator<BooleanFormula> iter = itps.iterator();
     for (int positionOfA = 0; positionOfA < formulasWithStatesAndGroupdIds.size() - 1; positionOfA++) {
       // last interpolant would be False.
@@ -402,7 +387,7 @@ public abstract class AbstractTreeInterpolation<T> extends ITPStrategy<T> {
 
     assert !iter.hasNext() : "remaining interpolants: " + Lists.newArrayList(iter);
 
-    return interpolants;
+    return interpolants.build();
   }
 
   /**

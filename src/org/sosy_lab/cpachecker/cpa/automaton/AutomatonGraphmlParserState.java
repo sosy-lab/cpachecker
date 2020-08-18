@@ -1,30 +1,16 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -42,9 +28,9 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.sosy_lab.cpachecker.core.specification.Property;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser.WitnessParseException;
 import org.sosy_lab.cpachecker.cpa.automaton.GraphMLTransition.GraphMLThread;
-import org.sosy_lab.cpachecker.util.Property;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 
 public class AutomatonGraphmlParserState {
@@ -70,10 +56,10 @@ public class AutomatonGraphmlParserState {
   private final ImmutableSet<GraphMLState> states;
 
   /** States and the transitions leaving them, represented in the GraphML model. */
-  private final ImmutableMultimap<GraphMLState, GraphMLTransition> leavingTransitions;
+  private final ImmutableListMultimap<GraphMLState, GraphMLTransition> leavingTransitions;
 
   /** States and the transitions entering them, represented in the GraphML model. */
-  private final ImmutableMultimap<GraphMLState, GraphMLTransition> enteringTransitions;
+  private final ImmutableListMultimap<GraphMLState, GraphMLTransition> enteringTransitions;
 
   /** Distances to violation states (in the GraphML model). */
   private final Map<GraphMLState, Integer> distances;
@@ -126,8 +112,8 @@ public class AutomatonGraphmlParserState {
       WitnessType pWitnessType,
       ImmutableSet<Property> pSpecificationTypes,
       ImmutableSet<GraphMLState> pStates,
-      ImmutableMultimap<GraphMLState, GraphMLTransition> pEnteringTransitions,
-      ImmutableMultimap<GraphMLState, GraphMLTransition> pLeavingTransitions,
+      ImmutableListMultimap<GraphMLState, GraphMLTransition> pEnteringTransitions,
+      ImmutableListMultimap<GraphMLState, GraphMLTransition> pLeavingTransitions,
       ImmutableSet<String> pFunctionNames)
       throws WitnessParseException {
 
@@ -226,8 +212,8 @@ public class AutomatonGraphmlParserState {
         pWitnessType,
         ImmutableSet.copyOf(pSpecificationTypes),
         ImmutableSet.copyOf(pStates),
-        ImmutableMultimap.copyOf(pEnteringTransitions),
-        ImmutableMultimap.copyOf(pLeavingTransitions),
+        ImmutableListMultimap.copyOf(pEnteringTransitions),
+        ImmutableListMultimap.copyOf(pLeavingTransitions),
         ImmutableSet.copyOf(pFunctionNames));
   }
 

@@ -1,9 +1,16 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2014-2017 Université Grenoble Alpes
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.policyiteration;
 
-import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -40,7 +47,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 @Options(prefix="cpa.lpi")
 public class StateFormulaConversionManager {
 
-  @Option(description="Remove redundant items when abstract values.")
+  @Option(secure = true, description = "Remove redundant items when abstract values.")
   private boolean simplifyDotOutput = false;
 
   private final FormulaManagerView fmgr;
@@ -146,13 +153,9 @@ public class StateFormulaConversionManager {
         fmgr, state.getBackpointerState(), true));
   }
 
-  /**
-   * @return Representation of an {@code abstractState} as a
-   * {@link PolicyIntermediateState}.
-   */
+  /** Return representation of an {@code abstractState} as a {@link PolicyIntermediateState}. */
   PolicyIntermediateState abstractStateToIntermediate(
-      PolicyAbstractedState abstractState,
-      boolean attachExtraInvariant) {
+      PolicyAbstractedState abstractState, boolean attachExtraInvariant) {
     CFANode node = abstractState.getNode();
     PathFormula generatingFormula = getPathFormula(abstractState,
         fmgr, attachExtraInvariant
@@ -162,9 +165,10 @@ public class StateFormulaConversionManager {
   }
 
   /**
+   * Return starting {@code PathFormula} associated with {@code abstractState}. Does not include the
+   * constraints.
+   *
    * @param attachExtraInvariant Whether the extra invariant should be attached.
-   * @return Starting {@code PathFormula} associated with {@code abstractState}. Does not include
-   *     the constraints.
    */
   PathFormula getPathFormula(
       PolicyAbstractedState abstractState,
@@ -202,11 +206,13 @@ public class StateFormulaConversionManager {
       // mark redundant templates as such
       BooleanFormula constraint = templatesToConstraints.get(t);
 
-      Set<Template> others = Sets.filter(nonRedundant, t2 -> t2 != t);
-
       // if others imply the constraint, remove it.
       BooleanFormula othersConstraint =
-          bfmgr.and(Collections2.transform(others, templatesToConstraints::get));
+          nonRedundant
+              .stream()
+              .filter(t2 -> t2 != t)
+              .map(templatesToConstraints::get)
+              .collect(bfmgr.toConjunction());
 
       try {
         if (solver.implies(othersConstraint, constraint)) {
