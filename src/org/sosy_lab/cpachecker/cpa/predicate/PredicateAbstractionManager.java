@@ -261,7 +261,7 @@ public class PredicateAbstractionManager {
       throws SolverException, InterruptedException {
 
     PathFormula pf =
-        new PathFormula(f, blockFormula.getSsa(), blockFormula.getPointerTargetSet(), 0);
+        new PathFormula(f, blockFormula.getSsa(), blockFormula.getPointerTargetSet(), 0, bfmgr);
 
     AbstractionFormula emptyAbstraction = makeTrueAbstractionFormula(null);
     AbstractionFormula newAbstraction =
@@ -973,7 +973,7 @@ public class PredicateAbstractionManager {
           weakeningManager.findInductiveWeakeningForRCNF(
               SSAMap.emptySSAMap(),
               ImmutableSet.of(),
-              new PathFormula(f, ssa, PointerTargetSet.emptyPointerTargetSet(), 0),
+              new PathFormula(f, ssa, PointerTargetSet.emptyPointerTargetSet(), 0, bfmgr),
               toStateLemmas);
     } finally {
       stats.cartesianAbstractionTime.stop();

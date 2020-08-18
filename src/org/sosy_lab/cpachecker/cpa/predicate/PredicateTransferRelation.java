@@ -358,7 +358,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
               pf.getFormula(),
               previousPathFormula.getSsa(),
               previousPathFormula.getPointerTargetSet(),
-              previousPathFormula.getLength());
+              previousPathFormula.getLength(), fmgr.getBooleanFormulaManager());
           // add the assumption, which is now instantiated with the right indices:
           temp = pathFormulaManager.makeAnd(temp, preconditionAssumption);
           // add back the original SSAMap ant PointerTargetSet:
@@ -366,7 +366,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
               temp.getFormula(),
               pf.getSsa(),
               pf.getPointerTargetSet(),
-              pf.getLength() + 1);
+              pf.getLength() + 1, fmgr.getBooleanFormulaManager());
         } finally {
           pathFormulaTimer.stop();
         }

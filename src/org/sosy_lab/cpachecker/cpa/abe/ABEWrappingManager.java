@@ -115,7 +115,7 @@ public class ABEWrappingManager<A extends ABEAbstractedState<A>, P extends Preci
               bfmgr.makeTrue(),
               aState.getSSAMap(),
               aState.getPointerTargetSet(),
-              1
+              1, fmgr.getBooleanFormulaManager()
           ),
           aState
       );

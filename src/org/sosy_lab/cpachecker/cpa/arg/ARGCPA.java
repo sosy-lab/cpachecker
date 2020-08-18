@@ -114,7 +114,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new ARGTransferRelation(getWrappedCpa().getTransferRelation());
+    return new ARGTransferRelation(getWrappedCpa().getTransferRelation(), getStopOperator());
   }
 
   @Override
@@ -131,7 +131,7 @@ public class ARGCPA extends AbstractSingleWrapperCPA
   }
 
   @Override
-  public ForcedCoveringStopOperator getStopOperator() {
+  public ARGStopSep getStopOperator() {
     return new ARGStopSep(
         getWrappedCpa().getStopOperator(),
         logger,

@@ -16,15 +16,25 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperTransferRelation;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 public class ARGTransferRelation extends AbstractSingleWrapperTransferRelation {
 
+  private final StopOperator stopOperator;
+
   public ARGTransferRelation(TransferRelation tr) {
     super(tr);
+    stopOperator = null;
+  }
+
+  public ARGTransferRelation(TransferRelation tr, ARGStopSep so) {
+    super(tr);
+    this.stopOperator = so;
   }
 
   @Override
@@ -56,8 +66,19 @@ public class ARGTransferRelation extends AbstractSingleWrapperTransferRelation {
 
     ImmutableList.Builder<ARGState> wrappedSuccessors = ImmutableList.builder();
     for (AbstractState absElement : successors) {
+      final ImmutableList<AbstractState> children = ImmutableList.copyOf(element.getChildren());
       ARGState successorElem = new ARGState(absElement, element);
-      wrappedSuccessors.add(successorElem);
+      //boolean contains = children.stream().anyMatch(child -> ((ARGState)child).getWrappedState().toString().equals(absElement.toString()));
+      try {
+        final boolean stop = stopOperator.stop(successorElem, children, pPrecision);
+        if (stop && !successorElem.isDestroyed()) {
+          successorElem.removeFromARG();
+        } else if (!stop){
+          wrappedSuccessors.add(successorElem);
+        }
+      } catch (CPAException e) {
+        //String message = e.getMessage();
+      }
     }
 
     return wrappedSuccessors.build();

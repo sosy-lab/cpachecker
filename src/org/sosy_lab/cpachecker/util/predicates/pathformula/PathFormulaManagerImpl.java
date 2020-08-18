@@ -252,7 +252,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         //setSsaIndex(ssa, Variable.create(NONDET_FLAG_VARIABLE, getNondetType()), lNondetIndex);
         ssa.setIndex(NONDET_FLAG_VARIABLE, NONDET_TYPE, lNondetIndex);
 
-        pf = new PathFormula(edgeFormula, ssa.build(), pf.getPointerTargetSet(), pf.getLength());
+        pf = new PathFormula(edgeFormula, ssa.build(), pf.getPointerTargetSet(), pf.getLength(), bfmgr);
       }
     }
     if (simplifyGeneratedPathFormulas) {
@@ -290,7 +290,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return new PathFormula(bfmgr.makeTrue(),
                            SSAMap.emptySSAMap(),
                            PointerTargetSet.emptyPointerTargetSet(),
-                           0);
+                           0, bfmgr);
   }
 
   @Override
@@ -298,7 +298,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return new PathFormula(bfmgr.makeTrue(),
                            oldFormula.getSsa(),
                            oldFormula.getPointerTargetSet(),
-                           0);
+                           0, bfmgr);
   }
 
   @Override
@@ -307,7 +307,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return new PathFormula(oldFormula.getFormula(),
                            m,
                            oldFormula.getPointerTargetSet(),
-                           oldFormula.getLength());
+                           oldFormula.getLength(), bfmgr);
   }
 
   @Override
@@ -315,7 +315,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     return new PathFormula(oldFormula.getFormula(),
         m,
         pPts,
-        oldFormula.getLength());
+        oldFormula.getLength(), bfmgr);
   }
 
   @Override
@@ -352,7 +352,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final PointerTargetSet newPTS = mergePtsResult.getResult();
     final int newLength = Math.max(pathFormula1.getLength(), pathFormula2.getLength());
 
-    PathFormula out = new PathFormula(newFormula, newSSA, newPTS, newLength);
+    PathFormula out = new PathFormula(newFormula, newSSA, newPTS, newLength, bfmgr);
     if (simplifyGeneratedPathFormulas) {
       out = out.updateFormula(fmgr.simplify(out.getFormula()));
     }
@@ -371,7 +371,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     BooleanFormula otherFormula =  fmgr.instantiate(pOtherFormula, ssa);
     BooleanFormula resultFormula = bfmgr.and(pPathFormula.getFormula(), otherFormula);
     final PointerTargetSet pts = pPathFormula.getPointerTargetSet();
-    return new PathFormula(resultFormula, ssa, pts, pPathFormula.getLength());
+    return new PathFormula(resultFormula, ssa, pts, pPathFormula.getLength(), bfmgr);
   }
 
   @Override

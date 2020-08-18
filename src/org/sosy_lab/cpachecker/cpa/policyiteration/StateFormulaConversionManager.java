@@ -184,7 +184,7 @@ public class StateFormulaConversionManager {
       extraPredicate = pFormulaManager.getBooleanFormulaManager().makeTrue();
     }
     return new PathFormula(extraPredicate, abstractState.getSSA(),
-        abstractState.getPointerTargetSet(), 1);
+        abstractState.getPointerTargetSet(), 1, bfmgr);
   }
 
   public String toDOTLabel(Map<Template, PolicyBound> pAbstraction) {
@@ -194,7 +194,7 @@ public class StateFormulaConversionManager {
 
     PathFormula inputPath = new PathFormula(
         bfmgr.makeTrue(), SSAMap.emptySSAMap(), PointerTargetSet
-        .emptyPointerTargetSet(), 0
+        .emptyPointerTargetSet(), 0, bfmgr
     );
 
     Map<Template, BooleanFormula> templatesToConstraints =

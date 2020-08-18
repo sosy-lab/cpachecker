@@ -8,6 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.waitlist;
 
+import com.google.common.collect.Iterables;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -19,13 +21,20 @@ public class ReversePostorderSortedWaitlist extends AbstractSortedWaitlist<Integ
 
   @Override
   public void add(AbstractState pState) {
-    assert AbstractStates.extractLocation(pState) != null;
+    assert AbstractStates.extractLocations(pState) != null;
     super.add(pState);
   }
 
   @Override
   protected Integer getSortKey(AbstractState pState) {
-    return AbstractStates.extractLocation(pState).getReversePostorderId();
+    int sum = 0;
+    Iterable<CFANode> locations = AbstractStates.extractLocations(pState);
+    for (CFANode location : locations) {
+      sum += location.getReversePostorderId();
+    }
+    int average = sum / Iterables.size(locations);
+
+    return average;
   }
 
   public static WaitlistFactory factory(final WaitlistFactory pSecondaryStrategy) {

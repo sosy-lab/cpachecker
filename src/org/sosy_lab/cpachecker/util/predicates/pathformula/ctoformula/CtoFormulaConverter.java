@@ -983,7 +983,7 @@ public class CtoFormulaConverter {
 
     BooleanFormula newFormula = bfmgr.and(oldFormula.getFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;
-    return new PathFormula(newFormula, newSsa, newPts, newLength);
+    return new PathFormula(newFormula, newSsa, newPts, newLength, bfmgr);
   }
 
   /**
