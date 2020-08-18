@@ -569,7 +569,8 @@ public class ExpressionToFormulaVisitor extends DefaultCExpressionVisitor<Numera
   @Override
   public NumeralFormula<CompoundInterval> visit(JBooleanLiteralExpression pBooleanLiteralExpression)
       throws UnrecognizedCodeException {
-    return asConstant(pBooleanLiteralExpression.getExpressionType(), pBooleanLiteralExpression.getValue());
+    return asConstant(
+        pBooleanLiteralExpression.getExpressionType(), pBooleanLiteralExpression.getBoolean());
   }
 
   @Override

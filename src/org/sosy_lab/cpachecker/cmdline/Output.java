@@ -12,8 +12,10 @@ import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
 import java.io.PrintStream;
 import org.checkerframework.dataflow.qual.TerminatesExecution;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 
 /** Utilities for output while we do not yet have a logger */
+@SuppressForbidden("System.out in this class is ok")
 class Output {
 
   private static final PrintStream ERROR_OUTPUT = System.err;

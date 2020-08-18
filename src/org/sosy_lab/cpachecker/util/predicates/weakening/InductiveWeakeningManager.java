@@ -8,14 +8,14 @@
 
 package org.sosy_lab.cpachecker.util.predicates.weakening;
 
-
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager.WEAKENING_STRATEGY.CEX;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
-import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -149,9 +149,10 @@ public class InductiveWeakeningManager implements StatisticsProvider {
         startingSSA,
         fromStateLemmas);
 
-    Set<BooleanFormula> out =
-        Sets.filter(
-            toStateLemmas, lemma -> !toAbstract.contains(selectionInfo.inverse().get(lemma)));
+    ImmutableSet<BooleanFormula> out =
+        from(toStateLemmas)
+            .filter(lemma -> !toAbstract.contains(selectionInfo.inverse().get(lemma)))
+            .toSet();
     assert checkAllMapsTo(fromStateLemmas, startingSSA, out, transition
         .getSsa(), transition.getFormula());
     return out;
@@ -194,8 +195,10 @@ public class InductiveWeakeningManager implements StatisticsProvider {
         toStateLemmasAnnotated,
         startingSSA, lemmas);
 
-    Set<BooleanFormula> out =
-        Sets.filter(lemmas, lemma -> !toAbstract.contains(selectionInfo.inverse().get(lemma)));
+    ImmutableSet<BooleanFormula> out =
+        from(lemmas)
+            .filter(lemma -> !toAbstract.contains(selectionInfo.inverse().get(lemma)))
+            .toSet();
     assert checkAllMapsTo(out, startingSSA, out, transition.getSsa(),
         transition.getFormula());
 

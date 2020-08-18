@@ -16,6 +16,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
@@ -38,6 +39,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.configuration.AnnotatedValue;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -140,9 +142,9 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
               + " of "
               + getName());
 
-         for (Statistics s : currentSubStat) {
-          StatisticsUtils.printStatistics(s, pOut, logger, pResult, pReached);
-        }
+      for (Statistics s : currentSubStat) {
+        StatisticsUtils.printStatistics(s, pOut, logger, pResult, pReached);
+      }
     }
 
     @Override
@@ -162,17 +164,17 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Option(
-    secure = true,
-    required = true,
-    description =
-        "list of files with configurations to use, which are optionally suffixed "
-            + "according to one of the followig schemes:"
-            + "either ::MODE or ::MODE_LIMIT, where MODE and LIMIT are place holders."
-            + "MODE may take one of the following values continue (i.e., continue analysis with same CPA and reached set), "
-            + "reuse-precision (i.e., reuse the aggregation of the precisions from the previous analysis run), "
-            + "noreuse (i.e., start from scratch)."
-            + "LIMIT is a positive integer number specifying the time limit of the analysis in each round."
-            + "If no (correct) limit is given a default limit is used."
+      secure = true,
+      required = true,
+      description =
+          "list of files with configurations to use, which are optionally suffixed "
+              + "according to one of the followig schemes:"
+              + "either ::MODE or ::MODE_LIMIT, where MODE and LIMIT are place holders."
+              + "MODE may take one of the following values continue (i.e., continue analysis with same CPA and reached set), "
+              + "reuse-precision (i.e., reuse the aggregation of the precisions from the previous analysis run), "
+              + "noreuse (i.e., start from scratch)."
+              + "LIMIT is a positive integer number specifying the time limit of the analysis in each round."
+              + "If no (correct) limit is given a default limit is used."
   )
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<AnnotatedValue<Path>> configFiles;
@@ -182,42 +184,42 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @Option(
-    secure = true,
-    description =
-    "print the statistics of each component of the composition algorithm"
-            + " directly after the component's computation is finished"
+      secure = true,
+      description =
+          "print the statistics of each component of the composition algorithm"
+              + " directly after the component's computation is finished"
   )
   private  INTERMEDIATESTATSOPT intermediateStatistics = INTERMEDIATESTATSOPT.NONE;
 
   @Option(
-    secure = true,
-    description =
-    "let each analysis part of the composition algorithm write output files"
-            + " and not only the last one that is executed"
+      secure = true,
+      description =
+          "let each analysis part of the composition algorithm write output files"
+              + " and not only the last one that is executed"
   )
   private boolean writeIntermediateOutputFiles = true;
 
   @Option(
-    secure = true,
-    name = "initCondition",
-    description =
-        "Whether or not to create an initial condition, that excludes no paths, "
-            + "before first analysis is run."
-            + "Required when first analysis uses condition from conditional model checking"
+      secure = true,
+      name = "initCondition",
+      description =
+          "Whether or not to create an initial condition, that excludes no paths, "
+              + "before first analysis is run."
+              + "Required when first analysis uses condition from conditional model checking"
   )
   private boolean generateInitialFalseCondition = false;
 
   @Option(
-    secure = true,
-    name = "propertyChecked",
-    description = "Enable when composition algorithm is used to check a specification"
+      secure = true,
+      name = "propertyChecked",
+      description = "Enable when composition algorithm is used to check a specification"
   )
   private boolean isPropertyChecked = true;
 
   @Option(
-    secure = true,
-    name = "condition.file",
-    description = "where to store initial condition, when generated"
+      secure = true,
+      name = "condition.file",
+      description = "where to store initial condition, when generated"
   )
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path initialCondition = Paths.get("AssumptionAutomaton.txt");
@@ -260,8 +262,8 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
         reason ->
             logger.logf(
                 Level.WARNING,
-            "Shutdown of analysis run %d requested (%s).",
-            stats.noOfRuns,
+                "Shutdown of analysis run %d requested (%s).",
+                stats.noOfRuns,
                 reason);
     if (generateInitialFalseCondition) {
       generateInitialFalseCondition();
@@ -282,10 +284,6 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  @SuppressFBWarnings(
-    value = "DM_DEFAULT_ENCODING",
-    justification = "Encoding is irrelevant for null output stream"
-  )
   @Override
   public AlgorithmStatus run(ReachedSet pReached) throws CPAException, InterruptedException {
     checkArgument(
@@ -344,7 +342,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
             continue;
           }
 
-            currentRun = createNextAlgorithm(currentContext, mainFunction, previousContext);
+          currentRun = createNextAlgorithm(currentContext, mainFunction, previousContext);
           if (currentRun == null) {
             logger
                 .log(Level.WARNING, "Skip current analysis because analysis could not be set up.");
@@ -435,29 +433,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
                 && !shutdownNotifier.shouldShutdown()
                 && selectionStrategy.hasNextAlgorithm()) {
 
-              switch (intermediateStatistics) {
-                case PRINT:
-                  stats.printIntermediateStatistics(
-                      System.out,
-                      Result.UNKNOWN,
-                      currentContext.getReachedSet());
-                  break;
-                case EXECUTE:
-                  @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
-                  final PrintStream dummyStream = new PrintStream(ByteStreams.nullOutputStream());
-                  stats.printIntermediateStatistics(
-                      dummyStream,
-                      Result.UNKNOWN,
-                      currentContext.getReachedSet());
-                  break;
-                default: // do nothing
-              }
-
-              if (writeIntermediateOutputFiles) {
-                stats.writeOutputFiles(Result.UNKNOWN, pReached);
-              }
-
-              stats.resetSubStatistics();
+              printIntermediateStatistics(pReached, currentContext);
 
               if (!currentContext.reuseCPA()) {
                 CPAs.closeCpaIfPossible(currentContext.getCPA(), logger);
@@ -496,6 +472,36 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     } finally {
       stats.totalTimer.stop();
     }
+  }
+
+  @SuppressFBWarnings(
+      value = "DM_DEFAULT_ENCODING",
+      justification = "Encoding is irrelevant for null output stream")
+  @SuppressForbidden("System.out is correct for statistics")
+  private void printIntermediateStatistics(ReachedSet pReached, AlgorithmContext currentContext) {
+    switch (intermediateStatistics) {
+      case PRINT:
+        stats.printIntermediateStatistics(
+            System.out,
+            Result.UNKNOWN,
+            currentContext.getReachedSet());
+        break;
+      case EXECUTE:
+        @SuppressWarnings("checkstyle:IllegalInstantiation") // ok for statistics
+        final PrintStream dummyStream = new PrintStream(ByteStreams.nullOutputStream());
+        stats.printIntermediateStatistics(
+            dummyStream,
+            Result.UNKNOWN,
+            currentContext.getReachedSet());
+        break;
+      default: // do nothing
+    }
+
+    if (writeIntermediateOutputFiles) {
+      stats.writeOutputFiles(Result.UNKNOWN, pReached);
+    }
+
+    stats.resetSubStatistics();
   }
 
 
@@ -676,9 +682,6 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
     Preconditions.checkArgument(!pPreviousReachedSets.isEmpty());
     Precision resultPrec = pInitialPrecision;
 
-    PredicatePrecision predPrec;
-    LoopBoundPrecision loopPrec;
-    ConstraintsPrecision constrPrec;
     VariableTrackingPrecision varPrec =
         Precisions.extractPrecisionByType(resultPrec, VariableTrackingPrecision.class);
     if (varPrec != null) {
@@ -700,7 +703,8 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
                 changed = true;
               }
 
-              predPrec = Precisions.extractPrecisionByType(resultPrec, PredicatePrecision.class);
+              PredicatePrecision predPrec =
+                  Precisions.extractPrecisionByType(resultPrec, PredicatePrecision.class);
               if (predPrec != null && pFMgr != null) {
                 varPrec =
                     varPrec.withIncrement(convertPredPrecToVariableTrackingPrec(predPrec, pFMgr));
@@ -719,59 +723,57 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
 
-    constrPrec = Precisions.extractPrecisionByType(resultPrec, ConstraintsPrecision.class);
+    ConstraintsPrecision constrPrec =
+        Precisions.extractPrecisionByType(resultPrec, ConstraintsPrecision.class);
     if (constrPrec != null) {
       try {
         if (!(constrPrec instanceof RefinableConstraintsPrecision)) {
 
           constrPrec = new RefinableConstraintsPrecision(pConfig);
         }
-      ConstraintsPrecision constrPrecInter;
+        ConstraintsPrecision constrPrecInter;
         boolean changed = false;
 
-      for (ReachedSet previousReached : pPreviousReachedSets) {
-        if (previousReached != null) {
-          for (Precision prec : previousReached.getPrecisions()) {
-            constrPrecInter = Precisions.extractPrecisionByType(prec, ConstraintsPrecision.class);
-            if (constrPrecInter != null && !(constrPrecInter instanceof FullConstraintsPrecision)) {
-              constrPrec = constrPrec.join(constrPrecInter);
+        for (ReachedSet previousReached : pPreviousReachedSets) {
+          if (previousReached != null) {
+            for (Precision prec : previousReached.getPrecisions()) {
+              constrPrecInter = Precisions.extractPrecisionByType(prec, ConstraintsPrecision.class);
+              if (constrPrecInter != null && !(constrPrecInter instanceof FullConstraintsPrecision)) {
+                constrPrec = constrPrec.join(constrPrecInter);
                 changed = true;
+              }
             }
           }
         }
-      }
         if (changed) {
-        resultPrec =
-            Precisions.replaceByType(
-                resultPrec, constrPrec, Predicates.instanceOf(ConstraintsPrecision.class));
-      }
+          resultPrec =
+              Precisions.replaceByType(
+                  resultPrec, constrPrec, Predicates.instanceOf(ConstraintsPrecision.class));
+        }
       } catch (InvalidConfigurationException e) {
         logger.logException(Level.INFO, e, "Reuse of precision failed. Continue without reuse");
       }
     }
 
-    loopPrec = Precisions.extractPrecisionByType(resultPrec, LoopBoundPrecision.class);
+    LoopBoundPrecision loopPrec =
+        Precisions.extractPrecisionByType(resultPrec, LoopBoundPrecision.class);
     if (loopPrec != null && pPreviousReachedSets.get(0) != null) {
       resultPrec =
           Precisions.replaceByType(
               resultPrec, loopPrec, Predicates.instanceOf(LoopBoundPrecision.class));
     }
 
-    predPrec = Precisions.extractPrecisionByType(resultPrec, PredicatePrecision.class);
+    PredicatePrecision predPrec =
+        Precisions.extractPrecisionByType(resultPrec, PredicatePrecision.class);
 
     if (predPrec != null && pPreviousReachedSets.get(0) != null) {
-      Collection<PredicatePrecision> predPrecs =
-          new HashSet<>(pPreviousReachedSets.get(0).getPrecisions().size());
-      predPrecs.add(predPrec);
-      for (Precision prec : pPreviousReachedSets.get(0).getPrecisions()) {
-        predPrec = Precisions.extractPrecisionByType(prec, PredicatePrecision.class);
-        predPrecs.add(predPrec);
-      }
+      Iterable<Precision> allPrecisions =
+          from(ImmutableList.of(resultPrec)).append(pPreviousReachedSets.get(0).getPrecisions());
 
       resultPrec =
           Precisions.replaceByType(
               resultPrec,
-              PredicatePrecision.unionOf(predPrecs),
+              PredicatePrecision.unionOf(allPrecisions),
               Predicates.instanceOf(PredicatePrecision.class));
     }
 
@@ -790,7 +792,7 @@ public class CompositionAlgorithm implements Algorithm, StatisticsProvider {
 
     for (AbstractionPredicate pred : predicates) {
       for (String var : pFMgr.extractVariables(pred.getSymbolicVariable()).keySet()) {
-          trackedVariables.put(dummyNode, MemoryLocation.valueOf(var));
+        trackedVariables.put(dummyNode, MemoryLocation.valueOf(var));
       }
     }
 

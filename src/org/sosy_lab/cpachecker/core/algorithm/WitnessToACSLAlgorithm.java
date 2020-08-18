@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.WitnessInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
@@ -64,7 +63,6 @@ public class WitnessToACSLAlgorithm implements Algorithm {
   private Path witness;
 
   private final Configuration config;
-  private final Specification specification;
   private final LogManager logger;
   private final CFA cfa;
   private final ShutdownNotifier shutdownNotifier;
@@ -75,12 +73,10 @@ public class WitnessToACSLAlgorithm implements Algorithm {
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      Specification pSpecification,
       CFA pCfa)
       throws InvalidConfigurationException {
     config = pConfig;
     config.inject(this);
-    specification = pSpecification;
     logger = pLogger;
     cfa = pCfa;
     shutdownNotifier = pShutdownNotifier;
@@ -94,17 +90,16 @@ public class WitnessToACSLAlgorithm implements Algorithm {
 
     Map<CFANode, CExpression> invMap = new HashMap<>();
     Set<String> files = new HashSet<>();
-    Set<ExpressionTreeLocationInvariant> invariants = new HashSet<>();
+    Set<ExpressionTreeLocationInvariant> invariants;
     try {
       WitnessInvariantsExtractor invariantsExtractor =
           new WitnessInvariantsExtractor(
               config,
-              specification,
               logger,
               cfa,
               shutdownNotifier,
               witness);
-      invariantsExtractor.extractInvariantsFromReachedSet(invariants);
+      invariants = invariantsExtractor.extractInvariantsFromReachedSet();
     } catch (InvalidConfigurationException pE) {
       throw new CPAException("Invalid Configuration while analyzing witness", pE);
     }

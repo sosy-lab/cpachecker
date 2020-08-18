@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cfa.ast.java;
 
 
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.java.JSimpleType;
@@ -27,14 +26,19 @@ public final class JBooleanLiteralExpression extends ALiteralExpression
     implements JLiteralExpression {
 
   private static final long serialVersionUID = 1623276041882984116L;
-  private final Boolean value;
+  private final boolean value;
 
   public JBooleanLiteralExpression(FileLocation pFileLocation,  boolean pValue) {
     super(pFileLocation, JSimpleType.getBoolean());
     value = pValue;
   }
 
+  public boolean getBoolean() {
+    return value;
+  }
+
   @Override
+  @Deprecated // call getBoolean()
   public Boolean getValue() {
     return value;
   }
@@ -61,8 +65,8 @@ public final class JBooleanLiteralExpression extends ALiteralExpression
   @Override
   public int hashCode() {
     final int prime = 31;
-    int result = super.hashCode();
-    result = prime * result + Objects.hashCode(value);
+    int result = 7;
+    result = prime * result + Boolean.hashCode(value);
     result = prime * result + super.hashCode();
     return result;
   }
@@ -80,7 +84,7 @@ public final class JBooleanLiteralExpression extends ALiteralExpression
 
     JBooleanLiteralExpression other = (JBooleanLiteralExpression) obj;
 
-    return Objects.equals(other.value, value);
+    return other.value == value;
   }
 
 }

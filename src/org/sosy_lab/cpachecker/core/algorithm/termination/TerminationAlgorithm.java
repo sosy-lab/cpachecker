@@ -82,7 +82,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets.AggregatedReachedSetManager;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
-import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -165,7 +164,6 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       CFA pCfa,
       ReachedSetFactory pReachedSetFactory,
       AggregatedReachedSetManager pAggregatedReachedSetManager,
-      Specification pSpecification,
       Algorithm pSafetyAlgorithm,
       ConfigurableProgramAnalysis pSafetyCPA)
       throws InvalidConfigurationException {
@@ -198,7 +196,10 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
     statistics =
         new TerminationStatistics(
-            pConfig, logger, loopStructure.getAllLoops().size(), pSpecification, pCfa);
+            pConfig,
+            logger,
+            loopStructure.getAllLoops().size(),
+            pCfa);
     lassoAnalysis = LassoAnalysis.create(pLogger, pConfig, pShutdownNotifier, pCfa, statistics);
   }
 

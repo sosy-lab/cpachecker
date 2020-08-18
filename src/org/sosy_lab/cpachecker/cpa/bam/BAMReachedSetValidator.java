@@ -41,11 +41,19 @@ public class BAMReachedSetValidator {
     Collection<ReachedSet> reachedSets = data.getCache().getAllCachedReachedStates();
 
     assert validateReachedSet(
-        mainEntry.getSubgraph(), mainReachedSet.asReachedSet(), data, partitioning, reachedSets);
+        mainEntry.getSubgraph().toSet(),
+        mainReachedSet.asReachedSet(),
+        data,
+        partitioning,
+        reachedSets);
     assert !reachedSets.contains(mainReachedSet.asReachedSet());
     for (ReachedSet rs : reachedSets) {
       assert validateReachedSet(
-          ((ARGState) rs.getFirstState()).getSubgraph(), rs, data, partitioning, reachedSets);
+          ((ARGState) rs.getFirstState()).getSubgraph().toSet(),
+          rs,
+          data,
+          partitioning,
+          reachedSets);
     }
 
     return true;

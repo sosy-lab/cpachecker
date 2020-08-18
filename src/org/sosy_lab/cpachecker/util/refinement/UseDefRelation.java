@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.util.refinement;
 
 import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Predicates.not;
-import static com.google.common.collect.Collections2.filter;
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.collect.ImmutableSet;
@@ -406,7 +406,8 @@ public class UseDefRelation {
     final ALeftHandSide leftHandSide = assignment.getLeftHandSide();
     final Set<ASimpleDeclaration> assignedVariables = acceptLeft(leftHandSide);
     final Set<ASimpleDeclaration> allLeftHandSideVariables = acceptAll(leftHandSide);
-    final Set<ASimpleDeclaration> leftHandSideUses = new HashSet<>(filter(allLeftHandSideVariables, not(in(assignedVariables))));
+    final Set<ASimpleDeclaration> leftHandSideUses =
+        from(allLeftHandSideVariables).filter(not(in(assignedVariables))).toSet();
 
     if(assignedVariables.size() > 1) {
       return;

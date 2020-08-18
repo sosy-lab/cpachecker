@@ -401,7 +401,7 @@ public class CoreComponentsFactory {
               aggregatedReachedSets);
 
     } else if (useWitnessToACSLAlgorithm) {
-      algorithm = new WitnessToACSLAlgorithm(config, logger, shutdownNotifier, specification, cfa);
+      algorithm = new WitnessToACSLAlgorithm(config, logger, shutdownNotifier, cfa);
 
     } else if (useMPIProcessAlgorithm) {
       algorithm = new MPIPortfolioAlgorithm(config, logger, shutdownNotifier, specification);
@@ -555,7 +555,6 @@ public class CoreComponentsFactory {
                 cfa,
                 reachedSetFactory,
                 aggregatedReachedSetManager,
-                specification,
                 algorithm,
                 cpa);
       }

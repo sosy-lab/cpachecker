@@ -13,8 +13,8 @@ import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.base.Predicates.not;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterators;
 import java.util.Collection;
 import java.util.Collections;
@@ -43,7 +43,7 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
 
   private final ImmutableMap<CFAEdge, Loop> loopEntryEdges;
   private final ImmutableMap<CFAEdge, Loop> loopExitEdges;
-  private final ImmutableMultimap<CFANode, Loop> loopHeads;
+  private final ImmutableListMultimap<CFANode, Loop> loopHeads;
 
   @Option(
       secure = true,
@@ -68,7 +68,7 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
 
     ImmutableMap.Builder<CFAEdge, Loop> entryEdges = ImmutableMap.builder();
     ImmutableMap.Builder<CFAEdge, Loop> exitEdges  = ImmutableMap.builder();
-    ImmutableMultimap.Builder<CFANode, Loop> heads = ImmutableMultimap.builder();
+    ImmutableListMultimap.Builder<CFANode, Loop> heads = ImmutableListMultimap.builder();
 
     for (Loop l : pCFA.getLoopStructure().orElseThrow().getAllLoops()) {
       // function edges do not count as incoming/outgoing edges

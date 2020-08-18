@@ -347,8 +347,7 @@ public class InvariantsState implements AbstractState,
     TypeInfo typeInfo = BitVectorInfo.from(machineModel, variableType);
     NumeralFormula<CompoundInterval> value =
         tools.compoundIntervalFormulaManager.cast(typeInfo, pValue);
-    for (Map.Entry<MemoryLocation, NumeralFormula<CompoundInterval>> entry : this.environment.entrySet()) {
-      MemoryLocation memoryLocation = entry.getKey();
+    for (MemoryLocation memoryLocation : this.environment.keySet()) {
       TypeInfo varTypeInfo = BitVectorInfo.from(machineModel, getType(memoryLocation));
       if (memoryLocation.getAsSimpleString().startsWith(pMemoryLocation.getAsSimpleString() + "->")
           || memoryLocation.getAsSimpleString().startsWith(pMemoryLocation.getAsSimpleString() + ".")) {
@@ -1598,8 +1597,7 @@ public class InvariantsState implements AbstractState,
         Set<MemoryLocation> todo = new HashSet<>();
 
         // Join the easy ones first (both values equal or one value top)
-        for (Map.Entry<MemoryLocation, NumeralFormula<CompoundInterval>> entry : state1.environment.entrySet()) {
-          MemoryLocation memoryLocation = entry.getKey();
+        for (MemoryLocation memoryLocation : state1.environment.keySet()) {
           NumeralFormula<CompoundInterval> rightFormula = state2.environment.get(memoryLocation);
           if (rightFormula != null) {
             NumeralFormula<CompoundInterval> leftFormula =

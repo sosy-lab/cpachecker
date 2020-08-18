@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.slab;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -20,16 +21,16 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
  * Represents a set of @link {@link CFAEdge}s where one of the elements can be marked for later
  * retrieval.
  */
-public class EdgeSet implements Serializable {
+public class EdgeSet implements Serializable, Iterable<CFAEdge> {
 
   private static final long serialVersionUID = 1L;
 
   private Set<CFAEdge> edges;
   private CFAEdge selected;
 
-  public EdgeSet(Set<CFAEdge> edges) {
+  public EdgeSet(Collection<CFAEdge> edges) {
     checkArgument(!edges.isEmpty());
-    this.edges = edges;
+    this.edges = new LinkedHashSet<>(edges);
     this.selected = null;
   }
 
@@ -38,9 +39,8 @@ public class EdgeSet implements Serializable {
     this.edges = new LinkedHashSet<>(other.edges);
   }
 
-  /**
-   *  Returns an iterator over the edges in the set.
-   */
+  /** Returns an iterator over the edges in the set. */
+  @Override
   public Iterator<CFAEdge> iterator() {
     return edges.iterator();
   }

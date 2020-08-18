@@ -174,9 +174,9 @@ public class ARGToAutomatonConverter {
       case GLOBAL_CONDITIONS:
         return getGlobalConditionSplitAutomata(root, selectionStrategy);
       case LEAVES:
-        return from(getLeaves(root, false)).transform(l -> getAutomatonForLeaf(root, l));
+        return getLeaves(root, false).transform(l -> getAutomatonForLeaf(root, l));
       case TARGETS:
-        return from(getLeaves(root, true)).transform(l -> getAutomatonForLeaf(root, l));
+        return getLeaves(root, true).transform(l -> getAutomatonForLeaf(root, l));
       default:
         throw new AssertionError("unexpected strategy");
     }
@@ -742,9 +742,9 @@ public class ARGToAutomatonConverter {
     return next;
   }
 
-  private static Iterable<ARGState> getLeaves(ARGState pRoot, boolean targetsOnly) {
+  private static FluentIterable<ARGState> getLeaves(ARGState pRoot, boolean targetsOnly) {
     FluentIterable<ARGState> leaves =
-        from(pRoot.getSubgraph()).filter(s -> s.getChildren().isEmpty() && !s.isCovered());
+        ARGUtils.getNonCoveredStatesInSubgraph(pRoot).filter(s -> s.getChildren().isEmpty());
     return targetsOnly ? leaves.filter(ARGState::isTarget) : leaves;
   }
 
