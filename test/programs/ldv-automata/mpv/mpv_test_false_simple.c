@@ -1,3 +1,11 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /*
  * This program violates 2 automata specifications: alloc_spinlock (1 bug) and spinlock (2 bugs).
  * Specifications mutex and rculock are satisfied (they are relevant for the program).

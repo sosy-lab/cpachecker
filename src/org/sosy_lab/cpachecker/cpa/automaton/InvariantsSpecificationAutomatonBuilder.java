@@ -1,35 +1,20 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2019  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
-import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -43,6 +28,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.Expression
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
@@ -53,13 +39,18 @@ public enum InvariantsSpecificationAutomatonBuilder {
 
   /**
    * Lets the automaton unchanged when calling {@link
-   * InvariantsSpecificationAutomatonBuilder#build(Automaton, Configuration, LogManager, CFA)}.
+   * InvariantsSpecificationAutomatonBuilder#build(Automaton, Configuration, LogManager,
+   * ShutdownNotifier, CFA)}.
    */
   NO_ISA {
 
     @Override
     public Automaton build(
-        Automaton pAutomaton, Configuration pConfig, LogManager pLogger, CFA pCfa) {
+        Automaton pAutomaton,
+        Configuration pConfig,
+        LogManager pLogger,
+        ShutdownNotifier pShutdownNotifier,
+        CFA pCfa) {
       return pAutomaton;
     }
   },
@@ -67,10 +58,10 @@ public enum InvariantsSpecificationAutomatonBuilder {
   /**
    * Defines an invariant specification automaton that refers to the structure of the original
    * witness automaton and that is extended with invariant based error states. Calling {@link
-   * InvariantsSpecificationAutomatonBuilder#build(Automaton, Configuration, LogManager, CFA)} only
-   * changes the name of the {@code Automaton} because the {@code Automaton} already includes the
-   * invariant based error states when {@code WITNESSBASED_INVARIANTSAUTOMATON} has been specified
-   * in {@link AutomatonGraphmlParser}.
+   * InvariantsSpecificationAutomatonBuilder#build(Automaton, Configuration, LogManager,
+   * ShutdownNotifier, CFA)} only changes the name of the {@code Automaton} because the {@code
+   * Automaton} already includes the invariant based error states when {@code
+   * WITNESSBASED_INVARIANTSAUTOMATON} has been specified in {@link AutomatonGraphmlParser}.
    */
   WITNESSBASED_ISA {
 
@@ -78,7 +69,11 @@ public enum InvariantsSpecificationAutomatonBuilder {
 
     @Override
     public Automaton build(
-        Automaton pAutomaton, Configuration pConfig, LogManager pLogger, CFA pCfa) {
+        Automaton pAutomaton,
+        Configuration pConfig,
+        LogManager pLogger,
+        ShutdownNotifier pShutdownNotifier,
+        CFA pCfa) {
       try {
         return new Automaton(
             WITNESS_AUTOMATON_NAME,
@@ -104,14 +99,13 @@ public enum InvariantsSpecificationAutomatonBuilder {
 
     @Override
     public Automaton build(
-        Automaton pAutomaton, Configuration pConfig, LogManager pLogger, CFA pCfa) {
-      ShutdownManager shutdownManager = ShutdownManager.create();
-      ShutdownNotifier shutdownNotifier = shutdownManager.getNotifier();
+        Automaton pAutomaton, Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
+        throws InterruptedException {
       try {
         WitnessInvariantsExtractor extractor =
-            new WitnessInvariantsExtractor(pConfig, pAutomaton, pLogger, pCfa, shutdownNotifier);
-        final Set<ExpressionTreeLocationInvariant> invariants = Sets.newLinkedHashSet();
-        extractor.extractInvariantsFromReachedSet(invariants);
+            new WitnessInvariantsExtractor(pConfig, pAutomaton, pLogger, pCfa, pShutdownNotifier);
+        final Set<ExpressionTreeLocationInvariant> invariants =
+            extractor.extractInvariantsFromReachedSet();
         return buildInvariantsAutomaton(pCfa, pLogger, invariants);
       } catch (InvalidConfigurationException | CPAException e) {
         throw new RuntimeException(
@@ -119,22 +113,22 @@ public enum InvariantsSpecificationAutomatonBuilder {
       }
     }
 
-    @SuppressWarnings("unchecked")
     private Automaton buildInvariantsAutomaton(
         CFA pCfa, LogManager pLogger, Set<ExpressionTreeLocationInvariant> pInvariants) {
       try {
         String automatonName = WITNESS_AUTOMATON_NAME;
         String initialStateName = INITIAL_STATE_NAME;
-        List<AutomatonInternalState> states = Lists.newLinkedList();
-        List<AutomatonTransition> initTransitions = Lists.newLinkedList();
+        ImmutableList.Builder<AutomatonInternalState> states = ImmutableList.builder();
+        ImmutableList.Builder<AutomatonTransition> initTransitions = ImmutableList.builder();
         for (ExpressionTreeLocationInvariant invariant : pInvariants) {
-          ExpressionTree<?> inv = invariant.asExpressionTree();
-          ExpressionTree<AExpression> invA = (ExpressionTree<AExpression>) inv;
+          @SuppressWarnings("unchecked")
+          ExpressionTree<AExpression> inv =
+              (ExpressionTree<AExpression>) (ExpressionTree<?>) invariant.asExpressionTree();
           CExpression cExpr =
-              invA.accept(new ToCExpressionVisitor(pCfa.getMachineModel(), pLogger));
-          if (invA instanceof LeafExpression<?>) {
+              inv.accept(new ToCExpressionVisitor(pCfa.getMachineModel(), pLogger));
+          if (inv instanceof LeafExpression<?>) {
             // we must swap the c expression when assume truth is false
-            if (!((LeafExpression<?>) invA).assumeTruth()) {
+            if (!((LeafExpression<?>) inv).assumeTruth()) {
               cExpr =
                   new CBinaryExpressionBuilder(pCfa.getMachineModel(), pLogger)
                       .negateExpressionAndSimplify(cExpr);
@@ -143,20 +137,19 @@ public enum InvariantsSpecificationAutomatonBuilder {
           CExpression negCExpr =
               new CBinaryExpressionBuilder(pCfa.getMachineModel(), pLogger)
                   .negateExpressionAndSimplify(cExpr);
-          List<AExpression> assumptionWithCExpr = Collections.singletonList(cExpr);
-          List<AExpression> assumptionWithNegCExpr = Collections.singletonList(negCExpr);
           initTransitions.add(
               createTransitionWithCheckLocationAndAssumptionToError(
-                  invariant.getLocation(), assumptionWithNegCExpr));
+                  invariant.getLocation(), ImmutableList.of(negCExpr)));
           initTransitions.add(
               createTransitionWithCheckLocationAndAssumptionToInit(
-                  invariant.getLocation(), assumptionWithCExpr));
+                  invariant.getLocation(), ImmutableList.of(cExpr)));
         }
         AutomatonInternalState initState =
-            new AutomatonInternalState(initialStateName, initTransitions, false, true, false);
+            new AutomatonInternalState(
+                initialStateName, initTransitions.build(), false, true, false);
         states.add(initState);
         Map<String, AutomatonVariable> vars = ImmutableMap.of();
-        return new Automaton(automatonName, vars, states, initialStateName);
+        return new Automaton(automatonName, vars, states.build(), initialStateName);
       } catch (InvalidAutomatonException | UnrecognizedCodeException e) {
         throw new RuntimeException("The passed invariants produce an inconsistent automaton", e);
       }
@@ -198,14 +191,17 @@ public enum InvariantsSpecificationAutomatonBuilder {
 
     @Override
     public Automaton build(
-        Automaton pAutomaton, Configuration pConfig, LogManager pLogger, CFA pCfa) {
-      ShutdownManager shutdownManager = ShutdownManager.create();
-      ShutdownNotifier shutdownNotifier = shutdownManager.getNotifier();
+        Automaton pAutomaton,
+        Configuration pConfig,
+        LogManager pLogger,
+        ShutdownNotifier pShutdownNotifier,
+        CFA pCfa)
+        throws InterruptedException {
       try {
         WitnessInvariantsExtractor extractor =
-            new WitnessInvariantsExtractor(pConfig, pAutomaton, pLogger, pCfa, shutdownNotifier);
-        final Set<ExpressionTreeLocationInvariant> invariants = Sets.newLinkedHashSet();
-        extractor.extractInvariantsFromReachedSet(invariants);
+            new WitnessInvariantsExtractor(pConfig, pAutomaton, pLogger, pCfa, pShutdownNotifier);
+        final Set<ExpressionTreeLocationInvariant> invariants =
+            extractor.extractInvariantsFromReachedSet();
         return buildInvariantsAutomaton(pCfa, pLogger, invariants);
       } catch (InvalidConfigurationException | CPAException e) {
         throw new RuntimeException(
@@ -213,20 +209,18 @@ public enum InvariantsSpecificationAutomatonBuilder {
       }
     }
 
-    @SuppressWarnings("unchecked")
     private Automaton buildInvariantsAutomaton(
         CFA pCfa, LogManager pLogger, Set<ExpressionTreeLocationInvariant> pInvariants) {
 
       try {
         String automatonName = WITNESS_AUTOMATON_NAME;
         String initialStateName = createStateName(pCfa.getMainFunction());
-        List<AutomatonInternalState> states = Lists.newLinkedList();
+        ImmutableList.Builder<AutomatonInternalState> states = ImmutableList.builder();
         Set<CFANode> invariantCFANodes = extractCFANodes(pInvariants);
         for (CFANode node : pCfa.getAllNodes()) {
           if (node.getNumLeavingEdges() > 0) {
-            List<AutomatonTransition> transitions = Lists.newLinkedList();
-            for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-              CFAEdge leavingEdge = node.getLeavingEdge(i);
+            ImmutableList.Builder<AutomatonTransition> transitions = ImmutableList.builder();
+            for (CFAEdge leavingEdge : CFAUtils.leavingEdges(node)) {
               CFANode successor = leavingEdge.getSuccessor();
               boolean successorIsBottom = false;
               if (successor.getNumLeavingEdges() == 0) {
@@ -235,21 +229,23 @@ public enum InvariantsSpecificationAutomatonBuilder {
               if (invariantCFANodes.contains(successor)) {
                 ExpressionTreeLocationInvariant invariant =
                     getInvariantByLocation(pInvariants, successor);
-                ExpressionTree<?> inv = invariant.asExpressionTree();
-                ExpressionTree<AExpression> invA = (ExpressionTree<AExpression>) inv;
+                @SuppressWarnings("unchecked")
+                ExpressionTree<AExpression> inv =
+                    (ExpressionTree<AExpression>) (ExpressionTree<?>) invariant.asExpressionTree();
                 createLocationInvariantsTransitions(
-                    pCfa, pLogger, transitions, successor, invA, successorIsBottom);
+                    pCfa, pLogger, transitions, successor, inv, successorIsBottom);
               } else {
                 transitions.add(
                     createAutomatonTransition(successor, ImmutableList.of(), successorIsBottom));
               }
             }
             AutomatonInternalState state =
-                new AutomatonInternalState(createStateName(node), transitions, false, true, false);
+                new AutomatonInternalState(
+                    createStateName(node), transitions.build(), false, true, false);
             states.add(state);
           }
         }
-        return new Automaton(automatonName, ImmutableMap.of(), states, initialStateName);
+        return new Automaton(automatonName, ImmutableMap.of(), states.build(), initialStateName);
       } catch (InvalidAutomatonException | UnrecognizedCodeException e) {
         throw new RuntimeException("The passed invariants produce an inconsistent automaton", e);
       }
@@ -258,7 +254,7 @@ public enum InvariantsSpecificationAutomatonBuilder {
     private void createLocationInvariantsTransitions(
         final CFA pCfa,
         final LogManager pLogger,
-        final List<AutomatonTransition> pTransitions,
+        final ImmutableList.Builder<AutomatonTransition> pTransitions,
         final CFANode pSuccessor,
         final ExpressionTree<AExpression> pInvariant,
         final boolean pSuccessorIsBottom)
@@ -276,11 +272,10 @@ public enum InvariantsSpecificationAutomatonBuilder {
       CExpression negCExpr =
           new CBinaryExpressionBuilder(pCfa.getMachineModel(), pLogger)
               .negateExpressionAndSimplify(cExpr);
-      List<AExpression> assumptionWithNegCExpr = Collections.singletonList(negCExpr);
-      pTransitions.add(createAutomatonInvariantErrorTransition(pSuccessor, assumptionWithNegCExpr));
-      List<AExpression> assumptionWithCExpr = Collections.singletonList(cExpr);
       pTransitions.add(
-          createAutomatonTransition(pSuccessor, assumptionWithCExpr, pSuccessorIsBottom));
+          createAutomatonInvariantErrorTransition(pSuccessor, ImmutableList.of(negCExpr)));
+      pTransitions.add(
+          createAutomatonTransition(pSuccessor, ImmutableList.of(cExpr), pSuccessorIsBottom));
     }
 
     private AutomatonTransition createAutomatonTransition(
@@ -318,20 +313,16 @@ public enum InvariantsSpecificationAutomatonBuilder {
     }
 
     private Set<CFANode> extractCFANodes(final Set<ExpressionTreeLocationInvariant> pInvariants) {
-      return pInvariants
-          .stream()
-          .map(ExpressionTreeLocationInvariant::getLocation)
-          .collect(Collectors.toSet());
+      return Collections3.transformedImmutableSetCopy(
+          pInvariants, ExpressionTreeLocationInvariant::getLocation);
     }
 
     private ExpressionTreeLocationInvariant getInvariantByLocation(
         final Set<ExpressionTreeLocationInvariant> pInvariants, final CFANode pLocation) {
-      Set<ExpressionTreeLocationInvariant> filteredInvariants =
-          pInvariants
-              .stream()
-              .filter(inv -> inv.getLocation().equals(pLocation))
-              .collect(Collectors.toSet());
-      return filteredInvariants.iterator().next();
+      return pInvariants.stream()
+          .filter(inv -> inv.getLocation().equals(pLocation))
+          .findFirst()
+          .orElseThrow();
     }
   };
 
@@ -341,11 +332,13 @@ public enum InvariantsSpecificationAutomatonBuilder {
    * changes.
    *
    * @param pAutomaton - the correctness witness automaton used
-   * @param pConfig - the configuration
-   * @param pLogger - the logger
-   * @param pCfa - the cfa
    * @return the invariants specification automaton if specified
    */
   public abstract Automaton build(
-      Automaton pAutomaton, Configuration pConfig, LogManager pLogger, CFA pCfa);
+      Automaton pAutomaton,
+      Configuration pConfig,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      CFA pCfa)
+      throws InterruptedException;
 }

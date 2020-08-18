@@ -1,34 +1,21 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2016  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import java.util.Map;
 import java.util.Objects;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import java.util.concurrent.ConcurrentMap;
+import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -54,49 +41,36 @@ public class ExpressionTreeLocationInvariant extends SingleLocationFormulaInvari
 
   private final String groupId;
 
-  private final @Nullable Map<ManagerKey, ToFormulaVisitor> visitorCache;
-
-  public ExpressionTreeLocationInvariant(
-      String pGroupId, CFANode pLocation, ExpressionTree<AExpression> pExpressionTree) {
-    this(pGroupId, pLocation, pExpressionTree, null);
-  }
+  private final ConcurrentMap<ManagerKey, ToFormulaVisitor> visitorCache;
 
   public ExpressionTreeLocationInvariant(
       String pGroupId,
       CFANode pLocation,
       ExpressionTree<AExpression> pExpressionTree,
-      @Nullable Map<ManagerKey, ToFormulaVisitor> pVisitorCache) {
+      ConcurrentMap<ManagerKey, ToFormulaVisitor> pVisitorCache) {
     super(pLocation);
     groupId = Objects.requireNonNull(pGroupId);
     location = Objects.requireNonNull(pLocation);
     expressionTree = Objects.requireNonNull(pExpressionTree);
-    visitorCache = pVisitorCache;
+    visitorCache = checkNotNull(pVisitorCache);
   }
 
   @Override
   public BooleanFormula getFormula(
       FormulaManagerView pFMGR, PathFormulaManager pPFMGR, PathFormula pContext)
       throws CPATransferException, InterruptedException {
-    ManagerKey key = null;
     PathFormula clearContext = pContext == null ? null : pPFMGR.makeEmptyPathFormula(pContext);
-    ToFormulaVisitor toFormulaVisitor = null;
-    if (visitorCache != null) {
-      key = new ManagerKey(pFMGR, pPFMGR, clearContext);
-      toFormulaVisitor = visitorCache.get(key);
-    }
-    if (toFormulaVisitor == null) {
-      toFormulaVisitor = new ToFormulaVisitor(pFMGR, pPFMGR, clearContext);
-      if (visitorCache != null) {
-        visitorCache.put(key, toFormulaVisitor);
-      }
-    }
+    ManagerKey key = new ManagerKey(pFMGR, pPFMGR, clearContext);
+    ToFormulaVisitor toFormulaVisitor =
+        visitorCache.computeIfAbsent(
+            key,
+            k -> new ToFormulaVisitor(k.formulaManagerView, k.pathFormulaManager, k.clearContext));
     try {
       return expressionTree.accept(toFormulaVisitor);
     } catch (ToFormulaException e) {
-      if (e.isInterruptedException()) {
-        throw e.asInterruptedException();
-      }
-      throw e.asTransferException();
+      Throwables.propagateIfPossible(
+          e.getCause(), CPATransferException.class, InterruptedException.class);
+      throw new UnexpectedCheckedException("expression tree to formula", e);
     }
   }
 

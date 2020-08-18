@@ -1,36 +1,21 @@
-/*
- * CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2016  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.weakening;
 
-
+import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager.WEAKENING_STRATEGY.CEX;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multiset;
-import com.google.common.collect.Sets;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -164,9 +149,10 @@ public class InductiveWeakeningManager implements StatisticsProvider {
         startingSSA,
         fromStateLemmas);
 
-    Set<BooleanFormula> out =
-        Sets.filter(
-            toStateLemmas, lemma -> !toAbstract.contains(selectionInfo.inverse().get(lemma)));
+    ImmutableSet<BooleanFormula> out =
+        from(toStateLemmas)
+            .filter(lemma -> !toAbstract.contains(selectionInfo.inverse().get(lemma)))
+            .toSet();
     assert checkAllMapsTo(fromStateLemmas, startingSSA, out, transition
         .getSsa(), transition.getFormula());
     return out;
@@ -209,8 +195,10 @@ public class InductiveWeakeningManager implements StatisticsProvider {
         toStateLemmasAnnotated,
         startingSSA, lemmas);
 
-    Set<BooleanFormula> out =
-        Sets.filter(lemmas, lemma -> !toAbstract.contains(selectionInfo.inverse().get(lemma)));
+    ImmutableSet<BooleanFormula> out =
+        from(lemmas)
+            .filter(lemma -> !toAbstract.contains(selectionInfo.inverse().get(lemma)))
+            .toSet();
     assert checkAllMapsTo(out, startingSSA, out, transition.getSsa(),
         transition.getFormula());
 

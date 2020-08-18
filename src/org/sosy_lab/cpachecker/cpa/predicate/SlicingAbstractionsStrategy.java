@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -45,6 +30,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+import org.sosy_lab.common.collect.PersistentList;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -414,10 +400,10 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
         SlicingAbstractionsUtils.removeOutgoingEdgesWithLocationMismatch((SLARGState) currentState);
       }
 
-      Map<ARGState, List<ARGState>> segmentMap =
+      Map<ARGState, PersistentList<ARGState>> segmentMap =
           SlicingAbstractionsUtils.calculateOutgoingSegments(currentState);
       Map<ARGState, Boolean> infeasibleMap = new HashMap<>();
-      for (Map.Entry<ARGState,List<ARGState>> entry : segmentMap.entrySet()) {
+      for (Map.Entry<ARGState, PersistentList<ARGState>> entry : segmentMap.entrySet()) {
         ARGState key = entry.getKey();
         List<ARGState> segment = entry.getValue();
         boolean infeasible;
@@ -443,7 +429,7 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
 
   private static void slice0(
       ARGState currentState,
-      Map<ARGState, List<ARGState>> segmentMap,
+      Map<ARGState, PersistentList<ARGState>> segmentMap,
       Map<ARGState, Boolean> infeasibleMap) {
     Set<ARGState> segmentStateSet = new HashSet<>();
     for (List<ARGState> segment : segmentMap.values()) {

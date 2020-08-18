@@ -1,48 +1,41 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2019  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.core.CPABuilder;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
@@ -53,7 +46,9 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.automaton.Automaton;
+import org.sosy_lab.cpachecker.cpa.automaton.AutomatonInvariantsUtils;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.expressions.And;
@@ -67,6 +62,7 @@ import org.sosy_lab.cpachecker.util.expressions.ToFormulaVisitor;
  * reachability analysis over the witness automaton. Subsequently, the invariants can be extracted
  * from the reached set.
  */
+@Options(prefix = "witness")
 public class WitnessInvariantsExtractor {
 
   private Configuration config;
@@ -76,6 +72,17 @@ public class WitnessInvariantsExtractor {
   private ReachedSet reachedSet;
   private Specification automatonAsSpec;
 
+  @Option(
+      secure = true,
+      name = "debug.checkForMissedInvariants",
+      description =
+          "Fail-fast if invariants in the witness exist that would not be accounted for. "
+              + "There are cases where unaccounted invariants are perfectly fine, "
+              + "e.g. if those states in the witness automaton are actually unreachable in the program. "
+              + "This is however rarely the intention of the original producer of the witness, "
+              + "so this options can be used to debug those cases.")
+  private boolean checkForMissedInvariants = false;
+
   /**
    * Creates an instance of {@link WitnessInvariantsExtractor} and uses {@code pSpecification} and
    * {@code pPathToWitnessFile} to build the witness automaton so this automaton can be applied as
@@ -83,7 +90,6 @@ public class WitnessInvariantsExtractor {
    * called.
    *
    * @param pConfig the configuration
-   * @param pSpecification the specification
    * @param pLogger the logger
    * @param pCFA the cfa
    * @param pShutdownNotifier the shutdown notifier
@@ -92,17 +98,17 @@ public class WitnessInvariantsExtractor {
    */
   public WitnessInvariantsExtractor(
       Configuration pConfig,
-      Specification pSpecification,
       LogManager pLogger,
       CFA pCFA,
       ShutdownNotifier pShutdownNotifier,
       Path pPathToWitnessFile)
       throws InvalidConfigurationException, CPAException, InterruptedException {
     this.config = pConfig;
+    config.inject(this);
     this.logger = pLogger;
     this.cfa = pCFA;
     this.shutdownNotifier = pShutdownNotifier;
-    this.automatonAsSpec = buildSpecification(pSpecification, pPathToWitnessFile);
+    this.automatonAsSpec = buildSpecification(pPathToWitnessFile);
     analyzeWitness();
   }
 
@@ -130,7 +136,7 @@ public class WitnessInvariantsExtractor {
     this.logger = pLogger;
     this.cfa = pCFA;
     this.shutdownNotifier = pShutdownNotifier;
-    this.automatonAsSpec = buildSpecification(pAutomaton);
+    this.automatonAsSpec = Specification.fromAutomata(ImmutableList.of(pAutomaton));
     analyzeWitness();
   }
 
@@ -152,21 +158,15 @@ public class WitnessInvariantsExtractor {
     return configBuilder.build();
   }
 
-  private Specification buildSpecification(Specification pSpecification, Path pathToWitnessFile)
+  private Specification buildSpecification(Path pathToWitnessFile)
       throws InvalidConfigurationException, InterruptedException {
     return Specification.fromFiles(
-        pSpecification.getProperties(),
+        ImmutableSet.of(),
         ImmutableList.of(pathToWitnessFile),
         cfa,
         config,
         logger,
         shutdownNotifier);
-  }
-
-  private Specification buildSpecification(Automaton pAutomaton) {
-    List<Automaton> automata = new ArrayList<>(1);
-    automata.add(pAutomaton);
-    return Specification.fromAutomata(automata);
   }
 
   private void analyzeWitness() throws InvalidConfigurationException, CPAException {
@@ -188,23 +188,24 @@ public class WitnessInvariantsExtractor {
       // but instead of throwing the exception here,
       // let it be thrown by the invariant generator.
     }
+    if (checkForMissedInvariants) {
+      AutomatonInvariantsUtils.checkForMissedInvariants(automatonAsSpec, reachedSet);
+    }
   }
 
   /**
-   * Extracts the invariants with their corresponding CFA location from {@link:
+   * Extracts the invariants with their corresponding CFA location from {@link
    * WitnessInvariantsExtractor#reachedSet}. For two invariants at the same CFA location the
    * conjunction is applied for the two invariants.
    *
-   * @param pInvariants the set of location invariants that stores the extracted location invariants
+   * @return the set of location invariants that stores the extracted location invariants
    */
-  @SuppressWarnings("unchecked")
-  public void extractInvariantsFromReachedSet(
-      final Set<ExpressionTreeLocationInvariant> pInvariants) {
-    Map<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = Maps.newConcurrentMap();
+  public Set<ExpressionTreeLocationInvariant> extractInvariantsFromReachedSet()
+      throws InterruptedException {
+    Set<ExpressionTreeLocationInvariant> invariants = new LinkedHashSet<>();
+    ConcurrentMap<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = new ConcurrentHashMap<>();
     for (AbstractState abstractState : reachedSet) {
-      if (shutdownNotifier.shouldShutdown()) {
-        return;
-      }
+      shutdownNotifier.shutdownIfNecessary();
       CFANode location = AbstractStates.extractLocation(abstractState);
       for (AutomatonState automatonState :
           AbstractStates.asIterable(abstractState).filter(AutomatonState.class)) {
@@ -212,27 +213,30 @@ public class WitnessInvariantsExtractor {
         String groupId = automatonState.getInternalStateName();
         ExpressionTreeLocationInvariant previousInv = null;
         if (!candidate.equals(ExpressionTrees.getTrue())) {
-          for (ExpressionTreeLocationInvariant inv : pInvariants) {
+          for (ExpressionTreeLocationInvariant inv : invariants) {
             if (inv.getLocation().equals(location)) {
               previousInv = inv;
             }
           }
           ExpressionTree<AExpression> previousExpression = ExpressionTrees.getTrue();
           if (previousInv != null) {
-            ExpressionTree<?> expr = previousInv.asExpressionTree();
-            previousExpression = (ExpressionTree<AExpression>) expr;
-            pInvariants.remove(previousInv);
+            @SuppressWarnings("unchecked")
+            ExpressionTree<AExpression> expr =
+                (ExpressionTree<AExpression>) (ExpressionTree<?>) previousInv.asExpressionTree();
+            previousExpression = expr;
+            invariants.remove(previousInv);
           }
-          pInvariants.add(
+          invariants.add(
               new ExpressionTreeLocationInvariant(
                   groupId, location, And.of(previousExpression, candidate), toCodeVisitorCache));
         }
       }
     }
+    return invariants;
   }
 
   /**
-   * Extracts the invariants from {@link: WitnessInvariantsExtractor#reachedSet} and stores it in
+   * Extracts the invariants from {@link WitnessInvariantsExtractor#reachedSet} and stores it in
    * {@code pCandidates}. The invariants are regarded as candidates that can hold at several CFA
    * locations. Therefore, {@code pCandidateGroupLocations} is used that groups CFANodes by using a
    * groupID. For two invariants that are part of the same group the conjunction is applied for the
@@ -243,17 +247,16 @@ public class WitnessInvariantsExtractor {
    */
   public void extractCandidatesFromReachedSet(
       final Set<CandidateInvariant> pCandidates,
-      final Multimap<String, CFANode> pCandidateGroupLocations) {
-    Set<ExpressionTreeLocationInvariant> expressionTreeLocationInvariants = Sets.newHashSet();
-    Map<String, ExpressionTree<AExpression>> expressionTrees = Maps.newHashMap();
-    Set<CFANode> visited = Sets.newHashSet();
+      final Multimap<String, CFANode> pCandidateGroupLocations)
+      throws InterruptedException {
+    Set<ExpressionTreeLocationInvariant> expressionTreeLocationInvariants = new HashSet<>();
+    Map<String, ExpressionTree<AExpression>> expressionTrees = new HashMap<>();
+    Set<CFANode> visited = new HashSet<>();
     Multimap<CFANode, ExpressionTreeLocationInvariant> potentialAdditionalCandidates =
         HashMultimap.create();
-    Map<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = Maps.newConcurrentMap();
+    ConcurrentMap<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = new ConcurrentHashMap<>();
     for (AbstractState abstractState : reachedSet) {
-      if (shutdownNotifier.shouldShutdown()) {
-        return;
-      }
+      shutdownNotifier.shutdownIfNecessary();
       Iterable<CFANode> locations = AbstractStates.extractLocations(abstractState);
       Iterables.addAll(visited, locations);
       for (AutomatonState automatonState :

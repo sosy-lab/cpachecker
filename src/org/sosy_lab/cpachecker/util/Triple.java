@@ -1,46 +1,29 @@
-/*
- *  SoSy-Lab Common is a library of useful utilities.
- *  This file is part of SoSy-Lab Common.
- *
- *  Copyright (C) 2007-2015  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util;
 
 import java.io.Serializable;
 import java.util.Objects;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * A generic Triple class based on Pair.java.
  *
- * PLEASE DO NOT USE THIS CLASS!
- * It is better design to use proper specific classes
- * that have semantically meaningful names instead of Pair and Triple.
- * There might be cases where usage of such generic classes
- * is understandable, but their mere presence invites to misuse them
- * and introduce non-understandable code using things like
- * Triple<String, String, String>.
- * Thus the general goal is to remove these classes completely,
- * CPAchecker just relies too heavily on them for now.
+ * <p>PLEASE DO NOT USE THIS CLASS! It is better design to use proper specific classes that have
+ * semantically meaningful names instead of Pair and Triple. There might be cases where usage of
+ * such generic classes is understandable, but their mere presence invites to misuse them and
+ * introduce non-understandable code using things like {@code Triple<String, String, String>}. Thus
+ * the general goal is to remove these classes completely, CPAchecker just relies too heavily on
+ * them for now.
  *
- * Please do not use these two classes in new code.
- * Either write a custom class with meaningful names,
- * or we start using AutoValue in CPAchecker to generate such classes
- * automatically.
+ * <p>Please do not use these two classes in new code. Either write a custom class with meaningful
+ * names, or we start using AutoValue in CPAchecker to generate such classes automatically.
  */
 public class Triple<A, B, C> implements Serializable {
 
