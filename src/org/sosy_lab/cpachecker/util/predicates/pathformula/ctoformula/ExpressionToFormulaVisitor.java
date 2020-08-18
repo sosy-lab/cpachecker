@@ -580,6 +580,16 @@ public class ExpressionToFormulaVisitor
           return mgr.getBooleanFormulaManager().makeTrue();
         }
       }
+
+      // We need to make sure the forceFormulaType Bitvector is not too small
+      // for the literal value.
+      if (forceFormulaType.get().isBitvectorType()) {
+        int tLength = ((FormulaType.BitvectorType) forceFormulaType.get()).getSize();
+        int eLength = conv.typeHandler.getBitSizeof(cExp.getExpressionType());
+        if (eLength > tLength) {
+          return mgr.makeNumber(FormulaType.getBitvectorTypeWithSize(eLength), cExp.getCharacter());
+        }
+      }
       t = forceFormulaType.get();
     } else {
       t = conv.getFormulaTypeFromCType(cExp.getExpressionType());
@@ -600,6 +610,16 @@ public class ExpressionToFormulaVisitor
           return mgr.getBooleanFormulaManager().makeFalse();
         } else {
           return mgr.getBooleanFormulaManager().makeTrue();
+        }
+      }
+
+      // We need to make sure the forceFormulaType Bitvector is not too small
+      // for the literal value.
+      if (forceFormulaType.get().isBitvectorType()) {
+        int tLength = ((FormulaType.BitvectorType) forceFormulaType.get()).getSize();
+        int eLength = conv.typeHandler.getBitSizeof(iExp.getExpressionType());
+        if (eLength > tLength) {
+          return mgr.makeNumber(FormulaType.getBitvectorTypeWithSize(eLength), iExp.getValue());
         }
       }
       t = forceFormulaType.get();
