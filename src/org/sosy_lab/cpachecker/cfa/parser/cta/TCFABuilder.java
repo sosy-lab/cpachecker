@@ -233,7 +233,9 @@ class TCFABuilder {
     TCFANode source = (TCFANode) nodesByName.get(specification.source);
     TCFANode target = (TCFANode) nodesByName.get(specification.target);
 
-    var edge = new TCFAEdge(FileLocation.DUMMY, source, target, guard, resetClocks, action);
+    var edge =
+        new TCFAEdge(
+            FileLocation.DUMMY, source, target, guard, resetClocks, action, moduleDeclaration);
     source.addLeavingEdge(edge);
     target.addEnteringEdge(edge);
   }

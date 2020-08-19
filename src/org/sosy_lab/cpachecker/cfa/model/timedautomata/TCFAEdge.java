@@ -14,6 +14,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariable;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariableCondition;
 import org.sosy_lab.cpachecker.cfa.model.AbstractCFAEdge;
@@ -25,6 +26,7 @@ public class TCFAEdge extends AbstractCFAEdge {
   private final Set<TaVariable> variablesToReset;
   private final Optional<TaVariableCondition> guard;
   private final Optional<TaVariable> action;
+  private final TaDeclaration automaton;
 
   private static final long serialVersionUID = 5472749446453717391L;
 
@@ -34,11 +36,13 @@ public class TCFAEdge extends AbstractCFAEdge {
       CFANode pSuccessor,
       Optional<TaVariableCondition> pGuard,
       Set<TaVariable> pVariablesToReset,
-      Optional<TaVariable> pAction) {
+      Optional<TaVariable> pAction,
+      TaDeclaration pAutomaton) {
     super("", pFileLocation, pPredecessor, pSuccessor);
     variablesToReset = pVariablesToReset;
     guard = pGuard;
     action = pAction;
+    automaton = pAutomaton;
   }
 
   public static TCFAEdge createDummyEdge() {
@@ -48,7 +52,8 @@ public class TCFAEdge extends AbstractCFAEdge {
         CFANode.newDummyCFANode("dummy"),
         Optional.absent(),
         ImmutableSet.of(),
-        Optional.absent());
+        Optional.absent(),
+        null);
   }
 
   public Optional<TaVariable> getAction() {
@@ -61,6 +66,10 @@ public class TCFAEdge extends AbstractCFAEdge {
 
   public Optional<TaVariableCondition> getGuard() {
     return guard;
+  }
+
+  public TaDeclaration getAutomatonDeclaration() {
+    return automaton;
   }
 
   @Override
