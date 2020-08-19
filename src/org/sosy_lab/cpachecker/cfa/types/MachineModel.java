@@ -13,6 +13,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.errorprone.annotations.Immutable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.math.BigInteger;
 import java.nio.ByteOrder;
@@ -151,6 +152,7 @@ public enum MachineModel {
   private final int sizeofVoid;
   private final int sizeofBool;
   private final int sizeofPtr;
+  @SuppressWarnings("ImmutableEnumChecker")
   private final ByteOrder endianness;
 
   // alignof numeric types
