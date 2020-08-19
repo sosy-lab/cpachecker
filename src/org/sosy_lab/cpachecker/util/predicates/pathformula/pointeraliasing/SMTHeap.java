@@ -38,7 +38,6 @@ public interface SMTHeap {
    * Make a formula that represents a pointer access.
    * @param targetName The name of the pointer access symbol as returned by {@link MemoryRegionManager#getPointerAccessName(MemoryRegion)}
    * @param targetType The formula type of the value
-   * @param ssaIndex The SSA index for targetName
    * @param address The address to access
    * @return A formula representing {@code targetName@ssaIndex[address]}
    */
