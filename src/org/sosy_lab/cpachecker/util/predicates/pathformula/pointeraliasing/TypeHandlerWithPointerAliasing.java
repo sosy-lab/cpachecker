@@ -34,6 +34,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormula
 public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
 
   private static final String POINTER_NAME_PREFIX = "*";
+  private static final String BYTE_ACCESS_NAME = "BYTE";
 
   private final MachineModel model;
   private final FormulaEncodingWithPointerAliasingOptions options;
@@ -122,7 +123,7 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
    * @return The corresponding simplified canonical type
    */
   CType simplifyType(final CType type) {
-    return type.accept(canonizingVisitor);
+      return type.accept(canonizingVisitor);
   }
 
   /** Get a simplified type as defined by {@link #simplifyType(CType)} from an AST node. */
@@ -173,11 +174,18 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
    */
   public String getPointerAccessNameForType(final CType type) {
     String result = pointerNameCache.get(type);
+
+
+
     if (result != null) {
       return result;
     } else {
-      result =
-          POINTER_NAME_PREFIX + simplifyTypeForPointerAccess(type).toString().replace(' ', '_');
+      if (options.useByteArrayForHeap()){
+        result = POINTER_NAME_PREFIX + BYTE_ACCESS_NAME;
+      }else {
+        result =
+            POINTER_NAME_PREFIX + simplifyTypeForPointerAccess(type).toString().replace(' ', '_');
+      }
       pointerNameCache.put(type, result);
       return result;
     }

@@ -51,7 +51,15 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
         "Use SMT arrays for encoding heap memory instead of uninterpreted function."
             + " This is more precise but may lead to interpolation failures."
   )
-  private boolean useArraysForHeap = true;
+  private boolean useArraysForHeap = false;
+
+  @Option(
+      secure = true,
+      description =
+          "Use SMT byte array for encoding heap memory instead of uninterpreted function."
+              + " This is more close to c heap implementation but may be to expensive."
+  )
+  private boolean useByteArrayForHeap = true;
 
   @Option(secure = true, description = "The length for arrays we assume for variably-sized arrays.")
   private int defaultArrayLength = 20;
@@ -203,5 +211,9 @@ public class FormulaEncodingWithPointerAliasingOptions extends FormulaEncodingOp
 
   public boolean useConstraintOptimization() {
     return useConstraintOptimization;
+  }
+
+  public boolean useByteArrayForHeap() {
+    return useByteArrayForHeap;
   }
 }
