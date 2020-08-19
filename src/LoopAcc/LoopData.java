@@ -51,7 +51,10 @@ public class LoopData implements Comparable<LoopData> {
 
   private int amountOfPaths;
 
-  private boolean loopInLoop = false;
+  private boolean flagEndless = false;
+  private boolean loopInLoop;
+  private boolean outerLoop;
+  private Loop innerLoop;
   private boolean canBeAccelerated;
 
   private final int OUTPUT_VARIABLE_ARRAY_POSITION = 2;
@@ -75,7 +78,8 @@ public class LoopData implements Comparable<LoopData> {
       CFA cfa,
       ArrayList<CFANode> loopNodes,
       Loop loop,
-      LogManager pLogger) {
+      LogManager pLogger,
+      boolean loopTrueFalse) {
     this.loopStart = nameStart;
     this.endOfCondition = new ArrayList<>();
     conditionInFor = new ArrayList<>();
@@ -83,10 +87,11 @@ public class LoopData implements Comparable<LoopData> {
 
     this.endOfCondition.add(endCondition);
     loopInLoop = isInnerLoop(loop, cfa);
+    outerLoop = isOuterLoop(loop, cfa);
     loopType = findLoopType();
     nodesInLoop = loopNodes;
     loopEnd = nodesInLoop.get(nodesInLoop.size() - LAST_POSITION_OF_LIST);
-    nodesInCondition = nodesInCondition(cfa, pLogger);
+    nodesInCondition = nodesInCondition(cfa, pLogger, loopTrueFalse);
     output = getAllOutputs();
     condition = nodesToCondition();
     getAllPaths();
@@ -138,15 +143,28 @@ public class LoopData implements Comparable<LoopData> {
    * @return true if this is a inner loop or false if this isn't a inner loop
    */
   private boolean isInnerLoop(Loop loop, CFA cfa) {
-    boolean innerLoop = false;
+    boolean tempInnerLoop = false;
 
     for (Loop tempLoop : cfa.getLoopStructure().get().getAllLoops()) {
       if (tempLoop.isOuterLoopOf(loop)) {
-        innerLoop = true;
+        tempInnerLoop = true;
       }
     }
 
-    return innerLoop;
+    return tempInnerLoop;
+  }
+
+  private boolean isOuterLoop(Loop loop, CFA cfa) {
+    boolean tempOuterLoop = false;
+
+    for (Loop tempLoop : cfa.getLoopStructure().get().getAllLoops()) {
+      if (loop.isOuterLoopOf(tempLoop)) {
+        tempOuterLoop = true;
+        innerLoop = tempLoop;
+      }
+    }
+
+    return tempOuterLoop;
   }
 
   /**
@@ -172,10 +190,15 @@ public class LoopData implements Comparable<LoopData> {
               flag = false;
             }
           }
-          if (flag) {
+          if (flag
+              && CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i)) != null
+              && !CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i))
+                  .contains("__CPAchecker_")) {
             String temp =
                 CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i))
-                    .split(OUTPUT_NAME_SYMBOL_CUT)[OUTPUT_VARIABLE_ARRAY_POSITION];
+                    .split(OUTPUT_NAME_SYMBOL_CUT)[OUTPUT_VARIABLE_ARRAY_POSITION]
+                    + "&"
+                    + CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(i));
             tempOutput.add(temp);
           }
         }
@@ -195,9 +218,11 @@ public class LoopData implements Comparable<LoopData> {
     ArrayList<String> outputs = output;
     ArrayList<String> temp = new ArrayList<>();
 
-    for (String s : outputs) {
-      if (inputs.contains(s)) {
-        temp.add(s);
+    for (String o : outputs) {
+      for (String i : inputs) {
+        if ((o.split("&")[0].contentEquals(i)) && !temp.contains(o)) {
+          temp.add(o);
+      }
       }
     }
     return temp;
@@ -281,12 +306,13 @@ public class LoopData implements Comparable<LoopData> {
    * @param cfa
    * @return returns a list with all the nodes that are part of the condition
    */
-  public ArrayList<CFANode> nodesInCondition(CFA cfa, LogManager pLogger) {
+  public ArrayList<CFANode> nodesInCondition(CFA cfa, LogManager pLogger, boolean loopTF) {
 
     ArrayList<CFANode> nodes = new ArrayList<>();
     ArrayList<CFANode> tempNodes = new ArrayList<>();
     CFANode tempNode = loopStart;
     boolean flag = true;
+
 
     if (loopType.contentEquals("while")) {
 
@@ -349,6 +375,7 @@ public class LoopData implements Comparable<LoopData> {
     }
     }
 
+    if (!loopTF) {
     LoopGetIfAfterLoopCondition l = new LoopGetIfAfterLoopCondition(nodes, pLogger);
     if (l.getSmallestIf() != NO_IF_CASE) {
       ArrayList<CFANode> tempN = (ArrayList<CFANode>) nodes.clone();
@@ -362,7 +389,7 @@ public class LoopData implements Comparable<LoopData> {
     }
       nodes = tempN;
     }
-
+  }
     return nodes;
   }
 
@@ -379,6 +406,10 @@ public class LoopData implements Comparable<LoopData> {
     CFANode node;
 
     if (loopType.contentEquals("while")) {
+      if (temp.isEmpty()) {
+        cond = "1";
+      }
+
     while (!temp.isEmpty()) {
         node = temp.get(FIRST_POSITION_OF_LIST);
         temp.remove(FIRST_POSITION_OF_LIST);
@@ -414,14 +445,15 @@ public class LoopData implements Comparable<LoopData> {
         if (temps.getLeavingEdge(VALID_STATE).getCode().contains("<")
             || temps.getLeavingEdge(VALID_STATE).getCode().contains(">")
             || temps.getLeavingEdge(VALID_STATE).getCode().contains("==")
-            || temps.getLeavingEdge(VALID_STATE).getCode().contains("!=")) {
+            || temps.getLeavingEdge(VALID_STATE).getCode().contains("!=")
+            || temps.getLeavingEdge(VALID_STATE).getCode().contentEquals("")) {
           forCondition.add(temps);
           tempIterator.remove();
         }
       }
 
-      // CFANode end = temp.get(FIRST_POSITION_OF_LIST);
-      // temp.remove(FIRST_POSITION_OF_LIST);
+      CFANode end = temp.get(FIRST_POSITION_OF_LIST);
+      temp.remove(FIRST_POSITION_OF_LIST);
 
       conditionInFor = (ArrayList<CFANode>) forCondition.clone();
 
@@ -447,18 +479,19 @@ public class LoopData implements Comparable<LoopData> {
             cond = cond + node.getLeavingEdge(VALID_STATE).getCode() + " || ";
           }
         } else {
+          if (node.getLeavingEdge(VALID_STATE).getCode().contentEquals("")) {
+            cond = cond + "1";
+            flagEndless = true;
+          } else {
           cond = cond + node.getLeavingEdge(VALID_STATE).getCode();
           failedState = node.getLeavingEdge(ERROR_STATE).getSuccessor();
+        }
         }
       }
 
       cond += ";";
-
-      // String x = end.getLeavingEdge(VALID_STATE).getDescription();
-      // x = x.substring(0, x.length() - LAST_POSITION_OF_LIST);
-      // cond += x + ";";
+      cond += end.getLeavingEdge(VALID_STATE).getCode();
     }
-
     return cond;
   }
 
@@ -511,6 +544,7 @@ public class LoopData implements Comparable<LoopData> {
       }
 
     } else if (loopType.contentEquals("for")) {
+      if (!flagEndless) {
       ArrayList<String> rightSideVariable = new ArrayList<>();
       for (CFANode node : conditionInFor) {
         rightSideVariable.add(
@@ -541,8 +575,10 @@ public class LoopData implements Comparable<LoopData> {
           }
         }
       }
+    } else {
+      temp.add(true);
     }
-
+  }
     for (Boolean b : temp) {
       if (b == true) {
         canAccelerate = true;
@@ -606,6 +642,14 @@ public class LoopData implements Comparable<LoopData> {
 
   public ArrayList<CFANode> getNodesInCondition() {
     return nodesInCondition;
+  }
+
+  public boolean getIsOuterLoop() {
+    return outerLoop;
+  }
+
+  public Loop getInnerLoop() {
+    return innerLoop;
   }
 
   public String outputToString() {

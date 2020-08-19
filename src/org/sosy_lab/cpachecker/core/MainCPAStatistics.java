@@ -407,7 +407,7 @@ class MainCPAStatistics implements Statistics {
     assert pReached != null : "ReachedSet may be null only if analysis not yet started";
 
     for (Statistics s : subStats) {
-      StatisticsUtils.writeOutputFiles(s, logger, pResult, pReached);
+      // StatisticsUtils.writeOutputFiles(s, logger, pResult, pReached);
     }
   }
 

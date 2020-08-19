@@ -48,7 +48,7 @@ public class LoopAbstractionHeader {
     name = "pathForFile",
     description = "Use this option to specify a place to save the new c file with the abstracted loops, default is in the cpachecker folder -> abstractLoops"
   )
-  private String pathForAbstractLoops = "/home//bensky//cpachecker//abstractLoops//";
+  private String pathForAbstractLoops = "../abstractLoops/";
 
   ArrayList<LoopData> loops;
   LoopAbstractionNaiv loopAbstractionN;
@@ -65,27 +65,35 @@ public class LoopAbstractionHeader {
    */
   public LoopAbstractionHeader(
       LoopInformation loopI,
+      boolean automate,
       Configuration config,
       LogManager logger)
       throws InvalidConfigurationException {
     config.inject(this);
+
+    pathForAbstractLoops = loopI.getCFA().getFileNames().get(0).toString();
+
     if (shouldAbstract.equals("naiv")) {
     getLoopsToBeAbstracted(loopI);
     loopAbstractionN = new LoopAbstractionNaiv();
-    overwriteLoops(loopI, logger, pathForAbstractLoops);
+    overwriteLoops(loopI, logger, pathForAbstractLoops, automate);
   } else if (shouldAbstract.equals("advanced")) {
     getLoopsToBeAbstracted(loopI);
     loopAbstractionAdv = new LoopAbstractionAdvanced();
-    overwriteLoops(loopI, logger, pathForAbstractLoops);
+    overwriteLoops(loopI, logger, pathForAbstractLoops, automate);
   }
 
   }
 
-  private void overwriteLoops(LoopInformation loopI, LogManager logger, String pathForNewFile) {
+  private void overwriteLoops(
+      LoopInformation loopI,
+      LogManager logger,
+      String pathForNewFile,
+      boolean automate) {
     if (shouldAbstract.equals("naiv")) {
       loopAbstractionN.changeFileToAbstractFile(loopI, logger, pathForNewFile);
     } else if (shouldAbstract.equals("advanced")) {
-      loopAbstractionAdv.changeFileToAbstractFile(loopI, logger, pathForNewFile);
+      loopAbstractionAdv.changeFileToAbstractFile(loopI, logger, pathForNewFile, automate);
     }
   }
 

@@ -217,7 +217,7 @@ public class CFACreator {
             + "If set to 'null', no pixel graphic is exported."
   )
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportCfaPixelFile = null;// Paths.get("cfaPixel");
+  private Path exportCfaPixelFile = null; // Paths.get("cfaPixel");
 
   @Option(secure=true, name="cfa.checkNullPointers",
       description="while this option is activated, before each use of a "
@@ -277,6 +277,13 @@ public class CFACreator {
           + "auto-detection will occur")
   // keep option name in sync with {@link CPAMain#language}, value might differ
   private Language language = Language.C;
+
+  @Option(
+    name = "cfa.automateAbstractLoopParser",
+    description = "Automates the abstraction of loops and creation of the new CFA's,overwrites the files")
+  private boolean automateAbstractLoopParser = false;
+
+  private boolean loopIsAutomated;
 
   private final LogManager logger;
   private final Parser parser;
@@ -344,6 +351,8 @@ public class CFACreator {
     this.stats = new CFACreatorStatistics(logger);
 
     stats.parserInstantiationTime.start();
+
+    loopIsAutomated = automateAbstractLoopParser;
 
     switch (language) {
     case JAVA:
@@ -418,9 +427,13 @@ public class CFACreator {
   public CFA parseFileAndCreateCFA(List<String> sourceFiles)
           throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
-    Preconditions.checkArgument(!sourceFiles.isEmpty(), "At least one source file must be provided!");
+    boolean flag = true;
 
+    Preconditions.checkArgument(!sourceFiles.isEmpty(), "At least one source file must be provided!");
+    if (!automateAbstractLoopParser) {
     stats.totalTime.start();
+  }
+
     try {
       // FIRST, parse file(s) and create CFAs for each function
       logger.log(Level.FINE, "Starting parsing of file(s)");
@@ -442,10 +455,23 @@ public class CFACreator {
         throw new AssertionError();
       }
 
-      return createCFA(c, mainFunction);
+      if (!automateAbstractLoopParser) {
+        return createCFA(c, mainFunction);
+    } else {
+      flag = false;
+      CFA cfa = createCFA(c, mainFunction);
+      LoopInformation builder = new LoopInformation(config, logger, cfa);
+      builder.collectStatistics(stats.statisticsCollection);
+      LoopAbstractionHeader loopAbstraction =
+          new LoopAbstractionHeader(builder, automateAbstractLoopParser, config, logger);
+      automateAbstractLoopParser = false;
+      return parseFileAndCreateCFA(sourceFiles);
+    }
 
     } finally {
+      if (flag) {
       stats.totalTime.stop();
+    }
     }
   }
 
@@ -563,10 +589,11 @@ public class CFACreator {
       depGraph = Optional.empty();
     }
 
-    if (language == Language.C) {
+    if (language == Language.C && loopIsAutomated == false) {
       LoopInformation builder = new LoopInformation(config, logger, cfa);
       builder.collectStatistics(stats.statisticsCollection);
-      LoopAbstractionHeader loopAbstraction = new LoopAbstractionHeader(builder, config, logger);
+      LoopAbstractionHeader loopAbstraction =
+          new LoopAbstractionHeader(builder, automateAbstractLoopParser, config, logger);
     }
 
     stats.processingTime.stop();

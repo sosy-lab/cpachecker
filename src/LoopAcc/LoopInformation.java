@@ -56,6 +56,9 @@ public class LoopInformation implements StatisticsProvider {
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path dumpfile = Paths.get("LoopInformation.log");
 
+  @Option(secure = true, name = "loopInfo", description = "Get information about all the loops")
+  private boolean loopInfo = false;
+
   private CFA cfa;
   private ArrayList<LoopData> loopData;
   private final LogManager logger;
@@ -70,8 +73,9 @@ public class LoopInformation implements StatisticsProvider {
 
     this.cfa = cfa;
     loopData = new ArrayList<>();
+    if (loopInfo) {
     lookForLoops();
-
+  }
   }
 
   /**
@@ -94,6 +98,8 @@ public class LoopInformation implements StatisticsProvider {
 
       CFAEdge tempEdge = loopHead.getLeavingEdge(VALID_STATE);
       CFANode tempNode = null;
+      boolean flag = false;
+      if (tempEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
       // suche erste nicht assume edge -> kann eig auch in loopdata ausgelagert werden
       while (tempEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
         for(int i = 0; i < tempEdge.getSuccessor().getNumLeavingEdges(); i++) {
@@ -106,8 +112,12 @@ public class LoopInformation implements StatisticsProvider {
         }
         tempEdge = tempEdge.getSuccessor().getLeavingEdge(VALID_STATE);
       }
-      if (!(tempNode == null)) {
-        loopData.add(new LoopData(loopHead, tempNode, cfa, loopNodes, loop, logger));
+    } else {
+      tempNode = loopHead;
+      flag = true;
+    }
+    if (!(tempNode == null) || flag) {
+      loopData.add(new LoopData(loopHead, tempNode, cfa, loopNodes, loop, logger, flag));
       }
     }
 

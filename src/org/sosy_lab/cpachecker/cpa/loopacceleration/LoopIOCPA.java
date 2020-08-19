@@ -20,7 +20,6 @@
 package org.sosy_lab.cpachecker.cpa.loopacceleration;
 
 import LoopAcc.LoopInformation;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
@@ -29,7 +28,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 
-@Options(prefix = "cpa.loopIO")
 public class LoopIOCPA extends AbstractCPA
 {
   private LoopInformation sfl;
