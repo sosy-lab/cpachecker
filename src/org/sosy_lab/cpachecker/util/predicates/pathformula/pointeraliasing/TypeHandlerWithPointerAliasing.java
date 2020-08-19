@@ -174,18 +174,15 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
    */
   public String getPointerAccessNameForType(final CType type) {
     String result = pointerNameCache.get(type);
-
-
-
     if (result != null) {
       return result;
     } else {
-      if (options.useByteArrayForHeap()){
-        result = POINTER_NAME_PREFIX + BYTE_ACCESS_NAME;
-      }else {
-        result =
-            POINTER_NAME_PREFIX + simplifyTypeForPointerAccess(type).toString().replace(' ', '_');
-      }
+        if (options.useByteArrayForHeap()){
+           result = POINTER_NAME_PREFIX + BYTE_ACCESS_NAME;
+        }else {
+      result =
+          POINTER_NAME_PREFIX + simplifyTypeForPointerAccess(type).toString().replace(' ', '_');
+          }
       pointerNameCache.put(type, result);
       return result;
     }
@@ -224,7 +221,8 @@ public class TypeHandlerWithPointerAliasing extends CtoFormulaTypeHandler {
    */
   long getBitOffset(CCompositeType compositeType, final String memberName) {
     checkIsSimplified(compositeType);
-    assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
+    assert compositeType.getKind() != ComplexTypeKind.ENUM
+        : "Enums are not composite: " + compositeType;
     ImmutableMap<String, Long> multiset = offsets.get(compositeType);
     if (multiset == null) {
       Map<CCompositeTypeMemberDeclaration, BigInteger> calculatedOffsets =

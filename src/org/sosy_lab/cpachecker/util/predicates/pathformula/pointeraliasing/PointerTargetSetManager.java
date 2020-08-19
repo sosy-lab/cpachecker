@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Predicates.in;
 import static com.google.common.base.Predicates.not;
 import static com.google.common.collect.FluentIterable.from;
@@ -39,6 +38,7 @@ import org.sosy_lab.common.collect.PersistentSortedMaps;
 import org.sosy_lab.common.collect.PersistentSortedMaps.MergeConflictHandler;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
 import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType;
@@ -137,8 +137,7 @@ class PointerTargetSetManager {
     typeHandler = pTypeHandler;
     shutdownNotifier = pShutdownNotifier;
     regionMgr = pRegionMgr;
-    heap = makeHeap(options);
-
+    heap = makeHeap(options, conv.machineModel);
   }
 
 
@@ -505,7 +504,8 @@ class PointerTargetSetManager {
       }
     } else if (cType instanceof CCompositeType) {
       final CCompositeType compositeType = (CCompositeType) cType;
-      assert compositeType.getKind() != ComplexTypeKind.ENUM : "Enums are not composite: " + compositeType;
+      assert compositeType.getKind() != ComplexTypeKind.ENUM
+          : "Enums are not composite: " + compositeType;
       for (final CCompositeTypeMemberDeclaration memberDeclaration : compositeType.getMembers()) {
         final OptionalLong offset = typeHandler.getOffset(compositeType, memberDeclaration);
         if (!offset.isPresent()) {
@@ -567,12 +567,14 @@ class PointerTargetSetManager {
 
   /**
    * Creates heap for given configuration options.
+   *
    * @param pOptions A configuration
    * @return A new heap allocation
    */
-  private SMTHeap makeHeap(FormulaEncodingWithPointerAliasingOptions pOptions) {
+  private SMTHeap makeHeap(
+      FormulaEncodingWithPointerAliasingOptions pOptions, MachineModel pModel) {
     if(pOptions.useByteArrayForHeap()){
-      return new SMTHeapWithByteArray(formulaManager, typeHandler);
+      return new SMTHeapWithByteArray(formulaManager, typeHandler, pModel);
     }else if(pOptions.useArraysForHeap()) {
       return new SMTHeapWithArrays(formulaManager, typeHandler);
     }else {
