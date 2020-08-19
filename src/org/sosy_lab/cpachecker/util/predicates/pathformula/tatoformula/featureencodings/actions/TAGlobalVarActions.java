@@ -10,30 +10,24 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featuree
 
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariable;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TimedAutomatonView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.TAGlobalVarDiscreteFeatureEncoding;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class TAGlobalVarActions extends TAGlobalVarDiscreteFeatureEncoding<TaVariable>
-    implements TAActions {
-  private final TimedAutomatonView automata;
+public class TAGlobalVarActions implements TAActions {
+  private final TAGlobalVarDiscreteFeatureEncoding<TaVariable> encoding;
 
-  public TAGlobalVarActions(FormulaManagerView pFmgr, TimedAutomatonView pAutomata) {
-    super(pFmgr, "global#action");
-    automata = pAutomata;
-
-    automata.getAllActions().forEach(action -> addEntry(action));
+  public TAGlobalVarActions(TAGlobalVarDiscreteFeatureEncoding<TaVariable> pEncoding) {
+    encoding = pEncoding;
   }
 
   @Override
   public BooleanFormula makeActionEqualsFormula(
       TaDeclaration pAutomaton, int pVariableIndex, TaVariable pVariable) {
-    return makeEqualsFormula(pAutomaton, pVariableIndex, pVariable);
+    return encoding.makeEqualsFormula(pAutomaton, pVariableIndex, pVariable);
   }
 
   @Override
   public BooleanFormula makeActionOccursInStepFormula(int pVariableIndex, TaVariable pVariable) {
-    return makeEqualsFormula(pVariableIndex, pVariable);
+    return encoding.makeEqualsFormula(pVariableIndex, pVariable);
   }
 }

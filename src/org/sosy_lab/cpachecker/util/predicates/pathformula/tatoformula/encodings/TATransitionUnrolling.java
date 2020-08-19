@@ -11,7 +11,9 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.encoding
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.Sets;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAEdge;
@@ -38,26 +40,50 @@ public class TATransitionUnrolling extends TAEncodingBase {
     super(pFmgr, pAutomata, pTime, pLocations, pExtensions);
 
     idleEdgesByAutomaton = new HashMap<>();
-    delayEdge = TCFAEdge.createDummyEdge();
-    transitions = new TABooleanVarFeatureEncoding<>(pFmgr);
+    automata.getAllAutomata().forEach(this::createIdleEdgeForAutomaton);
 
-    automata.getAllAutomata().forEach(this::addTransitionVariablesForAutomaton);
+    delayEdge = TCFAEdge.createDummyEdge();
+
+    var variableNames = new HashMap<TCFAEdge, String>();
+    var elementsByAutomaton = new HashMap<TaDeclaration, Collection<TCFAEdge>>();
+    from(automata.getAllAutomata())
+        .transformAndConcat(this::getTransitionVariablesForAutomaton)
+        .forEach(
+            variable -> {
+              variableNames.put(variable.edge, variable.variableName);
+              elementsByAutomaton.computeIfAbsent(variable.automaton, a -> new HashSet<>());
+              elementsByAutomaton.get(variable.automaton).add(variable.edge);
+            });
+    transitions = new TABooleanVarFeatureEncoding<>(pFmgr, variableNames, elementsByAutomaton);
   }
 
-  private void addTransitionVariablesForAutomaton(TaDeclaration pAutomaton) {
-    assert (transitions instanceof TABooleanVarFeatureEncoding<?>);
-    var variableEncoding = (TABooleanVarFeatureEncoding<TCFAEdge>) transitions;
-
-    variableEncoding.addVariableForFeature(pAutomaton, delayEdge, "delay_edge");
-
+  private void createIdleEdgeForAutomaton(TaDeclaration pAutomaton) {
     var idleEdge = TCFAEdge.createDummyEdge();
-    variableEncoding.addVariableForFeature(pAutomaton, idleEdge, "idle_" + pAutomaton.getName());
     idleEdgesByAutomaton.put(pAutomaton, idleEdge);
+  }
 
-    var automatonEdges = automata.getEdgesByAutomaton(pAutomaton);
-    automatonEdges.forEach(
-        edge ->
-            variableEncoding.addVariableForFeature(pAutomaton, edge, "edge_" + edge.hashCode()));
+  private static class TransitionVariable {
+    TaDeclaration automaton;
+    TCFAEdge edge;
+    String variableName;
+  }
+
+  private Iterable<TransitionVariable> getTransitionVariablesForAutomaton(
+      TaDeclaration pAutomaton) {
+    var idleEdge = idleEdgesByAutomaton.get(pAutomaton);
+    return from(automata.getEdgesByAutomaton(pAutomaton))
+        .transform(edge -> makeTransitionVariable(pAutomaton, edge, "edge_" + edge.hashCode()))
+        .append(makeTransitionVariable(pAutomaton, delayEdge, "delay_edge"))
+        .append(makeTransitionVariable(pAutomaton, idleEdge, "idle_" + pAutomaton.getName()));
+  }
+
+  private TransitionVariable makeTransitionVariable(
+      TaDeclaration automaton, TCFAEdge edge, String variableName) {
+    var result = new TransitionVariable();
+    result.automaton = automaton;
+    result.edge = edge;
+    result.variableName = variableName;
+    return result;
   }
 
   @Override

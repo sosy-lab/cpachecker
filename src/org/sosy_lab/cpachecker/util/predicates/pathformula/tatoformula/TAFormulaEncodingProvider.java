@@ -8,10 +8,17 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariable;
+import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFANode;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TAEncodingOptions.AutomatonEncodingType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TAEncodingOptions.InvariantType;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TAEncodingOptions.TAEncodingExtensionType;
@@ -25,6 +32,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extension
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAInvariants;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAShallowSync;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TATransitionActions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.TABooleanVarFeatureEncoding;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.TAGlobalVarDiscreteFeatureEncoding;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.TALocalVarDiscreteFeatureEncoding;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.actions.TAActions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.actions.TABooleanVarActions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.actions.TAGlobalVarActions;
@@ -82,25 +92,88 @@ public class TAFormulaEncodingProvider {
       FormulaManagerView pFmgr, TimedAutomatonView pAutomata) {
     switch (options.locationEncoding) {
       case LOCAL_ID:
-        return new TALocalVarLocations(pFmgr, pAutomata);
+        return createTaLocalVarLocations(pFmgr, pAutomata);
       case BOOLEAN_VAR:
-        return new TABooleanVarLocations(pFmgr, pAutomata);
+        return createTABooleanVarLocations(pFmgr, pAutomata);
       default:
         throw new AssertionError("Location encoding not supported");
     }
   }
 
+  private TALocalVarLocations createTaLocalVarLocations(
+      FormulaManagerView pFmgr, TimedAutomatonView pAutomata) {
+    var featureEncoding =
+        new TALocalVarDiscreteFeatureEncoding<>(
+            pFmgr, "location", ImmutableSet.copyOf(pAutomata.getAllNodes()));
+    return new TALocalVarLocations(featureEncoding);
+  }
+
+  private TABooleanVarLocations createTABooleanVarLocations(
+      FormulaManagerView pFmgr, TimedAutomatonView pAutomata) {
+    var variableNames = new HashMap<TCFANode, String>();
+    var elementsByAutomaton = new HashMap<TaDeclaration, Collection<TCFANode>>();
+    pAutomata
+        .getAllNodes()
+        .forEach(
+            location -> {
+              var automaton = location.getAutomatonDeclaration();
+              variableNames.put(location, location.getName());
+              elementsByAutomaton.computeIfAbsent(automaton, a -> new HashSet<>());
+              elementsByAutomaton.get(automaton).add(location);
+            });
+
+    var featureEncoding =
+        new TABooleanVarFeatureEncoding<>(pFmgr, variableNames, elementsByAutomaton);
+    return new TABooleanVarLocations(featureEncoding);
+  }
+
   private TAActions createActionEncoding(FormulaManagerView pFmgr, TimedAutomatonView pAutomata) {
     switch (options.actionEncoding) {
       case LOCAL_ID:
-        return new TALocalVarActions(pFmgr, pAutomata);
+        return createTALocalVarActions(pFmgr, pAutomata);
       case GLOBAL_ID:
-        return new TAGlobalVarActions(pFmgr, pAutomata);
+        return createTAGlobalVarActions(pFmgr, pAutomata);
       case BOOLEAN_VAR:
-        return new TABooleanVarActions(pFmgr, pAutomata);
+        return createTABooleanVarActions(pFmgr, pAutomata);
       default:
         throw new AssertionError("Action encoding not supported");
     }
+  }
+
+  private TALocalVarActions createTALocalVarActions(
+      FormulaManagerView pFmgr, TimedAutomatonView pAutomata) {
+    var featureEncoding =
+        new TALocalVarDiscreteFeatureEncoding<>(
+            pFmgr, "action", ImmutableSet.copyOf(pAutomata.getAllActions()));
+    return new TALocalVarActions(pFmgr, pAutomata, featureEncoding);
+  }
+
+  private TAGlobalVarActions createTAGlobalVarActions(
+      FormulaManagerView pFmgr, TimedAutomatonView pAutomata) {
+    var featureEncoding =
+        new TAGlobalVarDiscreteFeatureEncoding<>(
+            pFmgr, "global#action", ImmutableSet.copyOf(pAutomata.getAllActions()));
+    return new TAGlobalVarActions(featureEncoding);
+  }
+
+  private TABooleanVarActions createTABooleanVarActions(
+      FormulaManagerView pFmgr, TimedAutomatonView pAutomata) {
+    var variableNames = new HashMap<TaVariable, String>();
+    var elementsByAutomaton = new HashMap<TaDeclaration, Collection<TaVariable>>();
+    for (var automaton : pAutomata.getAllAutomata()) {
+      pAutomata
+          .getActionsByAutomaton(automaton)
+          .forEach(
+              action -> {
+                variableNames.put(action, action.getName());
+                elementsByAutomaton.computeIfAbsent(automaton, a -> new HashSet<>());
+                elementsByAutomaton.get(automaton).add(action);
+              });
+    }
+
+    var featureEncoding =
+        new TABooleanVarFeatureEncoding<>(pFmgr, variableNames, elementsByAutomaton);
+    return new TABooleanVarActions(featureEncoding);
   }
 
   private TATime createTimeEncoding(FormulaManagerView pFmgr) {

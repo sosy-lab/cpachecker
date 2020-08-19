@@ -17,21 +17,24 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureen
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class TALocalVarActions extends TALocalVarDiscreteFeatureEncoding<TaVariable>
-    implements TAActions {
+public class TALocalVarActions implements TAActions {
   private final TimedAutomatonView automata;
+  private final TALocalVarDiscreteFeatureEncoding<TaVariable> encoding;
+  private final FormulaManagerView fmgr;
 
-  public TALocalVarActions(FormulaManagerView pFmgr, TimedAutomatonView pAutomata) {
-    super(pFmgr, "action");
+  public TALocalVarActions(
+      FormulaManagerView pFmgr,
+      TimedAutomatonView pAutomata,
+      TALocalVarDiscreteFeatureEncoding<TaVariable> pEncoding) {
     automata = pAutomata;
-
-    automata.getAllActions().forEach(action -> addEntry(action));
+    encoding = pEncoding;
+    fmgr = pFmgr;
   }
 
   @Override
   public BooleanFormula makeActionEqualsFormula(
       TaDeclaration pAutomaton, int pVariableIndex, TaVariable pVariable) {
-    return makeEqualsFormula(pAutomaton, pVariableIndex, pVariable);
+    return encoding.makeEqualsFormula(pAutomaton, pVariableIndex, pVariable);
   }
 
   @Override

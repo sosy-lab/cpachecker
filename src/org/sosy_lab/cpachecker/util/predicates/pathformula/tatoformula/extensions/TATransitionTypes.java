@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions;
 
-
+import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAEdge;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.TADiscreteFeatureEncoding;
@@ -26,11 +26,8 @@ public class TATransitionTypes extends TAEncodingExtensionBase {
 
   public TATransitionTypes(FormulaManagerView pFmgr) {
     super(pFmgr);
-    var localVars = new TALocalVarDiscreteFeatureEncoding<String>(pFmgr, "transition_type");
-    localVars.addEntry("DISCRETE");
-    localVars.addEntry("DELAY");
-    localVars.addEntry("IDLE");
-    variables = localVars;
+    var transitions = ImmutableSet.of("DISCRETE", "DELAY", "IDLE");
+    variables = new TALocalVarDiscreteFeatureEncoding<>(pFmgr, "transition_type", transitions);
   }
 
   @Override

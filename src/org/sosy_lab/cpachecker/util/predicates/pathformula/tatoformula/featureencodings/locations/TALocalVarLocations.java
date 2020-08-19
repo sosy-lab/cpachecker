@@ -10,28 +10,24 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featuree
 
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFANode;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TimedAutomatonView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.TALocalVarDiscreteFeatureEncoding;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class TALocalVarLocations extends TALocalVarDiscreteFeatureEncoding<TCFANode>
-    implements TALocations {
+public class TALocalVarLocations implements TALocations {
+  private final TALocalVarDiscreteFeatureEncoding<TCFANode> encoding;
 
-  public TALocalVarLocations(FormulaManagerView pFmgr, TimedAutomatonView pAutomata) {
-    super(pFmgr, "location");
-
-    pAutomata.getAllNodes().forEach(location -> addEntry(location));
+  public TALocalVarLocations(TALocalVarDiscreteFeatureEncoding<TCFANode> pEncoding) {
+    encoding = pEncoding;
   }
 
   @Override
   public BooleanFormula makeLocationEqualsFormula(
       TaDeclaration pAutomaton, int pVariableIndex, TCFANode pNode) {
-    return makeEqualsFormula(pAutomaton, pVariableIndex, pNode);
+    return encoding.makeEqualsFormula(pAutomaton, pVariableIndex, pNode);
   }
 
   @Override
   public BooleanFormula makeDoesNotChangeFormula(TaDeclaration pAutomaton, int pIndexBefore) {
-    return makeUnchangedFormula(pAutomaton, pIndexBefore);
+    return encoding.makeUnchangedFormula(pAutomaton, pIndexBefore);
   }
 }

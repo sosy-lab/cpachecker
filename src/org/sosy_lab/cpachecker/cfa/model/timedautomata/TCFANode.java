@@ -36,6 +36,10 @@ public class TCFANode extends CFANode {
   }
 
   public String getName() {
+    return getAutomatonDeclaration().getName() + "#" + name;
+  }
+
+  public String getShortName() {
     return name;
   }
 

@@ -10,37 +10,24 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featuree
 
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariable;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TimedAutomatonView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.TABooleanVarFeatureEncoding;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class TABooleanVarActions extends TABooleanVarFeatureEncoding<TaVariable>
-    implements TAActions {
-  private final TimedAutomatonView automata;
+public class TABooleanVarActions implements TAActions {
+  private final TABooleanVarFeatureEncoding<TaVariable> encoding;
 
-  public TABooleanVarActions(FormulaManagerView pFmgr, TimedAutomatonView pAutomata) {
-    super(pFmgr);
-    automata = pAutomata;
-
-    automata.getAllAutomata().forEach(this::addActionsOfAutomaton);
-  }
-
-  private void addActionsOfAutomaton(TaDeclaration pAutomaton) {
-    automata
-        .getActionsByAutomaton(pAutomaton)
-        // usage of var names entails global vars (names are unique for shared vars)
-        .forEach(action -> addVariableForFeature(pAutomaton, action, action.getName()));
+  public TABooleanVarActions(TABooleanVarFeatureEncoding<TaVariable> pEncoding) {
+    encoding = pEncoding;
   }
 
   @Override
   public BooleanFormula makeActionEqualsFormula(
       TaDeclaration pAutomaton, int pVariableIndex, TaVariable pVariable) {
-    return makeEqualsFormula(pAutomaton, pVariableIndex, pVariable);
+    return encoding.makeEqualsFormula(pAutomaton, pVariableIndex, pVariable);
   }
 
   @Override
   public BooleanFormula makeActionOccursInStepFormula(int pVariableIndex, TaVariable pVariable) {
-    return makeEqualsFormula(pVariableIndex, pVariable);
+    return encoding.makeEqualsFormula(pVariableIndex, pVariable);
   }
 }

@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -18,28 +20,29 @@ import org.sosy_lab.java_smt.api.FormulaType;
 
 public class TALocalVarDiscreteFeatureEncoding<T> implements TADiscreteFeatureEncoding<T> {
   private final String variableName;
-  private static final FormulaType<?> VARIABLE_TYPE = FormulaType.IntegerType;
-  public Map<T, Integer> ids;
-  protected final FormulaManagerView fmgr;
+  private final FormulaType<?> variableType;
+  private final Map<T, Integer> values;
+  private final FormulaManagerView fmgr;
 
-  public TALocalVarDiscreteFeatureEncoding(FormulaManagerView pFmgr, String pVariableName) {
+  public TALocalVarDiscreteFeatureEncoding(
+      FormulaManagerView pFmgr, String pVariableName, Set<T> pDomain) {
     fmgr = pFmgr;
     variableName = pVariableName;
-    ids = new HashMap<>();
-  }
+    variableType = FormulaType.getBitvectorTypeWithSize(12);
 
-  public void addEntry(T pValue) {
-    ids.putIfAbsent(pValue, ids.size());
+    var valueMap = new HashMap<T, Integer>();
+    pDomain.forEach(value -> valueMap.put(value, valueMap.size()));
+    values = ImmutableMap.copyOf(valueMap);
   }
 
   private Formula makeVariableFormula(TaDeclaration pAutomaton, int variableIndex) {
     var qualifiedName = pAutomaton.getName() + "#" + variableName;
-    return fmgr.makeVariable(VARIABLE_TYPE, qualifiedName, variableIndex);
+    return fmgr.makeVariable(variableType, qualifiedName, variableIndex);
   }
 
   private Formula makeValueFormula(T feature) {
-    assert ids.containsKey(feature);
-    return fmgr.makeNumber(VARIABLE_TYPE, ids.get(feature));
+    assert values.containsKey(feature);
+    return fmgr.makeNumber(variableType, values.get(feature));
   }
 
   @Override

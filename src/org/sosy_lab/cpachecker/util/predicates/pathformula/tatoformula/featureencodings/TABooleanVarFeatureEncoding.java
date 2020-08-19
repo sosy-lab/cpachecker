@@ -10,29 +10,25 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featuree
 
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class TABooleanVarFeatureEncoding<T> implements TADiscreteFeatureEncoding<T> {
-  private Map<T, String> variableNames;
-  private Map<TaDeclaration, Collection<T>> elementsByAutomaton;
-  protected final FormulaManagerView fmgr;
+  private final Map<T, String> variableNames;
+  private final Map<TaDeclaration, Collection<T>> elementsByAutomaton;
+  private final FormulaManagerView fmgr;
 
-  public TABooleanVarFeatureEncoding(FormulaManagerView pFmgr) {
+  public TABooleanVarFeatureEncoding(
+      FormulaManagerView pFmgr,
+      Map<T, String> pVariableNames,
+      Map<TaDeclaration, Collection<T>> pElementsByAutomaton) {
     fmgr = pFmgr;
-    variableNames = new HashMap<>();
-    elementsByAutomaton = new HashMap<>();
-  }
-
-  public void addVariableForFeature(TaDeclaration pAutomaton, T pValue, String pVariableName) {
-    variableNames.put(pValue, pVariableName);
-    elementsByAutomaton.computeIfAbsent(pAutomaton, automaton -> new HashSet<>());
-    elementsByAutomaton.get(pAutomaton).add(pValue);
+    variableNames = ImmutableMap.copyOf(pVariableNames);
+    elementsByAutomaton = ImmutableMap.copyOf(pElementsByAutomaton);
   }
 
   private BooleanFormula makeVariableFormula(String variableName, int variableIndex) {

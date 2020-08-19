@@ -8,8 +8,10 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings;
 
+import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -17,28 +19,29 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
 public class TAGlobalVarDiscreteFeatureEncoding<T> implements TADiscreteFeatureEncoding<T> {
-  private final String VARIABLE_NAME;
-  private static final FormulaType<?> VARIABLE_TYPE = FormulaType.IntegerType;
-  private Map<T, Integer> ids;
-  protected final FormulaManagerView fmgr;
+  private final String variableName;
+  private final FormulaType<?> variableType;
+  private final Map<T, Integer> values;
+  private final FormulaManagerView fmgr;
 
-  public TAGlobalVarDiscreteFeatureEncoding(FormulaManagerView pFmgr, String variableName) {
+  public TAGlobalVarDiscreteFeatureEncoding(
+      FormulaManagerView pFmgr, String pVariableName, Set<T> pDomain) {
     fmgr = pFmgr;
-    VARIABLE_NAME = variableName;
-    ids = new HashMap<>();
-  }
+    variableName = pVariableName;
+    variableType = FormulaType.getBitvectorTypeWithSize(12);
 
-  protected void addEntry(T pValue) {
-    ids.putIfAbsent(pValue, ids.size());
+    var valueMap = new HashMap<T, Integer>();
+    pDomain.forEach(value -> valueMap.put(value, valueMap.size()));
+    values = ImmutableMap.copyOf(valueMap);
   }
 
   private Formula makeVariableFormula(int variableIndex) {
-    return fmgr.makeVariable(VARIABLE_TYPE, VARIABLE_NAME, variableIndex);
+    return fmgr.makeVariable(variableType, variableName, variableIndex);
   }
 
   private Formula makeValueFormula(T feature) {
-    assert ids.containsKey(feature);
-    return fmgr.makeNumber(VARIABLE_TYPE, ids.get(feature));
+    assert values.containsKey(feature);
+    return fmgr.makeNumber(variableType, values.get(feature));
   }
 
   @Override

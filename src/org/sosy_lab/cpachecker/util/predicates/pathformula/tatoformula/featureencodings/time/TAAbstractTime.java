@@ -25,7 +25,7 @@ import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
 public abstract class TAAbstractTime implements TATime {
   protected static final FormulaType<?> CLOCK_VARIABLE_TYPE =
-      FormulaType.getFloatingPointType(15, 112);
+      FormulaType.getSinglePrecisionFloatingPointType();
   protected final FormulaManagerView fmgr;
   protected final BooleanFormulaManagerView bFmgr;
   protected final boolean allowZeroDelay;
