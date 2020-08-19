@@ -187,15 +187,15 @@ public abstract class TAEncodingBase implements TAFormulaEncoding {
       TaDeclaration pAutomaton, int pMaxUnrolling) {
     var errorLocations =
         from(automata.getNodesByAutomaton(pAutomaton)).filter(TCFANode::isErrorLocation).toSet();
-    if (errorLocations.isEmpty()) {
-      errorLocations = ImmutableSet.copyOf(automata.getNodesByAutomaton(pAutomaton));
-    }
 
-    var errorLocationFormulas =
-        from(errorLocations)
-            .transform(
-                node -> locations.makeLocationEqualsFormula(pAutomaton, pMaxUnrolling, node));
-    var anyErrorLocationReached = bFmgr.or(errorLocationFormulas.toSet());
+    var anyErrorLocationReached = bFmgr.makeTrue();
+    if(!errorLocations.isEmpty()) {
+      var errorLocationFormulas =
+          from(errorLocations)
+              .transform(
+                  node -> locations.makeLocationEqualsFormula(pAutomaton, pMaxUnrolling, node));
+      anyErrorLocationReached = bFmgr.or(errorLocationFormulas.toSet());
+    }
 
     var extensionsFormula = extensions.makeFinalConditionForAutomaton(pAutomaton, pMaxUnrolling);
 

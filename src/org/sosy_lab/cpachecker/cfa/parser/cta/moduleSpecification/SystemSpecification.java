@@ -63,10 +63,6 @@ public class SystemSpecification {
               .map(inst -> inst.specificationName)
               .collect(Collectors.toSet());
       instantiatedModules.add(rootModules.iterator().next());
-      var instanceNames =
-          modules.stream()
-              .flatMap(module -> module.instantiations.stream())
-              .map(inst -> inst.instanceName);
       var moduleNames =
           modules.stream().map(moduleSpec -> moduleSpec.moduleName).collect(Collectors.toSet());
 
@@ -95,19 +91,6 @@ public class SystemSpecification {
           uninstantiatedSpecifications.isEmpty(),
           "The following module(s) are specified but never instantiated: %s",
           String.join(", ", uninstantiatedSpecifications));
-
-      var instNameOccurences =
-          instanceNames.collect(
-              Collectors.groupingBy(instanceName -> instanceName, Collectors.counting()));
-      var duplicateInstanceNames =
-          instNameOccurences.entrySet().stream()
-              .filter(entry -> entry.getValue() > 1)
-              .map(entry -> entry.getKey())
-              .collect(Collectors.toSet());
-      checkState(
-          duplicateInstanceNames.isEmpty(),
-          "Module instance names must be uniques. Found duplicate name(s): ",
-          String.join(", ", duplicateInstanceNames));
     }
   }
 }

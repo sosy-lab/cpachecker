@@ -203,7 +203,7 @@ public class TimedAutomatonView {
 
   public TaVariable getActionOrDummy(TCFAEdge pEdge) {
     var action = pEdge.getAction().toJavaUtil();
-    return dummyActionsByEdge.getOrDefault(pEdge, action.orElseThrow());
+    return action.or(() -> java.util.Optional.of(dummyActionsByEdge.get(pEdge))).orElseThrow();
   }
 
   public Optional<TaVariable> getIdleAction(TaDeclaration pAutomaton) {
