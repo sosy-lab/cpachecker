@@ -28,7 +28,8 @@ public class TALocalVarDiscreteFeatureEncoding<T> implements TADiscreteFeatureEn
       FormulaManagerView pFmgr, String pVariableName, Set<T> pDomain) {
     fmgr = pFmgr;
     variableName = pVariableName;
-    variableType = FormulaType.getBitvectorTypeWithSize(12);
+    var bitVectorSize = (int) (Math.log(pDomain.size()) / Math.log(2) + 1);
+    variableType = FormulaType.getBitvectorTypeWithSize(bitVectorSize);
 
     var valueMap = new HashMap<T, Integer>();
     pDomain.forEach(value -> valueMap.put(value, valueMap.size()));
