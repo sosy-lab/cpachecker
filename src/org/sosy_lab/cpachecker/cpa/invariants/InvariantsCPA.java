@@ -596,7 +596,9 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
     boolean adjustConditions();
 
-    void adjustReachedSet(ReachedSet pReachedSet);
+    default void adjustReachedSet(ReachedSet pReachedSet) {
+      pReachedSet.clear();
+    }
 
   }
 
@@ -800,11 +802,6 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     }
 
     @Override
-    public void adjustReachedSet(ReachedSet pReachedSet) {
-      pReachedSet.clear();
-    }
-
-    @Override
     public int getInc() {
       return this.inc;
     }
@@ -840,11 +837,6 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     }
 
     @Override
-    public void adjustReachedSet(ReachedSet pReachedSet) {
-      pReachedSet.clear();
-    }
-
-    @Override
     public int getInc() {
       return this.inc;
     }
@@ -875,11 +867,6 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
       }
       cpa.logManager.log(Level.INFO, "Adjusting abstraction strategy to", cpa.options.abstractionStateFactory);
       return true;
-    }
-
-    @Override
-    public void adjustReachedSet(ReachedSet pReachedSet) {
-      pReachedSet.clear();
     }
 
   }
