@@ -95,7 +95,7 @@ public class PredicateCPA
     values = {"SEP", "SEPPCC", "SEPNAA"},
     toUppercase = true,
     description = "which stop operator to use for predicate cpa (usually SEP should be used in analysis). "
-        + "SEPNAA works the same as SEP, except that it Never stops At Abstract states. "
+        + "SEPNAA works the same as SEP, except that it Never stops At Abstraction states. "
         + "SEPNAA is used in bmc-IMC.properties for config bmc-incremental-ABEl to keep exploring covered states.")
   private String stopType = "SEP";
 
