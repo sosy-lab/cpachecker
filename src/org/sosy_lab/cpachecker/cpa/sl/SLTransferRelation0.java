@@ -33,6 +33,7 @@ public class SLTransferRelation0 extends SingleEdgeTransferRelation {
   private final MachineModel machineModel;
   private final Solver solver;
   private final PathFormulaManager pfm;
+  private final SLStatistics stats;
 
   private SLState state;
 
@@ -40,11 +41,13 @@ public class SLTransferRelation0 extends SingleEdgeTransferRelation {
       LogManager pLogger,
       Solver pSolver,
       PathFormulaManager pPfm,
-      MachineModel pMachineModel) {
+      MachineModel pMachineModel,
+      SLStatistics pStats) {
     logger = pLogger;
     solver = pSolver;
     pfm = pPfm;
     machineModel = pMachineModel;
+    stats = pStats;
   }
 
   @Override
@@ -76,7 +79,7 @@ public class SLTransferRelation0 extends SingleEdgeTransferRelation {
     ProverEnvironment prover = solver.newProverEnvironment();
     boolean unsat = false;
     try {
-      SLMemoryDelegate delegate = new SLMemoryDelegate(solver, state, machineModel, logger);
+      SLMemoryDelegate delegate = new SLMemoryDelegate(solver, state, machineModel, logger, stats);
       BooleanFormula constraints = delegate.makeConstraints();
       prover.addConstraint(constraints);
       unsat = prover.isUnsat();
