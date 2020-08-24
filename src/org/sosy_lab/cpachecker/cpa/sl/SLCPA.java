@@ -78,6 +78,7 @@ public class SLCPA extends AbstractCPA implements StatisticsProvider {
     pfm =
         new PathFormulaManagerImpl(
             solver,
+            stats,
             solver.getFormulaManager(),
             config,
             logger,

@@ -63,12 +63,13 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
       Solver pSolver,
       SLState pState,
       MachineModel pMachineModel,
-      LogManager pLogger) {
+      LogManager pLogger,
+      SLStatistics pStats) {
     solver = pSolver;
     state = pState;
     fm = solver.getFormulaManager();
     slfm = fm.getSLFormulaManager();
-    stats = new SLStatistics();
+    stats = pStats;
     machineModel = pMachineModel;
     logger = pLogger;
 

@@ -58,11 +58,13 @@ import org.sosy_lab.java_smt.api.Formula;
  */
 public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
 
-  private Solver solver;
+  private final Solver solver;
+  private final SLStatistics stats;
 
   public CToFormulaConverterWithSL(
       FormulaEncodingOptions pOptions,
       Solver pSolver,
+      SLStatistics pStats,
       MachineModel pMachineModel,
       Optional<VariableClassification> pVariableClassification,
       LogManager pLogger,
@@ -79,6 +81,7 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
         pTypeHandler,
         pDirection);
     solver = pSolver;
+    stats = pStats;
   }
 
   @Override
@@ -126,7 +129,7 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
 
   private SLMemoryDelegate makeDelegate() {
     assert context != null;
-    return new SLMemoryDelegate(solver, (SLState) context, machineModel, logger);
+    return new SLMemoryDelegate(solver, (SLState) context, machineModel, logger, stats);
   }
 
   @Override

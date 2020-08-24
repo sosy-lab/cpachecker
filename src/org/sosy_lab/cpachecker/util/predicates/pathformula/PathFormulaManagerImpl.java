@@ -48,9 +48,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.sl.CToFormulaConverterWithSL;
+import org.sosy_lab.cpachecker.cpa.sl.SLStatistics;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -117,6 +119,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   private final FormulaType<?> NONDET_FORMULA_TYPE;
 
   private final Solver solver;
+  private Statistics stats;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final CtoFormulaConverter converter;
@@ -131,6 +134,28 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   )
   private boolean useNondetFlags = false;
 
+  public PathFormulaManagerImpl(
+      Solver pSolver,
+      Statistics pStats,
+      FormulaManagerView pFmgr,
+      Configuration config,
+      LogManager pLogger,
+      ShutdownNotifier pShutdownNotifier,
+      MachineModel pMachineModel,
+      Optional<VariableClassification> pVariableClassification,
+      AnalysisDirection pDirection)
+      throws InvalidConfigurationException {
+    this(
+        pSolver,
+        pFmgr,
+        config,
+        pLogger,
+        pShutdownNotifier,
+        pMachineModel,
+        pVariableClassification,
+        pDirection);
+    stats = pStats;
+  }
 
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
       Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
@@ -218,6 +243,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             new CToFormulaConverterWithSL(
                 options,
                 solver,
+                (SLStatistics) stats,
                 pMachineModel,
                 pVariableClassification,
                 logger,
