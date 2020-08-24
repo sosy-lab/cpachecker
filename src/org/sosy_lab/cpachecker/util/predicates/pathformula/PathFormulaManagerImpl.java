@@ -134,29 +134,6 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
   )
   private boolean useNondetFlags = false;
 
-  public PathFormulaManagerImpl(
-      Solver pSolver,
-      Statistics pStats,
-      FormulaManagerView pFmgr,
-      Configuration config,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      MachineModel pMachineModel,
-      Optional<VariableClassification> pVariableClassification,
-      AnalysisDirection pDirection)
-      throws InvalidConfigurationException {
-    this(
-        pSolver,
-        pFmgr,
-        config,
-        pLogger,
-        pShutdownNotifier,
-        pMachineModel,
-        pVariableClassification,
-        pDirection);
-    stats = pStats;
-  }
-
   public PathFormulaManagerImpl(FormulaManagerView pFmgr,
       Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
       CFA pCfa, AnalysisDirection pDirection)
@@ -183,7 +160,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         pShutdownNotifier,
         pMachineModel,
         pVariableClassification,
-        pDirection);
+        pDirection,
+        null);
   }
 
   public PathFormulaManagerImpl(
@@ -191,11 +169,13 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
       FormulaManagerView pFmgr,
       Configuration config, LogManager pLogger, ShutdownNotifier pShutdownNotifier,
       MachineModel pMachineModel,
-      Optional<VariableClassification> pVariableClassification, AnalysisDirection pDirection)
+      Optional<VariableClassification> pVariableClassification,
+      AnalysisDirection pDirection,
+      Statistics pStats)
           throws InvalidConfigurationException {
 
     config.inject(this, PathFormulaManagerImpl.class);
-
+    stats = pStats;
     solver = pSolver;
     fmgr = pFmgr;
     bfmgr = fmgr.getBooleanFormulaManager();
