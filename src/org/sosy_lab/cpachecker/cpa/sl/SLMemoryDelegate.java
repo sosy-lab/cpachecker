@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.sl;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -147,15 +146,6 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     return checkAllocation(loc);
   }
 
-  // private boolean checkBytes(Map<Formula, Formula> pMemory, Formula pLoc, int segmentSize) {
-  // for (int i = 1; i < segmentSize; i++) {
-  // Formula loc = fm.makePlus(pLoc, fm.makeNumber(heapAddressFormulaType, i));
-  // if (!pMemory.containsKey(loc)) {
-  // return false;
-  // }
-  // }
-  // return true;
-  // }
 
   /**
    * Checks whether the given location is allocated in the memory and assigns the given value to
@@ -201,19 +191,6 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
       res = fm.makeConcat(pMemory.get(loc), res);
     }
     return res;
-
-//    for (int i = 1; i < size; i++) {
-//      Formula address = fm.makePlus(pLoc, fm.makeNumber(heapAddressFormulaType, i));
-//      Optional<Formula> nthByte = dereference(address, 1);
-//      if (nthByte.isPresent()) {
-//        res = fm.makeConcat(nthByte.get(), res);
-//        // res = fm.makeConcat(res, pMemory.get(address)); ENDIANESS?
-//      } else {
-//        return Optional.empty();
-//      }
-//
-//    }
-//    return Optional.of(res);
   }
 
   private boolean
@@ -497,46 +474,8 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
   }
 
   public boolean handleOutOfScopeVar(Formula var, CType type) {
-    int size = machineModel.getSizeof(type).intValueExact();
-    Formula val = getValueForLocation(state.getStack(), var, size);
-    // Deallocate
     boolean checkLeak = type instanceof CPointerType || type instanceof CArrayType;
-    if (!deallocateFromStack(var, checkLeak)) {
-      return false;
-    }
-    if (type instanceof CPointerType || type instanceof CArrayType) {
-      state.removeInScopePtr(var);
-      // Check value for heap ptr alias.
-      // Formula heapPtrAlias = val;
-      // Optional<Formula> heapPtr = checkHeapAllocation(heapPtrAlias);
-      // if (heapPtr.isEmpty()) {
-      // return true; // No heap ptr. No leak.
-      // }
-      // if (!isReachable(new HashSet<>(), firstByte((BitvectorFormula) heapPtr.get()))) {
-      // state.addError(SLStateError.MEMORY_LEAK);
-      // }
-
-      // for (Formula ptr : splitIntoBytes((BitvectorFormula) heapPtr.get())) {
-      // if (!isReachable(new HashSet<>(), ptr)) {
-      // state.addError(SLStateError.MEMORY_LEAK);
-      // break;
-      // }
-      // }
-
-
-        // Check for copy.
-      // for (Formula ptr : state.getInScopePtrs()) {
-      // Formula ptrVal = state.getStack().get(ptr);
-      // boolean isAlias = checkEquivalenceSL(ptrVal, heapPtr.get(), state.getHeap());
-      // if (isAlias) {
-      // return true;
-      // }
-      // }
-      //
-      // state.addError(SLStateError.MEMORY_LEAK);
-    }
-
-    return true;
+    return deallocateFromStack(var, checkLeak);
   }
 
   private boolean isReachable(Set<Formula> visited, Formula loc) {
@@ -556,15 +495,6 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
       }
     }
     return false;
-  }
-
-  private List<Formula> splitIntoBytes(BitvectorFormula pVal) {
-    BitvectorFormulaManagerView bvfm = fm.getBitvectorFormulaManager();
-    ArrayList<Formula> res = new ArrayList<>();
-    for (int i = 0; i < bvfm.getLength(pVal); i += heapValueFormulaType.getSize()) {
-      res.add(bvfm.extract(pVal, i + heapValueFormulaType.getSize() - 1, i, true));
-    }
-    return res;
   }
 
   private Formula firstByte(BitvectorFormula pVal) {
