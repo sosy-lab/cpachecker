@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -58,7 +57,6 @@ public class SLState implements AbstractState, AbstractQueryableState {
   private final LinkedHashSet<BooleanFormula> constraints;
 
   private final Map<Formula, BigInteger> allocationSizes;
-  private final Set<CVariableDeclaration> declarations;
   private final Map<String, Set<Formula>> allocas;
 
   private final Set<SLStateError> errors = new HashSet<>();
@@ -70,7 +68,6 @@ public class SLState implements AbstractState, AbstractQueryableState {
       LinkedHashMap<Formula, Formula> pStack,
       LinkedHashSet<BooleanFormula> pConstraints,
       Map<Formula, BigInteger> pAllocationSizes,
-      Set<CVariableDeclaration> pDeclarations,
       Map<String, Set<Formula>> pAllocas,
       SLStateError pError) {
     pathFormula = pPathFormula;
@@ -78,7 +75,6 @@ public class SLState implements AbstractState, AbstractQueryableState {
     stack = pStack;
     constraints = pConstraints;
     allocationSizes = pAllocationSizes;
-    declarations = pDeclarations;
     allocas = pAllocas;
     if (pError != null) {
       errors.add(pError);
@@ -93,7 +89,6 @@ public class SLState implements AbstractState, AbstractQueryableState {
         new LinkedHashMap<>(),
         new LinkedHashSet<>(),
         new HashMap<>(),
-        new HashSet<>(),
         new HashMap<>(),
         null);
   }
@@ -165,7 +160,6 @@ public class SLState implements AbstractState, AbstractQueryableState {
             new LinkedHashMap<>(stack),
             new LinkedHashSet<>(constraints),
             new HashMap<>(allocationSizes),
-            new HashSet<>(declarations),
             new HashMap<>(allocas),
         null);
     return s;
@@ -173,10 +167,6 @@ public class SLState implements AbstractState, AbstractQueryableState {
 
   public Map<Formula, BigInteger> getAllocationSizes() {
     return allocationSizes;
-  }
-
-  public Set<CVariableDeclaration> getDeclarations() {
-    return declarations;
   }
 
   public Map<String, Set<Formula>> getAllocas() {
