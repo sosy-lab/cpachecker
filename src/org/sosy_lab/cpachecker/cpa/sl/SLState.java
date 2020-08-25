@@ -58,7 +58,6 @@ public class SLState implements AbstractState, AbstractQueryableState {
   private final LinkedHashSet<BooleanFormula> constraints;
 
   private final Map<Formula, BigInteger> allocationSizes;
-  private final Set<Formula> inScopePtrs;
   private final Set<CVariableDeclaration> declarations;
   private final Map<String, Set<Formula>> allocas;
 
@@ -71,7 +70,6 @@ public class SLState implements AbstractState, AbstractQueryableState {
       LinkedHashMap<Formula, Formula> pStack,
       LinkedHashSet<BooleanFormula> pConstraints,
       Map<Formula, BigInteger> pAllocationSizes,
-      Set<Formula> pInScopePtrs,
       Set<CVariableDeclaration> pDeclarations,
       Map<String, Set<Formula>> pAllocas,
       SLStateError pError) {
@@ -80,7 +78,6 @@ public class SLState implements AbstractState, AbstractQueryableState {
     stack = pStack;
     constraints = pConstraints;
     allocationSizes = pAllocationSizes;
-    inScopePtrs = pInScopePtrs;
     declarations = pDeclarations;
     allocas = pAllocas;
     if (pError != null) {
@@ -96,7 +93,6 @@ public class SLState implements AbstractState, AbstractQueryableState {
         new LinkedHashMap<>(),
         new LinkedHashSet<>(),
         new HashMap<>(),
-        new HashSet<>(),
         new HashSet<>(),
         new HashMap<>(),
         null);
@@ -169,7 +165,6 @@ public class SLState implements AbstractState, AbstractQueryableState {
             new LinkedHashMap<>(stack),
             new LinkedHashSet<>(constraints),
             new HashMap<>(allocationSizes),
-            new HashSet<>(inScopePtrs),
             new HashSet<>(declarations),
             new HashMap<>(allocas),
         null);
@@ -184,20 +179,8 @@ public class SLState implements AbstractState, AbstractQueryableState {
     return declarations;
   }
 
-  public Set<Formula> getInScopePtrs() {
-    return inScopePtrs;
-  }
-
   public Map<String, Set<Formula>> getAllocas() {
     return allocas;
-  }
-
-  public void addInScopePtr(Formula pPtr) {
-    inScopePtrs.add(pPtr);
-  }
-
-  public void removeInScopePtr(Formula pPtr) {
-    inScopePtrs.remove(pPtr);
   }
 
   public void setPathFormula(PathFormula pFormula) {

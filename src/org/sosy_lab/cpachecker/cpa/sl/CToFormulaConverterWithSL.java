@@ -171,15 +171,10 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
       SSAMapBuilder pSsa)
       throws UnrecognizedCodeException {
 
-    // PathFormula pf = pState.getPathFormula();
-    // Remove from stack.
-    // CUnaryExpression expLoc = createSymbolicLocation(pVar);
-    // Formula loc = buildTermFromPathFormula(pf, expLoc, pEdge);
     CType type = pVar.getType();
     CType t = pDelegate.makeLocationTypeForVariableType(type);
     Formula var =
         makeVariable(UnaryOperator.AMPER.getOperator() + pVar.getQualifiedName(), t, pSsa);
-
 
     boolean success = pDelegate.handleOutOfScopeVar(var, pVar.getType());
     if (!success) {
