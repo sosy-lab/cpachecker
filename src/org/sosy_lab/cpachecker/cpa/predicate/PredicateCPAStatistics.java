@@ -289,11 +289,11 @@ class PredicateCPAStatistics implements Statistics {
       out.println("Max number of predicates per location:    " + maxPredsPerLocation);
       out.println("Avg number of predicates per location:    " + avgPredsPerLocation);
     }
-    if (as.numCallsAbstraction - as.numSymbolicAbstractions > 0) {
-      int numRealAbstractions = as.numCallsAbstraction - as.numSymbolicAbstractions - as.numCallsAbstractionCached;
+    if (as.numCallsAbstraction.get() > as.numSymbolicAbstractions.get()) {
+      int numRealAbstractions = as.numCallsAbstraction.get() - as.numSymbolicAbstractions.get() - as.numCallsAbstractionCached.get();
       out.println("Total predicates per abstraction:         " + as.numTotalPredicates);
       out.println("Max number of predicates per abstraction: " + as.maxPredicates);
-      out.println("Avg number of predicates per abstraction: " + div(as.numTotalPredicates, numRealAbstractions));
+      out.println("Avg number of predicates per abstraction: " + div(as.numTotalPredicates.get(), numRealAbstractions));
       out.println("Number of irrelevant predicates:          " + valueWithPercentage(as.numIrrelevantPredicates, as.numTotalPredicates));
       if (as.trivialPredicatesTime.getNumberOfIntervals() > 0) {
         out.println("Number of trivially used predicates:      " + valueWithPercentage(as.numTrivialPredicates, as.numTotalPredicates));
