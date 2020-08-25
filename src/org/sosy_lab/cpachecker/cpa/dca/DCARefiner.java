@@ -76,6 +76,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManagerOptions;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionStatistics;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
@@ -129,6 +130,8 @@ public class DCARefiner implements Refiner, StatisticsProvider {
   private final InterpolationAutomatonBuilder itpAutomatonBuilder;
   private final AbstractionManager abstractionManager;
   private final PredicateAbstractionManager predicateAbstractionManager;
+  private final PredicateAbstractionStatistics abstractionStats =
+      new PredicateAbstractionStatistics();
 
   private final PathChecker pathChecker;
 
@@ -253,6 +256,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
             abstractionStorage,
             pLogger,
             pNotifier,
+            abstractionStats,
             TrivialInvariantSupplier.INSTANCE);
 
     itpAutomatonBuilder =
