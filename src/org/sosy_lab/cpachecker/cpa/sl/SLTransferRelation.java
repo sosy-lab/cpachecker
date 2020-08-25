@@ -27,7 +27,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class SLTransferRelation0 extends SingleEdgeTransferRelation {
+public class SLTransferRelation extends SingleEdgeTransferRelation {
 
   private final LogManager logger;
   private final MachineModel machineModel;
@@ -37,7 +37,7 @@ public class SLTransferRelation0 extends SingleEdgeTransferRelation {
 
   private SLState state;
 
-  public SLTransferRelation0(
+  public SLTransferRelation(
       LogManager pLogger,
       Solver pSolver,
       PathFormulaManager pPfm,

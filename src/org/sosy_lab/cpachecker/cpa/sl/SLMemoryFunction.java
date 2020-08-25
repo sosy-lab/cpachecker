@@ -22,7 +22,7 @@ package org.sosy_lab.cpachecker.cpa.sl;
 import java.util.HashMap;
 import java.util.Map;
 
-public enum SLHeapFunction {
+public enum SLMemoryFunction {
 
   MALLOC("malloc"),
   LDVMALLOC("ldv_malloc"),
@@ -34,7 +34,7 @@ public enum SLHeapFunction {
 
   private final String fctName;
 
-  SLHeapFunction(String pFctName) {
+  SLMemoryFunction(String pFctName) {
     fctName = pFctName;
   }
 
@@ -42,14 +42,14 @@ public enum SLHeapFunction {
     return fctName;
   }
 
-  private static final Map<String, SLHeapFunction> lookup = new HashMap<>();
+  private static final Map<String, SLMemoryFunction> lookup = new HashMap<>();
   static {
-    for (SLHeapFunction fct : SLHeapFunction.values()) {
+    for (SLMemoryFunction fct : SLMemoryFunction.values()) {
       lookup.put(fct.getFctName(), fct);
     }
   }
 
-  public static SLHeapFunction get(String pName) {
+  public static SLMemoryFunction get(String pName) {
     return lookup.containsKey(pName) ? lookup.get(pName) : NONE;
   }
 }

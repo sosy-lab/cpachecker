@@ -145,7 +145,7 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
 
     Formula sizeValueFormula = null;
     BigInteger size = null;
-    switch (SLHeapFunction.get(fctExp.getName())) {
+    switch (SLMemoryFunction.get(fctExp.getName())) {
       case CALLOC:
       case MALLOC: // always initialized with 0
         sizeValueFormula = params.get(0).accept(this);
