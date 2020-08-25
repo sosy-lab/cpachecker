@@ -345,8 +345,15 @@ class PredicateCPAStatistics implements Statistics {
         out.println("    Abstraction reuse implication:  " + as.abstractionReuseImplicationTime);
       }
       out.println("    Solving time:                    " + as.abstractionSolveTime + " (Max: " + as.abstractionSolveTime.getMaxTime().formatAs(SECONDS) + ")");
-      out.println("    Model enumeration time:          " + as.abstractionEnumTime.getOuterSumTime().formatAs(SECONDS));
-      out.println("    Time for BDD construction:       " + as.abstractionEnumTime.getInnerSumTime().formatAs(SECONDS)   + " (Max: " + as.abstractionEnumTime.getInnerMaxTime().formatAs(SECONDS) + ")");
+      out.println(
+          "    Model enumeration time:          "
+              + as.abstractionModelEnumTime.getSumTime().formatAs(SECONDS));
+      out.println(
+          "    Time for BDD construction:       "
+              + as.abstractionBddConstructionTime.getSumTime().formatAs(SECONDS)
+              + " (Max: "
+              + as.abstractionBddConstructionTime.getMaxTime().formatAs(SECONDS)
+              + ")");
     }
 
     if (statistics.totalMergeTime.getNumberOfIntervals() != 0) { // at least used once
@@ -360,7 +367,14 @@ class PredicateCPAStatistics implements Statistics {
     if (statistics.symbolicCoverageCheckTimer.getNumberOfIntervals() > 0) {
       put(out, 1, statistics.symbolicCoverageCheckTimer);
     }
-    out.println("Total time for SMT solver (w/o itp): " + TimeSpan.sum(solver.solverTime.getSumTime(), as.abstractionSolveTime.getSumTime(), as.abstractionEnumTime.getOuterSumTime()).formatAs(SECONDS));
+    out.println(
+        "Total time for SMT solver (w/o itp): "
+            + TimeSpan
+                .sum(
+                    solver.solverTime.getSumTime(),
+                    as.abstractionSolveTime.getSumTime(),
+                    as.abstractionModelEnumTime.getSumTime())
+                .formatAs(SECONDS));
 
     if (statistics.abstractionCheckTimer.getNumberOfIntervals() > 0) {
       put(out, 0, statistics.abstractionCheckTimer);
