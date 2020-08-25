@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.blocking.BlockedCFAReducer;
@@ -56,6 +57,7 @@ import org.sosy_lab.cpachecker.util.predicates.regions.RegionManager;
 import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.predicates.weakening.WeakeningOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
 /**
@@ -127,6 +129,8 @@ public class PredicateCPA
   private final PredicateProvider predicateProvider;
   private final FormulaManagerView formulaManager;
   private final PredicateCpaOptions options;
+  private final PredicateAbstractionManagerOptions abstractionOptions;
+  private final PredicateAbstractionsStorage abstractionStorage;
 
   // path formulas for PCC
   private final Map<PredicateAbstractState, PathFormula> computedPathFormulaePcc = new HashMap<>();
@@ -182,12 +186,22 @@ public class PredicateCPA
         new PredicateCPAInvariantsManager(
             config, logger, pShutdownNotifier, pCfa, specification, pAggregatedReachedSets);
 
+    abstractionOptions = new PredicateAbstractionManagerOptions(config);
+    abstractionStorage =
+        new PredicateAbstractionsStorage(
+            abstractionOptions.getReuseAbstractionsFrom(),
+            logger,
+            solver.getFormulaManager(),
+            null);
+    WeakeningOptions weakeningOptions = new WeakeningOptions(config);
     predicateManager =
         new PredicateAbstractionManager(
             abstractionManager,
             pathFormulaManager,
             solver,
-            config,
+            abstractionOptions,
+            weakeningOptions,
+            abstractionStorage,
             logger,
             pShutdownNotifier,
             invariantsManager.appendToAbstractionFormula()
