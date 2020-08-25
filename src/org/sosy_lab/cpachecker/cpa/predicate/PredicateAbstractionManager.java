@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -48,7 +47,6 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -73,7 +71,6 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
-import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment.AllSatCallback;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
@@ -83,46 +80,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 @Options(prefix = "cpa.predicate")
 public class PredicateAbstractionManager {
 
-  static class Stats {
-
-    public AtomicInteger numCallsAbstraction = new AtomicInteger(0); // total calls
-    public AtomicInteger numAbstractionReuses = new AtomicInteger(0); // total reuses
-
-    // precision completely empty, no computation
-    public AtomicInteger numSymbolicAbstractions = new AtomicInteger(0);
-
-    // precision was {false}, only sat check
-    public AtomicInteger numSatCheckAbstractions = new AtomicInteger(0);
-
-    // result was cached, no computation
-    public AtomicInteger numCallsAbstractionCached = new AtomicInteger(0);
-
-    // loop was cached, no new computation
-    public AtomicInteger numInductivePathFormulaCacheUsed = new AtomicInteger(0);
-
-    public AtomicInteger numTotalPredicates = new AtomicInteger(0);
-    public AtomicInteger maxPredicates = new AtomicInteger(0);
-    public AtomicInteger numIrrelevantPredicates = new AtomicInteger(0);
-    public AtomicInteger numTrivialPredicates = new AtomicInteger(0);
-    public AtomicInteger numInductivePredicates = new AtomicInteger(0);
-    public AtomicInteger numCartesianAbsPredicates = new AtomicInteger(0);
-    public AtomicInteger numCartesianAbsPredicatesCached = new AtomicInteger(0);
-    public AtomicInteger numBooleanAbsPredicates = new AtomicInteger(0);
-    public final Timer abstractionReuseTime = new Timer();
-    public final StatTimer abstractionReuseImplicationTime = new StatTimer("Time for checking reusability of abstractions");
-    public final Timer trivialPredicatesTime = new Timer();
-    public final Timer inductivePredicatesTime = new Timer();
-    public final Timer cartesianAbstractionTime = new Timer();
-    public final Timer quantifierEliminationTime = new Timer();
-    public final Timer booleanAbstractionTime = new Timer();
-    public final NestedTimer abstractionEnumTime = new NestedTimer(); // outer: solver time, inner: bdd time
-    public final Timer abstractionSolveTime = new Timer(); // only the time for solving, not for model enumeration
-
-    public long allSatCount = 0;
-    public int maxAllSatCount = 0;
-  }
-
-  final Stats stats = new Stats();
+  final PredicateAbstractionStatistics stats = new PredicateAbstractionStatistics();
 
   private final LogManager logger;
   private final FormulaManagerView fmgr;
