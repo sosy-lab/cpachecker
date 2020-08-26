@@ -8,11 +8,9 @@
 
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-/**
- * Instances of extending classes traverse a structure of invariants formula
- * in post order.
- */
-public abstract class RecursiveNumeralFormulaVisitor<T> implements NumeralFormulaVisitor<T, NumeralFormula<T>> {
+/** Instances of extending classes traverse a structure of invariants formula in post order. */
+abstract class RecursiveNumeralFormulaVisitor<T>
+    implements NumeralFormulaVisitor<T, NumeralFormula<T>> {
 
   /**
    * Visits the (possibly modified) formula after its child formulae were
