@@ -1161,6 +1161,11 @@ cpa.arg.deleteInCPAEnabledAnalysis = false
 # algorithm? (for debugging and demonstration)
 cpa.arg.dumpAfterIteration = false
 
+# Enable reduction for nested abstract states when entering or leaving a
+# block abstraction for BAM. The reduction can lead to a higher
+# cache-hit-rate for BAM and a faster sub-analysis for blocks.
+cpa.arg.enableStateReduction = true
+
 # export final ARG as .dot file
 cpa.arg.export = true
 
