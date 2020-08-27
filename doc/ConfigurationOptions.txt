@@ -134,9 +134,6 @@ solver.synchronized.useSeperateProvers = false
 # Log solver actions, this may be slow!
 solver.useLogger = false
 
-# Dump failed interpolation queries to this file in SMTLIB2 format
-solver.z3.dumpFailedInterpolationQueries = no default value
-
 # Activate replayable logging in Z3. The log can be given as an input to the
 # solver and replayed.
 solver.z3.log = no default value
@@ -160,6 +157,12 @@ solver.z3.usePhantomReferences = false
 # SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 #
 # SPDX-License-Identifier: Apache-2.0
+
+# Dump LoopInformation to a file.
+LoopAcc.LoopInformation.logfile = "LoopInformation.log"
+
+# Get information about all the loops
+LoopAcc.LoopInformation.loopInfo = false
 
 # Refiner that SlicingDelegatingRefiner should delegate to
 SlicingDelegatingRefiner.refiner = no default value
@@ -478,9 +481,6 @@ analysis.useCompositionAnalysis = false
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
 
-# start different analyses interleaved and continue after unknown result
-analysis.useInterleavedAnalyses = false
-
 # add loop-structure information to CFA.
 analysis.useLoopStructure = true
 
@@ -720,7 +720,8 @@ cfa.addLabels.atProgramExit = false
 # Which functions should be interpreted as encoding assumptions
 cfa.assumeFunctions = {"__VERIFIER_assume"}
 
-# Automates the abstraction of loops and creation of the new CFA's
+# Automates the abstraction of loops and creation of the new CFA's,overwrites
+# the files
 cfa.automateAbstractLoopParser = false
 
 # dump a simple call graph
@@ -783,7 +784,7 @@ cfa.moveDeclarationsToFunctionStart = false
 # Export CFA as pixel graphic to the given file name. The suffix is added
 # corresponding to the value of option pixelgraphic.export.formatIf set to
 # 'null', no pixel graphic is exported.
-cfa.pixelGraphicFile = "cfaPixel"
+cfa.pixelGraphicFile = no default value
 
 # export CFA as .ser file (dump Java objects)
 cfa.serialize = false
@@ -1587,9 +1588,6 @@ cpa.constraints.resolveDefinites = true
 cpa.constraints.satCheckStrategy = AT_ASSUME
   enum:     [AT_ASSUME, AT_TARGET]
 
-# Try model of predecessor constraints state before running SMT solver
-cpa.constraints.useLastModel = true
-
 # Keep infeasible dummy states that allow for better debugging
 cpa.dca.refiner.keepInfeasibleStates = false
 
@@ -2325,10 +2323,6 @@ cpa.predicate.refinement.cexTraceCheckDirection = ZIGZAG
 # BDDs as they are.
 cpa.predicate.refinement.doAbstractionComputation = false
 
-# use variant described in the Guiding Craig Interpolation Paper leading to a
-# different routine
-cpa.predicate.refinement.domainSpecificAbstractions = false
-
 # dump all interpolation problems
 cpa.predicate.refinement.dumpInterpolationProblems = false
 
@@ -2518,9 +2512,11 @@ cpa.predicate.solver.ufCheckingProver.isSignedOverflowSafe = true
 cpa.predicate.solver.ufCheckingProver.maxIterationNum = 5
 
 # which stop operator to use for predicate cpa (usually SEP should be used in
-# analysis)
+# analysis). SEPNAA works the same as SEP, except that it Never stops At
+# Abstract states. SEPNAA is used in bmc-IMC.properties for config
+# bmc-incremental-ABEl to keep exploring covered states.
 cpa.predicate.stop = "SEP"
-  allowed values: [SEP, SEPPCC]
+  allowed values: [SEP, SEPPCC, SEPNAA]
 
 # Use formula reporting states for strengthening.
 cpa.predicate.strengthenWithFormulaReportingStates = false
@@ -2631,12 +2627,6 @@ cpa.slicing.applyLBETransformation = true
 
 # Check target states reachability
 cpa.slicing.checkTargetStates = true
-
-# Whether to export the final slice to a file
-cpa.slicing.exportSlice = true
-
-# File to export final slice to
-cpa.slicing.exportSliceFile = "ProgramSlice.txt"
 
 # Filter lemmas by liveness
 cpa.slicing.filterByLiveness = true
@@ -3183,11 +3173,6 @@ cpa.value.symbolic.refinement.strategy = CONSTRAINTS_FIRST
 # Whether to simplify symbolic expressions, if possible.
 cpa.value.symbolic.simplifySymbolics = true
 
-# Use symbolic values. This allows tracking of non-deterministic values.
-# Symbolic values should always be used in conjunction with ConstraintsCPA.
-# Otherwise, symbolic values will be created, but not evaluated.
-cpa.value.symbolic.useSymbolicValues = false
-
 # Track Java array values in explicit value analysis. This may be costly if
 # the verified program uses big or lots of arrays. Arrays in C programs will
 # always be tracked, even if this value is false.
@@ -3244,14 +3229,6 @@ custominstructions.requirementsStateClassName = no default value
 # which are in turn also counted to the last loop.
 cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
   enum:     [ALL_LOOPS, ONLY_LAST_LOOP]
-
-# Whether to take an assumption edge 'p' as control dependence if edge 'not
-# p' is a control dependence. This creates a larger slice, but may reduce the
-# size of the state space for deterministic programs. This behavior is also
-# closer to the static program slicing based on control-flow graphs (CFGs),
-# where branching is represented by a single assumption (with true- and
-# false-edges)
-dependencegraph.controldeps.considerInverseAssumption = false
 
 # Whether to consider control dependencies.
 dependencegraph.controldeps.use = true
@@ -3428,7 +3405,7 @@ log.usedOptions.export = false
 
 # Use this option to specify a place to save the new c file with the
 # abstracted loops, default is in the cpachecker folder -> abstractLoops
-loopacc.loopabstractionheader.pathForFile = "/home
+loopacc.loopabstractionheader.pathForFile = "../abstractLoops/"
 
 # AbstractLoops to be able to process them
 loopacc.loopabstractionheader.shouldAbstract = "none"
@@ -3838,10 +3815,6 @@ program.splitter.heuristic = no default value
 
 # maximal number
 program.splitter.max = 2
-
-# Whether to create slices that are behaviorally equivalent not only to the
-# target location, but also on the paths to that target location.
-programSlice.preserveTargetPaths = false
 
 # Quantifier elimination strategy
 rcnf.boundVarsHandling = QE_LIGHT_THEN_DROP

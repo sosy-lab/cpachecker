@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
@@ -92,7 +93,7 @@ public class LoopData implements Comparable<LoopData> {
     nodesInLoop = loopNodes;
     loopEnd = nodesInLoop.get(nodesInLoop.size() - LAST_POSITION_OF_LIST);
     nodesInCondition = nodesInCondition(cfa, pLogger, loopTrueFalse);
-    output = getAllOutputs();
+    output = getAllOutputs(cfa);
     condition = nodesToCondition();
     getAllPaths();
     inputOutput = getAllIO();
@@ -172,13 +173,13 @@ public class LoopData implements Comparable<LoopData> {
    *
    * @return returns a list with all of the variable names that are outputs in a loop
    */
-  private ArrayList<String> getAllOutputs() {
+  private ArrayList<String> getAllOutputs(CFA cfa) {
     ArrayList<String> tempOutput = new ArrayList<>();
 
     for (CFANode node : nodesInLoop) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-        if (node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.StatementEdge)
-            || node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.DeclarationEdge)) {
+        if (node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.StatementEdge) ||
+        node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.DeclarationEdge)) {
 
           boolean flag = true;
 
@@ -199,11 +200,34 @@ public class LoopData implements Comparable<LoopData> {
                     .split(OUTPUT_NAME_SYMBOL_CUT)[OUTPUT_VARIABLE_ARRAY_POSITION]
                     + "&"
                     + CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(i));
+
             tempOutput.add(temp);
           }
         }
       }
     }
+    ArrayList<String> overwrite = new ArrayList<>();
+    for (CFANode n : cfa.getAllNodes()) {
+      for (int e = 0; e < n.getNumLeavingEdges(); e++) {
+        if (n.getLeavingEdge(e).getEdgeType().equals(CFAEdgeType.DeclarationEdge)) {
+          for (String s : tempOutput) {
+
+            if (CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)) != null
+                && s.split(
+                    "&")[0]
+                    .equals(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).split(":")[2])) {
+              String tempNew = s  +                   "&"
+                  + ((ADeclarationEdge) n.getLeavingEdge(e)).getDeclaration()
+                  .getFileLocation()
+                  .getStartingLineInOrigin();
+              overwrite.add(tempNew);
+
+            }
+          }
+        }
+      }
+    }
+    tempOutput = overwrite;
     return tempOutput;
   }
 
@@ -220,11 +244,21 @@ public class LoopData implements Comparable<LoopData> {
 
     for (String o : outputs) {
       for (String i : inputs) {
-        if ((o.split("&")[0].contentEquals(i)) && !temp.contains(o)) {
-          temp.add(o);
+          if ((o.split("&")[0].contentEquals(i))) {
+            boolean flagNO = true;
+            for (String v : temp) {
+              if (v.split("&")[0].equals(o.split("&")[0])) {
+                flagNO = false;
+              }
+            }
+              if (flagNO) {
+              temp.add(o);
+            }
+        }
+        }
+
       }
-      }
-    }
+
     return temp;
   }
 
@@ -374,8 +408,7 @@ public class LoopData implements Comparable<LoopData> {
         }
     }
     }
-
-    if (!loopTF) {
+    if (!nodes.isEmpty()) {
     LoopGetIfAfterLoopCondition l = new LoopGetIfAfterLoopCondition(nodes, pLogger);
     if (l.getSmallestIf() != NO_IF_CASE) {
       ArrayList<CFANode> tempN = (ArrayList<CFANode>) nodes.clone();

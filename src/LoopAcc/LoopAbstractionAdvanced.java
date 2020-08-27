@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 public class LoopAbstractionAdvanced {
   private int lineNumber = 1;
 
+
   public LoopAbstractionAdvanced() {
 
   }
@@ -54,6 +55,7 @@ public class LoopAbstractionAdvanced {
           boolean automate) {
     ArrayList<LoopData> outerLoopTemp = new ArrayList<>();
     ArrayList<Integer> loopStarts = new ArrayList<>();
+    ArrayList<String> preUsedVariables = new ArrayList<>();
     boolean closed = true;
     for (LoopData loopData : loopInfo.getLoopData()) {
       if (loopData.getLoopType() == "while") {
@@ -156,19 +158,70 @@ public class LoopAbstractionAdvanced {
                         == lineNumber)) {
 
               CFANode endNodeCondition = findLastNodeInCondition(loopD);
-              if (loopD.getLoopType().equals("while") || loopD.getLoopInLoop()) {
+              if (loopD.getLoopType().equals("while")) {
                 line = reader.readLine();
+                boolean uVFlag = false;
+                for (String s : preUsedVariables) {
+                  if (line != null
+                      && !s.isEmpty()
+                      && line.contains(s.split("&")[1])
+                      && line.contains(
+                          s.split(
+                              "&")[0])
+                      && line.contains(";")) {
+                    line = line.split(s.split("&")[1])[1];
+                    uVFlag = true;
+                  }
+                  if (line != null
+                      && !s.isEmpty()
+                      && (line.startsWith(" ")
+                          || line.startsWith(
+                              ""))
+                      && line.endsWith(s.split("&")[0] + ";")
+                      && uVFlag) {
+                    line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
+                  }
+                }
                 content = content + whileCondition(loopD);
                 lineNumber++;
               } else if (loopD.getLoopType().equals("for")) {
-                // line = reader.readLine();
                 line = reader.readLine();
-                content = content + forCondition(loopD);
+                boolean uVFlag = false;
+                for (String s : preUsedVariables) {
+                  if (line != null
+                      && !s.isEmpty()
+                      && line.contains(s.split("&")[1])
+                      && line.contains(s.split("&")[0])
+                      && line.contains(";")) {
+                    line = line.split(s.split("&")[1])[1];
+                    uVFlag = true;
+                  }
+                  if (line != null
+                      && !s.isEmpty()
+                      && (line.startsWith(" ")
+                          || line.startsWith(
+                              ""))
+                      && line.endsWith(s.split("&")[0] + ";")
+                      && uVFlag) {
+                    line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
+                  }
+                }
+                content = content + forCondition(loopD, preUsedVariables);
                 lineNumber++;
               }
               for (String x : loopD.getInputsOutputs()) {
                     switch (x.split("&")[1]) {
                       case "int":
+                        if (Integer.parseInt(x.split("&")[2]) >= lineNumber
+                            && !preUsedVariables.contains(x)) {
+                          content +=
+                              x.split("&")[1]
+                                  + " "
+                                  + x.split("&")[0]
+                                  + ";"
+                                  + System.lineSeparator();
+                          preUsedVariables.add(x);
+                        }
                         content += (x.split("&")[0] + "=__VERIFIER_nondet_uint();" + System.lineSeparator());
                         break;
                       case "char":
@@ -207,31 +260,150 @@ public class LoopAbstractionAdvanced {
                         .getEndingLineInOrigin()) {
 
                   line = reader.readLine();
+                  boolean uVFlag = false;
+                  for (String s : preUsedVariables) {
+                    if (line != null
+                        && !s.isEmpty()
+                        && line.contains(s.split("&")[1])
+                        && line.contains(
+                            s.split(
+                                "&")[0])
+                        && line.contains(";")) {
+                      line = line.split(s.split("&")[1])[1];
+                      uVFlag = true;
+                    }
+                    if (line != null
+                        && !s.isEmpty()
+                        && (line.startsWith(" ")
+                            || line.startsWith(
+                                ""))
+                        && line.endsWith(s.split("&")[0] + ";")
+                        && uVFlag) {
+                      line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
+                    }
+                  }
                   closed = ifCaseClosed(line, closed);
                   content += line + System.lineSeparator();
                   lineNumber++;
                 }
+
                 /**
-                 * if (loopD.getIsOuterLoop() && loopD.getLoopEnd().getNodeNumber() ==
-                 * findEndNode(loopD.getInnerLoop()) .getNodeNumber()) { int counter = 2; while
-                 * (counter > 0) { line = reader.readLine(); content += line +
-                 * System.lineSeparator(); lineNumber++; if (line.contains("}")) { counter -= 1; }
-                 *
-                 * } content += ("__VERIFIER_assume(!" + loopD.getCondition() + ");" +
-                 * System.lineSeparator()); }
+                 * while (!closed) { line = reader.readLine(); closed = ifCaseClosed(line, closed);
+                 * content += line + System.lineSeparator(); lineNumber++; } line =
+                 * reader.readLine(); closed = ifCaseClosed(line, closed); content += line +
+                 * System.lineSeparator(); lineNumber++; while (!line.contains("}")) { line =
+                 * reader.readLine(); closed = ifCaseClosed(line, closed); content += line +
+                 * System.lineSeparator(); lineNumber++; }
                  */
-                while (!closed) {
-                  line = reader.readLine();
+                boolean flagTopIf2 = false;
+                boolean flagKP2 = false;
+                line = reader.readLine();
+                boolean uVFlag = false;
+                for (String s : preUsedVariables) {
+                  if (line != null
+                      && !s.isEmpty()
+                      && line.contains(s.split("&")[1])
+                      && line.contains(";")) {
+                    line = line.split(s.split("&")[1])[1];
+                    uVFlag = true;
+                  }
+                  if (line != null
+                      && !s.isEmpty()
+                      && (line.startsWith(" ")
+                          || line.startsWith(
+                              ""))
+                      && line.endsWith(s.split("&")[0] + ";")
+                      && uVFlag) {
+                    line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
+                  }
+                }
+                if (line.contains("if")) {
+                  flagTopIf2 = true;
+                  flagKP2 = true;
                   closed = ifCaseClosed(line, closed);
                   content += line + System.lineSeparator();
                   lineNumber++;
                 }
+                while (!closed) {
+                  if (flagTopIf2) {
+                  line = reader.readLine();
+                  boolean uVFlag1 = false;
+                  for (String s : preUsedVariables) {
+                    if (line != null
+                        && !s.isEmpty()
+                        && line.contains(s.split("&")[1])
+                        && line.contains(
+                            s.split(
+                                "&")[0])
+                        && line.contains(";")) {
+                      line = line.split(s.split("&")[1])[1];
+                      uVFlag1 = true;
+                    }
+                    if (line != null
+                        && !s.isEmpty()
+                        && (line.startsWith(" ")
+                            || line.startsWith(
+                                ""))
+                        && line.endsWith(s.split("&")[0] + ";")
+                        && uVFlag1) {
+                      line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
+                    }
+                  }
+                }
+                flagTopIf2 = true;
+                  closed = ifCaseClosed(line, closed);
+                  content += line + System.lineSeparator();
+                  lineNumber++;
+                }
+                if (flagKP2 || flagTopIf2) {
                 line = reader.readLine();
+                boolean uVFlag2 = false;
+                for (String s : preUsedVariables) {
+                  if (line != null
+                      && !s.isEmpty()
+                      && line.contains(s.split("&")[1])
+                      && line.contains(";")) {
+                    line = line.split(s.split("&")[1])[1];
+                    uVFlag2 = true;
+                  }
+                  if (line != null
+                      && !s.isEmpty()
+                      && (line.startsWith(" ")
+                          || line.startsWith(
+                              ""))
+                      && line.endsWith(s.split("&")[0] + ";")
+                      && uVFlag2) {
+                    line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
+                  }
+                }
+              }
                 closed = ifCaseClosed(line, closed);
                 content += line + System.lineSeparator();
                 lineNumber++;
                 while (!line.contains("}")) {
                   line = reader.readLine();
+                  boolean uVFlag3 = false;
+                  for (String s : preUsedVariables) {
+                    if (line != null
+                        && !s.isEmpty()
+                        && line.contains(s.split("&")[1])
+                        && line.contains(
+                            s.split(
+                                "&")[0])
+                        && line.contains(";")) {
+                      line = line.split(s.split("&")[1])[1];
+                      uVFlag3 = true;
+                    }
+                    if (line != null
+                        && !s.isEmpty()
+                        && (line.startsWith(" ")
+                            || line.startsWith(
+                                ""))
+                        && line.endsWith(s.split("&")[0] + ";")
+                        && uVFlag3) {
+                      line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
+                    }
+                  }
                   closed = ifCaseClosed(line, closed);
                   content += line + System.lineSeparator();
                   lineNumber++;
@@ -243,21 +415,121 @@ public class LoopAbstractionAdvanced {
                         + System.lineSeparator());
 
                 for (int i = outerLoopTemp.size() - 1; i >= 0; i--) {
+                  boolean flagIf = false;
+                  boolean flagKP = false;
                   line = reader.readLine();
+                  boolean uVFlag4 = false;
+                  for (String s : preUsedVariables) {
+                    if (line != null
+                        && !s.isEmpty()
+                        && line.contains(s.split("&")[1])
+                        && line.contains(
+                            s.split(
+                                "&")[0])
+                        && line.contains(";")) {
+                      line = line.split(s.split("&")[1])[1];
+                      uVFlag4 = true;
+                    }
+                    if (line != null
+                        && !s.isEmpty()
+                        && (line.startsWith(" ")
+                            || line.startsWith(
+                                ""))
+                        && line.endsWith(s.split("&")[0] + ";")
+                        && uVFlag4) {
+                      line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
+                    }
+                  }
+                  if (line.contains("if")) {
+                    flagIf = true;
+                    flagKP = true;
+                  closed = ifCaseClosed(line, closed);
                   content += line + System.lineSeparator();
                   lineNumber++;
+                }
                   while (!closed) {
+                    if (flagIf) {
                     line = reader.readLine();
+                    boolean uVFlag5 = false;
+                    for (String s : preUsedVariables) {
+                      if (line != null
+                          && !s.isEmpty()
+                          && line.contains(s.split("&")[1])
+                          && line.contains(
+                              s.split(
+                                  "&")[0])
+                          && line.contains(";")) {
+                        line = line.split(s.split("&")[1])[1];
+                        uVFlag5 = true;
+                      }
+                      if (line != null
+                          && !s.isEmpty()
+                          && (line.startsWith(" ")
+                              || line.startsWith(
+                                  ""))
+                          && line.endsWith(s.split("&")[0] + ";")
+                          && uVFlag5) {
+                        line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
+                      }
+                    }
+                  }
+                  flagIf = true;
                     closed = ifCaseClosed(line, closed);
                     content += line + System.lineSeparator();
                     lineNumber++;
                   }
+                  if (flagKP || flagIf) {
                   line = reader.readLine();
+                  boolean uVFlag6 = false;
+                  for (String s : preUsedVariables) {
+                    if (line != null
+                        && !s.isEmpty()
+                        && line.contains(s.split("&")[1])
+                        && line.contains(
+                            s.split(
+                                "&")[0])
+                        && line.contains(";")) {
+                      line = line.split(s.split("&")[1])[1];
+                      uVFlag6 = true;
+                    }
+                    if (line != null
+                        && !s.isEmpty()
+                        && (line.startsWith(" ")
+                            || line.startsWith(
+                                ""))
+                        && line.endsWith(s.split("&")[0] + ";")
+                        && uVFlag6) {
+                      line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
+                    }
+                  }
+                }
                   closed = ifCaseClosed(line, closed);
                   content += line + System.lineSeparator();
                   lineNumber++;
                   while (!line.contains("}")) {
                     line = reader.readLine();
+                    boolean uVFlag7 = false;
+                    for (String s : preUsedVariables) {
+                      if (line != null
+                          && !s.isEmpty()
+                          && line.contains(s.split("&")[1])
+                          && line.contains(
+                              s.split(
+                                  "&")[0])
+                          && line.contains(";")) {
+                        line = line.split(s.split("&")[1])[1];
+                        uVFlag7 = true;
+                      }
+                      if (line != null
+                          && !s.isEmpty()
+                          && (line.startsWith(" ")
+                              || line.startsWith(
+                                  ""))
+                          && line.endsWith(s.split("&")[0] + ";")
+                          && uVFlag7) {
+                        line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
+                      }
+                    }
                     closed = ifCaseClosed(line, closed);
                     content += line + System.lineSeparator();
                     lineNumber++;
@@ -287,31 +559,157 @@ public class LoopAbstractionAdvanced {
                     .getFileLocation()
                     .getStartingLineInOrigin()
                     && line != null
-                    && lineNumber < loopD.getLoopEnd()
+                    && lineNumber <= loopD
+                        .getLoopEnd()
                         .getEnteringEdge(0)
                         .getFileLocation()
                         .getEndingLineInOrigin()
                 ) {
                   line = reader.readLine();
+                  boolean uVFlag = false;
+                  for (String s : preUsedVariables) {
+                    if (line != null
+                        && !s.isEmpty()
+                        && line.contains(s.split("&")[1])
+                        && line.contains(
+                            s.split(
+                                "&")[0])
+                        && line.contains(";")) {
+                      line = line.split(s.split("&")[1])[1];
+                      uVFlag = true;
+                    }
+                    if (line != null
+                        && !s.isEmpty()
+                        && (line.startsWith(" ")
+                            || line.startsWith(
+                                ""))
+                        && line.endsWith(s.split("&")[0] + ";")
+                        && uVFlag) {
+                      line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
+                    }
+                  }
                   closed = ifCaseClosed(line, closed);
                   content += line + System.lineSeparator();
                   lineNumber++;
                 }
-                while (!closed) {
+                /**
+                 * while (!closed) { lineNumber++; line = reader.readLine(); closed =
+                 * ifCaseClosed(line, closed); content += line + System.lineSeparator(); }
+                 * lineNumber++; line = reader.readLine(); closed = ifCaseClosed(line, closed);
+                 * content += line + System.lineSeparator(); while (!line.contains("}")) {
+                 * lineNumber++; line = reader.readLine(); closed = ifCaseClosed(line, closed);
+                 * content += line + System.lineSeparator(); }
+                 */
+                boolean flagIfTop = false;
+                boolean flagKP = false;
+                line = reader.readLine();
+                boolean uVFlag = false;
+                for (String s : preUsedVariables) {
+                  if (line != null
+                      && !s.isEmpty()
+                      && line.contains(s.split("&")[1])
+                      && line.contains(";")) {
+                    line = line.split(s.split("&")[1])[1];
+                    uVFlag = true;
+                  }
+                  if (line != null
+                      && !s.isEmpty()
+                      && (line.startsWith(" ")
+                          || line.startsWith(
+                              ""))
+                      && line.endsWith(s.split("&")[0] + ";")
+                      && uVFlag) {
+                    line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
+                  }
+                }
+                if (line.contains("if")) {
+                  flagIfTop = true;
+                  flagKP = true;
+                  closed = ifCaseClosed(line, closed);
+                  content += line + System.lineSeparator();
                   lineNumber++;
+              }
+              while (!closed) {
+                if (flagIfTop) {
                   line = reader.readLine();
-                  closed = ifCaseClosed(line, closed);
-                  content += line + System.lineSeparator();
+                  boolean uVFlag8 = false;
+                  for (String s : preUsedVariables) {
+                    if (line != null
+                        && !s.isEmpty()
+                        && line.contains(s.split("&")[1])
+                        && line.contains(
+                            s.split(
+                                "&")[0])
+                        && line.contains(";")) {
+                      line = line.split(s.split("&")[1])[1];
+                      uVFlag8 = true;
+                    }
+                    if (line != null
+                        && !s.isEmpty()
+                        && (line.startsWith(" ")
+                            || line.startsWith(
+                                ""))
+                        && line.endsWith(s.split("&")[0] + ";")
+                        && uVFlag8) {
+                      line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
+                    }
+                  }
                 }
+                flagIfTop = true;
+                closed = ifCaseClosed(line, closed);
+                content += line + System.lineSeparator();
                 lineNumber++;
+              }
+              if (flagKP || flagIfTop) {
+              line = reader.readLine();
+              boolean uVFlag9 = false;
+              for (String s : preUsedVariables) {
+                if (line != null
+                    && !s.isEmpty()
+                    && line.contains(s.split("&")[1])
+                    && line.contains(";")) {
+                  line = line.split(s.split("&")[1])[1];
+                  uVFlag9 = true;
+                }
+                if (line != null
+                    && !s.isEmpty()
+                    && (line.startsWith(" ")
+                        || line.startsWith(
+                            ""))
+                    && line.endsWith(s.split("&")[0] + ";")
+                    && uVFlag9) {
+                  line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
+                }
+              }
+              }
+              closed = ifCaseClosed(line, closed);
+              content += line + System.lineSeparator();
+              lineNumber++;
+
+              while (!line.contains("}")) {
                 line = reader.readLine();
+                boolean uVFlag10 = false;
+                for (String s : preUsedVariables) {
+                  if (line != null
+                      && !s.isEmpty()
+                      && line.contains(s.split("&")[1])
+                      && line.contains(";")) {
+                    line = line.split(s.split("&")[1])[1];
+                    uVFlag10 = true;
+                  }
+                  if (line != null
+                      && !s.isEmpty()
+                      && (line.startsWith(" ")
+                          || line.startsWith(
+                              ""))
+                      && line.endsWith(s.split("&")[0] + ";")
+                      && uVFlag10) {
+                    line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
+                  }
+                }
                 closed = ifCaseClosed(line, closed);
                 content += line + System.lineSeparator();
-                while (!line.contains("}")) {
-                  lineNumber++;
-                line = reader.readLine();
-                closed = ifCaseClosed(line, closed);
-                content += line + System.lineSeparator();
+                lineNumber++;
               }
                 content +=
                     ("__VERIFIER_assume(!("
@@ -320,21 +718,119 @@ public class LoopAbstractionAdvanced {
                         + System.lineSeparator());
 
                 for (int i = outerLoopTemp.size() - 1; i >= 0; i--) {
+                  boolean flagIf = false;
+                  boolean flagBotKP = false;
                   line = reader.readLine();
+                  boolean uVFlag11 = false;
+                  for (String s : preUsedVariables) {
+                    if (line != null
+                        && !s.isEmpty()
+                        && line.contains(s.split("&")[1])
+                        && line.contains(
+                            s.split(
+                                "&")[0])
+                        && line.contains(";")) {
+                      line = line.split(s.split("&")[1])[1];
+                      uVFlag11 = true;
+                    }
+                    if (line != null
+                        && !s.isEmpty()
+                        && (line.startsWith(" ")
+                            || line.startsWith(
+                                ""))
+                        && line.endsWith(s.split("&")[0] + ";")
+                        && uVFlag11) {
+                      line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
+                    }
+                  }
+                  if (line.contains("if")) {
+                    flagIf = true;
+                    flagBotKP = true;
+                    closed = ifCaseClosed(line, closed);
                   content += line + System.lineSeparator();
                   lineNumber++;
+                }
                   while (!closed) {
+                    if (flagIf) {
                     line = reader.readLine();
+                    boolean uVFlag12 = false;
+                    for (String s : preUsedVariables) {
+                      if (line != null
+                          && !s.isEmpty()
+                          && line.contains(s.split("&")[1])
+                          && line.contains(
+                              s.split(
+                                  "&")[0])
+                          && line.contains(";")) {
+                        line = line.split(s.split("&")[1])[1];
+                        uVFlag12 = true;
+                      }
+                      if (line != null
+                          && !s.isEmpty()
+                          && (line.startsWith(" ")
+                              || line.startsWith(
+                                  ""))
+                          && line.endsWith(s.split("&")[0] + ";")
+                          && uVFlag12) {
+                        line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
+                      }
+                    }
+                  }
+                  flagIf = true;
                     closed = ifCaseClosed(line, closed);
                     content += line + System.lineSeparator();
                     lineNumber++;
                   }
+                  if (flagBotKP || flagIf) {
                   line = reader.readLine();
+                  boolean uVFlag13 = false;
+                  for (String s : preUsedVariables) {
+                    if (line != null
+                        && !s.isEmpty()
+                        && line.contains(s.split("&")[1])
+                        && line.contains(
+                            s.split(
+                                "&")[0])
+                        && line.contains(";")) {
+                      line = line.split(s.split("&")[1])[1];
+                      uVFlag13 = true;
+                    }
+                    if (line != null
+                        && !s.isEmpty()
+                        && (line.startsWith(" ")
+                            || line.startsWith(
+                                ""))
+                        && line.endsWith(s.split("&")[0] + ";")
+                        && uVFlag13) {
+                      line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
+                    }
+                  }
+                }
                   closed = ifCaseClosed(line, closed);
                   content += line + System.lineSeparator();
                   lineNumber++;
                   while (!line.contains("}")) {
                     line = reader.readLine();
+                    boolean uVFlag14 = false;
+                    for (String s : preUsedVariables) {
+                      if (line != null
+                          && !s.isEmpty()
+                          && line.contains(s.split("&")[1])
+                          && line.contains(s.split("&")[0])
+                          && line.contains(";")) {
+                        line = line.split(s.split("&")[1])[1];
+                        uVFlag14 = true;
+                      }
+                      if (line != null
+                          && !s.isEmpty()
+                          && (line.startsWith(" ")
+                              || line.startsWith(
+                                  ""))
+                          && line.endsWith(s.split("&")[0] + ";")
+                          && uVFlag14) {
+                        line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
+                      }
+                    }
                     closed = ifCaseClosed(line, closed);
                     content += line + System.lineSeparator();
                     lineNumber++;
@@ -384,10 +880,29 @@ public class LoopAbstractionAdvanced {
               )
               {
                 line = reader.readLine();
+                boolean uVFlag = false;
+                for (String s : preUsedVariables) {
+                  if (line != null
+                      && !s.isEmpty()
+                      && line.contains(s.split("&")[1])
+                      && line.contains(";")) {
+                    line = line.split(s.split("&")[1])[1];
+                    uVFlag = true;
+                  }
+                  if (line != null
+                      && !s.isEmpty()
+                      && (line.startsWith(" ")
+                          || line.startsWith(
+                              ""))
+                      && line.endsWith(s.split("&")[0] + ";")
+                      && uVFlag) {
+                    line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
+                  }
+                }
                 closed = ifCaseClosed(line, closed);
                 content += line + System.lineSeparator();
                 lineNumber++;
-                lineNumber++;
+                // lineNumber++;
               }
             } else if (loopD.getLoopType() == "while") {
               while (lineNumber >= endNodeCondition.getEnteringEdge(0)
@@ -401,6 +916,25 @@ public class LoopAbstractionAdvanced {
                       .getFileLocation()
                       .getStartingLineInOrigin()))) {
                 line = reader.readLine();
+                boolean uVFlag = false;
+                for (String s : preUsedVariables) {
+                  if (line != null
+                      && !s.isEmpty()
+                      && line.contains(s.split("&")[1])
+                      && line.contains(";")) {
+                    line = line.split(s.split("&")[1])[1];
+                    uVFlag = true;
+                  }
+                  if (line != null
+                      && !s.isEmpty()
+                      && (line.startsWith(" ")
+                          || line.startsWith(
+                              ""))
+                      && line.endsWith(s.split("&")[0] + ";")
+                      && uVFlag) {
+                    line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
+                  }
+                }
                 closed = ifCaseClosed(line, closed);
                 content += line + System.lineSeparator();
                 lineNumber++;
@@ -436,16 +970,44 @@ public class LoopAbstractionAdvanced {
         + System.lineSeparator();
   }
 
-  private String forCondition(LoopData loopD) {
+  private String forCondition(LoopData loopD, ArrayList<String> preUsedVariables) {
+    boolean flag = true;
+    String variable = "";
+    for (String x : preUsedVariables) {
+      if (loopD.getCondition().split(";")[0].contains(x.split("&")[0])) {
+        flag = false;
+        variable = x.split("&")[1];
+      }
+    }
+    if (flag) {
     return loopD.getCondition().split(";")[0]
+        + ";"
         + System.lineSeparator()
-        + "for(int cpachecker_i=0; cpachecker_i <" 
+        + "for(int cpachecker_i=0; cpachecker_i <"
         + min(loopD.getAmountOfPaths(), loopD.getOutputs().size())
         + "&&("
         + loopD.getCondition().split(";")[1]
         + "); cpachecker_i++"
         + "){"
         + System.lineSeparator();
+  } else {
+    String cond = loopD.getCondition().split(";")[0];
+
+    if (cond.contains(variable)) {
+      cond = cond.split(variable)[1];
+    }
+
+    return cond
+        + ";"
+        + System.lineSeparator()
+        + "for(int cpachecker_i=0; cpachecker_i <"
+        + min(loopD.getAmountOfPaths(), loopD.getOutputs().size())
+        + "&&("
+        + loopD.getCondition().split(";")[1]
+        + "); cpachecker_i++"
+        + "){"
+        + System.lineSeparator();
+  }
   }
 
   private boolean ifCaseClosed(String line, boolean closed) {
@@ -459,6 +1021,17 @@ public class LoopAbstractionAdvanced {
       }
       if (temp.contains("if") || line.contains("else")) {
       ifCaseC = false;
+      if (temp.contains("if")) {
+        String temp2 = line.split("if")[1];
+        if (temp2.contains("}")) {
+          ifCaseC = true;
+        }
+      } else if (line.contains("else")) {
+        String temp2 = line.split("else")[1];
+        if (temp2.contains("}")) {
+          ifCaseC = true;
+        }
+      }
     }
   }
     return ifCaseC;

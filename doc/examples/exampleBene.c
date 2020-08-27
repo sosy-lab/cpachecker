@@ -10,8 +10,13 @@ int main() {
        int x = c;
 	
        test(x);
+	
+	while(a < 5){
+	a = a+1;
+	}
 
-    }
+}
+
 
 
   while (a < 22) {
