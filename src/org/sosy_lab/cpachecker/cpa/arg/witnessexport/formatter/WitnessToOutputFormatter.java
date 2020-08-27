@@ -8,10 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport.formatter;
 
-import com.google.common.collect.Maps;
-import com.google.common.collect.Queues;
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Edge;
@@ -44,8 +44,8 @@ public abstract class WitnessToOutputFormatter<T> {
 
   private void traverseGraph(Appendable pTarget) throws IOException {
     String entryStateNodeId = witness.getEntryStateNodeId();
-    Map<String, T> nodes = Maps.newHashMap();
-    Deque<String> waitlist = Queues.newArrayDeque();
+    Map<String, T> nodes = new HashMap<>();
+    Deque<String> waitlist = new ArrayDeque<>();
     waitlist.push(entryStateNodeId);
     T entryNode = createNewNode(entryStateNodeId, pTarget);
     addAndGetInvariantsData(entryNode, entryStateNodeId, pTarget);

@@ -10,16 +10,20 @@ package org.sosy_lab.cpachecker.util;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
@@ -86,7 +90,6 @@ public class WitnessInvariantsExtractor {
    * called.
    *
    * @param pConfig the configuration
-   * @param pSpecification the specification
    * @param pLogger the logger
    * @param pCFA the cfa
    * @param pShutdownNotifier the shutdown notifier
@@ -95,7 +98,6 @@ public class WitnessInvariantsExtractor {
    */
   public WitnessInvariantsExtractor(
       Configuration pConfig,
-      Specification pSpecification,
       LogManager pLogger,
       CFA pCFA,
       ShutdownNotifier pShutdownNotifier,
@@ -106,7 +108,7 @@ public class WitnessInvariantsExtractor {
     this.logger = pLogger;
     this.cfa = pCFA;
     this.shutdownNotifier = pShutdownNotifier;
-    this.automatonAsSpec = buildSpecification(pSpecification, pPathToWitnessFile);
+    this.automatonAsSpec = buildSpecification(pPathToWitnessFile);
     analyzeWitness();
   }
 
@@ -156,10 +158,10 @@ public class WitnessInvariantsExtractor {
     return configBuilder.build();
   }
 
-  private Specification buildSpecification(Specification pSpecification, Path pathToWitnessFile)
+  private Specification buildSpecification(Path pathToWitnessFile)
       throws InvalidConfigurationException, InterruptedException {
     return Specification.fromFiles(
-        pSpecification.getProperties(),
+        ImmutableSet.of(),
         ImmutableList.of(pathToWitnessFile),
         cfa,
         config,
@@ -196,16 +198,14 @@ public class WitnessInvariantsExtractor {
    * WitnessInvariantsExtractor#reachedSet}. For two invariants at the same CFA location the
    * conjunction is applied for the two invariants.
    *
-   * @param pInvariants the set of location invariants that stores the extracted location invariants
+   * @return the set of location invariants that stores the extracted location invariants
    */
-  @SuppressWarnings("unchecked")
-  public void extractInvariantsFromReachedSet(
-      final Set<ExpressionTreeLocationInvariant> pInvariants) {
-    Map<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = Maps.newConcurrentMap();
+  public Set<ExpressionTreeLocationInvariant> extractInvariantsFromReachedSet()
+      throws InterruptedException {
+    Set<ExpressionTreeLocationInvariant> invariants = new LinkedHashSet<>();
+    ConcurrentMap<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = new ConcurrentHashMap<>();
     for (AbstractState abstractState : reachedSet) {
-      if (shutdownNotifier.shouldShutdown()) {
-        return;
-      }
+      shutdownNotifier.shutdownIfNecessary();
       CFANode location = AbstractStates.extractLocation(abstractState);
       for (AutomatonState automatonState :
           AbstractStates.asIterable(abstractState).filter(AutomatonState.class)) {
@@ -213,23 +213,26 @@ public class WitnessInvariantsExtractor {
         String groupId = automatonState.getInternalStateName();
         ExpressionTreeLocationInvariant previousInv = null;
         if (!candidate.equals(ExpressionTrees.getTrue())) {
-          for (ExpressionTreeLocationInvariant inv : pInvariants) {
+          for (ExpressionTreeLocationInvariant inv : invariants) {
             if (inv.getLocation().equals(location)) {
               previousInv = inv;
             }
           }
           ExpressionTree<AExpression> previousExpression = ExpressionTrees.getTrue();
           if (previousInv != null) {
-            ExpressionTree<?> expr = previousInv.asExpressionTree();
-            previousExpression = (ExpressionTree<AExpression>) expr;
-            pInvariants.remove(previousInv);
+            @SuppressWarnings("unchecked")
+            ExpressionTree<AExpression> expr =
+                (ExpressionTree<AExpression>) (ExpressionTree<?>) previousInv.asExpressionTree();
+            previousExpression = expr;
+            invariants.remove(previousInv);
           }
-          pInvariants.add(
+          invariants.add(
               new ExpressionTreeLocationInvariant(
                   groupId, location, And.of(previousExpression, candidate), toCodeVisitorCache));
         }
       }
     }
+    return invariants;
   }
 
   /**
@@ -244,17 +247,16 @@ public class WitnessInvariantsExtractor {
    */
   public void extractCandidatesFromReachedSet(
       final Set<CandidateInvariant> pCandidates,
-      final Multimap<String, CFANode> pCandidateGroupLocations) {
-    Set<ExpressionTreeLocationInvariant> expressionTreeLocationInvariants = Sets.newHashSet();
-    Map<String, ExpressionTree<AExpression>> expressionTrees = Maps.newHashMap();
-    Set<CFANode> visited = Sets.newHashSet();
+      final Multimap<String, CFANode> pCandidateGroupLocations)
+      throws InterruptedException {
+    Set<ExpressionTreeLocationInvariant> expressionTreeLocationInvariants = new HashSet<>();
+    Map<String, ExpressionTree<AExpression>> expressionTrees = new HashMap<>();
+    Set<CFANode> visited = new HashSet<>();
     Multimap<CFANode, ExpressionTreeLocationInvariant> potentialAdditionalCandidates =
         HashMultimap.create();
-    Map<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = Maps.newConcurrentMap();
+    ConcurrentMap<ManagerKey, ToFormulaVisitor> toCodeVisitorCache = new ConcurrentHashMap<>();
     for (AbstractState abstractState : reachedSet) {
-      if (shutdownNotifier.shouldShutdown()) {
-        return;
-      }
+      shutdownNotifier.shutdownIfNecessary();
       Iterable<CFANode> locations = AbstractStates.extractLocations(abstractState);
       Iterables.addAll(visited, locations);
       for (AutomatonState automatonState :

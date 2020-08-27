@@ -14,6 +14,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -200,9 +201,15 @@ public class ARGState extends AbstractSingleWrapperState
     }
   }
 
-  public Set<ARGState> getSubgraph() {
+  /**
+   * Return a duplicate-free iterable over all states that are transitively reachable from this
+   * state via {@link #getChildren()}. The current state is included. The iterable always reflects
+   * the current state of the ARG. The behavior is undefined if the ARG is changed during iteration
+   * over it.
+   */
+  public FluentIterable<ARGState> getSubgraph() {
     assert !destroyed : "Don't use destroyed ARGState " + this;
-    return Sets.newHashSet(Traverser.forGraph(ARGState::getChildren).breadthFirst(this));
+    return from(Traverser.forGraph(ARGState::getChildren).breadthFirst(this));
   }
 
   // coverage

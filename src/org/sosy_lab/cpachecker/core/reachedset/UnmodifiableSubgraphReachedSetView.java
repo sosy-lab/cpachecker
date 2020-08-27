@@ -14,7 +14,6 @@ import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.function.BiConsumer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -35,7 +34,7 @@ public class UnmodifiableSubgraphReachedSetView implements UnmodifiableReachedSe
   protected final Function<AbstractState, Precision> precisionGetter;
 
   /** the full set of states in this reached-set. all states are reachable from the first state. */
-  private Collection<AbstractState> subgraph; // lazy
+  private ImmutableSet<AbstractState> subgraph; // lazy
 
   public UnmodifiableSubgraphReachedSetView(
       ARGPath pPath, Function<AbstractState, Precision> pPrecisionGetter) {
@@ -46,7 +45,7 @@ public class UnmodifiableSubgraphReachedSetView implements UnmodifiableReachedSe
   @Override
   public Collection<AbstractState> asCollection() {
     if (subgraph == null) {
-      subgraph = Collections.unmodifiableCollection(path.getFirstState().getSubgraph());
+      subgraph = ImmutableSet.copyOf(path.getFirstState().getSubgraph());
       assert subgraph.containsAll(path.asStatesList());
     }
     return subgraph;

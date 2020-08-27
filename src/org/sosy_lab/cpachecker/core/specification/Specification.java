@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.core.specification;
 
 import static java.util.stream.Collectors.joining;
-import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableListMultimap;
@@ -97,7 +96,7 @@ public final class Specification {
     }
 
     ImmutableListMultimap<Path, Automaton> specificationAutomata =
-        parseSpecificationFiles(specFiles, cfa, config, logger, pShutdownNotifier, pProperties);
+        parseSpecificationFiles(specFiles, cfa, config, logger, pShutdownNotifier);
 
     return new Specification(pProperties, specificationAutomata);
   }
@@ -107,8 +106,7 @@ public final class Specification {
       CFA cfa,
       Configuration config,
       LogManager logger,
-      ShutdownNotifier pShutdownNotifier,
-      Set<SpecificationProperty> pProperties)
+      ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException, InterruptedException {
     if (Iterables.isEmpty(specFiles)) {
       return ImmutableListMultimap.of();
@@ -124,16 +122,12 @@ public final class Specification {
         break;
     }
 
-    Set<Property> properties =
-        transformedImmutableSetCopy(pProperties, SpecificationProperty::getProperty);
-
     ImmutableListMultimap.Builder<Path, Automaton> multiplePropertiesBuilder =
         ImmutableListMultimap.builder();
 
     for (Path specFile : specFiles) {
       List<Automaton> automata =
-          parseSpecificationFile(
-              specFile, cfa, config, logger, pShutdownNotifier, properties, scope);
+          parseSpecificationFile(specFile, cfa, config, logger, pShutdownNotifier, scope);
       multiplePropertiesBuilder.putAll(specFile, automata);
     }
     return multiplePropertiesBuilder.build();
@@ -145,7 +139,6 @@ public final class Specification {
       Configuration config,
       LogManager logger,
       ShutdownNotifier pShutdownNotifier,
-      Set<Property> properties,
       Scope scope)
       throws InvalidConfigurationException, InterruptedException {
     List<Automaton> automata;
@@ -162,7 +155,7 @@ public final class Specification {
     if (AutomatonGraphmlParser.isGraphmlAutomatonFromConfiguration(specFile)) {
       AutomatonGraphmlParser graphmlParser =
           new AutomatonGraphmlParser(config, logger, pShutdownNotifier, cfa, scope);
-      automata = ImmutableList.of(graphmlParser.parseAutomatonFile(specFile, properties));
+      automata = ImmutableList.of(graphmlParser.parseAutomatonFile(specFile));
 
     } else {
       automata =
@@ -210,7 +203,7 @@ public final class Specification {
     }
 
     ImmutableListMultimap<Path, Automaton> newSpecificationAutomata =
-        parseSpecificationFiles(newSpecFiles, cfa, config, logger, pShutdownNotifier, properties);
+        parseSpecificationFiles(newSpecFiles, cfa, config, logger, pShutdownNotifier);
 
     return new Specification(
         properties,
@@ -218,6 +211,19 @@ public final class Specification {
             .putAll(pathToSpecificationAutomata)
             .putAll(newSpecificationAutomata)
             .build());
+  }
+
+  /**
+   * Return a new specification instance that has everything that the current instance has, and
+   * additionally some new properties.
+   */
+  public Specification withAdditionalProperties(Set<SpecificationProperty> pProperties) {
+    Set<SpecificationProperty> newProperties = Sets.union(properties, pProperties).immutableCopy();
+    if (newProperties.size() == properties.size()) {
+      return this;
+    }
+
+    return new Specification(newProperties, pathToSpecificationAutomata);
   }
 
   private Specification(Iterable<Automaton> pSpecificationAutomata) {

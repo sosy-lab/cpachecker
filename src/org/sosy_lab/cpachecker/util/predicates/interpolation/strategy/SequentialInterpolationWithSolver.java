@@ -16,25 +16,24 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class SequentialInterpolationWithSolver<T> extends ITPStrategy<T> {
+public class SequentialInterpolationWithSolver extends ITPStrategy {
 
   /**
    * This strategy uses a SMT solver that directly computes a sequence of inductive interpolants.
    * Currently all SMT solvers except MathSat support this.
    */
-  public SequentialInterpolationWithSolver(LogManager pLogger, ShutdownNotifier pShutdownNotifier,
-                                           FormulaManagerView pFmgr, BooleanFormulaManager pBfmgr) {
-    super(pLogger, pShutdownNotifier, pFmgr, pBfmgr);
+  public SequentialInterpolationWithSolver(
+      LogManager pLogger, ShutdownNotifier pShutdownNotifier, FormulaManagerView pFmgr) {
+    super(pLogger, pShutdownNotifier, pFmgr);
   }
 
   @Override
-  public List<BooleanFormula> getInterpolants(
-          final InterpolationManager.Interpolator<T> interpolator,
-          final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
-          throws InterruptedException, SolverException {
+  public <T> List<BooleanFormula> getInterpolants(
+      final InterpolationManager.Interpolator<T> interpolator,
+      final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
+      throws InterruptedException, SolverException {
     return interpolator.itpProver.getSeqInterpolants0(
         projectToThird(formulasWithStatesAndGroupdIds));
   }

@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.collect.PersistentMap;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -177,6 +178,7 @@ public class AnalysisWithRefinableEnablerCPAAlgorithm implements Algorithm, Stat
   }
 
   @Override
+  @SuppressForbidden("TODO: needs to be fixed")
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     // delete fake edges from previous run
     logger.log(Level.FINEST, "Clean up from previous run");

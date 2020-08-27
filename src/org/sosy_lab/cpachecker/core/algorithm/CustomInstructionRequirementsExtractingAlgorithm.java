@@ -105,6 +105,10 @@ public class CustomInstructionRequirementsExtractingAlgorithm implements Algorit
       return AlgorithmStatus.UNSOUND_AND_PRECISE;
     }
 
+    if (cia.getNumApplications() < 1) {
+      logger.log(Level.WARNING, "No applications of custon instruction in program.");
+    }
+
     if (ciExtractor.getRequirementsStateClass().equals(PredicateAbstractState.class)) {
       @SuppressWarnings("resource")
       PredicateCPA predCPA = CPAs.retrieveCPA(cpa, PredicateCPA.class);

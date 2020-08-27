@@ -14,7 +14,7 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import java.io.PrintStream;
@@ -154,7 +154,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
   private MemoryRegionManager buildBnBMemoryRegions() {
     if(!variableClassification.isPresent()) {
-      return new BnBRegionManager(variableClassification, ImmutableMultimap.of(), typeHandler);
+      return new BnBRegionManager(variableClassification, ImmutableListMultimap.of(), typeHandler);
     }
     VariableClassification var = variableClassification.orElseThrow();
     Multimap<CCompositeType, String> relevant = var.getRelevantFields();
@@ -167,7 +167,8 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         bnb.put(type, p.getValue());
       }
     }
-    return new BnBRegionManager(variableClassification, ImmutableMultimap.copyOf(bnb), typeHandler);
+    return new BnBRegionManager(
+        variableClassification, ImmutableListMultimap.copyOf(bnb), typeHandler);
   }
 
   static String getFieldAccessName(
