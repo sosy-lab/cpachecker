@@ -82,15 +82,16 @@ public class MultiGoalAbstractDomain implements AbstractDomain {
 
     // if state1 contains a non-negated path, that state2 does not cover, then it is not less or
     // equal
-    for (Entry<CFAEdgesGoal, ImmutableMap<PartialPath, Integer>> negatedGoalPaths : mgs1
+    for (Entry<CFAEdgesGoal, ImmutableMap<PartialPath, PathState>> negatedGoalPaths : mgs1
         .getNegatedPathsPerGoal()
         .entrySet()) {
       if (mgs2.getNegatedPathsPerGoal().containsKey(negatedGoalPaths.getKey())) {
-        ImmutableMap<PartialPath, Integer> mgs2negatedGoalPaths =
+        ImmutableMap<PartialPath, PathState> mgs2negatedGoalPaths =
             mgs2.getNegatedPathsPerGoal().get(negatedGoalPaths.getKey());
-        for (Entry<PartialPath, Integer> negatedPath : negatedGoalPaths.getValue().entrySet()) {
+        for (Entry<PartialPath, PathState> negatedPath : negatedGoalPaths.getValue().entrySet()) {
           if (mgs2negatedGoalPaths.containsKey(negatedPath.getKey())
-              && mgs2negatedGoalPaths.get(negatedPath.getKey()) > negatedPath.getValue()) {
+              && mgs2negatedGoalPaths.get(negatedPath.getKey()).getIndex() > negatedPath.getValue()
+                  .getIndex()) {
             return false;
           }
         }

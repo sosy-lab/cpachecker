@@ -50,6 +50,7 @@ import org.sosy_lab.cpachecker.cpa.location.WeavingVariable;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.Pair;
 
+//TODO rename Class
 public class MutliGoalTransferRelation extends SingleEdgeTransferRelation {
   private Set<CFAEdgesGoal> goals;
   private Set<CFAEdgesGoal> coveredGoals;
@@ -115,25 +116,28 @@ public class MutliGoalTransferRelation extends SingleEdgeTransferRelation {
     }
   }
 
-  Map<CFAEdgesGoal, Map<PartialPath, Integer>> getPredNegatedPathStates(MultiGoalState predState) {
-    Map<CFAEdgesGoal, Map<PartialPath, Integer>> negatedPaths = new HashMap<>();
+  Map<CFAEdgesGoal, Map<PartialPath, PathState>>
+      getPredNegatedPathStates(MultiGoalState predState) {
+    Map<CFAEdgesGoal, Map<PartialPath, PathState>> negatedPaths = new HashMap<>();
     if (predState.isInitialState()) {
       for (CFAEdgesGoal goal : goals) {
         if (goal.getNegatedPaths().size() > 0) {
-        Map<PartialPath, Integer> map = new HashMap<>();
+          Map<PartialPath, PathState> map = new HashMap<>();
         for (PartialPath path : goal.getNegatedPaths()) {
-          map.put(path, 0);
+            map.put(path, new PathState(0, false));
         }
         negatedPaths.put(goal, map);
         }
       }
     } else {
-      for (Entry<CFAEdgesGoal, ImmutableMap<PartialPath, Integer>> entry : predState
+      for (Entry<CFAEdgesGoal, ImmutableMap<PartialPath, PathState>> entry : predState
           .getNegatedPathsPerGoal()
           .entrySet()) {
-        Map<PartialPath, Integer> pathStates = new HashMap<>();
-        for (Entry<PartialPath, Integer> pathState : entry.getValue().entrySet()) {
-          pathStates.put(pathState.getKey(), pathState.getValue());
+        Map<PartialPath, PathState> pathStates = new HashMap<>();
+        for (Entry<PartialPath, PathState> pathState : entry.getValue().entrySet()) {
+          pathStates.put(
+              pathState.getKey(),
+              pathState.getValue());
         }
         negatedPaths.put(entry.getKey(), pathStates);
       }
@@ -150,11 +154,10 @@ public class MutliGoalTransferRelation extends SingleEdgeTransferRelation {
 
     MultiGoalState predState = (MultiGoalState) pState;
     LinkedHashSet<Pair<WeavingVariable, WeavingType>> weavingEdges = getPredWeavingEdges(predState);
-    Map<CFAEdgesGoal, Map<PartialPath, Integer>> negatedPaths = getPredNegatedPathStates(predState);
 
     // if edge is weaved, it needs to be removed from weaved edges instead of processing the edge
-    Set<CFAEdge> weavedEdges = new HashSet<>(predState.getWeavedEdges());
-    if (weavedEdges.contains(pCfaEdge)) {
+    if (predState.getWeavedEdges().contains(pCfaEdge)) {
+      Set<CFAEdge> weavedEdges = new HashSet<>(predState.getWeavedEdges());
       weavedEdges.remove(pCfaEdge);
       return Collections
           .singleton(
@@ -164,7 +167,7 @@ public class MutliGoalTransferRelation extends SingleEdgeTransferRelation {
                   weavedEdges,
                   predState.getNegatedPathsPerGoal()));
     } else {
-      return processEdge(predState, pCfaEdge, weavingEdges, negatedPaths);
+      return processEdge(predState, pCfaEdge, weavingEdges);
     }
   }
 
@@ -173,24 +176,27 @@ public class MutliGoalTransferRelation extends SingleEdgeTransferRelation {
       processEdge(
           MultiGoalState predState,
           final CFAEdge pCfaEdge,
-          LinkedHashSet<Pair<WeavingVariable, WeavingType>> edgesToWeave,
-          Map<CFAEdgesGoal, Map<PartialPath, Integer>> pNegatedPredPathStates) {
+          LinkedHashSet<Pair<WeavingVariable, WeavingType>> edgesToWeave) {
+    Map<CFAEdgesGoal, Map<PartialPath, PathState>> negatedPaths =
+        getPredNegatedPathStates(predState);
 
     Map<CFAEdgesGoal, Integer> succGoals = new HashMap<>(predState.getGoals());
 
     boolean needsWeaving = false;
     for (CFAEdgesGoal goal : goals) {
-      needsWeaving = processGoal(goal, succGoals, pCfaEdge, pNegatedPredPathStates);
+      needsWeaving = processGoal(goal, succGoals, pCfaEdge, predState.getNegatedPathsPerGoal());
       if (pCfaEdge instanceof AssumeEdge) {
-        if (pNegatedPredPathStates.containsKey(goal)) {
-          Map<PartialPath, Integer> pathStates = pNegatedPredPathStates.get(goal);
-          for (Entry<PartialPath, Integer> entry : pathStates.entrySet()) {
+        if (negatedPaths.containsKey(goal)) {
+          Map<PartialPath, PathState> pathStates = negatedPaths.get(goal);
+          for (Entry<PartialPath, PathState> entry : pathStates.entrySet()) {
             // needs weaving for goal edges as soon as negated paths are present
-            if (entry.getKey().acceptsEdge(pCfaEdge, entry.getValue())) {
+            if (entry.getKey().acceptsEdge(pCfaEdge, entry.getValue().getIndex())) {
               edgesToWeave.add(Pair.of(getWeavedVariable(entry.getKey()), WeavingType.INCREMENT));
-              pathStates.put(entry.getKey(), (entry.getValue() + 1));
+              pathStates.put(
+                  entry.getKey(),
+                  new PathState(entry.getValue().getIndex() + 1, entry.getValue().isPathFound()));
             } else {
-              pathStates.put(entry.getKey(), -1);
+              pathStates.put(entry.getKey(), new PathState(-1, true));
             }
           }
         }
@@ -201,7 +207,7 @@ public class MutliGoalTransferRelation extends SingleEdgeTransferRelation {
     }
 
     Set<CFAEdgesGoal> finishedGoals =
-        getFinishedGoals(succGoals, pNegatedPredPathStates, predState);
+        getFinishedGoals(succGoals, negatedPaths, predState);
 
     if (finishedGoals.size() == 0) {
       return Collections
@@ -210,7 +216,7 @@ public class MutliGoalTransferRelation extends SingleEdgeTransferRelation {
                   succGoals,
                   edgesToWeave,
                   predState.getWeavedEdges(),
-                  pNegatedPredPathStates));
+                  negatedPaths));
     }
     // make sure each successor only covers 1 goal
     // otherwise weaving will break
@@ -238,7 +244,9 @@ public class MutliGoalTransferRelation extends SingleEdgeTransferRelation {
     successorGoals.put(goal, goal.getPath().size());
     LinkedHashSet<Pair<WeavingVariable, WeavingType>> newEdgesToWeave =
         new LinkedHashSet<>(edgesToWeave);
-    if (goal.getPath().size() > 1 || goal.getNegatedPaths().size() > 0) {
+    if (goal.getPath().size() > 1) {// || goal.getNegatedPaths().size() > 0) {
+      // TODO is this correct behaviour for 1-size goals with negated Paths?
+
       for (CFAEdge cfaEdge : goal.getPath().getEdges()) {
         newEdgesToWeave.add(Pair.of(getWeavedVariable(cfaEdge), WeavingType.ASSUMPTION));
       }
@@ -280,12 +288,12 @@ public class MutliGoalTransferRelation extends SingleEdgeTransferRelation {
 
   private Set<CFAEdgesGoal> getFinishedGoals(
       Map<CFAEdgesGoal, Integer> succGoals,
-      Map<CFAEdgesGoal, Map<PartialPath, Integer>> negatedPathStates,
+      Map<CFAEdgesGoal, Map<PartialPath, PathState>> negatedPathStates,
       MultiGoalState predState) {
 
 
-    Map<CFAEdgesGoal, ImmutableMap<PartialPath, Integer>> immutableCopy = new HashMap<>();
-    for (Entry<CFAEdgesGoal, Map<PartialPath, Integer>> entry : negatedPathStates.entrySet()) {
+    Map<CFAEdgesGoal, ImmutableMap<PartialPath, PathState>> immutableCopy = new HashMap<>();
+    for (Entry<CFAEdgesGoal, Map<PartialPath, PathState>> entry : negatedPathStates.entrySet()) {
       immutableCopy.put(entry.getKey(), ImmutableMap.copyOf(entry.getValue()));
     }
     return MultiGoalState
@@ -303,7 +311,7 @@ public class MutliGoalTransferRelation extends SingleEdgeTransferRelation {
           CFAEdgesGoal goal,
           Map<CFAEdgesGoal, Integer> pSuccGoals,
           CFAEdge pCfaEdge,
-          Map<CFAEdgesGoal, Map<PartialPath, Integer>> pNegatedPredPathStates) {
+          ImmutableMap<CFAEdgesGoal, ImmutableMap<PartialPath, PathState>> pNegatedPredPathStates) {
     int index = 0;
     if (pSuccGoals.containsKey(goal)) {
       index = pSuccGoals.get(goal);
@@ -311,9 +319,10 @@ public class MutliGoalTransferRelation extends SingleEdgeTransferRelation {
     if (goal.acceptsEdge(pCfaEdge, index)) {
       index++;
       pSuccGoals.put(goal, index);
-      return goal.getPath().size() > 1
-          || (pNegatedPredPathStates.containsKey(goal)
-              && pNegatedPredPathStates.get(goal).size() > 0);
+      return goal.getPath().size() > 1;
+      // || (pNegatedPredPathStates.containsKey(goal)
+      // && pNegatedPredPathStates.get(goal).size() > 0);
+      // TODO is this correct behaviour for 1-size goals with negated Paths?
     }
     return false;
   }
@@ -322,8 +331,9 @@ public class MutliGoalTransferRelation extends SingleEdgeTransferRelation {
     LinkedHashSet<Pair<WeavingVariable, WeavingType>> weavingEdges = new LinkedHashSet<>();
     for (CFAEdgesGoal goal : goals) {
       // no need to weave goal consists of only 1 edge and no negated paths are present
-      if (goal.getPath().size() > 1
-          || (goal.getNegatedPaths() != null && goal.getNegatedPaths().size() > 0)) {
+      if (goal.getPath().size() > 1) {
+        // || (goal.getNegatedPaths() != null && goal.getNegatedPaths().size() > 0)) {
+        // TODO is this correct behaviour for 1-size goals with negated Paths?
         for (CFAEdge edge : goal.getPath().getEdges()) {
           createweavingVariableForObj(edge, 1);
           weavingEdges.add(Pair.of(getWeavedVariable(edge), WeavingType.DECLARATION));

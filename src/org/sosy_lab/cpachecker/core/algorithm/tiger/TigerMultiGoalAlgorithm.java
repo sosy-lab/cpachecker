@@ -91,6 +91,7 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
       throws InvalidConfigurationException {
     init(pLogger, pCfa, pConfig, pCpa, pShutdownNotifier, stats);
     config.inject(this);
+
     partitionProvider = new PartitionProvider(config);
     pShutdownNotifier.register(this);
     multiGoalCPA = getMultiGoalCPA(cpa);
@@ -382,6 +383,9 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
       if (tigerConfig.getCoverageCheck() == CoverageCheck.ALL) {
         goalsToCheckCoverage.addAll(testsuite.getTestGoals());
       }
+      // TODO removal of goal is incorrect, gets removed by "checkgoalcoverage" from temp
+      // and removed from a single partition instead of all, and removed even if tiger is
+      // variability aware
       goalsToCheckCoverage.remove(goal);
       Set<CFAGoal> newlyCoveredGoals =
           checkGoalCoverage(goalsToCheckCoverage, testcase, removeGoalsToCover);

@@ -44,7 +44,7 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
   protected ImmutableSet<Pair<WeavingVariable, WeavingType>> variablesToWeave;
   // TODO handle regions
   protected ImmutableMap<CFAEdgesGoal, Integer> goalStates;
-  protected ImmutableMap<CFAEdgesGoal, ImmutableMap<PartialPath, Integer>> negatedPathStates;
+  protected ImmutableMap<CFAEdgesGoal, ImmutableMap<PartialPath, PathState>> negatedPathStates;
   protected Set<CFAEdge> weavedEdges;
   protected boolean isInitialState;
   private int hash = 0;
@@ -66,12 +66,12 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
       Map<CFAEdgesGoal, Integer> pGoals,
       LinkedHashSet<Pair<WeavingVariable, WeavingType>> pEdgesToWeave,
       Set<CFAEdge> pWeavedEdges,
-      Map<CFAEdgesGoal, Map<PartialPath, Integer>> pNegatedPathStates) {
-    Map<CFAEdgesGoal, ImmutableMap<PartialPath, Integer>> map = new HashMap<>();
+      Map<CFAEdgesGoal, Map<PartialPath, PathState>> pNegatedPathStates) {
+    Map<CFAEdgesGoal, ImmutableMap<PartialPath, PathState>> map = new HashMap<>();
     if (pNegatedPathStates == null) {
       map = Collections.emptyMap();
     } else {
-      for (Entry<CFAEdgesGoal, Map<PartialPath, Integer>> entry : pNegatedPathStates.entrySet()) {
+      for (Entry<CFAEdgesGoal, Map<PartialPath, PathState>> entry : pNegatedPathStates.entrySet()) {
         map.put(entry.getKey(), ImmutableMap.copyOf(entry.getValue()));
       }
     }
@@ -82,7 +82,7 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
       Map<CFAEdgesGoal, Integer> pGoals,
       LinkedHashSet<Pair<WeavingVariable, WeavingType>> pEdgesToWeave,
       ImmutableSet<CFAEdge> pWeavedEdges,
-      ImmutableMap<CFAEdgesGoal, ImmutableMap<PartialPath, Integer>> pNegatedPathStates) {
+      ImmutableMap<CFAEdgesGoal, ImmutableMap<PartialPath, PathState>> pNegatedPathStates) {
     init(ImmutableMap.copyOf(pGoals), pEdgesToWeave, pWeavedEdges, pNegatedPathStates);
   }
 
@@ -121,7 +121,7 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
       ImmutableMap<CFAEdgesGoal, Integer> pGoals,
       LinkedHashSet<Pair<WeavingVariable, WeavingType>> pEdgesToWeave,
       Set<CFAEdge> pWeavedEdges,
-      Map<CFAEdgesGoal, ImmutableMap<PartialPath, Integer>> pNegatedPathStates) {
+      Map<CFAEdgesGoal, ImmutableMap<PartialPath, PathState>> pNegatedPathStates) {
     goalStates =
         pGoals == null ? ImmutableMap.copyOf(Collections.emptySet()) : ImmutableMap.copyOf(pGoals);
     negatedPathStates =
@@ -143,7 +143,7 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
       ImmutableMap<CFAEdgesGoal, Integer> pGoals,
       LinkedHashSet<Pair<WeavingVariable, WeavingType>> pEdgesToWeave,
       Set<CFAEdge> pWeavedEdges,
-      Map<CFAEdgesGoal, ImmutableMap<PartialPath, Integer>> pNegatedPathStates) {
+      Map<CFAEdgesGoal, ImmutableMap<PartialPath, PathState>> pNegatedPathStates) {
     init(pGoals, pEdgesToWeave, pWeavedEdges, pNegatedPathStates);
   }
 
@@ -172,9 +172,9 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
 
     builder.append("\nNegated Path States:\n");
     int i = 0;
-    for (Entry<CFAEdgesGoal, ImmutableMap<PartialPath, Integer>> entry : getNegatedPathsPerGoal()
+    for (Entry<CFAEdgesGoal, ImmutableMap<PartialPath, PathState>> entry : getNegatedPathsPerGoal()
         .entrySet()) {
-      for (Entry<PartialPath, Integer> pathState : entry.getValue().entrySet()) {
+      for (Entry<PartialPath, PathState> pathState : entry.getValue().entrySet()) {
         // builder.append(pathState.getKey().toString());
         builder.append("Path " + i + " state");
         i++;
@@ -212,7 +212,7 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
 
   public static Set<CFAEdgesGoal> calculateCoveredGoals(
       ImmutableMap<CFAEdgesGoal, Integer> goalStates,
-      ImmutableMap<CFAEdgesGoal, ImmutableMap<PartialPath, Integer>> negatedPathStates,
+      ImmutableMap<CFAEdgesGoal, ImmutableMap<PartialPath, PathState>> negatedPathStates,
       Set<CFAEdge> pWeavedEdges,
       ImmutableSet<Pair<WeavingVariable, WeavingType>> pEdgesToWeave) {
 
@@ -230,11 +230,11 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
           if (!negatedPathStates.containsKey(goal.getKey())) {
               tempCoveredGoals.add(goal.getKey());
             } else {
-              ImmutableMap<PartialPath, Integer> negatedPaths =
+            ImmutableMap<PartialPath, PathState> negatedPaths =
                 negatedPathStates.get(goal.getKey());
             boolean allPathsFree = true;
-              for (Entry<PartialPath, Integer> path : negatedPaths.entrySet()) {
-              if (path.getKey().size() == path.getValue()) {
+            for (Entry<PartialPath, PathState> path : negatedPaths.entrySet()) {
+              if (!path.getValue().isPathFound()) {
                 allPathsFree = false;
                 }
               }
@@ -387,7 +387,7 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
     return mergedState;
   }
 
-  protected static ImmutableMap<CFAEdgesGoal, ImmutableMap<PartialPath, Integer>>
+  protected static ImmutableMap<CFAEdgesGoal, ImmutableMap<PartialPath, PathState>>
       mergeNegatedPaths(MultiGoalState pState1, MultiGoalState pState2) {
     if (pState1.negatedPathStates == null && pState2.negatedPathStates == null) {
       return ImmutableMap.copyOf(Collections.emptyMap());
@@ -396,23 +396,31 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
     } else if (pState1.negatedPathStates == null && pState2.negatedPathStates != null) {
       return pState2.negatedPathStates;
     } else {
-      Map<CFAEdgesGoal, ImmutableMap<PartialPath, Integer>> newGoals = new HashMap<>();
-      for (Entry<CFAEdgesGoal, ImmutableMap<PartialPath, Integer>> entry : pState1.negatedPathStates
+      Map<CFAEdgesGoal, ImmutableMap<PartialPath, PathState>> newGoals = new HashMap<>();
+      for (Entry<CFAEdgesGoal, ImmutableMap<PartialPath, PathState>> entry : pState1.negatedPathStates
           .entrySet()) {
-        Map<PartialPath, Integer> newStates = new HashMap<>();
-        ImmutableMap<PartialPath, Integer> pState2PartialPathStates =
+        Map<PartialPath, PathState> newStates = new HashMap<>();
+        ImmutableMap<PartialPath, PathState> pState2PartialPathStates =
             pState2.negatedPathStates.get(entry.getKey());
-        for (Entry<PartialPath, Integer> partialPathState : entry.getValue().entrySet()) {
-          int pState2PartialPathState = pState2PartialPathStates.get(partialPathState.getKey());
-          int newState = 0;
-          if (pState2PartialPathState < 0 || partialPathState.getValue() < 0) {
-            newState = -1;
-          } else if (pState2PartialPathState > 0) {
-            newState = pState2PartialPathState;
+        for (Entry<PartialPath, PathState> partialPathState : entry.getValue().entrySet()) {
+          PathState pState2PartialPathState =
+              pState2PartialPathStates.get(partialPathState.getKey());
+          int index;
+
+          assert !(pState2PartialPathState.getIndex() >= 0
+              && partialPathState.getValue().getIndex() >= 0);
+          if (pState2PartialPathState.getIndex() >= 0) {
+            index = pState2PartialPathState.getIndex();
+          } else if (partialPathState.getValue().getIndex() >= 0) {
+            index = partialPathState.getValue().getIndex();
           } else {
-            newState = partialPathState.getValue();
+            index = -1;
           }
-          newStates.put(partialPathState.getKey(), newState);
+          boolean pathFound =
+              pState2PartialPathState.isPathFound() || partialPathState.getValue().isPathFound();
+          newStates.put(
+              partialPathState.getKey(),
+              new PathState(index, pathFound));
         }
         newGoals.put(entry.getKey(), ImmutableMap.copyOf(newStates));
       }
@@ -420,7 +428,7 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
     }
   }
 
-  public ImmutableMap<CFAEdgesGoal, ImmutableMap<PartialPath, Integer>> getNegatedPathsPerGoal() {
+  public ImmutableMap<CFAEdgesGoal, ImmutableMap<PartialPath, PathState>> getNegatedPathsPerGoal() {
     return negatedPathStates;
   }
 
