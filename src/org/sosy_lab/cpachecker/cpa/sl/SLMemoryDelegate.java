@@ -56,6 +56,8 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
   private final MachineModel machineModel;
   private final LogManager logger;
 
+  private final boolean useSMTCheck = false;
+
   private final BitvectorType heapAddressFormulaType;
   private final BitvectorType heapValueFormulaType;
 
@@ -233,17 +235,45 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
       return Optional.of(fLoc);
     }
     // Semantical check.
-    // return isAllocated(fLoc, usePredContext, pMemory);
-    for (Formula formulaInMemory : pMemory.keySet()) {
-      // if (checkEquivalence(fLoc, formulaInMemory)) {
-      // return Optional.of(formulaInMemory);
-      // }
-      if (checkEquivalenceSL(fLoc, formulaInMemory, pMemory)) {
-        return Optional.of(formulaInMemory);
+    if (useSMTCheck) { // SMT based allocation check
+      Formula loc = null; // TODO
+      return loc == null ? Optional.empty() : Optional.of(loc);
+    } else { // SL based allocation check
+      for (Formula formulaInMemory : pMemory.keySet()) {
+        if (checkEquivalenceSL(fLoc, formulaInMemory, pMemory)) {
+          return Optional.of(formulaInMemory);
+        }
       }
+      return Optional.empty();
     }
-    return Optional.empty();
   }
+
+  @SuppressWarnings("unused")
+  /**
+   * Implementation of Sigma |- Allocated(E) as UnSAT(E -> - * Sigma).
+   *
+   * @param pMemory
+   * @param pLoc
+   * @return true if allocated, false otherwise.
+   */
+  private boolean isAllocated(Map<Formula, Formula> pMemory, Formula pLoc) {
+    BooleanFormula symHeap = makeSLFormula(pMemory);
+    BooleanFormula toCheck =
+        slfm.makePointsTo(pLoc, fm.makeVariable(heapValueFormulaType, "__dummyVal"));
+    try (ProverEnvironment prover =
+        solver.newProverEnvironment(
+            ProverOptions.ENABLE_SEPARATION_LOGIC)) {
+      prover.addConstraint(slfm.makeStar(toCheck, symHeap));
+      stats.startSolverTime();
+      return prover.isUnsat();
+    } catch (Exception e) {
+      logger.log(Level.SEVERE, e.getMessage());
+    } finally {
+      stats.stopSolverTime();
+    }
+    return false;
+  }
+
 
   private boolean
       checkEquivalenceSL(Formula pLoc, Formula pHeaplet, Map<Formula, Formula> pMemory) {
@@ -271,7 +301,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     }
     BooleanFormula tmp = fm.makeEqual(pF0, pF1);
     try (ProverEnvironment prover =
-        solver.newProverEnvironment(ProverOptions.ENABLE_SEPARATION_LOGIC)) {
+        solver.newProverEnvironment()) {
       // prover.addConstraint(makeSLFormula());
       prover.addConstraint(tmp);
       stats.startSolverTime();
@@ -286,7 +316,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     }
     // Check tautology.
     try (ProverEnvironment prover =
-        solver.newProverEnvironment(ProverOptions.ENABLE_SEPARATION_LOGIC)) {
+        solver.newProverEnvironment()) {
       // prover.addConstraint(makeSLFormula());
       prover.addConstraint(fm.makeNot(tmp));
       stats.startSolverTime();
