@@ -12,6 +12,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -56,10 +60,16 @@ import org.sosy_lab.java_smt.api.Formula;
 /**
  * Converts a CExpression to a formula representing the memory location.
  */
+@Options(prefix = "cpa.sl")
 public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
 
   private final Solver solver;
   private final SLStatistics stats;
+
+  @Option(
+    secure = true,
+    description = "States whether allocation checks are solved with a SMT solver instead of a SL theorem prover.")
+  private boolean useSMT = false;
 
   public CToFormulaConverterWithSL(
       FormulaEncodingOptions pOptions,
@@ -70,7 +80,9 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       CtoFormulaTypeHandler pTypeHandler,
-      AnalysisDirection pDirection) {
+      AnalysisDirection pDirection,
+      Configuration pConfig)
+      throws InvalidConfigurationException {
     super(
         pOptions,
         pSolver.getFormulaManager(),
@@ -80,6 +92,7 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
         pShutdownNotifier,
         pTypeHandler,
         pDirection);
+    pConfig.inject(this, CToFormulaConverterWithSL.class);
     solver = pSolver;
     stats = pStats;
   }
@@ -129,7 +142,7 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
 
   private SLMemoryDelegate makeDelegate() {
     assert context != null;
-    return new SLMemoryDelegate(solver, (SLState) context, machineModel, logger, stats);
+    return new SLMemoryDelegate(solver, (SLState) context, machineModel, logger, stats, useSMT);
   }
 
   @Override

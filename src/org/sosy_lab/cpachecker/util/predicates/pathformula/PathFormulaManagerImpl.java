@@ -228,7 +228,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
                 logger,
                 shutdownNotifier,
                 typeHandler,
-                pDirection);
+                pDirection,
+                config);
       } else {
         converter =
             new CtoFormulaConverter(

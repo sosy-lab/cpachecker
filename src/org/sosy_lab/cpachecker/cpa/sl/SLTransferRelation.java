@@ -16,7 +16,6 @@ import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -30,7 +29,6 @@ import org.sosy_lab.java_smt.api.SolverException;
 public class SLTransferRelation extends SingleEdgeTransferRelation {
 
   private final LogManager logger;
-  private final MachineModel machineModel;
   private final Solver solver;
   private final PathFormulaManager pfm;
   private final SLStatistics stats;
@@ -41,12 +39,10 @@ public class SLTransferRelation extends SingleEdgeTransferRelation {
       LogManager pLogger,
       Solver pSolver,
       PathFormulaManager pPfm,
-      MachineModel pMachineModel,
       SLStatistics pStats) {
     logger = pLogger;
     solver = pSolver;
     pfm = pPfm;
-    machineModel = pMachineModel;
     stats = pStats;
   }
 
@@ -70,22 +66,22 @@ public class SLTransferRelation extends SingleEdgeTransferRelation {
         throw new CPATransferException("Termination check failed.", e);
       }
     }
-    // TODO check last node for memory leak. structs with malloc etc.
     return ImmutableList.of(state);
-
   }
 
   private List<SLState> handleAssumption() throws SolverException, InterruptedException {
-    ProverEnvironment prover = solver.newProverEnvironment();
+    BooleanFormula constraints =
+        solver.getFormulaManager().getBooleanFormulaManager().and(state.getConstraints());
     boolean unsat = false;
-    try {
-      SLMemoryDelegate delegate = new SLMemoryDelegate(solver, state, machineModel, logger, stats);
-      BooleanFormula constraints = delegate.makeConstraints();
+    try (ProverEnvironment prover = solver.newProverEnvironment()) {
       prover.addConstraint(constraints);
+      stats.startSolverTime();
       unsat = prover.isUnsat();
     } catch (SolverException | InterruptedException e) {
       logger.log(Level.SEVERE, e.getMessage());
       throw e;
+    } finally {
+      stats.stopSolverTime();
     }
     if (unsat) {
       return Collections.emptyList();

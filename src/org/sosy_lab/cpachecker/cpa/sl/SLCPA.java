@@ -26,7 +26,6 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
@@ -57,7 +56,6 @@ public class SLCPA extends AbstractCPA implements StatisticsProvider {
   private final PathFormulaManager pfm;
   private final Solver solver;
   private final SLStatistics stats;
-  private final MachineModel machineModel;
 
   private SLCPA(
       CFA pCfa,
@@ -74,7 +72,6 @@ public class SLCPA extends AbstractCPA implements StatisticsProvider {
     config = pConfig;
     shutdownNotifier = pShutdownNotifier;
     solver = Solver.create(config, logger, shutdownNotifier);
-    machineModel = cfa.getMachineModel();
     pfm =
         new PathFormulaManagerImpl(
             solver,
@@ -82,7 +79,7 @@ public class SLCPA extends AbstractCPA implements StatisticsProvider {
             config,
             logger,
             shutdownNotifier,
-            machineModel,
+            cfa.getMachineModel(),
             cfa.getVarClassification(),
             AnalysisDirection.FORWARD,
             stats);
@@ -97,7 +94,7 @@ public class SLCPA extends AbstractCPA implements StatisticsProvider {
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new SLTransferRelation(logger, solver, pfm, machineModel, stats);
+    return new SLTransferRelation(logger, solver, pfm, stats);
   }
 
   @Override

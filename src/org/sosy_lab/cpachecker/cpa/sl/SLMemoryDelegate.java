@@ -57,8 +57,8 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
   private final SLStatistics stats;
   private final MachineModel machineModel;
   private final LogManager logger;
+  private final boolean useSMT;
 
-  private final boolean useSMTCheck = true;
 
   private final BitvectorType heapAddressFormulaType;
   private final BitvectorType heapValueFormulaType;
@@ -68,7 +68,8 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
       SLState pState,
       MachineModel pMachineModel,
       LogManager pLogger,
-      SLStatistics pStats) {
+      SLStatistics pStats,
+      boolean pUseSMT) {
     solver = pSolver;
     state = pState;
     fm = solver.getFormulaManager();
@@ -77,6 +78,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     stats = pStats;
     machineModel = pMachineModel;
     logger = pLogger;
+    useSMT = pUseSMT;
 
     heapAddressFormulaType =
         FormulaType.getBitvectorTypeWithSize(machineModel.getSizeofPtrInBits());
@@ -238,7 +240,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
       return Optional.of(fLoc);
     }
     // Semantical check.
-    if (useSMTCheck) { // SMT based allocation check
+    if (useSMT) { // SMT based allocation check
       Formula loc = getLocation(pMemory, fLoc);
       return loc == null ? Optional.empty() : Optional.of(loc);
     } else { // SL based allocation check
@@ -558,10 +560,6 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     // BooleanFormula constraints = fm.getBooleanFormulaManager().and(state.getConstraints());
     // return fm.makeAnd(res, constraints);
     return res;
-  }
-
-  public BooleanFormula makeConstraints() {
-    return fm.getBooleanFormulaManager().and(state.getConstraints());
   }
 
   private BooleanFormula makeSLFormula(Map<Formula, Formula> pMemory) {
