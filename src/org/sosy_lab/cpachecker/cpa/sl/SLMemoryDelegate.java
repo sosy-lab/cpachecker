@@ -239,13 +239,8 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     }
     // Semantical check.
     if (useSMTCheck) { // SMT based allocation check
-      // Formula loc = getLocation(pMemory, fLoc);
-      // return loc == null ? Optional.empty() : Optional.of(loc);
-      for (Formula formulaInMemory : pMemory.keySet()) {
-        if (checkEquivalenceSMT(fLoc, formulaInMemory)) {
-          return Optional.of(formulaInMemory);
-        }
-      }
+      Formula loc = getLocation(pMemory, fLoc);
+      return loc == null ? Optional.empty() : Optional.of(loc);
     } else { // SL based allocation check
       for (Formula formulaInMemory : pMemory.keySet()) {
         if (checkEquivalenceSL(fLoc, formulaInMemory, pMemory)) {
@@ -291,14 +286,15 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     // Construct formula: ((Loc = key_0) <=> v_0) & ... & ((Loc = key_n) <=> v_n)
     for (int i = 0; i < keyArray.length; i++) {
      BooleanFormula tmp = bfm.makeVariable(dummyVar + i);
-      f = fm.makeAnd(f, bfm.equivalence(fm.makeEqual(pLoc, keyArray[i]), tmp));
+      f = fm.makeAnd(f, fm.makeEqual(fm.makeEqual(pLoc, keyArray[i]), tmp));
     }
 
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       prover.addConstraint(f);
+
       stats.startSolverTime();
       // Generate model
-      if (prover.isUnsat()) {
+      if (!prover.isUnsat()) {
         List<ValueAssignment> assignments = prover.getModelAssignments();
         for (ValueAssignment a : assignments) {
           String var = a.getName();
