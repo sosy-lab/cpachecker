@@ -13,5 +13,6 @@
   
   <columns>
     <column title="solvertime">solvertime</column>
+    <column title="solvercalls">solvercalls</column>
   </columns>
 </benchmark>

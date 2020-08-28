@@ -19,6 +19,7 @@ public class SLStatistics implements Statistics {
 
 
   private Timer solverTime;
+  private long solverCalls = 0;
 
   public SLStatistics() {
     solverTime = new Timer();
@@ -27,6 +28,7 @@ public class SLStatistics implements Statistics {
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
     put(pOut, "solvertime", solverTime);
+    put(pOut, "solvercalls", solverCalls);
   }
 
   @Override
@@ -40,5 +42,6 @@ public class SLStatistics implements Statistics {
 
   public void stopSolverTime() {
     solverTime.stop();
+    solverCalls++;
   }
 }
