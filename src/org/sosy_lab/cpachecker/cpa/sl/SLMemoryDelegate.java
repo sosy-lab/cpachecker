@@ -228,8 +228,6 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     return true;
   }
 
-
-
   private Optional<Formula>
       checkAllocation(Map<Formula, Formula> pMemory, Formula fLoc) {
     if (pMemory.isEmpty()) {
@@ -240,15 +238,15 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
       return Optional.of(fLoc);
     }
     // Semantical check.
-    if (useSMT) { // SMT based allocation check
-      Formula loc = getLocation(pMemory, fLoc);
-      return loc == null ? Optional.empty() : Optional.of(loc);
-    } else { // SL based allocation check
-      for (Formula formulaInMemory : pMemory.keySet()) {
-        if (checkEquivalenceSL(fLoc, formulaInMemory, pMemory)) {
-          return Optional.of(formulaInMemory);
-        }
+    for (Formula formulaInMemory : pMemory.keySet()) {
+      boolean match =
+          useSMT
+              ? checkEquivalenceSMT(fLoc, formulaInMemory)
+              : checkEquivalenceSL(fLoc, formulaInMemory, pMemory);
+      if (match) {
+        return Optional.of(formulaInMemory);
       }
+
     }
     return Optional.empty();
   }
@@ -279,7 +277,15 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     return false;
   }
 
-
+  @SuppressWarnings("unused")
+  /**
+   * Checks for location match on the heap by generating a model rather than checking each pair
+   * individually. However, segmentation faults occur on CVC4 solver side.
+   * 
+   * @param pMemory
+   * @param pLoc
+   * @return
+   */
   private Formula getLocation(Map<Formula, Formula> pMemory, Formula pLoc) {
     Set<Formula> keys = pMemory.keySet();
     Formula[] keyArray = keys.toArray(new Formula[keys.size()]);
@@ -345,31 +351,15 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     BooleanFormula tmp = fm.makeEqual(pF0, pF1);
     try (ProverEnvironment prover =
         solver.newProverEnvironment()) {
-      // prover.addConstraint(makeSLFormula());
       prover.addConstraint(tmp);
       stats.startSolverTime();
-      if (prover.isUnsat()) {
-        return false;
-      }
+      return !prover.isUnsat();
     } catch (Exception e) {
       logger.log(Level.SEVERE, e.getMessage());
       return false;
     } finally {
       stats.stopSolverTime();
     }
-    // Check tautology.
-    try (ProverEnvironment prover =
-        solver.newProverEnvironment()) {
-      // prover.addConstraint(makeSLFormula());
-      prover.addConstraint(fm.makeNot(tmp));
-      stats.startSolverTime();
-      return prover.isUnsat();
-    } catch (Exception e) {
-      logger.log(Level.SEVERE, e.getMessage());
-    } finally {
-      stats.stopSolverTime();
-    }
-    return false;
   }
 
   @Override
