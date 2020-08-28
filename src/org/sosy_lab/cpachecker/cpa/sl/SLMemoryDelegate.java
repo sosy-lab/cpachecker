@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Expression
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
+import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
@@ -52,11 +53,12 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
   private final SLState state;
   private final FormulaManagerView fm;
   private final SLFormulaManager slfm;
+  private final BooleanFormulaManagerView bfm;
   private final SLStatistics stats;
   private final MachineModel machineModel;
   private final LogManager logger;
 
-  private final boolean useSMTCheck = false;
+  private final boolean useSMTCheck = true;
 
   private final BitvectorType heapAddressFormulaType;
   private final BitvectorType heapValueFormulaType;
@@ -71,6 +73,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     state = pState;
     fm = solver.getFormulaManager();
     slfm = fm.getSLFormulaManager();
+    bfm = fm.getBooleanFormulaManager();
     stats = pStats;
     machineModel = pMachineModel;
     logger = pLogger;
@@ -236,16 +239,21 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     }
     // Semantical check.
     if (useSMTCheck) { // SMT based allocation check
-      Formula loc = null; // TODO
-      return loc == null ? Optional.empty() : Optional.of(loc);
+      // Formula loc = getLocation(pMemory, fLoc);
+      // return loc == null ? Optional.empty() : Optional.of(loc);
+      for (Formula formulaInMemory : pMemory.keySet()) {
+        if (checkEquivalenceSMT(fLoc, formulaInMemory)) {
+          return Optional.of(formulaInMemory);
+        }
+      }
     } else { // SL based allocation check
       for (Formula formulaInMemory : pMemory.keySet()) {
         if (checkEquivalenceSL(fLoc, formulaInMemory, pMemory)) {
           return Optional.of(formulaInMemory);
         }
       }
-      return Optional.empty();
     }
+    return Optional.empty();
   }
 
   @SuppressWarnings("unused")
@@ -275,6 +283,43 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
   }
 
 
+  private Formula getLocation(Map<Formula, Formula> pMemory, Formula pLoc) {
+    Set<Formula> keys = pMemory.keySet();
+    Formula[] keyArray = keys.toArray(new Formula[keys.size()]);
+    String dummyVar = "__DummVarV_#";
+    BooleanFormula f = bfm.makeTrue();
+    // Construct formula: ((Loc = key_0) <=> v_0) & ... & ((Loc = key_n) <=> v_n)
+    for (int i = 0; i < keyArray.length; i++) {
+     BooleanFormula tmp = bfm.makeVariable(dummyVar + i);
+      f = fm.makeAnd(f, bfm.equivalence(fm.makeEqual(pLoc, keyArray[i]), tmp));
+    }
+
+    try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+      prover.addConstraint(f);
+      stats.startSolverTime();
+      // Generate model
+      if (prover.isUnsat()) {
+        List<ValueAssignment> assignments = prover.getModelAssignments();
+        for (ValueAssignment a : assignments) {
+          String var = a.getName();
+          if (var.contains(dummyVar)) {
+            // return key_n for v_n = true
+            if(bfm.isTrue((BooleanFormula) a.getValueAsFormula())) {
+              int index = Integer.parseInt(var.substring(var.indexOf('#') + 1));
+              return keyArray[index];
+            }
+          }
+
+        }
+      }
+    } catch (Exception e) {
+      logger.log(Level.SEVERE, e.getMessage());
+    } finally {
+      stats.stopSolverTime();
+    }
+    return null;
+  }
+
   private boolean
       checkEquivalenceSL(Formula pLoc, Formula pHeaplet, Map<Formula, Formula> pMemory) {
     BooleanFormula toCheck =
@@ -293,7 +338,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     return false;
   }
 
-  private boolean checkEquivalence0(Formula pF0, Formula pF1) {
+  private boolean checkEquivalenceSMT(Formula pF0, Formula pF1) {
     FormulaType<Formula> type0 = fm.getFormulaType(pF0);
     FormulaType<Formula> type1 = fm.getFormulaType(pF1);
     if (!type0.equals(type1)) {
@@ -318,44 +363,6 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     try (ProverEnvironment prover =
         solver.newProverEnvironment()) {
       // prover.addConstraint(makeSLFormula());
-      prover.addConstraint(fm.makeNot(tmp));
-      stats.startSolverTime();
-      return prover.isUnsat();
-    } catch (Exception e) {
-      logger.log(Level.SEVERE, e.getMessage());
-    } finally {
-      stats.stopSolverTime();
-    }
-    return false;
-  }
-
-
-  @SuppressWarnings("unused")
-  private boolean checkEquivalence(Formula pF0, Formula pF1) {
-    FormulaType<Formula> type0 = fm.getFormulaType(pF0);
-    FormulaType<Formula> type1 = fm.getFormulaType(pF1);
-    if (!type0.equals(type1)) {
-      return false;
-    }
-    BooleanFormula tmp = fm.makeEqual(pF0, pF1);
-    try (ProverEnvironment prover =
-        solver.newProverEnvironment(ProverOptions.ENABLE_SEPARATION_LOGIC)) {
-      prover.addConstraint(makeSLFormula());
-      prover.addConstraint(tmp);
-      stats.startSolverTime();
-      if (prover.isUnsat()) {
-        return false;
-      }
-    } catch (Exception e) {
-      logger.log(Level.SEVERE, e.getMessage());
-      return false;
-    } finally {
-      stats.stopSolverTime();
-    }
-    // Check tautology.
-    try (ProverEnvironment prover =
-        solver.newProverEnvironment(ProverOptions.ENABLE_SEPARATION_LOGIC)) {
-      prover.addConstraint(makeSLFormula());
       prover.addConstraint(fm.makeNot(tmp));
       stats.startSolverTime();
       return prover.isUnsat();
@@ -512,12 +519,12 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     }
 
     for (Entry<Formula, Formula> entry : state.getStack().entrySet()) {
-      if (checkEquivalence0(loc, entry.getValue())) {
+      if (checkEquivalenceSMT(loc, entry.getValue())) {
         return true;
       }
     }
     for (Entry<Formula, Formula> entry : state.getHeap().entrySet()) {
-      if (checkEquivalence0(loc, entry.getValue())) {
+      if (checkEquivalenceSMT(loc, entry.getValue())) {
         visited.add(loc);
         return isReachable(visited, firstByte((BitvectorFormula) entry.getKey()));
       }
