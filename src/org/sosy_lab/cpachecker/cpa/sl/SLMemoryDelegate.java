@@ -279,9 +279,8 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
 
   @SuppressWarnings("unused")
   /**
-   * Checks for location match on the heap by generating a model rather than checking each pair
-   * individually. However, segmentation faults occur on CVC4 solver side.
-   * 
+   * Checks for location match on the heap by generating a model rather than checking each pair individually.
+   * However, segmentation faults occur on CVC4 solver side.
    * @param pMemory
    * @param pLoc
    * @return
@@ -353,13 +352,27 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
         solver.newProverEnvironment()) {
       prover.addConstraint(tmp);
       stats.startSolverTime();
-      return !prover.isUnsat();
+      if (prover.isUnsat()) {
+        return false;
+      }
     } catch (Exception e) {
       logger.log(Level.SEVERE, e.getMessage());
       return false;
     } finally {
       stats.stopSolverTime();
     }
+    // Check tautology.
+    try (ProverEnvironment prover = solver.newProverEnvironment()) {
+      prover.addConstraint(fm.makeNot(tmp));
+      stats.startSolverTime();
+      return prover.isUnsat();
+    } catch (Exception e) {
+      logger.log(Level.SEVERE, e.getMessage());
+    } finally {
+      stats.stopSolverTime();
+    }
+    return false;
+
   }
 
   @Override
