@@ -40,7 +40,8 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
   }
 
   /**
-   * If predicate remove holds on an entry, remove it from the set and return it as a list to the user.
+   * If predicate remove holds on an entry, remove it from the set map it to T with <code>extract</code>
+   * and return all mapped elements as a list to the user.
    * @param remove predicate to test if entry should be removed
    * @param extract function to extract a certain type out of the FormulaEntry
    * @param <T> Type to extract
@@ -59,30 +60,25 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
   }
 
   public List<BooleanFormula> toAtomList() {
-    return entries.stream()
-        .filter(entry -> !Objects.isNull(entry.atom))
-        .map(entry -> entry.atom)
-        .collect(Collectors.toList());
+    return toTList(entry -> entry.atom);
   }
 
   public List<SSAMap> toSSAMapList() {
-    return entries.stream()
-        .filter(entry -> !Objects.isNull(entry.map))
-        .map(entry -> entry.map)
-        .collect(Collectors.toList());
+    return toTList(entry -> entry.map);
   }
 
   public List<Selector> toSelectorList() {
-    return entries.stream()
-        .filter(entry -> !Objects.isNull(entry.selector))
-        .map(entry -> entry.selector)
-        .collect(Collectors.toList());
+    return toTList(entry -> entry.selector);
   }
 
   public List<CFAEdge> toEdgeList() {
+    return toTList(entry -> entry.selector.getEdge());
+  }
+
+  private <T> List<T> toTList(Function<FormulaEntry, T> mapping) {
     return entries.stream()
         .filter(entry -> !Objects.isNull(entry.selector))
-        .map(entry -> entry.selector.getEdge())
+        .map(entry -> mapping.apply(entry))
         .collect(Collectors.toList());
   }
 
@@ -93,7 +89,7 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
     return entries;
   }
 
-  static class FormulaEntry {
+  public class FormulaEntry {
 
     private SSAMap map;
     private Selector selector;

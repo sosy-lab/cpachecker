@@ -8,22 +8,23 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ForwardingList;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaEntryList.FormulaEntry;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.LabeledCounterexample.LabeledFormula;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
+import org.sosy_lab.cpachecker.util.dependencegraph.MergePoint;
 
 final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
 
@@ -31,11 +32,7 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
     // assume edges are IF statements
     IF,
     // edges that are the last statement of an if-block are ENDIF statements
-    ENDIF,
-    // edges that have both of the above properties are BOTH statements
-    BOTH,
-    // edges that do not belong to any of the above categories are OTHER statements
-    OTHER
+    ENDIF
   }
 
   private List<LabeledFormula> annotatedCounterexample;
@@ -43,6 +40,7 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
   /**
    * The LabeledCounterexample adds the labels IF, ENDIF, BOTH and OTHER to every statement in the counterexample
    * @param pCounterexample the counterexample for which we want to compute the labels
+   *
    * @param pContext the context
    */
   public LabeledCounterexample(FormulaEntryList pCounterexample, FormulaContext pContext) {
@@ -52,52 +50,77 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
   }
 
   private void addLabels(FormulaEntryList pCounterexample, CFA pCfa) {
+
     FormulaEntryList withoutPrecond = new FormulaEntryList(pCounterexample);
-    withoutPrecond.remove(0);
     if (withoutPrecond.isEmpty()) {
       return;
     }
+    withoutPrecond.remove(0);
 
-    Preconditions.checkState(
-        pCfa.getDependenceGraph().isPresent(),
-        "to use the improved version of the error invariants algorithm please enable cfa.createDependenceGraph with -setprop");
+    DomTree<CFANode> tree = Dominance.createDomTree(pCfa.getMainFunction(),
+        node -> CFAUtils.successorsOf(node),
+        node -> CFAUtils.predecessorsOf(node));
 
-    CFAEdge root = withoutPrecond.get(0).getSelector().getEdge();
-    DomTree<CFAEdge> tree = Dominance.createDomTree(root,
-        edge -> CFAUtils.allLeavingEdges(edge.getSuccessor()),
-        edge -> CFAUtils.allEnteringEdges(edge.getPredecessor()));
 
-    DomTreeHandler handler = new DomTreeHandler(tree);
-    boolean endif;
-    LabeledFormula prev = null;
-    for (FormulaEntry entry : withoutPrecond) {
-      CFAEdge treeNode = entry.getSelector().getEdge();
+    MergePoint<CFANode> mergePoints = new MergePoint<>(tree, node -> CFAUtils.successorsOf(node), node -> isAssumeNode(node));
 
-      // check if previous node ended an if-statement
-      endif = handler.addWithNotificationIfMerged(treeNode);
+    List<CFANode> path = withoutPrecond.toEdgeList().stream().map(e -> e.getPredecessor()).collect(
+        Collectors.toList());
+    List<CFANode> endifs = new ArrayList<>();
+    path.forEach(node -> {
+      if (isAssumeNode(node)) {
+        endifs.add(mergePoints.findMergePoint(node));
+      }
+    });
 
-      // set OTHER as default label
-      FormulaLabel label = FormulaLabel.OTHER;
+    Map<CFANode, Integer> depth = new HashMap<>();
+    for (CFANode endif : endifs) {
+      depth.merge(endif, 1, Integer::sum);
+    }
 
-      // if current labeledFormula is not part of the if-block anymore,
-      // the previous labeledFormula was an ENDIF statement
-      if (prev != null && endif) {
-        if (prev.label.equals(FormulaLabel.IF)) {
-          prev.setLabel(FormulaLabel.BOTH);
-        } else {
-          prev.setLabel(FormulaLabel.ENDIF);
+    Map<CFAEdge, LabeledFormula> edgeToLabeledFormula = new HashMap<>();
+    withoutPrecond.forEach(entry -> edgeToLabeledFormula.put(entry.getSelector().getEdge(), new LabeledFormula(entry)));
+
+    for (CFANode node : path) {
+      if (isAssumeNode(node)) {
+        for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+          CFAEdge edge = node.getLeavingEdge(i);
+          if (edgeToLabeledFormula.containsKey(edge)) {
+            edgeToLabeledFormula.get(edge).addLabel(FormulaLabel.IF);
+            break;
+          }
         }
       }
 
-      // all assume edges are labeled as IF
-      if (treeNode.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
-        label = FormulaLabel.IF;
+      if (depth.containsKey(node)) {
+        for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+          CFAEdge edge = node.getLeavingEdge(i);
+          if (edgeToLabeledFormula.containsKey(edge)) {
+            for (int j = 0; j < depth.get(node); j++){
+              edgeToLabeledFormula.get(edge).getLabels().add(0, FormulaLabel.ENDIF);
+            }
+            break;
+          }
+        }
       }
 
-      LabeledFormula labeledFormula = new LabeledFormula(label, entry);
-      annotatedCounterexample.add(labeledFormula);
-      prev = labeledFormula;
+    };
+
+    annotatedCounterexample = withoutPrecond.toEdgeList().stream().map(edge -> edgeToLabeledFormula.get(edge)).collect(
+        Collectors.toList());
+  }
+
+  private boolean isAssumeNode(CFANode node) {
+    if (node.getNumLeavingEdges() == 0) {
+      return false;
     }
+
+    for (CFAEdge cfaEdge : CFAUtils.leavingEdges(node)) {
+      if (!cfaEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @Override
@@ -105,163 +128,58 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
     return annotatedCounterexample;
   }
 
-
-  static class DomTreeHandler {
-    private ArrayDeque<List<Integer>> stack;
-    private DomTree<CFAEdge> tree;
-
-    DomTreeHandler(DomTree<CFAEdge> pTree) {
-      stack = new ArrayDeque<>();
-      tree = pTree;
-    }
-
-    /**
-     * Handles the addition of new edges to the paths
-     * @param edge edge to be processed
-     * @return true if the edge caused a merge operation, false else
-     */
-    public boolean addWithNotificationIfMerged(CFAEdge edge) {
-      // create a new path on the first if statement, else ignore the edge
-      if (stack.isEmpty()) {
-        if (!edge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
-          return false;
-        }
-        split(edge);
-        return false;
-      }
-
-      // extract the id of the given edge
-      int id = tree.getId(edge);
-      List<Integer> currPath = stack.peek();
-      Set<Integer> dominators = getDominators(id);
-      // 2 = root element and at least one statement
-      if (currPath.size() >= 2) {
-        // the current node has potential to end an if statement
-        // we have to check two conditions for that:
-        // 1) it is dominated by the most recent assume edge
-        // 2) no edge between the current edge and the most recent assume edge dominates the current edge
-        if (dominators.contains(currPath.get(0))) {
-          // 1) holds.
-          // check every edge on the path.
-          int DOMINATED = -1;
-          int i;
-          for (i = 1; i < currPath.size(); i++) {
-            if (dominators.contains(currPath.get(i))) {
-              i = DOMINATED;
-              break;
-            }
-          }
-          if (i != DOMINATED) {
-            // 2) holds
-            merge();
-            // process the edge again.
-            // we ignored that this edge may be an assume edge or member of the current most recent path
-            addWithNotificationIfMerged(edge);
-            return true;
-          }
-        }
-      }
-      // the edge is neither the first assume edge nor an ENDIF statement
-      if (edge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
-        // create a new path if the edge is an assume edge
-        split(edge);
-      } else {
-        // add the edge to the most recent path otherwise
-        currPath.add(id);
-      }
-      return false;
-    }
-
-    /**
-     * Add a new path to the stack.
-     * @param edge the path starts with this edge
-     */
-    private void split(CFAEdge edge){
-      Preconditions.checkArgument(edge.getEdgeType().equals(CFAEdgeType.AssumeEdge), "the split is not performed on an assume edge");
-      int id = tree.getId(edge);
-      List<Integer> currPath = new ArrayList<>();
-      currPath.add(id);
-      stack.push(currPath);
-    }
-
-    /**
-     * whenever an ENDIF-label is reached merge the most recent path with the previous path.
-     */
-    private void merge() {
-      List<Integer> currPath = stack.pop();
-      if (!stack.isEmpty()) {
-        stack.peek().addAll(currPath);
-      }
-    }
-
-    /**
-     * Calculate dominators of a certain node
-     * @param id the id of a node
-     * @return the dominators of the node referred to the given id
-     */
-    private Set<Integer> getDominators(int id) {
-      Set<Integer> dominators = new HashSet<>();
-
-      while(tree.hasParent(id)) {
-        id = tree.getParent(id);
-        dominators.add(id);
-      }
-
-      return dominators;
-    }
-
-  }
-
   static class LabeledFormula {
 
     private FormulaEntry entry;
-    private FormulaLabel label;
+    private List<FormulaLabel> labels;
 
     /**
      * Adds a label to a FormulaEntry
-     * @param pLabel a label for the entry
      * @param pEntry the corresponding entry
      */
-    public LabeledFormula(FormulaLabel pLabel, FormulaEntry pEntry) {
-      label = pLabel;
+    public LabeledFormula(FormulaEntry pEntry) {
+      labels = new ArrayList<>();
       entry = pEntry;
-    }
-
-    public void setLabel(FormulaLabel pLabel) {
-      label = pLabel;
     }
 
     public FormulaEntry getEntry() {
       return entry;
     }
 
-    public FormulaLabel getLabel() {
-      return label;
+    public void addLabel(FormulaLabel pLabel) {
+      labels.add(pLabel);
+    }
+
+    public List<FormulaLabel> getLabels() {
+      return labels;
     }
 
     @Override
     public boolean equals(Object pO) {
-      if (!(pO instanceof LabeledFormula)) {
+      if (this == pO) {
+        return true;
+      }
+      if (pO == null || getClass() != pO.getClass()) {
         return false;
       }
       LabeledFormula that = (LabeledFormula) pO;
-      return label == that.label &&
-          Objects.equals(entry, that.entry);
+      return entry.equals(that.entry) &&
+          labels.equals(that.labels);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(entry, label);
+      return Objects.hash(entry, labels);
     }
 
     @Override
     public String toString() {
+      String labelString = labels.stream().map(l -> l.toString()).collect(Collectors.joining(","));
       return "LabeledFormula{" +
-          "label=" + label +
-          ", entry=" + entry +
+          "entry=" + entry +
+          ", labels=" + labelString +
           '}';
     }
   }
-
 
 }

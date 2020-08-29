@@ -155,7 +155,7 @@ public class TraceFormula {
   }
 
   public int getPostConditionOffset() {
-    return postConditionOffset;
+    return traceSize() - postConditionOffset;
   }
 
   private BooleanFormula calculatePrecondition() throws SolverException, InterruptedException {
@@ -194,11 +194,11 @@ public class TraceFormula {
           .collect(bmgr.toConjunction());
       case FLOW_SENSITIVE:
         makeFlowSensitive();
-        //$FALL-THROUGH$
-      case TRACE:
-        //$FALL-THROUGH$
-      default:
         return bmgr.and(entries.toAtomList());
+      case TRACE:
+        return bmgr.and(entries.toAtomList());
+      default:
+        throw new AssertionError("unknown type for trace formula");
     }
   }
 
@@ -327,32 +327,37 @@ public class TraceFormula {
     // check if entry in TF is modified???
 
     LabeledCounterexample cex = new LabeledCounterexample(entries, context);
-
     ArrayDeque<BooleanFormula> conditions = new ArrayDeque<>();
 
+    boolean isIf;
     for (LabeledFormula edge : cex) {
-      if (edge.getLabel().equals(FormulaLabel.BOTH)) {
-        conditions.pop();
-        conditions.push(edge.getEntry().getAtom());
-        edge.getEntry().setAtom(frame());
-        continue;
+      // if statement is an assume edge that ends another if statement, pop and push.
+
+      isIf = false;
+      for (FormulaLabel label : edge.getLabels()) {
+
+        switch (label) {
+          case IF: {
+            conditions.push(edge.getEntry().getAtom());
+            entries.remove(edge.getEntry());
+            isIf = true;
+            continue;
+          }
+          case ENDIF: {
+            conditions.pop();
+            continue;
+          }
+          default: continue;
+        }
+
       }
-      if (edge.getLabel().equals(FormulaLabel.IF)) {
-        conditions.push(edge.getEntry().getAtom());
-        edge.getEntry().setAtom(frame());
-      } else {
+
+      if(!isIf) {
         BooleanFormula conditionsConjunct = bmgr.and(conditions);
         BooleanFormula implication =
             bmgr.implication(conditionsConjunct, edge.getEntry().getAtom());
         edge.getEntry().setAtom(implication);
-        if (edge.getLabel().equals(FormulaLabel.ENDIF) || edge.getLabel().equals(FormulaLabel.BOTH)) {
-          conditions.pop();
-        }
       }
     }
-  }
-
-  private BooleanFormula frame() {
-    return bmgr.makeTrue();
   }
 }

@@ -29,9 +29,11 @@ import org.sosy_lab.common.collect.MapsDifference;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.AbstractTraceElement;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaEntryList.FormulaEntry;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -60,8 +62,6 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
   private LogManager logger;
   private TraceFormula errorTrace;
   private FormulaContext formulaContext;
-  //(commented out, needed for flowsensitive traceformula)private CFA cfa;
-  //private boolean useImproved;
   private boolean useMem;
   private List<SSAMap> maps;
 
@@ -78,16 +78,12 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
       Configuration pConfiguration,
       LogManager pLogger,
       boolean pUseMem
-      //CFA pCfa,
-      //boolean pImproved
       ) {
     shutdownNotifier = pShutdownNotifier;
     config = pConfiguration;
     logger = pLogger;
     useMem = pUseMem;
     memorize = ArrayListMultimap.create();
-    //cfa = pCfa;
-    //useImproved = pImproved;
   }
 
   /**
@@ -220,8 +216,8 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
       }
     }
 
-    String abstractErrorTrace = abstractTrace.stream().map(e -> "-" + e).collect(Collectors.joining("\n"));
-    logger.log(Level.INFO, "Abstract error trace:\n"+abstractErrorTrace);
+    String abstractErrorTrace = abstractTrace.stream().map(e -> " - " + e).collect(Collectors.joining("\n"));
+    logger.log(Level.INFO, "Abstract error trace:\n" + abstractErrorTrace);
     return faults;
   }
 
