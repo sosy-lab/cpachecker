@@ -77,8 +77,8 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
 
   private <T> List<T> toTList(Function<FormulaEntry, T> mapping) {
     return entries.stream()
-        .filter(entry -> !Objects.isNull(entry.selector))
-        .map(entry -> mapping.apply(entry))
+        .map(mapping::apply)
+        .filter(Objects::nonNull)
         .collect(Collectors.toList());
   }
 

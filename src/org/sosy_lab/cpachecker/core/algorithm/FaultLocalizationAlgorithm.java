@@ -259,7 +259,7 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
           break;
         }
         case "ERRINV": {
-          tf = new TraceFormula(TraceFormulaType.FLOW_SENSITIVE, context, options, edgeList);
+          tf = new TraceFormula(TraceFormulaType.TRACE, context, options, edgeList);
           ranking = FaultRankingUtils.concatHeuristicsDefaultFinalScoring(
               new ForwardPreConditionRanking(tf, context),
               new EdgeTypeRanking(),
