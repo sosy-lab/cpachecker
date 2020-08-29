@@ -72,7 +72,7 @@ public class MergePoint<T> {
 
         Optional<T> intercept = intercept(waitlist, left);
         if (intercept.isPresent()) {
-          return intercept.get();
+          return intercept.orElseThrow();
         }
 
         currentPath = waitlist.remove(0);

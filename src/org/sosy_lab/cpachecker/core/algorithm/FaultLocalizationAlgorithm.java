@@ -91,7 +91,7 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
   private final FaultLocalizationAlgorithmInterface faultAlgorithm;
   private final StatTimer totalTime = new StatTimer("Total time");
 
-  @Option(secure=true, name="type", toUppercase=true, values={"UNSAT", "MAXSAT", "ERRINV", "MAXORG"},
+  @Option(secure=true, name="type", toUppercase=true, values={"UNSAT", "MAXSAT", "ERRINV", "ERFSTF", "MAXORG"},
       description="which algorithm to use")
   private String algorithmType = "UNSAT";
 
@@ -156,17 +156,17 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
 
   public boolean checkOptions(){
     boolean correctConfiguration = true;
-    if (!algorithmType.equals("ERRINV") && maintainCallHierarchy) {
-      logger.log(Level.SEVERE, "The optiion maintainhierarchy will be ignored since the error invariants algorithm is not selected");
+    if (!algorithmType.startsWith("ER") && maintainCallHierarchy) {
+      logger.log(Level.SEVERE, "The option maintainhierarchy will be ignored since the error invariants algorithm is not selected");
       maintainCallHierarchy = false;
       correctConfiguration = false;
     }
-    if (!algorithmType.equals("ERRINV") && memoization) {
+    if (!algorithmType.startsWith("ER") && memoization) {
       logger.log(Level.SEVERE, "The option memoization will be ignored since the error invariants algorithm is not selected");
       memoization = false;
       correctConfiguration = false;
     }
-    if (algorithmType.equals("ERRINV") && !ban.isBlank()) {
+    if (algorithmType.startsWith("ER") && !ban.isBlank()) {
       logger.log(Level.SEVERE, "The option ban will be ignored since the error invariants algorithm is not selected");
       ban = "";
       correctConfiguration = false;
@@ -176,7 +176,7 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
       options.setReduceSelectors(false);
       correctConfiguration = false;
     }
-    if (!options.getDisable().isBlank() && algorithmType.equals("ERRINV")) {
+    if (!options.getDisable().isBlank() && algorithmType.startsWith("ER")) {
       logger.log(Level.SEVERE, "The option ban will be ignored because it is not applicable on the error invariants algorithm");
       correctConfiguration = false;
     }
@@ -255,6 +255,16 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
               new HintRanking(3),
               new OverallOccurrenceRanking(),
               new MinimalLineDistanceRanking(edgeList.get(edgeList.size()-1)),
+              new CallHierarchyRanking(edgeList, tf.getPostConditionOffset()));
+          break;
+        }
+        case "ERFSTF": {
+          tf = new TraceFormula(TraceFormulaType.FLOW_SENSITIVE, context, options, edgeList);
+          ranking = FaultRankingUtils.concatHeuristicsDefaultFinalScoring(
+              new ForwardPreConditionRanking(tf, context),
+              new EdgeTypeRanking(),
+              new HintRanking(3),
+              // new MinimalLineDistanceRanking(edgeList.get(edgeList.size()-1)),
               new CallHierarchyRanking(edgeList, tf.getPostConditionOffset()));
           break;
         }

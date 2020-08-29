@@ -89,7 +89,7 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
     return entries;
   }
 
-  public class FormulaEntry {
+  public static class FormulaEntry {
 
     private SSAMap map;
     private Selector selector;

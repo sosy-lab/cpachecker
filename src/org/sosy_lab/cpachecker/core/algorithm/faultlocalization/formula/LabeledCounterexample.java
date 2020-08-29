@@ -104,7 +104,7 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
         }
       }
 
-    };
+    }
 
     annotatedCounterexample = withoutPrecond.toEdgeList().stream().map(edge -> edgeToLabeledFormula.get(edge)).collect(
         Collectors.toList());
