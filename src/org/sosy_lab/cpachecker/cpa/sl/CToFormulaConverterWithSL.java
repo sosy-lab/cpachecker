@@ -65,11 +65,18 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
 
   private final Solver solver;
   private final SLStatistics stats;
-
   @Option(
     secure = true,
-    description = "States whether allocation checks are solved with a SMT solver instead of a SL theorem prover.")
-  private boolean useSMT = false;
+    description = "States whether allocation checks are solved with a SMT or SL solver."
+        + "Further a SMT check is divided into multiple equialence checks for each key"
+        + "on the heap or a single solver call using a procedure based on ALLSAT.")
+  private AllocationCheckProcedure allocationCheckProcedure = AllocationCheckProcedure.SL;
+
+  public enum AllocationCheckProcedure {
+    SL,
+    SMT,
+    SMT_ALLSAT
+  }
 
   public CToFormulaConverterWithSL(
       FormulaEncodingOptions pOptions,
@@ -105,14 +112,7 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
       PointerTargetSetBuilder pPts,
       Constraints pConstraints,
       ErrorConditions pErrorConditions) {
-    return new SLRhsToFormulaVisitor(
-        this,
-        fmgr,
-        pEdge,
-        pFunction,
-        pSsa,
-        pPts,
-        pConstraints);
+    return new SLRhsToFormulaVisitor(this, fmgr, pEdge, pFunction, pSsa, pPts, pConstraints);
   }
 
   @Override
@@ -142,7 +142,13 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
 
   private SLMemoryDelegate makeDelegate() {
     assert context != null;
-    return new SLMemoryDelegate(solver, (SLState) context, machineModel, logger, stats, useSMT);
+    return new SLMemoryDelegate(
+        solver,
+        (SLState) context,
+        machineModel,
+        logger,
+        stats,
+        allocationCheckProcedure);
   }
 
   @Override
@@ -194,8 +200,6 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
       throw new UnrecognizedCodeException("Could not deallocate " + var, pEdge);
     }
   }
-
-
 
   @Override
   protected BooleanFormula makeDeclaration(

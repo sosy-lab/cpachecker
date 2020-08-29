@@ -26,6 +26,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
+import org.sosy_lab.cpachecker.cpa.sl.CToFormulaConverterWithSL.AllocationCheckProcedure;
 import org.sosy_lab.cpachecker.cpa.sl.SLState.SLStateError;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
@@ -57,7 +58,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
   private final SLStatistics stats;
   private final MachineModel machineModel;
   private final LogManager logger;
-  private final boolean useSMT;
+  private final AllocationCheckProcedure acProc;
 
 
   private final BitvectorType heapAddressFormulaType;
@@ -69,7 +70,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
       MachineModel pMachineModel,
       LogManager pLogger,
       SLStatistics pStats,
-      boolean pUseSMT) {
+      AllocationCheckProcedure pProcedure) {
     solver = pSolver;
     state = pState;
     fm = solver.getFormulaManager();
@@ -78,7 +79,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     stats = pStats;
     machineModel = pMachineModel;
     logger = pLogger;
-    useSMT = pUseSMT;
+    acProc = pProcedure;
 
     heapAddressFormulaType =
         FormulaType.getBitvectorTypeWithSize(machineModel.getSizeofPtrInBits());
@@ -238,15 +239,25 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
       return Optional.of(fLoc);
     }
     // Semantical check.
-    for (Formula formulaInMemory : pMemory.keySet()) {
-      boolean match =
-          useSMT
-              ? checkEquivalenceSMT(fLoc, formulaInMemory)
-              : checkEquivalenceSL(fLoc, formulaInMemory, pMemory);
-      if (match) {
-        return Optional.of(formulaInMemory);
-      }
+    switch (acProc) {
+      case SL:
+      case SMT:
+        for (Formula formulaInMemory : pMemory.keySet()) {
+          boolean match =
+              acProc == AllocationCheckProcedure.SMT
+                  ? checkEquivalenceSMT(fLoc, formulaInMemory)
+                  : checkEquivalenceSL(fLoc, formulaInMemory, pMemory);
+          if (match) {
+            return Optional.of(formulaInMemory);
+          }
 
+        }
+        break;
+      case SMT_ALLSAT:
+        Formula loc = getLocation(pMemory, fLoc);
+        if (loc != null) {
+          return Optional.of(loc);
+        }
     }
     return Optional.empty();
   }
@@ -277,7 +288,6 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     return false;
   }
 
-  @SuppressWarnings("unused")
   /**
    * Checks for location match on the heap by generating a model rather than checking each pair individually.
    * However, segmentation faults occur on CVC4 solver side.
