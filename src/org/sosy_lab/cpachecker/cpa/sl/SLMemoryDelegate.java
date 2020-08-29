@@ -291,9 +291,6 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
   /**
    * Checks for location match on the heap by generating a model rather than checking each pair individually.
    * However, segmentation faults occur on CVC4 solver side.
-   * @param pMemory
-   * @param pLoc
-   * @return
    */
   private Formula getLocation(Map<Formula, Formula> pMemory, Formula pLoc) {
     Set<Formula> keys = pMemory.keySet();
