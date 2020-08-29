@@ -3,12 +3,12 @@
 <benchmark tool="cpachecker" timelimit="90s" hardtimelimit="120 s" memlimit="15 GB" cpuCores="2">
 
   <rundefinition/>
-  
   <option name="-stats"/>
-  <tasks name="MemSafety-ext3">
+  <tasks name="memsafety-ext3">
     <includesfile>../programs/benchmarks/MemSafety-SL.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
     <option name="-sl"/>
+    <option name="-setprop">cpa.sl.allocationCheckProcedure=SL</option>
   </tasks>
   
   <columns>
