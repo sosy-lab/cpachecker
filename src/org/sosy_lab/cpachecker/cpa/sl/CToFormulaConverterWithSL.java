@@ -75,7 +75,7 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
   public enum AllocationCheckProcedure {
     SL,
     SMT,
-    SMT_ALLSAT
+    SMT_ModelSAT
   }
 
   public CToFormulaConverterWithSL(

@@ -253,7 +253,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
 
         }
         break;
-      case SMT_ALLSAT:
+      case SMT_ModelSAT:
         Formula loc = getLocation(pMemory, fLoc);
         if (loc != null) {
           return Optional.of(loc);
