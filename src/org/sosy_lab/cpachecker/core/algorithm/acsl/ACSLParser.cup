@@ -557,8 +557,16 @@ annotation ::= fcontract:f {: RESULT = f; :}
             | scontract:s           {:  RESULT = s; :}
             | loopannotation:l {: RESULT = l; :}
             | assertion:a {: RESULT = a; :};
-assertion ::= NEXTCONTRACT ASSERT predicate:p SEMI  {: RESULT = new ACSLAssertion(ACSLAssertion.AssertionKind.ASSERT, p); :}
-            | NEXTCONTRACT CHECK predicate:p SEMI   {: RESULT = new ACSLAssertion(ACSLAssertion.AssertionKind.CHECK, p); :};
+assertion ::= NEXTCONTRACT ASSERT predicate:p SEMI                        {: RESULT = new ACSLAssertion(ACSLAssertion.AssertionKind.ASSERT, p); :}
+            | NEXTCONTRACT behavior_identifiers:i ASSERT predicate:p SEMI {: List<Behavior> enclosingBehaviors = new ArrayList<>();
+                                                                             CFANode node = parser.getCurrentNode();
+                                                                             for(String id : i) { enclosingBehaviors.add(parser.getBehavior(node.getFunctionName(), id, node)); }
+                                                                             RESULT = new ACSLAssertion(ACSLAssertion.AssertionKind.ASSERT, enclosingBehaviors, p); :}
+            | NEXTCONTRACT CHECK predicate:p SEMI                         {: RESULT = new ACSLAssertion(ACSLAssertion.AssertionKind.CHECK, p); :}
+            | NEXTCONTRACT behavior_identifiers:i CHECK predicate:p SEMI  {: List<Behavior> enclosingBehaviors = new ArrayList<>();
+                                                                             CFANode node = parser.getCurrentNode();
+                                                                             for(String id : i) { enclosingBehaviors.add(parser.getBehavior(node.getFunctionName(), id, node)); }
+                                                                             RESULT = new ACSLAssertion(ACSLAssertion.AssertionKind.CHECK, enclosingBehaviors, p); :};
 loopannotation ::= NEXTCONTRACT loop_clauses:c loop_behaviors:b {: RESULT = new ACSLLoopAnnotation(c, b); :}
                 | NEXTCONTRACT loop_behaviors:b                 {: RESULT = new ACSLLoopAnnotation(b); :}
                 | NEXTCONTRACT loop_clauses:c                   {: RESULT = new ACSLLoopAnnotation(c); :};

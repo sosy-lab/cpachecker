@@ -8,18 +8,39 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.acsl;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
+import java.util.List;
+
 public class ACSLAssertion implements ACSLAnnotation {
 
   private final AssertionKind kind;
+  private final ImmutableList<Behavior> enclosingBehaviors;
   private final ACSLPredicate predicate;
 
   public ACSLAssertion(AssertionKind pKind, ACSLPredicate p) {
+    this(pKind, ImmutableList.of(), p);
+  }
+
+  public ACSLAssertion(AssertionKind pKind, List<Behavior> enclosing, ACSLPredicate p) {
     kind = pKind;
+    enclosingBehaviors = ImmutableList.copyOf(enclosing);
     predicate = p.simplify();
   }
 
   @Override
   public ACSLPredicate getPredicateRepresentation() {
+    if (!enclosingBehaviors.isEmpty()) {
+      ACSLPredicate enclosingDisjunction = ACSLPredicate.getFalse();
+      ACSLPredicate enclosingConjunction = ACSLPredicate.getTrue();
+      for (Behavior behavior : enclosingBehaviors) {
+        AssumesClause assumesClause = behavior.getAssumesClause();
+        enclosingConjunction =
+            enclosingConjunction.and(assumesClause.getPredicate().negate()).simplify();
+        enclosingDisjunction = enclosingDisjunction.or(assumesClause.getPredicate()).simplify();
+      }
+      return predicate.and(enclosingDisjunction).or(enclosingConjunction);
+    }
     return predicate;
   }
 
@@ -30,7 +51,14 @@ public class ACSLAssertion implements ACSLAnnotation {
 
   @Override
   public String toString() {
-    return kind.toString() + ' ' + predicate.toString() + ';';
+    StringBuilder builder = new StringBuilder();
+    if (!enclosingBehaviors.isEmpty()) {
+      builder.append("for ");
+      Joiner.on(", ")
+          .appendTo(builder, enclosingBehaviors.stream().map(x -> x.getName()).iterator());
+      builder.append(": ");
+    }
+    return builder.toString() + kind.toString() + ' ' + predicate.toString() + ';';
   }
 
   public enum AssertionKind {
