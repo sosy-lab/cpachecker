@@ -24,6 +24,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
+import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.AlgorithmType;
 import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.dstar.DStarSuspiciousBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.ochiai.OchiaiSuspiciousBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.tarantula.TarantulaSuspiciousBuilder;
@@ -54,7 +55,7 @@ public class FaultLocalizationRankingMetric implements Algorithm, StatisticsProv
       toUppercase = true,
       values = {"TARANTULA", "OCHIAI", "DSTAR"},
       description = "please select a ranking algorithm")
-  private String rankingAlgorithmType = "TARANTULA";
+  private AlgorithmType rankingAlgorithmType = AlgorithmType.TARANTULA;
 
   private final StatTimer totalTime = new StatTimer("Total time");
   private final Algorithm algorithm;
@@ -128,14 +129,14 @@ public class FaultLocalizationRankingMetric implements Algorithm, StatisticsProv
     List<Fault> faults;
     logger.log(Level.INFO, "ranking algorithm with " + rankingAlgorithmType + " starts");
 
-    if (rankingAlgorithmType.equals("TARANTULA")) {
+    if (rankingAlgorithmType.equals(AlgorithmType.TARANTULA)) {
       TarantulaSuspiciousBuilder tarantulaRanking = new TarantulaSuspiciousBuilder();
       faults =
           new FaultLocalizationFault()
               .getFaults(
                   tarantulaRanking.calculateSuspiciousForCFAEdge(
                       pSafePaths, pErrorPaths, pCoverageInformation));
-    } else if (rankingAlgorithmType.equals("DSTAR")) {
+    } else if (rankingAlgorithmType.equals(AlgorithmType.DSTAR)) {
       DStarSuspiciousBuilder dStarRanking = new DStarSuspiciousBuilder();
       faults =
           new FaultLocalizationFault()

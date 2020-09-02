@@ -24,7 +24,7 @@ public class DStarSuspiciousBuilder extends SuspiciousBuilder {
   public double defineSuspicious(
       double pFailed, double pPassed, double totalFailed, double totalPassed) {
     double numerator = Math.pow(pFailed, 2);
-    double denominator = (pPassed + (totalFailed - pFailed));
+    double denominator = pPassed + (totalFailed - pFailed);
     if (denominator == 0.0) {
       return 0.0;
     }

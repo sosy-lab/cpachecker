@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm;
 
-import java.util.HashMap;
+import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -27,7 +27,8 @@ public abstract class SuspiciousBuilder {
     int totalErrorPaths = errorPaths.size();
     Map<CFAEdge, FaultLocalizationCasesStatus> coverage =
         coverageInformation.getCoverageInformation(safePaths, errorPaths);
-    Map<FaultInformation, FaultContribution> coverageResult = new HashMap<>();
+    ImmutableMap.Builder<FaultInformation, FaultContribution> coverageResult =
+        ImmutableMap.builder();
     coverage.forEach(
         (pCFAEdge, pFaultLocalizationCasesStatus) -> {
           double suspicious =
@@ -47,7 +48,7 @@ public abstract class SuspiciousBuilder {
           }
         });
 
-    return coverageResult;
+    return coverageResult.build();
   }
 
   public abstract double defineSuspicious(

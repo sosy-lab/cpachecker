@@ -9,9 +9,9 @@ package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -38,7 +38,7 @@ public class FaultLocalizationUtils {
   public static Set<ARGPath> getAllPaths(ReachedSet reachedSet, ARGState chosenState) {
     ARGState root = AbstractStates.extractStateByType(reachedSet.getFirstState(), ARGState.class);
     List<ARGState> states = new ArrayList<>();
-    Set<ARGPath> results = new HashSet<>();
+    ImmutableSet.Builder<ARGPath> results = ImmutableSet.builder();
     List<List<ARGState>> paths = new ArrayList<>();
 
     states.add(chosenState);
@@ -68,6 +68,6 @@ public class FaultLocalizationUtils {
         paths.add(tmp.build());
       }
     }
-    return results;
+    return results.build();
   }
 }
