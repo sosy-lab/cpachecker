@@ -25,6 +25,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.AlgorithmType;
+import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.SuspiciousBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.dstar.DStarSuspiciousBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.ochiai.OchiaiSuspiciousBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.tarantula.TarantulaSuspiciousBuilder;
@@ -52,7 +53,6 @@ public class FaultLocalizationRankingMetric implements Algorithm, StatisticsProv
   @Option(
       secure = true,
       name = "type",
-      toUppercase = true,
       values = {"TARANTULA", "OCHIAI", "DSTAR"},
       description = "please select a ranking algorithm")
   private AlgorithmType rankingAlgorithmType = AlgorithmType.TARANTULA;
@@ -126,32 +126,25 @@ public class FaultLocalizationRankingMetric implements Algorithm, StatisticsProv
   private List<Fault> getFaultsByOption(
       Set<ARGPath> pSafePaths, Set<ARGPath> pErrorPaths, CoverageInformation pCoverageInformation)
       throws InterruptedException {
-    List<Fault> faults;
-    logger.log(Level.INFO, "ranking algorithm with " + rankingAlgorithmType + " starts");
 
-    if (rankingAlgorithmType.equals(AlgorithmType.TARANTULA)) {
-      TarantulaSuspiciousBuilder tarantulaRanking = new TarantulaSuspiciousBuilder();
-      faults =
-          new FaultLocalizationFault()
-              .getFaults(
-                  tarantulaRanking.calculateSuspiciousForCFAEdge(
-                      pSafePaths, pErrorPaths, pCoverageInformation));
-    } else if (rankingAlgorithmType.equals(AlgorithmType.DSTAR)) {
-      DStarSuspiciousBuilder dStarRanking = new DStarSuspiciousBuilder();
-      faults =
-          new FaultLocalizationFault()
-              .getFaults(
-                  dStarRanking.calculateSuspiciousForCFAEdge(
-                      pSafePaths, pErrorPaths, pCoverageInformation));
-    } else {
-      OchiaiSuspiciousBuilder ochiaiRanking = new OchiaiSuspiciousBuilder();
-      faults =
-          new FaultLocalizationFault()
-              .getFaults(
-                  ochiaiRanking.calculateSuspiciousForCFAEdge(
-                      pSafePaths, pErrorPaths, pCoverageInformation));
+    logger.log(Level.INFO, "ranking algorithm with " + rankingAlgorithmType + " starts");
+    return new FaultLocalizationFault()
+        .getFaults(
+            getSuspiciousBuilder(rankingAlgorithmType)
+                .calculateSuspiciousForCFAEdge(pSafePaths, pErrorPaths, pCoverageInformation));
+  }
+
+  private SuspiciousBuilder getSuspiciousBuilder(AlgorithmType pAlgorithmType) {
+    switch (pAlgorithmType) {
+      case TARANTULA:
+        return new TarantulaSuspiciousBuilder();
+      case DSTAR:
+        return new DStarSuspiciousBuilder();
+      case OCHIAI:
+        return new OchiaiSuspiciousBuilder();
+      default:
+        throw new AssertionError("unexpected type");
     }
-    return faults;
   }
 
   @Override

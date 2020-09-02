@@ -12,9 +12,4 @@ public enum AlgorithmType {
   TARANTULA,
   DSTAR,
   OCHIAI;
-
-  @Override
-  public String toString() {
-    return super.toString();
-  }
 }
