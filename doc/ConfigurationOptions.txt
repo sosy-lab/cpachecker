@@ -1857,6 +1857,12 @@ cpa.monitor.pathcomputationlimit = 0
 # in assumptions
 cpa.nondeterminism.acceptConstrained = true
 
+# Use this to switch between domains of a library.
+cpa.numeric.numericDomain = "OCTAGON"
+
+# Use this to switch the underlying numerical library.
+cpa.numeric.numericLibrary = "APRON"
+
 # this option determines which initial precision should be used
 cpa.octagon.initialPrecisionType = "STATIC_FULL"
   allowed values: [STATIC_FULL, REFINEABLE_EMPTY]
