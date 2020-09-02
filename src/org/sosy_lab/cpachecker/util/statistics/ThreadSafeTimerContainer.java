@@ -202,6 +202,10 @@ public class ThreadSafeTimerContainer extends AbstractStatValue {
     public boolean isRunning() {
       return timer.isRunning();
     }
+
+    public TimeSpan getLengthOfLastInterval() {
+      return timer.getLengthOfLastInterval();
+    }
   }
 
 }

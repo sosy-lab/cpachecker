@@ -217,8 +217,9 @@ public class SlicingAbstractionsUtils {
         if (isAbstractionState(child)) {
           if (segmentMap.containsKey(child)) {
             PersistentList<ARGState> storedStateList = segmentMap.get(child);
+            Set<ARGState> storedStateSet = new HashSet<>(storedStateList);
             for (ARGState s : currentStateList.reversed()) {
-              if (!storedStateList.contains(s)) {
+              if (!storedStateSet.contains(s)) {
                 storedStateList = storedStateList.with(s);
               }
             }

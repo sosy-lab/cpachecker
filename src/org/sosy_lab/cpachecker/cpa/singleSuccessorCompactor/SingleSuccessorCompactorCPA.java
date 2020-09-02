@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
+import org.sosy_lab.cpachecker.core.interfaces.Reducer;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.statistics.StatHist;
@@ -69,10 +70,13 @@ public class SingleSuccessorCompactorCPA extends AbstractSingleWrapperCPA
 
   @Override
   public void setPartitioning(BlockPartitioning pPartitioning) {
-    if (getWrappedCpa() instanceof ConfigurableProgramAnalysisWithBAM) {
-      ((ConfigurableProgramAnalysisWithBAM)getWrappedCpa()).setPartitioning(pPartitioning);
-    }
+    ((ConfigurableProgramAnalysisWithBAM) getWrappedCpa()).setPartitioning(pPartitioning);
     partitioning = pPartitioning;
+  }
+
+  @Override
+  public Reducer getReducer() throws InvalidConfigurationException {
+    return ((ConfigurableProgramAnalysisWithBAM) getWrappedCpa()).getReducer();
   }
 
   LogManager getLogger() {

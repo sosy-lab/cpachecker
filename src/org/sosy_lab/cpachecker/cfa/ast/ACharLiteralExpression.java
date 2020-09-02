@@ -29,6 +29,7 @@ public abstract class ACharLiteralExpression extends ALiteralExpression {
   }
 
   @Override
+  @Deprecated // call getCharacter()
   public Character getValue() {
     return getCharacter();
   }

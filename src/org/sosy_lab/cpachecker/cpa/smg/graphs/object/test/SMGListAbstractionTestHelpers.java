@@ -16,6 +16,7 @@ import com.google.common.truth.Truth;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Stream;
+import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.smg.SMGAbstractionManager;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
@@ -278,7 +279,7 @@ public final class SMGListAbstractionTestHelpers {
       SMGValue[] list = pLists[i];
       if (list == null) {
         throw new IllegalArgumentException("The provided array must not contain null.");
-      } else if (list.length < 1 || Stream.of(list).distinct().count() > 1) {
+      } else if (list.length < 1 || !Collections3.allElementsEqual(list)) {
         values[i] = newVal();
       } else {
         values[i] = list[0];
@@ -452,8 +453,7 @@ public final class SMGListAbstractionTestHelpers {
 
   static void assertStoredDataOfAbstractList(
       CLangSMG pSmg, SMGValue[] pValues, SMGObject pObject, int pDfo) {
-    boolean allValuesEqual = Arrays.stream(pValues).distinct().count() == 1;
-    if (allValuesEqual) {
+    if (Collections3.allElementsEqual(pValues)) {
       SMGEdgeHasValue hv =
           Iterables.getOnlyElement(
               pSmg.getHVEdges(
@@ -468,18 +468,23 @@ public final class SMGListAbstractionTestHelpers {
 
   static void assertStoredDataOfAbstractSublist(
       CLangSMG pSmg, SMGValue[][] pSublists, SMGObject pSubobject, int pDfo) {
-    boolean onlyNonEmptySublists = Stream.of(pSublists).noneMatch(e -> e == null || e.length == 0);
-    boolean allValuesEqualInUnionOfSublists =
-        Stream.of(pSublists).flatMap(Arrays::stream).distinct().count() == 1;
-    if (onlyNonEmptySublists && allValuesEqualInUnionOfSublists) {
-      SMGEdgeHasValue hv =
-          Iterables.getOnlyElement(
-              pSmg.getHVEdges(
-                  SMGEdgeHasValueFilter.objectFilter(pSubobject)
-                      .filterAtOffset(pDfo)
-                      .filterWithoutSize()));
-      Truth.assertThat(hv.getValue()).isEqualTo(pSublists[0][0]);
+    if (pSublists.length == 0) {
+      return;
     }
+    if (Stream.of(pSublists).anyMatch(e -> e == null || e.length == 0)) {
+      return; // some empty sublists
+    }
+    if (!Collections3.allElementsEqual(Stream.of(pSublists).flatMap(Arrays::stream))) {
+      return; // not all values in union of sublists are equal
+    }
+
+    SMGEdgeHasValue hv =
+        Iterables.getOnlyElement(
+            pSmg.getHVEdges(
+                SMGEdgeHasValueFilter.objectFilter(pSubobject)
+                    .filterAtOffset(pDfo)
+                    .filterWithoutSize()));
+    Truth.assertThat(hv.getValue()).isEqualTo(pSublists[0][0]);
   }
 
   private SMGListAbstractionTestHelpers() {}

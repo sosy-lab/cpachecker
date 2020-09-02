@@ -30,7 +30,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.graph.Traverser;
 import java.io.IOException;
@@ -490,8 +489,8 @@ public class ARGUtils {
     ARGPathBuilder builder = ARGPath.builder();
     ARGState currentElement = root;
     while (!currentElement.isTarget()) {
-      Set<ARGState> children = new HashSet<>(currentElement.getChildren());
-      Set<ARGState> childrenInArg = Sets.intersection(children, arg).immutableCopy();
+      final ImmutableSet<ARGState> childrenInArg =
+          from(currentElement.getChildren()).filter(arg::contains).toSet();
 
       ARGState child;
       CFAEdge edge;

@@ -118,6 +118,15 @@ public class LeafExpression<LeafType> extends AbstractExpressionTree<LeafType> {
       }
       return assumeTruth ? ExpressionTrees.getTrue() : ExpressionTrees.getFalse();
     }
+    if (leafExpression instanceof String) {
+      String expressionString = (String) leafExpression;
+      if (expressionString.equals("0")) {
+        return assumeTruth ? ExpressionTrees.getFalse() : ExpressionTrees.getTrue();
+      }
+      if (expressionString.equals("1")) {
+        return assumeTruth ? ExpressionTrees.getTrue() : ExpressionTrees.getFalse();
+      }
+    }
     return new LeafExpression<>(leafExpression, assumeTruth, assumeTruth ? leafExpression.hashCode() : -leafExpression.hashCode());
   }
 

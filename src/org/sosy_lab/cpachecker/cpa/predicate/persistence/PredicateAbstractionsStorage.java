@@ -23,7 +23,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -241,7 +241,7 @@ public class PredicateAbstractionsStorage {
   }
 
   public Set<AbstractionNode> getSuccessorAbstractions(Integer ofAbstractionWithId) {
-    Set<AbstractionNode> result = new HashSet<>();
+    Set<AbstractionNode> result = new LinkedHashSet<>();
 
     if (abstractionTree != null) {
       for (Integer successorId : abstractionTree.get(ofAbstractionWithId)) {

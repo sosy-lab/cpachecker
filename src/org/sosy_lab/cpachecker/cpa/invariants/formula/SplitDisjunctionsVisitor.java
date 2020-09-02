@@ -20,7 +20,7 @@ import java.util.List;
  *
  * @param <T> the type of the constants used in the formulae.
  */
-public class SplitDisjunctionsVisitor<T>
+class SplitDisjunctionsVisitor<T>
     implements BooleanFormulaVisitor<T, ImmutableList<BooleanFormula<T>>> {
 
   @Override

@@ -14,10 +14,9 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
+import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -434,8 +433,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     // build the branching formula that will help us find the real error path
     List<BooleanFormula> branchingFormula = new ArrayList<>();
     for (final ARGState pathElement : elementsOnPath) {
-      Set<ARGState> children = new HashSet<>(pathElement.getChildren());
-      Set<ARGState> childrenOnPath = Sets.intersection(children, elementsOnPath).immutableCopy();
+      final ImmutableSet<ARGState> childrenOnPath =
+          from(pathElement.getChildren()).filter(elementsOnPath::contains).toSet();
 
       if (childrenOnPath.size() > 1) {
         if (childrenOnPath.size() > 2) {

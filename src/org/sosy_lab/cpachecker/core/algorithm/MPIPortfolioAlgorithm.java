@@ -11,16 +11,19 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.base.Verify.verify;
+import static com.google.common.base.Verify.verifyNotNull;
 import static java.util.function.Predicate.not;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.MoreCollectors;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.StringWriter;
 import java.net.InetAddress;
 import java.nio.file.Files;
@@ -32,11 +35,11 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.ProcessExecutor;
@@ -48,6 +51,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.defaults.DummyTargetState;
@@ -55,6 +59,7 @@ import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -87,11 +92,10 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
   private final LogManager logger;
   private final ShutdownManager shutdownManager;
   private final Specification specification;
-  // private final MPIPortfolioAlgorithmStatistics stats; // TODO
+  private final MPIPortfolioAlgorithmStatistics stats;
 
   private final Map<String, Path> binaries;
-  private final Map<Path, Path> subanalysesOutputPaths;
-  private final Map<Path, Path> subanalysesLogfilePaths;
+  private final ImmutableList<SubanalysisConfig> subanalyses;
 
   private final String mpiArgs;
 
@@ -107,13 +111,17 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     logger = checkNotNull(pLogger);
     shutdownManager = ShutdownManager.createWithParent(checkNotNull(pShutdownNotifier));
     specification = checkNotNull(pSpecification);
+    stats = new MPIPortfolioAlgorithmStatistics();
 
     binaries = new HashMap<>();
     binaries.put(PYTHON3_BIN, getPathOrThrowError(PYTHON3_BIN));
     binaries.put(MPI_BIN, getPathOrThrowError(MPI_BIN));
 
-    subanalysesOutputPaths = new HashMap<>();
-    subanalysesLogfilePaths = new HashMap<>();
+    ImmutableList.Builder<SubanalysisConfig> subanalysesBuilder = new ImmutableList.Builder<>();
+    for (int i = 0; i < configFiles.size(); i++) {
+      subanalysesBuilder.add(new SubanalysisConfig(i));
+    }
+    subanalyses = subanalysesBuilder.build();
 
     if (numberProcesses <= 1) {
       String numNodesEnv = System.getenv("AWS_BATCH_JOB_NUM_NODES");
@@ -133,13 +141,11 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
         numberProcesses = 1;
         logger.logf(
             Level.INFO,
-            "No information about the amount of available processes for MPI was found. "
+            "No information about the amount of available processes for MPI found. "
                 + "Taking %d as default value.",
             numberProcesses);
       }
     }
-
-    logger.logf(Level.INFO, "Number of specified processes: %d", numberProcesses);
 
     if (hostfile == null) {
       String envVariable = System.getenv("HOST_FILE_PATH");
@@ -166,17 +172,22 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       }
     }
 
+    stats.noOfAlgorithmsExecuted = numberProcesses;
+
     if (hostfile != null) {
       verify(
           hostfile.normalize().toFile().exists(),
           "Hostfile specified, but cannot find it at the given location '%s'",
           hostfile);
+      stats.hostfilePath = hostfile.toString();
     }
 
-    try (StringWriter stringWriter = new StringWriter();) {
+    try (StringWriter stringWriter = new StringWriter()) {
       Map<String, Object> analysisMap = new LinkedHashMap<>();
+
       for (int i = 0; i < configFiles.size(); i++) {
-        analysisMap.put("Analysis_" + i, createCommand(i));
+        SubanalysisConfig subanalysis = subanalyses.get(i);
+        analysisMap.putAll(subanalysis.buildCommandLine());
       }
 
       // The following settings are required for the child CPAchecker instances. They might be
@@ -217,60 +228,6 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
-  private ImmutableMap<String, Object> createCommand(int pIndex)
-      throws InvalidConfigurationException {
-
-    String subprocess_timelimit = "750s"; // arbitrary value for now
-    Path subprocess_config = configFiles.get(pIndex);
-    Path subprocess_output_basedir = Path.of("output", "output_portfolio-analysis_" + pIndex);
-    Path subprocess_logfile = Path.of("logfile_portfolio-analysis_" + pIndex + ".log");
-    Path spec_path = Iterables.getOnlyElement(specification.getSpecFiles());
-
-    subanalysesOutputPaths.put(subprocess_config, subprocess_output_basedir);
-    subanalysesLogfilePaths.put(subprocess_config, subprocess_logfile);
-
-    /*
-     * Ugly hack to setup the desired config options for the child CPAchecker processes. The idea is
-     * to keep all (user-)configurations except the ones necessary for running this portfolio
-     * analysis.
-     *
-     * In other words, if the sub-analysis is e.g. a predicateAnalysis, then keep all configurations
-     * (especially those manually set by the user) and remove any configuration options that are
-     * necessary only for the MPIPortfolioAlgorithm itself.
-     */
-    Configuration childargs =
-        Configuration.builder()
-            .copyFrom(globalConfig)
-            .clearOption("mpiAlgorithm.hostfile")
-            .clearOption("analysis.algorithm.MPI")
-            .clearOption("mpiAlgorithm.configFiles")
-            .clearOption("analysis.name")
-            .clearOption("mpiAlgorithm.numberProcesses")
-            .setOption("limits.time.cpu", subprocess_timelimit)
-            .setOption("output.path", subprocess_output_basedir.toString())
-            .setOption("specification", spec_path.toString())
-            .build();
-
-    // Bring the command-line into a format which is directly executable by a
-    // subprocess.run() command in python
-    ImmutableList.Builder<Object> cmdLineBuilder =
-        ImmutableList.builder()
-            .add("scripts/cpa.sh")
-            .add("-config")
-            .add(subprocess_config.toString());
-    for (String opt : Splitter.on('\n').omitEmptyStrings().split(childargs.asPropertiesString())) {
-      cmdLineBuilder.add("-setprop").add(opt);
-    }
-
-    ImmutableMap.Builder<String, Object> builder = new ImmutableMap.Builder<>();
-    builder.put("analysis", subprocess_config.getFileName().toString());
-    builder.put("cmd", cmdLineBuilder.build());
-    builder.put("output", subprocess_output_basedir.toString());
-    builder.put("logfile", subprocess_output_basedir.resolve(subprocess_logfile).toString());
-
-    return builder.build();
-  }
-
   private static Path getPathOrThrowError(String pRequiredBin)
       throws InvalidConfigurationException {
     Optional<Path> pathOpt =
@@ -289,8 +246,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
-    // TODO Auto-generated method stub
-
+    pStatsCollection.add(stats);
   }
 
   @Override
@@ -301,14 +257,17 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     cmdList.add(binaries.get(MPI_BIN).toString());
 
     // if no hostfile is specified, all CPAchecker instances
-    // for the subanalyses will be executed on the local machine
+    // for the subanalyses will be executed on the local machine only
     if (hostfile != null) {
 
       // Force Open MPI to only send messages via eth0
       // https://stackoverflow.com/a/15256822
-      cmdList.add("--mca");
-      cmdList.add("btl_tcp_if_include");
-      cmdList.add("eth0");
+      //
+      // Addendum: The following command is apparently not available to all MPI frameworks
+      //
+      // cmdList.add("--mca");
+      // cmdList.add("btl_tcp_if_include");
+      // cmdList.add("eth0");
 
       cmdList.add("-hostfile");
       cmdList.add(hostfile.normalize().toString());
@@ -334,45 +293,47 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     try {
       shutdownManager.getNotifier().shutdownIfNecessary();
       logger.log(Level.INFO, "Running subprocesses orchestrated by MPI");
-      executor =
-          new ProcessExecutor<>(
-              logger,
-              IOException.class,
-              Iterables.toArray(cmdList, String.class)) {
+      stats.mpiBinaryTotalTimer.start();
+      try {
+        executor =
+            new ProcessExecutor<>(
+                logger,
+                IOException.class,
+                Iterables.toArray(cmdList, String.class)) {
 
-            @Override
-            protected void handleOutput(String line) {
-              checkNotNull(line);
-              logger.logf(
-                  Level.INFO,
-                  "%s - %s",
-                  "scripts/" + MPI_PYTHON_MAIN_PATH.getFileName(),
-                  line);
-            }
-          };
+              @Override
+              protected void handleOutput(String line) {
+                checkNotNull(line);
+                logger.logf(
+                    Level.INFO,
+                    "%s - %s",
+                    "scripts/" + MPI_PYTHON_MAIN_PATH.getFileName(),
+                    line);
+              }
+            };
 
-      int exitCode = executor.join();
-      logger.log(Level.INFO, "MPI has finished its job. Continuing in main node.");
+        int exitCode = executor.join();
+        logger.log(Level.INFO, "MPI has finished its job. Continuing in main node.");
 
-      if (exitCode != 0) {
-        throw new CPAException("MPI script has failed with exit code " + exitCode);
+        if (exitCode != 0) {
+          throw new CPAException("MPI script has failed with exit code " + exitCode);
+        }
+      } finally {
+        stats.mpiBinaryTotalTimer.stop();
       }
 
-      Result result = null;
-      ImmutableList<String> subanalysisLog = null;
-
-      // The map will be replaced eventually by an object that contains all information
-      // about the successful subanalysis
-      Map<Path, CPAcheckerResult> results = new HashMap<>();
-      for (Entry<Path, Path> entry : subanalysesOutputPaths.entrySet()) {
-
-        Path logfilePath = entry.getValue().resolve(subanalysesLogfilePaths.get(entry.getKey()));
+      Optional<SubanalysisConfig> successfulAnalysisOpt = Optional.empty();
+      for (SubanalysisConfig subconf : subanalyses) {
+        Path logfilePath = subconf.getOutputPath().resolve(subconf.getLogfileName());
         if (logfilePath.toFile().exists()) {
 
+          ImmutableList<String> subanalysisLog = null;
           try (Stream<String> lines = Files.lines(logfilePath)) {
             subanalysisLog =
                 lines.filter(not(String::isBlank)).collect(ImmutableList.toImmutableList());
           }
+
+          subconf.addResultLog(subanalysisLog);
 
           Optional<String> subanalysisResultOpt =
               subanalysisLog.stream()
@@ -386,52 +347,59 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
           Optional<CPAcheckerResult> resultOpt =
               CPAcheckerResult.parseResultString(subanalysisResultOpt.orElseThrow());
           CPAcheckerResult subanalyisResult = resultOpt.orElseThrow();
+          subconf.addResult(subanalyisResult);
+
           if (subanalyisResult.getResult() == Result.UNKNOWN) {
             continue;
           }
 
-          result = subanalyisResult.getResult();
+          Result result = subanalyisResult.getResult();
           verify(result == Result.TRUE || result == Result.FALSE);
           logger.logf(
               Level.INFO,
               "Received the results for analysis '%s': %s",
-              entry.getKey(),
+              subconf.getConfigName(),
               result);
-          results.put(entry.getKey(), subanalyisResult);
+          successfulAnalysisOpt = Optional.of(subconf);
           break;
         }
       }
 
-      if (result == null) {
+      if (successfulAnalysisOpt.isEmpty()) {
         logger.logf(Level.WARNING, "None of the subanalyses produced a result.");
       } else {
-        if (result == Result.TRUE) {
+        SubanalysisConfig successfulAnalysis = successfulAnalysisOpt.orElseThrow();
+        CPAcheckerResult result = successfulAnalysis.getResult();
+        if (result.getResult() == Result.TRUE) {
           logger.logf(Level.FINE, "Returning result: TRUE");
           // One of the subanalyses returned "TRUE" as result, so an empty reachedset is
           // purposefully returned to reflect that in the main analysis
           pReachedSet.clear();
 
-        } else if (result == Result.FALSE) {
+        } else if (result.getResult() == Result.FALSE) {
           logger.logf(Level.FINE, "Returning result: FALSE");
           // One of the subanalyses returned "FALSE" as result, so a reachedset with one dummy
           // targetstate is returned to reflect that in the main analysis
           pReachedSet.clear();
-          String violatedProperty =
-              Iterables.getOnlyElement(results.entrySet())
-                  .getValue()
-                  .getViolatedPropertyDescription();
           pReachedSet.add(
-              DummyTargetState.withSingleProperty(violatedProperty),
+              DummyTargetState.withSingleProperty(result.getViolatedPropertyDescription()),
               SingletonPrecision.getInstance());
         }
+
+        logger.log(Level.INFO, "Executed the following command for the successful subanalysis:");
+        String formattedCmdline =
+            FluentIterable.from(successfulAnalysis.getCmdLine())
+                .transform(x -> x.replaceAll("\\s", ""))
+                .join(Joiner.on(" "));
+        logger.log(Level.INFO, formattedCmdline);
 
         logger.log(Level.WARNING, "Subsequently the log of the successful subanalysis is printed");
         logger.log(Level.WARNING, "------------------- START SUBANALYSIS LOG -------------------");
 
-        // TODO: add the command line that was used to start the subanalysis
-
-        checkNotNull(subanalysisLog);
-        logger.log(Level.INFO, Joiner.on("\n\n").join(subanalysisLog));
+        ImmutableList<String> resultLog = successfulAnalysis.getResultLog();
+        verifyNotNull(resultLog);
+        verify(!resultLog.isEmpty(), "Result log may not be empty");
+        logger.log(Level.INFO, Joiner.on("\n\n").join(resultLog));
 
         logger.log(Level.WARNING, "-------------------- END SUBANALYSIS LOG --------------------");
         return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -446,4 +414,149 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     return AlgorithmStatus.UNSOUND_AND_IMPRECISE;
 
   }
+
+  private class SubanalysisConfig {
+
+    private static final String SUBPROCESS_TIMELIMIT = "750s"; // arbitrary value for now
+
+    private static final String OUTPUT_DIR = "output";
+    private static final String SUBANALYSIS_DIR = "output_portfolio-analysis_";
+
+    private static final String ANALYSIS_KEY = "analysis";
+    private static final String CMD_KEY = "cmd";
+    private static final String OUPUT_KEY = "output";
+    private static final String LOGFILE_KEY = "logfile";
+
+    private final int subanalysis_index;
+
+    // The following variables are specific to this subanalysis
+    private final Path configPath;
+    private final Path outputPath;
+    private final Path logfileName;
+    private final Path specPath;
+
+    private final Configuration config;
+    private final ImmutableList<String> cmdLine;
+
+    private ImmutableList<String> resultLog = null;
+    private CPAcheckerResult result = null;
+
+    SubanalysisConfig(int index) throws InvalidConfigurationException {
+      subanalysis_index = index;
+
+      configPath = configFiles.get(subanalysis_index);
+      outputPath = Path.of(OUTPUT_DIR, SUBANALYSIS_DIR + subanalysis_index);
+      logfileName = Path.of(SUBANALYSIS_DIR + subanalysis_index + ".log");
+      specPath = Iterables.getOnlyElement(specification.getSpecFiles());
+
+      /*
+       * Hack to setup the desired config options for the child CPAchecker processes. The idea is to
+       * keep all (user-)configurations except the ones necessary for running this portfolio
+       * analysis.
+       *
+       * In other words, if the sub-analysis is e.g. a predicateAnalysis, then keep all
+       * configurations (especially those manually set by the user) and remove any configuration
+       * options that are necessary only for the MPIPortfolioAlgorithm itself.
+       */
+      config =
+          Configuration.builder()
+              .copyFrom(globalConfig)
+              .clearOption("mpiAlgorithm.hostfile")
+              .clearOption("analysis.algorithm.MPI")
+              .clearOption("mpiAlgorithm.configFiles")
+              .clearOption("analysis.name")
+              .clearOption("mpiAlgorithm.numberProcesses")
+              .setOption("limits.time.cpu", SUBPROCESS_TIMELIMIT)
+              .setOption("output.path", outputPath.toString())
+              .setOption("specification", specPath.toString())
+              .build();
+
+      // Bring the command-line into a format which is executable by a python-script
+      ImmutableList.Builder<String> cmdLineBuilder = ImmutableList.builder();
+      cmdLineBuilder.add("scripts/cpa.sh").add("-config").add(configPath.toString());
+      for (String opt : Splitter.on('\n').omitEmptyStrings().split(config.asPropertiesString())) {
+        cmdLineBuilder.add("-setprop").add(opt);
+      }
+      cmdLine = cmdLineBuilder.build();
+    }
+
+    ImmutableMap<String, ImmutableMap<String, Object>> buildCommandLine() {
+      ImmutableMap.Builder<String, Object> builder = new ImmutableMap.Builder<>();
+      builder.put(ANALYSIS_KEY, configPath.getFileName().toString());
+      builder.put(CMD_KEY, cmdLine);
+      builder.put(OUPUT_KEY, outputPath.toString());
+      builder.put(LOGFILE_KEY, outputPath.resolve(logfileName).toString());
+
+      return ImmutableMap.of("Analysis_" + subanalysis_index, builder.build());
+    }
+
+    Path getConfigName() {
+      return configPath.getFileName();
+    }
+
+    Path getOutputPath() {
+      return outputPath;
+    }
+
+    Path getLogfileName() {
+      return logfileName;
+    }
+
+    ImmutableList<String> getCmdLine() {
+      return cmdLine;
+    }
+
+    @Nullable
+    ImmutableList<String> getResultLog() {
+      return resultLog;
+    }
+
+    void addResultLog(ImmutableList<String> pResultLog) {
+      if (resultLog != null) {
+        throw new RuntimeException("ResultLog is expected to be null");
+      }
+      resultLog = pResultLog;
+    }
+
+    @Nullable
+    CPAcheckerResult getResult() {
+      return result;
+    }
+
+    void addResult(CPAcheckerResult pResult) {
+      if (result != null) {
+        throw new RuntimeException("Result is expected to be null");
+      }
+      result = pResult;
+    }
+
+    @Override
+    public String toString() {
+      return String.format("Subanalysis_%d-%s", subanalysis_index, getConfigName());
+    }
+
+  }
+
+  private static class MPIPortfolioAlgorithmStatistics implements Statistics {
+
+    private int noOfAlgorithmsExecuted = 0;
+    private String hostfilePath = null;
+    private final Timer mpiBinaryTotalTimer = new Timer();
+
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+      pOut.println("Number of algorithms used:         " + noOfAlgorithmsExecuted);
+      if (hostfilePath != null) {
+        pOut.println("Hostfile path:                     " + hostfilePath);
+      }
+      pOut.println("MPI binary total execution time:   " + mpiBinaryTotalTimer);
+    }
+
+    @Override
+    public @Nullable String getName() {
+      return "MPI Portfolio Algorithm";
+    }
+
+  }
+
 }
