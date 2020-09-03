@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cpa.slicing;
 
-import com.google.common.base.Predicates;
-import com.google.common.collect.Iterables;
 import java.util.Collection;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
@@ -22,12 +20,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Refiner;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
-import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
-import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import org.sosy_lab.cpachecker.cpa.slicing.SlicingRefiner.RefinedSlicingPrecision;
-import org.sosy_lab.cpachecker.cpa.slicing.SlicingRefiner.StateSlicingPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 
@@ -42,7 +35,6 @@ public class SlicingDelegatingRefiner implements Refiner, StatisticsProvider {
 
   private final Refiner delegate;
   private final SlicingRefiner slicingRefiner;
-  private final ARGCPA argCpa;
 
   @Options(prefix = "SlicingDelegatingRefiner")
   private static class SlicingDelegatingRefinerOptions {
@@ -75,43 +67,22 @@ public class SlicingDelegatingRefiner implements Refiner, StatisticsProvider {
         options.delegate.create(pCpa, slicingCPA.getLogger(), slicingCPA.getShutdownNotifier());
     SlicingRefiner slicingRefiner = SlicingRefiner.create(pCpa);
 
-    ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, SlicingDelegatingRefiner.class);
-
-    return new SlicingDelegatingRefiner(delegate, slicingRefiner, argCpa);
+    return new SlicingDelegatingRefiner(delegate, slicingRefiner);
   }
 
   private SlicingDelegatingRefiner(
-      final Refiner pDelegateRefiner, final SlicingRefiner pSlicingRefiner, final ARGCPA pArgCpa) {
+      final Refiner pDelegateRefiner, final SlicingRefiner pSlicingRefiner) {
     delegate = pDelegateRefiner;
     slicingRefiner = pSlicingRefiner;
-    argCpa = pArgCpa;
   }
 
   @Override
   public boolean performRefinement(final ReachedSet pReached)
       throws CPAException, InterruptedException {
 
-    RefinedSlicingPrecision refinedSlicingPrecision = slicingRefiner.computeNewPrecision(pReached);
-    ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa);
-
-    if (refinedSlicingPrecision.hasSliceChanged()) {
-
-      SlicingPrecision fullPrec =
-          Iterables.getLast(refinedSlicingPrecision.getStatePrecisions()).getPrecision();
-
-      for (StateSlicingPrecision prec : refinedSlicingPrecision.getStatePrecisions()) {
-
-        fullPrec = fullPrec.getNew(fullPrec.getWrappedPrec(), prec.getPrecision().getRelevant());
-
-        ARGState state = prec.getState();
-        if (!state.isDestroyed()) {
-          argReached.removeSubtree(
-              state, prec.getPrecision(), Predicates.instanceOf(SlicingPrecision.class));
-        }
-      }
-
-      argReached.updatePrecisionGlobally(fullPrec, Predicates.instanceOf(SlicingPrecision.class));
-
+    final boolean sliceRefinementSuccessful =
+        slicingRefiner.updatePrecisionAndRemoveSubtree(pReached);
+    if (sliceRefinementSuccessful) {
       return true;
     }
     

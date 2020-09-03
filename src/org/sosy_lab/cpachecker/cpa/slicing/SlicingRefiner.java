@@ -216,8 +216,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
     if (anyFeasible) {
       return false;
     } else {
-      updatePrecisionAndRemoveSubtree(pReached);
-      return true;
+      return updatePrecisionAndRemoveSubtree(pReached);
     }
   }
 
@@ -370,7 +369,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
    * @throws RefinementFailedException thrown if the given reached set does not contain target paths
    *     valid for refinement
    */
-  RefinedSlicingPrecision computeNewPrecision(final ReachedSet pReached)
+  private RefinedSlicingPrecision computeNewPrecision(final ReachedSet pReached)
       throws RefinementFailedException, InterruptedException {
     RefinedSlicingPrecision refinementRootsAndPrecision = getNewPrecision(pReached);
     refinementCount++;
@@ -459,10 +458,21 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
     return new SlicingPrecision(start.getWrappedPrec(), allRelevant);
   }
 
-  private void updatePrecisionAndRemoveSubtree(final ReachedSet pReached)
+  boolean updatePrecisionAndRemoveSubtree(final ReachedSet pReached)
       throws RefinementFailedException, InterruptedException {
     ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa, refinementCount);
     RefinedSlicingPrecision refRootsAndPrecision = computeNewPrecision(pReached);
+    if (refRootsAndPrecision.hasSliceChanged()) {
+      updatePrecision(argReached, refRootsAndPrecision);
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  private void updatePrecision(
+      final ARGReachedSet argReached, final RefinedSlicingPrecision refRootsAndPrecision)
+      throws InterruptedException {
     for (StateSlicingPrecision prec : refRootsAndPrecision.getStatePrecisions()) {
       ARGState state = prec.getState();
       if (!state.isDestroyed()) {
