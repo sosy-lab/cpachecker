@@ -26,8 +26,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -238,6 +238,63 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
     return pTargetPath.toString().hashCode();
   }
 
+  private static Collection<? extends AbstractState> computeSuccessors(
+      TransferRelation pTransferRelation, AbstractState pState, Precision pPrecision, CFAEdge pEdge)
+      throws CPAException, InterruptedException {
+
+    try {
+      // we can always just use the delegate precision,
+      // because this refinement procedure does not delegate to some other precision refinement.
+      // Thus, there is no way that any initial precision could change, either way.
+      return pTransferRelation.getAbstractSuccessorsForEdge(pState, pPrecision, pEdge);
+    } catch (CPATransferException ex) {
+      throw new CPAException(
+          "Computation of successor failed for checking path: " + ex.getMessage(), ex);
+    }
+  }
+
+  private static Set<CFAEdge> computeCriteriaEdges(
+      TransferRelation pTransferRelation,
+      ARGPath pTargetPath,
+      AbstractState pInitialState,
+      Precision pPrecision)
+      throws CPAException, InterruptedException {
+
+    Set<CFAEdge> criteriaEdges = new HashSet<>();
+    AbstractState state = pInitialState;
+
+    for (PathIterator iterator = pTargetPath.fullPathIterator(); iterator.hasNext(); ) {
+      do {
+
+        CFAEdge outgoingEdge = iterator.getOutgoingEdge();
+        Collection<? extends AbstractState> successorSet =
+            computeSuccessors(pTransferRelation, state, pPrecision, outgoingEdge);
+
+        if (successorSet.isEmpty()) {
+
+          criteriaEdges.add(outgoingEdge);
+
+          outgoingEdge =
+              new BlankEdge(
+                  outgoingEdge.getRawStatement(),
+                  outgoingEdge.getFileLocation(),
+                  outgoingEdge.getPredecessor(),
+                  outgoingEdge.getSuccessor(),
+                  "noop");
+
+          successorSet = computeSuccessors(pTransferRelation, state, pPrecision, outgoingEdge);
+          assert !successorSet.isEmpty() : "No successor after 'noop' edge";
+        }
+
+        state = Iterables.get(successorSet, 0);
+        iterator.advance();
+
+      } while (!iterator.isPositionWithState());
+    }
+
+    return criteriaEdges;
+  }
+
   private static boolean isFeasible(
       ARGPath pTargetPath,
       AbstractState pInitialState,
@@ -251,18 +308,8 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
       do {
 
         CFAEdge outgoingEdge = iterator.getOutgoingEdge();
-        Collection<? extends AbstractState> successorSet;
-
-        try {
-          // we can always just use the delegate precision,
-          // because this refinement procedure does not delegate to some other precision refinement.
-          // Thus, there is no way that any initial precision could change, either way.
-          successorSet =
-              pTransferRelation.getAbstractSuccessorsForEdge(state, pPrecision, outgoingEdge);
-        } catch (CPATransferException ex) {
-          throw new CPAException(
-              "Computation of successor failed for checking path: " + ex.getMessage(), ex);
-        }
+        Collection<? extends AbstractState> successorSet =
+            computeSuccessors(pTransferRelation, state, pPrecision, outgoingEdge);
 
         if (successorSet.isEmpty()) {
           return false;
@@ -377,10 +424,11 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
         logger.logException(Level.SEVERE, ex, "Counterexample feasibility check failed");
       }
       if (!isFeasible) {
-        criteriaEdges.addAll(
-            pPath.getFullPath().stream()
-                .filter(edge -> edge.getEdgeType() == CFAEdgeType.AssumeEdge)
-                .collect(Collectors.toList()));
+        try {
+          criteriaEdges.addAll(computeCriteriaEdges(transfer, pPath, initialState, fullPrecision));
+        } catch (CPAException ex) {
+          logger.logException(Level.SEVERE, ex, "Computation of slicing criteria edges failed");
+        }
       }
     }
     CFANode finalNode = AbstractStates.extractLocation(pPath.getLastState());
