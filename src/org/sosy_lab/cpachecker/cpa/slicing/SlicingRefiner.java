@@ -416,20 +416,13 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
       criteriaEdges.addAll(cexConstraints);
 
     } else {
-      boolean isFeasible = false;
       try {
-        isFeasible = isFeasible(pPath);
+        criteriaEdges.addAll(computeCriteriaEdges(transfer, pPath, initialState, fullPrecision));
       } catch (CPAException ex) {
-        logger.logException(Level.SEVERE, ex, "Counterexample feasibility check failed");
-      }
-      if (!isFeasible) {
-        try {
-          criteriaEdges.addAll(computeCriteriaEdges(transfer, pPath, initialState, fullPrecision));
-        } catch (CPAException ex) {
-          logger.logException(Level.SEVERE, ex, "Computation of slicing criteria edges failed");
-        }
+        logger.logException(Level.SEVERE, ex, "Computation of slicing criteria edges failed");
       }
     }
+
     CFANode finalNode = AbstractStates.extractLocation(pPath.getLastState());
     List<CFAEdge> edgesToTarget =
         CFAUtils.enteringEdges(finalNode).filter(innerEdges::contains).toList();
