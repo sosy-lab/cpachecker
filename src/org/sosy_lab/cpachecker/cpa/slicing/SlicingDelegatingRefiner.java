@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.slicing;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import java.util.Collection;
-import java.util.Set;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -27,9 +26,10 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.slicing.SlicingRefiner.RefinedSlicingPrecision;
+import org.sosy_lab.cpachecker.cpa.slicing.SlicingRefiner.StateSlicingPrecision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.Pair;
 
 /**
  * Refiner for {@link SlicingCPA} that works in tandem with another precision refinement procedure.
@@ -91,18 +91,30 @@ public class SlicingDelegatingRefiner implements Refiner, StatisticsProvider {
   public boolean performRefinement(final ReachedSet pReached)
       throws CPAException, InterruptedException {
 
-    // The delegate refiner will cut the ARG at the refinement root that is really necessary
-    // -- this is, except for predicate analysis, equal to or lower in the ARG than the
-    // refinement roots of slicing.
-    // Thus, we don't have to remove any ARG nodes in or after slicing refinement.
-    Set<Pair<ARGState, SlicingPrecision>> refRootsAndPrec =
-        slicingRefiner.computeNewPrecision(pReached);
+    RefinedSlicingPrecision refinedSlicingPrecision = slicingRefiner.computeNewPrecision(pReached);
     ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa);
-    SlicingPrecision fullPrec = Iterables.getLast(refRootsAndPrec).getSecond();
-    for (Pair<ARGState, SlicingPrecision> p : refRootsAndPrec) {
-      fullPrec = fullPrec.getNew(fullPrec.getWrappedPrec(), p.getSecond().getRelevant());
+
+    if (refinedSlicingPrecision.hasSliceChanged()) {
+
+      SlicingPrecision fullPrec =
+          Iterables.getLast(refinedSlicingPrecision.getStatePrecisions()).getPrecision();
+
+      for (StateSlicingPrecision prec : refinedSlicingPrecision.getStatePrecisions()) {
+
+        fullPrec = fullPrec.getNew(fullPrec.getWrappedPrec(), prec.getPrecision().getRelevant());
+
+        ARGState state = prec.getState();
+        if (!state.isDestroyed()) {
+          argReached.removeSubtree(
+              state, prec.getPrecision(), Predicates.instanceOf(SlicingPrecision.class));
+        }
+      }
+
+      argReached.updatePrecisionGlobally(fullPrec, Predicates.instanceOf(SlicingPrecision.class));
+
+      return true;
     }
-    argReached.updatePrecisionGlobally(fullPrec, Predicates.instanceOf(SlicingPrecision.class));
+    
     boolean refinementResult = delegate.performRefinement(pReached);
     // Update counterexamples to be imprecise, because the program slice
     // may not reflect the real program semantics, but reflects the real program

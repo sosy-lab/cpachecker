@@ -57,7 +57,6 @@ import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Precisions;
 import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 import org.sosy_lab.cpachecker.util.slicing.Slicer;
@@ -248,6 +247,45 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
     return pTargetPath.toString().hashCode();
   }
 
+  private static boolean isFeasible(
+      ARGPath pTargetPath,
+      AbstractState pInitialState,
+      TransferRelation pTransferRelation,
+      Precision pPrecision)
+      throws CPAException, InterruptedException {
+
+    AbstractState state = pInitialState;
+
+    for (PathIterator iterator = pTargetPath.fullPathIterator(); iterator.hasNext(); ) {
+      do {
+
+        CFAEdge outgoingEdge = iterator.getOutgoingEdge();
+        Collection<? extends AbstractState> successorSet;
+
+        try {
+          // we can always just use the delegate precision,
+          // because this refinement procedure does not delegate to some other precision refinement.
+          // Thus, there is no way that any initial precision could change, either way.
+          successorSet =
+              pTransferRelation.getAbstractSuccessorsForEdge(state, pPrecision, outgoingEdge);
+        } catch (CPATransferException ex) {
+          throw new CPAException(
+              "Computation of successor failed for checking path: " + ex.getMessage(), ex);
+        }
+
+        if (successorSet.isEmpty()) {
+          return false;
+        }
+
+        state = Iterables.get(successorSet, 0);
+        iterator.advance();
+
+      } while (!iterator.isPositionWithState());
+    }
+
+    return true;
+  }
+
   /**
    * Checks whether the given target path is feasible. Uses the transfer relation of the CPA wrapped
    * by the {@link SlicingCPA} to perform this check.
@@ -260,10 +298,6 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
    */
   boolean isFeasible(final ARGPath pTargetPath) throws CPAException, InterruptedException {
 
-    PathIterator iterator = pTargetPath.fullPathIterator();
-    CFAEdge outgoingEdge;
-    Collection<? extends AbstractState> successorSet;
-    AbstractState state = initialState;
     Precision precision;
     if (counterexampleCheckOnSlice) {
       Set<CFAEdge> sliceForTargetPath = getSlice(pTargetPath);
@@ -281,27 +315,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
       precision = fullPrecision;
     }
 
-    try {
-      while (iterator.hasNext()) {
-        do {
-          outgoingEdge = iterator.getOutgoingEdge();
-          // we can always just use the delegate precision,
-          // because this refinement procedure does not delegate to some other precision refinement.
-          // Thus, there is no way that any initial precision could change, either way.
-          successorSet = transfer.getAbstractSuccessorsForEdge(state, precision, outgoingEdge);
-          if (successorSet.isEmpty()) {
-            return false;
-          }
-          // extract singleton successor state
-          state = Iterables.get(successorSet, 0);
-          iterator.advance();
-        } while (!iterator.isPositionWithState());
-      }
-      return true;
-    } catch (CPATransferException e) {
-      throw new CPAException(
-          "Computation of successor failed for checking path: " + e.getMessage(), e);
-    }
+    return isFeasible(pTargetPath, initialState, transfer, precision);
   }
 
   /**
@@ -318,20 +332,22 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
    * @throws RefinementFailedException thrown if the given reached set does not contain target paths
    *     valid for refinement
    */
-  Set<Pair<ARGState, SlicingPrecision>> computeNewPrecision(final ReachedSet pReached)
+  RefinedSlicingPrecision computeNewPrecision(final ReachedSet pReached)
       throws RefinementFailedException, InterruptedException {
-    Set<Pair<ARGState, SlicingPrecision>> refinementRootsAndPrecision = getNewPrecision(pReached);
+    RefinedSlicingPrecision refinementRootsAndPrecision = getNewPrecision(pReached);
     refinementCount++;
     return refinementRootsAndPrecision;
   }
 
-  private Set<Pair<ARGState, SlicingPrecision>> getNewPrecision(final ReachedSet pReached)
+  private RefinedSlicingPrecision getNewPrecision(final ReachedSet pReached)
       throws RefinementFailedException, InterruptedException {
     ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa, refinementCount);
-
+    
     Collection<ARGState> targetStates = pathExtractor.getTargetStates(argReached);
     Collection<ARGPath> targetPaths = pathExtractor.getTargetPaths(targetStates);
-    Set<Pair<ARGState, SlicingPrecision>> newPrecs = new HashSet<>();
+    Set<StateSlicingPrecision> newPrecs = new HashSet<>();
+    boolean changed = false;
+
     for (ARGPath tp : targetPaths) {
       // we have to add the refinement root even if no new edge was added,
       // so that the precision of the corresponding ARG subtree is updated
@@ -339,10 +355,14 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
       ARGState refinementRoot = getRefinementRoot(tp, relevantEdges);
       SlicingPrecision oldPrec = mergeOnSubgraph(refinementRoot, pReached);
       SlicingPrecision newPrec = oldPrec.getNew(oldPrec.getWrappedPrec(), relevantEdges);
-      newPrecs.add(Pair.of(refinementRoot, newPrec));
+      newPrecs.add(new StateSlicingPrecision(refinementRoot, newPrec));
+
+      if (!oldPrec.equals(newPrec)) {
+        changed = true;
+      }
     }
 
-    return newPrecs;
+    return new RefinedSlicingPrecision(changed, newPrecs);
   }
 
   private Set<CFAEdge> getSlice(ARGPath pPath) throws InterruptedException {
@@ -407,11 +427,12 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   private void updatePrecisionAndRemoveSubtree(final ReachedSet pReached)
       throws RefinementFailedException, InterruptedException {
     ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa, refinementCount);
-    Set<Pair<ARGState, SlicingPrecision>> refRootsAndPrecision = computeNewPrecision(pReached);
-    for (Pair<ARGState, SlicingPrecision> p : refRootsAndPrecision) {
-      ARGState r = p.getFirst();
-      if (!r.isDestroyed()) {
-        argReached.removeSubtree(r, p.getSecond(), Predicates.instanceOf(SlicingPrecision.class));
+    RefinedSlicingPrecision refRootsAndPrecision = computeNewPrecision(pReached);
+    for (StateSlicingPrecision prec : refRootsAndPrecision.getStatePrecisions()) {
+      ARGState state = prec.getState();
+      if (!state.isDestroyed()) {
+        argReached.removeSubtree(
+            state, prec.getPrecision(), Predicates.instanceOf(SlicingPrecision.class));
       }
     }
   }
@@ -448,6 +469,45 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     if (slicer instanceof StatisticsProvider) {
       ((StatisticsProvider) slicer).collectStatistics(pStatsCollection);
+    }
+  }
+
+  static final class StateSlicingPrecision {
+
+    private final ARGState state;
+    private final SlicingPrecision precision;
+
+    private StateSlicingPrecision(ARGState pState, SlicingPrecision pPrecision) {
+      state = pState;
+      precision = pPrecision;
+    }
+
+    public ARGState getState() {
+      return state;
+    }
+
+    public SlicingPrecision getPrecision() {
+      return precision;
+    }
+  }
+
+  static final class RefinedSlicingPrecision {
+
+    private final boolean sliceChanged;
+    private final Set<StateSlicingPrecision> precisions;
+
+    private RefinedSlicingPrecision(boolean pSliceChanged, Set<StateSlicingPrecision> pPrecisions) {
+
+      sliceChanged = pSliceChanged;
+      precisions = pPrecisions;
+    }
+
+    public boolean hasSliceChanged() {
+      return sliceChanged;
+    }
+
+    public Set<StateSlicingPrecision> getStatePrecisions() {
+      return precisions;
     }
   }
 }
