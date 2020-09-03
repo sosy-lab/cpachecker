@@ -21,15 +21,15 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Verify;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.graph.Traverser;
 import java.io.IOException;
@@ -489,8 +489,8 @@ public class ARGUtils {
     ARGPathBuilder builder = ARGPath.builder();
     ARGState currentElement = root;
     while (!currentElement.isTarget()) {
-      Set<ARGState> children = new HashSet<>(currentElement.getChildren());
-      Set<ARGState> childrenInArg = Sets.intersection(children, arg).immutableCopy();
+      final ImmutableSet<ARGState> childrenInArg =
+          from(currentElement.getChildren()).filter(arg::contains).toSet();
 
       ARGState child;
       CFAEdge edge;
@@ -703,7 +703,7 @@ public class ARGUtils {
 
     ARGState rootState = pPaths.iterator().next().getFirstState();
 
-    Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMultimap.of();
+    Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableListMultimap.of();
 
     if (pCounterExample != null && pCounterExample.isPreciseCounterExample()) {
       valueMap = pCounterExample.getExactVariableValues();
@@ -759,7 +759,7 @@ public class ARGUtils {
   public static void producePathAutomaton(Appendable sb, ARGState pRootState,
       Set<ARGState> pPathStates, String name, @Nullable CounterexampleInfo pCounterExample) throws IOException {
 
-    Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMultimap.of();
+    Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableListMultimap.of();
 
     if (pCounterExample != null && pCounterExample.isPreciseCounterExample()) {
       valueMap = pCounterExample.getExactVariableValues();
@@ -1297,7 +1297,7 @@ public class ARGUtils {
     return Optional.of(CounterexampleInfo.feasibleImprecise(path, additionalInfo));
   }
 
-  public static Set<ARGState> getNonCoveredStatesInSubgraph(ARGState pRoot) {
-    return Sets.filter(pRoot.getSubgraph(), s -> !s.isCovered());
+  public static FluentIterable<ARGState> getNonCoveredStatesInSubgraph(ARGState pRoot) {
+    return pRoot.getSubgraph().filter(s -> !s.isCovered());
   }
 }

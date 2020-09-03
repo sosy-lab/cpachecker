@@ -28,7 +28,7 @@ class SSCReachedSet extends ARGReachedSet.ForwardingARGReachedSet {
   SSCReachedSet(ARGReachedSet pReached, SSCPath pPath) {
     super(pReached);
     path = pPath;
-    assert path.getFirstState().getSubgraph().containsAll(path.asStatesList())
+    assert path.getFirstState().getSubgraph().toSet().containsAll(path.asStatesList())
         : "path should traverse reachable states";
   }
 

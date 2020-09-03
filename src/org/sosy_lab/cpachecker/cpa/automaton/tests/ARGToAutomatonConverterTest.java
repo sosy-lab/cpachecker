@@ -23,6 +23,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 import org.sosy_lab.common.UniqueIdGenerator;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -181,6 +182,7 @@ public class ARGToAutomatonConverterTest extends AbstractTranslationTest {
    * node number).
    */
   @Deprecated
+  @SuppressForbidden("reflection only in test")
   private void resetCFANodeCounter() throws NoSuchFieldException, IllegalAccessException {
     Field idGenerator = CFANode.class.getDeclaredField("idGenerator");
     idGenerator.setAccessible(true);

@@ -22,6 +22,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.collect.ConcurrentHashMultiset;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
@@ -53,6 +54,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -88,7 +90,9 @@ import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAn
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankVar;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
@@ -166,14 +170,24 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       Configuration pConfig,
       LogManager pLogger,
       int pTotalNumberOfLoops,
-      Specification pOrigSpec,
       CFA pCFA)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = checkNotNull(pLogger);
     totalLoops = pTotalNumberOfLoops;
 
-    witnessExporter = new WitnessExporter(pConfig, pLogger, pOrigSpec, pCFA);
+    witnessExporter =
+        new WitnessExporter(
+            pConfig,
+            pLogger,
+            Specification.alwaysSatisfied()
+                .withAdditionalProperties(
+                    ImmutableSet.of(
+                        new SpecificationProperty(
+                            pCFA.getMainFunction().getFunctionName(),
+                            CommonPropertyType.TERMINATION,
+                            Optional.empty()))),
+            pCFA);
     locFac = new LocationStateFactory(pCFA, AnalysisDirection.FORWARD, pConfig);
   }
 

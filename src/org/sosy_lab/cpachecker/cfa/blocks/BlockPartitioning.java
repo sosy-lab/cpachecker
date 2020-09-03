@@ -8,9 +8,9 @@
 
 package org.sosy_lab.cpachecker.cfa.blocks;
 
-import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Set;
@@ -22,13 +22,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 public class BlockPartitioning {
   private final Block mainBlock;
   private final ImmutableMap<CFANode, Block> callNodeToBlock;
-  private final ImmutableMultimap<CFANode, Block> returnNodeToBlock;
+  private final ImmutableListMultimap<CFANode, Block> returnNodeToBlock;
   private final ImmutableSet<Block> blocks;
 
   public BlockPartitioning(Collection<Block> subtrees, CFANode mainFunction) {
     final ImmutableMap.Builder<CFANode, Block> callNodeToSubtree = ImmutableMap.builder();
-    final ImmutableMultimap.Builder<CFANode, Block> returnNodeToSubtree =
-        ImmutableMultimap.builder();
+    final ImmutableListMultimap.Builder<CFANode, Block> returnNodeToSubtree =
+        ImmutableListMultimap.builder();
 
     for (Block subtree : subtrees) {
       for (CFANode callNode : subtree.getCallNodes()) {
@@ -73,7 +73,7 @@ public class BlockPartitioning {
     return returnNodeToBlock.containsKey(node);
   }
 
-  public ImmutableCollection<Block> getBlocksForReturnNode(CFANode pCurrentNode) {
+  public ImmutableList<Block> getBlocksForReturnNode(CFANode pCurrentNode) {
     return returnNodeToBlock.get(pCurrentNode);
   }
 

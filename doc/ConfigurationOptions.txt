@@ -37,7 +37,9 @@ log.fileExclude = []
 # log level of file output
 log.level = Level.OFF
 
-# maximum size of log output strings before they will be truncated
+# Maximum size of log output strings before they will be truncated. Note that
+# truncation is not precise and truncation to small values has no effect. Use
+# 0 for disabling truncation completely.
 log.truncateSize = 10000
 
 # use colors for log messages on console
@@ -1159,6 +1161,11 @@ cpa.arg.deleteInCPAEnabledAnalysis = false
 # algorithm? (for debugging and demonstration)
 cpa.arg.dumpAfterIteration = false
 
+# Enable reduction for nested abstract states when entering or leaving a
+# block abstraction for BAM. The reduction can lead to a higher
+# cache-hit-rate for BAM and a faster sub-analysis for blocks.
+cpa.arg.enableStateReduction = true
+
 # export final ARG as .dot file
 cpa.arg.export = true
 
@@ -1666,8 +1673,8 @@ cpa.invariants.analyzeTargetPathsOnly = true
 # controls the condition adjustment logic: STATIC means that condition
 # adjustment is a no-op, INTERESTING_VARIABLES increases the interesting
 # variable limit, MAXIMUM_FORMULA_DEPTH increases the maximum formula depth,
-# ABSTRACTION_STRATEGY tries to choose a more precise abstraction strategy
-# and COMPOUND combines the other strategies (minus STATIC).
+# ABSTRACTION_STRATEGY tries to choose a more precise abstraction strategy,
+# COMPOUND combines the other strategies (minus STATIC).
 cpa.invariants.conditionAdjusterFactory = COMPOUND
   enum:     [STATIC, INTERESTING_VARIABLES, MAXIMUM_FORMULA_DEPTH,
              ABSTRACTION_STRATEGY, COMPOUND]
@@ -1898,7 +1905,7 @@ cpa.predicate.abortOnLargeArrays = true
 
 # Predicate ordering
 cpa.predicate.abs.predicateOrdering.method = CHRONOLOGICAL
-  enum:     [SIMILARITY, FREQUENCY, IMPLICATION, REV_IMPLICATION, RANDOMLY,
+  enum:     [DISABLE, SIMILARITY, FREQUENCY, IMPLICATION, REV_IMPLICATION, RANDOMLY,
              FRAMEWORK_RANDOM, FRAMEWORK_SIFT, FRAMEWORK_SIFTITE, FRAMEWORK_WIN2,
              FRAMEWORK_WIN2ITE, FRAMEWORK_WIN3, FRAMEWORK_WIN3ITE, CHRONOLOGICAL]
 
@@ -2299,19 +2306,17 @@ cpa.predicate.refinement.abstractInterpolantOnly = false
 cpa.predicate.refinement.atomicInterpolants = true
 
 # Direction for doing counterexample analysis: from start of trace, from end
-# of trace, or alternatingly from start and end of the trace towards the
-# middle
-cpa.predicate.refinement.cexTraceCheckDirection = FORWARDS
+# of trace, or in more complex patterns. In combination with
+# incrementalCexTraceCheck=true the generated interpolants will refer to the
+# minimal infeasible part of the trace according to this strategy (e.g., with
+# FORWARDS a minimal infeasible prefix is found).
+cpa.predicate.refinement.cexTraceCheckDirection = ZIGZAG
   enum:     [FORWARDS, BACKWARDS, ZIGZAG, LOOP_FREE_FIRST, RANDOM, LOWEST_AVG_SCORE,
              HIGHEST_AVG_SCORE, LOOP_FREE_FIRST_BACKWARDS]
 
 # Actually compute an abstraction, otherwise just convert the interpolants to
 # BDDs as they are.
 cpa.predicate.refinement.doAbstractionComputation = false
-
-# use variant described in the Guiding Craig Interpolation Paper leading to a
-# different routine
-cpa.predicate.refinement.domainSpecificAbstractions = false
 
 # dump all interpolation problems
 cpa.predicate.refinement.dumpInterpolationProblems = false
@@ -2340,13 +2345,11 @@ cpa.predicate.refinement.graphblockformulastrategy = false
 # Enable/Disable adding partial state invariants into the PathFormulas
 cpa.predicate.refinement.includePartialInvariants = true
 
-# use incremental search in counterexample analysis, to find the minimal
-# infeasible prefix
-cpa.predicate.refinement.incrementalCexTraceCheck = false
-
-# additional variation to domainSpecificAbstractions using inequalities
-# instead of equalities
-cpa.predicate.refinement.inequalityInterpolationAbstractions = false
+# Use incremental search in counterexample analysis to find a minimal
+# infeasible part of the trace. This will typically lead to interpolants that
+# refer to this part only. The option cexTraceCheckDirection defines in which
+# order the blocks of the trace are looked at.
+cpa.predicate.refinement.incrementalCexTraceCheck = true
 
 # Max. number of prefixes to extract
 cpa.predicate.refinement.maxPrefixCount = 64
@@ -2381,12 +2384,14 @@ cpa.predicate.refinement.newtonrefinement.liveVariables = true
 # refinement
 cpa.predicate.refinement.performInitialStaticRefinement = false
 
-# Which predicates should be used as basis for a new precision.ALL: During
-# refinement, collect predicates from the complete ARG.SUBGRAPH: During
-# refinement, keep predicates from all removed parts (subgraph) of the
-# ARG.CUTPOINT: Only predicates from the cut-point's precision are
-# kept.TARGET: Only predicates from the target state's precision are kept.
-cpa.predicate.refinement.predicateBasisStrategy = TARGET
+# Which predicates should be used as basis for the new precision that will be
+# attached to the refined part of the ARG:
+# ALL: Collect predicates from the complete ARG.
+# SUBGRAPH: Collect predicates from the removed subgraph of the ARG.
+# CUTPOINT: Only predicates from the cut-point's (pivot state) precision are
+# kept.
+# TARGET: Only predicates from the target state's precision are kept.
+cpa.predicate.refinement.predicateBasisStrategy = SUBGRAPH
   enum:     [ALL, SUBGRAPH, TARGET, CUTPOINT]
 
 # which sliced prefix should be used for interpolation
@@ -2399,7 +2404,8 @@ cpa.predicate.refinement.recomputeBlockFormulas = false
 # disable, 1 for always.
 cpa.predicate.refinement.restartAfterRefinements = 0
 
-# Use a single SMT solver environment for several interpolation queries
+# Use a single SMT solver environment for all interpolation queries and keep
+# formulas pushed on solver stack between interpolation queries.
 cpa.predicate.refinement.reuseInterpolationEnvironment = false
 
 # In case we apply sequential interpolation, forward and backward directions
@@ -2422,26 +2428,30 @@ cpa.predicate.refinement.splitItpAtoms = false
 
 # Strategy how to interact with the intepolating prover. The analysis must
 # support the strategy, otherwise the result will be useless!
-# - SEQ_CPACHECKER: We simply return each interpolant for i={0..n-1} for the
-# partitions A=[0 .. i] and B=[i+1 .. n]. The result is similar to
-# INDUCTIVE_SEQ, but we do not guarantee the 'inductiveness', i.e. the solver
-# has to generate nice interpolants itself. Supported by all solvers!
-# - INDUCTIVE_SEQ: Generate an inductive sequence of interpolants the
-# partitions [1,...n]. 
-# - TREE: use the tree-interpolation-feature of a solver to get interpolants
-# - TREE_WELLSCOPED: We return each interpolant for i={0..n-1} for the
-# partitions A=[lastFunctionEntryIndex .. i] and B=[0 ..
-# lastFunctionEntryIndex-1 , i+1 .. n]. Based on a tree-like scheme.
-# - TREE_NESTED: use callstack and previous interpolants for next
-# interpolants (see 'Nested Interpolants'),
+# - SEQ_CPACHECKER: Generate an inductive sequence of interpolants by asking
+# the solver individually for each of them. This allows us to fine-tune the
+# queries with the option sequentialStrategy and is supported by all solvers.
+# - SEQ: Generate an inductive sequence of interpolants by asking the solver
+# for the whole sequence at once.
+# - TREE: Use the tree-interpolation feature of the solver to get
+# interpolants.
+# - TREE_WELLSCOPED: Return each interpolant for i={0..n-1} for the
+# partitions A=[lastFunctionEntryIndex..i] and
+# B=[0..lastFunctionEntryIndex-1]+[i+1..n]. Based on a tree-like scheme.
+# - TREE_NESTED: Use callstack and previous interpolants for next
+# interpolants (cf. 'Nested Interpolants').
 # - TREE_CPACHECKER: similar to TREE_NESTED, but the algorithm is taken from
-# 'Tree Interpolation in Vampire'.
+# 'Tree Interpolation in Vampire'
 cpa.predicate.refinement.strategy = SEQ_CPACHECKER
   enum:     [SEQ, SEQ_CPACHECKER, TREE, TREE_WELLSCOPED, TREE_NESTED, TREE_CPACHECKER]
 
 # time limit for refinement (use milliseconds or specify a unit; 0 for
 # infinite)
 cpa.predicate.refinement.timelimit = 0ms
+
+# After a failed interpolation query, try to solve the formulas again with
+# different options instead of giving up immediately.
+cpa.predicate.refinement.tryAgainOnInterpolationError = true
 
 # Use BDDs to simplify interpolants (removing irrelevant predicates)
 cpa.predicate.refinement.useBddInterpolantSimplification = false
@@ -2497,9 +2507,11 @@ cpa.predicate.solver.ufCheckingProver.isSignedOverflowSafe = true
 cpa.predicate.solver.ufCheckingProver.maxIterationNum = 5
 
 # which stop operator to use for predicate cpa (usually SEP should be used in
-# analysis)
+# analysis). SEPNAA works the same as SEP, except that it Never stops At
+# Abstraction states. SEPNAA is used in bmc-IMC.properties for config
+# bmc-incremental-ABEl to keep exploring covered states.
 cpa.predicate.stop = "SEP"
-  allowed values: [SEP, SEPPCC]
+  allowed values: [SEP, SEPPCC, SEPNAA]
 
 # Use formula reporting states for strengthening.
 cpa.predicate.strengthenWithFormulaReportingStates = false
@@ -3285,11 +3297,20 @@ heuristicSelection.preAnalysisAlgorithmConfig = no default value
 # Configuration for programs containing recursion.
 heuristicSelection.recursionConfig = no default value
 
-# toggle deriving the interpolants from suffix formulas
-imc.deriveInterpolantFromSuffix = false
+# toggle checking forward conditions
+imc.checkForwardConditions = true
 
-# try using interpolation to verify programs with loops
-imc.interpolation = false
+# toggle deriving the interpolants from suffix formulas
+imc.deriveInterpolantFromSuffix = true
+
+# toggle falling back if interpolation or forward-condition is disabled
+imc.fallBack = true
+
+# toggle using interpolation to verify programs with loops
+imc.interpolation = true
+
+# toggle removing unreachable stop states in ARG
+imc.removeUnreachableStopStates = false
 
 # enable the Forced Covering optimization
 impact.useForcedCovering = true
@@ -3713,9 +3734,7 @@ precision.sharing = SCOPE
   enum:     [SCOPE, LOCATION]
 
 # Allowed coefficients in a template.
-precision.template.allowedCoefficients = {
-      Rational.NEG_ONE, Rational.ONE
-  }
+precision.template.allowedCoefficients = {Rational.NEG_ONE, Rational.ONE}
 
 # Generate difference constraints.This option is redundant for
 # `maxExpressionSize` >= 2.
