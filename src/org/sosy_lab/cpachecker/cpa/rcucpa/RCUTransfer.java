@@ -332,9 +332,9 @@ public class RCUTransfer extends SingleEdgeTransferRelation{
   private RCUState handleDeclaration(CDeclaration pDeclaration,
                                  RCUState pResult,
                                  String pFunctionName) {
-    IdentifierCreator localIc = new IdentifierCreator(pFunctionName);
 
     if (pDeclaration != null && pDeclaration instanceof CVariableDeclaration) {
+      IdentifierCreator localIc = new IdentifierCreator(pFunctionName);
       CVariableDeclaration var = (CVariableDeclaration) pDeclaration;
       AbstractIdentifier ail = localIc.createIdentifier(var, 0);
 
