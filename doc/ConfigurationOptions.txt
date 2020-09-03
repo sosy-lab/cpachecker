@@ -2636,10 +2636,6 @@ cpa.slicing.preRunSyntacticWeakening = true
 # slice, or a statically computed, fixed slicing precision
 cpa.slicing.refinableSlice = false
 
-# Add all assumptions of an infeasible target path to the slice, in addition
-# to the original slice
-cpa.slicing.refinement.addCexConstraintsToSlice = true
-
 # Allow counterexamples that are valid only on the program slice. If you set
 # this to `false`, you may have to set takeEagerSlice=true to avoid failed
 # refinements. If this is set to true, the counterexample check won't work

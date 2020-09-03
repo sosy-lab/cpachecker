@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.slicing;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -74,28 +73,20 @@ import org.sosy_lab.cpachecker.util.slicing.SlicerFactory;
 public class SlicingRefiner implements Refiner, StatisticsProvider {
 
   @Option(
-    secure = true,
-    description =
-        "Allow counterexamples that are valid only on the program slice."
-            + " If you set this to `false`, you may have to set takeEagerSlice=true to avoid failed "
-            + "refinements. If this is set to true, the counterexample check won't work (in "
-            + "general), so you have to turn it off."
-  )
+      secure = true,
+      description =
+          "Allow counterexamples that are valid only on the program slice. If you set this to"
+              + " `false`, you may have to set takeEagerSlice=true to avoid failed refinements. If"
+              + " this is set to true, the counterexample check won't work (in general), so you"
+              + " have to turn it off.")
   private boolean counterexampleCheckOnSlice = false;
 
   @Option(
       secure = true,
       description =
-          "Use all assumptions of a target path as slicing criteria, not just the edge to the target"
-              + " location.")
+          "Use all assumptions of a target path as slicing criteria, not just the edge to the"
+              + " target location.")
   private boolean takeEagerSlice = false;
-
-  @Option(
-      secure = true,
-      description =
-          "Add all assumptions of an infeasible target path to the slice, in addition"
-              + " to the original slice")
-  private boolean addCexConstraintsToSlice = true;
 
   @Option(secure = true, description = "What kind of restart to do after a successful refinement")
   private RestartStrategy restartStrategy = RestartStrategy.PIVOT;
@@ -366,16 +357,18 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   }
 
   private Set<CFAEdge> getSlice(ARGPath pPath) throws InterruptedException {
+
     List<CFAEdge> innerEdges = pPath.getInnerEdges();
-
-    Set<CFAEdge> cexConstraints =
-        innerEdges.stream()
-            .filter(Predicates.instanceOf(CAssumeEdge.class))
-            .collect(Collectors.toSet());
-
     List<CFAEdge> criteriaEdges = new ArrayList<>(1);
+
     if (takeEagerSlice) {
+
+      Set<CFAEdge> cexConstraints =
+          innerEdges.stream()
+              .filter(Predicates.instanceOf(CAssumeEdge.class))
+              .collect(Collectors.toSet());
       criteriaEdges.addAll(cexConstraints);
+
     } else {
       boolean isFeasible = false;
       try {
@@ -396,12 +389,6 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
     criteriaEdges.addAll(edgesToTarget);
 
     Set<CFAEdge> relevantEdges = slicer.getSlice(cfa, criteriaEdges).getRelevantEdges();
-
-    if (addCexConstraintsToSlice) {
-      // this must always be added _after_ adding the slices, otherwise
-      // slices may be incomplete
-      relevantEdges = Sets.union(relevantEdges, ImmutableSet.copyOf(cexConstraints));
-    }
 
     return relevantEdges;
   }
