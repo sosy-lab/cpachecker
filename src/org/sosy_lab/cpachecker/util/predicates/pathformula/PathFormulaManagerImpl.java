@@ -351,7 +351,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final PointerTargetSet newPTS = mergePtsResult.getResult();
     final int newLength = Math.max(pathFormula1.getLength(), pathFormula2.getLength());
 
-    PathFormula out = new PathFormula(newFormula, newSSA.build(), newPTS, newLength);
+    PathFormula out = new PathFormula(newFormula, newSSA.build(), newPTS, newLength, bfmgr);
     if (simplifyGeneratedPathFormulas) {
       out = out.updateFormula(fmgr.simplify(out.getFormula()));
     }
