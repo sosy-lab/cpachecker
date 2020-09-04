@@ -2642,6 +2642,17 @@ cpa.slicing.refinableSlice = false
 # (in general), so you have to turn it off.
 cpa.slicing.refinement.counterexampleCheckOnSlice = false
 
+# How to refine the slice:
+# - CEX_EDGES: Add all counterexample edges and only the dependencies of the
+# target location to the slice.
+# - CEX_ASSUME_DEPS: Add the dependencies of all counterexample assume edges
+# to the slice.
+# - INFEASIBLE_PREFIX_ASSUME_DEPS: Find an infeasible prefix and add the
+# dependencies of all assume edges that are part of the infeasible prefix to
+# the slice.
+cpa.slicing.refinement.refineStrategy = INFEASIBLE_PREFIX_ASSUME_DEPS
+  enum:     [CEX_EDGES, CEX_ASSUME_DEPS, INFEASIBLE_PREFIX_ASSUME_DEPS]
+
 # What kind of restart to do after a successful refinement
 cpa.slicing.refinement.restartStrategy = PIVOT
   enum:     [PIVOT, ROOT]

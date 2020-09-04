@@ -95,6 +95,36 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   private Slicer slicer;
   private CFA cfa;
 
+  @Option(
+      secure = true,
+      description =
+          "How to refine the slice:\n"
+              + "- CEX_EDGES: Add all counterexample edges and only the dependencies of the target"
+              + " location to the slice.\n"
+              + "- CEX_ASSUME_DEPS: Add the dependencies of all counterexample assume edges to the"
+              + " slice.\n"
+              + "- INFEASIBLE_PREFIX_ASSUME_DEPS: Find an infeasible prefix and add the"
+              + " dependencies of all assume edges that are part of the infeasible prefix to the"
+              + " slice.")
+  private RefineStrategy refineStrategy = RefineStrategy.INFEASIBLE_PREFIX_ASSUME_DEPS;
+
+  private enum RefineStrategy {
+
+    /**
+     * Add all counterexample edges and only the dependencies of the target location to the slice.
+     */
+    CEX_EDGES,
+
+    /** Add the dependencies of all counterexample assume edges to the slice. */
+    CEX_ASSUME_DEPS,
+
+    /**
+     * Find an infeasible prefix and add the dependencies of all assume edges that are part of the
+     * infeasible prefix to the slice.
+     */
+    INFEASIBLE_PREFIX_ASSUME_DEPS
+  }
+
   private enum RestartStrategy {
     /**
      * Restart at the pivot element, i.e., the first abstract state for which the precision changes.
@@ -399,20 +429,41 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
 
     List<CFAEdge> innerEdges = pPath.getInnerEdges();
     List<CFAEdge> criteriaEdges = new ArrayList<>(1);
+    Set<CFAEdge> relevantEdges = new HashSet<>();
+
+    Set<CFAEdge> cexConstraints =
+        innerEdges.stream()
+            .filter(Predicates.instanceOf(CAssumeEdge.class))
+            .collect(Collectors.toSet());
 
     if (takeEagerSlice) {
-
-      Set<CFAEdge> cexConstraints =
-          innerEdges.stream()
-              .filter(Predicates.instanceOf(CAssumeEdge.class))
-              .collect(Collectors.toSet());
       criteriaEdges.addAll(cexConstraints);
-
     } else {
-      try {
-        criteriaEdges.addAll(computeCriteriaEdges(transfer, pPath, initialState, fullPrecision));
-      } catch (CPAException ex) {
-        logger.logException(Level.SEVERE, ex, "Computation of slicing criteria edges failed");
+      if (refineStrategy == RefineStrategy.INFEASIBLE_PREFIX_ASSUME_DEPS) {
+
+        try {
+          criteriaEdges.addAll(computeCriteriaEdges(transfer, pPath, initialState, fullPrecision));
+        } catch (CPAException ex) {
+          logger.logException(Level.SEVERE, ex, "Computation of slicing criteria edges failed");
+        }
+
+      } else {
+
+        boolean feasible = false;
+        try {
+          feasible = isFeasible(pPath);
+        } catch (CPAException ex) {
+          logger.logException(Level.SEVERE, ex, "Feasibility check of counterexample failed");
+        }
+
+        if (!feasible) {
+          if (refineStrategy == RefineStrategy.CEX_ASSUME_DEPS) {
+            criteriaEdges.addAll(cexConstraints);
+          } else {
+            relevantEdges.addAll(
+                innerEdges.stream().filter(Predicates.notNull()).collect(Collectors.toList()));
+          }
+        }
       }
     }
 
@@ -421,9 +472,9 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
         CFAUtils.enteringEdges(finalNode).filter(innerEdges::contains).toList();
     criteriaEdges.addAll(edgesToTarget);
 
-    Set<CFAEdge> relevantEdges = slicer.getSlice(cfa, criteriaEdges).getRelevantEdges();
+    relevantEdges.addAll(slicer.getSlice(cfa, criteriaEdges).getRelevantEdges());
 
-    return relevantEdges;
+    return ImmutableSet.copyOf(relevantEdges);
   }
 
   private SlicingPrecision mergeOnSubgraph(
