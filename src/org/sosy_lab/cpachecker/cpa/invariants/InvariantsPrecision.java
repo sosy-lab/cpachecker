@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-public class InvariantsPrecision implements Precision {
+class InvariantsPrecision implements Precision {
 
   public static InvariantsPrecision getEmptyPrecision(
       AbstractionStrategy pAbstractionStrategy) {

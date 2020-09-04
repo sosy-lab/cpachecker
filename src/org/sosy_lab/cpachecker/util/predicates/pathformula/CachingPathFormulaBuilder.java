@@ -32,9 +32,9 @@ public abstract class CachingPathFormulaBuilder implements PathFormulaBuilder {
     if (cachedResult == null
         || !pPfmgr.equals(cachedInputPfmgr)
         || !pPathFormula.equals(cachedInputPathFormula)) {
-      return cachedResult;
+      return null;
     }
-    return null;
+    return cachedResult;
   }
 
   private final void updateCache(
