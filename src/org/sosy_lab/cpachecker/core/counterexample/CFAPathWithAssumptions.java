@@ -12,10 +12,10 @@ import static com.google.common.base.Strings.isNullOrEmpty;
 
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ForwardingList;
-import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -48,8 +48,7 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
 
   private final ImmutableList<CFAEdgeWithAssumptions> pathWithAssignments;
 
-  private CFAPathWithAssumptions(
-      List<CFAEdgeWithAssumptions> pPathWithAssignments) {
+  private CFAPathWithAssumptions(ImmutableList<CFAEdgeWithAssumptions> pPathWithAssignments) {
     pathWithAssignments = ImmutableList.copyOf(pPathWithAssignments);
   }
 
@@ -77,8 +76,10 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
     return true;
   }
 
-  public Multimap<ARGState, CFAEdgeWithAssumptions> getExactVariableValues(ARGPath pPath) {
-    Multimap<ARGState, CFAEdgeWithAssumptions> result = HashMultimap.create();
+  public ImmutableSetMultimap<ARGState, CFAEdgeWithAssumptions> getExactVariableValues(
+      ARGPath pPath) {
+    ImmutableSetMultimap.Builder<ARGState, CFAEdgeWithAssumptions> result =
+        ImmutableSetMultimap.builder();
 
     PathIterator pathIterator = pPath.fullPathIterator();
     int multiEdgeOffset = 0;
@@ -89,7 +90,7 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
 
       if (!edgeWithAssignment.getCFAEdge().equals(argPathEdge)) {
         // path is not equivalent
-        return ImmutableMultimap.of();
+        return ImmutableSetMultimap.of();
       }
 
       final ARGState abstractState;
@@ -104,13 +105,14 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
     }
     // last state is ignored
 
-    return result;
+    return result.build();
   }
 
   public static CFAPathWithAssumptions of(ConcreteStatePath statePath,
       AssumptionToEdgeAllocator pAllocator) {
 
-    List<CFAEdgeWithAssumptions> result = new ArrayList<>(statePath.size());
+    ImmutableList.Builder<CFAEdgeWithAssumptions> result =
+        ImmutableList.builderWithExpectedSize(statePath.size());
     List<IntermediateConcreteState> currentIntermediateStates = new ArrayList<>();
 
     for (ConcreteStatePathNode node : statePath) {
@@ -141,7 +143,7 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
            * due to aliasing, simply create assumptions for all edges with the concrete state
            * of the last edge, thus correctly projecting all lvalues at the end of the multi edge.*/
         } else {
-          Set<AExpressionStatement> assumptions = new HashSet<>();
+          ImmutableSet.Builder<AExpressionStatement> assumptions = ImmutableSet.builder();
           Set<String> assumptionCodes = new HashSet<>();
           ConcreteState lastState = singleState.getConcreteState();
 
@@ -165,7 +167,7 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
           // Finally create Last edge and multi edge
           edge =
               new CFAEdgeWithAssumptions(
-                  singleState.getCfaEdge(), new ArrayList<>(assumptions), comment.toString());
+                  singleState.getCfaEdge(), assumptions.build(), comment.toString());
 
           // remove all handled intermediate states
           currentIntermediateStates.clear();
@@ -176,7 +178,7 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
       result.add(edge);
     }
 
-    return new CFAPathWithAssumptions(result);
+    return new CFAPathWithAssumptions(result.build());
   }
 
   private static boolean isEmptyDeclaration(CFAEdge pCfaEdge) {
@@ -192,8 +194,11 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
     return false;
   }
 
-  private static void addAssumptionsIfNecessary(Set<AExpressionStatement> assumptions, Set<String> assumptionCodes,
-      StringBuilder comment, CFAEdgeWithAssumptions lastIntermediate) {
+  private static void addAssumptionsIfNecessary(
+      ImmutableCollection.Builder<AExpressionStatement> assumptions,
+      Set<String> assumptionCodes,
+      StringBuilder comment,
+      CFAEdgeWithAssumptions lastIntermediate) {
     // throw away redundant assumptions
     for (AExpressionStatement assumption : lastIntermediate.getExpStmts()) {
       if (!assumptionCodes.contains(assumption.toASTString())) {
@@ -216,7 +221,8 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
       return Optional.empty();
     }
 
-    List<CFAEdgeWithAssumptions> result = new ArrayList<>(size());
+    ImmutableList.Builder<CFAEdgeWithAssumptions> result =
+        ImmutableList.builderWithExpectedSize(size());
     Iterator<CFAEdgeWithAssumptions> path2Iterator = iterator();
 
     for (CFAEdgeWithAssumptions edge : this) {
@@ -228,7 +234,7 @@ public class CFAPathWithAssumptions extends ForwardingList<CFAEdgeWithAssumption
       result.add(resultEdge);
     }
 
-    return Optional.of(new CFAPathWithAssumptions(result));
+    return Optional.of(new CFAPathWithAssumptions(result.build()));
   }
 
   public static CFAPathWithAssumptions of(

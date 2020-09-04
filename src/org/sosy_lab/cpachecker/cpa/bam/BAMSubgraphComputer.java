@@ -20,7 +20,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
@@ -176,10 +175,10 @@ public class BAMSubgraphComputer {
       } else {
         // children are a normal successors -> create an connection from parent to children
         for (final BackwardARGState newChild : childrenInSubgraph) {
-          assert !currentState.getEdgesToChild(newChild.getARGState()).isEmpty()
-              : String.format(
-                  "unexpected ARG state: parent has no edge to child: %s -/-> %s",
-                  currentState, newChild.getARGState());
+          // assert !currentState.getEdgesToChild(newChild.getARGState()).isEmpty()
+          // : String.format(
+          // "unexpected ARG state: parent has no edge to child: %s -/-> %s",
+          // currentState, newChild.getARGState());
           newChild.addParent(newCurrentState);
         }
       }
@@ -251,8 +250,7 @@ public class BAMSubgraphComputer {
       reachedSets.put(reachedSet, newBackwardTarget);
     }
 
-    for (Entry<ReachedSet, Collection<BackwardARGState>> entry : reachedSets.asMap().entrySet()) {
-      final ReachedSet reachedSet = entry.getKey();
+    for (final ReachedSet reachedSet : reachedSets.keySet()) {
       final BackwardARGState newInnerRoot;
       try {
         newInnerRoot =

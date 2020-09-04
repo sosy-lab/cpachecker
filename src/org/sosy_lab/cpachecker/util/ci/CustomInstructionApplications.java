@@ -138,6 +138,11 @@ public class CustomInstructionApplications {
     return result.build();
   }
 
+  public int getNumApplications() {
+    return cis.size();
+
+  }
+
   @Options(prefix = "custominstructions")
   public static abstract class CustomInstructionApplicationBuilder {
 

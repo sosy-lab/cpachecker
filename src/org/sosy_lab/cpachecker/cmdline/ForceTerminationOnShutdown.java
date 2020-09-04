@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.log.LogManager;
 
 /**
@@ -103,6 +104,7 @@ class ForceTerminationOnShutdown implements Runnable {
   }
 
   @SuppressWarnings({"deprecation", "DeprecatedThreadMethods"})
+  @SuppressForbidden("need to call Thread.stop")
   @SuppressFBWarnings("DM_EXIT")
   @Override
   public void run() {

@@ -98,7 +98,7 @@ public class GenericAbstractionCandidate implements SMGGenericAbstractionCandida
     /*Third, remove all object and edges that are represented by this abstraction.*/
     for (SMGObject obj : objectsToBeRemoved) {
       assert pSMG.getObjects().contains(obj);
-      pSMG.removeObjectAndEdges(obj);
+      pSMG.markObjectDeletedAndRemoveEdges(obj);
     }
 
     /*Finally, connect it to the rest of the smg.*/

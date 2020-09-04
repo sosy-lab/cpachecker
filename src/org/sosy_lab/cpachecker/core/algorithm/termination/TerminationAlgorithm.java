@@ -65,7 +65,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysis;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysisResult;
@@ -108,7 +107,8 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 @Options(prefix = "termination")
 public class TerminationAlgorithm implements Algorithm, AutoCloseable, StatisticsProvider {
 
-  private final static Set<Property> TERMINATION_PROPERTY = NamedProperty.singleton("termination");
+  private static final ImmutableSet<Property> TERMINATION_PROPERTY =
+      NamedProperty.singleton("termination");
 
   private enum ResetReachedSetStrategy {
     REMOVE_TARGET_STATE,
@@ -164,7 +164,6 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
       CFA pCfa,
       ReachedSetFactory pReachedSetFactory,
       AggregatedReachedSetManager pAggregatedReachedSetManager,
-      Specification pSpecification,
       Algorithm pSafetyAlgorithm,
       ConfigurableProgramAnalysis pSafetyCPA)
       throws InvalidConfigurationException {
@@ -197,7 +196,10 @@ public class TerminationAlgorithm implements Algorithm, AutoCloseable, Statistic
 
     statistics =
         new TerminationStatistics(
-            pConfig, logger, loopStructure.getAllLoops().size(), pSpecification, pCfa);
+            pConfig,
+            logger,
+            loopStructure.getAllLoops().size(),
+            pCfa);
     lassoAnalysis = LassoAnalysis.create(pLogger, pConfig, pShutdownNotifier, pCfa, statistics);
   }
 

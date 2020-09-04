@@ -8,11 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.slicing;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.Classes;
@@ -25,7 +23,7 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.Specification;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 
 @Options(prefix = "slicing")
 public class ReducerExtractor extends AllTargetsExtractor {
@@ -38,8 +36,8 @@ public class ReducerExtractor extends AllTargetsExtractor {
       description =
           "path to condition files plus additional assumption guiding automaton when condition itself is in propriertary format and not in witness format")
   @FileOption(FileOption.Type.REQUIRED_INPUT_FILE)
-  private List<Path> conditionFiles =
-      ImmutableList.of(
+  private Set<Path> conditionFiles =
+      ImmutableSet.of(
           Paths.get("output/AssumptionAutomaton.txt"),
           Classes.getCodeLocation(ReducerExtractor.class)
               .resolveSibling("config/specification/AssumptionGuidingAutomaton.spc"));
@@ -59,10 +57,9 @@ public class ReducerExtractor extends AllTargetsExtractor {
       throws InterruptedException {
     Specification compositeSpec;
     try {
-      Specification conditionSpec =
-          Specification.fromFiles(
-              ImmutableSet.of(), conditionFiles, pCfa, config, logger, shutdownNotifier);
-      compositeSpec = Specification.combine(conditionSpec, pError);
+      compositeSpec =
+          pError.withAdditionalSpecificationFile(
+              conditionFiles, pCfa, config, logger, shutdownNotifier);
     } catch (InvalidConfigurationException e) {
       logger.logException(
           Level.WARNING,

@@ -270,7 +270,11 @@ public class BAMPredicateReducer
 
     PointerTargetSet rootPts = rootState.getPathFormula().getPointerTargetSet();
     PointerTargetSet reducedPts = reducedState.getPathFormula().getPointerTargetSet();
-    PointerTargetSet newPts = pmgr.mergePts(rootPts, reducedPts, ssa);
+
+    SSAMapBuilder ssaBuilder = ssa.builder();
+    PointerTargetSet newPts = pmgr.mergePts(rootPts, reducedPts, ssaBuilder);
+    ssa = ssaBuilder.build();
+
     pathFormula = pmgr.makeNewPathFormula(pathFormula, ssa, newPts);
 
     return PredicateAbstractState.mkAbstractionState(

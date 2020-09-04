@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.predicates;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -32,22 +31,18 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.FunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.cpa.predicate.BAMBlockFormulaStrategy;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -291,7 +286,6 @@ public class PathChecker {
     Deque<PathFormula> callstack = new ArrayDeque<>();
 
     while (pathIt.hasNext()) {
-      pathFormula = handlePreconditionAssumptions(pathFormula, pathIt.getNextAbstractState());
       CFAEdge edge = pathIt.getOutgoingEdge();
       pathIt.advance();
 
@@ -312,23 +306,6 @@ public class PathChecker {
     }
 
     return Pair.of(pathFormula, ssaMaps);
-  }
-
-  private PathFormula handlePreconditionAssumptions(PathFormula pathFormula, ARGState nextState)
-      throws CPATransferException, InterruptedException {
-    if (nextState != null) {
-      // there could be more than one state that has assumptions:
-      FluentIterable<AbstractStateWithAssumptions> assumptionStates =
-          AbstractStates.projectToType(
-              AbstractStates.asIterable(nextState), AbstractStateWithAssumptions.class);
-      for (AbstractStateWithAssumptions assumptionState : assumptionStates) {
-          for (AExpression expr : assumptionState.getPreconditionAssumptions()) {
-            assert expr instanceof CExpression : "Expected a CExpression as precondition assumption!";
-            pathFormula = pmgr.makeAnd(pathFormula, (CExpression) expr);
-          }
-      }
-    }
-    return pathFormula;
   }
 
   private List<ValueAssignment> getModel(ProverEnvironment thmProver) {

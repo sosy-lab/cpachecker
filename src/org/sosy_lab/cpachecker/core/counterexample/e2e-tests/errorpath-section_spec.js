@@ -201,7 +201,7 @@ describe('Error path section in Report.js', function () {
 
         it('Highlight selected code in source tab', function () {
             browser.wait(EC.presenceOf(element(by.css('.marked-source-line'))));
-            expect(hasClass(element(by.xpath('//*[@id="source-2"]/td[2]/pre')), 'marked-source-line')).toBe(true);
+            expect(hasClass(element(by.xpath('//*[@id="source-10"]/td[2]/pre')), 'marked-source-line')).toBe(true);
         })
         browser.driver.sleep(100);
 

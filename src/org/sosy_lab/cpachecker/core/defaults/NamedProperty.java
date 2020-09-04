@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.core.defaults;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import java.util.Set;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 
 public final class NamedProperty implements Property {
@@ -43,7 +42,7 @@ public final class NamedProperty implements Property {
     return new NamedProperty(pText);
   }
 
-  public static Set<Property> singleton(final String pText) {
+  public static ImmutableSet<Property> singleton(final String pText) {
     return ImmutableSet.of(NamedProperty.create(pText));
   }
 

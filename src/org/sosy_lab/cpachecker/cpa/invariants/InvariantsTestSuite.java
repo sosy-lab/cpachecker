@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.cpa.invariants.operators.mathematical.ISIOperator
   CompoundMathematicalIntervalTest.class,
   SimpleIntervalTest.class,
   IIIOperatorTest.class,
-  ISIOperatorTest.class})
-public class InvariantsTestSuite {
-
-}
+  ISIOperatorTest.class
+})
+class InvariantsTestSuite {}

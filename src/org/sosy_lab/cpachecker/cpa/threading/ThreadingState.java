@@ -393,7 +393,7 @@ public class ThreadingState implements AbstractState, AbstractStateWithLocations
   }
 
   /** See {@link #activeThread}. */
-  public ThreadingState setActiveThread(String pActiveThread) {
+  public ThreadingState withActiveThread(String pActiveThread) {
     return new ThreadingState(threads, locks, pActiveThread, threadIdsForWitness);
   }
 

@@ -22,14 +22,16 @@ public class SMGOptions {
 
   @Option(
       secure = true,
-      description = "with this option enabled, a check for unreachable memory occurs whenever a function returns, and not only at the end of the main function")
+      description =
+          "with this option enabled, a check for unreachable memory occurs whenever a function"
+              + " returns, and not only at the end of the main function")
   private boolean checkForMemLeaksAtEveryFrameDrop = true;
 
   @Option(
-    secure = true,
-    description =
-        "with this option enabled, memory that is not freed before the end of main is reported as memleak even if it is reachable from local variables in main"
-  )
+      secure = true,
+      description =
+          "with this option enabled, memory that is not freed before the end of main is reported"
+              + " as memleak even if it is reachable from local variables in main")
   private boolean handleNonFreedMemoryInMainAsMemLeak = true;
 
   @Option(
@@ -193,8 +195,16 @@ public class SMGOptions {
       secure = true,
       name = "handleIncompleteExternalVariableAsExternalAllocation",
       description =
-          "Handle external variables with incomplete type (extern int array[]) as external allocation")
+          "Handle external variables with incomplete type (extern int array[]) as external"
+              + " allocation")
   private boolean handleIncompleteExternalVariableAsExternalAllocation = false;
+
+  @Option(
+      secure = true,
+      name = "joinOnBlockEnd",
+      description =
+          "Perform merge SMGStates by SMGJoin on ends of code block. Works with 'merge=JOIN'")
+  private boolean joinOnBlockEnd = true;
 
   public enum SMGExportLevel {
     NEVER,
@@ -313,5 +323,9 @@ public class SMGOptions {
 
   public boolean isHandleUnknownDereferenceAsSafe() {
     return handleUnknownDereferenceAsSafe;
+  }
+
+  public boolean getJoinOnBlockEnd() {
+    return joinOnBlockEnd;
   }
 }

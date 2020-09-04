@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.bmc;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
@@ -37,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
@@ -48,6 +46,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA;
 import org.sosy_lab.cpachecker.core.interfaces.conditions.ReachedSetAdjustingCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.Automata;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
@@ -119,12 +118,11 @@ public final class BMCHelper {
       FormulaManagerView pFMGR,
       boolean pForce)
       throws CPATransferException, InterruptedException {
-    BooleanFormulaManager bfmgr = pFMGR.getBooleanFormulaManager();
-    BooleanFormula result = bfmgr.makeTrue();
+    List<BooleanFormula> result = new ArrayList<>();
     for (AbstractState abstractState : pStates) {
-      result = bfmgr.and(result, assertAt(abstractState, pInvariant, pFMGR, pForce));
+      result.add(assertAt(abstractState, pInvariant, pFMGR, pForce));
     }
-    return result;
+    return pFMGR.getBooleanFormulaManager().and(result);
   }
 
   private static BooleanFormula assertAt(
@@ -247,17 +245,13 @@ public final class BMCHelper {
       return loopHeads;
     }
     LoopStructure loopStructure = pCFA.getLoopStructure().orElseThrow();
-    return from(loopStructure.getAllLoops()).transformAndConcat(new Function<Loop, Iterable<CFANode>>() {
-
-      @Override
-      public Iterable<CFANode> apply(Loop pLoop) {
+    return from(loopStructure.getAllLoops()).transformAndConcat(pLoop -> {
         if (Sets.intersection(pLoop.getLoopNodes(), loopHeads).isEmpty()) {
           return ImmutableSet.of();
         }
         return pLoop.getLoopHeads();
       }
-
-    }).toSet();
+    ).toSet();
   }
 
   public static FluentIterable<AbstractState> filterIterationsBetween(
@@ -385,15 +379,13 @@ public final class BMCHelper {
   public static BooleanFormula disjoinStateViolationAssertions(
       BooleanFormulaManager pBfmgr,
       Multimap<BooleanFormula, BooleanFormula> pSuccessorViolationAssertions) {
-    BooleanFormula disjunction = pBfmgr.makeFalse();
+    List<BooleanFormula> assertions = new ArrayList<>();
     for (Map.Entry<BooleanFormula, Collection<BooleanFormula>> stateWithViolations :
         pSuccessorViolationAssertions.asMap().entrySet()) {
-      disjunction =
-          pBfmgr.or(
-              disjunction,
-              pBfmgr.and(stateWithViolations.getKey(), pBfmgr.and(stateWithViolations.getValue())));
+      assertions.add(
+          pBfmgr.and(stateWithViolations.getKey(), pBfmgr.and(stateWithViolations.getValue())));
     }
-    return disjunction;
+    return pBfmgr.or(assertions);
   }
 
   static FluentIterable<AbstractState> filterBmcChecked(

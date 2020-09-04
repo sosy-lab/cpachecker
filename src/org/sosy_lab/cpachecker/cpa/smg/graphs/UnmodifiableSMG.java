@@ -12,7 +12,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
-import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
@@ -42,9 +41,9 @@ public interface UnmodifiableSMG {
 
   PersistentSet<SMGObject> getObjects();
 
-  Set<SMGEdgeHasValue> getHVEdges();
+  SMGHasValueEdges getHVEdges();
 
-  Set<SMGEdgeHasValue> getHVEdges(SMGEdgeHasValueFilter pFilter);
+  SMGHasValueEdges getHVEdges(SMGEdgeHasValueFilter pFilter);
 
   Set<SMGEdgePointsTo> getPtEdges(SMGEdgePointsToFilter pFilter);
 
@@ -59,7 +58,9 @@ public interface UnmodifiableSMG {
 
   MachineModel getMachineModel();
 
-  TreeMap<Long, Integer> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj);
+  int getSizeofPtrInBits();
+
+  TreeMap<Long, Long> getNullEdgesMapOffsetToSizeForObject(SMGObject pObj);
 
   boolean isPointer(SMGValue value);
 
@@ -67,9 +68,9 @@ public interface UnmodifiableSMG {
 
   boolean isCoveredByNullifiedBlocks(SMGEdgeHasValue pEdge);
 
-  boolean isCoveredByNullifiedBlocks(SMGObject pObject, long pOffset, CType pType);
-
   boolean haveNeqRelation(SMGValue pV1, SMGValue pV2);
 
   Set<SMGValue> getNeqsForValue(SMGValue pV);
+
+  PersistentSet<SMGObject> getValidObjects();
 }

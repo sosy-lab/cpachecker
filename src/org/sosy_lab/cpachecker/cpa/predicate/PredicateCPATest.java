@@ -21,14 +21,15 @@ import java.util.regex.Pattern;
 import org.junit.Test;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.util.test.TestDataTools;
 
 public class PredicateCPATest {
@@ -66,6 +67,7 @@ public class PredicateCPATest {
     assertThat(loadedClasses.filter(Predicates.contains(BDD_CLASS_PATTERN))).isNotEmpty();
   }
 
+  @SuppressForbidden("reflection only in test")
   private FluentIterable<String> loadPredicateCPA(Configuration config) throws Exception {
     ClassLoader myClassLoader = PredicateCPATest.class.getClassLoader();
     assume().that(myClassLoader).isInstanceOf(URLClassLoader.class);

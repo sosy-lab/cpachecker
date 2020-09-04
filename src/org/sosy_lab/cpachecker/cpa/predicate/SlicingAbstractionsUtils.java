@@ -43,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.dca.DCAState;
+import org.sosy_lab.cpachecker.cpa.overflow.OverflowState;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.cpa.slab.EdgeSet;
 import org.sosy_lab.cpachecker.cpa.slab.SLARGState;
@@ -216,8 +217,9 @@ public class SlicingAbstractionsUtils {
         if (isAbstractionState(child)) {
           if (segmentMap.containsKey(child)) {
             PersistentList<ARGState> storedStateList = segmentMap.get(child);
+            Set<ARGState> storedStateSet = new HashSet<>(storedStateList);
             for (ARGState s : currentStateList.reversed()) {
-              if (!storedStateList.contains(s)) {
+              if (!storedStateSet.contains(s)) {
                 storedStateList = storedStateList.with(s);
               }
             }
@@ -313,13 +315,15 @@ public class SlicingAbstractionsUtils {
       startFormula = emptyPathFormulaWithSSAMap(pSolver.getFormulaManager().getBooleanFormulaManager().makeTrue(), pSSAMap, pPts);
     }
 
-    // Add precondition assumptions if any:
+    // Add assumptions if any:
     AbstractStateWithAssumptions other =
         AbstractStates.extractStateByType(stop, AbstractStateWithAssumptions.class);
     if (other != null) {
-      for (CExpression preassumption :
-          Iterables.filter(other.getPreconditionAssumptions(), CExpression.class)) {
-        startFormula = pPfmgr.makeAnd(startFormula, preassumption);
+      if (stop.isTarget() && other instanceof OverflowState) {
+        other = ((OverflowState) other).getParent();
+      }
+      for (CExpression assumption : Iterables.filter(other.getAssumptions(), CExpression.class)) {
+        startFormula = pPfmgr.makeAnd(startFormula, assumption);
       }
     }
 
@@ -654,9 +658,8 @@ public class SlicingAbstractionsUtils {
   private static Set<CFANode> getIncomingLocations(SLARGState pState) {
     ImmutableSet.Builder<CFANode> locations = ImmutableSet.builder();
     for (ARGState parent : pState.getParents()) {
-      for (Iterator<CFAEdge> it = ((SLARGState) parent).getEdgeSetToChild(pState).iterator();
-          it.hasNext(); ) {
-        locations.add(it.next().getSuccessor());
+      for (CFAEdge edge : ((SLARGState) parent).getEdgeSetToChild(pState)) {
+        locations.add(edge.getSuccessor());
       }
     }
     return locations.build();
@@ -665,8 +668,8 @@ public class SlicingAbstractionsUtils {
   private static Set<CFANode> getOutgoingLocations(SLARGState pState) {
     ImmutableSet.Builder<CFANode> locations = ImmutableSet.builder();
     for (ARGState child : pState.getChildren()) {
-      for (Iterator<CFAEdge> it = pState.getEdgeSetToChild(child).iterator();it.hasNext();) {
-        locations.add(it.next().getPredecessor());
+      for (CFAEdge edge : pState.getEdgeSetToChild(child)) {
+        locations.add(edge.getPredecessor());
       }
     }
     return locations.build();

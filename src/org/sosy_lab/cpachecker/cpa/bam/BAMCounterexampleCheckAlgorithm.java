@@ -8,19 +8,19 @@
 
 package org.sosy_lab.cpachecker.cpa.bam;
 
+import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
-import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleChecker;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMSubgraphComputer.BackwardARGState;
@@ -68,7 +68,7 @@ public class BAMCounterexampleCheckAlgorithm extends CounterexampleCheckAlgorith
         graphComputer.computeCounterexampleSubgraph(errorState, mainReachedSet);
     ARGState rootState = rootAndTargetOfSubgraph.getFirst();
     ARGState target = rootAndTargetOfSubgraph.getSecond();
-    Set<ARGState> statesOnErrorPath = rootState.getSubgraph();
+    ImmutableSet<ARGState> statesOnErrorPath = rootState.getSubgraph().toSet();
 
     assert Objects.equals(((BackwardARGState) target).getARGState(), errorState);
 

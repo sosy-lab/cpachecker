@@ -57,7 +57,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPABuilder;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm.AlgorithmStatus;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -80,6 +79,7 @@ import org.sosy_lab.cpachecker.core.interfaces.conditions.AdjustableConditionCPA
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSetFactory;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.invariants.InvariantsCPA;
@@ -112,14 +112,14 @@ import org.sosy_lab.java_smt.api.SolverException;
 abstract class AbstractBMCAlgorithm
     implements StatisticsProvider, ConditionAdjustmentEventSubscriber {
 
-  private static final boolean isStopState(AbstractState state) {
+  protected static final boolean isStopState(AbstractState state) {
     AssumptionStorageState assumptionState =
         AbstractStates.extractStateByType(state, AssumptionStorageState.class);
     return assumptionState != null && assumptionState.isStop();
   }
 
   /** Filters out states that were detected as irrelevant for reachability */
-  private static final boolean isRelevantForReachability(AbstractState state) {
+  protected static final boolean isRelevantForReachability(AbstractState state) {
     return AbstractStates.extractStateByType(state, ReachabilityState.class)
         != ReachabilityState.IRRELEVANT_TO_TARGET;
   }
@@ -572,15 +572,10 @@ abstract class AbstractBMCAlgorithm
    * @return {@code true} if the conditions were adjusted, {@code false} if no further adjustment is
    *     possible.
    */
-  private boolean adjustConditions() {
+  protected boolean adjustConditions() {
     FluentIterable<AdjustableConditionCPA> conditionCPAs =
         CPAs.asIterable(cpa).filter(AdjustableConditionCPA.class);
-    boolean adjusted = false;
-    for (AdjustableConditionCPA condCpa : conditionCPAs) {
-      if (condCpa.adjustPrecision()) {
-        adjusted = true;
-      }
-    }
+    boolean adjusted = conditionCPAs.anyMatch(AdjustableConditionCPA::adjustPrecision);
     if (!adjusted) {
       // these cpas said "do not continue"
       logger.log(
@@ -590,9 +585,8 @@ abstract class AbstractBMCAlgorithm
               .join(
                   conditionCPAs.transform(
                       conditionCpa -> conditionCpa.getClass().getSimpleName())));
-      return false;
     }
-    return !Iterables.isEmpty(conditionCPAs);
+    return adjusted;
   }
 
   protected boolean boundedModelCheck(

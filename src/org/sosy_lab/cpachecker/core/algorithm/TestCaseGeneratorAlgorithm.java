@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -26,9 +25,9 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.defaults.NamedProperty;
 import org.sosy_lab.cpachecker.core.defaults.SingletonPrecision;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -36,6 +35,9 @@ import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageType;
+import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -50,13 +52,16 @@ import org.sosy_lab.cpachecker.exceptions.InfeasibleCounterexampleException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
-import org.sosy_lab.cpachecker.util.Property.CommonCoverageType;
-import org.sosy_lab.cpachecker.util.SpecificationProperty;
 import org.sosy_lab.cpachecker.util.error.DummyErrorState;
 import org.sosy_lab.cpachecker.util.testcase.TestCaseExporter;
 
 @Options(prefix = "testcase")
 public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, StatisticsProvider {
+
+  public enum ProgressComputation {
+    ABSOLUTE,
+    RELATIVE_TOTAL
+  }
 
   @Option(
     secure = true,
@@ -67,6 +72,9 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
   @Option(secure = true,  description = "when generating tests covering error call stop as soon as generated one test case and report false (only possible in combination with error call property specification")
   private boolean reportCoveredErrorCallAsError = false;
+
+  @Option(secure = true, name = "progress", description = "defines how progress is computed")
+  private ProgressComputation progressType = ProgressComputation.RELATIVE_TOTAL;
 
   private final Algorithm algorithm;
   private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
@@ -280,14 +288,8 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
           private static final long serialVersionUID = 5522643115974481914L;
 
           @Override
-          public Set<Property> getViolatedProperties() throws IllegalStateException {
-            return ImmutableSet.of(
-                new Property() {
-                  @Override
-                  public String toString() {
-                    return specProp.getProperty().toString();
-                  }
-                });
+          public Set<Property> getViolatedProperties() {
+            return NamedProperty.singleton(specProp.getProperty().toString());
           }
         },
         SingletonPrecision.getInstance());
@@ -309,6 +311,13 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
 
   @Override
   public double getProgress() {
-    return progress / Math.max(1, TestTargetProvider.getCurrentNumOfTestTargets());
+    switch (progressType) {
+      case ABSOLUTE:
+        return progress;
+      case RELATIVE_TOTAL:
+        return progress / Math.max(1, TestTargetProvider.getTotalNumberOfTestTargets());
+      default:
+        throw new AssertionError("Unhandled progress computation type: " + progressType);
+    }
   }
 }

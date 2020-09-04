@@ -48,19 +48,31 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
       return ImmutableList.of();
     }
 
-    Set<CExpression> assumptions = noOverflowAssumptionBuilder.assumptionsForEdge(cfaEdge);
-    if (assumptions.isEmpty()) {
-      return ImmutableList.of(new OverflowState(ImmutableSet.of(), false, prev));
-    }
-
+    boolean nextHasOverflow = prev.nextHasOverflow();
+    int leavingEdgesOfNextState = cfaEdge.getSuccessor().getNumLeavingEdges();
+    Set<CExpression> assumptions;
     ImmutableList.Builder<OverflowState> outStates = ImmutableList.builder();
 
-    for (CExpression assumption : assumptions) {
-      outStates.add(new OverflowState(ImmutableSet.of(mkNot(assumption)), true, prev));
+    if (leavingEdgesOfNextState == 0) {
+      return ImmutableList.of(new OverflowState(ImmutableSet.of(), nextHasOverflow, prev));
     }
 
-    // No overflows <=> all assumptions hold.
-    outStates.add(new OverflowState(assumptions, false, prev));
+    for (int i = 0; i < leavingEdgesOfNextState; i++) {
+      assumptions =
+          noOverflowAssumptionBuilder.assumptionsForEdge(cfaEdge.getSuccessor().getLeavingEdge(i));
+
+      if (assumptions.isEmpty()) {
+        outStates.add(new OverflowState(ImmutableSet.of(), nextHasOverflow, prev));
+        continue;
+      }
+
+      for (CExpression assumption : assumptions) {
+        outStates.add(new OverflowState(ImmutableSet.of(mkNot(assumption)), true, prev));
+      }
+
+      // No overflows <=> all assumptions hold.
+      outStates.add(new OverflowState(assumptions, nextHasOverflow, prev));
+    }
 
     return outStates.build();
   }
@@ -81,7 +93,6 @@ public class OverflowTransferRelation extends SingleEdgeTransferRelation {
       Precision precision)
       throws CPATransferException, InterruptedException {
       OverflowState overflowState = (OverflowState) state;
-      overflowState.updateStatesForPreconditions(otherStates);
       return Collections.singleton(overflowState);
   }
 }

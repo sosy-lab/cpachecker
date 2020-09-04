@@ -26,11 +26,11 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.blocks.BlockPartitioning;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.FlatLatticeDomain;
 import org.sosy_lab.cpachecker.core.defaults.MergeSepOperator;
+import org.sosy_lab.cpachecker.core.defaults.NoOpReducer;
 import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -45,6 +45,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.pcc.ProofChecker;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -89,6 +90,11 @@ public class ARGCPA extends AbstractSingleWrapperCPA
       description =
     "prevent the stop-operator from aborting the stop-check early when it crosses a target state")
   private boolean coverTargetStates = false;
+
+  @Option(
+    secure = true,
+    description = "Enable reduction for nested abstract states when entering or leaving a block abstraction for BAM. The reduction can lead to a higher cache-hit-rate for BAM and a faster sub-analysis for blocks.")
+  private boolean enableStateReduction = true;
 
   private final LogManager logger;
 
@@ -157,7 +163,11 @@ public class ARGCPA extends AbstractSingleWrapperCPA
         cpa instanceof ConfigurableProgramAnalysisWithBAM,
         "wrapped CPA does not support BAM: %s",
         cpa.getClass().getCanonicalName());
-    return new ARGReducer(((ConfigurableProgramAnalysisWithBAM) cpa).getReducer());
+    Reducer nestedReducer =
+        enableStateReduction
+            ? ((ConfigurableProgramAnalysisWithBAM) cpa).getReducer()
+            : NoOpReducer.getInstance();
+    return new ARGReducer(nestedReducer);
   }
 
   @Override

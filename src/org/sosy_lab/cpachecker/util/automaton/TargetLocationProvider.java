@@ -9,9 +9,8 @@
 package org.sosy_lab.cpachecker.util.automaton;
 
 import com.google.common.collect.ImmutableSet;
-
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.Specification;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 
 public interface TargetLocationProvider {
 

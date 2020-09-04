@@ -148,8 +148,7 @@ class BAMCPAStatistics implements Statistics {
 
     // collect data
     StatHist allTimers = new StatHist("time for block");
-    for (Entry<Block, Timer> entry : timeForBlock.entrySet()) {
-      Timer timer = entry.getValue();
+    for (Timer timer : timeForBlock.values()) {
       timer.stopIfRunning();
       allTimers.insertValue(timer.getSumTime().asMillis());
     }

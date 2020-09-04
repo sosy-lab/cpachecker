@@ -294,7 +294,7 @@ class ComputeCoverage:
         else:
             timelimit_prop = ["-setprop", "limits.time.cpu=" + str(timelimit) + "s"]
 
-        return (
+        return (  # noqa: ECE001
             [
                 os.path.join(cpachecker_root, "scripts", "cpa.sh"),
                 "-config",
@@ -825,7 +825,7 @@ def check_args(args, logger):
         sys.exit(0)
 
 
-def main(argv, logger, timer=Timer()):
+def main(argv, logger, timer=Timer()):  # noqa: B008
     parser = create_arg_parser()
     if len(argv) == 0:
         parser.print_help()

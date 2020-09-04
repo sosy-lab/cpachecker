@@ -15,8 +15,8 @@ import com.google.common.base.Equivalence.Wrapper;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.util.ArrayList;
@@ -405,8 +405,8 @@ public class LiveVariablesTransferRelation extends ForwardingTransferRelation<Li
    * @return a Multimap containing the variables that are live at each location
    */
   public Multimap<CFANode, Wrapper<ASimpleDeclaration>> getLiveVariables() {
-    ImmutableMultimap.Builder<CFANode, Wrapper<ASimpleDeclaration>> builder =
-        ImmutableMultimap.builder();
+    ImmutableListMultimap.Builder<CFANode, Wrapper<ASimpleDeclaration>> builder =
+        ImmutableListMultimap.builder();
     for (CFANode node : cfa.getAllNodes()) {
       builder.putAll(node, dataToVars(liveVariables.get(node)));
     }

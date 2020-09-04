@@ -11,7 +11,7 @@ package org.sosy_lab.cpachecker.util.slicing;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.Specification;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 
 /**
  * Interface for program slicers.
