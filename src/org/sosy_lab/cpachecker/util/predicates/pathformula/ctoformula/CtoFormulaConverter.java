@@ -983,7 +983,7 @@ public class CtoFormulaConverter {
 
     BooleanFormula newFormula = bfmgr.and(oldFormula.getFormula(), edgeFormula);
     int newLength = oldFormula.getLength() + 1;
-    return new PathFormula(newFormula, newSsa, newPts, newLength, bfmgr);
+    return new PathFormula(newFormula, newSsa, newPts, newLength);
   }
 
   /**
@@ -1321,7 +1321,10 @@ public class CtoFormulaConverter {
         CFunctionType funcPtrType = (CFunctionType) ((CPointerType) expressionType).getType().getCanonicalType();
         retType = funcPtrType.getReturnType();
       } else {
-        throw new UnrecognizedCodeException("Cannot handle function pointer call with unknown type " + expressionType, edge, funcCallExp);
+        throw new UnrecognizedCodeException(
+            "Cannot handle function pointer call with unknown type " + expressionType,
+            edge,
+            funcCallExp);
       }
       assert retType != null;
     } else {

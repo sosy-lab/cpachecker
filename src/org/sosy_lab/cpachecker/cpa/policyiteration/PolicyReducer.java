@@ -160,7 +160,7 @@ class PolicyReducer implements Reducer {
     BooleanFormula formula = bfmgr.and(stateFormulaConversionManager
         .abstractStateToConstraints(fmgr, aSummaryState, false));
 
-    PathFormula pf = new PathFormula(formula, ssa, pointerTargetSet, 1, fmgr.getBooleanFormulaManager());
+    PathFormula pf = new PathFormula(formula, ssa, pointerTargetSet, 1);
 
     // Fake that the control has come from the entry state.
     PolicyIntermediateState generator = PolicyIntermediateState.of(node, pf, aEntryState);

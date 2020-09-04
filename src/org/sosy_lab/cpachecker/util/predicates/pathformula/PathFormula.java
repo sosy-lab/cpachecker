@@ -14,12 +14,10 @@ import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
-import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -30,22 +28,12 @@ public final class PathFormula implements Serializable {
   private final SSAMap ssa;
   private final int length;
   private final PointerTargetSet pts;
-  private final BooleanFormulaManagerView bfmgr;
-  private final Set<BooleanFormula> booleanFormulas = new HashSet<>();
 
-  public PathFormula(BooleanFormula pf, SSAMap ssa, PointerTargetSet pts,
-      int pLength) {
-    this(pf, ssa, pts, pLength, null);
-  }
-
-  public PathFormula(BooleanFormula pf, SSAMap ssa, PointerTargetSet pts,
-      int pLength, BooleanFormulaManagerView bfmgr) {
+  public PathFormula(BooleanFormula pf, SSAMap ssa, PointerTargetSet pts, int pLength) {
     this.formula = checkNotNull(pf);
     this.ssa = checkNotNull(ssa);
     this.pts = checkNotNull(pts);
     this.length = pLength;
-    this.bfmgr = bfmgr;
-    this.booleanFormulas.addAll(splitBooleanFormula(pf));
   }
 
   public BooleanFormula getFormula() {
@@ -69,28 +57,12 @@ public final class PathFormula implements Serializable {
     return getFormula().toString();
   }
 
-  private Set<BooleanFormula> splitBooleanFormula(BooleanFormula pf) {
-    Set<BooleanFormula> conjunctionSet = bfmgr.toConjunctionArgs(pf, true);
-    HashSet<BooleanFormula> returnSet = new HashSet<>();
-    for (BooleanFormula subFormula : conjunctionSet) {
-      Set<BooleanFormula> disjunctionSet = bfmgr.toDisjunctionArgs(subFormula, true);
-      if (disjunctionSet.size() == 1) {
-        returnSet.addAll(disjunctionSet);
-        continue;
-      }
-      for (BooleanFormula subFormulaDis : disjunctionSet) {
-        returnSet.addAll(splitBooleanFormula(subFormulaDis));
-      }
-    }
-    return returnSet;
-  }
-
   /**
    * Change the constraint associated with the path formula, but keep everything
    * else as is.
    */
   public PathFormula updateFormula(BooleanFormula newConstraint) {
-    return new PathFormula(newConstraint, ssa, pts, length, bfmgr);
+    return new PathFormula(newConstraint, ssa, pts, length);
   }
 
   @Override
@@ -103,25 +75,15 @@ public final class PathFormula implements Serializable {
     }
 
     PathFormula other = (PathFormula)obj;
-    final boolean equalBooleanFormulas =
-        booleanFormulas.containsAll(other.booleanFormulas) || other.booleanFormulas.containsAll(
-            booleanFormulas);
-
     return (length == other.length)
-        && equalBooleanFormulas
+        && formula.equals(other.formula)
         && ssa.equals(other.ssa)
         && pts.equals(other.pts);
   }
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + formula.hashCode();
-    result = prime * result + length;
-    result = prime * result + pts.hashCode();
-    result = prime * result + ssa.hashCode();
-    return result;
+    return Objects.hash(formula, length, pts, ssa);
   }
 
   private Object writeReplace() {
@@ -159,7 +121,7 @@ public final class PathFormula implements Serializable {
     private Object readResolve() {
       FormulaManagerView mgr = GlobalInfo.getInstance().getPredicateFormulaManagerView();
       BooleanFormula formula = mgr.parse(formulaDump);
-      return new PathFormula(formula, ssa, pts, length, null);
+      return new PathFormula(formula, ssa, pts, length);
     }
   }
 }

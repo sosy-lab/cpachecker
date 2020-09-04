@@ -251,7 +251,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
         //setSsaIndex(ssa, Variable.create(NONDET_FLAG_VARIABLE, getNondetType()), lNondetIndex);
         ssa.setIndex(NONDET_FLAG_VARIABLE, NONDET_TYPE, lNondetIndex);
 
-        pf = new PathFormula(edgeFormula, ssa.build(), pf.getPointerTargetSet(), pf.getLength(), bfmgr);
+        pf = new PathFormula(edgeFormula, ssa.build(), pf.getPointerTargetSet(), pf.getLength());
       }
     }
     if (simplifyGeneratedPathFormulas) {
@@ -286,35 +286,26 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
 
   @Override
   public PathFormula makeEmptyPathFormula() {
-    return new PathFormula(bfmgr.makeTrue(),
-                           SSAMap.emptySSAMap(),
-                           PointerTargetSet.emptyPointerTargetSet(),
-                           0, bfmgr);
+    return new PathFormula(
+        bfmgr.makeTrue(), SSAMap.emptySSAMap(), PointerTargetSet.emptyPointerTargetSet(), 0);
   }
 
   @Override
   public PathFormula makeEmptyPathFormula(PathFormula oldFormula) {
-    return new PathFormula(bfmgr.makeTrue(),
-                           oldFormula.getSsa(),
-                           oldFormula.getPointerTargetSet(),
-                           0, bfmgr);
+    return new PathFormula(
+        bfmgr.makeTrue(), oldFormula.getSsa(), oldFormula.getPointerTargetSet(), 0);
   }
 
   @Override
   @Deprecated
   public PathFormula makeNewPathFormula(PathFormula oldFormula, SSAMap m) {
-    return new PathFormula(oldFormula.getFormula(),
-                           m,
-                           oldFormula.getPointerTargetSet(),
-                           oldFormula.getLength(), bfmgr);
+    return new PathFormula(
+        oldFormula.getFormula(), m, oldFormula.getPointerTargetSet(), oldFormula.getLength());
   }
 
   @Override
   public PathFormula makeNewPathFormula(PathFormula oldFormula, SSAMap m, PointerTargetSet pPts) {
-    return new PathFormula(oldFormula.getFormula(),
-        m,
-        pPts,
-        oldFormula.getLength(), bfmgr);
+    return new PathFormula(oldFormula.getFormula(), m, pPts, oldFormula.getLength());
   }
 
   @Override
@@ -351,7 +342,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     final PointerTargetSet newPTS = mergePtsResult.getResult();
     final int newLength = Math.max(pathFormula1.getLength(), pathFormula2.getLength());
 
-    PathFormula out = new PathFormula(newFormula, newSSA.build(), newPTS, newLength, bfmgr);
+    PathFormula out = new PathFormula(newFormula, newSSA.build(), newPTS, newLength);
     if (simplifyGeneratedPathFormulas) {
       out = out.updateFormula(fmgr.simplify(out.getFormula()));
     }
@@ -371,7 +362,7 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
     BooleanFormula otherFormula =  fmgr.instantiate(pOtherFormula, ssa);
     BooleanFormula resultFormula = bfmgr.and(pPathFormula.getFormula(), otherFormula);
     final PointerTargetSet pts = pPathFormula.getPointerTargetSet();
-    return new PathFormula(resultFormula, ssa, pts, pPathFormula.getLength(), bfmgr);
+    return new PathFormula(resultFormula, ssa, pts, pPathFormula.getLength());
   }
 
   @Override
@@ -443,7 +434,11 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             // We expect this situation of one of the children is a target state created by PredicateCPA.
             continue;
           } else {
-            logger.log(Level.WARNING, "ARG branching with more than two outgoing edges at ARG node " + pathElement.getStateId() + ".");
+            logger.log(
+                Level.WARNING,
+                "ARG branching with more than two outgoing edges at ARG node "
+                    + pathElement.getStateId()
+                    + ".");
             return bfmgr.makeTrue();
           }
         }
@@ -455,7 +450,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
             // We expect this situation of one of the children is a target state created by PredicateCPA.
             continue;
           } else {
-            logger.log(Level.WARNING, "ARG branching without AssumeEdge at ARG node " + pathElement.getStateId() + ".");
+            logger.log(
+                Level.WARNING,
+                "ARG branching without AssumeEdge at ARG node " + pathElement.getStateId() + ".");
             return bfmgr.makeTrue();
           }
         }
@@ -473,7 +470,9 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           }
         }
         if (positiveEdge == null || negativeEdge == null) {
-          logger.log(Level.WARNING, "Ambiguous ARG branching at ARG node " + pathElement.getStateId() + ".");
+          logger.log(
+              Level.WARNING,
+              "Ambiguous ARG branching at ARG node " + pathElement.getStateId() + ".");
           return bfmgr.makeTrue();
         }
 
@@ -488,7 +487,8 @@ public class PathFormulaManagerImpl implements PathFormulaManager {
           // it is used without PredicateCPA as well.
           PredicateAbstractState pe = AbstractStates.extractStateByType(pathElement, PredicateAbstractState.class);
           if (pe == null) {
-            logger.log(Level.WARNING, "Cannot find precise error path information without PredicateCPA");
+            logger.log(
+                Level.WARNING, "Cannot find precise error path information without PredicateCPA");
             return bfmgr.makeTrue();
           } else {
             pf = pe.getPathFormula();
