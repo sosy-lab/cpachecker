@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.cpa.slicing;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
@@ -26,8 +27,8 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -269,20 +270,12 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
         Collection<? extends AbstractState> successorSet =
             computeSuccessors(pTransferRelation, state, pPrecision, outgoingEdge);
 
-        if (successorSet.isEmpty()) {
-
+        if (outgoingEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
           criteriaEdges.add(outgoingEdge);
+        }
 
-          outgoingEdge =
-              new BlankEdge(
-                  outgoingEdge.getRawStatement(),
-                  outgoingEdge.getFileLocation(),
-                  outgoingEdge.getPredecessor(),
-                  outgoingEdge.getSuccessor(),
-                  "noop");
-
-          successorSet = computeSuccessors(pTransferRelation, state, pPrecision, outgoingEdge);
-          assert !successorSet.isEmpty() : "No successor after 'noop' edge";
+        if (successorSet.isEmpty()) {
+          return criteriaEdges;
         }
 
         state = Iterables.get(successorSet, 0);
@@ -291,7 +284,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
       } while (!iterator.isPositionWithState());
     }
 
-    return criteriaEdges;
+    return ImmutableSet.of();
   }
 
   private static boolean isFeasible(
@@ -510,7 +503,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
     }
   }
 
-  static final class StateSlicingPrecision {
+  private static final class StateSlicingPrecision {
 
     private final ARGState state;
     private final SlicingPrecision precision;
@@ -529,7 +522,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
     }
   }
 
-  static final class RefinedSlicingPrecision {
+  private static final class RefinedSlicingPrecision {
 
     private final boolean sliceChanged;
     private final Set<StateSlicingPrecision> precisions;
