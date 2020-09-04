@@ -86,8 +86,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException, InterruptedException {
     final Pair<CFAEdge, PathFormula> formulaCacheKey = Pair.of(pEdge, pOldFormula);
     PathFormula result = andFormulaCache.get(formulaCacheKey);
-    // FIXME: remove this temporary workaround (|| pEdge != null)
-    if (result == null || pEdge != null) {
+    if (result == null) {
       TimerWrapper t = pathFormulaComputationTimer.getNewTimer();
       try {
         t.start(); // compute new pathFormula with the operation on the edge
