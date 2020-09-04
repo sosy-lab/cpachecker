@@ -84,12 +84,13 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     totalPrecTime.start();
     try {
       PredicateAbstractState element = (PredicateAbstractState)pElement;
+      // default number of locations is 1, for concurrent programs we can have multiple locations
       final Iterable<CFANode> locations = AbstractStates.extractLocations(fullState);
 
+      // if any location wants to abstract, we compute the abstraction
       for (CFANode location : locations) {
         if (shouldComputeAbstraction(fullState, location, element)) {
           PredicatePrecision precision = (PredicatePrecision) pPrecision;
-
           return computeAbstraction(element, precision, locations, fullState);
         }
       }
