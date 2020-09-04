@@ -157,12 +157,11 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
         invariantFormulas.add(invariant);
       }
     }
+    final BooleanFormula invariant = fmgr.getBooleanFormulaManager().and(invariantFormulas);
 
     // we don't want to add trivially true invariants
-    for (BooleanFormula invariant : invariantFormulas) {
-      if (!fmgr.getBooleanFormulaManager().isTrue(invariant)) {
-        pathFormula = pathFormulaManager.makeAnd(pathFormula, invariant);
-      }
+    if (!fmgr.getBooleanFormulaManager().isTrue(invariant)) {
+      pathFormula = pathFormulaManager.makeAnd(pathFormula, invariant);
     }
 
     // get additional predicates
@@ -198,10 +197,9 @@ public class PredicatePrecisionAdjustment implements PrecisionAdjustment {
     PathFormula newPathFormula = pathFormulaManager.makeEmptyPathFormula(pathFormula);
 
     // initialize path formula with current invariants
-    for (BooleanFormula invariant : invariantFormulas) {
-      if (!fmgr.getBooleanFormulaManager().isTrue(invariant)) {
-        newPathFormula = pathFormulaManager.makeAnd(newPathFormula, invariant);
-      }
+    // we don't want to add trivially true invariants
+    if (!fmgr.getBooleanFormulaManager().isTrue(invariant)) {
+      newPathFormula = pathFormulaManager.makeAnd(newPathFormula, invariant);
     }
 
     PredicateAbstractState state =
