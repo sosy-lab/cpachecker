@@ -22,8 +22,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaEntryList.FormulaEntry;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.LabeledCounterexample.LabeledFormula;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.dependencegraph.Dominance;
-import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
 import org.sosy_lab.cpachecker.util.dependencegraph.MergePoint;
 
 final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
@@ -57,12 +55,10 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
     }
     withoutPrecond.remove(0);
 
-    DomTree<CFANode> tree = Dominance.createDomTree(pCfa.getMainFunction(),
-        node -> CFAUtils.successorsOf(node),
-        node -> CFAUtils.predecessorsOf(node));
-
-
-    MergePoint<CFANode> mergePoints = new MergePoint<>(tree, node -> CFAUtils.successorsOf(node), node -> isAssumeNode(node));
+    MergePoint<CFANode> mergePoints = new MergePoint<>(
+        pCfa.getMainFunction().getExitNode(),
+        CFAUtils::successorsOf,
+        CFAUtils::predecessorsOf);
 
     List<CFANode> path = withoutPrecond.toEdgeList().stream().map(e -> e.getPredecessor()).collect(
         Collectors.toList());
@@ -156,15 +152,12 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
 
     @Override
     public boolean equals(Object pO) {
-      if (this == pO) {
-        return true;
+      if (pO instanceof LabeledFormula) {
+        LabeledFormula that = (LabeledFormula) pO;
+        return entry.equals(that.entry) &&
+            labels.equals(that.labels);
       }
-      if (pO == null || getClass() != pO.getClass()) {
-        return false;
-      }
-      LabeledFormula that = (LabeledFormula) pO;
-      return entry.equals(that.entry) &&
-          labels.equals(that.labels);
+      return false;
     }
 
     @Override
