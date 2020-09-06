@@ -22,9 +22,10 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
  * Abstract Distance Metric
+ *
  * @see Explainer
  */
-public class AbstractDistanceMetric {
+public class AbstractDistanceMetric implements DistanceMetric {
 
   private final DistanceCalculationHelper distanceHelper;
 
@@ -33,6 +34,7 @@ public class AbstractDistanceMetric {
   }
 
   /** Start Method */
+  @Override
   public List<CFAEdge> startDistanceMetric(List<ARGPath> safePaths, ARGPath counterexample) {
     Preconditions.checkNotNull(distanceHelper);
     List<CFAEdge> ce = distanceHelper.cleanPath(counterexample);
@@ -95,7 +97,10 @@ public class AbstractDistanceMetric {
     distances = finalDistances;
 
     // Make sure that distances is not empty
-    Preconditions.checkNotNull(distances);
+    if (distances.isEmpty()) {
+      return null;
+    }
+
     int minimumDistance = Collections.min(distances);
     int index = distances.indexOf(minimumDistance);
 
@@ -119,32 +124,32 @@ public class AbstractDistanceMetric {
     // First find the ARGStates that are mapped to the equivalent CFANode
     // and put them in a List
 
-    // COMPUTATIONS FOR THE COUNTEREXAMPLE
-    for (CFAEdge alignedEdge : alignments.getCounterexample()) {
+    for (int i = 0; i < alignments.getCounterexample().size(); i++) {
+      ARGState argCeState = null;
+      ARGState argSpState = null;
       for (ARGState ceState : ceStates) {
-        if (alignedEdge
+        if (alignments
+            .getCounterexampleElement(i)
             .getPredecessor()
             .equals(
                 AbstractStates.extractStateByType(ceState, AbstractStateWithLocation.class)
                     .getLocationNode())) {
-          stateAlignments.addToCounterexample(ceState);
+          argCeState = ceState;
           break;
         }
       }
-    }
-
-    // COMPUTATIONS FOR THE SAFE PATH
-    for (CFAEdge alignedEdge : alignments.getSafePath()) {
       for (ARGState pathState : pathsStates) {
-        if (alignedEdge
+        if (alignments
+            .getSafePathElement(i)
             .getPredecessor()
             .equals(
                 AbstractStates.extractStateByType(pathState, AbstractStateWithLocation.class)
                     .getLocationNode())) {
-          stateAlignments.addToSafePath(pathState);
+          argSpState = pathState;
           break;
         }
       }
+      stateAlignments.addPair(argCeState, argSpState);
     }
 
     for (int j = 0; j < stateAlignments.getCounterexample().size(); j++) {
@@ -209,14 +214,6 @@ class Alignment<T> {
 
   private List<T> counterexample = new ArrayList<T>();
   private List<T> safePath = new ArrayList<T>();
-
-  public void addToCounterexample(T element) {
-    counterexample.add(element);
-  }
-
-  public void addToSafePath(T element) {
-    safePath.add(element);
-  }
 
   public void addPair(T counterexampleElement, T safePathElement) {
     counterexample.add(counterexampleElement);

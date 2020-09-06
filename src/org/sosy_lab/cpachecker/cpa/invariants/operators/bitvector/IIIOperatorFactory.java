@@ -18,12 +18,10 @@ import org.sosy_lab.cpachecker.cpa.invariants.OverflowEventHandler;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
 
 /**
- * This factory provides operators that can be applied to two bit-vector
- * interval operands, producing another bit-vector interval representing
- * the result of the operation.
+ * This factory provides operators that can be applied to two bit-vector interval operands,
+ * producing another bit-vector interval representing the result of the operation.
  */
-public enum IIIOperatorFactory {
-
+enum IIIOperatorFactory {
   INSTANCE;
 
   public Operator<BitVectorInterval, BitVectorInterval, BitVectorInterval> getAdd(final boolean pAllowSignedWrapAround, final OverflowEventHandler pOverflowEventHandler) {

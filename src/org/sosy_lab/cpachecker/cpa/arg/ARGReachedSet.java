@@ -216,9 +216,10 @@ public class ARGReachedSet {
   }
 
   /**
-   * Safely remove a port of the ARG which has been proved as completely
-   * unreachable. This method takes care of the coverage relationships of the
-   * removed nodes, re-adding covered nodes to the waitlist if necessary.
+   * Safely remove a part of the ARG which has been proved as completely unreachable. This method
+   * takes care of the coverage relationships of the removed nodes, re-adding covered nodes to the
+   * waitlist if necessary.
+   * 
    * @param rootOfInfeasiblePart The root of the subtree to remove.
    */
   public void removeInfeasiblePartofARG(ARGState rootOfInfeasiblePart) {

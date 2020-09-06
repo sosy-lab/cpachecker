@@ -7,13 +7,10 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.core.algorithm.explainer;
 
-import com.google.common.base.Splitter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.Set;
-import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -30,18 +27,12 @@ public class ExplainTool {
    *
    * @param counterexample The counterexample that we want to examine
    * @param closestExecution The closest successful found execution
-   * @param logger For Printing
    */
   public void explainDeltas(
-      List<CFAEdge> counterexample,
-      List<CFAEdge> closestExecution,
-      LogManager logger,
-      CounterexampleInfo ceInfo) {
-    logger.log(Level.INFO, "Explain Tool Started");
-    counterexample = cleanPath(counterexample);
-    closestExecution = cleanPath(closestExecution);
-    List<CFAEdge> ceEdges = cleanPath(counterexample);
-    List<CFAEdge> spEdges = cleanPath(closestExecution);
+      List<CFAEdge> counterexample, List<CFAEdge> closestExecution, CounterexampleInfo ceInfo) {
+    closestExecution = new DistanceCalculationHelper().cleanPath(closestExecution);
+    List<CFAEdge> ceEdges = counterexample;
+    List<CFAEdge> spEdges = new ArrayList<>(closestExecution);
 
     List<CFAEdge> deltasCe = new ArrayList<>();
     List<CFAEdge> deltasSp = new ArrayList<>();
@@ -65,16 +56,6 @@ public class ExplainTool {
     deltasCe = cleanZeros(deltasCe);
     deltasSp = cleanZeros(deltasSp);
 
-    logger.log(Level.INFO, "COUNTEREXAMPLE DIFFERENCES");
-    for (CFAEdge pCFAEdge : deltasCe) {
-      logger.log(Level.INFO, pCFAEdge.getLineNumber() + ": " + pCFAEdge.getDescription());
-    }
-    logger.log(Level.INFO, "-------------------------------------------");
-    logger.log(Level.INFO, "CLOSEST SUCCESSFUL EXECUTION DIFFERENCES");
-    for (CFAEdge pCFAEdge : deltasSp) {
-      logger.log(Level.INFO, pCFAEdge.getLineNumber() + ": " + pCFAEdge.getDescription());
-    }
-
     Alignment<CFAEdge> wasChangedTo = new Alignment<>();
     List<CFAEdge> deleted = new ArrayList<>(deltasCe);
     List<CFAEdge> executed = new ArrayList<>(deltasSp);
@@ -90,33 +71,6 @@ public class ExplainTool {
     }
 
     writeFaults(wasChangedTo, deleted, executed, ceInfo);
-  }
-
-  /**
-   * Filters the Path to STOP at the "__VERIFIER_ASSERT" Node
-   *
-   * @param path The path that we want to filter
-   * @return the same path but without the nodes after the Assertion
-   */
-  private List<CFAEdge> cleanPath(List<CFAEdge> path) {
-    List<CFAEdge> flow = path;
-    List<CFAEdge> filteredEdges = new ArrayList<>();
-
-    // TODO: Review: filteredEdges contain all the Edges of a path up until the Node that VERIFIES
-    // the spec
-    for (int i = 0; i < flow.size(); i++) {
-      if (flow.get(i).getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
-        List<String> code = Splitter.onPattern("\\s*[()]\\s*").splitToList(flow.get(i).getCode());
-        if (!code.isEmpty()) {
-          if (code.get(0).equals("__VERIFIER_assert")) {
-            filteredEdges.add(flow.get(i));
-            return filteredEdges;
-          }
-        }
-      }
-      filteredEdges.add(flow.get(i));
-    }
-    return filteredEdges;
   }
 
   private List<CFAEdge> cleanZeros(List<CFAEdge> path) {
@@ -140,34 +94,43 @@ public class ExplainTool {
       List<CFAEdge> deleted,
       List<CFAEdge> executed,
       CounterexampleInfo ceInfos) {
-    List<Fault> faults = new ArrayList<>();
+    List<FaultInfo> hints = new ArrayList<>();
+    Set<FaultContribution> contributionSet = new HashSet<>();
+    Fault fault;
     for (int i = 0; i < wasChangedTo.getCounterexample().size(); i++) {
-      Set<FaultContribution> contributionSet = new HashSet<>();
       FaultContribution con = new FaultContribution(wasChangedTo.getCounterexampleElement(i));
       contributionSet.add(con);
-      Fault f = new Fault(contributionSet);
-      f.addInfo(FaultInfo.hint(" CHANGED TO: " + wasChangedTo.getSafePathElement(i).getCode()));
-      faults.add(f);
+      hints.add(
+          FaultInfo.hint(
+              "LINE "
+                  + wasChangedTo.getCounterexampleElement(i).getLineNumber()
+                  + " WAS: "
+                  + wasChangedTo.getCounterexampleElement(i).getCode()
+                  + ", CHANGED TO: "
+                  + wasChangedTo.getSafePathElement(i).getCode()));
     }
 
     for (CFAEdge delEdge : deleted) {
-      Set<FaultContribution> contributionSet = new HashSet<>();
       FaultContribution con = new FaultContribution(delEdge);
       contributionSet.add(con);
-      Fault f = new Fault(contributionSet);
-      f.addInfo(FaultInfo.hint("DELETED: " + delEdge.getCode()));
-      faults.add(f);
+      hints.add(
+          FaultInfo.hint("LINE " + delEdge.getLineNumber() + ", DELETED: " + delEdge.getCode()));
     }
 
     for (CFAEdge exEdge : executed) {
-      Set<FaultContribution> contributionSet = new HashSet<>();
       FaultContribution con = new FaultContribution(exEdge);
       contributionSet.add(con);
-      Fault f = new Fault(contributionSet);
-      f.addInfo(FaultInfo.hint("EXECUTED: " + exEdge.getCode()));
-      faults.add(f);
+      hints.add(
+          FaultInfo.hint("LINE " + exEdge.getLineNumber() + ", WAS EXECUTED: " + exEdge.getCode()));
     }
 
+    fault = new Fault(contributionSet);
+    for (FaultInfo hint : hints) {
+      fault.addInfo(hint);
+    }
+
+    List<Fault> faults = new ArrayList<>();
+    faults.add(fault);
     faultInfo(faults, ceInfos);
   }
 }

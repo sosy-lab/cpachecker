@@ -68,6 +68,12 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
   @FileOption(Type.REQUIRED_INPUT_FILE)
   private Path firstStepConfig;
 
+  @Option(
+      secure = true,
+      name = "distanceMetric",
+      description = "The distance metric that ought to be used for the computation of the distance")
+  private String distanceMetric;
+
   private PredicateCPA cpa;
 
   private final ExplainerAlgorithmStatistics stats;
@@ -138,9 +144,6 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
 
     ARGPath targetPath = counterExamples.get(0).getTargetPath();
 
-    // TODO: Review: What was the command ?
-    // ARGPath targetPath = ARGUtils.getOnePathTo(allTargets.get(0));
-
     // TODO: Review: Check that x is not in the Wait-list anymore
     // Find All Safe Nodes
     List<ARGState> safeLeafNodes =
@@ -150,55 +153,27 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
             .filter(x -> !x.isTarget())
             .toList();
 
-    // TODO: Need this ?
-    // Find the Root Node
-    /*ARGState rootNode =
-    from(currentReached)
-        .transform(x -> AbstractStates.extractStateByType(x, ARGState.class))
-        .filter(x -> x.getParents().isEmpty())
-        .toList()
-        .get(0);*/
-
     ARGState rootNode =
-        AbstractStates.extractStateByType(
-            currentReached.getFirstState(),
-            ARGState.class); // (ARGState) currentReached.getFirstState();
+        AbstractStates.extractStateByType(currentReached.getFirstState(), ARGState.class);
 
-    Collection<ARGState> statesOnPathTo;
-
-    // TODO: Generate Path --> Don't need the safe paths
-    // Find all ARGStates that are in the Path
-    List<ARGPath> safePaths = new ArrayList<>();
-    for (ARGState safeLeaf : safeLeafNodes) {
-      statesOnPathTo = ARGUtils.getAllStatesOnPathsTo(safeLeaf);
-      // path reconstruction
-      safePaths = createPath(statesOnPathTo, rootNode);
-    }
-
-    // TODO: Turn back on later
-    // Constructor for the first 2 Techniques
-    ControlFlowDistanceMetric metric =
-        new ControlFlowDistanceMetric(new DistanceCalculationHelper());
     List<CFAEdge> closestSuccessfulExecution = null;
-    // Compare all paths with the CE
-    // Distance Metric No. 1
-    //closestSuccessfulExecution = metric.startDistanceMetric(safePaths, targetPath);
 
-    // Generate the closest path to the CE with respect to the distance metric
-    // Distance Metric No. 2
-    // TODO: Change Descriptions, like Distance Metric No 1,2 etc..
-     //closestSuccessfulExecution = metric.generateClosestSuccessfulExecution(targetPath);
-
-    // create a SOLVER for the 3rd Technique
-    try {
-      Solver solver = cpa.getSolver();
-      BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
-      // Create Distance Metric No. 3
-      AbstractDistanceMetric metric2 =
-          new AbstractDistanceMetric(new DistanceCalculationHelper(bfmgr));
-       closestSuccessfulExecution = metric2.startDistanceMetric(safePaths, targetPath);
-    } catch (Exception pE) {
-      throw new AssertionError(pE);
+    if (distanceMetric.equals("PG")) {
+      startPathGeneration(targetPath, counterExamples.get(0));
+      return status;
+    } else {
+      List<ARGPath> safePaths = findAllSafePaths(safeLeafNodes, rootNode);
+      switch (distanceMetric) {
+        case "ADM":
+          closestSuccessfulExecution = startADM(safePaths, targetPath);
+          break;
+        case "CFDM":
+          closestSuccessfulExecution = startCFDM(safePaths, targetPath);
+          break;
+        default:
+          logger.log(Level.WARNING, "NO DISTANCE METRIC WAS GIVEN");
+          return status;
+      }
     }
 
     if (closestSuccessfulExecution == null) {
@@ -206,61 +181,50 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
       logger.log(Level.INFO, "NO SUCCESSFUL EXECUTION WAS FOUND");
       return status;
     }
-    ExplainTool tool = new ExplainTool();
-    tool.explainDeltas(targetPath.getFullPath(), closestSuccessfulExecution, logger, counterExamples.get(0));
+    new ExplainTool()
+        .explainDeltas(
+            new DistanceCalculationHelper().cleanPath(targetPath.getFullPath()),
+            closestSuccessfulExecution,
+            counterExamples.get(0));
 
     return status;
   }
 
   /**
-   * Find and constructs all Safe Paths Example: When the algorithm constructs the safe path:
-   * [1,2,3,4,5] Condition now: [1,2,3], but "3" has 2 Children (1st: "4" and 2nd "9") Then the
-   * Algorithm creates a new (copy) List: [1,2,3,4] and put this list in the waitList in order to be
-   * examined later. Then adds in the original List the next child [1,2,3,4] and goes on. Terminates
-   * when the Wait List is empty
+   * Find all successful program executions
    *
-   * @param pStatesOnPathTo the ARGStates on the Path
-   * @param root the Beginning of the Path
-   * @return a List with all found safe paths
+   * @param safeLeafNodes the nodes that the successful runs go through
+   * @param rootNode the starting node
+   * @return a list with all the safe paths that have been found
    */
-  private List<ARGPath> createPath(Collection<ARGState> pStatesOnPathTo, ARGState root) {
-    List<ARGPath> paths = new ArrayList<>();
-    List<List<ARGState>> nodeWaitList = new ArrayList<>();
-    nodeWaitList.add(new ArrayList<>());
-    nodeWaitList.get(0).add(root);
-    int currentPathNumber = -1;
-    ARGState currentNode = root;
-    boolean finished = false;
-    for (int i = 0; i < nodeWaitList.size(); i++) {
-      currentPathNumber++;
-      finished = false;
-      currentNode =
-          nodeWaitList.get(currentPathNumber).get(nodeWaitList.get(currentPathNumber).size() - 1);
-      while (!finished) {
-        // FINISH THE CONSTRUCTION OF A WHOLE PATH
-        // Get all children that are actually on this path
-        ImmutableList<ARGState> children =
-            from(currentNode.getChildren()).filter(pStatesOnPathTo::contains).toList();
-        if (children.size() == 1) {
-          nodeWaitList.get(currentPathNumber).add(children.get(0));
-          currentNode = children.get(0);
-        } else if (children.size() > 1) {
-          // create a new path for every path
-          for (int j = 1; j < children.size(); j++) {
-            List<ARGState> anotherPath = new ArrayList<>(nodeWaitList.get(currentPathNumber));
-            anotherPath.add(children.get(j));
-            nodeWaitList.add(anotherPath);
-          }
-          nodeWaitList.get(currentPathNumber).add(children.get(0));
-          currentNode = children.get(0);
-        } else {
-          ARGPath targetPath = new ARGPath(nodeWaitList.get(currentPathNumber));
-          paths.add(targetPath);
-          finished = true;
-        }
-      }
+  private List<ARGPath> findAllSafePaths(List<ARGState> safeLeafNodes, ARGState rootNode) {
+    Collection<ARGState> statesOnPathTo;
+    List<ARGPath> safePaths = new ArrayList<>();
+    for (ARGState safeLeaf : safeLeafNodes) {
+      statesOnPathTo = ARGUtils.getAllStatesOnPathsTo(safeLeaf);
+      // path reconstruction
+      safePaths = new DistanceCalculationHelper(null).createPath(statesOnPathTo, rootNode, true);
     }
-    return paths;
+    return safePaths;
+  }
+
+  private List<CFAEdge> startADM(List<ARGPath> safePaths, ARGPath targetPath) {
+    DistanceMetric metric;
+    Solver solver = cpa.getSolver();
+    BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
+    metric = new AbstractDistanceMetric(new DistanceCalculationHelper(bfmgr));
+    return metric.startDistanceMetric(safePaths, targetPath);
+  }
+
+  private List<CFAEdge> startCFDM(List<ARGPath> safePaths, ARGPath targetPath) {
+    DistanceMetric metric = new ControlFlowDistanceMetric(new DistanceCalculationHelper());
+    return metric.startDistanceMetric(safePaths, targetPath);
+  }
+
+  private List<CFAEdge> startPathGeneration(ARGPath targetPath, CounterexampleInfo ceInfo) {
+    ControlFlowDistanceMetric pathGeneration =
+        new ControlFlowDistanceMetric(new DistanceCalculationHelper());
+    return pathGeneration.generateClosestSuccessfulExecution(targetPath, ceInfo);
   }
 
   private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createAlgorithm(

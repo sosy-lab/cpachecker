@@ -7,18 +7,17 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.core.algorithm.explainer;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Deque;
-import java.util.HashSet;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
+import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-import java.util.Set;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 /**
  * This Class contains 2 different Techniques but through the same distance metric
@@ -27,7 +26,7 @@ import java.util.Set;
  *
  * <p>Technique 1: ControlFlow Metric Technique 2: Closest Successful Execution Generator
  */
-public class ControlFlowDistanceMetric {
+public class ControlFlowDistanceMetric implements DistanceMetric {
 
   private final DistanceCalculationHelper distanceHelper;
 
@@ -35,7 +34,8 @@ public class ControlFlowDistanceMetric {
     this.distanceHelper = pDistanceCalculationHelper;
   }
 
-  List<CFAEdge> startDistanceMetric(List<ARGPath> safePaths, ARGPath counterexample) {
+  @Override
+  public List<CFAEdge> startDistanceMetric(List<ARGPath> safePaths, ARGPath counterexample) {
     List<CFAEdge> ce = distanceHelper.cleanPath(counterexample);
     // find all Branches in Counterexample
     List<CFAEdge> branches_ce = findBranches(ce);
@@ -49,34 +49,68 @@ public class ControlFlowDistanceMetric {
    * @param counterexample is the path of the counterexample
    * @return the new generated Path
    */
-  List<CFAEdge> generateClosestSuccessfulExecution(ARGPath counterexample) {
+  List<CFAEdge> generateClosestSuccessfulExecution(
+      ARGPath counterexample, CounterexampleInfo ceInfo) {
     List<CFAEdge> ce = distanceHelper.cleanPath(counterexample);
     // find all Branches in Counterexample
     List<CFAEdge> branchesCe = findBranches(ce);
     // auto path generator
-    List<List<CFAEdge>> successfulGeneratedPath = pathGenerator(branchesCe, ce);
+    List<List<CFAEdge>> successfulGeneratedPath =
+        pathGenerator(branchesCe, ce, counterexample.asStatesList());
+
+    if (successfulGeneratedPath == null) {
+      return null;
+    }
+
+    successfulGeneratedPath.stream().map(c -> distanceHelper.cleanPath(c));
+
+    Integer a = null;
+
+    int spRootNodeNumber =
+        successfulGeneratedPath != null
+            ? successfulGeneratedPath
+                .get(0)
+                .get(0)
+                .getPredecessor()
+                .getEnteringEdge(0)
+                .getPredecessor()
+                .getNodeNumber()
+            : 0;
+
+    for (int i = 0; i < ce.size(); i++) {
+      if (ce.get(i).getPredecessor().getNodeNumber() == spRootNodeNumber) {
+        a = i;
+        break;
+      }
+    }
+
+    List<CFAEdge> finalCE = new ArrayList<>();
+    for (int i = a; i < ce.size(); i++) {
+      finalCE.add(ce.get(i));
+    }
 
     // check the number of the successfulGeneratedPath
     List<CFAEdge> finalGeneratedPath;
-    if (successfulGeneratedPath == null) {
-      finalGeneratedPath = null;
-    } else if (successfulGeneratedPath.size() == 1) {
+    if (successfulGeneratedPath.size() == 1) {
       finalGeneratedPath = successfulGeneratedPath.get(0);
     } else if (successfulGeneratedPath.size() > 1) {
       finalGeneratedPath = comparePaths(branchesCe, successfulGeneratedPath);
     } else {
       // TODO: Unreachable Branch because of ANT - Compiler and Gitlab Pipeline
       finalGeneratedPath = null;
+      return null;
     }
 
-    return finalGeneratedPath;
+    new ExplainTool().explainDeltas(finalCE, finalGeneratedPath, ceInfo);
+    // return finalGeneratedPath;
+    return null;
   }
 
   /**
    * Compares all the paths and finds the one with the smallest distance from the counterexample
    *
    * @param ce the counterexample branches
-   * @param safePaths list with all the safe paths 
+   * @param safePaths list with all the safe paths
    */
   private List<CFAEdge> comparePaths(List<CFAEdge> ce, List<List<CFAEdge>> safePaths) {
     List<List<CFAEdge>> safePathBranchesList = new ArrayList<>();
@@ -131,20 +165,14 @@ public class ControlFlowDistanceMetric {
   }
 
   // TODO: Check if this is safe
-  /**
-   * Get rid of safe paths with distance = 0
-   *
-   * @return the safe paths with distance != 0
-   */
-  private List<List<Event>> eliminateZeroDistances(
-      List<List<Event>> pDistances, List<List<CFAEdge>> safePaths) {
+  /** Get rid of safe paths with distance = 0 */
+  private void eliminateZeroDistances(List<List<Event>> pDistances, List<List<CFAEdge>> safePaths) {
     for (int i = 0; i < pDistances.size(); i++) {
       if (pDistances.get(i).isEmpty()) {
         pDistances.remove(i);
         safePaths.remove(i);
       }
     }
-    return pDistances;
   }
 
   /**
@@ -158,15 +186,17 @@ public class ControlFlowDistanceMetric {
       return -1;
     }
 
-    List<Event> closest = Collections.min(pDistances, new Comparator<List<Event>>() {
-      @Override
-      public int compare(
-          List<Event> a, List<Event> b) {
-        int aSum = a.stream().map(e -> e.getDistanceFromTheEnd()).reduce(0, Integer::sum);
-        int bSum = b.stream().map(e -> e.getDistanceFromTheEnd()).reduce(0, Integer::sum);
-        return Integer.compare(aSum, bSum);
-      }
-    });
+    List<Event> closest =
+        Collections.min(
+            pDistances,
+            new Comparator<List<Event>>() {
+              @Override
+              public int compare(List<Event> a, List<Event> b) {
+                int aSum = a.stream().map(e -> e.getDistanceFromTheEnd()).reduce(0, Integer::sum);
+                int bSum = b.stream().map(e -> e.getDistanceFromTheEnd()).reduce(0, Integer::sum);
+                return Integer.compare(aSum, bSum);
+              }
+            });
 
     return pDistances.indexOf(closest);
   }
@@ -188,8 +218,7 @@ public class ControlFlowDistanceMetric {
     // MAKING ALIGNMENTS
     for (Event pCEvent : pCEvents) {
       for (int j = 0; j < eventsWaitList.size(); j++) {
-        if (pCEvent.getNode().getNodeNumber()
-            == eventsWaitList.get(j).getNode().getNodeNumber()) {
+        if (pCEvent.getNode().getNodeNumber() == eventsWaitList.get(j).getNode().getNodeNumber()) {
           ceAlignedEvents.add(pCEvent);
           safeAlignedEvents.add(eventsWaitList.get(j));
           // remove the aligned events from the wait-list
@@ -203,9 +232,7 @@ public class ControlFlowDistanceMetric {
     for (Event pCeAlignedEvent : ceAlignedEvents) {
       for (int j = 0; j < safeAlignedEvents.size(); j++) {
         if (pCeAlignedEvent.getLine() == safeAlignedEvents.get(j).getLine()) {
-          if (!pCeAlignedEvent
-              .getStatement()
-              .equals(safeAlignedEvents.get(j).getStatement())) {
+          if (!pCeAlignedEvent.getStatement().equals(safeAlignedEvents.get(j).getStatement())) {
             deltas.add(pCeAlignedEvent);
             safeAlignedEvents.remove(j);
             break;
@@ -240,106 +267,77 @@ public class ControlFlowDistanceMetric {
    * @param ce the actual counterexample path as List of CFAEdges
    * @return the new Generated Path (maybe more than one found)
    */
-  private List<List<CFAEdge>> pathGenerator(List<CFAEdge> pBranchesCE, List<CFAEdge> ce) {
+  private List<List<CFAEdge>> pathGenerator(
+      List<CFAEdge> pBranchesCE, List<CFAEdge> ce, List<ARGState> pARGStates) {
     if (pBranchesCE.isEmpty() || ce.isEmpty()) {
       return null;
     }
-
     // Get the last branch of the counterexample - the one closer to the Error -
     CFAEdge lastBranch = pBranchesCE.get(pBranchesCE.size() - 1);
-    // change the flow of lastBranch
-    int edges = lastBranch.getPredecessor().getNumLeavingEdges();
-
-    if (edges != 2) {
-      return null;
+    for (CFAEdge pCFAEdge : pBranchesCE) {
+      if (pCFAEdge.getPredecessor().getNumLeavingEdges() == 0) {
+        continue;
+      } else if (pCFAEdge.getPredecessor().getNumLeavingEdges() == 2) {
+        if (pCFAEdge.getPredecessor().getLeavingEdge(0).equals(pCFAEdge)) {
+          lastBranch = pCFAEdge.getPredecessor().getLeavingEdge(1);
+        } else {
+          lastBranch = pCFAEdge.getPredecessor().getLeavingEdge(0);
+        }
+      } else {
+        // in case of number of leaving edges >= 3, then:
+        for (int i = 0; i < pCFAEdge.getPredecessor().getNumLeavingEdges(); i++) {
+          if (!pCFAEdge.getPredecessor().getLeavingEdge(i).equals(pCFAEdge)) {
+            lastBranch = pCFAEdge.getPredecessor().getLeavingEdge(i);
+            break;
+          }
+          break;
+        }
+      }
     }
 
-    CFAEdge diff;
-    if (lastBranch.equals(lastBranch.getPredecessor().getLeavingEdge(0))) {
-      diff = lastBranch.getPredecessor().getLeavingEdge(1);
-    } else {
-      diff = lastBranch.getPredecessor().getLeavingEdge(0);
-    }
-
-    return buildNewPath(ce, lastBranch, diff);
+    ARGState lastBranchAsState = findEquivalentState(lastBranch, pARGStates);
+    return buildNewPath(ce, lastBranch, lastBranchAsState);
   }
 
-  /**
-   * Building the closest to the target successful safe path
-   *
-   * @param ce List of the CFAEdges of the counterexample
-   * @param lastBranch the last branch of the Counterexample
-   * @param diff the leaving edge of lastBranch that is the one that we want to explore
-   * @return all the feasible safe paths that were built
-   */
-  private List<List<CFAEdge>> buildNewPath(List<CFAEdge> ce, CFAEdge lastBranch, CFAEdge diff) {
-    assert lastBranch.getEdgeType().equals(CFAEdgeType.AssumeEdge);
-    List<CFAEdge> result = new ArrayList<>();
-    // start building the new path
-    for (CFAEdge pCFAEdge : ce) {
-      if (lastBranch.equals(pCFAEdge)) {
-        result.add(diff);
+  private ARGState findEquivalentState(CFAEdge pCFAEdge, List<ARGState> states) {
+    ARGState finalState = null;
+    for (ARGState state : states) {
+      if (pCFAEdge
+          .getPredecessor()
+          .equals(
+              AbstractStates.extractStateByType(state, AbstractStateWithLocation.class)
+                  .getLocationNode())) {
+        finalState = state;
         break;
       }
-      result.add(pCFAEdge);
     }
+    List<ARGState> a = new ArrayList<>(finalState.getChildren());
+    for (int i = 0; i < finalState.getChildren().size(); i++) {
+      if (!states.contains(a.get(i))) {
+        return a.get(i);
+      }
+    }
+    return null;
+  }
 
+  private List<List<CFAEdge>> buildNewPath(
+      List<CFAEdge> ce, CFAEdge lastBranch, ARGState lastBranchAsState) {
+    assert lastBranch.getEdgeType().equals(CFAEdgeType.AssumeEdge);
+    List<CFAEdge> result = new ArrayList<>();
     // In Case that the last branch has more than one feasible safe paths
     // then this technique finds all of them and returns them in the form
     // of List<List<CFAEdge>>
-    List<List<CFAEdge>> paths = findAllPaths(result);
+    List<ARGPath> paths =
+        distanceHelper.createPath(null, lastBranchAsState, false); // findAllPaths(result);
+    List<List<CFAEdge>> filteredPaths = new ArrayList<>();
 
-    return paths;
-  }
-
-  /**
-   * Finds all outgoing paths from the last branch
-   * @param current the current Path
-   * @return all the found (feasible) Paths
-   */
-  private List<List<CFAEdge>> findAllPaths(List<CFAEdge> current) {
-    List<List<CFAEdge>> paths = new ArrayList<>();
-    paths.add(current);
-    // is the last
-    List<CFAEdge> currentPath = paths.get(0);
-    CFAEdge currentEdge;
-
-    for (int i = 0; i < paths.size(); i++) {
-      currentPath = paths.get(i);
-      currentEdge = currentPath.get(currentPath.size() - 1);
-
-      Set<CFANode> visited = new HashSet<>();
-      visited.add(currentEdge.getPredecessor());
-      Deque<CFAEdge> waitList = new ArrayDeque<>();
-      waitList.add(currentEdge);
-
-      while (!waitList.isEmpty()) {
-        CFANode successor = waitList.pop().getSuccessor();
-        if (visited.contains(successor)) {
-          continue;
-        }
-        if (successor.getNumLeavingEdges() == 1) {
-          currentPath.add(successor.getLeavingEdge(0));
-          waitList.add(successor.getLeavingEdge(0));
-        } else if (successor.getNumLeavingEdges() == 2) {
-          List<CFAEdge> extra = new ArrayList<>(currentPath);
-          extra.add(successor.getLeavingEdge(1));
-          paths.add(extra);
-          currentPath.add(successor.getLeavingEdge(0));
-          waitList.add(successor.getLeavingEdge(0));
-        }
-        visited.add(successor);
+    for (ARGPath path : paths) {
+      if (!path.getLastState().isTarget()) {
+        filteredPaths.add(path.getFullPath());
       }
     }
 
-    // Feasibility Check
-    List<List<CFAEdge>> finalList = new ArrayList<>();
-    for (int i = 0; i < paths.size(); i++) {
-      if (!isTarget(paths.get(i))) {
-        finalList.add(paths.get(i));
-      }
-    }
-    return finalList;
+    return filteredPaths;
   }
 
   /**
@@ -349,8 +347,8 @@ public class ControlFlowDistanceMetric {
    * @return true if it has no target states, otherwise false
    */
   private boolean isTarget(List<CFAEdge> list) {
-    for (int i = 0; i < list.size(); i++) {
-      if (list.get(i).getDescription().equals("Label: ERROR")) {
+    for (CFAEdge pCFAEdge : list) {
+      if (pCFAEdge.getDescription().equals("Label: ERROR")) {
         return true;
       }
     }
