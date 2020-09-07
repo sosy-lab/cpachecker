@@ -32,8 +32,11 @@ public class StatisticsTransferRelation extends SingleEdgeTransferRelation {
     StatisticsState state = (StatisticsState) pState;
     CFANode node = state.getLocationNode();
     if (pCfaEdge != null) {
-      if (CFAUtils.allLeavingEdges(node).contains(pCfaEdge)) {
-        return Collections.singleton(state.nextState(pCfaEdge));
+      for (CFAEdge leavingEdge : CFAUtils.allLeavingEdges(node)) {
+        if (leavingEdge.getPredecessor().equals(pCfaEdge.getPredecessor())
+            && leavingEdge.getSuccessor().equals(pCfaEdge.getSuccessor())) {
+          return Collections.singleton(state.nextState(pCfaEdge));
+        }
       }
       return ImmutableSet.of();
     }
