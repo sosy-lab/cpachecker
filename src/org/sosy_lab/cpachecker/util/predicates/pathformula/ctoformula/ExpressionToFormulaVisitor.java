@@ -652,36 +652,56 @@ public class ExpressionToFormulaVisitor
         promoted = conv.machineModel.applyIntegerPromotion(promoted);
       }
         Formula operandFormula = toFormula(operand);
-        operandFormula =
-            conv.makeFormulaTypeCast(
-                conv.getFormulaTypeFromCType(promoted),
-                t,
-                operandFormula,
-                ssa,
-                constraints);
-      operandFormula = conv.makeCast(t, promoted, operandFormula, constraints, edge);
+        if (!conv.options.useVariableClassification()) {
+          operandFormula = conv.makeCast(t, promoted, operandFormula, constraints, edge);
+        }
       Formula ret;
       if (op == UnaryOperator.MINUS) {
+          // Minus cannot handle BooleanFormulas
+          if (forceFormulaType.isPresent()) {
+            if (forceFormulaType.get().isBooleanType()) {
+              operandFormula =
+                  conv.makeFormulaTypeCast(
+                      FormulaType.IntegerType,
+                      promoted,
+                      operandFormula,
+                      ssa,
+                      constraints);
+            }
+          }
         ret = mgr.makeNegate(operandFormula);
       } else {
         assert op == UnaryOperator.TILDE
               : "This case should be impossible because of switch";
+          // Tilde cannot handle handle IntegerFormulas
+          if (forceFormulaType.isPresent()) {
+            if (forceFormulaType.get().isIntegerType()) {
+              operandFormula =
+                  conv.makeFormulaTypeCast(
+                      conv.getFormulaTypeFromCType(promoted),
+                      promoted,
+                      operandFormula,
+                      ssa,
+                      constraints);
+            }
+          }
         ret = mgr.makeNot(operandFormula);
       }
-
         CType returnType = exp.getExpressionType();
         FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(returnType);
-      if (!returnFormulaType.equals(mgr.getFormulaType(ret))) {
-          ret = conv.makeFormulaTypeCast(returnFormulaType, promoted, ret, ssa, constraints);
-        ret = conv.makeCast(t, returnType, ret, constraints, edge);
+        // If we use variableClassification the desired final FormulaType
+        // has already been used since toFormula was called.
+        if (!conv.options.useVariableClassification()) {
+          if (!returnFormulaType.equals(mgr.getFormulaType(ret))) {
+            ret = conv.makeCast(t, returnType, ret, constraints, edge);
+          }
+          assert returnFormulaType.equals(mgr.getFormulaType(ret)) : "Returntype "
+              + returnFormulaType
+              + " and Formulatype "
+              + mgr.getFormulaType(ret)
+              + " do not match in visit(CUnaryExpression) for "
+              + exp;
       }
-          assert returnFormulaType.equals(mgr.getFormulaType(ret))
-              : "Returntype "
-                  + returnFormulaType
-                  + " and Formulatype "
-                  + mgr.getFormulaType(ret)
-                  + " do not match in visit(CUnaryExpression) for "
-                  + exp;
       return ret;
     }
 
