@@ -26,17 +26,17 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 public class WeavingVariable {
   public WeavingVariable(
       CVariableDeclaration pVarDecl,
-      CExpressionAssignmentStatement pIncrement,
+      CExpressionAssignmentStatement pAssignment,
       CExpression pAssumption,
       int pAssumptionValue) {
     this.varDecl = pVarDecl;
-    this.increment = pIncrement;
+    this.assignment = pAssignment;
     this.assumption = pAssumption;
     assumptionValue = pAssumptionValue;
   }
 
   CVariableDeclaration varDecl;
-  CExpressionAssignmentStatement increment;
+  CExpressionAssignmentStatement assignment;
   CExpression assumption;
   int assumptionValue;
 
@@ -48,8 +48,8 @@ public class WeavingVariable {
     return varDecl;
   }
 
-  public CExpressionAssignmentStatement getIncrement() {
-    return increment;
+  public CExpressionAssignmentStatement getAssignment() {
+    return assignment;
   }
 
   public CExpression getAssumption() {

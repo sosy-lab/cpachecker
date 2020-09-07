@@ -34,11 +34,12 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.interfaces.Targetable;
+import org.sosy_lab.cpachecker.cpa.location.WeavingState;
 import org.sosy_lab.cpachecker.cpa.location.WeavingType;
 import org.sosy_lab.cpachecker.cpa.location.WeavingVariable;
 import org.sosy_lab.cpachecker.util.Pair;
 
-public class MultiGoalState implements AbstractState, Targetable, Graphable {
+public class MultiGoalState implements AbstractState, Targetable, Graphable, WeavingState {
 
   protected ImmutableSet<CFAEdgesGoal> coveredGoals;
   protected ImmutableSet<Pair<WeavingVariable, WeavingType>> variablesToWeave;
@@ -294,14 +295,17 @@ public class MultiGoalState implements AbstractState, Targetable, Graphable {
     return goalStates;
   }
 
+  @Override
   public boolean needsWeaving() {
     return !getEdgesToWeave().isEmpty();
   }
 
+  @Override
   public ImmutableSet<Pair<WeavingVariable, WeavingType>> getEdgesToWeave() {
     return variablesToWeave;
   }
 
+  @Override
   public void addWeavedEdge(CFAEdge pWeaveEdge) {
     weavedEdges.add(pWeaveEdge);
   }

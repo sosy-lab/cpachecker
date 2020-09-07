@@ -191,7 +191,7 @@ public class MutliGoalTransferRelation extends SingleEdgeTransferRelation {
           for (Entry<PartialPath, PathState> entry : pathStates.entrySet()) {
             // needs weaving for goal edges as soon as negated paths are present
             if (entry.getKey().acceptsEdge(pCfaEdge, entry.getValue().getIndex())) {
-              edgesToWeave.add(Pair.of(getWeavedVariable(entry.getKey()), WeavingType.INCREMENT));
+              edgesToWeave.add(Pair.of(getWeavedVariable(entry.getKey()), WeavingType.ASSIGNMENT));
               pathStates.put(
                   entry.getKey(),
                   new PathState(entry.getValue().getIndex() + 1, entry.getValue().isPathFound()));
@@ -203,7 +203,7 @@ public class MutliGoalTransferRelation extends SingleEdgeTransferRelation {
       }
     }
     if (needsWeaving) {
-      edgesToWeave.add(Pair.of(getWeavedVariable(pCfaEdge), WeavingType.INCREMENT));
+      edgesToWeave.add(Pair.of(getWeavedVariable(pCfaEdge), WeavingType.ASSIGNMENT));
     }
 
     Set<CFAEdgesGoal> finishedGoals =

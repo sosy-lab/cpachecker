@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cpa.multigoal.MultiGoalState;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public class WeaveEdgeFactory {
@@ -157,11 +156,11 @@ public class WeaveEdgeFactory {
               var.getAssumption(),
               false);
 
-    } else if (pair.getSecond() == WeavingType.INCREMENT) {
+    } else if (pair.getSecond() == WeavingType.ASSIGNMENT) {
       weaveEdge =
           new CStatementEdge(
-              "weaved_" + var.getIncrement().toASTString(),
-              var.getIncrement(),
+              "weaved_" + var.getAssignment().toASTString(),
+              var.getAssignment(),
               FileLocation.DUMMY,
               predecessor,
               successor);
@@ -233,10 +232,10 @@ public class WeaveEdgeFactory {
 
   private void
       create(
-          MultiGoalState mgState,
+          WeavingState wState,
           CFAEdge pCfaEdge,
           WeavingCacheKey wck) {
-    Iterator<Pair<WeavingVariable, WeavingType>> iter = mgState.getEdgesToWeave().iterator();
+    Iterator<Pair<WeavingVariable, WeavingType>> iter = wState.getEdgesToWeave().iterator();
     // TODO important to weave NEGATEDASSUMPTION last!
     List<CFAEdge> weavedEdges = new ArrayList<>();
     AFunctionDeclaration function = pCfaEdge.getPredecessor().getFunction();
@@ -272,20 +271,20 @@ public class WeaveEdgeFactory {
     weavingCache.put(wck, weavedEdges);
   }
 
-  public LocationState create(MultiGoalState mgState, CFAEdge pCfaEdge) {
+  public LocationState create(WeavingState wState, CFAEdge pCfaEdge) {
 
 
     WeavingCacheKey wck =
         new WeavingCacheKey(
             pCfaEdge.getPredecessor(),
             pCfaEdge.getSuccessor(),
-            mgState.getEdgesToWeave());
+            wState.getEdgesToWeave());
     if (!weavingCache.containsKey(wck)) {
       // if (mgState.getEdgesToWeave().asList().get(0).getSecond() == WeavingType.NEGATEDASSUMPTION)
       // {
       // createNegatedEdges(mgState, pCfaEdge, functionName, wck);
       // } else {
-      create(mgState, pCfaEdge, wck);
+      create(wState, pCfaEdge, wck);
       // }
     }
 
@@ -295,7 +294,7 @@ public class WeaveEdgeFactory {
       iter.next();
     }
     while (iter.hasNext()) {
-      mgState.addWeavedEdge(iter.next());
+      wState.addWeavedEdge(iter.next());
     }
 
     return getStateForNode(weavingCache.get(wck).get(0).getSuccessor());

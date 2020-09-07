@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.cpa.multigoal.MultiGoalState;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 
@@ -73,16 +72,16 @@ public class LocationTransferRelation implements TransferRelation {
       @Nullable CFAEdge pCfaEdge,
       Precision pPrecision)
       throws CPATransferException, InterruptedException {
-    MultiGoalState mgState = null;
+    WeavingState weaveableState = null;
     for (AbstractState otherState : pOtherStates) {
-      if (otherState instanceof MultiGoalState) {
-        mgState = (MultiGoalState) otherState;
+      if (otherState instanceof WeavingState) {
+        weaveableState = (WeavingState) otherState;
         break;
       }
     }
-    if (mgState == null || !mgState.needsWeaving()) {
+    if (weaveableState == null || !weaveableState.needsWeaving()) {
       return Collections.singleton(pState);
     }
-    return Collections.singleton(WeaveEdgeFactory.getSingleton().create(mgState, pCfaEdge));
+    return Collections.singleton(WeaveEdgeFactory.getSingleton().create(weaveableState, pCfaEdge));
   }
 }

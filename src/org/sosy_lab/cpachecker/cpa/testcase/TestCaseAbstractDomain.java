@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2019  Dirk Beyer
+ *  Copyright (C) 2007-2020  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,11 +17,25 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package org.sosy_lab.cpachecker.cpa.location;
+package org.sosy_lab.cpachecker.cpa.testcase;
 
-public enum WeavingType {
-  DECLARATION,
-  ASSUMPTION,
-  NEGATEDASSUMPTION,
-  ASSIGNMENT
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+public class TestCaseAbstractDomain implements AbstractDomain {
+
+  @Override
+  public AbstractState join(AbstractState pState1, AbstractState pState2)
+      throws CPAException, InterruptedException {
+    return null;
+  }
+
+  @Override
+  public boolean isLessOrEqual(AbstractState pState1, AbstractState pState2)
+      throws CPAException, InterruptedException {
+    // Disable merging for now
+    return false;
+  }
+
 }

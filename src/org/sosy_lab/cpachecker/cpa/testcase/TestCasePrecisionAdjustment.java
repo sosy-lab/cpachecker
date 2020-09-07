@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2019  Dirk Beyer
+ *  Copyright (C) 2007-2020  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,11 +17,18 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package org.sosy_lab.cpachecker.cpa.location;
+package org.sosy_lab.cpachecker.cpa.testcase;
 
-public enum WeavingType {
-  DECLARATION,
-  ASSUMPTION,
-  NEGATEDASSUMPTION,
-  ASSIGNMENT
+import org.sosy_lab.cpachecker.core.defaults.SimplePrecisionAdjustment;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+public class TestCasePrecisionAdjustment extends SimplePrecisionAdjustment {
+  @Override
+  public Action prec(AbstractState pState, Precision pPrecision) throws CPAException {
+    return Action.CONTINUE;
+  }
+
 }

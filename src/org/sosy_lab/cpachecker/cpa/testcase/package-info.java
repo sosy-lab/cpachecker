@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2019  Dirk Beyer
+ *  Copyright (C) 2007-2018  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,12 +16,13 @@
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
+ *
+ *
+ *  CPAchecker web page:
+ *    http://cpachecker.sosy-lab.org
  */
-package org.sosy_lab.cpachecker.cpa.location;
 
-public enum WeavingType {
-  DECLARATION,
-  ASSUMPTION,
-  NEGATEDASSUMPTION,
-  ASSIGNMENT
-}
+/**
+ * CPA which uses existing test cases to search for already covered test goals
+ */
+package org.sosy_lab.cpachecker.cpa.testcase;
