@@ -117,7 +117,7 @@ public class ExpressionToFormulaVisitor
     if (!conv.options.useVariableClassification()) {
       return conv.makeCast(t, calculationType, f, constraints, edge);
     }
-    if (CTypes.isRealType(calculationType)) {
+    if (!CTypes.isIntegerType(calculationType)) {
       return conv.makeFormulaTypeCast(
           conv.getFormulaTypeFromCType(calculationType),
           t,
