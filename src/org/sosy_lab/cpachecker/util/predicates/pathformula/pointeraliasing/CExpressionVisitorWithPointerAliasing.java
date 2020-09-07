@@ -458,18 +458,22 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
               errorConditions,
               pts,
               regionMgr,
-              Optional.of(conv.getFormulaTypeFromCType(operandType)));
+              Optional.of(conv.getFormulaTypeFromCType(resultType)));
     } else {
       visitor = this;
     }
     if (CTypeUtils.isSimpleType(resultType)) {
-      return Value.ofValue(
-          conv.makeCast(
-              operandType,
-              resultType,
-              visitor.asValueFormula(result, operandType),
-              constraints,
-              edge));
+      if (conv.options.useVariableClassification()) {
+        return Value.ofValue(visitor.asValueFormula(result, operandType));
+      } else {
+        return Value.ofValue(
+            conv.makeCast(
+                operandType,
+                resultType,
+                visitor.asValueFormula(result, operandType),
+                constraints,
+                edge));
+      }
     } else if (CTypes.withoutConst(resultType).equals(CTypes.withoutConst(operandType))) {
       // Special case: conversion of non-scalar type to itself is allowed (and ignored)
       // Change of const modifier is ignored, too.
