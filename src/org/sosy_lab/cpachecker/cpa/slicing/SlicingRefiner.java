@@ -99,8 +99,6 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
       secure = true,
       description =
           "How to refine the slice:\n"
-              + "- CEX_EDGES: Add all counterexample edges and only the dependencies of the target"
-              + " location to the slice.\n"
               + "- CEX_ASSUME_DEPS: Add the dependencies of all counterexample assume edges to the"
               + " slice.\n"
               + "- INFEASIBLE_PREFIX_ASSUME_DEPS: Find an infeasible prefix and add the"
@@ -109,11 +107,6 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   private RefineStrategy refineStrategy = RefineStrategy.INFEASIBLE_PREFIX_ASSUME_DEPS;
 
   private enum RefineStrategy {
-
-    /**
-     * Add all counterexample edges and only the dependencies of the target location to the slice.
-     */
-    CEX_EDGES,
 
     /** Add the dependencies of all counterexample assume edges to the slice. */
     CEX_ASSUME_DEPS,
@@ -447,7 +440,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
           logger.logException(Level.SEVERE, ex, "Computation of slicing criteria edges failed");
         }
 
-      } else {
+      } else if (refineStrategy == RefineStrategy.CEX_ASSUME_DEPS) {
 
         boolean feasible = false;
         try {
@@ -457,12 +450,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
         }
 
         if (!feasible) {
-          if (refineStrategy == RefineStrategy.CEX_ASSUME_DEPS) {
-            criteriaEdges.addAll(cexConstraints);
-          } else {
-            relevantEdges.addAll(
-                innerEdges.stream().filter(Predicates.notNull()).collect(Collectors.toList()));
-          }
+          criteriaEdges.addAll(cexConstraints);
         }
       }
     }
