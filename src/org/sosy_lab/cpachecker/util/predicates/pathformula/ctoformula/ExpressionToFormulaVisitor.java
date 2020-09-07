@@ -1265,7 +1265,16 @@ public class ExpressionToFormulaVisitor
         CExpression parameter = parametersIt.next();
         parameter = conv.makeCastFromArrayToPointerIfNecessary(parameter, formalParameterType);
 
-        Formula argument = toFormula(parameter);
+        ExpressionToFormulaVisitor freshVisitor =
+            new ExpressionToFormulaVisitor(
+                conv,
+                mgr,
+                edge,
+                function,
+                ssa,
+                constraints,
+                Optional.empty());
+        Formula argument = freshVisitor.toFormula(parameter);
         arguments.add(conv.makeCast(parameter.getExpressionType(), formalParameterType, argument, constraints, edge));
       }
       assert !formalParameterTypesIt.hasNext() && !parametersIt.hasNext();
