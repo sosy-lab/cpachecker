@@ -114,8 +114,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       logger.log(Level.ALL, "New path formula is", pathFormula);
 
       // Check whether we should do a SAT check.s
-      // FIXME: remove this temporary workaround (|| pathFormula != null)
-      boolean satCheck = shouldDoSatCheck(edge, pathFormula) || pathFormula != null;
+      boolean satCheck = shouldDoSatCheck(edge, pathFormula);
       logger.log(Level.FINEST, "Handling non-abstraction location",
           (satCheck ? "with satisfiability check" : ""));
 
