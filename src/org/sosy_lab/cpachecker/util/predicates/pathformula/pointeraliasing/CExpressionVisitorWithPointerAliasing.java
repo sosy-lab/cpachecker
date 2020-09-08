@@ -332,14 +332,19 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
             errorConditions,
             pts,
             regionMgr,
-            Optional.of(typeHandler.getPointerType()));
-    final Formula index =
-        conv.makeCast(
-            subscriptType,
-            CPointerType.POINTER_TO_VOID,
-            visitor.asValueFormula(subscript.accept(this), subscriptType),
-            constraints,
-            edge);
+            Optional.of(conv.voidPointerFormulaType));
+    final Formula index;
+    if (conv.options.useVariableClassification()) {
+      index = visitor.asValueFormula(subscript.accept(visitor), subscriptType);
+    } else {
+      index =
+          conv.makeCast(
+              subscriptType,
+              CPointerType.POINTER_TO_VOID,
+              visitor.asValueFormula(subscript.accept(this), subscriptType),
+              constraints,
+              edge);
+    }
 
     final Formula coeff =
         conv.fmgr.makeNumber(conv.voidPointerFormulaType, conv.getSizeof(elementType));
