@@ -1409,7 +1409,7 @@ public class ExpressionToFormulaVisitor
     return null;
   }
 
-  private Optional<FormulaType<?>>
+  public Optional<FormulaType<?>>
       determineForceFormulaType(CBinaryExpression exp, CType calculationType) {
     if (!conv.options.useVariableClassification()) {
       return Optional.empty();
