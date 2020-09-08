@@ -424,13 +424,23 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
           pts,
           constraints,
           errorConditions);
-      elementCount =
-          makeCast(
-              arrayType.getLength().getExpressionType(),
-              CPointerType.POINTER_TO_VOID,
-              elementCount,
-              constraints,
-              edge);
+      if (!options.useIntegerAsPointerType()) {
+        elementCount =
+            makeCast(
+                arrayType.getLength().getExpressionType(),
+                CPointerType.POINTER_TO_VOID,
+                elementCount,
+                constraints,
+                edge);
+      } else {
+        elementCount =
+            makeFormulaTypeCast(
+                voidPointerFormulaType,
+                arrayType.getLength().getExpressionType(),
+                elementCount,
+                ssa,
+                constraints);
+      }
       size = fmgr.makeMultiply(elementSize, elementCount);
     } else {
       size = fmgr.makeNumber(voidPointerFormulaType, typeHandler.getSizeof(decayedType));
