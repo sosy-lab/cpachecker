@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
 import java.nio.ByteOrder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
@@ -166,7 +165,7 @@ public class SMTHeapWithByteArray implements SMTHeap {
     checkArgument(n % 8 == 0, "Bitvector size is not an multiplex of 8!");
     int length = bfmgr.getLength(oldVector);
     int offset = 0;
-    Builder<BitvectorFormula> builder = ImmutableList.builder();
+    ImmutableList.Builder<BitvectorFormula> builder = ImmutableList.builder();
     while (offset < length) {
       builder.add(bfmgr.extract(oldVector, offset + 7, offset, true));
       offset = offset + 8;
