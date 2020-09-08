@@ -17,9 +17,9 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -57,7 +57,9 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Precisions;
+import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
+import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.cpachecker.util.slicing.Slicer;
 import org.sosy_lab.cpachecker.util.slicing.SlicerFactory;
 
@@ -91,9 +93,6 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   @Option(secure = true, description = "What kind of restart to do after a successful refinement")
   private RestartStrategy restartStrategy = RestartStrategy.PIVOT;
 
-  private Slicer slicer;
-  private CFA cfa;
-
   @Option(
       secure = true,
       description =
@@ -102,8 +101,22 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
               + " slice.\n"
               + "- INFEASIBLE_PREFIX_ASSUME_DEPS: Find an infeasible prefix and add the"
               + " dependencies of all assume edges that are part of the infeasible prefix to the"
-              + " slice.")
-  private RefineStrategy refineStrategy = RefineStrategy.INFEASIBLE_PREFIX_ASSUME_DEPS;
+              + " slice. Requires a prefix provider ('cpa.slicing.refinement.prefixProvider').")
+  private RefineStrategy refineStrategy = RefineStrategy.CEX_ASSUME_DEPS;
+
+  @Option(
+      secure = true,
+      name = "prefixProvider",
+      required = true,
+      description =
+          "Which prefix provider to use? "
+              + "(give class name) If the package name starts with "
+              + "'org.sosy_lab.cpachecker.', this prefix can be omitted.")
+  @ClassOption(packagePrefix = "org.sosy_lab.cpachecker")
+  private PrefixProvider.Factory prefixProviderFactory;
+
+  private Slicer slicer;
+  private CFA cfa;
 
   private enum RefineStrategy {
 
@@ -134,7 +147,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   private final Precision fullPrecision;
   private final AbstractState initialState;
 
-  private final LogManager logger;
+  private final PrefixProvider prefixProvider;
 
   private Set<Integer> previousTargetPaths = new HashSet<>();
 
@@ -180,8 +193,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
           initialCompositeState,
           parentPrecision,
           parentFullPrecision,
-          config,
-          logger);
+          config);
 
     } catch (InterruptedException pE) {
       throw new AssertionError(pE);
@@ -197,8 +209,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
       final AbstractState pInitialState,
       final WrapperPrecision pCurrentArgPrecision,
       final Precision pFullPrecision,
-      final Configuration pConfig,
-      final LogManager pLogger)
+      final Configuration pConfig)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     pathExtractor = pPathExtractor;
@@ -209,7 +220,18 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
     fullPrecision = pFullPrecision;
     transfer = pTransferRelation;
     initialState = pInitialState;
-    logger = pLogger;
+
+    if (prefixProviderFactory != null) {
+      prefixProvider = prefixProviderFactory.create(pArgCpa);
+    } else {
+      prefixProvider = null;
+      if (refineStrategy == RefineStrategy.INFEASIBLE_PREFIX_ASSUME_DEPS) {
+        throw new InvalidConfigurationException(
+            "Refinement strategy "
+                + RefineStrategy.INFEASIBLE_PREFIX_ASSUME_DEPS
+                + " requires a prefix provider ('cpa.slicing.refinement.prefixProvider')");
+      }
+    }
   }
 
   @Override
@@ -268,40 +290,6 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
       throw new CPAException(
           "Computation of successor failed for checking path: " + ex.getMessage(), ex);
     }
-  }
-
-  private static Set<CFAEdge> computeCriteriaEdges(
-      TransferRelation pTransferRelation,
-      ARGPath pTargetPath,
-      AbstractState pInitialState,
-      Precision pPrecision)
-      throws CPAException, InterruptedException {
-
-    Set<CFAEdge> criteriaEdges = new HashSet<>();
-    AbstractState state = pInitialState;
-
-    for (PathIterator iterator = pTargetPath.fullPathIterator(); iterator.hasNext(); ) {
-      do {
-
-        CFAEdge outgoingEdge = iterator.getOutgoingEdge();
-        Collection<? extends AbstractState> successorSet =
-            computeSuccessors(pTransferRelation, state, pPrecision, outgoingEdge);
-
-        if (outgoingEdge.getEdgeType() == CFAEdgeType.AssumeEdge) {
-          criteriaEdges.add(outgoingEdge);
-        }
-
-        if (successorSet.isEmpty()) {
-          return criteriaEdges;
-        }
-
-        state = Iterables.get(successorSet, 0);
-        iterator.advance();
-
-      } while (!iterator.isPositionWithState());
-    }
-
-    return ImmutableSet.of();
   }
 
   private static boolean isFeasible(
@@ -376,18 +364,16 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
    *
    * @param pReached reached set to update precision for
    * @return the refinement roots in the reached set
-   * @throws RefinementFailedException thrown if the given reached set does not contain target paths
-   *     valid for refinement
    */
   private RefinedSlicingPrecision computeNewPrecision(final ReachedSet pReached)
-      throws RefinementFailedException, InterruptedException {
+      throws InterruptedException, CPAException {
     RefinedSlicingPrecision refinementRootsAndPrecision = getNewPrecision(pReached);
     refinementCount++;
     return refinementRootsAndPrecision;
   }
 
   private RefinedSlicingPrecision getNewPrecision(final ReachedSet pReached)
-      throws RefinementFailedException, InterruptedException {
+      throws InterruptedException, CPAException {
     ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa, refinementCount);
     
     Collection<ARGState> targetStates = pathExtractor.getTargetStates(argReached);
@@ -412,7 +398,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
     return new RefinedSlicingPrecision(changed, newPrecs);
   }
 
-  private Set<CFAEdge> getSlice(ARGPath pPath) throws InterruptedException {
+  private Set<CFAEdge> getSlice(ARGPath pPath) throws InterruptedException, CPAException {
 
     List<CFAEdge> innerEdges = pPath.getInnerEdges();
     List<CFAEdge> criteriaEdges = new ArrayList<>(1);
@@ -428,22 +414,17 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
     } else {
       if (refineStrategy == RefineStrategy.INFEASIBLE_PREFIX_ASSUME_DEPS) {
 
-        try {
-          criteriaEdges.addAll(computeCriteriaEdges(transfer, pPath, initialState, fullPrecision));
-        } catch (CPAException ex) {
-          logger.logException(Level.SEVERE, ex, "Computation of slicing criteria edges failed");
+        List<InfeasiblePrefix> prefixes = prefixProvider.extractInfeasiblePrefixes(pPath);
+        if (!prefixes.isEmpty()) {
+          Set<CFAEdge> prefixAssumeEdges =
+              prefixes.get(0).getPath().getInnerEdges().stream()
+                  .filter(edge -> edge.getEdgeType() == CFAEdgeType.AssumeEdge)
+                  .collect(Collectors.toSet());
+          criteriaEdges.addAll(prefixAssumeEdges);
         }
 
       } else if (refineStrategy == RefineStrategy.CEX_ASSUME_DEPS) {
-
-        boolean feasible = false;
-        try {
-          feasible = isFeasible(pPath);
-        } catch (CPAException ex) {
-          logger.logException(Level.SEVERE, ex, "Feasibility check of counterexample failed");
-        }
-
-        if (!feasible) {
+        if (!isFeasible(pPath)) {
           criteriaEdges.addAll(cexConstraints);
         }
       }
@@ -478,7 +459,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   }
 
   boolean updatePrecisionAndRemoveSubtree(final ReachedSet pReached)
-      throws RefinementFailedException, InterruptedException {
+      throws InterruptedException, CPAException {
     ARGReachedSet argReached = new ARGReachedSet(pReached, argCpa, refinementCount);
     RefinedSlicingPrecision refRootsAndPrecision = computeNewPrecision(pReached);
     if (refRootsAndPrecision.hasSliceChanged()) {
