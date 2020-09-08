@@ -10,6 +10,8 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import java.nio.ByteOrder;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.util.predicates.smt.ArrayFormulaManagerView;
@@ -20,19 +22,19 @@ import org.sosy_lab.java_smt.api.BitvectorFormulaManager;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 
 /**
  * SMT heap representation with one huge byte array.
  */
 public class SMTHeapWithByteArray implements SMTHeap {
 
-  private final ArrayFormulaManagerView afmgr;
-
-  private final FormulaManagerView formulaManager;
-  private final TypeHandlerWithPointerAliasing typeHandler;
-  private final MachineModel model;
-
   private static final String SINGLE_BYTEARRAY_HEAP_NAME = "SINGLE_BYTEARRAY_HEAP_";
+  private final ArrayFormulaManagerView afmgr;
+  private final FormulaManagerView formulaManager;
+  private final BitvectorFormulaManager bfmgr;
+  private final TypeHandlerWithPointerAliasing typeHandler;
+  private final ByteOrder endianness;
 
   public SMTHeapWithByteArray(
       FormulaManagerView pFormulaManager,
@@ -41,7 +43,8 @@ public class SMTHeapWithByteArray implements SMTHeap {
     formulaManager = pFormulaManager;
     afmgr = formulaManager.getArrayFormulaManager();
     typeHandler = pTypeHandle;
-    model = pModel;
+    endianness = pModel.getEndianness();
+    bfmgr = formulaManager.getBitvectorFormulaManager();
   }
 
 
@@ -56,95 +59,38 @@ public class SMTHeapWithByteArray implements SMTHeap {
 
     if (pTargetType.isBitvectorType()) {
 
-      FormulaType<BitvectorFormula> targetType =
-          formulaManager.getFormulaType((BitvectorFormula) value);
+      BitvectorType targetType = (BitvectorType) formulaManager.getFormulaType(value);
       checkArgument(pTargetType.equals(targetType));
-      FormulaType<BitvectorFormula> addressType =
-          formulaManager.getFormulaType((BitvectorFormula) address);
+
+      FormulaType<I> addressType = formulaManager.getFormulaType(address);
       checkArgument(typeHandler.getPointerType().equals(addressType));
 
       return handleBitVectorAssignment(
-          targetType,
-          addressType,
-          oldIndex,
-          newIndex,
-          (BitvectorFormula) address,
-          (BitvectorFormula) value);
+          targetType, addressType, oldIndex, newIndex, address, (BitvectorFormula) value);
     } else {
       throw new UnsupportedOperationException(
           "ByteArray Heap encoding does not support " + pTargetType.toString());
     }
   }
 
-  private BooleanFormula handleBitVectorAssignment(
-      FormulaType<BitvectorFormula> targetType,
-      FormulaType<BitvectorFormula> addressType,
-      int oldIndex,
-      int newIndex,
-      BitvectorFormula address,
-      BitvectorFormula value) {
 
-    BitvectorFormulaManager bfmgr = formulaManager.getBitvectorFormulaManager();
-    int offset = 0;
-    int theN = ((FormulaType.BitvectorType) targetType).getSize();
-
-    // TODO find better way to create FormulaType<Bitvector8> instance
-    FormulaType<BitvectorFormula> bv8TargetType =
-        formulaManager.getFormulaType(bfmgr.makeBitvector(8, 0));
-    ArrayFormula<BitvectorFormula, BitvectorFormula> oldFormula =
-        afmgr.makeArray(SINGLE_BYTEARRAY_HEAP_NAME, oldIndex, addressType, bv8TargetType);
-
-    BitvectorFormula[] splits = splitNBitVectorToByteVectors(value, theN);
-    for (BitvectorFormula formula : splits) {
-      // is this a valid solution? Let JavaSMT Handle address here ... But how?
-      BitvectorFormula addressWithOffset =
-          bfmgr.add(address, bfmgr.makeBitvector(bfmgr.getLength(address), offset++));
-      oldFormula = afmgr.store(oldFormula, addressWithOffset, formula);
-    }
-
-    final ArrayFormula<BitvectorFormula, BitvectorFormula> arrayFormula =
-        afmgr.makeArray(SINGLE_BYTEARRAY_HEAP_NAME, newIndex, addressType, bv8TargetType);
-    return formulaManager.makeEqual(arrayFormula, oldFormula);
-  }
-
-  private <I extends BitvectorFormula> BitvectorFormula[] splitNBitVectorToByteVectors(
-      I oldVector, int n) {
-    checkArgument(n % 8 == 0, "Bitvector size is not an multiplex of 8!");
-
-    BitvectorFormulaManager bfmgr = formulaManager.getBitvectorFormulaManager();
-    int length = bfmgr.getLength(oldVector);
-    int offset = 0;
-    BitvectorFormula[] byteArray = new BitvectorFormula[length / 8];
-    while (offset < length) {
-      int index =
-          model.getEndianness() == ByteOrder.LITTLE_ENDIAN
-              ? byteArray.length - 1 - offset / 8
-              : offset / 8;
-      byteArray[index] = bfmgr.extract(oldVector, offset + 7, offset, true);
-      offset = offset + 8;
-    }
-    return byteArray;
-  }
 
   @Override
-  @SuppressWarnings("unchecked")
   public <I extends Formula, E extends Formula> E makePointerDereference(
       String targetName, FormulaType<E> targetType, I address) {
     final FormulaType<I> addressType = formulaManager.getFormulaType(address);
     checkArgument(typeHandler.getPointerType().equals(addressType));
     if (targetType.isBitvectorType()) {
-      BitvectorFormula bvAddress = (BitvectorFormula) address;
-      // TODO refactor ugly casts
-      final FormulaType<BitvectorFormula> bvAddressType = formulaManager.getFormulaType(bvAddress);
+      final FormulaType<I> bvAddressType = formulaManager.getFormulaType(address);
       checkArgument(typeHandler.getPointerType().equals(addressType));
-      FormulaType<BitvectorFormula> bvTargetType = (FormulaType<BitvectorFormula>) targetType;
+      BitvectorType bvTargetType = (BitvectorType) targetType;
 
-      BitvectorFormulaManager bfmgr = formulaManager.getBitvectorFormulaManager();
       FormulaType<BitvectorFormula> bv8TargetType =
           formulaManager.getFormulaType(bfmgr.makeBitvector(8, 0));
-      final ArrayFormula<BitvectorFormula, BitvectorFormula> arrayFormula =
+      final ArrayFormula<I, BitvectorFormula> arrayFormula =
           afmgr.makeArray(SINGLE_BYTEARRAY_HEAP_NAME, bvAddressType, bv8TargetType);
-      return (E) handleBitVectorDeref(arrayFormula, bvAddress, bvTargetType);
+
+      return handleBitVectorDeref(arrayFormula, address, bvTargetType);
     } else {
       throw new UnsupportedOperationException(
           "ByteArray Heap encoding does not support " + targetType.toString());
@@ -152,47 +98,80 @@ public class SMTHeapWithByteArray implements SMTHeap {
   }
 
   @Override
-  @SuppressWarnings("unchecked")
   public <I extends Formula, V extends Formula> V makePointerDereference(
       String targetName, FormulaType<V> targetType, int ssaIndex, I address) {
     if (targetType.isBitvectorType()) {
-      BitvectorFormula bvAddress = (BitvectorFormula) address;
-      // TODO refactor ugly casts
-      final FormulaType<BitvectorFormula> addressType = formulaManager.getFormulaType(bvAddress);
+      final FormulaType<I> addressType = formulaManager.getFormulaType(address);
       checkArgument(typeHandler.getPointerType().equals(addressType));
-      FormulaType<BitvectorFormula> bvTargetType = (FormulaType<BitvectorFormula>) targetType;
-      BitvectorFormulaManager bfmgr = formulaManager.getBitvectorFormulaManager();
-      FormulaType<BitvectorFormula> bv8TargetType =
-          formulaManager.getFormulaType(bfmgr.makeBitvector(8, 0));
-
-      final ArrayFormula<BitvectorFormula, BitvectorFormula> arrayFormula =
+      BitvectorType bvTargetType = (BitvectorType) targetType;
+      BitvectorType bv8TargetType = FormulaType.getBitvectorTypeWithSize(8);
+      final ArrayFormula<I, BitvectorFormula> arrayFormula =
           afmgr.makeArray(SINGLE_BYTEARRAY_HEAP_NAME, ssaIndex, addressType, bv8TargetType);
-      return (V) handleBitVectorDeref(arrayFormula, bvAddress, bvTargetType);
+      return handleBitVectorDeref(arrayFormula, address, bvTargetType);
     } else {
       throw new UnsupportedOperationException(
           "ByteArray Heap encoding does not support " + targetType.toString());
     }
   }
 
-  private BitvectorFormula handleBitVectorDeref(
-      ArrayFormula<BitvectorFormula, BitvectorFormula> arrayFormula,
-      BitvectorFormula address,
-      FormulaType<BitvectorFormula> targetType) {
+  private <I extends Formula, V extends Formula> V handleBitVectorDeref(
+      ArrayFormula<I, BitvectorFormula> arrayFormula, I address, BitvectorType targetType) {
     int offset = 0;
-    int theN = ((FormulaType.BitvectorType) targetType).getSize();
-    BitvectorFormulaManager bfmgr = formulaManager.getBitvectorFormulaManager();
+    int theN = targetType.getSize();
     BitvectorFormula result = afmgr.select(arrayFormula, address);
 
     while (offset < theN / 8 - 1) {
-      BitvectorFormula addressWithOffset =
-          bfmgr.add(address, bfmgr.makeBitvector(bfmgr.getLength(address), ++offset));
+      I addressWithOffset =
+          formulaManager.makePlus(
+              address, formulaManager.makeNumber(formulaManager.getFormulaType(address), ++offset));
       BitvectorFormula nextBVPart = afmgr.select(arrayFormula, addressWithOffset);
       result =
-          (model.getEndianness() == ByteOrder.LITTLE_ENDIAN)
+          (endianness == ByteOrder.LITTLE_ENDIAN)
               ? bfmgr.concat(result, nextBVPart)
               : bfmgr.concat(nextBVPart, result);
     }
-    return result;
+    @SuppressWarnings("unchecked")
+    V returnVal = (V) result;
+    return returnVal;
   }
 
+  private <I extends Formula> BooleanFormula handleBitVectorAssignment(
+      BitvectorType targetType,
+      FormulaType<I> addressType,
+      int oldIndex,
+      int newIndex,
+      I address,
+      BitvectorFormula value) {
+    int offset = 0;
+    int theN = targetType.getSize();
+
+    FormulaType<BitvectorFormula> bv8TargetType = FormulaType.getBitvectorTypeWithSize(8);
+    ArrayFormula<I, BitvectorFormula> oldFormula =
+        afmgr.makeArray(SINGLE_BYTEARRAY_HEAP_NAME, oldIndex, addressType, bv8TargetType);
+
+    ImmutableList<BitvectorFormula> splits = splitNBitVectorToByteVectors(value, theN);
+    for (BitvectorFormula formula : splits) {
+      I addressWithOffset =
+          formulaManager.makePlus(address, formulaManager.makeNumber(addressType, offset++));
+      oldFormula = afmgr.store(oldFormula, addressWithOffset, formula);
+    }
+
+    final ArrayFormula<I, BitvectorFormula> arrayFormula =
+        afmgr.makeArray(SINGLE_BYTEARRAY_HEAP_NAME, newIndex, addressType, bv8TargetType);
+    return formulaManager.makeEqual(arrayFormula, oldFormula);
+  }
+
+  private <I extends BitvectorFormula> ImmutableList<BitvectorFormula> splitNBitVectorToByteVectors(
+      I oldVector, int n) {
+    checkArgument(n % 8 == 0, "Bitvector size is not an multiplex of 8!");
+    int length = bfmgr.getLength(oldVector);
+    int offset = 0;
+    Builder<BitvectorFormula> builder = ImmutableList.builder();
+    while (offset < length) {
+      builder.add(bfmgr.extract(oldVector, offset + 7, offset, true));
+      offset = offset + 8;
+    }
+    // TODO check whether this can also be used for words > 64 bit
+    return (endianness == ByteOrder.LITTLE_ENDIAN) ? builder.build().reverse() : builder.build();
+  }
 }
