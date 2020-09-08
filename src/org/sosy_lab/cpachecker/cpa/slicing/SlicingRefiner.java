@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.cpa.slicing;
 
 import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -147,51 +146,46 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
     SlicingCPA slicingCPA = CPAs.retrieveCPAOrFail(pCpa, SlicingCPA.class, SlicingRefiner.class);
     LogManager logger = slicingCPA.getLogger();
     Configuration config = slicingCPA.getConfig();
-
-    ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, SlicingRefiner.class);
-    PathExtractor pathExtractor = new PathExtractor(logger, config);
     CFA cfa = slicingCPA.getCfa();
-
-    CFANode initialCfaNode = cfa.getMainFunction();
-    StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
-    ImmutableList<ConfigurableProgramAnalysis> wrappedCpas = slicingCPA.getWrappedCPAs();
-    assert wrappedCpas.size() == 1
-        : "Slicing CPA is not wrapping exactly one CPA, but " + wrappedCpas.size();
-    ConfigurableProgramAnalysis wrapped = wrappedCpas.get(0);
-    CompositeCPA outerCompositeCpa = (CompositeCPA) argCpa.getWrappedCPAs().get(0);
-
-    TransferRelation transferRelation = outerCompositeCpa.getTransferRelation();
-    AbstractState initialCompositeState;
-    Precision wrappedPrecision;
-    WrapperPrecision compositePrecision;
-    try {
-      initialCompositeState = outerCompositeCpa.getInitialState(initialCfaNode, partition);
-      wrappedPrecision = wrapped.getInitialPrecision(initialCfaNode, partition);
-      compositePrecision =
-          (WrapperPrecision) outerCompositeCpa.getInitialPrecision(initialCfaNode, partition);
-    } catch (InterruptedException pE) {
-      throw new AssertionError(pE);
-    }
-
-    Precision fullSlicingPrecision = new FullPrecision(wrappedPrecision);
-    Precision fullArgPrecision =
-        compositePrecision.replaceWrappedPrecision(
-            fullSlicingPrecision, Predicates.instanceOf(SlicingPrecision.class));
-
     ShutdownNotifier shutdownNotifier = slicingCPA.getShutdownNotifier();
     Slicer slicer = new SlicerFactory().create(logger, shutdownNotifier, config, cfa);
 
-    return new SlicingRefiner(
-        pathExtractor,
-        argCpa,
-        slicer,
-        cfa,
-        transferRelation,
-        initialCompositeState,
-        compositePrecision,
-        fullArgPrecision,
-        config,
-        logger);
+    ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, SlicingRefiner.class);
+    PathExtractor pathExtractor = new PathExtractor(logger, config);
+
+    CFANode initialCfaNode = cfa.getMainFunction();
+    StateSpacePartition partition = StateSpacePartition.getDefaultPartition();
+    ConfigurableProgramAnalysis delegateCpa = Iterables.getOnlyElement(slicingCPA.getWrappedCPAs());
+    CompositeCPA parentCompositeCpa =
+        (CompositeCPA) Iterables.getOnlyElement(argCpa.getWrappedCPAs());
+
+    TransferRelation transferRelation = parentCompositeCpa.getTransferRelation();
+    try {
+      AbstractState initialCompositeState =
+          parentCompositeCpa.getInitialState(initialCfaNode, partition);
+      Precision delegatePrecision = delegateCpa.getInitialPrecision(initialCfaNode, partition);
+      WrapperPrecision parentPrecision =
+          (WrapperPrecision) parentCompositeCpa.getInitialPrecision(initialCfaNode, partition);
+      Precision slicingFullPrecision = new FullPrecision(delegatePrecision);
+      Precision parentFullPrecision =
+          parentPrecision.replaceWrappedPrecision(
+              slicingFullPrecision, Predicates.instanceOf(SlicingPrecision.class));
+
+      return new SlicingRefiner(
+          pathExtractor,
+          argCpa,
+          slicer,
+          cfa,
+          transferRelation,
+          initialCompositeState,
+          parentPrecision,
+          parentFullPrecision,
+          config,
+          logger);
+
+    } catch (InterruptedException pE) {
+      throw new AssertionError(pE);
+    }
   }
 
   private SlicingRefiner(
