@@ -3859,7 +3859,7 @@ residualprogram.statistics.size = false
 
 # which strategy to use to generate the residual program
 residualprogram.strategy = CONDITION
-  enum:     [SLICING, CONDITION, CONDITION_PLUS_FOLD, COMBINATION]
+  enum:     [REACHABILITY, SLICING, CONDITION, CONDITION_PLUS_FOLD, COMBINATION]
 
 # How often may a loop be unrolled before it must be folded
 residualprogram.unrollBound = 2
