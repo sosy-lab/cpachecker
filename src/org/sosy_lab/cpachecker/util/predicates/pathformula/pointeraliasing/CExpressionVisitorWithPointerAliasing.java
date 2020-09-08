@@ -682,7 +682,15 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
             function,
             ssa,
             constraints,
-            freshForceFormulaType);
+            freshForceFormulaType) {
+          @Override
+          protected Formula toFormula(CExpression e) throws UnrecognizedCodeException {
+            // recursive application of pointer-aliasing.
+            return asValueFormula(
+                e.accept(CExpressionVisitorWithPointerAliasing.this),
+                typeHandler.getSimplifiedType(e));
+          }
+        };
     final Formula f1 = newVisitor.processOperand(exp.getOperand1(), calculationType, returnType);
     final Formula f2 = newVisitor.processOperand(exp.getOperand2(), calculationType, returnType);
 
