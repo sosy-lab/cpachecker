@@ -107,7 +107,6 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
   @Option(
       secure = true,
       name = "prefixProvider",
-      required = true,
       description =
           "Which prefix provider to use? "
               + "(give class name) If the package name starts with "
