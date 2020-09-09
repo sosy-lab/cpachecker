@@ -102,6 +102,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
   private final Map<String, Path> binaries;
   private final ImmutableList<SubanalysisConfig> subanalyses;
+  private final int availableProcessors;
 
   private final String mpiArgs;
 
@@ -129,7 +130,17 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     }
     subanalyses = subanalysesBuilder.build();
 
-    if (numberProcesses <= 1) {
+    availableProcessors = Runtime.getRuntime().availableProcessors();
+    verify(availableProcessors > 0);
+    logger.logf(Level.INFO, "Found %d logical processors on main node", availableProcessors);
+
+    if (numberProcesses < 1) {
+      // The user has not specified an amount of copies of the program that are to be executed on
+      // the given nodes. A heuristic is therefore computed below.
+
+      numberProcesses = 1;
+      numberProcesses *= availableProcessors;
+
       String numNodesEnv = System.getenv("AWS_BATCH_JOB_NUM_NODES");
       if (!isNullOrEmpty(numNodesEnv)) {
         logger.logf(
@@ -137,25 +148,29 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
             "Env variable 'AWS_BATCH_JOB_NUM_NODES' found with value '%s'. Continuing using this value.",
             numNodesEnv);
         try {
-          numberProcesses = Integer.parseInt(numNodesEnv);
+          numberProcesses *= Integer.parseInt(numNodesEnv);
         } catch (NumberFormatException e) {
           throw new InvalidConfigurationException(
-              "Env variable 'AWS_BATCH_JOB_NUM_NODES' does not contain a valid int value",
+              "Env variable 'AWS_BATCH_JOB_NUM_NODES' does not contain a valid integer value",
               e);
         }
-      } else {
-        numberProcesses = 1;
-        logger.logf(
-            Level.INFO,
-            "No information about the amount of available processes for MPI found. "
-                + "Taking %d as default value.",
-            numberProcesses);
       }
+    } else {
+      logger.logf(
+          Level.INFO,
+          "Number of available processes specified (%d). Not using a heuristic.",
+          numberProcesses);
     }
+
+    if (configFiles.size() < numberProcesses) {
+      numberProcesses = configFiles.size();
+    }
+
+    stats.noOfAlgorithmsExecuted = numberProcesses;
 
     if (hostfile == null) {
       String envVariable = System.getenv("HOST_FILE_PATH");
-      if (envVariable != null) {
+      if (!isNullOrEmpty(envVariable)) {
         hostfile = Path.of(envVariable);
         logger.logf(
             Level.INFO,
@@ -166,19 +181,8 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
             Level.INFO,
             "Neither was a hostfile specified nor is one found in path. "
                 + "Running analysis on the local machine only.");
-
-        if (numberProcesses > 1) {
-          logger.log(
-              Level.WARNING,
-              "No hostfile was given, but a number of available processes was specified. "
-                  + "The sequential execution using MPI is not supported. Setting the "
-                  + "number of processes to 1.");
-          numberProcesses = 1;
-        }
       }
     }
-
-    stats.noOfAlgorithmsExecuted = numberProcesses;
 
     if (hostfile != null) {
       verify(
@@ -279,10 +283,8 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       cmdList.add("-hostfile");
       cmdList.add(hostfile.normalize().toString());
 
-      if (numberProcesses > 1) {
-        cmdList.add("-np");
-        cmdList.add(String.valueOf(numberProcesses));
-      }
+      cmdList.add("-np");
+      cmdList.add(String.valueOf(numberProcesses));
 
       /*
        * The map-by argument uses the following syntax: ppr:N:resource:<options>
