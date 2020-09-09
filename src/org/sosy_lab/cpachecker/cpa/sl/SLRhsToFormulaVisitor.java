@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
@@ -145,40 +146,49 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
 
     Formula sizeValueFormula = null;
     BigInteger size = null;
-    switch (SLMemoryFunction.get(fctExp.getName())) {
+    SLMemoryFunction fCase = SLMemoryFunction.get(fctExp.getName());
+    switch (fCase) {
       case CALLOC:
       case MALLOC: // always initialized with 0
-        sizeValueFormula = params.get(0).accept(this);
-        size = delegate.calculateValue(sizeValueFormula);
+      case ALLOCA:
+        CExpression p0 = params.get(0);
+        if (p0 instanceof CIntegerLiteralExpression) {
+          size = ((CIntegerLiteralExpression) p0).getValue();
+        } else {
+          sizeValueFormula = p0.accept(this);
+          size = delegate.calculateValue(sizeValueFormula);
+        }
         if (size == null) {
           throw new UnrecognizedCodeException(
               "Allocation size passed to malloc could not be determinded.",
               edge);
         }
-        delegate.handleMalloc(loc, size.intValueExact());
+        if (fCase == SLMemoryFunction.ALLOCA) {
+          delegate.handleAlloca(loc, size.intValueExact(), functionName);
+        } else {
+          delegate.handleMalloc(loc, size.intValueExact());
+        }
         break;
+
       case REALLOC:
         Formula oldLoc = params.get(0).accept(this);
-        sizeValueFormula = params.get(1).accept(this);
-        size = delegate.calculateValue(sizeValueFormula);
+        CExpression p1 = params.get(1);
+        if (p1 instanceof CIntegerLiteralExpression) {
+          size = ((CIntegerLiteralExpression) p1).getValue();
+        } else {
+          sizeValueFormula = p1.accept(this);
+          size = delegate.calculateValue(sizeValueFormula);
+        }
         delegate.handleRealloc(loc, oldLoc, size.intValueExact());
         break;
+
       case FREE:
         Formula locToFree = params.get(0).accept(this);
         if (!delegate.handleFree(locToFree)) {
           delegate.addError(SLStateError.INVALID_FREE);
         }
         break;
-      case ALLOCA:
-        sizeValueFormula = params.get(0).accept(this);
-        size = delegate.calculateValue(sizeValueFormula);
-        if (size == null) {
-          throw new UnrecognizedCodeException(
-              "Allocation size passed to alloca could not be determinded.",
-              edge);
-        }
-        delegate.handleAlloca(loc, size.intValueExact(), functionName);
-        break;
+
       default:
         for (CExpression p : params) {
           p.accept(this);
