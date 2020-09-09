@@ -3413,10 +3413,15 @@ merge = "JOIN"
 # List of property-files to be run by the subprocesses.
 mpiAlgorithm.configFiles = no default value
 
+# The MCA parameter ('Modular Component Architecture') is available only on
+# Open MPI frameworks. It might thus need to be disabled if unavailable on
+# the working machine.
+mpiAlgorithm.disableMCAOptions = no default value
+
 # File containing the ip addresses to be used by MPI.
 mpiAlgorithm.hostfile = no default value
 
-# Number of processes to be used by MPI.
+# Max. amount of processes to be used by MPI.
 mpiAlgorithm.numberProcesses = no default value
 
 # Find all violations of each checked property.
