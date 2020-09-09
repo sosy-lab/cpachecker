@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -262,6 +263,16 @@ public class SlicingAbstractionsUtils {
     return getPredicateState(pState).isAbstractionState() || !pState.wasExpanded();
   }
 
+  public static enum AbstractionPosition {
+    START,
+    END;
+
+    public static EnumSet<AbstractionPosition> BOTH = EnumSet.of(START, END);
+    public static EnumSet<AbstractionPosition> NONE = EnumSet.noneOf(AbstractionPosition.class);
+    public static EnumSet<AbstractionPosition> ONLY_START = EnumSet.of(START);
+    public static EnumSet<AbstractionPosition> ONLY_END = EnumSet.of(END);
+  }
+
   /**
    * See {@link SlicingAbstractionsUtils#buildPathFormula(ARGState, ARGState, List, SSAMap,
    * PointerTargetSet, FormulaManagerView, PathFormulaManager, boolean)}
@@ -274,7 +285,7 @@ public class SlicingAbstractionsUtils {
       PointerTargetSet pPts,
       Solver pSolver,
       PathFormulaManager pPfmgr,
-      boolean withInvariants)
+      EnumSet<AbstractionPosition> withInvariants)
       throws CPATransferException, InterruptedException {
     return buildPathFormula(
         start, stop, pSSAMap, pPts, pSolver.getFormulaManager(), pPfmgr, withInvariants);
@@ -304,7 +315,7 @@ public class SlicingAbstractionsUtils {
       PointerTargetSet pPts,
       FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
-      boolean withInvariants)
+      EnumSet<AbstractionPosition> withInvariants)
       throws CPATransferException, InterruptedException {
     List<ARGState> segmentList = SlicingAbstractionsUtils.calculateOutgoingSegments(start).get(stop);
     if (segmentList == null) {
@@ -326,7 +337,7 @@ public class SlicingAbstractionsUtils {
       PointerTargetSet pPts,
       Solver pSolver,
       PathFormulaManager pPfmgr,
-      boolean withInvariants)
+      EnumSet<AbstractionPosition> withInvariants)
       throws CPATransferException, InterruptedException {
     return buildPathFormula(
         start,
@@ -353,7 +364,7 @@ public class SlicingAbstractionsUtils {
       PointerTargetSet pPts,
       FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
-      boolean withInvariants)
+      EnumSet<AbstractionPosition> withInvariants)
       throws CPATransferException, InterruptedException {
 
     final PathFormula pathFormula;
@@ -362,7 +373,7 @@ public class SlicingAbstractionsUtils {
 
     // start with either an empty PathFormula or the abstraction state of start
     // (depending on what the caller specified)
-    if (withInvariants) {
+    if (withInvariants.contains(AbstractionPosition.START)) {
       startFormula = invariantPathFormulaFromState(start, pSSAMap, pPts, pFmgr);
     } else {
       startFormula =
@@ -386,8 +397,8 @@ public class SlicingAbstractionsUtils {
     pfb = buildFormulaBuilder(start, stop, segmentList, pPfmgr);
     PathFormula p = pfb.build(pPfmgr,startFormula);
 
-    //add the abstraction formula of abstraction state if the caller wants this:
-    if (withInvariants) {
+    // add the abstraction formula of abstraction state if the caller wants this:
+    if (withInvariants.contains(AbstractionPosition.END)) {
       BooleanFormula endInvariant = PredicateAbstractState.getPredicateState(stop).getAbstractionFormula().asFormula();
       pathFormula = pPfmgr.makeAnd(p, endInvariant);
     } else {
@@ -486,7 +497,7 @@ public class SlicingAbstractionsUtils {
       Solver pSolver,
       ARGState pRoot,
       List<ARGState> pPath,
-      boolean includePartialInvariants)
+      EnumSet<AbstractionPosition> includePartialInvariants)
       throws CPATransferException, InterruptedException {
 
     return getFormulasForPath(
@@ -502,9 +513,9 @@ public class SlicingAbstractionsUtils {
   /**
    * Retrieve a list of {@link PathFormula}s for a given list of {@link ARGState}s and a starting
    * point.
-   * <p>
-   * See also
-   * {@link SlicingAbstractionsUtils#getFormulasForPath(PathFormulaManager, Solver, ARGState, List, boolean)}
+   *
+   * <p>See also {@link SlicingAbstractionsUtils#getFormulasForPath(PathFormulaManager, Solver,
+   * ARGState, List, EnumSet)}
    */
   public static List<PathFormula> getFormulasForPath(
       PathFormulaManager pfmgr,
@@ -513,7 +524,7 @@ public class SlicingAbstractionsUtils {
       List<ARGState> pPath,
       SSAMap pSSAMap,
       PointerTargetSet pPts,
-      boolean includePartialInvariants)
+      EnumSet<AbstractionPosition> includePartialInvariants)
       throws CPATransferException, InterruptedException {
 
     List<PathFormula> abstractionFormulas = new ArrayList<>();
