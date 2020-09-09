@@ -284,8 +284,17 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
         cmdList.add(String.valueOf(numberProcesses));
       }
 
+      /*
+       * The map-by argument uses the following syntax: ppr:N:resource:<options>
+       *
+       * ppr is short for 'processes per resource'. The above line means "assign N processes to each
+       * resource of type 'resource' available on the host".
+       *
+       * An exhaustive description that explains all options in detail can be found at
+       * https://www.open-mpi.org/doc/v3.0/man1/mpirun.1.php
+       */
       cmdList.add("--map-by");
-      cmdList.add("node");
+      cmdList.add("ppr:" + availableProcessors + ":socket");
     }
 
     cmdList.add(binaries.get(PYTHON3_BIN).toString());
