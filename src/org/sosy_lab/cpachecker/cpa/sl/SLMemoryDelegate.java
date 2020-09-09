@@ -74,7 +74,12 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     solver = pSolver;
     state = pState;
     fm = solver.getFormulaManager();
-    slfm = fm.getSLFormulaManager();
+    if (pProcedure == AllocationCheckProcedure.SL) {
+      slfm = fm.getSLFormulaManager();
+    } else {
+      slfm = null;
+    }
+
     bfm = fm.getBooleanFormulaManager();
     stats = pStats;
     machineModel = pMachineModel;
