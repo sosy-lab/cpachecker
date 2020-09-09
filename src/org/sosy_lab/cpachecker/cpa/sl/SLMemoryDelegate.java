@@ -468,7 +468,6 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
             ProverOptions.GENERATE_MODELS,
             ProverOptions.ENABLE_SEPARATION_LOGIC)) {
       env.addConstraint(makeSLFormula());
-      // env.addConstraint(makeConstraints());
       env.addConstraint(eq);
       stats.startSolverTime();
       if (!env.isUnsat()) {
