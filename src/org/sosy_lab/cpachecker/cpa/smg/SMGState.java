@@ -2216,7 +2216,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         getPredecessorId() == 0
             ? "no parent, initial state"
             : "parent [" + getPredecessorId() + "]";
-    return String.format("SMGState [%d] <-- %s", getId(), parent);
+    return String.format("[%d] with %s", getId(), parent);
   }
 
   @Override
