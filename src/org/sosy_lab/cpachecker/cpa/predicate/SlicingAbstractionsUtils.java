@@ -274,24 +274,6 @@ public class SlicingAbstractionsUtils {
   }
 
   /**
-   * See {@link SlicingAbstractionsUtils#buildPathFormula(ARGState, ARGState, List, SSAMap,
-   * PointerTargetSet, FormulaManagerView, PathFormulaManager, boolean)}
-   */
-  @Deprecated
-  public static PathFormula buildPathFormula(
-      ARGState start,
-      ARGState stop,
-      SSAMap pSSAMap,
-      PointerTargetSet pPts,
-      Solver pSolver,
-      PathFormulaManager pPfmgr,
-      EnumSet<AbstractionPosition> withInvariants)
-      throws CPATransferException, InterruptedException {
-    return buildPathFormula(
-        start, stop, pSSAMap, pPts, pSolver.getFormulaManager(), pPfmgr, withInvariants);
-  }
-
-  /**
    * Create a path formula for a part of the ARG.
    *
    * @param start The (abstraction) state to start at
@@ -325,36 +307,10 @@ public class SlicingAbstractionsUtils {
   }
 
   /**
-   * See {@link SlicingAbstractionsUtils#buildPathFormula(ARGState, ARGState, List, SSAMap,
-   * PointerTargetSet, FormulaManagerView, PathFormulaManager, boolean)}
-   */
-  @Deprecated
-  public static PathFormula buildPathFormula(
-      ARGState start,
-      ARGState stop,
-      List<ARGState> segmentList,
-      SSAMap pSSAMap,
-      PointerTargetSet pPts,
-      Solver pSolver,
-      PathFormulaManager pPfmgr,
-      EnumSet<AbstractionPosition> withInvariants)
-      throws CPATransferException, InterruptedException {
-    return buildPathFormula(
-        start,
-        stop,
-        segmentList,
-        pSSAMap,
-        pPts,
-        pSolver.getFormulaManager(),
-        pPfmgr,
-        withInvariants);
-  }
-
-  /**
    * For better scaling, call this method instead of {@link
-   * SlicingAbstractionsUtils#buildPathFormula(ARGState, ARGState, SSAMap, PointerTargetSet, Solver,
-   * PathFormulaManager, boolean)} if you already have calculated the segmentList (states between
-   * start and stop state).
+   * SlicingAbstractionsUtils#buildPathFormula(ARGState, ARGState, List, SSAMap, PointerTargetSet,
+   * FormulaManagerView, PathFormulaManager, EnumSet)} if you already have calculated the
+   * segmentList (states between start and stop state).
    */
   public static PathFormula buildPathFormula(
       ARGState start,
@@ -535,7 +491,7 @@ public class SlicingAbstractionsUtils {
             pPath.get(0),
             pSSAMap,
             pPts,
-            pSolver,
+            pSolver.getFormulaManager(),
             pfmgr,
             includePartialInvariants);
     abstractionFormulas.add(currentPathFormula);
@@ -548,7 +504,7 @@ public class SlicingAbstractionsUtils {
               pPath.get(i + 1),
               oldPathFormula.getSsa(),
               oldPathFormula.getPointerTargetSet(),
-              pSolver,
+              pSolver.getFormulaManager(),
               pfmgr,
               includePartialInvariants);
       abstractionFormulas.add(currentPathFormula);
