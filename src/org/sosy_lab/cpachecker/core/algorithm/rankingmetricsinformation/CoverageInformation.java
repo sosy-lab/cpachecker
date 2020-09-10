@@ -61,7 +61,8 @@ public class CoverageInformation {
    * line 5: N2 -{[cond == 0]},[2,1]</code> means that this specific Edge has `2` failed cases and
    * only one passed case.
    *
-   * @param paths All paths contains all error paths and passed paths.
+   * @param safePaths all safe paths
+   * @param errorPaths all error paths
    * @return result as edge and its case status.
    */
   public Map<CFAEdge, FaultLocalizationCasesStatus> getCoverageInformation(

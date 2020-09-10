@@ -47,14 +47,14 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.Info
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-enum AlgorithmType {
-  TARANTULA,
-  DSTAR,
-  OCHIAI;
-}
-
 @Options(prefix = "faultLocalization")
 public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvider, Statistics {
+  private enum AlgorithmType {
+    TARANTULA,
+    DSTAR,
+    OCHIAI;
+  }
+
   @Option(
       secure = true,
       name = "type",
@@ -82,8 +82,9 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     totalTime.start();
-    AlgorithmStatus status = algorithm.run(reachedSet);
+    AlgorithmStatus status;
     try {
+      status = algorithm.run(reachedSet);
       FluentIterable<CounterexampleInfo> counterExamples = getCounterexampleInfos(reachedSet);
 
       SafeCase safeCase = new SafeCase(reachedSet);
