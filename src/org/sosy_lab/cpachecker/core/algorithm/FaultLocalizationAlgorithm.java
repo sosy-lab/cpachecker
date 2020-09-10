@@ -38,8 +38,8 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.ErrorInvariantsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.FaultLocalizationAlgorithmInterface;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.MaxSatAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.MaxSatOriginalAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.ModifiedMaxSatAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.OriginalMaxSatAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.SingleUnsatCoreAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.ExpressionConverter;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.InfoType;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.HintRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.MinimalLineDistanceRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.OverallOccurrenceRanking;
@@ -144,10 +145,10 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
 
     switch (algorithmType){
       case "MAXORG":
-        faultAlgorithm = new MaxSatOriginalAlgorithm();
+        faultAlgorithm = new OriginalMaxSatAlgorithm();
         break;
       case "MAXSAT":
-        faultAlgorithm = new MaxSatAlgorithm();
+        faultAlgorithm = new ModifiedMaxSatAlgorithm();
         break;
       case "ERRINV":
         faultAlgorithm = new ErrorInvariantsAlgorithm(pShutdownNotifier, pConfig, logger, memoization);
@@ -287,6 +288,11 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
         }
       }
 
+      if (!tf.isCalculationPossible()) {
+        logger.log(Level.INFO, "Pre- and post-condition are unsatisfiable. No further analysis required. Most likely the variables in your post-condition never change their value.");
+        return;
+      }
+
       Set<Fault> errorIndicators = pAlgorithm.run(context, tf);
 
       if(!algorithmType.equals("ERRINV")) {
@@ -304,6 +310,7 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
         info = new FaultLocalizationInfo(errorIndicators, ranking, pInfo);
       }
       //info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
+      info.getHtmlWriter().hideTypes(InfoType.FIX, InfoType.RANK_INFO);
       info.apply();
       logger.log(
           Level.INFO,

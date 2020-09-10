@@ -27,13 +27,13 @@ public class MergePoint<T> {
    * Find the first merge point of a node with two successors.
    * E.g. find the node that represents an endif statement for a given assume node.
    * @param pExitNode the last node of the underlying graph
-   * @param pTreeSuccessors a function that calculates all successors of a given node.
+   * @param pSuccessors a function that calculates all successors of a given node.
    * @param pPredecessors a function that calculates all predecessors of a given node.
    */
-    public MergePoint(T pExitNode, Function<T, Iterable<T>> pTreeSuccessors, Function<T, Iterable<T>> pPredecessors) {
-      tree = Dominance.createDomTree(pExitNode, pPredecessors, pTreeSuccessors);
+    public MergePoint(T pExitNode, Function<T, Iterable<T>> pSuccessors, Function<T, Iterable<T>> pPredecessors) {
+      tree = Dominance.createDomTree(pExitNode, pPredecessors, pSuccessors);
       treeSuccessors = pPredecessors;
-      actualSuccessors = pTreeSuccessors;
+      actualSuccessors = pSuccessors;
     }
 
   /**
@@ -100,7 +100,7 @@ public class MergePoint<T> {
      * Calculate dominators of a certain node
      *
      * @param id the id of a node
-     * @return the dominators of the node referred to the given id
+     * @return the post-dominators of the node with a certain <code>id</code>
      */
     private Set<Integer> getPostDominators(int id) {
       Set<Integer> dominators = new HashSet<>();

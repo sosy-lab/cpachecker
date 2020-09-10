@@ -23,6 +23,7 @@ import org.sosy_lab.common.JSON;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.InfoType;
 
 public class FaultLocalizationInfo extends CounterexampleInfo {
 

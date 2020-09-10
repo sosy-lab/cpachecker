@@ -128,11 +128,12 @@ public class TraceFormula {
     calculateEntries();
     postcondition = calculatePostCondition();
     precondition = calculatePrecondition();
-    Preconditions.checkArgument(!context.getSolver().isUnsat(bmgr.and(postcondition, precondition)),
-        "Pre- and post-condition are unsatisfiable. Further analysis is not possible. This usually happens if variables that occur in both, the pre- and the post-condition, never change their values.");
     trace = calculateTrace(pType);
   }
 
+  public boolean isCalculationPossible() throws SolverException, InterruptedException {
+   return !context.getSolver().isUnsat(bmgr.and(postcondition, precondition));
+  }
 
   public BooleanFormula getPostcondition() {
     return postcondition;
@@ -299,12 +300,18 @@ public class TraceFormula {
   /**
    * Get all trace elements up to position end
    * @param end cut the trace at position end
-   * @return all elements from the trace up to position end
+   * @return all elements from the trace up to position end as boolean formula
    */
   public BooleanFormula slice(int end) {
     return slice(0, end);
   }
 
+  /**
+   * Get all trace elements from start up to position end
+   * @param start start at position <code>start</code>
+   * @param end cut the trace at position <code>end</code>>
+   * @return all trace elements from start up to position end as boolean formula
+   */
   public BooleanFormula slice(int start, int end) {
     List<BooleanFormula> atoms = entries.toAtomList();
     BooleanFormula slice = bmgr.makeTrue();
@@ -323,27 +330,27 @@ public class TraceFormula {
    * Cannot be undone.
    */
   private void makeFlowSensitive() {
-    // Last statement before exiting the if block is considered to be endif
-    // check if entry in TF is modified???
-
+    //NOTE: can be undone by manually coping the current "entries" and replacing it afterwards.
+    //NOTE: Edges containing the label ENDIF indicate that their predecessor nodes are merge points.
     LabeledCounterexample cex = new LabeledCounterexample(entries, context);
     ArrayDeque<BooleanFormula> conditions = new ArrayDeque<>();
 
     boolean isIf;
     for (LabeledFormula edge : cex) {
-      // if statement is an assume edge that ends another if statement, pop and push.
 
       isIf = false;
       for (FormulaLabel label : edge.getLabels()) {
 
         switch (label) {
           case IF: {
+            // add a condition to the stack
             conditions.push(edge.getEntry().getAtom());
             entries.remove(edge.getEntry());
             isIf = true;
             continue;
           }
           case ENDIF: {
+            // an if statement ended here -> pop ist from the stack
             conditions.pop();
             continue;
           }
@@ -352,6 +359,7 @@ public class TraceFormula {
 
       }
 
+      // if the current edge is not an assume edge replace the atom with the implication
       if(!isIf) {
         BooleanFormula conditionsConjunct = bmgr.and(conditions);
         BooleanFormula implication =

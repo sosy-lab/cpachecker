@@ -33,6 +33,10 @@ public class FormulaContext {
    * @param pSolver the solver for BooleanFormulas
    * @param pManager manager to concatenate CFAEdges to a boolean formula
    * @param pConverter converter to convert formulas to infix notation.
+   * @param pConfiguration configuration settings
+   * @param pLogManager the logger
+   * @param pMutableCFA the mutable CFA
+   * @param pShutdownNotifier the shutdown notifier
    */
   public FormulaContext(Solver pSolver, PathFormulaManagerImpl pManager, ExpressionConverter pConverter, CFA pMutableCFA, LogManager pLogManager, Configuration pConfiguration, ShutdownNotifier pShutdownNotifier) {
     solver = pSolver;

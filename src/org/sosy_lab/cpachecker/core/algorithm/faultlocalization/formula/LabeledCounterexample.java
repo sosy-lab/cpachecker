@@ -10,9 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula;
 
 import com.google.common.collect.ForwardingList;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -62,48 +60,30 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
 
     List<CFANode> path = withoutPrecond.toEdgeList().stream().map(e -> e.getPredecessor()).collect(
         Collectors.toList());
-    List<CFANode> endifs = new ArrayList<>();
-    path.forEach(node -> {
-      if (isAssumeNode(node)) {
-        endifs.add(mergePoints.findMergePoint(node));
-      }
-    });
-
-    Map<CFANode, Integer> depth = new HashMap<>();
-    for (CFANode endif : endifs) {
-      depth.merge(endif, 1, Integer::sum);
+    List<List<FormulaLabel>> labels = new ArrayList<>();
+    for (int i = 0; i < path.size(); i++) {
+      labels.add(new ArrayList<>());
     }
-
-    Map<CFAEdge, LabeledFormula> edgeToLabeledFormula = new HashMap<>();
-    withoutPrecond.forEach(entry -> edgeToLabeledFormula.put(entry.getSelector().getEdge(), new LabeledFormula(entry)));
-
-    for (CFANode node : path) {
+    for (int i = 0; i < path.size(); i++) {
+      CFANode node = path.get(i);
       if (isAssumeNode(node)) {
-        for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-          CFAEdge edge = node.getLeavingEdge(i);
-          if (edgeToLabeledFormula.containsKey(edge)) {
-            edgeToLabeledFormula.get(edge).addLabel(FormulaLabel.IF);
+        labels.get(i).add(FormulaLabel.IF);
+        CFANode mergepoint = mergePoints.findMergePoint(node);
+        for (int j = i; j < path.size(); j++) {
+          if (path.get(j).equals(mergepoint)) {
+            labels.get(j).add(FormulaLabel.ENDIF);
             break;
           }
         }
       }
-
-      if (depth.containsKey(node)) {
-        for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-          CFAEdge edge = node.getLeavingEdge(i);
-          if (edgeToLabeledFormula.containsKey(edge)) {
-            for (int j = 0; j < depth.get(node); j++){
-              edgeToLabeledFormula.get(edge).getLabels().add(0, FormulaLabel.ENDIF);
-            }
-            break;
-          }
-        }
-      }
-
     }
 
-    annotatedCounterexample = withoutPrecond.toEdgeList().stream().map(edge -> edgeToLabeledFormula.get(edge)).collect(
-        Collectors.toList());
+    annotatedCounterexample.clear();
+    for (int i = 0; i < path.size(); i++) {
+      LabeledFormula formula = new LabeledFormula(withoutPrecond.get(i));
+      labels.get(i).forEach(formula::addLabel);
+      annotatedCounterexample.add(formula);
+    }
   }
 
   private boolean isAssumeNode(CFANode node) {
