@@ -856,4 +856,3 @@ VALUE_PAIR *rad_getpass(REQUEST *request) {
 
 	return auth_item;
 }
-
