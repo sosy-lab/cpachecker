@@ -7,19 +7,19 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation;
 
-import java.util.HashSet;
+import com.google.common.collect.ImmutableSet;
 import java.util.List;
-import java.util.Set;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 /** Class represents the safe case for algorithm which works with ranking metric */
-public class SafeCase {
-  private final ReachedSet pReachedSet;
 
-  public SafeCase(ReachedSet pPReachedSet) {
-    this.pReachedSet = pPReachedSet;
+public class SafeCase {
+  private final ReachedSet reachedSet;
+
+  public SafeCase(ReachedSet pReachedSet) {
+    reachedSet = pReachedSet;
   }
   /**
    * Gets safe states (safe leaves) from ARG.
@@ -27,7 +27,7 @@ public class SafeCase {
    * @return Detected safe states.
    */
   private List<ARGState> getSafeStates() {
-    return rootState()
+    return getRootState()
         .getSubgraph()
         .filter(e -> !e.isCovered() && !e.isTarget() && e.getChildren().isEmpty())
         .toList();
@@ -38,13 +38,13 @@ public class SafeCase {
    *
    * @return Detected safe edges.
    */
-  public Set<ARGPath> getSafePaths() {
-    Set<ARGPath> allSafePathsTogether = new HashSet<>();
+  public ImmutableSet<ARGPath> getSafePaths() {
+    ImmutableSet.Builder<ARGPath> allSafePathsTogether = ImmutableSet.builder();
 
     for (ARGState safeState : getSafeStates()) {
-      allSafePathsTogether.addAll(FaultLocalizationUtils.getAllPaths(pReachedSet, safeState));
+      allSafePathsTogether.addAll(FaultLocalizationUtils.getAllPaths(reachedSet, safeState));
     }
-    return allSafePathsTogether;
+    return allSafePathsTogether.build();
   }
 
   /**
@@ -60,7 +60,7 @@ public class SafeCase {
    *
    * @return ARG root state.
    */
-  private ARGState rootState() {
-    return AbstractStates.extractStateByType(pReachedSet.getFirstState(), ARGState.class);
+  private ARGState getRootState() {
+    return AbstractStates.extractStateByType(reachedSet.getFirstState(), ARGState.class);
   }
 }

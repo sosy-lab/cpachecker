@@ -14,11 +14,12 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 /** Class represents the error case for algorithm which works with ranking metric */
-public class FailedCase {
-  private final ReachedSet pReachedSet;
 
-  public FailedCase(ReachedSet pPReachedSet) {
-    this.pReachedSet = pPReachedSet;
+public class FailedCase {
+  private final ReachedSet reachedSet;
+
+  public FailedCase(ReachedSet pReachedSet) {
+    reachedSet = pReachedSet;
   }
   /**
    * Gets all possible error paths.
@@ -28,8 +29,8 @@ public class FailedCase {
   public Set<ARGPath> getErrorPaths() {
     Set<ARGPath> allErrorPathsTogether = new HashSet<>();
 
-    for (ARGState safeState : ARGUtils.getErrorStates(pReachedSet)) {
-      allErrorPathsTogether.addAll(FaultLocalizationUtils.getAllPaths(pReachedSet, safeState));
+    for (ARGState safeState : ARGUtils.getErrorStates(reachedSet)) {
+      allErrorPathsTogether.addAll(FaultLocalizationUtils.getAllPaths(reachedSet, safeState));
     }
     return allErrorPathsTogether;
   }

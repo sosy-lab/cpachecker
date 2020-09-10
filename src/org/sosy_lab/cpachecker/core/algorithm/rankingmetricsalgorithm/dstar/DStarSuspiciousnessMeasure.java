@@ -5,29 +5,29 @@
 // SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
-package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.ochiai;
+package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.dstar;
 
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.SuspiciousBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.SuspiciousnessMeasure;
 
-public class OchiaiSuspiciousBuilder extends SuspiciousBuilder {
+public class DStarSuspiciousnessMeasure extends SuspiciousnessMeasure {
   /**
-   * Calculates suspicious of Ochiai algorithm.
+   * Calculates suspicious of DStar measure. calculateSuspiciousness =
+   * (fail(s)^2/pass(s)+(totalFailed/fail(s))).
    *
    * @param pFailed Is the number of pFailed cases in each edge.
    * @param pPassed Is the number of pPassed cases in each edge.
    * @param totalFailed Is the total number of all possible error paths.
-   * @param totalPassed Is the total number of all possible safe paths. This variable is not used in
-   *     the method and therefore is in case of Ochiai always `0`.
+   * @param totalPassed Is the total number of all possible safe paths.
    * @return Calculated suspicious.
    */
   @Override
-  public double defineSuspicious(
+  public double calculateSuspiciousness(
       double pFailed, double pPassed, double totalFailed, double totalPassed) {
-
-    double denominator = Math.sqrt(totalFailed * (pFailed + pPassed));
+    double numerator = Math.pow(pFailed, 2);
+    double denominator = pPassed + (totalFailed - pFailed);
     if (denominator == 0.0) {
       return 0.0;
     }
-    return pFailed / denominator;
+    return numerator / denominator;
   }
 }

@@ -14,7 +14,7 @@ import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-
+/** Class CoverageInformation represents the coverage of each CFAEdge by each safe/error paths */
 public class CoverageInformation {
   private final FailedCase failedCase;
   private final ShutdownNotifier shutdownNotifier;
@@ -24,14 +24,6 @@ public class CoverageInformation {
     shutdownNotifier = pShutdownNotifier;
   }
 
-  /**
-   * Counts how many failed case / passed case has each Edge. For example <code>
-   * line 5: N2 -{[cond == 0]},[2,1]</code> means that this specific Edge has `2` failed cases and
-   * only one passed case.
-   *
-   * @param paths All paths contains all error paths and passed paths.
-   * @return result as edge and its case status.
-   */
   private Map<CFAEdge, FaultLocalizationCasesStatus> calculateCoverageInformation(
       Set<ARGPath> paths) throws InterruptedException {
     Map<CFAEdge, FaultLocalizationCasesStatus> coverageInfo = new LinkedHashMap<>();
@@ -65,9 +57,12 @@ public class CoverageInformation {
   }
 
   /**
-   * Gets the all information about the edge coverage.
+   * Counts how many failed case / passed case has each Edge. For example <code>
+   * line 5: N2 -{[cond == 0]},[2,1]</code> means that this specific Edge has `2` failed cases and
+   * only one passed case.
    *
-   * @return Covered edges.
+   * @param paths All paths contains all error paths and passed paths.
+   * @return result as edge and its case status.
    */
   public Map<CFAEdge, FaultLocalizationCasesStatus> getCoverageInformation(
       Set<ARGPath> safePaths, Set<ARGPath> errorPaths) throws InterruptedException {

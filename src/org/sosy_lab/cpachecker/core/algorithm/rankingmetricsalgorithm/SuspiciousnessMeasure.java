@@ -18,9 +18,9 @@ import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation.FaultLoc
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 
-public abstract class SuspiciousBuilder {
+public abstract class SuspiciousnessMeasure {
 
-  public Map<FaultInformation, FaultContribution> calculateSuspiciousForCFAEdge(
+  public Map<FaultInformation, FaultContribution> calculateSuspiciousnessForCFAEdge(
       Set<ARGPath> safePaths, Set<ARGPath> errorPaths, CoverageInformation coverageInformation)
       throws InterruptedException {
     int totalSafePaths = safePaths.size();
@@ -32,7 +32,7 @@ public abstract class SuspiciousBuilder {
     coverage.forEach(
         (pCFAEdge, pFaultLocalizationCasesStatus) -> {
           double suspicious =
-              defineSuspicious(
+              calculateSuspiciousness(
                   pFaultLocalizationCasesStatus.getFailedCases(),
                   pFaultLocalizationCasesStatus.getPassedCases(),
                   totalErrorPaths,
@@ -51,6 +51,6 @@ public abstract class SuspiciousBuilder {
     return coverageResult.build();
   }
 
-  public abstract double defineSuspicious(
+  public abstract double calculateSuspiciousness(
       double pFailed, double pPassed, double totalFailed, double totalPassed);
 }

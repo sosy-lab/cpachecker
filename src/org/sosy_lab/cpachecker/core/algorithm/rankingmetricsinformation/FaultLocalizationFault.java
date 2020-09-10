@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation;
 
-import java.util.ArrayList;
+import com.google.common.collect.ImmutableList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -19,20 +19,20 @@ import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 
 public class FaultLocalizationFault {
+
   /**
-   * Determinants faults after rearranged these faults by sorting this by its line and its
+   * Determines faults after rearranged these faults by sorting this by its line and its
    * corresponding edges. Sort these faults by its score reversed, so that the highest score appears
    * first.
    *
-   * @param pRearrangeFaultInformation rearrangedFaults
+   * @param pFaultInfos rearrangedFaults
    * @return list of faults.
    */
-  private List<Fault> faultsDetermination(List<FaultInformation> pRearrangeFaultInformation) {
-    List<Fault> faults = new ArrayList<>();
+  private List<Fault> determineFaults(List<FaultInformation> pFaultInfos) {
+    ImmutableList.Builder<Fault> faults = ImmutableList.builder();
     // sort the faults
-    pRearrangeFaultInformation.sort(
-        Comparator.comparing(FaultInformation::getLineScore).reversed());
-    for (FaultInformation faultInformation : pRearrangeFaultInformation) {
+    pFaultInfos.stream().sorted(Comparator.comparing(FaultInformation::getLineScore).reversed());
+    for (FaultInformation faultInformation : pFaultInfos) {
       Fault fault = new Fault(faultInformation.getHints());
 
       for (FaultContribution faultContribution : faultInformation.getHints()) {
@@ -42,8 +42,9 @@ public class FaultLocalizationFault {
       faults.add(fault);
     }
 
-    return faults;
+    return faults.build();
   }
+
   /**
    * Sums up the ranking information so that each line has many CFAEdges by their highest calculated
    * score
@@ -81,6 +82,6 @@ public class FaultLocalizationFault {
   }
 
   public List<Fault> getFaults(Map<FaultInformation, FaultContribution> getRanked) {
-    return faultsDetermination(sumUpFaults(getRanked));
+    return determineFaults(sumUpFaults(getRanked));
   }
 }

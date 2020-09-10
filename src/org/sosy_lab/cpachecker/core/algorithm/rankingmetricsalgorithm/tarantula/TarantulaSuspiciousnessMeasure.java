@@ -7,11 +7,12 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.tarantula;
 
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.SuspiciousBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.SuspiciousnessMeasure;
 
-public class TarantulaSuspiciousBuilder extends SuspiciousBuilder {
+public class TarantulaSuspiciousnessMeasure extends SuspiciousnessMeasure {
   /**
-   * Calculates suspicious of tarantula algorithm.
+   * Calculates suspicious of tarantula measure
+   * calculateSuspiciousness=(fail(s)/totalFailed)/((fail(s)/totalFailed) + (pass(s)/totalPassed))).
    *
    * @param pFailed Is the number of pFailed cases in each edge.
    * @param pPassed Is the number of pPassed cases in each edge.
@@ -20,7 +21,7 @@ public class TarantulaSuspiciousBuilder extends SuspiciousBuilder {
    * @return Calculated suspicious.
    */
   @Override
-  public double defineSuspicious(
+  public double calculateSuspiciousness(
       double pFailed, double pPassed, double totalFailed, double totalPassed) {
     double numerator = pFailed / totalFailed;
     double denominator = (pPassed / totalPassed) + (pFailed / totalFailed);

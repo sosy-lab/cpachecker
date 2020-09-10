@@ -10,7 +10,11 @@ package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation;
 import java.util.Set;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 
-/** Class represents a special fault where a line has a set of Fault contributions */
+/**
+ * Class represents the fault localization with coverage where each line has a set of Fault
+ * contributions contains the hints of CFAEdges, corresponding code line number and the suspicious
+ * score
+ */
 public class FaultInformation {
 
   private final double lineScore;

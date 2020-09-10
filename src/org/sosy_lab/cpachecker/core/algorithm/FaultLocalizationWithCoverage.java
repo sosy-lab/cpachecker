@@ -24,11 +24,10 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.AlgorithmType;
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.SuspiciousBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.dstar.DStarSuspiciousBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.ochiai.OchiaiSuspiciousBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.tarantula.TarantulaSuspiciousBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.SuspiciousnessMeasure;
+import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.dstar.DStarSuspiciousnessMeasure;
+import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.ochiai.OchiaiSuspiciousnessMeasure;
+import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.tarantula.TarantulaSuspiciousnessMeasure;
 import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation.CoverageInformation;
 import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation.FailedCase;
 import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation.FaultLocalizationFault;
@@ -48,65 +47,69 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.Info
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-@Options(prefix = "FaultLocalization")
-public class FaultLocalizationRankingMetric implements Algorithm, StatisticsProvider, Statistics {
+enum AlgorithmType {
+  TARANTULA,
+  DSTAR,
+  OCHIAI;
+}
+
+@Options(prefix = "faultLocalization")
+public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvider, Statistics {
   @Option(
       secure = true,
       name = "type",
-      values = {"TARANTULA", "OCHIAI", "DSTAR"},
-      description = "please select a ranking algorithm")
+      description = "Ranking algorithm to use for fault localization")
   private AlgorithmType rankingAlgorithmType = AlgorithmType.TARANTULA;
 
-  private final StatTimer totalTime = new StatTimer("Total time");
+  private final StatTimer totalTime = new StatTimer("Total time of fault localization");
   private final Algorithm algorithm;
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
 
-  public FaultLocalizationRankingMetric(
+  public FaultLocalizationWithCoverage(
       Algorithm pAlgorithm,
       ShutdownNotifier pShutdownNotifier,
       final LogManager pLogger,
-      Configuration config) {
+      Configuration config)
+      throws InvalidConfigurationException {
+
     algorithm = pAlgorithm;
     this.shutdownNotifier = pShutdownNotifier;
     this.logger = pLogger;
-    try {
-      config.inject(this);
-    } catch (InvalidConfigurationException e) {
-      pLogger.log(
-          Level.INFO,
-          "Invalid configuration given to "
-              + getClass().getSimpleName()
-              + ". Using defaults instead.");
-    }
+    config.inject(this);
   }
 
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
     totalTime.start();
     AlgorithmStatus status = algorithm.run(reachedSet);
-    FluentIterable<CounterexampleInfo> counterExamples = getCounterexampleInfos(reachedSet);
+    try {
+      FluentIterable<CounterexampleInfo> counterExamples = getCounterexampleInfos(reachedSet);
 
-    SafeCase safeCase = new SafeCase(reachedSet);
-    FailedCase failedCase = new FailedCase(reachedSet);
+      SafeCase safeCase = new SafeCase(reachedSet);
+      FailedCase failedCase = new FailedCase(reachedSet);
 
-    FaultLocalizationInfo info;
-    Set<ARGPath> safePaths = safeCase.getSafePaths();
-    Set<ARGPath> errorPaths = failedCase.getErrorPaths();
+      FaultLocalizationInfo info;
+      Set<ARGPath> safePaths = safeCase.getSafePaths();
+      Set<ARGPath> errorPaths = failedCase.getErrorPaths();
 
-    CoverageInformation coverageInformation = new CoverageInformation(failedCase, shutdownNotifier);
-    List<Fault> faults;
-    faults = getFaultsByOption(safePaths, errorPaths, coverageInformation);
+      CoverageInformation coverageInformation =
+          new CoverageInformation(failedCase, shutdownNotifier);
+      List<Fault> faults;
+      faults = getFaultsByOption(safePaths, errorPaths, coverageInformation);
 
-    logger.log(Level.INFO, faults);
-    for (CounterexampleInfo counterexample : counterExamples) {
-      info = new FaultLocalizationInfo(faults, counterexample);
-      info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
-      info.apply();
+      logger.log(Level.INFO, faults);
+      for (CounterexampleInfo counterexample : counterExamples) {
+        info = new FaultLocalizationInfo(faults, counterexample);
+        info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
+        info.apply();
+      }
+    } finally {
+      totalTime.stop();
     }
-    totalTime.stop();
     return status;
   }
+
   /** Find and return all error labels */
   private FluentIterable<CounterexampleInfo> getCounterexampleInfos(ReachedSet reachedSet) {
     return Optionals.presentInstances(
@@ -115,6 +118,7 @@ public class FaultLocalizationRankingMetric implements Algorithm, StatisticsProv
             .filter(ARGState.class)
             .transform(ARGState::getCounterexampleInformation));
   }
+
   /**
    * Gets list of corresponding faults by option which is set by variable <code>rankingAlgorithmType<code/>
    *
@@ -131,19 +135,19 @@ public class FaultLocalizationRankingMetric implements Algorithm, StatisticsProv
     return new FaultLocalizationFault()
         .getFaults(
             getSuspiciousBuilder(rankingAlgorithmType)
-                .calculateSuspiciousForCFAEdge(pSafePaths, pErrorPaths, pCoverageInformation));
+                .calculateSuspiciousnessForCFAEdge(pSafePaths, pErrorPaths, pCoverageInformation));
   }
 
-  private SuspiciousBuilder getSuspiciousBuilder(AlgorithmType pAlgorithmType) {
+  private SuspiciousnessMeasure getSuspiciousBuilder(AlgorithmType pAlgorithmType) {
     switch (pAlgorithmType) {
       case TARANTULA:
-        return new TarantulaSuspiciousBuilder();
+        return new TarantulaSuspiciousnessMeasure();
       case DSTAR:
-        return new DStarSuspiciousBuilder();
+        return new DStarSuspiciousnessMeasure();
       case OCHIAI:
-        return new OchiaiSuspiciousBuilder();
+        return new OchiaiSuspiciousnessMeasure();
       default:
-        throw new AssertionError("unexpected type");
+        throw new AssertionError("Unexpected ranking-algorithm type: " + pAlgorithmType);
     }
   }
 
@@ -158,7 +162,7 @@ public class FaultLocalizationRankingMetric implements Algorithm, StatisticsProv
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
     StatisticsWriter w0 = StatisticsWriter.writingStatisticsTo(out);
-    w0.put("Total time with " + rankingAlgorithmType + "  ", totalTime);
+    w0.put(totalTime);
   }
 
   @Override

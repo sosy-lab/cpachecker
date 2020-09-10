@@ -30,7 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CounterexampleStoreAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationRankingMetric;
+import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithCoverage;
 import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
@@ -91,7 +91,7 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
-      name = "algorithm.FaultLocalization",
+      name = "algorithm.faultLocalization",
       description = "use faultlocalization ")
   private boolean useFaultLocalization = false;
 
@@ -535,7 +535,7 @@ public class CoreComponentsFactory {
                 algorithm, cpa, cfa, config, logger, shutdownNotifier, specification);
       }
       if (useFaultLocalization) {
-        algorithm = new FaultLocalizationRankingMetric(algorithm, shutdownNotifier, logger,config);
+        algorithm = new FaultLocalizationWithCoverage(algorithm, shutdownNotifier, logger,config);
       }
 
       if (useCustomInstructionRequirementExtraction) {
