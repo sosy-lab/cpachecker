@@ -532,7 +532,7 @@ public class ExpressionToFormulaVisitor
 
     return conv.makeVariable(
         idExp.getDeclaration().getQualifiedName(),
-        idExp.getExpressionType().getCanonicalType(),
+        idExp.getExpressionType(),
         ssa);
   }
 
@@ -1270,17 +1270,7 @@ public class ExpressionToFormulaVisitor
         final CType formalParameterType = formalParameterTypesIt.next();
         CExpression parameter = parametersIt.next();
         parameter = conv.makeCastFromArrayToPointerIfNecessary(parameter, formalParameterType);
-
-        ExpressionToFormulaVisitor freshVisitor =
-            new ExpressionToFormulaVisitor(
-                conv,
-                mgr,
-                edge,
-                function,
-                ssa,
-                constraints,
-                Optional.empty());
-        Formula argument = freshVisitor.toFormula(parameter);
+        Formula argument = toFormula(parameter);
         if (conv.options.useVariableClassification()) {
           argument =
               conv.makeFormulaTypeCast(
