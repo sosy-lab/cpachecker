@@ -4061,10 +4061,10 @@ termination.resultFile = "terminationAnalysisResult.txt"
 # imprecise
 termination.useCexImpreciseHeuristic = false
 
-# Export termination counterexample to file as GraphML automaton 
+# Export termination counterexample to file as GraphML automaton
 termination.violation.witness = "nontermination_witness.graphml"
 
-# Export termination counterexample to file as dot/graphviz automaton 
+# Export termination counterexample to file as dot/graphviz automaton
 termination.violation.witness.dot = "nontermination_witness.dot"
 
 # Use the counterexample model to provide test-vector values
