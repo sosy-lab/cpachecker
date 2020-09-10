@@ -14,7 +14,8 @@ import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-/** Class CoverageInformation represents the coverage of each CFAEdge by each safe/error paths */
+
+/** Class CoverageInformation represents the coverage of each CFAEdge by each safe/error paths. */
 public class CoverageInformation {
   private final FailedCase failedCase;
   private final ShutdownNotifier shutdownNotifier;
