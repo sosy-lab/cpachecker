@@ -2653,8 +2653,13 @@ cpa.slicing.refinement.prefixProvider = no default value
 # dependencies of all assume edges that are part of the infeasible prefix to
 # the slice. Requires a prefix provider
 # ('cpa.slicing.refinement.prefixProvider').
+# - CEX_FIRST_ASSUME_DEPS: Add the dependencies of the first counterexample
+# assume edges, that is not already part of the slice, to the slice.
+# - CEX_LAST_ASSUME_DEPS: Add the dependencies of the last counterexample
+# assume edges, that is not already part of the slice, to the slice.
 cpa.slicing.refinement.refineStrategy = CEX_ASSUME_DEPS
-  enum:     [CEX_ASSUME_DEPS, INFEASIBLE_PREFIX_ASSUME_DEPS]
+  enum:     [CEX_ASSUME_DEPS, INFEASIBLE_PREFIX_ASSUME_DEPS, CEX_FIRST_ASSUME_DEPS,
+             CEX_LAST_ASSUME_DEPS]
 
 # What kind of restart to do after a successful refinement
 cpa.slicing.refinement.restartStrategy = PIVOT

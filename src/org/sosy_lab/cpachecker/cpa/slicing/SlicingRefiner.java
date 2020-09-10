@@ -101,7 +101,11 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
               + " slice.\n"
               + "- INFEASIBLE_PREFIX_ASSUME_DEPS: Find an infeasible prefix and add the"
               + " dependencies of all assume edges that are part of the infeasible prefix to the"
-              + " slice. Requires a prefix provider ('cpa.slicing.refinement.prefixProvider').")
+              + " slice. Requires a prefix provider ('cpa.slicing.refinement.prefixProvider').\n"
+              + "- CEX_FIRST_ASSUME_DEPS: Add the dependencies of the first counterexample assume"
+              + " edges, that is not already part of the slice, to the slice.\n"
+              + "- CEX_LAST_ASSUME_DEPS: Add the dependencies of the last counterexample assume"
+              + " edges, that is not already part of the slice, to the slice.\n")
   private RefineStrategy refineStrategy = RefineStrategy.CEX_ASSUME_DEPS;
 
   @Option(
@@ -126,7 +130,19 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
      * Find an infeasible prefix and add the dependencies of all assume edges that are part of the
      * infeasible prefix to the slice.
      */
-    INFEASIBLE_PREFIX_ASSUME_DEPS
+    INFEASIBLE_PREFIX_ASSUME_DEPS,
+
+    /**
+     * Add the dependencies of the first counterexample assume edges, that is not already part of
+     * the slice, to the slice.
+     */
+    CEX_FIRST_ASSUME_DEPS,
+
+    /**
+     * Add the dependencies of the last counterexample assume edges, that is not already part of the
+     * slice, to the slice.
+     */
+    CEX_LAST_ASSUME_DEPS,
   }
 
   private enum RestartStrategy {
@@ -403,10 +419,10 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
     List<CFAEdge> criteriaEdges = new ArrayList<>(1);
     Set<CFAEdge> relevantEdges = new HashSet<>();
 
-    Set<CFAEdge> cexConstraints =
+    List<CFAEdge> cexConstraints =
         innerEdges.stream()
             .filter(Predicates.instanceOf(CAssumeEdge.class))
-            .collect(Collectors.toSet());
+            .collect(Collectors.toList());
 
     if (takeEagerSlice) {
       criteriaEdges.addAll(cexConstraints);
@@ -422,9 +438,31 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
           criteriaEdges.addAll(prefixAssumeEdges);
         }
 
-      } else if (refineStrategy == RefineStrategy.CEX_ASSUME_DEPS) {
+      } else {
         if (!isFeasible(pPath)) {
-          criteriaEdges.addAll(cexConstraints);
+
+          if (refineStrategy == RefineStrategy.CEX_ASSUME_DEPS) {
+            criteriaEdges.addAll(cexConstraints);
+          } else if (refineStrategy == RefineStrategy.CEX_FIRST_ASSUME_DEPS
+              || refineStrategy == RefineStrategy.CEX_LAST_ASSUME_DEPS) {
+
+            SlicingPrecision slicingPrecision =
+                Precisions.extractPrecisionByType(currentPrecision, SlicingPrecision.class);
+
+            CFAEdge criteriaEdge = null;
+            for (CFAEdge assumeEdge : cexConstraints) {
+              if (!slicingPrecision.isRelevant(assumeEdge)) {
+                criteriaEdge = assumeEdge;
+                if (refineStrategy == RefineStrategy.CEX_FIRST_ASSUME_DEPS) {
+                  break;
+                }
+              }
+            }
+
+            if (criteriaEdge != null) {
+              criteriaEdges.addAll(cexConstraints);
+            }
+          }
         }
       }
     }
