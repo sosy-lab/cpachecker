@@ -460,7 +460,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
             }
 
             if (criteriaEdge != null) {
-              criteriaEdges.addAll(cexConstraints);
+              criteriaEdges.add(criteriaEdge);
             }
           }
         }
