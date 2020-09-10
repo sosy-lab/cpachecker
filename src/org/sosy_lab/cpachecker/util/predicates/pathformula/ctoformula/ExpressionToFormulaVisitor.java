@@ -500,6 +500,19 @@ public class ExpressionToFormulaVisitor
 
     CType after = cexp.getExpressionType();
     CType before = op.getExpressionType();
+    if (conv.options.useVariableClassification()) {
+      if (CTypes.isIntegerType(before)) {
+        if (CTypes.isIntegerType(after)) {
+          return operand;
+        }
+        return conv.makeFormulaTypeCast(
+            conv.getFormulaTypeFromCType(after),
+            before,
+            operand,
+            ssa,
+            constraints);
+      }
+    }
     return conv.makeCast(before, after, operand, constraints, edge);
   }
 
@@ -1268,7 +1281,24 @@ public class ExpressionToFormulaVisitor
                 constraints,
                 Optional.empty());
         Formula argument = freshVisitor.toFormula(parameter);
-        arguments.add(conv.makeCast(parameter.getExpressionType(), formalParameterType, argument, constraints, edge));
+        if (conv.options.useVariableClassification()) {
+          argument =
+              conv.makeFormulaTypeCast(
+                  conv.getFormulaTypeFromCType(formalParameterType),
+                  parameter.getExpressionType(),
+                  argument,
+                  ssa,
+                  constraints);
+        } else {
+          argument =
+              conv.makeCast(
+                  parameter.getExpressionType(),
+                  formalParameterType,
+                  argument,
+                  constraints,
+                  edge);
+        }
+        arguments.add(argument);
       }
       assert !formalParameterTypesIt.hasNext() && !parametersIt.hasNext();
 
