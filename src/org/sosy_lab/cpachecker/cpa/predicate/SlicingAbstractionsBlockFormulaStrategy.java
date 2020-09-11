@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
-import java.util.EnumSet;
+import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -34,7 +34,7 @@ public class SlicingAbstractionsBlockFormulaStrategy extends BlockFormulaStrateg
   @Option(
       secure = true,
       description = "Enable/Disable adding partial state invariants into the PathFormulas")
-  private EnumSet<AbstractionPosition> includePartialInvariants = AbstractionPosition.BOTH;
+  private ImmutableSet<AbstractionPosition> includePartialInvariants = AbstractionPosition.BOTH;
 
   private PathFormulaManager pfmgr;
   private Solver solver;

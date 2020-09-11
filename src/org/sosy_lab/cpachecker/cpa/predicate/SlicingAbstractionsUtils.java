@@ -17,12 +17,12 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
-import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -267,11 +267,10 @@ public class SlicingAbstractionsUtils {
     START,
     END;
 
-    public static final EnumSet<AbstractionPosition> BOTH = EnumSet.of(START, END);
-    public static final EnumSet<AbstractionPosition> NONE =
-        EnumSet.noneOf(AbstractionPosition.class);
-    public static final EnumSet<AbstractionPosition> ONLY_START = EnumSet.of(START);
-    public static final EnumSet<AbstractionPosition> ONLY_END = EnumSet.of(END);
+    public static final ImmutableSet<AbstractionPosition> BOTH = Sets.immutableEnumSet(START, END);
+    public static final ImmutableSet<AbstractionPosition> NONE = ImmutableSet.of();
+    public static final ImmutableSet<AbstractionPosition> ONLY_START = Sets.immutableEnumSet(START);
+    public static final ImmutableSet<AbstractionPosition> ONLY_END = Sets.immutableEnumSet(END);
   }
 
   /**
@@ -298,7 +297,7 @@ public class SlicingAbstractionsUtils {
       PointerTargetSet pPts,
       FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
-      EnumSet<AbstractionPosition> withInvariants)
+      ImmutableSet<AbstractionPosition> withInvariants)
       throws CPATransferException, InterruptedException {
     List<ARGState> segmentList = SlicingAbstractionsUtils.calculateOutgoingSegments(start).get(stop);
     if (segmentList == null) {
@@ -310,7 +309,7 @@ public class SlicingAbstractionsUtils {
   /**
    * For better scaling, call this method instead of {@link
    * SlicingAbstractionsUtils#buildPathFormula(ARGState, ARGState, List, SSAMap, PointerTargetSet,
-   * FormulaManagerView, PathFormulaManager, EnumSet)} if you already have calculated the
+   * FormulaManagerView, PathFormulaManager, ImmutableSet)} if you already have calculated the
    * segmentList (states between start and stop state).
    */
   public static PathFormula buildPathFormula(
@@ -321,7 +320,7 @@ public class SlicingAbstractionsUtils {
       PointerTargetSet pPts,
       FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
-      EnumSet<AbstractionPosition> withInvariants)
+      ImmutableSet<AbstractionPosition> withInvariants)
       throws CPATransferException, InterruptedException {
 
     final PathFormula pathFormula;
@@ -454,7 +453,7 @@ public class SlicingAbstractionsUtils {
       Solver pSolver,
       ARGState pRoot,
       List<ARGState> pPath,
-      EnumSet<AbstractionPosition> includePartialInvariants)
+      ImmutableSet<AbstractionPosition> includePartialInvariants)
       throws CPATransferException, InterruptedException {
 
     return getFormulasForPath(
@@ -472,7 +471,7 @@ public class SlicingAbstractionsUtils {
    * point.
    *
    * <p>See also {@link SlicingAbstractionsUtils#getFormulasForPath(PathFormulaManager, Solver,
-   * ARGState, List, EnumSet)}
+   * ARGState, List, ImmutableSet)}
    */
   public static List<PathFormula> getFormulasForPath(
       PathFormulaManager pfmgr,
@@ -481,7 +480,7 @@ public class SlicingAbstractionsUtils {
       List<ARGState> pPath,
       SSAMap pSSAMap,
       PointerTargetSet pPts,
-      EnumSet<AbstractionPosition> includePartialInvariants)
+      ImmutableSet<AbstractionPosition> includePartialInvariants)
       throws CPATransferException, InterruptedException {
 
     List<PathFormula> abstractionFormulas = new ArrayList<>();
