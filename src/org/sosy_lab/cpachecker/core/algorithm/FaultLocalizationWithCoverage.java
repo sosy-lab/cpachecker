@@ -46,7 +46,6 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
-import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.InfoType;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
@@ -143,8 +142,6 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
     for (SingleFaultOfRankingAlgo singleFault : faultsOfRankingAlgo) {
       Fault fault = new Fault(singleFault.getHint());
       fault.setScore(singleFault.getLineScore());
-      fault.addInfo(
-          FaultInfo.hint("Unknown potential fault: " + singleFault.getHint().textRepresentation()));
       faults.add(fault);
     }
 

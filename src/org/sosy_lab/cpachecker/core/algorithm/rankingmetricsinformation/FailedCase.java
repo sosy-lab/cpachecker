@@ -13,8 +13,8 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
-/** Class represents the error case for algorithm which works with ranking metric */
 
+/** Class represents the error case for algorithm which works with ranking metric */
 public class FailedCase {
   private final ReachedSet reachedSet;
 
