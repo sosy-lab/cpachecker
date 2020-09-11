@@ -114,7 +114,7 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
     return status;
   }
 
-  /** Find and return all error labels */
+  /** Find and return all error labels. */
   private FluentIterable<CounterexampleInfo> getCounterexampleInfos(ReachedSet reachedSet) {
     return Optionals.presentInstances(
         from(reachedSet)
@@ -124,12 +124,12 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
   }
 
   /**
-   * Gets list of corresponding faults by option which is set by variable <code>rankingAlgorithmType<code/>
+   * Gets list of corresponding faults by option which is set by variable <code>rankingAlgorithmType<code/>.
    *
-   * @param pSafePaths set of all safe paths
-   * @param pErrorPaths set of all error paths
-   * @param pCoverageInformation coverage information of each CFAEdge
-   * @return list of faults
+   * @param pSafePaths set of all safe paths.
+   * @param pErrorPaths set of all error paths.
+   * @param pCoverageInformation coverage information of each CFAEdge.
+   * @return list of faults.
    */
   public List<Fault> getFinalResult(
       Set<ARGPath> pSafePaths, Set<ARGPath> pErrorPaths, CoverageInformation pCoverageInformation)

@@ -14,7 +14,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
-/** Class represents the safe case for algorithm which works with ranking metric */
+/** Class represents the safe case for algorithm which works with ranking metric . */
 public class SafeCase {
   private final ReachedSet reachedSet;
 
@@ -51,7 +51,7 @@ public class SafeCase {
   /**
    * Checks whether there is a safe path in the ARG or not.
    *
-   * @return Returns <code>true</code> if the path exists otherwise returns <code>false</code>
+   * @return Returns <code>true</code> if the path exists otherwise returns <code>false</code>.
    */
   public boolean existsSafePath() {
     return !getSafeStates().isEmpty();

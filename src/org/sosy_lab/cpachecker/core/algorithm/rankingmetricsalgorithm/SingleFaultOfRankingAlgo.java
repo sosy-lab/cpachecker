@@ -10,8 +10,8 @@ package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 
 /**
- * Class represents the fault localization with coverage where each line has a Fault contributions
- * contains CFAEdge, corresponding code line number and the suspicious score
+ * Class represents single fault of the chosen ranking-algorithm with coverage where each line has a
+ * Fault contributions contains CFAEdge, corresponding code line number and the suspicious score.
  */
 public class SingleFaultOfRankingAlgo {
 
