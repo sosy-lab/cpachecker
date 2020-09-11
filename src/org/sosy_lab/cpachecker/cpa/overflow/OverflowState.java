@@ -101,7 +101,7 @@ public final class OverflowState
   @Override
   public String toDOTLabel() {
     if (hasOverflow) {
-      return getReadableAssumptions().replaceAll(", ", "\n");
+      return "Preconditions:\n" + getReadableAssumptions(parent).replaceAll(", ", "\n");
     }
     return "";
   }
@@ -112,8 +112,12 @@ public final class OverflowState
   }
 
   private String getReadableAssumptions() {
+    return getReadableAssumptions(this);
+  }
+
+  private static String getReadableAssumptions(OverflowState s) {
     StringBuilder sb = new StringBuilder();
-    Joiner.on(", ").appendTo(sb, assumptions.stream().map(x -> x.toASTString()).iterator());
+    Joiner.on(", ").appendTo(sb, s.assumptions.stream().map(x -> x.toASTString()).iterator());
     return sb.toString();
   }
 
