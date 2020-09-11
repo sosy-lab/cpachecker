@@ -102,7 +102,7 @@ static int rad_authlog(const char *msg, REQUEST *request, int goodpass) {
 	if (!mainconfig.log_auth)
 		return 0;
 
-	/*
+	/* 
 	 *	Clean up the username
 	 */
 	if (request->username == NULL) {
@@ -118,7 +118,7 @@ static int rad_authlog(const char *msg, REQUEST *request, int goodpass) {
 		strcpy(clean_username, "<No Username>");
 	}
 
-	/*
+	/* 
 	 *	Clean up the password
 	 */
 	if (mainconfig.log_auth_badpass || mainconfig.log_auth_goodpass) {
@@ -142,20 +142,20 @@ static int rad_authlog(const char *msg, REQUEST *request, int goodpass) {
 
 	if (goodpass) {
 		radlog(L_AUTH, "%s: [%s%s%s] (%s)",
-				msg,
+				msg,	
 				clean_username,
 				mainconfig.log_auth_goodpass ? "/" : "",
 				mainconfig.log_auth_goodpass ? clean_password : "",
 				auth_name(buf, sizeof(buf), request, 1));
 	} else {
 		radlog(L_AUTH, "%s: [%s%s%s] (%s)",
-				msg,
+				msg,	
 				clean_username,
 				mainconfig.log_auth_badpass ? "/" : "",
 				mainconfig.log_auth_badpass ? clean_password : "",
 				auth_name(buf, sizeof(buf), request, 1));
 	}
-
+	
 	return 0;
 }
 
@@ -202,14 +202,14 @@ int rad_check_password(REQUEST *request)
 	}
 
 	if((auth_type_count>1) && (debug_flag)) {
-		radlog(L_ERR, "Warning:  Found %d auth-types on request for user '%s'",
+		radlog(L_ERR, "Warning:  Found %d auth-types on request for user '%s'", 
 			auth_type_count, request->username->strvalue);
 	}
 
 	/*
-	 *	This means we have a proxy reply or an accept
-	 *  and it wasn't rejected in the above loop.  So
-	 *  that means it is accepted and we do no further
+	 *	This means we have a proxy reply or an accept  
+	 *  and it wasn't rejected in the above loop.  So 
+	 *  that means it is accepted and we do no further 
 	 *  authentication
 	 */
 	if ((auth_type == PW_AUTHTYPE_ACCEPT) || (request->proxy)) {
@@ -369,10 +369,10 @@ int rad_authenticate(REQUEST *request)
 	}
 
 	if (auth_item == NULL) {
-		if ((auth_item = pairfind(request->packet->vps,
+		if ((auth_item = pairfind(request->packet->vps, 
 					  PW_CHAP_PASSWORD)) != NULL) {
 			password = "<CHAP-PASSWORD>";
-
+		
 		} else {
 			/*
 			 *	No password we recognize.
@@ -381,7 +381,7 @@ int rad_authenticate(REQUEST *request)
 		}
 	}
 	request->password = auth_item;
-
+	
 	namepair = request->username;
 
 	/*
@@ -412,7 +412,7 @@ int rad_authenticate(REQUEST *request)
 	 *	through radius_xlat, modifying them in place.
 	 */
 
-	if (exec_program)
+	if (exec_program) 
 		free(exec_program);
 	return RLM_MODULE_OK;
 }
