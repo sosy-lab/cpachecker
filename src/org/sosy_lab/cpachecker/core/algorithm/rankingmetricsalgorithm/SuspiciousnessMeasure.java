@@ -8,27 +8,26 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm;
 
-import com.google.common.collect.ImmutableMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation.CoverageInformation;
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation.FaultInformation;
 import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation.FaultLocalizationCasesStatus;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 
 public abstract class SuspiciousnessMeasure {
 
-  public Map<FaultInformation, FaultContribution> calculateSuspiciousnessForCFAEdge(
+  public List<SingleFaultOfRankingAlgo> getAllFaultsOfRankingAlgo(
       Set<ARGPath> safePaths, Set<ARGPath> errorPaths, CoverageInformation coverageInformation)
       throws InterruptedException {
     int totalSafePaths = safePaths.size();
     int totalErrorPaths = errorPaths.size();
     Map<CFAEdge, FaultLocalizationCasesStatus> coverage =
-        coverageInformation.getCoverageInformation(safePaths, errorPaths);
-    ImmutableMap.Builder<FaultInformation, FaultContribution> coverageResult =
-        ImmutableMap.builder();
+        coverageInformation.getCoverageInformation();
+    List<SingleFaultOfRankingAlgo> singleFaultOfRankingAlgo = new ArrayList<>();
     coverage.forEach(
         (pCFAEdge, pFaultLocalizationCasesStatus) -> {
           double suspicious =
@@ -41,14 +40,15 @@ public abstract class SuspiciousnessMeasure {
           FaultContribution pFaultContribution = new FaultContribution(pCFAEdge);
           if (suspicious != 0) {
             pFaultContribution.setScore(suspicious);
-            coverageResult.put(
-                new FaultInformation(
-                    suspicious, null, pFaultContribution.correspondingEdge().getLineNumber()),
-                pFaultContribution);
+            singleFaultOfRankingAlgo.add(
+                new SingleFaultOfRankingAlgo(
+                    suspicious,
+                    pFaultContribution,
+                    pFaultContribution.correspondingEdge().getLineNumber()));
           }
         });
 
-    return coverageResult.build();
+    return singleFaultOfRankingAlgo;
   }
 
   public abstract double calculateSuspiciousness(

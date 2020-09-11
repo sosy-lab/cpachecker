@@ -7,26 +7,27 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import java.util.List;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-/** Class represents the safe case for algorithm which works with ranking metric */
 
+/** Class represents the safe case for algorithm which works with ranking metric */
 public class SafeCase {
   private final ReachedSet reachedSet;
 
   public SafeCase(ReachedSet pReachedSet) {
     reachedSet = pReachedSet;
   }
+
   /**
    * Gets safe states (safe leaves) from ARG.
    *
    * @return Detected safe states.
    */
-  private List<ARGState> getSafeStates() {
+  private ImmutableList<ARGState> getSafeStates() {
     return getRootState()
         .getSubgraph()
         .filter(e -> !e.isCovered() && !e.isTarget() && e.getChildren().isEmpty())

@@ -5,34 +5,32 @@
 // SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
-package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation;
+package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm;
 
-import java.util.Set;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 
 /**
- * Class represents the fault localization with coverage where each line has a set of Fault
- * contributions contains the hints of CFAEdges, corresponding code line number and the suspicious
- * score
+ * Class represents the fault localization with coverage where each line has a Fault contributions
+ * contains CFAEdge, corresponding code line number and the suspicious score
  */
-public class FaultInformation {
+public class SingleFaultOfRankingAlgo {
 
   private final double lineScore;
   private final int lineNumber;
-  private final Set<FaultContribution> hints;
+  private final FaultContribution hint;
 
-  public FaultInformation(double pLineScore, Set<FaultContribution> pHints, int pLineNumber) {
+  public SingleFaultOfRankingAlgo(double pLineScore, FaultContribution pHint, int pLineNumber) {
     this.lineScore = pLineScore;
     this.lineNumber = pLineNumber;
-    this.hints = pHints;
+    this.hint = pHint;
   }
 
   public double getLineScore() {
     return lineScore;
   }
 
-  public Set<FaultContribution> getHints() {
-    return hints;
+  public FaultContribution getHint() {
+    return hint;
   }
 
   public int getLineNumber() {
@@ -41,13 +39,13 @@ public class FaultInformation {
 
   @Override
   public String toString() {
-    return "FaultInformation{"
+    return "SingleFaultOfRankingAlgo{"
         + "lineScore="
         + lineScore
         + ", lineNumber="
         + lineNumber
-        + ", hints="
-        + hints
+        + ", hint="
+        + hint
         + '}';
   }
 }

@@ -17,12 +17,15 @@ import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
 /** Class CoverageInformation represents the coverage of each CFAEdge by each safe/error paths. */
 public class CoverageInformation {
-  private final FailedCase failedCase;
   private final ShutdownNotifier shutdownNotifier;
+  private final Set<ARGPath> safePaths;
+  private final Set<ARGPath> errorPaths;
 
-  public CoverageInformation(FailedCase pFailedCase, ShutdownNotifier pShutdownNotifier) {
-    failedCase = pFailedCase;
+  public CoverageInformation(
+      ShutdownNotifier pShutdownNotifier, Set<ARGPath> pSafePaths, Set<ARGPath> pErrorPaths) {
     shutdownNotifier = pShutdownNotifier;
+    safePaths = pSafePaths;
+    errorPaths = pErrorPaths;
   }
 
   private Map<CFAEdge, FaultLocalizationCasesStatus> calculateCoverageInformation(
@@ -37,7 +40,8 @@ public class CoverageInformation {
           coverageInfo.put(cfaEdge, new FaultLocalizationCasesStatus(0, 0));
         }
         caseStatus = coverageInfo.get(cfaEdge);
-        if (failedCase.isFailedPath(path)) {
+        // Check whether the path is a error path
+        if (path.getLastState().isTarget()) {
           caseStatus =
               new FaultLocalizationCasesStatus(
                   caseStatus.getFailedCases() + 1, caseStatus.getPassedCases());
@@ -62,12 +66,10 @@ public class CoverageInformation {
    * line 5: N2 -{[cond == 0]},[2,1]</code> means that this specific Edge has `2` failed cases and
    * only one passed case.
    *
-   * @param safePaths all safe paths
-   * @param errorPaths all error paths
    * @return result as edge and its case status.
    */
-  public Map<CFAEdge, FaultLocalizationCasesStatus> getCoverageInformation(
-      Set<ARGPath> safePaths, Set<ARGPath> errorPaths) throws InterruptedException {
+  public Map<CFAEdge, FaultLocalizationCasesStatus> getCoverageInformation()
+      throws InterruptedException {
     return calculateCoverageInformation(Sets.union(safePaths, errorPaths));
   }
 }
