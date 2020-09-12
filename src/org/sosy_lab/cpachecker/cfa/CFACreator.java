@@ -430,7 +430,7 @@ public class CFACreator {
     boolean flag = true;
 
     Preconditions.checkArgument(!sourceFiles.isEmpty(), "At least one source file must be provided!");
-    if (!automateAbstractLoopParser) {
+    if (automateAbstractLoopParser) {
     stats.totalTime.start();
   }
 
@@ -455,8 +455,10 @@ public class CFACreator {
         throw new AssertionError();
       }
 
+      CFA result;
+
       if (!automateAbstractLoopParser) {
-        return createCFA(c, mainFunction);
+        result = createCFA(c, mainFunction);
     } else {
       flag = false;
       CFA cfa = createCFA(c, mainFunction);
@@ -465,11 +467,13 @@ public class CFACreator {
       LoopAbstractionHeader loopAbstraction =
           new LoopAbstractionHeader(builder, automateAbstractLoopParser, config, logger);
       automateAbstractLoopParser = false;
-      return parseFileAndCreateCFA(sourceFiles);
+      result = parseFileAndCreateCFA(sourceFiles);
     }
 
+    return result;
+
     } finally {
-      if (flag) {
+      if (!flag) {
       stats.totalTime.stop();
     }
     }
