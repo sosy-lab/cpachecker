@@ -411,7 +411,10 @@ public class LoopData implements Comparable<LoopData> {
     if (!nodes.isEmpty()) {
     LoopGetIfAfterLoopCondition l = new LoopGetIfAfterLoopCondition(nodes, pLogger);
     if (l.getSmallestIf() != NO_IF_CASE) {
-      ArrayList<CFANode> tempN = (ArrayList<CFANode>) nodes.clone();
+      ArrayList<CFANode> tempN = new ArrayList<>();
+      if (nodes.clone() instanceof ArrayList<?>) {
+        tempN = (ArrayList<CFANode>) nodes.clone();
+    }
       for (Iterator<CFANode> tempIterator = tempN.iterator(); tempIterator.hasNext();) {
         CFANode temps = tempIterator.next();
         if (temps.getLeavingEdge(VALID_STATE).getFileLocation().getStartingLineInOrigin() >= l
@@ -435,7 +438,10 @@ public class LoopData implements Comparable<LoopData> {
   public String nodesToCondition() {
 
     String cond = "";
-    ArrayList<CFANode> temp = (ArrayList<CFANode>) nodesInCondition.clone();
+    ArrayList<CFANode> temp = new ArrayList<>();
+    if (nodesInCondition.clone() instanceof ArrayList<?>) {
+      temp = (ArrayList<CFANode>) nodesInCondition.clone();
+  }
     CFANode node;
 
     if (loopType.contentEquals("while")) {
@@ -488,7 +494,9 @@ public class LoopData implements Comparable<LoopData> {
       CFANode end = temp.get(FIRST_POSITION_OF_LIST);
       temp.remove(FIRST_POSITION_OF_LIST);
 
+      if (forCondition.clone() instanceof ArrayList<?>) {
       conditionInFor = (ArrayList<CFANode>) forCondition.clone();
+      }
 
       cond += start.getLeavingEdge(VALID_STATE).getDescription();
 
@@ -536,7 +544,10 @@ public class LoopData implements Comparable<LoopData> {
    *         sense to accelerate it
    */
   private boolean canLoopBeAccelerated() {
-    ArrayList<CFANode> nodes = (ArrayList<CFANode>) nodesInCondition.clone();
+    ArrayList<CFANode> nodes = new ArrayList<>();
+    if (nodesInCondition.clone() instanceof ArrayList<?>) {
+      nodes = (ArrayList<CFANode>) nodesInCondition.clone();
+  }
     boolean canAccelerate = false;
 
     ArrayList<Boolean> temp = new ArrayList<>();

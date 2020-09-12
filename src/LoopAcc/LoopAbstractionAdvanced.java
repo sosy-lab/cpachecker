@@ -1061,7 +1061,6 @@ public class LoopAbstractionAdvanced {
         new FileWriter(file)) {
       String fileContent = content;
       fileWriter.write(fileContent);
-      fileWriter.close();
     } catch (IOException e) {
       logger.logUserException(
           Level.WARNING,
