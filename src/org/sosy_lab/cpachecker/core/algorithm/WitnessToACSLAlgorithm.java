@@ -101,7 +101,8 @@ public class WitnessToACSLAlgorithm implements Algorithm {
               witness);
       invariants = invariantsExtractor.extractInvariantsFromReachedSet();
     } catch (InvalidConfigurationException pE) {
-      throw new CPAException("Invalid Configuration while analyzing witness", pE);
+      throw new CPAException(
+          "Invalid Configuration while analyzing witness:\n" + pE.getMessage(), pE);
     }
 
     // Extract invariants as CExpressions and nodes
@@ -240,8 +241,12 @@ public class WitnessToACSLAlgorithm implements Algorithm {
    */
   private String makeNameForAnnotatedFile(String oldFileName) {
     int indexOfFirstPeriod = oldFileName.indexOf('.');
-    String nameWithoutExtension = oldFileName.substring(0, indexOfFirstPeriod);
-    String extension = oldFileName.substring(indexOfFirstPeriod);
+    String nameWithoutExtension = oldFileName;
+    String extension = "";
+    if (indexOfFirstPeriod != -1) {
+      nameWithoutExtension = oldFileName.substring(0, indexOfFirstPeriod);
+      extension = oldFileName.substring(indexOfFirstPeriod);
+    }
     String timestamp =
         LocalDateTime.now(ZoneId.systemDefault())
             .format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH:mm:ss"));
