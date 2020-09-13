@@ -15,7 +15,10 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
-/** Class CoverageInformation represents the coverage of each CFAEdge by each safe/error paths. */
+/**
+ * Class CoverageInformation represents the coverage data of each CFAEdge by each safe/error paths.
+ * The status of the coverage will be saved in the class <code>FaultLocalizationCasesStatus<code/>.
+ */
 public class CoverageInformation {
   private final ShutdownNotifier shutdownNotifier;
   private final Set<ARGPath> safePaths;

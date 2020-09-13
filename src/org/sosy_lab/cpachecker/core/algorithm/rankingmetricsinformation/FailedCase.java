@@ -29,8 +29,8 @@ public class FailedCase {
   public Set<ARGPath> getErrorPaths() {
     Set<ARGPath> allErrorPathsTogether = new HashSet<>();
 
-    for (ARGState safeState : ARGUtils.getErrorStates(reachedSet)) {
-      allErrorPathsTogether.addAll(FaultLocalizationUtils.getAllPaths(reachedSet, safeState));
+    for (ARGState errorState : ARGUtils.getErrorStates(reachedSet)) {
+      allErrorPathsTogether.addAll(FaultLocalizationUtils.getAllPaths(reachedSet, errorState));
     }
     return allErrorPathsTogether;
   }
