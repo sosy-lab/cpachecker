@@ -354,10 +354,6 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
   }
 
   private boolean checkEquivalenceSMT(Formula pF0, Formula pF1) {
-    for (int i = 0; i < 100; i++) {
-      ProverEnvironment e = solver.newProverEnvironment();
-      e.close();
-    }
     FormulaType<Formula> type0 = fm.getFormulaType(pF0);
     FormulaType<Formula> type1 = fm.getFormulaType(pF1);
     if (!type0.equals(type1)) {
