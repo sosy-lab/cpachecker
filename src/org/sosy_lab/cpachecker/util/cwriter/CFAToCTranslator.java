@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -92,7 +93,8 @@ public class CFAToCTranslator {
    *     CProblemTypes})
    * @throws InvalidConfigurationException if the given CFA is not a CFA for a C program
    */
-  public String translateCfa(CFA pCfa) throws CPAException, InvalidConfigurationException {
+  public String translateCfa(CFA pCfa)
+      throws CPAException, InvalidConfigurationException, IOException {
     functions = new ArrayList<>(pCfa.getNumberOfFunctions());
 
     if (pCfa.getLanguage() != Language.C) {
@@ -106,9 +108,9 @@ public class CFAToCTranslator {
     return generateCCode();
   }
 
-  private String generateCCode() {
+  private String generateCCode() throws IOException {
     StringBuilder buffer = new StringBuilder();
-    StatementWriter writer = new StatementWriter(buffer);
+    StatementVisitor<IOException> writer = StatementWriter.getWriter(buffer);
 
     for (String globalDef : globalDefinitionsList) {
       buffer.append(globalDef).append("\n");

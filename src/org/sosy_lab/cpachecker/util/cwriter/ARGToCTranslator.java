@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -184,14 +185,15 @@ public class ARGToCTranslator {
     return includeHeader || targetStrategy == TargetTreatment.ASSERTFALSE;
   }
 
-  public String translateARG(ARGState argRoot, boolean hasGotoDecProblem) throws CPAException {
+  public String translateARG(ARGState argRoot, boolean hasGotoDecProblem)
+      throws CPAException, IOException {
 
     return translateARG(argRoot, null, hasGotoDecProblem);
   }
 
   public String translateARG(
       ARGState argRoot, @Nullable Set<ARGState> pAddPragma, boolean hasGotoDecProblem)
-      throws CPAException {
+      throws CPAException, IOException {
 
     addPragmaAfter = pAddPragma == null ? ImmutableSet.of() : pAddPragma;
 
@@ -207,7 +209,7 @@ public class ARGToCTranslator {
 
 
 
-  private String generateCCode() {
+  private String generateCCode() throws IOException {
     StringBuilder buffer = new StringBuilder();
 
     if (includeHeader) {
@@ -229,7 +231,7 @@ public class ARGToCTranslator {
       buffer.append(globalDef + "\n");
     }
 
-    StatementWriter writer = new StatementWriter(buffer);
+    StatementVisitor<IOException> writer = StatementWriter.getWriter(buffer);
     mainFunction.accept(writer);
 
     return buffer.toString();
