@@ -178,7 +178,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
           state.getHeap().containsKey(loc) ? state.getHeap() : state.getStack();
       Formula oldVal = getValueForLocation(memory, loc, segmentSize);
       boolean res = assignValueToLocation(memory, allocatedLoc.get(), pVal, segmentSize);
-      if (!isReachable(new HashSet<>(), oldVal)) {
+      if (checkHeapAllocation(oldVal).isPresent() && !isReachable(new HashSet<>(), oldVal)) {
         state.addError(SLStateError.MEMORY_LEAK);
       }
       return res;
