@@ -12,15 +12,18 @@ import java.math.BigInteger;
 import java.util.List;
 import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -150,6 +153,14 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
     switch (fCase) {
       case CALLOC:
       case MALLOC: // always initialized with 0
+        if(edge instanceof CStatementEdge){
+          CStatement s = ((CStatementEdge) edge).getStatement();
+          if (!(s instanceof CAssignment)) {
+            // allocated memory not used.
+            delegate.addError(SLStateError.MEMORY_LEAK);
+          }
+        }
+        //$FALL-THROUGH$
       case ALLOCA:
         CExpression p0 = params.get(0);
         if (p0 instanceof CIntegerLiteralExpression) {
