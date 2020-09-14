@@ -9,6 +9,8 @@ least=1 and most=3, which is not conform with the given post-condition
 "(least<=most)".
 @author: Mohammed Bekkouche
 @Web:    http://www.i3s.unice.fr
+SPDX-FileCopyrightText: Mohammed Bekkouche <http://www.i3s.unice.fr>
+SPDX-License-Identifier: Apache-2.0
  */
 
 #include <sniper/sniper.h>
