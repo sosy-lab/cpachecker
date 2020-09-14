@@ -390,14 +390,20 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
     CFunctionEntryNode fe = pCe.getFunctionEntry();
     for (CParameterDeclaration param : fe.getFunctionParameters()) {
       String varNameWithAmper = UnaryOperator.AMPER.getOperator() + param.getQualifiedName();
-      Formula var = makeVariable(varNameWithAmper, param.getType(), pSsa);
+      CType t = delegate.makeLocationTypeForVariableType(param.getType());
+      Formula var =
+          makeVariable(
+              varNameWithAmper,
+              t,
+              pSsa);
       delegate.deallocateFromStack(var, false);
     }
     // Deallocate temp return variable.
     com.google.common.base.Optional<CVariableDeclaration> ret = fe.getReturnVariable();
     if (ret.isPresent()) {
       String varNameWithAmper = UnaryOperator.AMPER.getOperator() + ret.get().getQualifiedName();
-      Formula var = makeVariable(varNameWithAmper, ret.get().getType(), pSsa);
+      CType t = delegate.makeLocationTypeForVariableType(ret.get().getType());
+      Formula var = makeVariable(varNameWithAmper, t, pSsa);
       delegate.deallocateFromStack(var, false);
     }
     // Deallocate alloca segments.
