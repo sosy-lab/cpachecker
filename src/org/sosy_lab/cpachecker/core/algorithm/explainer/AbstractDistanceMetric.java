@@ -204,35 +204,3 @@ public class AbstractDistanceMetric implements DistanceMetric {
     return alignment;
   }
 }
-
-/**
- * Class Alignment is used for making alignments between two Elements
- *
- * @param <T> T is here either a CFAEdge or a ARGState
- */
-class Alignment<T> {
-
-  private List<T> counterexample = new ArrayList<T>();
-  private List<T> safePath = new ArrayList<T>();
-
-  public void addPair(T counterexampleElement, T safePathElement) {
-    counterexample.add(counterexampleElement);
-    safePath.add(safePathElement);
-  }
-
-  public T getSafePathElement(int i) {
-    return safePath.get(i);
-  }
-
-  public T getCounterexampleElement(int i) {
-    return counterexample.get(i);
-  }
-
-  public List<T> getCounterexample() {
-    return counterexample;
-  }
-
-  public List<T> getSafePath() {
-    return safePath;
-  }
-}

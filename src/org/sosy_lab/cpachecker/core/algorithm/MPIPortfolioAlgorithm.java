@@ -81,12 +81,18 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> configFiles;
 
-  @Option(secure = true, required = true, description = "Number of processes to be used by MPI.")
+  @Option(secure = true, description = "Max. amount of processes to be used by MPI.")
   private int numberProcesses;
 
   @Option(description = "File containing the ip addresses to be used by MPI.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path hostfile;
+
+  @Option(
+    description = "The MCA parameter ('Modular Component Architecture') "
+        + "is available only on Open MPI frameworks. It might thus need to be "
+        + "disabled if unavailable on the working machine.")
+  private boolean disableMCAOptions;
 
   private final Configuration globalConfig;
   private final LogManager logger;
@@ -96,6 +102,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
   private final Map<String, Path> binaries;
   private final ImmutableList<SubanalysisConfig> subanalyses;
+  private final int availableProcessors;
 
   private final String mpiArgs;
 
@@ -123,7 +130,17 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     }
     subanalyses = subanalysesBuilder.build();
 
-    if (numberProcesses <= 1) {
+    availableProcessors = Runtime.getRuntime().availableProcessors();
+    verify(availableProcessors > 0);
+    logger.logf(Level.INFO, "Found %d logical processors on main node", availableProcessors);
+
+    if (numberProcesses < 1) {
+      // The user has not specified an amount of copies of the program that are to be executed on
+      // the given nodes. A heuristic is therefore computed below.
+
+      numberProcesses = 1;
+      numberProcesses *= availableProcessors;
+
       String numNodesEnv = System.getenv("AWS_BATCH_JOB_NUM_NODES");
       if (!isNullOrEmpty(numNodesEnv)) {
         logger.logf(
@@ -131,25 +148,29 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
             "Env variable 'AWS_BATCH_JOB_NUM_NODES' found with value '%s'. Continuing using this value.",
             numNodesEnv);
         try {
-          numberProcesses = Integer.parseInt(numNodesEnv);
+          numberProcesses *= Integer.parseInt(numNodesEnv);
         } catch (NumberFormatException e) {
           throw new InvalidConfigurationException(
-              "Env variable 'AWS_BATCH_JOB_NUM_NODES' does not contain a valid int value",
+              "Env variable 'AWS_BATCH_JOB_NUM_NODES' does not contain a valid integer value",
               e);
         }
-      } else {
-        numberProcesses = 1;
-        logger.logf(
-            Level.INFO,
-            "No information about the amount of available processes for MPI found. "
-                + "Taking %d as default value.",
-            numberProcesses);
       }
+    } else {
+      logger.logf(
+          Level.INFO,
+          "Number of available processes specified (%d). Not using a heuristic.",
+          numberProcesses);
     }
+
+    if (configFiles.size() < numberProcesses) {
+      numberProcesses = configFiles.size();
+    }
+
+    stats.noOfAlgorithmsExecuted = numberProcesses;
 
     if (hostfile == null) {
       String envVariable = System.getenv("HOST_FILE_PATH");
-      if (envVariable != null) {
+      if (!isNullOrEmpty(envVariable)) {
         hostfile = Path.of(envVariable);
         logger.logf(
             Level.INFO,
@@ -160,19 +181,8 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
             Level.INFO,
             "Neither was a hostfile specified nor is one found in path. "
                 + "Running analysis on the local machine only.");
-
-        if (numberProcesses > 1) {
-          logger.log(
-              Level.WARNING,
-              "No hostfile was given, but a number of available processes was specified. "
-                  + "The sequential execution using MPI is not supported. Setting the "
-                  + "number of processes to 1.");
-          numberProcesses = 1;
-        }
       }
     }
-
-    stats.noOfAlgorithmsExecuted = numberProcesses;
 
     if (hostfile != null) {
       verify(
@@ -260,25 +270,33 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     // for the subanalyses will be executed on the local machine only
     if (hostfile != null) {
 
-      // Force Open MPI to only send messages via eth0
-      // https://stackoverflow.com/a/15256822
-      //
-      // Addendum: The following command is apparently not available to all MPI frameworks
-      //
-      // cmdList.add("--mca");
-      // cmdList.add("btl_tcp_if_include");
-      // cmdList.add("eth0");
+      // The MCA parameter ('Modular Component Architecture') is only available to Open MPI
+      // frameworks
+      if (!disableMCAOptions) {
+        // Force Open MPI to only send messages via eth0.
+        // https://stackoverflow.com/a/15256822
+        cmdList.add("--mca");
+        cmdList.add("btl_tcp_if_include");
+        cmdList.add("eth0");
+      }
 
       cmdList.add("-hostfile");
       cmdList.add(hostfile.normalize().toString());
 
-      if (numberProcesses > 1) {
-        cmdList.add("-np");
-        cmdList.add(String.valueOf(numberProcesses));
-      }
+      cmdList.add("-np");
+      cmdList.add(String.valueOf(numberProcesses));
 
+      /*
+       * The map-by argument uses the following syntax: ppr:N:resource:<options>
+       *
+       * ppr is short for 'processes per resource'. The above line means "assign N processes to each
+       * resource of type 'resource' available on the host".
+       *
+       * An exhaustive description that explains all options in detail can be found at
+       * https://www.open-mpi.org/doc/v3.0/man1/mpirun.1.php
+       */
       cmdList.add("--map-by");
-      cmdList.add("node");
+      cmdList.add("ppr:" + availableProcessors + ":socket");
     }
 
     cmdList.add(binaries.get(PYTHON3_BIN).toString());
@@ -316,6 +334,15 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
         logger.log(Level.INFO, "MPI has finished its job. Continuing in main node.");
 
         if (exitCode != 0) {
+          if (executor.getErrorOutput()
+              .stream()
+              .anyMatch(x -> x.contains("unrecognized argument mca"))) {
+            logger.log(
+                Level.SEVERE,
+                "The error log of the MPI binary indicates that the 'mca' option"
+                    + "is not available. You can try executing this analysis again "
+                    + "with this option disabled (mpiAlgorithm.disableMCAOptions=true)");
+          }
           throw new CPAException("MPI script has failed with exit code " + exitCode);
         }
       } finally {

@@ -107,8 +107,6 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
       throw new AssertionError(pE);
     }
 
-    assert secondAlg != null;
-
     currentReached = secondAlg.getThird();
 
     Algorithm firstStepAlgorithm = secondAlg.getFirst();
@@ -116,12 +114,12 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
     // currentReached
     AlgorithmStatus status;
     status = firstStepAlgorithm.run(currentReached);
-    int i = 0;
+    /*int i = 0;
     // TODO: Review: HAVE TO FIX THIS
     while (currentReached.hasWaitingState() && i < 40) {
       status = firstStepAlgorithm.run(currentReached);
       i++;
-    }
+    }*/
     reached.setDelegate(currentReached);
 
     // Find All Targets
@@ -210,9 +208,11 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
 
   private List<CFAEdge> startADM(List<ARGPath> safePaths, ARGPath targetPath) {
     DistanceMetric metric;
+    @SuppressWarnings("resource")
     Solver solver = cpa.getSolver();
     BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
     metric = new AbstractDistanceMetric(new DistanceCalculationHelper(bfmgr));
+    solver.close();
     return metric.startDistanceMetric(safePaths, targetPath);
   }
 

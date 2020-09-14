@@ -76,7 +76,7 @@ public class ExplainTool {
   private List<CFAEdge> cleanZeros(List<CFAEdge> path) {
     List<CFAEdge> result = new ArrayList<>();
     for (CFAEdge e : path) {
-      if (!(e.getEdgeType().equals(CFAEdgeType.BlankEdge))) {
+      if (!e.getEdgeType().equals(CFAEdgeType.BlankEdge)) {
         result.add(e);
       }
     }

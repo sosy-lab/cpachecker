@@ -56,26 +56,28 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
     List<CFAEdge> branchesCe = findBranches(ce);
     // auto path generator
     List<List<CFAEdge>> successfulGeneratedPath =
-        pathGenerator(branchesCe, ce, counterexample.asStatesList());
+        pathGenerator(branchesCe, counterexample.asStatesList());
 
     if (successfulGeneratedPath == null) {
       return null;
     }
 
-    successfulGeneratedPath.stream().map(c -> distanceHelper.cleanPath(c));
-
-    Integer a = null;
+    List<List<CFAEdge>> replace = new ArrayList<>();
+    for (List<CFAEdge> pCFAEdges : successfulGeneratedPath) {
+      replace.add(distanceHelper.cleanPath(pCFAEdges));
+    }
+    successfulGeneratedPath = replace;
+    // default location is 0 - the first node
+    int a = 0;
 
     int spRootNodeNumber =
-        successfulGeneratedPath != null
-            ? successfulGeneratedPath
-                .get(0)
-                .get(0)
-                .getPredecessor()
-                .getEnteringEdge(0)
-                .getPredecessor()
-                .getNodeNumber()
-            : 0;
+        successfulGeneratedPath
+            .get(0)
+            .get(0)
+            .getPredecessor()
+            .getEnteringEdge(0)
+            .getPredecessor()
+            .getNodeNumber();
 
     for (int i = 0; i < ce.size(); i++) {
       if (ce.get(i).getPredecessor().getNodeNumber() == spRootNodeNumber) {
@@ -264,12 +266,10 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
    * Auto generator of the closest successful safe path
    *
    * @param pBranchesCE the control flow of the counterexample
-   * @param ce the actual counterexample path as List of CFAEdges
    * @return the new Generated Path (maybe more than one found)
    */
-  private List<List<CFAEdge>> pathGenerator(
-      List<CFAEdge> pBranchesCE, List<CFAEdge> ce, List<ARGState> pARGStates) {
-    if (pBranchesCE.isEmpty() || ce.isEmpty()) {
+  private List<List<CFAEdge>> pathGenerator(List<CFAEdge> pBranchesCE, List<ARGState> pARGStates) {
+    if (pBranchesCE.isEmpty()) {
       return null;
     }
     // Get the last branch of the counterexample - the one closer to the Error -
@@ -290,13 +290,13 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
             lastBranch = pCFAEdge.getPredecessor().getLeavingEdge(i);
             break;
           }
-          break;
         }
+        break;
       }
     }
 
     ARGState lastBranchAsState = findEquivalentState(lastBranch, pARGStates);
-    return buildNewPath(ce, lastBranch, lastBranchAsState);
+    return buildNewPath(lastBranch, lastBranchAsState);
   }
 
   private ARGState findEquivalentState(CFAEdge pCFAEdge, List<ARGState> states) {
@@ -311,24 +311,25 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
         break;
       }
     }
-    List<ARGState> a = new ArrayList<>(finalState.getChildren());
+    if (finalState == null) {
+      return null;
+    }
+    List<ARGState> finalStatesChildren = new ArrayList<>(finalState.getChildren());
     for (int i = 0; i < finalState.getChildren().size(); i++) {
-      if (!states.contains(a.get(i))) {
-        return a.get(i);
+      if (!states.contains(finalStatesChildren.get(i))) {
+        return finalStatesChildren.get(i);
       }
     }
     return null;
   }
 
-  private List<List<CFAEdge>> buildNewPath(
-      List<CFAEdge> ce, CFAEdge lastBranch, ARGState lastBranchAsState) {
+  private List<List<CFAEdge>> buildNewPath(CFAEdge lastBranch, ARGState lastBranchAsState) {
     assert lastBranch.getEdgeType().equals(CFAEdgeType.AssumeEdge);
-    List<CFAEdge> result = new ArrayList<>();
     // In Case that the last branch has more than one feasible safe paths
     // then this technique finds all of them and returns them in the form
     // of List<List<CFAEdge>>
     List<ARGPath> paths =
-        distanceHelper.createPath(null, lastBranchAsState, false); // findAllPaths(result);
+        distanceHelper.createPath(null, lastBranchAsState, false);
     List<List<CFAEdge>> filteredPaths = new ArrayList<>();
 
     for (ARGPath path : paths) {
@@ -338,20 +339,5 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
     }
 
     return filteredPaths;
-  }
-
-  /**
-   * Checks if the list contains a Target State
-   *
-   * @param list a list with CFAEdges that has to be checked
-   * @return true if it has no target states, otherwise false
-   */
-  private boolean isTarget(List<CFAEdge> list) {
-    for (CFAEdge pCFAEdge : list) {
-      if (pCFAEdge.getDescription().equals("Label: ERROR")) {
-        return true;
-      }
-    }
-    return false;
   }
 }
