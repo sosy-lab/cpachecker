@@ -52,8 +52,11 @@ public class CFAToCTranslatorTest extends ToCTranslationTest {
     originalProgram = Paths.get(TEST_DIR_PATH, pProgram);
   }
 
-  private CFAToCTranslator getTranslator() {
-    return new CFAToCTranslator();
+  private CFAToCTranslator getTranslator() throws InvalidConfigurationException {
+    return new CFAToCTranslator(
+        TestDataTools.configurationForTest()
+            .setOption("cpa.arg.export.code.header", "false")
+            .build());
   }
 
   private CFA parseProgram(Path pProgram) {
