@@ -48,7 +48,12 @@ public class SLFieldToOffsetVisitor implements CTypeVisitor<Void, UnrecognizedCo
     CExpression owner = pField.getFieldOwner();
     CType type = owner.getExpressionType();
     if (pField.isPointerDereference()) {
-      type = ((CPointerType) type).getType();
+      if(type instanceof CTypedefType) {
+        type = ((CTypedefType) type).getRealType();
+      }
+      if (type instanceof CPointerType) {
+        type = ((CPointerType) type).getType();
+      }
     }
     type.accept(this);
     return offset;
