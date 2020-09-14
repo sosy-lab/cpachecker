@@ -289,26 +289,38 @@ public class RCUState implements LatticeAbstractState<RCUState>,
   public Collection<AbstractIdentifier> getAllPossibleAliases(AbstractIdentifier id) {
     Set<AbstractIdentifier> result = new TreeSet<>();
 
-    if (id instanceof SingleIdentifier) {
-      SingleIdentifier sid = (SingleIdentifier) id;
-      if (sid.getDereference() > 0) {
-        for (int i = 0; i <= sid.getDereference(); ++i) {
-          AbstractIdentifier clone = sid.cloneWithDereference(i);
-          if (rcuRelations.containsKey(clone)) {
-            result.addAll(rcuRelations.get(clone));
+    addAliasesFor(id, result);
+
+    return result;
+  }
+
+  private void addAliasesFor(AbstractIdentifier id, Collection<AbstractIdentifier> result) {
+    if (id.getDereference() > 0) {
+      for (int i = 0; i <= id.getDereference(); ++i) {
+        AbstractIdentifier clone = id.cloneWithDereference(i);
+        if (rcuRelations.containsKey(clone)) {
+          for (AbstractIdentifier alias : rcuRelations.get(clone)) {
+            AbstractIdentifier clonnedAlias =
+                alias.cloneWithDereference(alias.getDereference() + id.getDereference() - i);
+            if (result.add(clonnedAlias)) {
+              addAliasesFor(clonnedAlias, result);
+            }
           }
-          if (rcuRelations.containsValue(clone)) {
-            for (Entry<AbstractIdentifier, AbstractIdentifier> entry : rcuRelations.entries()) {
-              if (entry.getValue().equals(clone)) {
-                result.add(entry.getKey());
+        }
+        if (rcuRelations.containsValue(clone)) {
+          for (Entry<AbstractIdentifier, AbstractIdentifier> entry : rcuRelations.entries()) {
+            if (entry.getValue().equals(clone)) {
+              AbstractIdentifier alias = entry.getKey();
+              AbstractIdentifier clonnedAlias =
+                  alias.cloneWithDereference(alias.getDereference() + id.getDereference() - i);
+              if (result.add(clonnedAlias)) {
+                addAliasesFor(clonnedAlias, result);
               }
             }
           }
         }
       }
     }
-
-    return result;
   }
 
   RCUState incRCURead() {
