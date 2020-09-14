@@ -12,7 +12,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Class Alignment is used for making alignments between two Elements
+ * Class Alignment is used for making alignments between two Elements. It guarantees that the size
+ * of the two contained lists remains always the same.
  *
  * @param <T> T is here either a CFAEdge or a ARGState
  */

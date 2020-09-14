@@ -31,12 +31,12 @@ public class ExplainTool {
   public void explainDeltas(
       List<CFAEdge> counterexample, List<CFAEdge> closestExecution, CounterexampleInfo ceInfo) {
     closestExecution = new DistanceCalculationHelper().cleanPath(closestExecution);
-    List<CFAEdge> ceEdges = counterexample;
     List<CFAEdge> spEdges = new ArrayList<>(closestExecution);
-
     List<CFAEdge> deltasCe = new ArrayList<>();
     List<CFAEdge> deltasSp = new ArrayList<>();
 
+    // --------------------------------------------------
+    // BEFORE
     for (CFAEdge pEdge : counterexample) {
       if (!spEdges.contains(pEdge)) {
         deltasCe.add(pEdge);
@@ -45,11 +45,22 @@ public class ExplainTool {
       }
     }
 
+    // AFTER
+    for (CFAEdge pEdge : counterexample) {
+      if (!spEdges.contains(pEdge)) {
+        deltasCe.add(pEdge);
+      } else {
+        spEdges.remove(pEdge);
+      }
+    }
+
+    // -----------------------------------------------------
+
     for (CFAEdge pEdge : closestExecution) {
-      if (!ceEdges.contains(pEdge)) {
+      if (!counterexample.contains(pEdge)) {
         deltasSp.add(pEdge);
       } else {
-        ceEdges.remove(pEdge);
+        counterexample.remove(pEdge);
       }
     }
 

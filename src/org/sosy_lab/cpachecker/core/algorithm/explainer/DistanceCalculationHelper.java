@@ -196,7 +196,8 @@ public class DistanceCalculationHelper {
         if (filter) {
           children = from(currentNode.getChildren()).filter(pStatesOnPathTo::contains).toList();
         } else {
-          children = from(currentNode.getChildren()).toList();
+          // children = from(currentNode.getChildren()).toList();
+          children = ImmutableList.copyOf(currentNode.getChildren());
         }
         if (children.size() == 1) {
           nodeWaitList.get(currentPathNumber).add(children.get(0));

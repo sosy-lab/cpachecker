@@ -9,8 +9,8 @@ the assignment should be "least = in2". For an input equal to
 least=1 and most=3, which is not conform with the given post-condition 
 "(least<=most)".
 
-SPDX-FileCopyrightText: Mohammed Bekkouche <http://www.i3s.unice.fr>
-SPDX-License-Identifier: Apache-2.0
+@author: Mohammed Bekkouche
+@Web:    http://www.i3s.unice.fr
  */
 
 extern int __VERIFIER_nondet_uint();

@@ -16,10 +16,10 @@ public interface DistanceMetric {
 
   /**
    * Starts the distance Metric
+   *
    * @param safePaths the list with the successful executions
    * @param counterexample a feasible counterexample
    * @return a list of CFAEdge that represent to the closest execution to the counterexample
    */
   List<CFAEdge> startDistanceMetric(List<ARGPath> safePaths, ARGPath counterexample);
-
 }

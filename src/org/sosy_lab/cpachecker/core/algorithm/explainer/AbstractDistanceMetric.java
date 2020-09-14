@@ -21,7 +21,10 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
- * Abstract Distance Metric
+ * Abstract Distance Metric This class contains a metric for program executions. The metric consists
+ * of two weighted sub-distance functions: 1. predicate distance 2. number of unaligned states and
+ * the final distance is "d(a,b) = (predicateWeight * predicateDistance) + (unalignedStatesWeight *
+ * unalignedStates)"
  *
  * @see Explainer
  */
@@ -33,7 +36,7 @@ public class AbstractDistanceMetric implements DistanceMetric {
     this.distanceHelper = pDistanceCalculationHelper;
   }
 
-  /** Start Method */
+  /** Start the metric */
   @Override
   public List<CFAEdge> startDistanceMetric(List<ARGPath> safePaths, ARGPath counterexample) {
     Preconditions.checkNotNull(distanceHelper);
@@ -49,8 +52,11 @@ public class AbstractDistanceMetric implements DistanceMetric {
   }
 
   /**
-   * @param counterexample := Counterexample
-   * @param safePaths := Safe paths
+   * @param counterexample the failed program execution
+   * @param safePaths all the successful program executions found
+   * @param ceStates the ARGStates of the counterexample
+   * @param pathsStates the ARGStates of the successful executions
+   * @return the closest to the counterexample successful run
    */
   private List<CFAEdge> comparePaths(
       List<CFAEdge> counterexample,
@@ -77,7 +83,8 @@ public class AbstractDistanceMetric implements DistanceMetric {
       // Step 3: Get Differences between Actions
       List<CFAEdge> betterChoice =
           (safePaths.get(i).size() > counterexample.size()) ? safePaths.get(i) : counterexample;
-      int unalignedStates = getNumberOfUnalignedStates(alignments, betterChoice);
+      int unalignedStates =
+          getNumberOfUnalignedStates(alignments.getCounterexample(), betterChoice);
 
       // calculate the distance
       int d = predicateWeight * predicateDistance + unalignedStatesWeight * unalignedStates;
@@ -108,22 +115,36 @@ public class AbstractDistanceMetric implements DistanceMetric {
   }
 
   /**
-   * Calculate the Number of Unaligned States. Unaligned states are the Nodes that haven't been
-   * considered for comparison, because they didn't fulfill the official criteria of the aligned
+   * Calculate the Number of Unaligned States. Unaligned states are the Nodes that haven't been * *
+   * considered for comparison, because they didn't fulfill the official criteria of the aligned * *
    * states.
+   *
+   * @param alignedEdges a list with edges that are aligned
+   * @param safePath the successful program execution that is being currently compared with the
+   *     counterexample
+   * @return the number of edges that are not aligned with another edge
    */
-  private int getNumberOfUnalignedStates(Alignment<CFAEdge> alignments, List<CFAEdge> safePath) {
-    return Math.abs((alignments.getCounterexample().size() - safePath.size()));
+  private int getNumberOfUnalignedStates(List<CFAEdge> alignedEdges, List<CFAEdge> safePath) {
+    return Math.abs((alignedEdges.size() - safePath.size()));
   }
 
   /** Calculates the distance of the predicates */
+
+  /**
+   * Calculates the predicate distance between two executions, i.e. how many predicates from the
+   * first program execution are not contained in the second execution and vice versa
+   *
+   * @param alignments the aligned edges between the two executions that are being compared
+   * @param ceStates the ARGStates that are contained in the counterexample
+   * @param pathsStates the ARGStates that are contained in the successful executions
+   * @return how many predicates are different in these two program executions
+   */
   private int calculatePredicateDistance(
       Alignment<CFAEdge> alignments, List<ARGState> ceStates, List<ARGState> pathsStates) {
     int distance = 0;
     Alignment<ARGState> stateAlignments = new Alignment<>();
     // First find the ARGStates that are mapped to the equivalent CFANode
     // and put them in a List
-
     for (int i = 0; i < alignments.getCounterexample().size(); i++) {
       ARGState argCeState = null;
       ARGState argSpState = null;
@@ -180,7 +201,13 @@ public class AbstractDistanceMetric implements DistanceMetric {
     return distance;
   }
 
-  /** Create Alignments between Counterexample and Safe Path */
+  /**
+   * Create Alignments between Counterexample and Safe Path
+   *
+   * @param ce the counterexample
+   * @param safePath the successful program execution
+   * @return an Alignment with the aligned edges of the counterexample and the safe path
+   */
   private Alignment<CFAEdge> createAlignments(List<CFAEdge> ce, List<CFAEdge> safePath) {
     List<CFAEdge> ceCopy1 = new ArrayList<>(ce);
     List<CFAEdge> safePath1 = new ArrayList<>(safePath);

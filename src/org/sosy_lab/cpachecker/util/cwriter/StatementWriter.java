@@ -54,7 +54,7 @@ public class StatementWriter implements StatementVisitor<IOException> {
   private void addLabelIfNecessary(Statement pS) throws IOException {
     Optional<String> label = pS.getLabelIfUsed();
     if (label.isPresent()) {
-      sb.append(label.get()).append(":;\n");
+      sb.append(label.orElseThrow()).append(":;\n");
     }
   }
 

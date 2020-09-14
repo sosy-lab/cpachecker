@@ -114,12 +114,12 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
     // currentReached
     AlgorithmStatus status;
     status = firstStepAlgorithm.run(currentReached);
-    /*int i = 0;
+    int i = 0;
     // TODO: Review: HAVE TO FIX THIS
     while (currentReached.hasWaitingState() && i < 40) {
       status = firstStepAlgorithm.run(currentReached);
       i++;
-    }*/
+    }
     reached.setDelegate(currentReached);
 
     // Find All Targets
@@ -221,10 +221,10 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
     return metric.startDistanceMetric(safePaths, targetPath);
   }
 
-  private List<CFAEdge> startPathGeneration(ARGPath targetPath, CounterexampleInfo ceInfo) {
+  private void startPathGeneration(ARGPath targetPath, CounterexampleInfo ceInfo) {
     ControlFlowDistanceMetric pathGeneration =
         new ControlFlowDistanceMetric(new DistanceCalculationHelper());
-    return pathGeneration.generateClosestSuccessfulExecution(targetPath, ceInfo);
+    pathGeneration.generateClosestSuccessfulExecution(targetPath, ceInfo);
   }
 
   private Triple<Algorithm, ConfigurableProgramAnalysis, ReachedSet> createAlgorithm(
