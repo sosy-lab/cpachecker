@@ -144,7 +144,12 @@ public class RCUTransfer extends SingleEdgeTransferRelation{
       throws InvalidConfigurationException {
     logger = pLogger;
     pConfig.inject(this);
-    rcuPointers = parseFile(input);
+    if (input != null) {
+      rcuPointers = parseFile(input);
+    } else {
+      logger.log(Level.WARNING, "RCU information is not given, analysis is useless");
+      rcuPointers = ImmutableSet.of();
+    }
   }
 
   private Set<MemoryLocation> parseFile(Path pInput) {
