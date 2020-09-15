@@ -18,7 +18,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.ClassOption;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -61,7 +60,6 @@ import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.refinement.PathExtractor;
 import org.sosy_lab.cpachecker.util.refinement.PrefixProvider;
 import org.sosy_lab.cpachecker.util.slicing.Slicer;
-import org.sosy_lab.cpachecker.util.slicing.SlicerFactory;
 
 /**
  * Refiner for {@link SlicingPrecision}. Precision refinement is done through program slicing [1].
@@ -175,8 +173,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
     LogManager logger = slicingCPA.getLogger();
     Configuration config = slicingCPA.getConfig();
     CFA cfa = slicingCPA.getCfa();
-    ShutdownNotifier shutdownNotifier = slicingCPA.getShutdownNotifier();
-    Slicer slicer = new SlicerFactory().create(logger, shutdownNotifier, config, cfa);
+    Slicer slicer = slicingCPA.getSlicer();
 
     ARGCPA argCpa = CPAs.retrieveCPAOrFail(pCpa, ARGCPA.class, SlicingRefiner.class);
     PathExtractor pathExtractor = new PathExtractor(logger, config);
