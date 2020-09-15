@@ -692,17 +692,23 @@ public class CtoFormulaConverter {
   protected Formula makeCast(final CType pFromType, final CType pToType,
       Formula formula, Constraints constraints, CFAEdge edge) throws UnrecognizedCodeException {
     Formula result;
+    // if (formula instanceof BooleanFormula || formula instanceof IntegerFormula) {
+    // if (!CTypes.isIntegerType(pToType)) {
+    // assert (pToType instanceof CPointerType
+    // && formula instanceof IntegerFormula
+    // && options
+    // .useIntegerAsPointerType()) : "Unwanted cast call! The formula needs to be converted to
+    // another FormulaType first.";
+    // }
+    // result = formula;
     if (formula instanceof BooleanFormula || formula instanceof IntegerFormula) {
-      if (!CTypes.isIntegerType(pToType)) {
-        assert (pToType instanceof CPointerType
-            && formula instanceof IntegerFormula
-            && options
-                .useIntegerAsPointerType()) : "Unwanted cast call! The formula needs to be converted to another FormulaType first.";
-      }
-      result = formula;
-    } else {
-      result = makeCast0(pFromType, pToType, formula, edge);
+      throw new AssertionError("Unwanted cast call! Use makeFormulaTypeCast() instead.");
     }
+    if (pToType instanceof CPointerType && options.useIntegerAsPointerType()) {
+      throw new AssertionError(
+          "Cast to CPointerType impossible. The pointerType is specified as Integer. Use makeFormulaTypeCast().");
+    }
+    result = makeCast0(pFromType, pToType, formula, edge);
 
     if (options.encodeOverflowsWithUFs()) {
       // handles arithmetic overflows like  "x+y>MAX"  or  "x-y<MIN"  .
