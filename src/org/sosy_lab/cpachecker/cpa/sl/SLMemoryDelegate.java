@@ -318,6 +318,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
       stats.startSolverTime();
       // Generate model
       if (!prover.isUnsat()) {
+        stats.stopSolverTime();
         List<ValueAssignment> assignments = prover.getModelAssignments();
         for (ValueAssignment a : assignments) {
           String var = a.getName();
@@ -325,7 +326,10 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
             // return key_n for v_n = true
             if(bfm.isTrue((BooleanFormula) a.getValueAsFormula())) {
               int index = Integer.parseInt(var.substring(var.indexOf('#') + 1));
-              return keyArray[index];
+              Formula match = keyArray[index];
+              if (checkEquivalenceSMT(pLoc, match)) {
+                return match;
+              }
             }
           }
 
