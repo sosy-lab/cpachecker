@@ -240,7 +240,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
 
   private Optional<Formula>
       checkAllocation(Map<Formula, Formula> pMemory, Formula fLoc) {
-    if (pMemory.isEmpty()) {
+    if (pMemory.isEmpty() || !fm.getFormulaType(fLoc).equals(heapAddressFormulaType)) {
       return Optional.empty();
     }
     // Syntactical check for performance.
