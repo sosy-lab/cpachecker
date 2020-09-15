@@ -395,6 +395,8 @@ class WebInterface:
         logging.info("Using VerifierCloud at %s", web_interface_url)
 
         self._connection = requests.Session()
+        # increase the pool size a bit to get rid of warnings on aborting with SIGINT:
+        self._connection.mount('https://', requests.adapters.HTTPAdapter(pool_maxsize=100))
         self._connection.headers.update(default_headers)
         try:
             cert_paths = ssl.get_default_verify_paths()
