@@ -49,6 +49,7 @@ This module provides helpers for accessing the web interface of the VerifierClou
 
 __all__ = [
     "WebClientError",
+    "UserAbortError",
     "WebInterface",
     "handle_result",
     "MEMLIMIT",
@@ -97,6 +98,12 @@ class WebClientError(Exception):
     def _str_(self):
         return repr(self.value)
 
+class UserAbortError(Exception):
+    def _init_(self, value):
+        self.value = value
+
+    def _str_(self):
+        return repr(self.value)
 
 class PollingResultDownloader:
     def __init__(self, web_interface, result_poll_interval, unfinished_runs=None):
@@ -1012,7 +1019,7 @@ class WebInterface:
                 for runId in self._unfinished_runs.keys():
                     stop_tasks.add(stop_executor.submit(self._stop_run, runId))
                     self._unfinished_runs[runId].set_exception(
-                        WebClientError("WebInterface was stopped.")
+                        UserAbortError("Run was canceled because user requested shutdown.")
                     )
                 self._unfinished_runs.clear()
 
