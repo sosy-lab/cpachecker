@@ -47,7 +47,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
@@ -56,7 +55,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -266,7 +264,11 @@ public class RCUTransfer extends SingleEdgeTransferRelation{
     AbstractIdentifier rcuPtr = left.accept(localIc);
     AbstractIdentifier ptr = right.accept(localIc);
 
-    return handleAssignment(rcuPtr, ptr, state, rcuAssign);
+    if (rcuPtr.isPointer() || ptr.isPointer()) {
+      // a = null is also possible
+      return handleAssignment(rcuPtr, ptr, state, rcuAssign);
+    }
+    return state;
   }
 
   private RCUState handleAssignment(
@@ -371,14 +373,8 @@ public class RCUTransfer extends SingleEdgeTransferRelation{
                                          String functionName) {
     CLeftHandSide leftHandSide = assignment.getLeftHandSide();
     CExpression rightHandSide = assignment.getRightHandSide();
-    if (leftHandSide instanceof CPointerExpression || leftHandSide instanceof CFieldReference ||
-        rightHandSide instanceof CPointerExpression || rightHandSide instanceof CFieldReference) {
 
-      return handleAssignment(leftHandSide, rightHandSide, functionName,
-          pResult,
-          false);
-    }
-    return pResult;
+    return handleAssignment(leftHandSide, rightHandSide, functionName, pResult, false);
   }
 
   private RCUState handleDeclaration(CDeclaration pDeclaration,

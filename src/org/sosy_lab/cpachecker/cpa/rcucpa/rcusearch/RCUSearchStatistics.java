@@ -127,12 +127,20 @@ public class RCUSearchStatistics implements Statistics {
     Set<MemoryLocation> rcuAndAliases = new TreeSet<>();
 
     // TODO: BAM specifics?
+    // First collect rcu pointers
     for (AbstractState state : reached) {
       RCUSearchState searchState = AbstractStates.extractStateByType(state, RCUSearchState.class);
       if (searchState != null) {
         rcuAndAliases.addAll(searchState.getRcuPointers());
-        PointerState pState = (PointerState) searchState.getWrappedState();
-        rcuAndAliases.addAll(getAliases(pState, searchState.getRcuPointers()));
+      }
+    }
+    // Then get aliases, not simultaneously, as there are cases, when aliases appears in other
+    // states.
+
+    for (AbstractState state : reached) {
+      PointerState pState = AbstractStates.extractStateByType(state, PointerState.class);
+      if (pState != null) {
+        rcuAndAliases.addAll(getAliases(pState, rcuAndAliases));
       }
     }
 
