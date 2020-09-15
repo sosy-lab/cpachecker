@@ -978,11 +978,22 @@ class AssignmentHandler {
                   .orElseThrow();
           if (!(memberFormula instanceof BitvectorFormula)) {
             CType interType = TypeUtils.createTypeWithLength(innerMemberSize);
-            memberFormula =
-                conv.makeCast(
-                    innerMember.getType(), interType, memberFormula, constraints, edge);
-            memberFormula =
-                conv.makeValueReinterpretation(innerMember.getType(), interType, memberFormula);
+            if (innerMember.getType() instanceof CPointerType
+                && options.useIntegerAsPointerType()) {
+              int bitSize = typeHandler.getBitSizeof(interType);
+              memberFormula =
+                  conv.makeFormulaTypeCast(
+                      FormulaType.getBitvectorTypeWithSize(bitSize),
+                      innerMember.getType(),
+                      memberFormula,
+                      ssa,
+                      constraints);
+            } else {
+              memberFormula =
+                  conv.makeCast(innerMember.getType(), interType, memberFormula, constraints, edge);
+              memberFormula =
+                  conv.makeValueReinterpretation(innerMember.getType(), interType, memberFormula);
+            }
           }
           assert memberFormula == null || memberFormula instanceof BitvectorFormula;
 
@@ -1009,8 +1020,19 @@ class AssignmentHandler {
 
         if (rhsFormula != null) {
           CType fromType = TypeUtils.createTypeWithLength(targetSize);
-          rhsFormula = conv.makeCast(fromType, newLhsType, rhsFormula, constraints, edge);
-          rhsFormula = conv.makeValueReinterpretation(fromType, newLhsType, rhsFormula);
+          if (newLhsType instanceof CPointerType && options.useIntegerAsPointerType()) {
+            int bitSize = typeHandler.getBitSizeof(newLhsType);
+            rhsFormula =
+                conv.makeFormulaTypeCast(
+                    FormulaType.getBitvectorTypeWithSize(bitSize),
+                    fromType,
+                    rhsFormula,
+                    ssa,
+                    constraints);
+          } else {
+            rhsFormula = conv.makeCast(fromType, newLhsType, rhsFormula, constraints, edge);
+            rhsFormula = conv.makeValueReinterpretation(fromType, newLhsType, rhsFormula);
+          }
         }
         // make rhsexpression from constructed bitvector; perhaps cast to lhsType in advance?
         newRhsExpression = Value.ofValueOrNondet(rhsFormula);
@@ -1071,8 +1093,19 @@ class AssignmentHandler {
       if (rhsType instanceof CPointerType) {
         // Do not break on Pointer-Handling
         CType rhsCasted = TypeUtils.createTypeWithLength(rhsSize);
-        rhsFormula = conv.makeCast(rhsType, rhsCasted, rhsFormula, constraints, edge);
-        rhsFormula = conv.makeValueReinterpretation(rhsType, rhsCasted, rhsFormula);
+        if (options.useIntegerAsPointerType()) {
+          int bitSize = typeHandler.getBitSizeof(rhsCasted);
+          rhsFormula =
+              conv.makeFormulaTypeCast(
+                  FormulaType.getBitvectorTypeWithSize(bitSize),
+                  rhsType,
+                  rhsFormula,
+                  ssa,
+                  constraints);
+        } else {
+          rhsFormula = conv.makeCast(rhsType, rhsCasted, rhsFormula, constraints, edge);
+          rhsFormula = conv.makeValueReinterpretation(rhsType, rhsCasted, rhsFormula);
+        }
       } else {
         rhsFormula = conv.makeCast(rhsType, memberType, rhsFormula, constraints, edge);
         rhsFormula = conv.makeValueReinterpretation(rhsType, memberType, rhsFormula);
