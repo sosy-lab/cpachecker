@@ -729,7 +729,7 @@ public class CtoFormulaConverter {
    */
   protected Formula makeFormulaTypeCast(
       final FormulaType<?> toType,
-      final CType cType,
+      CType cType,
       Formula formula,
       SSAMapBuilder ssa,
       Constraints constraints) {
@@ -740,21 +740,26 @@ public class CtoFormulaConverter {
     if (fromType.equals(toType)) {
       return formula;
     }
-    final CType cTypeNoPointer = handlePointerAndEnumAsInt(cType);
+    if (cType instanceof CFunctionType) {
+      // references to functions can be seen as function pointers
+      cType = new CPointerType(false, false, cType);
+    }
+    cType = cType.getCanonicalType();
+    cType = handlePointerAndEnumAsInt(cType);
 
     if (fromType.isBitvectorType()) {
       if (toType.isBooleanType()) {
-        final CSimpleType sType = (CSimpleType) cTypeNoPointer;
+        assert CTypes.isIntegerType(cType) : cType + " should not be casted to a BooleanFormula!";
+        final CSimpleType sType = (CSimpleType) cType;
         final boolean signed = machineModel.isSigned(sType);
         IntegerFormula iformula = efmgr.toIntegerFormula((BitvectorFormula) formula, signed);
         IntegerFormula zero = ifmgr.makeNumber(0);
         return bfmgr.not(ifmgr.equal(iformula, zero));
-      } else if (toType.isIntegerType() && (cTypeNoPointer instanceof CSimpleType)) {
-        final CSimpleType sType = (CSimpleType) cTypeNoPointer;
+      } else if (toType.isIntegerType()) {
+        assert CTypes.isIntegerType(cType) : cType + " should not be casted to an IntegerFormula!";
+        final CSimpleType sType = (CSimpleType) cType;
         final boolean signed = machineModel.isSigned(sType);
         return efmgr.toIntegerFormula((BitvectorFormula) formula, signed);
-      } else if (toType.isIntegerType()) {
-        return efmgr.toIntegerFormula((BitvectorFormula) formula, false);
       } else if (toType.isBitvectorType()) {
         Predicate<CType> isSigned = t -> {
           if (t instanceof CSimpleType) {
@@ -778,7 +783,7 @@ public class CtoFormulaConverter {
               .extend((BitvectorFormula) formula, (toSize - fromSize), isSigned.test(cType));
         }
       } else if (toType.isFloatingPointType()) {
-        final CSimpleType sType = (CSimpleType) cTypeNoPointer;
+        final CSimpleType sType = (CSimpleType) cType;
         final boolean signed = machineModel.isSigned(sType);
         return fmgr.getFloatingPointFormulaManager()
             .castFrom(formula, signed, (FormulaType.FloatingPointType) toType);
@@ -797,7 +802,7 @@ public class CtoFormulaConverter {
         IntegerFormula zero = ifmgr.makeNumber(0);
         return bfmgr.not(ifmgr.equal((IntegerFormula) formula, zero));
       } else if (toType.isFloatingPointType()) {
-        final CSimpleType sType = (CSimpleType) cTypeNoPointer;
+        final CSimpleType sType = (CSimpleType) cType;
         final boolean signed = machineModel.isSigned(sType);
         return fmgr.getFloatingPointFormulaManager()
             .castFrom(formula, signed, (FormulaType.FloatingPointType) toType);
