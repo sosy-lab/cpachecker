@@ -3,12 +3,33 @@
 <benchmark tool="cpachecker" timelimit="90s" hardtimelimit="120 s" memlimit="15 GB" cpuCores="2">
 
   <rundefinition/>
+  
   <option name="-stats"/>
-  <tasks name="memsafety-ext3">
-    <includesfile>../programs/benchmarks/MemSafety-SL.set</includesfile>
+  <option name="-sl"/>
+  <option name="-setprop">solver.solver=MATHSAT5</option>
+  <option name="-setprop">cpa.sl.allocationCheckProcedure=SMT_MODELSAT</option>
+  
+  <tasks name="memsafety-ext2">
+  	<include>../programs/benchmarks/memsafety-ext2/complex_data_creation_test01-1.yml</include>
+    <include>../programs/benchmarks/memsafety-ext2/complex_data_creation_test02-2.yml</include>
     <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
-    <option name="-sl"/>
-    <option name="-setprop">cpa.sl.allocationCheckProcedure=SL</option>
+  </tasks>
+  
+  <tasks name="memsafety-ext3">
+    <include>../programs/benchmarks/memsafety-ext3/*.yml</include>
+    <propertyfile>../programs/benchmarks/properties/valid-memsafety.prp</propertyfile>
+  </tasks>
+
+  <requiredfiles>../programs/cpalien/cpalien-headers.h</requiredfiles>
+  <tasks name="cpalien">
+    <includesfile>../programs/cpalien/cpalien.set</includesfile>
+    <exclude>../programs/cpalien/0011-trivial-cycle.yml</exclude>
+    <exclude>../programs/cpalien/0012-trivial-tree.yml</exclude>
+    <exclude>../programs/cpalien/0018-builtins.yml</exclude>
+    <exclude>../programs/cpalien/0020-ugly-list.yml</exclude>
+    <exclude>../programs/cpalien/0021-ugly-list.yml</exclude>
+    <option name="-preprocess" />
+    <propertyfile>../config/properties/valid-memsafety.prp</propertyfile>
   </tasks>
   
   <columns>
