@@ -444,11 +444,17 @@ class WebInterface:
                     self._hash_code_cache[(tokens[0], tokens[1])] = tokens[2]
 
     def _write_hash_code_cache(self):
+        # make snapshot of hash code cache to avoid concurrent modification.
+        # We reset self._hash_code_cache to {} to save memory and because
+        # it will not be needed any more (this method is only called upon shutdown).
+        hash_code_cache = self._hash_code_cache
+        self._hash_code_cache = {}
+
         directory = os.path.dirname(HASH_CODE_CACHE_PATH)
         try:
             os.makedirs(directory, exist_ok=True)
             with tempfile.NamedTemporaryFile(dir=directory, delete=False) as tmpFile:
-                for (path, mTime), hashValue in self._hash_code_cache.items():
+                for (path, mTime), hashValue in hash_code_cache.items():
                     line = path + "\t" + mTime + "\t" + hashValue + "\n"
                     tmpFile.write(line.encode())
 
