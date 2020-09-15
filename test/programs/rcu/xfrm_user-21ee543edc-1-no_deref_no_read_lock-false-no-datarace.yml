@@ -1,6 +1,6 @@
 format_version: '1.0'
 
-input_files: 'xfrm_user-21ee543edc~-no_deref_no_read_lock-false-no-datarace.i'
+input_files: 'xfrm_user-21ee543edc-1-no_deref_no_read_lock-false-no-datarace.i'
 
 properties:
   - property_file: data-race.prp

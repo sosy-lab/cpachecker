@@ -1,6 +1,6 @@
 format_version: '1.0'
 
-input_files: 'drop_monitor-3885ca785a~-no_sync_on_ptr_write-false-no-datarace.i'
+input_files: 'drop_monitor-3885ca785a-1-no_sync_on_ptr_write-false-no-datarace.i'
 
 properties:
   - property_file: data-race.prp
