@@ -358,36 +358,21 @@ public class ExpressionToFormulaVisitor
     // If the types are equal, the cast returns the Formula unchanged.
     // When processing boolean, or integer formulas, we may have to skip the cast.
     Formula castedResult;
-    if (!CTypes.isIntegerType(returnType) || !conv.options.useVariableClassification()) {
-      castedResult =
-          conv.makeFormulaTypeCast(
-              conv.getFormulaTypeFromCType(returnType),
-              calculationType,
-              ret,
-              ssa,
-              constraints);
-      castedResult = conv.makeCast(calculationType, returnType, ret, constraints, edge);
-    } else {
-      if (forceFormulaType.isPresent()) {
-        castedResult =
-            conv.makeFormulaTypeCast(
-                forceFormulaType.get(),
-                calculationType,
-                ret,
-                ssa,
-                constraints);
-      } else if (calculationFormulaType.isFloatingPointType()) {
-        castedResult =
-            conv.makeFormulaTypeCast(
-                conv.getFormulaTypeFromCType(returnType),
-                calculationType,
-                ret,
-                ssa,
-                constraints);
-        castedResult = conv.makeCast(calculationType, returnType, ret, constraints, edge);
-      } else {
+    if (conv.options.useVariableClassification()) {
+      if (CTypes.isIntegerType(returnType)
+          || (returnType instanceof CPointerType && conv.options.useIntegerAsPointerType())) {
         castedResult = ret;
+      } else {
+        castedResult =
+            conv.makeFormulaTypeCast(
+                returnFormulaType,
+                calculationType,
+                ret,
+                ssa,
+                constraints);
       }
+    } else {
+      castedResult = conv.makeCast(calculationType, returnType, ret, constraints, edge);
     }
 
     if (!conv.options.useVariableClassification()) {
