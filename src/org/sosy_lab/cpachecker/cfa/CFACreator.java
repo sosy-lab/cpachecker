@@ -279,6 +279,7 @@ public class CFACreator {
   private Language language = Language.C;
 
   @Option(
+    secure = true,
     name = "cfa.automateAbstractLoopParser",
     description = "Automates the abstraction of loops and creation of the new CFA's,overwrites the files")
   private boolean automateAbstractLoopParser = false;
