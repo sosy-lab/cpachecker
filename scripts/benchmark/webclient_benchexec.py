@@ -211,7 +211,9 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
         for future in submission_futures.keys():
             future.cancel()  # for example in case of interrupt
 
-    _webclient.flush_runs()
+    threadlocal_webclient = _webclient
+    if threadlocal_webclient:
+        threadlocal_webclient.flush_runs()
     logging.info("Run submission finished.")
     return result_futures
 
