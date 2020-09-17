@@ -84,11 +84,12 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
   @Option(secure = true, description = "Max. amount of processes to be used by MPI.")
   private int numberProcesses;
 
-  @Option(description = "File containing the ip addresses to be used by MPI.")
+  @Option(secure = true, description = "File containing the ip addresses to be used by MPI.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path hostfile;
 
   @Option(
+    secure = true,
     description = "The MCA parameter ('Modular Component Architecture') "
         + "is available only on Open MPI frameworks. It might thus need to be "
         + "disabled if unavailable on the working machine.")
