@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.base.Verify.verify;
@@ -125,11 +126,15 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     binaries.put(PYTHON3_BIN, getPathOrThrowError(PYTHON3_BIN));
     binaries.put(MPI_BIN, getPathOrThrowError(MPI_BIN));
 
+    String subanalysesTimelimit = computeTimelimitForSubanalyses(config);
+
     ImmutableList.Builder<SubanalysisConfig> subanalysesBuilder = new ImmutableList.Builder<>();
     for (int i = 0; i < configFiles.size(); i++) {
-      subanalysesBuilder.add(new SubanalysisConfig(i));
+      subanalysesBuilder.add(new SubanalysisConfig(i, subanalysesTimelimit));
     }
     subanalyses = subanalysesBuilder.build();
+
+    stats.subanalysesTimelimit = subanalysesTimelimit;
 
     availableProcessors = Runtime.getRuntime().availableProcessors();
     verify(availableProcessors > 0);
@@ -237,6 +242,44 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
           "Failed to create a valid CPAchecker-cmdline from the config",
           e);
     }
+  }
+
+  @SuppressWarnings("deprecation")
+  private static String computeTimelimitForSubanalyses(
+      Configuration pConfig)
+      throws InvalidConfigurationException {
+    if (!pConfig.hasProperty("limits.time.cpu")) {
+      return SubanalysisConfig.SUBPROCESS_DEFAULT_TIMELIMIT;
+    }
+
+    @Nullable
+    String property = pConfig.getProperty("limits.time.cpu");
+    verify(!isNullOrEmpty(property));
+
+    String rawValue = property.split("s")[0].strip();
+    int limitMain;
+    try {
+      limitMain = Integer.parseInt(rawValue);
+    } catch (NumberFormatException e) {
+      throw new InvalidConfigurationException(
+          String.format("Unable to turn the value '%s' into an int value", rawValue),
+          e);
+    }
+
+    int limitSubanalyses;
+
+    // the values below were arbitrarily chosen, but I found them to be reasonable.
+    if (limitMain < 60) {
+      limitSubanalyses = (int) (limitMain * 0.8);
+    } else if (limitMain < 150) {
+      limitSubanalyses = limitMain - 15;
+    } else {
+      limitSubanalyses = Math.max((int) (limitMain * 0.8), limitMain - 90);
+    }
+
+    verify(limitSubanalyses > 0);
+
+    return String.valueOf(limitSubanalyses) + "s";
   }
 
   private static Path getPathOrThrowError(String pRequiredBin)
@@ -445,7 +488,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
   private class SubanalysisConfig {
 
-    private static final String SUBPROCESS_TIMELIMIT = "750s"; // arbitrary value for now
+    private static final String SUBPROCESS_DEFAULT_TIMELIMIT = "750s"; // arbitrarily chosen
 
     private static final String OUTPUT_DIR = "output";
     private static final String SUBANALYSIS_DIR = "output_portfolio-analysis_";
@@ -469,8 +512,10 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     private ImmutableList<String> resultLog = null;
     private CPAcheckerResult result = null;
 
-    SubanalysisConfig(int index) throws InvalidConfigurationException {
+    SubanalysisConfig(int index, String pSubanalysesTimelimit)
+        throws InvalidConfigurationException {
       subanalysis_index = index;
+      checkArgument(!isNullOrEmpty(pSubanalysesTimelimit));
 
       configPath = configFiles.get(subanalysis_index);
       outputPath = Path.of(OUTPUT_DIR, SUBANALYSIS_DIR + subanalysis_index);
@@ -494,9 +539,13 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
               .clearOption("mpiAlgorithm.configFiles")
               .clearOption("analysis.name")
               .clearOption("mpiAlgorithm.numberProcesses")
-              .setOption("limits.time.cpu", SUBPROCESS_TIMELIMIT)
-              .setOption("output.path", outputPath.toString())
-              .setOption("specification", specPath.toString())
+              .clearOption(
+                  "mpiAlgorithm.disableMCAOptions")
+              .setOption(
+                  "limits.time.cpu",
+                  pSubanalysesTimelimit)
+              .setOption("output.path", checkNotNull(outputPath.toString()))
+              .setOption("specification", checkNotNull(specPath.toString()))
               .build();
 
       // Bring the command-line into a format which is executable by a python-script
@@ -570,14 +619,16 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     private int noOfAlgorithmsExecuted = 0;
     private String hostfilePath = null;
     private final Timer mpiBinaryTotalTimer = new Timer();
+    private String subanalysesTimelimit;
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-      pOut.println("Number of algorithms used:         " + noOfAlgorithmsExecuted);
+      pOut.println("Number of algorithms used:                  " + noOfAlgorithmsExecuted);
       if (hostfilePath != null) {
-        pOut.println("Hostfile path:                     " + hostfilePath);
+        pOut.println("Hostfile path:                              " + hostfilePath);
       }
-      pOut.println("MPI binary total execution time:   " + mpiBinaryTotalTimer);
+      pOut.println("MPI binary total execution time:        " + mpiBinaryTotalTimer);
+      pOut.println("Timelimit for the CPAchecker sub-instances: " + subanalysesTimelimit);
     }
 
     @Override
