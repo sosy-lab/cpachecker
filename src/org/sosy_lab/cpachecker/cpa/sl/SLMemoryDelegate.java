@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.sl;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -193,7 +194,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
       getValueForLocation(LinkedHashMap<Formula, Formula> pMemory, Formula pLoc, int size) {
     int bytesToProcess = size;
     boolean found = false;
-    List<Formula> byteLocs = new LinkedList<>();
+    List<Formula> byteLocs = new ArrayList<>();
     for (Formula key : pMemory.keySet()) {
       if(bytesToProcess == 0) {
         break;
