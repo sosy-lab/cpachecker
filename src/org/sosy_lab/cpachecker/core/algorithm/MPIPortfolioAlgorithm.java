@@ -256,7 +256,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     String property = pConfig.getProperty("limits.time.cpu");
     verify(!isNullOrEmpty(property));
 
-    String rawValue = property.split("s")[0].strip();
+    String rawValue = Iterables.get(Splitter.on('s').split(property), 0).strip();
     int limitMain;
     try {
       limitMain = Integer.parseInt(rawValue);
