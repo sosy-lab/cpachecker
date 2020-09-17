@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -216,7 +215,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
       assignValueToLocation(Map<Formula, Formula> pMemory, Formula pLoc, Formula pVal, int size) {
     int bytesToProcess = size;
     boolean found = false;
-    List<Formula> byteLocs = new LinkedList<>();
+    List<Formula> byteLocs = new ArrayList<>();
     for (Formula key : pMemory.keySet()) {
       if (bytesToProcess == 0) {
         break;
