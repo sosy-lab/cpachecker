@@ -20,10 +20,10 @@
 package org.sosy_lab.cpachecker.cpa.sl;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
@@ -52,9 +52,12 @@ public class SLState implements AbstractState, AbstractQueryableState {
 
 
   private PathFormula pathFormula;
-  private final LinkedHashMap<Formula, Formula> heap;
-  private final LinkedHashMap<Formula, Formula> stack;
-  private final LinkedHashSet<BooleanFormula> constraints;
+  private final Map<Formula, Formula> heap;
+  private final Map<Formula, Formula> stack;
+  private final List<Formula> heapKeys; // Insertion order
+  private final List<Formula> stackKeys; // Insertion order
+
+  private final Set<BooleanFormula> constraints;
 
   private final Map<Formula, BigInteger> allocationSizes;
   private final Map<String, Set<Formula>> allocas;
@@ -64,15 +67,19 @@ public class SLState implements AbstractState, AbstractQueryableState {
 
   public SLState(
       PathFormula pPathFormula,
-      LinkedHashMap<Formula, Formula> pHeap,
-      LinkedHashMap<Formula, Formula> pStack,
-      LinkedHashSet<BooleanFormula> pConstraints,
+      Map<Formula, Formula> pHeap,
+      Map<Formula, Formula> pStack,
+      List<Formula> pHeapKeys,
+      List<Formula> pStackKeys,
+      Set<BooleanFormula> pConstraints,
       Map<Formula, BigInteger> pAllocationSizes,
       Map<String, Set<Formula>> pAllocas,
       SLStateError pError) {
     pathFormula = pPathFormula;
     heap = pHeap;
     stack = pStack;
+    heapKeys = pHeapKeys;
+    stackKeys = pStackKeys;
     constraints = pConstraints;
     allocationSizes = pAllocationSizes;
     allocas = pAllocas;
@@ -85,9 +92,11 @@ public class SLState implements AbstractState, AbstractQueryableState {
   public SLState(PathFormula pStore) {
     this(
         pStore,
-        new LinkedHashMap<>(),
-        new LinkedHashMap<>(),
-        new LinkedHashSet<>(),
+        new HashMap<>(),
+        new HashMap<>(),
+        new ArrayList<>(),
+        new ArrayList<>(),
+        new HashSet<>(),
         new HashMap<>(),
         new HashMap<>(),
         null);
@@ -109,12 +118,38 @@ public class SLState implements AbstractState, AbstractQueryableState {
     // + stack;
   }
 
-  public LinkedHashMap<Formula, Formula> getHeap() {
+  public Map<Formula, Formula> getHeap() {
     return heap;
   }
 
-  public LinkedHashMap<Formula, Formula> getStack() {
+  public Map<Formula, Formula> getStack() {
     return stack;
+  }
+
+  public void putOn(boolean onHeap, Formula pKey, Formula pVal) {
+    Map<Formula, Formula> memory = onHeap ? heap : stack;
+    List<Formula> keys = onHeap ? heapKeys : stackKeys;
+    if (!memory.containsKey(pKey)) {
+      keys.add(pKey);
+    }
+    memory.put(pKey, pVal);
+  }
+
+  public Formula removeFrom(boolean fromHeap, Formula pKey) {
+    Map<Formula, Formula> memory = fromHeap ? heap : stack;
+    List<Formula> keys = fromHeap ? heapKeys : stackKeys;
+    keys.remove(pKey);
+    return memory.remove(pKey);
+  }
+
+  public Formula[] getSegment(boolean fromHeap, Formula pKey, int size) {
+    Formula[] res = new Formula[size];
+    List<Formula> keys = fromHeap ? heapKeys : stackKeys;
+    int index = keys.indexOf(pKey);
+    for (int i = 0; i < res.length; i++) {
+      res[i] = keys.get(index + i);
+    }
+    return res;
   }
 
   public void addError(@Nonnull SLStateError pError) {
@@ -156,9 +191,11 @@ public class SLState implements AbstractState, AbstractQueryableState {
     SLState s =
         new SLState(
         newFormula,
-            new LinkedHashMap<>(heap),
-            new LinkedHashMap<>(stack),
-            new LinkedHashSet<>(constraints),
+            new HashMap<>(heap),
+            new HashMap<>(stack),
+            new ArrayList<>(heapKeys),
+            new ArrayList<>(stackKeys),
+            new HashSet<>(constraints),
             new HashMap<>(allocationSizes),
             new HashMap<>(allocas),
         null);
@@ -189,7 +226,12 @@ public class SLState implements AbstractState, AbstractQueryableState {
     constraints.add(pConstraint);
   }
 
-  public LinkedHashSet<BooleanFormula> getConstraints() {
+  public Set<BooleanFormula> getConstraints() {
     return constraints;
   }
+
+  public boolean heapIsEmpty() {
+    return heap.isEmpty();
+  }
+
 }

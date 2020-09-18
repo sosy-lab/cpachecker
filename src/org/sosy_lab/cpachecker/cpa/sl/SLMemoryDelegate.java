@@ -9,10 +9,8 @@
 package org.sosy_lab.cpachecker.cpa.sl;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -108,11 +106,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     Optional<Formula> allocatedLoc = checkAllocation(pLoc);
     if (allocatedLoc.isPresent()) {
       Formula loc = allocatedLoc.get();
-      if(state.getHeap().containsKey(loc) ) {
-        return Optional.of(getValueForLocation(state.getHeap(), loc, segmentSize));
-      } else {
-        return Optional.of(getValueForLocation(state.getStack(), loc, segmentSize));
-      }
+      return Optional.of(getValueForLocation(state.getHeap().containsKey(loc), loc, segmentSize));
     } else {
       return Optional.empty();
     }
@@ -174,10 +168,9 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     Optional<Formula> allocatedLoc = checkAllocation(pLoc);
     if (allocatedLoc.isPresent()) {
       Formula loc = allocatedLoc.get();
-      LinkedHashMap<Formula, Formula> memory =
-          state.getHeap().containsKey(loc) ? state.getHeap() : state.getStack();
-      Formula oldVal = getValueForLocation(memory, loc, segmentSize);
-      boolean res = assignValueToLocation(memory, allocatedLoc.get(), pVal, segmentSize);
+      boolean onHeap = state.getHeap().containsKey(loc);
+      Formula oldVal = getValueForLocation(onHeap, loc, segmentSize);
+      boolean res = assignValueToLocation(onHeap, allocatedLoc.get(), pVal, segmentSize);
       Optional<Formula> heapPtr = checkHeapAllocation(oldVal);
       if (heapPtr.isPresent() && !isReachable(new HashSet<>(), firstByte((BitvectorFormula) heapPtr.get()))) {
         state.addError(SLStateError.MEMORY_LEAK);
@@ -190,50 +183,28 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
   }
 
   private Formula
-      getValueForLocation(LinkedHashMap<Formula, Formula> pMemory, Formula pLoc, int size) {
-    int bytesToProcess = size;
-    boolean found = false;
-    List<Formula> byteLocs = new ArrayList<>();
-    for (Formula key : pMemory.keySet()) {
-      if(bytesToProcess == 0) {
-        break;
-      }
-      if (found || key.equals(pLoc)) {
-        found = true;
-        byteLocs.add(key);
-        bytesToProcess--;
-      }
-    }
-    Formula res = pMemory.get(byteLocs.remove(0));
-    for (Formula loc : byteLocs) {
-      res = fm.makeConcat(pMemory.get(loc), res);
+      getValueForLocation(boolean onHeap, Formula pLoc, int size) {
+    Map<Formula, Formula> memory = onHeap ? state.getHeap() : state.getStack();
+    Formula[] byteLocs = state.getSegment(onHeap, pLoc, size);
+    Formula res = memory.get(byteLocs[0]);
+    for (int i = 1; i < byteLocs.length; i++) {
+      res = fm.makeConcat(memory.get(byteLocs[i]), res);
     }
     return res;
   }
 
   private boolean
-      assignValueToLocation(Map<Formula, Formula> pMemory, Formula pLoc, Formula pVal, int size) {
-    int bytesToProcess = size;
-    boolean found = false;
-    List<Formula> byteLocs = new ArrayList<>();
-    for (Formula key : pMemory.keySet()) {
-      if (bytesToProcess == 0) {
-        break;
-      }
-      if (found || key.equals(pLoc)) {
-        found = true;
-        byteLocs.add(key);
-        bytesToProcess--;
-      }
-    }
-    if (!found) {
+      assignValueToLocation(boolean onHeap, Formula pLoc, Formula pVal, int size) {
+    Map<Formula, Formula> memory = onHeap ? state.getHeap() : state.getStack();
+    Formula[] byteLocs = state.getSegment(onHeap, pLoc, size);
+    if (byteLocs[0] == null) {
       return false;
     }
     for (int i = 0; i < size; i++) {
       int lsb = i * heapValueFormulaType.getSize();
       int msb = lsb + heapValueFormulaType.getSize() - 1;
       Formula nthByte = fm.makeExtract(pVal, msb, lsb, true);
-      pMemory.put(byteLocs.get(i), nthByte);
+      memory.put(byteLocs[i], nthByte);
     }
     return true;
   }
@@ -404,47 +375,49 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     state.addError(pError);
   }
 
-  private void allocate(LinkedHashMap<Formula, Formula> pMemory, Formula var, int size) {
+  private void allocate(boolean onHeap, Formula var, int size) {
     BitvectorFormula key = (BitvectorFormula) var;
     assert fm.getFormulaType(key).equals(heapAddressFormulaType) : String
         .format("Type:%s Var:%s HeapType:%s", fm.getFormulaType(key), var, heapAddressFormulaType);
-    pMemory.put(var, fm.makeNumber(heapValueFormulaType, 0L));
+    state.putOn(onHeap, var, fm.makeNumber(heapValueFormulaType, 0L));
+
     state.getAllocationSizes().put(var, BigInteger.valueOf(size));
     for (int i = 1; i < size; i++) {
       Formula loc = fm.makePlus(var, fm.makeNumber(heapAddressFormulaType, i));
-      pMemory.put(loc, fm.makeNumber(heapValueFormulaType, 0L));
+      state.putOn(onHeap, loc, fm.makeNumber(heapValueFormulaType, 0L));
     }
   }
 
   private void allocateOnStack(Formula var, int size) {
-    allocate(state.getStack(), var, size);
+    allocate(false, var, size);
   }
 
   private void allocateOnHeap(Formula var, int size) {
-    allocate(state.getHeap(), var, size);
+    allocate(true, var, size);
   }
 
   public boolean
-      deallocate(LinkedHashMap<Formula, Formula> pMemory, Formula var, boolean checkLeak) {
+      deallocate(boolean fromHeap, Formula var, boolean checkLeak) {
+    Map<Formula, Formula> memory = fromHeap ? state.getHeap() : state.getStack();
     BigInteger size = state.getAllocationSizes().remove(var);
     if (size == null) {
       logger.log(Level.SEVERE, "Deallocate: " + var + " not found in SSAMap");
       return false;
     }
-    if (!pMemory.containsKey(var)) {
+    if (!memory.containsKey(var)) {
       return false;
     }
     Formula loc = var;
     Formula val =
         getValueForLocation(
-            pMemory,
+            fromHeap,
             loc,
             heapAddressFormulaType.getSize() / heapValueFormulaType.getSize());
     for (int i = 0; i < size.intValueExact(); i++) {
       if (i > 0) {
         loc = fm.makePlus(var, fm.makeNumber(heapAddressFormulaType, i));
       }
-      pMemory.remove(loc);
+      state.removeFrom(fromHeap, loc);
     }
     // Check for leak.
     if (checkLeak) {
@@ -460,11 +433,11 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
   }
 
   public boolean deallocateFromStack(Formula pVar, boolean checkLeak) {
-    return deallocate(state.getStack(), pVar, checkLeak);
+    return deallocate(false, pVar, checkLeak);
   }
 
   public boolean deallocateFromHeap(Formula pVar) {
-    return deallocate(state.getHeap(), pVar, true);
+    return deallocate(true, pVar, true);
   }
 
   public BigInteger calculateValue(Formula pVal) {
@@ -616,7 +589,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
   }
 
   public void checkMemLeak() {
-    if (!state.getHeap().isEmpty()) {
+    if (!state.heapIsEmpty()) {
       state.addError(SLStateError.MEMORY_LEAK);
     }
 
