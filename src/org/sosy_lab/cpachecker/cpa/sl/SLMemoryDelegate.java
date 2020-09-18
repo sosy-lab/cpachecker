@@ -179,16 +179,15 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     } else {
       return false;
     }
-
   }
 
   private Formula
       getValueForLocation(boolean onHeap, Formula pLoc, int size) {
     Map<Formula, Formula> memory = onHeap ? state.getHeap() : state.getStack();
-    Formula[] byteLocs = state.getSegment(onHeap, pLoc, size);
-    Formula res = memory.get(byteLocs[0]);
-    for (int i = 1; i < byteLocs.length; i++) {
-      res = fm.makeConcat(memory.get(byteLocs[i]), res);
+    List<Formula> byteLocs = state.getSegment(onHeap, pLoc, size);
+    Formula res = memory.get(byteLocs.remove(0));
+    for (Formula byteLoc : byteLocs) {
+      res = fm.makeConcat(memory.get(byteLoc), res);
     }
     return res;
   }
@@ -196,15 +195,15 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
   private boolean
       assignValueToLocation(boolean onHeap, Formula pLoc, Formula pVal, int size) {
     Map<Formula, Formula> memory = onHeap ? state.getHeap() : state.getStack();
-    Formula[] byteLocs = state.getSegment(onHeap, pLoc, size);
-    if (byteLocs[0] == null) {
+    List<Formula> byteLocs = state.getSegment(onHeap, pLoc, size);
+    if (byteLocs.get(0) == null) {
       return false;
     }
     for (int i = 0; i < size; i++) {
       int lsb = i * heapValueFormulaType.getSize();
       int msb = lsb + heapValueFormulaType.getSize() - 1;
       Formula nthByte = fm.makeExtract(pVal, msb, lsb, true);
-      memory.put(byteLocs[i], nthByte);
+      memory.put(byteLocs.get(i), nthByte);
     }
     return true;
   }
