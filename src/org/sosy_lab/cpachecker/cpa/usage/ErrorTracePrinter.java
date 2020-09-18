@@ -139,6 +139,8 @@ public abstract class ErrorTracePrinter {
   private final StatTimer filteringUnsafeTimer = new StatTimer("Time for filtering unsafes");
   private final StatCounter emptyLockSetUnsafes =
       new StatCounter("Number of unsafes with empty lock sets");
+  protected final StatCounter potentialAliases =
+      new StatCounter("Number of unsafes with potential aliases");
   protected final StatCounter printedUnsafes =
       new StatCounter("Number of successfully printed unsafes");
   protected final StatCounter skippedUnsafes = new StatCounter("Number of filtered out unsafes");
@@ -288,7 +290,8 @@ public abstract class ErrorTracePrinter {
         .put(filteringUnsafeTimer)
         .put(printedUnsafes)
         .put(skippedUnsafes)
-        .put(emptyLockSetUnsafes);
+        .put(emptyLockSetUnsafes)
+        .put(potentialAliases);
 
     if (container != null) {
       // Timeout
