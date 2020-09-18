@@ -14,7 +14,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -140,7 +139,7 @@ public class SLState implements AbstractState, AbstractQueryableState {
     return res;
   }
 
-  public void addError(@Nonnull SLStateError pError) {
+  public void addError(SLStateError pError) {
     errors.add(pError);
   }
 
