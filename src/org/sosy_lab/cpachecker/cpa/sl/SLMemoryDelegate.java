@@ -411,7 +411,8 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
         getValueForLocation(
             fromHeap,
             loc,
-            heapAddressFormulaType.getSize() / heapValueFormulaType.getSize());
+            size.intValueExact());
+    // heapAddressFormulaType.getSize() / heapValueFormulaType.getSize());
     for (int i = 0; i < size.intValueExact(); i++) {
       if (i > 0) {
         loc = fm.makePlus(var, fm.makeNumber(heapAddressFormulaType, i));
