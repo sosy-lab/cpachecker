@@ -10,7 +10,6 @@ package org.sosy_lab.cpachecker.cpa.sl;
 
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
@@ -84,7 +83,7 @@ public class SLTransferRelation extends SingleEdgeTransferRelation {
       stats.stopSolverTime();
     }
     if (unsat) {
-      return Collections.emptyList();
+      return ImmutableList.of();
     }
     return ImmutableList.of(state);
   }
