@@ -2624,6 +2624,12 @@ cpa.sign.stop = "SEP"
 # max length of a chain of states, -1 for infinity
 cpa.singleSuccessorCompactor.maxChainLength = -1
 
+# States whether allocation checks are solved with a SMT or SL solver.Further
+# a SMT check is divided into multiple equialence checks for each keyon the
+# heap or a single solver call using a procedure based on ALLSAT.
+cpa.sl.allocationCheckProcedure = SL
+  enum:     [SL, SMT, SMT_MODELSAT]
+
 # Apply AND- LBE transformation to loop transition relation.
 cpa.slicing.applyLBETransformation = true
 
