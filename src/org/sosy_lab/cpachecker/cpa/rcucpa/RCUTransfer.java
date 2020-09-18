@@ -239,7 +239,8 @@ public class RCUTransfer extends SingleEdgeTransferRelation{
     IdentifierCreator callerCreator = new IdentifierCreator(callerName);
     IdentifierCreator innerCreator = new IdentifierCreator(functionName);
 
-    for (int i = 0; i < pArgs.size(); i++) {
+    // Iterate over parameters to avoid f(..)
+    for (int i = 0; i < pParams.size(); i++) {
       CExpression arg = pArgs.get(i);
       CParameterDeclaration param = pParams.get(i);
 
