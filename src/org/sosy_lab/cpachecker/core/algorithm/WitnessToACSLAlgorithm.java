@@ -9,7 +9,11 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 import com.google.common.io.Files;
 import java.io.File;
 import java.io.IOException;
@@ -20,12 +24,10 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -36,21 +38,15 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AExpression;
-import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
-import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
-import org.sosy_lab.cpachecker.core.algorithm.acsl.WitnessInvariant;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.WitnessInvariantsExtractor;
-import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
-import org.sosy_lab.cpachecker.util.expressions.ToCExpressionVisitor;
 
 @Options(prefix = "wacsl")
 public class WitnessToACSLAlgorithm implements Algorithm {
@@ -66,106 +62,53 @@ public class WitnessToACSLAlgorithm implements Algorithm {
   private final LogManager logger;
   private final CFA cfa;
   private final ShutdownNotifier shutdownNotifier;
-  private final ToCExpressionVisitor toCExpressionVisitor;
-  private final CBinaryExpressionBuilder binaryExpressionBuilder;
 
   public WitnessToACSLAlgorithm(
-      Configuration pConfig,
-      LogManager pLogger,
-      ShutdownNotifier pShutdownNotifier,
-      CFA pCfa)
+      Configuration pConfig, LogManager pLogger, ShutdownNotifier pShutdownNotifier, CFA pCfa)
       throws InvalidConfigurationException {
     config = pConfig;
     config.inject(this);
     logger = pLogger;
     cfa = pCfa;
     shutdownNotifier = pShutdownNotifier;
-    toCExpressionVisitor = new ToCExpressionVisitor(cfa.getMachineModel(), logger);
-    binaryExpressionBuilder = new CBinaryExpressionBuilder(cfa.getMachineModel(), logger);
   }
 
   @Override
   public AlgorithmStatus run(ReachedSet pReachedSet)
       throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
 
-    Map<CFANode, CExpression> invMap = new HashMap<>();
     Set<String> files = new HashSet<>();
     Set<ExpressionTreeLocationInvariant> invariants;
     try {
       WitnessInvariantsExtractor invariantsExtractor =
-          new WitnessInvariantsExtractor(
-              config,
-              logger,
-              cfa,
-              shutdownNotifier,
-              witness);
+          new WitnessInvariantsExtractor(config, logger, cfa, shutdownNotifier, witness);
       invariants = invariantsExtractor.extractInvariantsFromReachedSet();
     } catch (InvalidConfigurationException pE) {
       throw new CPAException(
           "Invalid Configuration while analyzing witness:\n" + pE.getMessage(), pE);
     }
 
-    // Extract invariants as CExpressions and nodes
     for (ExpressionTreeLocationInvariant c : invariants) {
-      CFANode loc = c.getLocation();
-      if(loc instanceof FunctionExitNode) {
-        continue;
-      }
       // TODO: Could be in a dummy function
-      files.add(loc.getFunction().getFileLocation().getFileName());
-
-      @SuppressWarnings("unchecked")
-      CExpression exp =
-          ((ExpressionTree<AExpression>) (Object) c.asExpressionTree())
-              .accept(toCExpressionVisitor);
-      invMap.put(loc, exp);
+      files.add(c.getLocation().getFunction().getFileLocation().getFileName());
     }
 
     for (String file : files) {
-      //Sort invariants by location
-      List<WitnessInvariant> sortedInvariants = new ArrayList<>(invMap.size());
-      for (Entry<CFANode, CExpression> entry : invMap.entrySet()) {
-        CFANode node = entry.getKey();
-        if(!node.getFunction().getFileLocation().getFileName().equals(file)) {
-          //Current invariant belongs to another program
+      // Sort invariants by location
+      Multimap<Integer, ExpressionTreeLocationInvariant> locationsToInvariants =
+          LinkedHashMultimap.create();
+      for (ExpressionTreeLocationInvariant inv : invariants) {
+        CFANode node = inv.getLocation();
+        if (!node.getFunction().getFileLocation().getFileName().equals(file)) {
+          // Current invariant belongs to another program
           continue;
         }
-        int location = 0;
-        assert node.getNumLeavingEdges() > 0;
-        for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-          CFAEdge edge = node.getLeavingEdge(i);
-          while(edge.getFileLocation().equals(FileLocation.DUMMY) ||
-              edge.getDescription().contains("__CPAchecker_TMP")) {
-            if(!(edge.getSuccessor().getNumLeavingEdges() > 0)) {
-              break;
-            }
-            edge = edge.getSuccessor().getLeavingEdge(0);
-          }
-          if(edge.getLineNumber() > 0) {
-            location = edge.getLineNumber();
-            break;
-          }
+        if (!inv.getLocation().toString().equals(inv.getGroupId())) {
+          // Only use invariants at their original location
+          continue;
         }
-        boolean added = false;
-        boolean merged = false;
-        WitnessInvariant currentInvariant =
-            new WitnessInvariant(node, entry.getValue(), binaryExpressionBuilder, location);
-        for (int i = 0; i < sortedInvariants.size(); i++) {
-          WitnessInvariant other = sortedInvariants.get(i);
-          int otherLocation = other.getLocation();
-          if (location < otherLocation) {
-            sortedInvariants.add(i, currentInvariant);
-            added = true;
-            break;
-          }
-          if(location == otherLocation) {
-            other.mergeWith(currentInvariant);
-            merged = true;
-            break;
-          }
-        }
-        if (!added && !merged) {
-          sortedInvariants.add(currentInvariant);
+        for (int location : getEffectiveLocations(inv)) {
+          locationsToInvariants.put(location, inv);
         }
       }
 
@@ -176,32 +119,43 @@ public class WitnessToACSLAlgorithm implements Algorithm {
         logger.logfUserException(Level.SEVERE, pE, "Could not read file %s", file);
       }
 
-      Iterator<WitnessInvariant> iterator = sortedInvariants.iterator();
-      WitnessInvariant currentInvariant = iterator.next();
+      List<Integer> sortedLocations = Lists.newArrayList(locationsToInvariants.keySet());
+      Collections.sort(sortedLocations);
+      Iterator<Integer> iterator = sortedLocations.iterator();
+      Integer currentLocation;
+      if (iterator.hasNext()) {
+        currentLocation = iterator.next();
+      } else {
+        currentLocation = null;
+      }
 
       List<String> output = new ArrayList<>();
 
-      while (currentInvariant != null && currentInvariant.getLocation() == 0) {
-        String annotation = makeACSLAnnotation(currentInvariant);
-        output.add(annotation);
+      while (currentLocation != null && currentLocation == 0) {
+        for (ExpressionTreeLocationInvariant inv : locationsToInvariants.get(currentLocation)) {
+          String annotation = makeACSLAnnotation(inv);
+          output.add(annotation);
+        }
         if (iterator.hasNext()) {
-          currentInvariant = iterator.next();
+          currentLocation = iterator.next();
         } else {
-          currentInvariant = null;
+          currentLocation = null;
         }
       }
 
       List<String> splitContent = Splitter.onPattern("\\r?\\n").splitToList(fileContent);
       for (int i = 0; i < splitContent.size(); i++) {
-        assert currentInvariant == null || currentInvariant.getLocation() > i;
-        while (currentInvariant != null && currentInvariant.getLocation() == i + 1) {
-          String annotation = makeACSLAnnotation(currentInvariant);
-          String indentation = getIndentation(splitContent.get(i));
-          output.add(indentation.concat(annotation));
+        assert currentLocation == null || currentLocation >= i;
+        while (currentLocation != null && currentLocation == i) {
+          for (ExpressionTreeLocationInvariant inv : locationsToInvariants.get(currentLocation)) {
+            String annotation = makeACSLAnnotation(inv);
+            String indentation = getIndentation(splitContent.get(i - 1));
+            output.add(indentation.concat(annotation));
+          }
           if (iterator.hasNext()) {
-            currentInvariant = iterator.next();
+            currentLocation = iterator.next();
           } else {
-            currentInvariant = null;
+            currentLocation = null;
           }
         }
         output.add(splitContent.get(i));
@@ -215,7 +169,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 
-  private void writeToFile(String pathToOriginalFile, List<String> newContent) throws IOException{
+  private void writeToFile(String pathToOriginalFile, List<String> newContent) throws IOException {
     Path path = Path.of(pathToOriginalFile);
     Path directory = path.getParent();
     assert directory != null;
@@ -225,7 +179,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     File outFile = new File(Path.of(directory.toString(), newFileName).toUri());
     assert outFile.createNewFile() : String.format("File %s already exists!", outFile);
     try (Writer out = Files.newWriter(outFile, StandardCharsets.UTF_8)) {
-      for(String line : newContent) {
+      for (String line : newContent) {
         out.append(line.concat("\n"));
       }
       out.flush();
@@ -263,7 +217,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
    */
   private String getIndentation(String correctlyIndented) {
     String indentation = null;
-    for(int i = 0; i < correctlyIndented.length(); i++) {
+    for (int i = 0; i < correctlyIndented.length(); i++) {
       if (!Character.isSpaceChar(correctlyIndented.charAt(i))) {
         indentation = correctlyIndented.substring(0, i);
         break;
@@ -272,14 +226,32 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     return indentation == null ? correctlyIndented : indentation;
   }
 
-  //TODO: actually transform invariant to valid ACSL annotation
-  private String makeACSLAnnotation(WitnessInvariant inv) {
-    if(inv.isAtLoopStart()) {
-     return "/*@ loop invariant " + inv.getExpression().toASTString() + "; */";
-    } else if (inv.isAtFunctionEntry()) {
-      return "/*@ ensures " + inv.getExpression().toASTString() + "; */";
-    } else {
-      return "/*@ assert " + inv.getExpression().toASTString() + "; */";
+  // TODO: Assertions should generally be placed after the entering but before any leaving edges of
+  //  the node
+  private String makeACSLAnnotation(ExpressionTreeLocationInvariant inv) {
+    return "/*@ assert " + inv.asExpressionTree() + "; */";
+  }
+
+  private List<Integer> getEffectiveLocations(ExpressionTreeLocationInvariant inv) {
+    CFANode node = inv.getLocation();
+    List<Integer> locations = new ArrayList<>(node.getNumLeavingEdges());
+    for (int i = 0; i < node.getNumLeavingEdges(); i++) {
+      CFAEdge edge = node.getLeavingEdge(i);
+      Optional<? extends AAstNode> astNodeOptional = edge.getRawAST();
+      while (!astNodeOptional.isPresent()) {
+        assert edge.getPredecessor().getNumEnteringEdges() == 1
+            : String.format(
+                "Node %s likely does not correspond to a position in the program source", node);
+        edge = edge.getPredecessor().getEnteringEdge(0);
+        astNodeOptional = edge.getRawAST();
+      }
+      if (edge instanceof AssumeEdge) {
+        // ACSL annotations are not allowed within conditions
+        continue;
+      }
+      AAstNode astNode = astNodeOptional.get();
+      locations.add(astNode.getFileLocation().getStartingLineNumber() - 1);
     }
+    return locations;
   }
 }
