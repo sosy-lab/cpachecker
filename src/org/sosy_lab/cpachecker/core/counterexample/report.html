@@ -155,15 +155,8 @@ with considerably less effort -->
             </tr>
             <tr class="fault-details">
               <td colspan="3" html=true>
+                
                 <div ng-bind-html="htmlTrusted(fault.reason)"></div>
-
-                Relevant lines:
-                <ul class="fault-lines">
-                  <li ng-repeat="elem in fault.lines">
-                    <span class="line-number">{{elem.line}}</span>
-                    <span class="line-content">{{elem.desc}}</span>
-                  </li>
-                </ul>
 
                 <details>
                   <summary>

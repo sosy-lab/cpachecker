@@ -108,6 +108,14 @@ public class FaultReportWriter {
         + "</strong><br>";
     StringBuilder html = new StringBuilder();
 
+    html.append(" Relevant lines:\n<ul class=\"fault-lines\">\n");
+    correspondingEdges.stream().sorted(Comparator.comparingInt(e -> e.getFileLocation().getStartingLineInOrigin()))
+        .forEach(e -> html.append("<li>" +
+        "<span class=\"line-number\">"+e.getFileLocation().getStartingLineInOrigin()+"</span>"+
+        "<span class=\"line-content\">"+e.getDescription()+"</span>"+
+        "</li>"));
+    html.append("</ul>\n");
+
     if (!faultReasons.isEmpty() && !hideTypes.contains(InfoType.REASON)) {
       html.append(printList("Detected <strong>" +
               faultReasons.size() + "</strong> possible reason" + (faultReasons.size() == 1? ":":"s:"), "",

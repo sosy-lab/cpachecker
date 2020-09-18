@@ -62,6 +62,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   }
 
   /**
+   *
    * Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to fix a bug.
    * Transforming it into a Set of Faults enables the possibility to attach reasons of why this edge is in this set.
    * After ranking the set of faults an instance of this class can be created.
