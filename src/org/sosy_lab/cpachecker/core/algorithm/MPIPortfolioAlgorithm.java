@@ -173,6 +173,11 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     }
 
     stats.noOfAlgorithmsExecuted = numberProcesses;
+    stats.usedSubanalyses =
+        FluentIterable.from(subanalyses)
+            .filter(x -> x.getIndex() < numberProcesses)
+            .transform(x -> x.getConfigName().toString())
+            .join(Joiner.on(", "));
 
     if (hostfile == null) {
       String envVariable = System.getenv("HOST_FILE_PATH");
@@ -568,6 +573,10 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       return ImmutableMap.of("Analysis_" + subanalysis_index, builder.build());
     }
 
+    int getIndex() {
+      return subanalysis_index;
+    }
+
     Path getConfigName() {
       return configPath.getFileName();
     }
@@ -617,18 +626,20 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class MPIPortfolioAlgorithmStatistics implements Statistics {
 
-    private int noOfAlgorithmsExecuted = 0;
-    private String hostfilePath = null;
+    private int noOfAlgorithmsExecuted;
+    private String usedSubanalyses;
+    private String hostfilePath;
     private final Timer mpiBinaryTotalTimer = new Timer();
     private String subanalysesTimelimit;
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
       pOut.println("Number of algorithms used:                  " + noOfAlgorithmsExecuted);
+      pOut.println("Subanalyses executed by MPI:                " + usedSubanalyses);
       if (hostfilePath != null) {
         pOut.println("Hostfile path:                              " + hostfilePath);
       }
-      pOut.println("MPI binary total execution time:        " + mpiBinaryTotalTimer);
+      pOut.println("MPI binary total execution time:         " + mpiBinaryTotalTimer);
       pOut.println("Timelimit for the CPAchecker sub-instances: " + subanalysesTimelimit);
     }
 
