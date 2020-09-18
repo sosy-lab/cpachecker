@@ -245,8 +245,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
   }
 
   @SuppressWarnings("deprecation")
-  private static String computeTimelimitForSubanalyses(
-      Configuration pConfig)
+  private static String computeTimelimitForSubanalyses(Configuration pConfig)
       throws InvalidConfigurationException {
     if (!pConfig.hasProperty("limits.time.cpu")) {
       return SubanalysisConfig.SUBPROCESS_DEFAULT_TIMELIMIT;
@@ -326,22 +325,27 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
       cmdList.add("-hostfile");
       cmdList.add(hostfile.normalize().toString());
-
-      cmdList.add("-np");
-      cmdList.add(String.valueOf(numberProcesses));
-
-      /*
-       * The map-by argument uses the following syntax: ppr:N:resource:<options>
-       *
-       * ppr is short for 'processes per resource'. The above line means "assign N processes to each
-       * resource of type 'resource' available on the host".
-       *
-       * An exhaustive description that explains all options in detail can be found at
-       * https://www.open-mpi.org/doc/v3.0/man1/mpirun.1.php
-       */
-      cmdList.add("--map-by");
-      cmdList.add("ppr:" + availableProcessors + ":socket");
+    } else {
+      // Setting the following option makes by default use of the 'use-hwthreads-as-cpus' option,
+      // which leads to hardware threads being used as independent cpus.
+      cmdList.add("--host");
+      cmdList.add("localhost:" + numberProcesses);
     }
+
+    cmdList.add("-np");
+    cmdList.add(String.valueOf(numberProcesses));
+
+    /*
+     * The map-by argument uses the following syntax: ppr:N:resource:<options>
+     *
+     * ppr is short for 'processes per resource'. The above line means "assign N processes to each
+     * resource of type 'resource' available on the host".
+     *
+     * An exhaustive description that explains all options in detail can be found at
+     * https://www.open-mpi.org/doc/v3.0/man1/mpirun.1.php
+     */
+    cmdList.add("--map-by");
+    cmdList.add("ppr:" + availableProcessors + ":core");
 
     cmdList.add(binaries.get(PYTHON3_BIN).toString());
     cmdList.add(MPI_PYTHON_MAIN_PATH.normalize().toString());
@@ -539,11 +543,8 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
               .clearOption("mpiAlgorithm.configFiles")
               .clearOption("analysis.name")
               .clearOption("mpiAlgorithm.numberProcesses")
-              .clearOption(
-                  "mpiAlgorithm.disableMCAOptions")
-              .setOption(
-                  "limits.time.cpu",
-                  pSubanalysesTimelimit)
+              .clearOption("mpiAlgorithm.disableMCAOptions")
+              .setOption("limits.time.cpu", pSubanalysesTimelimit)
               .setOption("output.path", checkNotNull(outputPath.toString()))
               .setOption("specification", checkNotNull(specPath.toString()))
               .build();
