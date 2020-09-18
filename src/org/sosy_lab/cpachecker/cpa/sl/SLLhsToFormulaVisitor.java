@@ -80,7 +80,7 @@ public class SLLhsToFormulaVisitor extends LvalueVisitor {
     // int size = converter.getSizeof(arrayExp.getExpressionType());
     Optional<Formula> allocated = delegate.checkAllocation(loc, subscript, size);
     if (allocated.isPresent()) {
-      return allocated.get();
+      return allocated.orElseThrow();
     } else {
       delegate.addError(SLStateError.INVALID_WRITE);
       return null;
@@ -107,7 +107,7 @@ public class SLLhsToFormulaVisitor extends LvalueVisitor {
         converter.buildTerm(e, edge, function, ssa, delegate, constraints, errorConditions);
     Optional<Formula> allocated = delegate.checkAllocation(loc);
     if (allocated.isPresent()) {
-      return allocated.get();
+      return allocated.orElseThrow();
     } else {
       delegate.addError(SLStateError.INVALID_WRITE);
       return null;

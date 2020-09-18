@@ -85,7 +85,7 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
       delegate.addError(SLStateError.INVALID_READ);
       return super.visit(pE); // Add dummy variable
     }
-    return value.get();
+    return value.orElseThrow();
   }
 
   @Override
@@ -97,7 +97,7 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
       delegate.addError(SLStateError.INVALID_READ);
       return super.visit(pE); // Add dummy variable
     }
-    return value.get();
+    return value.orElseThrow();
   }
 
   @Override
@@ -218,7 +218,7 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
     }
     CPointerType t = new CPointerType(type.isConst(), type.isVolatile(), type);
     Formula loc = converter.makeVariable(varName, t, ssa);
-    return delegate.dereference(loc, converter.getSizeof(type)).get();
+    return delegate.dereference(loc, converter.getSizeof(type)).orElseThrow();
   }
 
   @Override
@@ -229,6 +229,6 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
     Formula off = fm.makeNumber(fm.getFormulaType(loc), offset.longValueExact());
     loc = fm.makePlus(loc, off);
     int size = converter.getSizeof(pFExp.getExpressionType());
-    return delegate.dereference(loc, size).get();
+    return delegate.dereference(loc, size).orElseThrow();
   }
 }
