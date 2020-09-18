@@ -20,12 +20,15 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.List;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.Collections3;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -47,24 +50,16 @@ import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator.CompoundStatement;
-import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator.FunctionBody;
-import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator.Label;
-import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator.SimpleStatement;
-import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator.Statement;
+import org.sosy_lab.cpachecker.util.cwriter.Statement.CompoundStatement;
+import org.sosy_lab.cpachecker.util.cwriter.Statement.EmptyStatement;
+import org.sosy_lab.cpachecker.util.cwriter.Statement.FunctionDefinition;
+import org.sosy_lab.cpachecker.util.cwriter.Statement.Label;
+import org.sosy_lab.cpachecker.util.cwriter.Statement.SimpleStatement;
 
 public class CFAToCTranslator {
 
   // Use original, unqualified names for variables
   private static final boolean NAMES_QUALIFIED = false;
-
-  private static class EmptyStatement extends Statement {
-
-    @Override
-    void translateToCode0(StringBuilder pBuffer, int pIndent) {
-      // do nothing
-    }
-  }
 
   private static class NodeAndBlock {
     private final CFANode node;
@@ -86,7 +81,12 @@ public class CFAToCTranslator {
 
   private final List<String> globalDefinitionsList = new ArrayList<>();
   private final ListMultimap<CFANode, Statement> createdStatements = ArrayListMultimap.create();
-  private Collection<FunctionBody> functions;
+  private Collection<FunctionDefinition> functions;
+  private final TranslatorConfig config;
+
+  public CFAToCTranslator(Configuration pConfig) throws InvalidConfigurationException {
+    config = new TranslatorConfig(pConfig);
+  }
 
   /**
    * Translates the given {@link CFA} into a C program. The given C program is semantically
@@ -99,7 +99,8 @@ public class CFAToCTranslator {
    *     CProblemTypes})
    * @throws InvalidConfigurationException if the given CFA is not a CFA for a C program
    */
-  public String translateCfa(CFA pCfa) throws CPAException, InvalidConfigurationException {
+  public String translateCfa(CFA pCfa)
+      throws CPAException, InvalidConfigurationException, IOException {
     functions = new ArrayList<>(pCfa.getNumberOfFunctions());
 
     if (pCfa.getLanguage() != Language.C) {
@@ -113,20 +114,19 @@ public class CFAToCTranslator {
     return generateCCode();
   }
 
-  private String generateCCode() {
+  private String generateCCode() throws IOException {
     StringBuilder buffer = new StringBuilder();
+    try (StatementWriter writer = StatementWriter.getWriter(buffer, config)) {
 
-    for (String globalDef : globalDefinitionsList) {
-      buffer.append(globalDef).append("\n");
+      for (String globalDef : globalDefinitionsList) {
+        writer.write(globalDef);
+      }
+      for (FunctionDefinition f : functions) {
+        f.accept(writer);
+      }
+
+      return buffer.toString();
     }
-    buffer.append("\n");
-
-    for (FunctionBody f : functions) {
-      f.translateToCode(buffer, 0);
-      buffer.append("\n");
-    }
-
-    return buffer.toString();
   }
 
   private void translate(CFunctionEntryNode pEntry) throws CPAException {
@@ -134,7 +134,7 @@ public class CFAToCTranslator {
     Deque<NodeAndBlock> waitlist = new ArrayDeque<>();
     Multimap<CFANode, NodeAndBlock> ingoingBlocks = HashMultimap.create();
 
-    FunctionBody f = startFunction(pEntry);
+    FunctionDefinition f = startFunction(pEntry);
     functions.add(f);
 
     for (CFAEdge relevant : getRelevantLeavingEdges(pEntry)) {
@@ -257,7 +257,7 @@ public class CFAToCTranslator {
 
       String statement = translateSimpleEdge(currentEdge);
       if (!statement.isEmpty()) {
-        pBlock.addStatement(createSimpleStatement(pNode, statement));
+        pBlock.addStatement(createSimpleStatement(pNode, statement, currentEdge));
       }
 
       CFANode successor = getSuccessorNode(currentEdge);
@@ -288,10 +288,11 @@ public class CFAToCTranslator {
     return predecessors;
   }
 
-  private FunctionBody startFunction(CFunctionEntryNode pFunctionStartNode) {
+  private FunctionDefinition startFunction(CFunctionEntryNode pFunctionStartNode) {
     String lFunctionHeader =
         pFunctionStartNode.getFunctionDefinition().toASTString(NAMES_QUALIFIED).replace(";", "");
-    return new FunctionBody(lFunctionHeader, createCompoundStatement(pFunctionStartNode, null));
+    return new FunctionDefinition(
+        lFunctionHeader, createCompoundStatement(pFunctionStartNode, null));
   }
 
   private FluentIterable<CFAEdge> getRelevantLeavingEdges(CFANode pNode) {
@@ -321,7 +322,8 @@ public class CFAToCTranslator {
     } else if (outgoingEdges.size() > 1) {
       // if there are more than one children, then this must be a branching
       assert outgoingEdges.size() == 2
-          : "branches with more than two options not supported (was the program prepocessed with CIL?)";
+          : "branches with more than two options not supported (was the program prepocessed with"
+                + " CIL?)";
       for (CFAEdge edgeToChild : outgoingEdges) {
         assert edgeToChild instanceof CAssumeEdge
             : "something wrong: branch in CFA without condition: " + edgeToChild;
@@ -355,7 +357,8 @@ public class CFAToCTranslator {
         }
 
         // create a new block starting with this condition
-        CompoundStatement newBlock = addIfStatementToBlock(pNode, pStartingBlock, cond);
+        CompoundStatement newBlock =
+            addIfStatementToBlock(pNode, pStartingBlock, cond, currentEdge);
         branches.add(Pair.of(currentEdge, newBlock));
       }
       return branches.build();
@@ -372,10 +375,15 @@ public class CFAToCTranslator {
     return swapped;
   }
 
-  private SimpleStatement createSimpleStatement(CFANode pNode, String pStatement) {
-    SimpleStatement st = new SimpleStatement(pStatement);
+  private SimpleStatement createSimpleStatement(
+      CFANode pNode, String pStatement, @Nullable CFAEdge pOrigin) {
+    SimpleStatement st = new SimpleStatement(pOrigin, pStatement);
     createdStatements.put(pNode, st);
     return st;
+  }
+
+  private SimpleStatement createSimpleStatement(CFANode pNode, String pStatement) {
+    return createSimpleStatement(pNode, pStatement, null);
   }
 
   private CompoundStatement createCompoundStatement(CFANode pNode, CompoundStatement pOuterBlock) {
@@ -418,8 +426,8 @@ public class CFAToCTranslator {
   }
 
   private CompoundStatement addIfStatementToBlock(
-      CFANode pNode, CompoundStatement block, String conditionCode) {
-    block.addStatement(createSimpleStatement(pNode, conditionCode));
+      CFANode pNode, CompoundStatement block, String conditionCode, CFAEdge pOrigin) {
+    block.addStatement(createSimpleStatement(pNode, conditionCode, pOrigin));
     CompoundStatement newBlock = createCompoundStatement(pNode, block);
     block.addStatement(newBlock);
     return newBlock;
@@ -497,7 +505,8 @@ public class CFAToCTranslator {
 
           if (declaration.contains("org.eclipse.cdt.internal.core.dom.parser.ProblemType@")) {
             throw new CPAException(
-                "Failed to translate CFA into program because a type could not be properly resolved.");
+                "Failed to translate CFA into program because a type could not be properly"
+                    + " resolved.");
           }
 
           if (lDeclarationEdge.getDeclaration().isGlobal()) {

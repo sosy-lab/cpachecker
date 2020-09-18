@@ -79,6 +79,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManagerOptions;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionStatistics;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils;
+import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils.AbstractionPosition;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -138,22 +139,22 @@ public class DCARefiner implements Refiner, StatisticsProvider {
   private int curRefinementIteration = 0;
 
   @Option(
-      secure = false,
+    secure = true,
       description = "Allows to abort the analysis early in order to only produce the ARG")
   private boolean skipAnalysis = false;
 
   @Option(
-      secure = false,
+    secure = true,
       description = "Abort the refinement of finite prefixes for the purpose of better debugging")
   private boolean skipRefinement = false;
 
   @Option(
-      secure = false,
+    secure = true,
       description = "Keep infeasible dummy states that allow for better debugging")
   private boolean keepInfeasibleStates = false;
 
   @Option(
-      secure = false,
+    secure = true,
       description = "Set number of refinements for the trace abstraction algorithm")
   private int maxRefinementIterations = 0;
 
@@ -385,7 +386,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
                   solver,
                   (ARGState) reached.getFirstState(),
                   stemPath.asStatesList(),
-                  false);
+                  AbstractionPosition.NONE);
           PathFormula stemPathFormula = createSinglePathFormula(stemPathFormulaList);
 
           // create loop
@@ -397,7 +398,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
                   loopPath.asStatesList(),
                   stemPathFormula.getSsa(),
                   Iterables.getLast(stemPathFormulaList).getPointerTargetSet(),
-                  false);
+                  AbstractionPosition.NONE);
           PathFormula loopPathFormula =
               createSinglePathFormula(loopPathFormulaList, stemPathFormula);
 
@@ -544,7 +545,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
               solver,
               (ARGState) reached.getFirstState(),
               path.asStatesList(),
-              false);
+              AbstractionPosition.NONE);
 
       // check path for infeasibility
       ImmutableList<BooleanFormula> bfList =

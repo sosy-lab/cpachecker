@@ -49,6 +49,7 @@ This module provides helpers for accessing the web interface of the VerifierClou
 
 __all__ = [
     "WebClientError",
+    "UserAbortError",
     "WebInterface",
     "handle_result",
     "MEMLIMIT",
@@ -91,6 +92,14 @@ VALID_RUN_ID = re.compile("^[A-Za-z0-9-]+$")
 
 
 class WebClientError(Exception):
+    def _init_(self, value):
+        self.value = value
+
+    def _str_(self):
+        return repr(self.value)
+
+
+class UserAbortError(Exception):
     def _init_(self, value):
         self.value = value
 
@@ -252,17 +261,10 @@ if HAS_SSECLIENT:
                     self._fall_back()
                     return
 
-                # instead of a nice loop aka 'for message in self._sse_client',
-                # we use a generator to handle exceptions (AttributeError) in a better way
-                def iterate(sseClient):
-                    try:
-                        for message in sseClient:
-                            yield message
-                    except AttributeError as e:
-                        logging.warning("SSE connection terminated: %s", e)
-                        raise StopIteration
-
-                for message in iterate(self._sse_client):
+                for message in self._sse_client:
+                    if self._shutdown:
+                        self._sse_client.resp.close()
+                        break
                     data = message.data
                     tokens = data.split(" ")
                     if len(tokens) == 2:
@@ -322,8 +324,6 @@ if HAS_SSECLIENT:
 
         def shutdown(self, wait=True):
             self._shutdown = True
-            if self._sse_client:
-                self._sse_client.resp.close()
             self._state_receive_executor.shutdown(wait=wait)
 
 
@@ -365,6 +365,10 @@ class WebInterface:
         @param thread_count: the number of threads for fetching results in parallel
         @param result_poll_interval: the number of seconds to wait between polling results
         """
+        # this attribute is used to communicate shutdown to the futures
+        # of the run submission in case the user cancels while the run submission is still ongoing:
+        self.active = True
+
         if not (1 <= thread_count <= MAX_SUBMISSION_THREADS):
             sys.exit(
                 "Invalid number {} of client threads, needs to be between 1 and {}.".format(
@@ -395,6 +399,10 @@ class WebInterface:
         logging.info("Using VerifierCloud at %s", web_interface_url)
 
         self._connection = requests.Session()
+        # increase the pool size a bit to get rid of warnings on aborting with SIGINT:
+        self._connection.mount(
+            "https://", requests.adapters.HTTPAdapter(pool_maxsize=100)
+        )
         self._connection.headers.update(default_headers)
         try:
             cert_paths = ssl.get_default_verify_paths()
@@ -444,11 +452,17 @@ class WebInterface:
                     self._hash_code_cache[(tokens[0], tokens[1])] = tokens[2]
 
     def _write_hash_code_cache(self):
+        # make snapshot of hash code cache to avoid concurrent modification.
+        # We reset self._hash_code_cache to {} to save memory and because
+        # it will not be needed any more (this method is only called upon shutdown).
+        hash_code_cache = self._hash_code_cache
+        self._hash_code_cache = {}
+
         directory = os.path.dirname(HASH_CODE_CACHE_PATH)
         try:
             os.makedirs(directory, exist_ok=True)
             with tempfile.NamedTemporaryFile(dir=directory, delete=False) as tmpFile:
-                for (path, mTime), hashValue in self._hash_code_cache.items():
+                for (path, mTime), hashValue in hash_code_cache.items():
                     line = path + "\t" + mTime + "\t" + hashValue + "\n"
                     tmpFile.write(line.encode())
 
@@ -578,8 +592,11 @@ class WebInterface:
         @param result_files_patterns: list of result_files_pattern (optional)
         @param required_files: list of additional file required to execute the run (optional)
         @raise WebClientError: if the HTTP request could not be created
+        @raise UserAbortError: if the user already requested shutdown on this instance
         @raise HTTPError: if the HTTP request was not successful
         """
+        if not self.active:
+            raise UserAbortError("User interrupt detected while submitting runs.")
         if result_files_pattern:
             if result_files_patterns:
                 raise ValueError(
@@ -1003,6 +1020,7 @@ class WebInterface:
         """
         Cancels all unfinished runs and stops all internal threads.
         """
+        self.active = False
         self._result_downloader.shutdown()
 
         if len(self._unfinished_runs) > 0:
@@ -1013,7 +1031,9 @@ class WebInterface:
                 for runId in self._unfinished_runs.keys():
                     stop_tasks.add(stop_executor.submit(self._stop_run, runId))
                     self._unfinished_runs[runId].set_exception(
-                        WebClientError("WebInterface was stopped.")
+                        UserAbortError(
+                            "Run was canceled because user requested shutdown."
+                        )
                     )
                 self._unfinished_runs.clear()
 
@@ -1034,11 +1054,18 @@ class WebInterface:
         try:
             self._request("DELETE", path, expectedStatusCodes=[200, 204, 404])
         except HTTPError as e:
+            reason = e.reason if hasattr(e, "reason") else "<unknown>"
+            content = (
+                e.response.content
+                if hasattr(e, "response") and hasattr(e.response, "content")
+                else "<unknown>"
+            )
             logging.info(
-                "Stopping of run %s failed: %s\n%s",
+                "Stopping of run %s failed: %s\n%s\n%s",
                 run_id,
-                e.reason,
-                e.response.content or "",
+                e,
+                reason,
+                content or "",
             )
 
     def _request(
