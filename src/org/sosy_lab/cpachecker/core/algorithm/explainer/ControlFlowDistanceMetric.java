@@ -72,7 +72,7 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
     }
     successfulGeneratedPath = replace;
 
-    if (successfulGeneratedPath.stream().noneMatch(c -> c.size() != 0)) {
+    if (successfulGeneratedPath.stream().allMatch(c -> c.isEmpty())) {
       return;
     }
 
