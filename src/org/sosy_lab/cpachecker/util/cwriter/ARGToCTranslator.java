@@ -33,8 +33,6 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
@@ -77,7 +75,6 @@ import org.sosy_lab.cpachecker.util.cwriter.Statement.FunctionDefinition;
 import org.sosy_lab.cpachecker.util.cwriter.Statement.InlinedFunction;
 import org.sosy_lab.cpachecker.util.cwriter.Statement.SimpleStatement;
 
-@Options(prefix="cpa.arg.export.code")
 public class ARGToCTranslator {
   private static final String ASSERTFAIL = "__assert_fail";
   private static final String DEFAULTRETURN = "default return";
@@ -130,6 +127,8 @@ public class ARGToCTranslator {
     KEEPBLOCK
   }
 
+  private TranslatorConfig config;
+
   private final LogManager logger;
   private final CBinaryExpressionBuilder cBinaryExpressionBuilder;
   private final List<String> globalDefinitionsList = new ArrayList<>();
@@ -139,50 +138,21 @@ public class ARGToCTranslator {
   private String mainReturnVar;
   private boolean isVoidMain;
   private boolean deleteAssertFail;
-  private boolean verifierAssumeUsed;
-  private boolean verifierNondetBoolUsed;
   // private static Collection<AbstractState> reached;
 
   private @Nullable Set<ARGState> addPragmaAfter;
   private Map<ARGState, List<CDeclaration>> copyValuesForGoto;
 
-  @Option(secure=true, name="header", description="write include directives")
-  private boolean includeHeader = true;
-
-  @Option(
-      secure = true,
-      name = "blockAtFunctionEnd",
-      description =
-          "Only enable CLOSEFUNCTIONBLOCK if you are sure that the ARG merges different flows"
-              + " through a function at the end of the function.")
-  private BlockTreatmentAtFunctionEnd handleCompoundStatementAtEndOfFunction =
-      BlockTreatmentAtFunctionEnd.KEEPBLOCK;
-
-  @Option(
-      secure = true,
-      name = "handleTargetStates",
-      description = "How to deal with target states during code generation")
-  private TargetTreatment targetStrategy = TargetTreatment.NONE;
-
-  @Option(
-      secure = true,
-      description =
-          "Enable the integration of __VERIFIER_assume statements for non-true assumption in"
-              + " states. Disable if you want to create residual programs.")
-  private boolean addAssumptions = true;
-
   public ARGToCTranslator(LogManager pLogger, Configuration pConfig, MachineModel pMachineModel)
       throws InvalidConfigurationException {
-    pConfig.inject(this);
+    config = new TranslatorConfig(pConfig);
     logger = pLogger;
-    deleteAssertFail = targetStrategy == TargetTreatment.FRAMACPRAGMA;
-    verifierAssumeUsed = false;
-    verifierNondetBoolUsed = false;
+    deleteAssertFail = config.getTargetStrategy() == TargetTreatment.FRAMACPRAGMA;
     cBinaryExpressionBuilder = new CBinaryExpressionBuilder(pMachineModel, pLogger);
   }
 
   public boolean addsIncludeDirectives() {
-    return includeHeader || targetStrategy == TargetTreatment.ASSERTFALSE;
+    return config.doIncludeHeader() || config.getTargetStrategy() == TargetTreatment.ASSERTFALSE;
   }
 
   public String translateARG(ARGState argRoot, boolean hasGotoDecProblem)
@@ -212,27 +182,12 @@ public class ARGToCTranslator {
   private String generateCCode() throws IOException {
     StringBuilder buffer = new StringBuilder();
 
-    if (includeHeader) {
-      buffer.append("#include <stdio.h>\n");
+    try (StatementWriter writer = StatementWriter.getWriter(buffer, config)) {
+      for (String globalDef : globalDefinitionsList) {
+        writer.write(globalDef);
+      }
+      mainFunction.accept(writer);
     }
-    if (includeHeader || targetStrategy == TargetTreatment.ASSERTFALSE) {
-      buffer.append("#include <assert.h>\n");
-    }
-    if (targetStrategy == TargetTreatment.VERIFIERERROR) {
-      buffer.append("extern void __VERIFIER_error();\n");
-    }
-    if (verifierAssumeUsed) {
-      buffer.append("extern void __VERIFIER_assume();\n");
-    }
-    if (verifierNondetBoolUsed) {
-      buffer.append("extern _Bool __VERIFIER_nondet_bool();\n");
-    }
-    for(String globalDef : globalDefinitionsList) {
-      buffer.append(globalDef + "\n");
-    }
-
-    StatementVisitor<IOException> writer = StatementWriter.getWriter(buffer);
-    mainFunction.accept(writer);
 
     return buffer.toString();
   }
@@ -475,10 +430,8 @@ public class ARGToCTranslator {
       String cond;
       if (count == 0) {
         cond = "if (__VERIFIER_nondet_bool())";
-        verifierNondetBoolUsed = true;
       } else if (count != childrenOfElement.size()) {
         cond = "else if (__VERIFIER_nondet_bool())";
-        verifierNondetBoolUsed = true;
       } else {
         cond = " else ";
       }
@@ -488,7 +441,6 @@ public class ARGToCTranslator {
         StringJoiner joiner = new StringJoiner(" && ", "__VERIFIER_assume(", ");");
         conditions.stream().map(x -> x.toQualifiedASTString()).forEach(joiner::add);
         newBlock.addStatement(new SimpleStatement(edgeToChild, joiner.toString()));
-        verifierAssumeUsed = true;
       }
       pushToWaitlist(waitlist, currentElement, child, edgeToChild, newBlock);
         count++;
@@ -674,7 +626,7 @@ public class ARGToCTranslator {
   }
 
   private void handleAssumptions(ARGState childElement, CompoundStatement currentBlock) {
-    if (addAssumptions) {
+    if (config.doAddAssumptions()) {
       List<AExpression> assumptions = new ArrayList<>();
       AbstractStates.asIterable(childElement)
           .filter(AbstractStateWithAssumptions.class)
@@ -686,7 +638,6 @@ public class ARGToCTranslator {
         assumptions.stream().map(x -> x.toQualifiedASTString()).forEach(joiner::add);
         String statement = joiner.toString();
         currentBlock.addStatement(new SimpleStatement(statement));
-        verifierAssumeUsed = true;
       }
     }
   }
@@ -811,7 +762,7 @@ public class ARGToCTranslator {
                 }
               }
             }
-            if (includeHeader
+            if (config.doIncludeHeader()
                 && declaration.contains("assert")
                 && lDeclarationEdge.getDeclaration() instanceof CFunctionDeclaration) {
               declaration = "";
@@ -916,7 +867,7 @@ public class ARGToCTranslator {
 
   private CompoundStatement getBlockAfterEndOfFunction(
       CompoundStatement currentBlock) {
-    switch (handleCompoundStatementAtEndOfFunction) {
+    switch (config.doHandleCompoundStatementAtEndOfFunction()) {
       case CLOSEFUNCTIONBLOCK:
         while (!(currentBlock instanceof InlinedFunction)) {
           currentBlock = currentBlock.getSurroundingBlock();
@@ -934,7 +885,7 @@ public class ARGToCTranslator {
 
   private @Nullable Statement processTargetState(final ARGState pTargetState,
       final CFAEdge pEdgeToTarget) {
-    switch (targetStrategy) {
+    switch (config.getTargetStrategy()) {
       case RUNTIMEVERIFICATION:
         logger.log(Level.ALL, "HALT for line no ", pEdgeToTarget.getLineNumber());
         return new SimpleStatement(

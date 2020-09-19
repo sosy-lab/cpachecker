@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -115,9 +116,8 @@ public class AbstractDistanceMetric implements DistanceMetric {
   }
 
   /**
-   * Calculate the Number of Unaligned States. Unaligned states are the Nodes that haven't been * *
-   * considered for comparison, because they didn't fulfill the official criteria of the aligned * *
-   * states.
+   * Calculate the Number of Unaligned States. Unaligned states are the Nodes that haven't been
+   * considered for comparison, because they didn't fulfill the criteria for the alignment
    *
    * @param alignedEdges a list with edges that are aligned
    * @param safePath the successful program execution that is being currently compared with the
@@ -127,8 +127,6 @@ public class AbstractDistanceMetric implements DistanceMetric {
   private int getNumberOfUnalignedStates(List<CFAEdge> alignedEdges, List<CFAEdge> safePath) {
     return Math.abs((alignedEdges.size() - safePath.size()));
   }
-
-  /** Calculates the distance of the predicates */
 
   /**
    * Calculates the predicate distance between two executions, i.e. how many predicates from the
@@ -149,23 +147,21 @@ public class AbstractDistanceMetric implements DistanceMetric {
       ARGState argCeState = null;
       ARGState argSpState = null;
       for (ARGState ceState : ceStates) {
-        if (alignments
-            .getCounterexampleElement(i)
-            .getPredecessor()
-            .equals(
-                AbstractStates.extractStateByType(ceState, AbstractStateWithLocation.class)
-                    .getLocationNode())) {
+        CFANode cfaNode = alignments.getCounterexampleElement(i).getPredecessor();
+        CFANode equivalentCFANode =
+            AbstractStates.extractStateByType(ceState, AbstractStateWithLocation.class)
+                .getLocationNode();
+        if (cfaNode.equals(equivalentCFANode)) {
           argCeState = ceState;
           break;
         }
       }
       for (ARGState pathState : pathsStates) {
-        if (alignments
-            .getSafePathElement(i)
-            .getPredecessor()
-            .equals(
-                AbstractStates.extractStateByType(pathState, AbstractStateWithLocation.class)
-                    .getLocationNode())) {
+        CFANode cfaNode = alignments.getSafePathElement(i).getPredecessor();
+        CFANode equivalentCFANode =
+            AbstractStates.extractStateByType(pathState, AbstractStateWithLocation.class)
+                .getLocationNode();
+        if (cfaNode.equals(equivalentCFANode)) {
           argSpState = pathState;
           break;
         }
@@ -213,7 +209,6 @@ public class AbstractDistanceMetric implements DistanceMetric {
     List<CFAEdge> safePath1 = new ArrayList<>(safePath);
     Alignment<CFAEdge> alignment = new Alignment<>();
 
-    // MAKING ALIGNMENTS
     for (CFAEdge ceEdge : ceCopy1) {
       for (CFAEdge spEdge : safePath1) {
         if (ceEdge.getPredecessor().getNodeNumber() == spEdge.getPredecessor().getNodeNumber()) {
@@ -227,7 +222,6 @@ public class AbstractDistanceMetric implements DistanceMetric {
         }
       }
     }
-
     return alignment;
   }
 }

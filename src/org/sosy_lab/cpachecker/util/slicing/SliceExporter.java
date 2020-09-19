@@ -93,11 +93,13 @@ public class SliceExporter {
 
   private final LogManager logger;
   private int exportCount = -1;
+  private final CFAToCTranslator translator;
 
   public SliceExporter(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
+    translator = new CFAToCTranslator(pConfig);
     logger = pLogger;
   }
 
@@ -498,7 +500,8 @@ public class SliceExporter {
 
                 try (Writer writer = IO.openOutputFile(path, Charset.defaultCharset())) {
 
-                  String code = new CFAToCTranslator().translateCfa(sliceCfa);
+                  assert translator != null;
+                  String code = translator.translateCfa(sliceCfa);
                   writer.write(code);
 
                 } catch (CPAException | IOException | InvalidConfigurationException e) {

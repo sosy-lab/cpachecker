@@ -7,16 +7,23 @@ the assignment should be "least = in2". For an input equal to
 {in1=2, in2=1, in3=3}, and we should obtain an output with
 least=1 and most=3, which is not conform with the given post-condition
 "(least<=most)".
+
 @author: Mohammed Bekkouche
 @Web:    http://www.i3s.unice.fr
-SPDX-FileCopyrightText: Mohammed Bekkouche <http://www.i3s.unice.fr>
-SPDX-License-Identifier: Apache-2.0
  */
 
-#include <sniper/sniper.h>
+extern int __VERIFIER_nondet_uint();
+extern void __VERIFIER_error();
 
+
+void __VERIFIER_assert(int cond) {
+  if (!(cond)) {
+    ERROR: __VERIFIER_error();
+  }
+  return;
+}
 void foo(int in1,int in2,int in3){
-	int least;//sniper_assume((in1==2) && (in2==1) && (in3==3));
+	int least;
 	int most;
     least = in1;
 	most = in1;
@@ -32,5 +39,15 @@ void foo(int in1,int in2,int in3){
 	if (least > in3){
 	    least = in3;
 	}
-    sniper_assert(least <= most);
+    __VERIFIER_assert(least <= most);
 }
+int main()
+{
+
+  foo( __VERIFIER_nondet_int(),__VERIFIER_nondet_int(),__VERIFIER_nondet_int());
+    return 0;
+}
+
+
+
+

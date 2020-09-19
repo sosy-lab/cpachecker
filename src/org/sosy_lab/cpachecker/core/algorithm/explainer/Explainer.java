@@ -56,7 +56,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 @Options(prefix = "explainer")
 public class Explainer extends NestingAlgorithm implements Algorithm {
@@ -142,7 +141,6 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
 
     ARGPath targetPath = counterExamples.get(0).getTargetPath();
 
-    // TODO: Review: Check that x is not in the Wait-list anymore
     // Find All Safe Nodes
     List<ARGState> safeLeafNodes =
         from(currentReached)
@@ -201,26 +199,49 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
     for (ARGState safeLeaf : safeLeafNodes) {
       statesOnPathTo = ARGUtils.getAllStatesOnPathsTo(safeLeaf);
       // path reconstruction
-      safePaths = new DistanceCalculationHelper(null).createPath(statesOnPathTo, rootNode, true);
+      safePaths =
+          new DistanceCalculationHelper(null)
+              .generateAllSuccessfulExecutions(statesOnPathTo, rootNode, true);
     }
     return safePaths;
   }
 
+  /**
+   * This method starts the AbstractDistanceMetric
+   *
+   * @param safePaths the safe paths that have to be compared wit the counterexample
+   * @param targetPath the counterexample
+   * @return the closest to the counterexample successful run
+   */
   private List<CFAEdge> startADM(List<ARGPath> safePaths, ARGPath targetPath) {
     DistanceMetric metric;
     @SuppressWarnings("resource")
-    Solver solver = cpa.getSolver();
-    BooleanFormulaManagerView bfmgr = solver.getFormulaManager().getBooleanFormulaManager();
+    // Solver solver = cpa.getSolver();
+    BooleanFormulaManagerView bfmgr =
+        cpa.getSolver().getFormulaManager().getBooleanFormulaManager();
     metric = new AbstractDistanceMetric(new DistanceCalculationHelper(bfmgr));
-    solver.close();
     return metric.startDistanceMetric(safePaths, targetPath);
   }
 
+  /**
+   * This method starts the ControlFlowDistanceMetric
+   *
+   * @param safePaths the safe paths that have to be compared wit the counterexample
+   * @param targetPath the counterexample
+   * @return the closest to the counterexample successful run
+   */
   private List<CFAEdge> startCFDM(List<ARGPath> safePaths, ARGPath targetPath) {
     DistanceMetric metric = new ControlFlowDistanceMetric(new DistanceCalculationHelper());
     return metric.startDistanceMetric(safePaths, targetPath);
   }
 
+  /**
+   * This method starts the Path Generation technique
+   *
+   * @param targetPath the counterexample
+   * @param ceInfo the Information about the counterexample which we need for the Presentation of
+   *     Differences in ExplainTool
+   */
   private void startPathGeneration(ARGPath targetPath, CounterexampleInfo ceInfo) {
     ControlFlowDistanceMetric pathGeneration =
         new ControlFlowDistanceMetric(new DistanceCalculationHelper());

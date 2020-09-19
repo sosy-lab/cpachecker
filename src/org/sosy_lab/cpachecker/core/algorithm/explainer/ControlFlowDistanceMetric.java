@@ -55,7 +55,8 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
   /**
    * Starts the path generator technique using the Control Flow metric
    *
-   * @param counterexample is the path of the counterexample
+   * @param counterexample the failed program execution
+   * @param ceInfo the CounterexampleInfo needed for the ExplainTool
    */
   void generateClosestSuccessfulExecution(ARGPath counterexample, CounterexampleInfo ceInfo) {
     List<CFAEdge> ce = distanceHelper.cleanPath(counterexample);
@@ -65,17 +66,18 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
     List<List<CFAEdge>> successfulGeneratedPath =
         pathGenerator(branchesCe, counterexample.asStatesList());
 
-    if (successfulGeneratedPath == null) {
-      return;
-    }
-
     List<List<CFAEdge>> replace = new ArrayList<>();
     for (List<CFAEdge> pCFAEdges : successfulGeneratedPath) {
       replace.add(distanceHelper.cleanPath(pCFAEdges));
     }
     successfulGeneratedPath = replace;
+
+    if (successfulGeneratedPath.stream().noneMatch(c -> c.size() != 0)) {
+      return;
+    }
+
     // default location is 0 - the first node
-    int a = 0;
+    int locationOfLastChangedNode = 0;
 
     int spRootNodeNumber =
         successfulGeneratedPath
@@ -88,7 +90,7 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
 
     for (int i = 0; i < ce.size(); i++) {
       if (ce.get(i).getPredecessor().getNodeNumber() == spRootNodeNumber) {
-        a = i;
+        locationOfLastChangedNode = i;
         break;
       }
     }
@@ -96,7 +98,7 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
     // we hold on to the Edges of the counterexample from the level
     // of the different-evaluated branch
     List<CFAEdge> finalCE = new ArrayList<>();
-    for (int i = a; i < ce.size(); i++) {
+    for (int i = locationOfLastChangedNode; i < ce.size(); i++) {
       finalCE.add(ce.get(i));
     }
 
@@ -277,7 +279,7 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
   /**
    * Finds the control flow branches of the path
    *
-   * @param pCe a list of CFAEdges
+   * @param pCe list of CFAEdges that belong to the counterexample
    * @return a list with all control flow branches of the path
    */
   private List<CFAEdge> findBranches(List<CFAEdge> pCe) {
@@ -361,6 +363,9 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
   }
 
   /**
+   * This method builds all possible paths that start from a given a root (here the root is
+   * lastBranchAsState)
+   *
    * @param lastBranch the control-flow branch that has to be expanded and search its children if
    *     they lead to possible successful executions
    * @param lastBranchAsState the equivalent ARGState of the last branch
@@ -371,7 +376,7 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
     // In Case that the last branch has more than one feasible safe paths
     // then this technique finds all of them and returns them in the form
     // of List<List<CFAEdge>>
-    List<ARGPath> paths = distanceHelper.createPath(null, lastBranchAsState, false);
+    List<ARGPath> paths = distanceHelper.generateAllSuccessfulExecutions(null, lastBranchAsState, false);
     List<List<CFAEdge>> filteredPaths = new ArrayList<>();
 
     for (ARGPath path : paths) {

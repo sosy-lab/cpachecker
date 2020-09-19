@@ -52,8 +52,9 @@ public abstract class Statement {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    StatementVisitor<IOException> w = StatementWriter.getWriter(sb);
+    StatementVisitor<IOException> w = null;
     try {
+      w = StatementWriter.getWriter(sb, TranslatorConfig.getDefault());
       accept(w);
     } catch (IOException pE) {
       throw new AssertionError("IOException should not be possible for StringBuilder", pE);
@@ -124,8 +125,8 @@ public abstract class Statement {
       pVisitor.visit(this);
     }
 
-    public CFAEdge getOrigin() {
-      return origin;
+    public Optional<CFAEdge> getOrigin() {
+      return Optional.ofNullable(origin);
     }
 
     public String getCode() {

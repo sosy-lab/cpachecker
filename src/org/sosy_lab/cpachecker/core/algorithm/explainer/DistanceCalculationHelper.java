@@ -18,6 +18,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.IntStream;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -86,11 +87,15 @@ public class DistanceCalculationHelper {
     return filteredEdges;
   }
 
-  /** Convert a list of ARGPaths to a List of Lists of CFAEdges */
+  /**
+   * Convert a list of ARGPaths to a List of Lists of CFAEdges
+   * @param paths the paths that out to be converted to Lists of CFAEdges
+   * @return the paths as List of CFAEdges
+   */
   public List<List<CFAEdge>> convertPathsToEdges(List<ARGPath> paths) {
     List<List<CFAEdge>> result = new ArrayList<>();
-    for (int i = 0; i < paths.size(); i++) {
-      result.add(paths.get(i).getFullPath());
+    for (ARGPath pPath : paths) {
+      result.add(pPath.getFullPath());
     }
     return result;
   }
@@ -172,52 +177,74 @@ public class DistanceCalculationHelper {
    *
    * @param pStatesOnPathTo the ARGStates on the Path
    * @param root the Beginning of the Path
-   * @param filter is true only if we want to make sure that the nodes of the new paths are
+   * @param filterChildren is true only if we want to make sure that the nodes of the new paths are
    *     contained in the pStatesOnPathTo Collection
    * @return a List with all found safe paths
    */
-  List<ARGPath> createPath(Collection<ARGState> pStatesOnPathTo, ARGState root, boolean filter) {
+  List<ARGPath> generateAllSuccessfulExecutions(
+      Collection<ARGState> pStatesOnPathTo, ARGState root, boolean filterChildren) {
+    if (filterChildren) {
+      assert pStatesOnPathTo != null;
+    }
     List<ARGPath> paths = new ArrayList<>();
     List<List<ARGState>> nodeWaitList = new ArrayList<>();
     nodeWaitList.add(new ArrayList<>());
     nodeWaitList.get(0).add(root);
-    int currentPathNumber = -1;
-    ARGState currentNode = root;
-    boolean finished = false;
+    int numberOfCurrentPath = -1;
+    ARGState currentNode;
     for (int i = 0; i < nodeWaitList.size(); i++) {
-      currentPathNumber++;
-      finished = false;
-      currentNode =
-          nodeWaitList.get(currentPathNumber).get(nodeWaitList.get(currentPathNumber).size() - 1);
-      while (!finished) {
-        // FINISH THE CONSTRUCTION OF A WHOLE PATH
-        // Get all children that are actually on this path
+      numberOfCurrentPath++;
+      int lastNode = nodeWaitList.get(numberOfCurrentPath).size() - 1;
+      currentNode = nodeWaitList.get(numberOfCurrentPath).get(lastNode);
+
+      while (true) {
         ImmutableList<ARGState> children;
-        if (filter) {
+        if (filterChildren) {
+          // for Explainer we need to consider only certain Nodes
           children = from(currentNode.getChildren()).filter(pStatesOnPathTo::contains).toList();
         } else {
-          // children = from(currentNode.getChildren()).toList();
+          // Path Generation needs all the children
           children = ImmutableList.copyOf(currentNode.getChildren());
         }
-        if (children.size() == 1) {
-          nodeWaitList.get(currentPathNumber).add(children.get(0));
-          currentNode = children.get(0);
-        } else if (children.size() > 1) {
-          // create a new path for every path
-          for (int j = 1; j < children.size(); j++) {
-            List<ARGState> anotherPath = new ArrayList<>(nodeWaitList.get(currentPathNumber));
-            anotherPath.add(children.get(j));
-            nodeWaitList.add(anotherPath);
-          }
-          nodeWaitList.get(currentPathNumber).add(children.get(0));
-          currentNode = children.get(0);
+        if (children.size() > 0) {
+          handleChildren(nodeWaitList, numberOfCurrentPath, children);
         } else {
-          ARGPath targetPath = new ARGPath(nodeWaitList.get(currentPathNumber));
-          paths.add(targetPath);
-          finished = true;
+          break;
         }
+        currentNode = children.get(0);
       }
+      ARGPath targetPath = new ARGPath(nodeWaitList.get(numberOfCurrentPath));
+      paths.add(targetPath);
     }
     return paths;
+  }
+
+  /**
+   * This method takes the children of the node that is being currently expanded and chooses what
+   * child has to be expanded next while putting the extra children (if children.size() is more than
+   * 1) in the wait-list
+   *
+   * @param nodeWaitList the wait list that contains all paths that their last node has to get
+   *     further expanded
+   * @param numberOfCurrentPath the index in the nodeWaitList of the current path that we expand
+   * @param children the children of the node that is being expanded
+   */
+  private void handleChildren(
+      List<List<ARGState>> nodeWaitList,
+      int numberOfCurrentPath,
+      ImmutableList<ARGState> children) {
+    if (children.size() == 1) {
+      nodeWaitList.get(numberOfCurrentPath).add(children.get(0));
+    } else if (children.size() > 1) {
+      // create a new path for every new children
+      IntStream.range(1, children.size())
+          .forEach(
+              j -> {
+                List<ARGState> anotherPath = new ArrayList<>(nodeWaitList.get(numberOfCurrentPath));
+                anotherPath.add(children.get(j));
+                nodeWaitList.add(anotherPath);
+              });
+      nodeWaitList.get(numberOfCurrentPath).add(children.get(0));
+    }
   }
 }

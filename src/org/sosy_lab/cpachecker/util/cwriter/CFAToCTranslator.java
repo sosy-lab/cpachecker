@@ -28,6 +28,7 @@ import java.util.Deque;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.Collections3;
+import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
@@ -81,6 +82,11 @@ public class CFAToCTranslator {
   private final List<String> globalDefinitionsList = new ArrayList<>();
   private final ListMultimap<CFANode, Statement> createdStatements = ArrayListMultimap.create();
   private Collection<FunctionDefinition> functions;
+  private final TranslatorConfig config;
+
+  public CFAToCTranslator(Configuration pConfig) throws InvalidConfigurationException {
+    config = new TranslatorConfig(pConfig);
+  }
 
   /**
    * Translates the given {@link CFA} into a C program. The given C program is semantically
@@ -110,18 +116,17 @@ public class CFAToCTranslator {
 
   private String generateCCode() throws IOException {
     StringBuilder buffer = new StringBuilder();
-    StatementVisitor<IOException> writer = StatementWriter.getWriter(buffer);
+    try (StatementWriter writer = StatementWriter.getWriter(buffer, config)) {
 
-    for (String globalDef : globalDefinitionsList) {
-      buffer.append(globalDef).append("\n");
+      for (String globalDef : globalDefinitionsList) {
+        writer.write(globalDef);
+      }
+      for (FunctionDefinition f : functions) {
+        f.accept(writer);
+      }
+
+      return buffer.toString();
     }
-    buffer.append("\n");
-
-    for (FunctionDefinition f : functions) {
-      f.accept(writer);
-    }
-
-    return buffer.toString();
   }
 
   private void translate(CFunctionEntryNode pEntry) throws CPAException {
