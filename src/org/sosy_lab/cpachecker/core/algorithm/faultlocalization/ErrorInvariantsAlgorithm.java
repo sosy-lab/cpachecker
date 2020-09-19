@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.faultlocalization;
 import com.google.common.base.Splitter;
 import com.google.common.base.VerifyException;
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -171,46 +170,39 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
    */
   private Set<Fault> createFaults(List<AbstractTraceElement> abstractTrace){
     //Stores description of last interval
-    String description = "";
-
-    //Stores the last created fault (so we can add the next description)
-    Fault lastCreatedFault = null;
-    Set<String> variablesToTrack = new HashSet<>();
+    List<Selector> allSelectors = errorTrace.getEntries().toSelectorList();
+    Selector prev = allSelectors.get(0);
     Set<Fault> faults = new HashSet<>();
     FormulaManagerView fmgr = formulaContext.getSolver().getFormulaManager();
-    for (AbstractTraceElement errorInvariant : abstractTrace) {
+    for (int i = 0; i < abstractTrace.size(); i++) {
+      AbstractTraceElement errorInvariant = abstractTrace.get(i);
       if (errorInvariant instanceof Selector) {
-        //Create fault and append the description of the previous and the next interval
-        Fault f = new Fault((Selector)errorInvariant);
-        f.addInfo(FaultInfo.justify("So far, the following is responsible for the error: " + description));
-        //f.addInfo(FaultInfo.hint("Track the variables: " + String.join(", ", variablesToTrack)));
-        lastCreatedFault = f;
-        faults.add(f);
+        prev = (Selector) errorInvariant;
+        Fault singleton = new Fault(prev);
+        singleton.setIntendedIndex(i);
+        faults.add(singleton);
+        continue;
       }
-      if (errorInvariant instanceof Interval){
-        Interval interval = (Interval)errorInvariant;
-        BooleanFormula invariant = fmgr.uninstantiate(interval.invariant);
-        variablesToTrack.addAll(fmgr.extractVariables(invariant).keySet());
-        if (variablesToTrack.removeIf(p -> p.contains("__VERIFIER_nondet"))) {
-          variablesToTrack.add("user input");
+      if (errorInvariant instanceof Interval) {
+        Interval curr = (Interval) errorInvariant;
+        Selector next;
+        if (i+1 < abstractTrace.size()) {
+          next = (Selector) abstractTrace.get(i+1);
+        } else {
+          next = allSelectors.get(allSelectors.size()-1);
         }
-        //Replace long unreadable formulas with their actual meaning if possible
-        description = extractRelevantInformation(fmgr, interval);
-        //description = description/*.replaceAll("__VERIFIER_nondet_[a-zA-Z0-9]+!", "CPA_user_input_")*/.replaceAll("@", "");
-        if(lastCreatedFault != null){
-          lastCreatedFault.addInfo(FaultInfo.hint("From now on, the following is responsible for the error: " + description));
+        for (int j = allSelectors.indexOf(prev); j < allSelectors.indexOf(next); j++) {
+          curr.add(allSelectors.get(j));
         }
-      }
-    }
-    // if there is only one interpolant the algorithm failed to abstract the error trace
-    // we can only state that the post-condition holds in every location (no gain of information)
-    if (abstractTrace.size() == 1) {
-      if(abstractTrace.get(0) instanceof Interval){
-        Selector last = Iterables.getLast(errorTrace.getEntries().toSelectorList());
-        Fault f = new Fault(last);
-        f.addInfo(FaultInfo.justify("The whole program can be described by: " + description));
-        f.addInfo(FaultInfo.hint("NOTE: The algorithm did not find a suitable abstraction."));
-        faults.add(f);
+        if (curr.size() == 0) {
+          curr.add(prev);
+        }
+        String description = extractRelevantInformation(fmgr, curr);
+        curr.addInfo(FaultInfo.justify("The describing interpolant: " + description));
+        curr.addInfo(FaultInfo.hint("This interpolant sums up the meaning of the marked edges."));
+        curr.setIntendedIndex(i);
+        faults.add(curr);
+        continue;
       }
     }
 
@@ -353,7 +345,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
   /**
    * Stores the interpolant for a selector and its boundaries
    */
-  private static class Interval implements Comparable<Interval>, AbstractTraceElement {
+  public static class Interval extends Fault implements Comparable<Interval>, AbstractTraceElement {
 
     private int start;
     private int end;
@@ -361,6 +353,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
 
     public Interval(
         int pStart, int pEnd, BooleanFormula pInvariant) {
+      super();
       start = pStart;
       end = pEnd;
       invariant = pInvariant;

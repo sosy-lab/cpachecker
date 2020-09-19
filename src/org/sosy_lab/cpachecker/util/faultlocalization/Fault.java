@@ -14,6 +14,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
@@ -28,6 +29,7 @@ public class Fault extends ForwardingSet<FaultContribution> {
 
   private Set<FaultContribution> errorSet;
   private List<FaultInfo> infos;
+  private Optional<Integer> intendedIndex;
 
   /**
    * The recommended way is to calculate the score based on the likelihoods of the appended reasons.
@@ -42,12 +44,14 @@ public class Fault extends ForwardingSet<FaultContribution> {
     errorSet = pErrorSet;
     infos = new ArrayList<>();
     score = 0;
+    intendedIndex = Optional.empty();
   }
 
   public Fault(){
     errorSet = new HashSet<>();
     infos = new ArrayList<>();
     score = 0;
+    intendedIndex = Optional.empty();
   }
 
   /**
@@ -152,6 +156,20 @@ public class Fault extends ForwardingSet<FaultContribution> {
       }
     }
     return false;
+  }
+
+  /**
+   * Set an intended index to force this fault to be on the pIntendedIndex-th place.
+   * Afterwards apply concatHeuristicsIntendedIndex.
+   * @see FaultRankingUtils#concatHeuristicsIntendedIndex(FaultRanking...)
+   * @param pIntendedIndex
+   */
+  public void setIntendedIndex(int pIntendedIndex) {
+    intendedIndex = Optional.of(pIntendedIndex);
+  }
+
+  public Optional<Integer> getIntendedIndex() {
+    return intendedIndex;
   }
 
   @Override

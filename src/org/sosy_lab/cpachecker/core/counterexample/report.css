@@ -326,6 +326,23 @@ input:checked+.slider:before {
 	list-style: none;
 }
 
+.value-table {
+	border-collapse: collapse;
+	width: 100%;
+}
+  
+.value-table th, .value-table td {
+	text-align: left;
+	padding: 8px;
+}
+
+.value-table tr:nth-child(even){background-color: #f2f2f2}
+  
+.value-table th {
+	background-color: #4CAF50;
+	color: white;
+}
+
 ul.fault-lines li {
 	display: grid;
 	grid-template-columns: minmax(2em, min-content) auto;

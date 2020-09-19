@@ -38,7 +38,7 @@ public class HintRanking implements FaultRanking {
       int hints = 0;
       for (FaultContribution faultContribution : faultLocalizationOutputs) {
         FaultInfo
-            potFix = FaultInfo.possibleFixFor(new Fault(faultContribution));
+            potFix = FaultInfo.possibleFixFor(faultContribution);
         if(maxNumberOfHintsNegative || hints < maxNumberOfHints){
           faultLocalizationOutputs.addInfo(potFix);
         }

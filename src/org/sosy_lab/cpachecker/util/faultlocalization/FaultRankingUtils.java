@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.rankings.IntendedIndexRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.InfoType;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.IdentityRanking;
@@ -93,6 +94,17 @@ public class FaultRankingUtils {
   public static FaultRanking concatHeuristics(Function<Fault, Double> finalScoringFunction,
                                               FaultRanking... pRanking) {
     return l -> forAll(l, finalScoringFunction, pRanking);
+  }
+
+  /**
+   * Concatenate heuristics for a combined score and return a list sorted by intended indices.
+   * Intended indices have to be assigned manually to faults.
+   * If a fault has an assigned intended index it will have this index in the resulting list.
+   * @param pRanking all rankings to be applied
+   * @return a list sorted by the intended indices.
+   */
+  public static FaultRanking concatHeuristicsIntendedIndex(FaultRanking... pRanking) {
+    return l -> new IntendedIndexRanking().rank(new HashSet(forAll(l, f -> 0.0, pRanking)));
   }
 
   public static FaultRanking concatHeuristicsDefaultFinalScoring(FaultRanking... pRanking) {

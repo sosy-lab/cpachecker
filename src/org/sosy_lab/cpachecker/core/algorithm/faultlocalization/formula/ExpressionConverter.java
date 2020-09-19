@@ -37,10 +37,16 @@ public class ExpressionConverter {
   private ExpressionConverter() {}
 
   /**
-   * Converts every string which matches: expr = ('binary_operator' expr expr) | ('unary_operator'
-   * expr) | Variable | Literal operator = and | or | = | <= | < | >= | > ... unary_operator =
-   * not... Variable = method::varname@digit varname = String Literal = Number | String
-   *
+   * Converts every string which matches:
+   * expr = ('binary_operator' expr expr) |
+   *        ('unary_operator' expr) |
+   *        Variable |
+   *        Literal
+   * operator = and | or | = | <= | < | >= | > ...
+   * unary_operator = not
+   * Variable = method::varname@digit
+   * varname = String
+   * Literal = Number | String
    * @param input input-string in pre-order
    * @return infix notation of input
    */

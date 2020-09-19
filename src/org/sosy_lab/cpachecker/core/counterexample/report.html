@@ -162,8 +162,8 @@ with considerably less effort -->
                   <summary>
                     <strong>Current values:</strong>
                   </summary>
-                  <table id="fault-values">
-                    <tr><td>Name</td><td>Value</td></tr>
+                  <table id="fault-values" class="value-table">
+                    <th><td>Name</td><td>Value</td></th>
                     <tr ng-repeat="(variable,value) in fault.valDict">
                       <td ng-bind-html="htmlTrusted(variable)"></td>
                       <td ng-bind-html="htmlTrusted(value)"></td>

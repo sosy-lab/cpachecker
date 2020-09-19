@@ -17,11 +17,8 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -38,6 +35,7 @@ import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.ErrorInvariantsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.FaultLocalizationAlgorithmInterface;
+import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.IntervalReportWriter;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.ModifiedMaxSatAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.OriginalMaxSatAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.SingleUnsatCoreAlgorithm;
@@ -96,10 +94,6 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
       description="which algorithm to use")
   private String algorithmType = "UNSAT";
 
-  @Option(secure=true, name="maintainhierarchy",
-      description="sort by call order")
-  private boolean maintainCallHierarchy = false;
-
   @Option(secure=true, name="memoization",
       description="memorize interpolants") //can decrease runtime
   private boolean memoization = false;
@@ -125,7 +119,9 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
     //Options
     pConfig.inject(this);
     options = new TraceFormulaOptions(pConfig);
-    checkOptions();
+    if (!checkOptions()) {
+      logger.log(Level.INFO, "Auto adjusted wrong configurations.");
+    }
 
     // Parent algorithm
     algorithm = pStoreAlgorithm;
@@ -161,11 +157,6 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
 
   public boolean checkOptions(){
     boolean correctConfiguration = true;
-    if (!algorithmType.equals("ERRINV") && maintainCallHierarchy) {
-      logger.log(Level.SEVERE, "The option maintainhierarchy will be ignored since the error invariants algorithm is not selected");
-      maintainCallHierarchy = false;
-      correctConfiguration = false;
-    }
     if (!algorithmType.equals("ERRINV") && memoization) {
       logger.log(Level.SEVERE, "The option memoization will be ignored since the error invariants algorithm is not selected");
       memoization = false;
@@ -233,16 +224,12 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
     try {
       // Collect all edges that do not evaluate to true
       List<CFAEdge> edgeList = new ArrayList<>();
-      Map<CFAEdge, Integer> mapEdgeToIndex = new HashMap<>();
-      int i = 0;
       for (CFAEdgeWithAssumptions assumption : assumptions) {
         if (!bmgr.isTrue(
             manager
                 .makeFormulaForPath(Collections.singletonList(assumption.getCFAEdge()))
                 .getFormula())) {
           edgeList.add(assumption.getCFAEdge());
-          mapEdgeToIndex.put(assumption.getCFAEdge(), i);
-          i++;
         }
       }
 
@@ -270,11 +257,10 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
         }
         case "ERRINV": {
           tf = new TraceFormula(fstf ? TraceFormulaType.FLOW_SENSITIVE : TraceFormulaType.TRACE, context, options, edgeList);
-          ranking = FaultRankingUtils.concatHeuristicsDefaultFinalScoring(
+          ranking = FaultRankingUtils.concatHeuristicsIntendedIndex(
               new ForwardPreConditionRanking(tf, context),
               new EdgeTypeRanking(),
               new HintRanking(3),
-              // new MinimalLineDistanceRanking(edgeList.get(edgeList.size()-1)),
               new CallHierarchyRanking(edgeList, tf.getPostConditionOffset()));
           break;
         }
@@ -300,17 +286,13 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
       }
 
       InformationProvider.searchForAdditionalInformation(errorIndicators, edgeList);
-      FaultLocalizationInfo info;
-      if (maintainCallHierarchy && algorithmType.equals("ERRINV")) {
-        List<Fault> faults = ranking.rank(errorIndicators);
-        faults.forEach(FaultRankingUtils::assignScoreTo);
-        faults.sort(Comparator.comparingInt(f -> mapEdgeToIndex.get(f.iterator().next().correspondingEdge())));
-        info = new FaultLocalizationInfo(faults, pInfo);
-      } else {
-        info = new FaultLocalizationInfo(errorIndicators, ranking, pInfo);
+      FaultLocalizationInfo info = new FaultLocalizationInfo(errorIndicators, ranking, pInfo);
+
+      if (algorithmType.equals("ERRINV")) {
+        info.replaceHtmlWriter(new IntervalReportWriter());
       }
-      //info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
-      info.getHtmlWriter().hideTypes(InfoType.FIX, InfoType.RANK_INFO);
+
+      info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
       info.apply();
       logger.log(
           Level.INFO,

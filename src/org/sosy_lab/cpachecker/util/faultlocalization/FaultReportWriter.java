@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
  */
 public class FaultReportWriter {
 
-  private Set<InfoType> hideTypes;
+  protected Set<InfoType> hideTypes;
 
   public FaultReportWriter() {
     hideTypes = new HashSet<>();
@@ -80,7 +80,7 @@ public class FaultReportWriter {
    * @param infos the FaultInfos appended to a Fault(Contribution)
    * @return hmtl code of this instance
    */
-  private String toHtml(List<FaultInfo> infos, List<CFAEdge> correspondingEdges){
+  protected String toHtml(List<FaultInfo> infos, List<CFAEdge> correspondingEdges){
     List<FaultReason> faultReasons = new ArrayList<>();
     List<RankInfo> faultInfo = new ArrayList<>();
     List<PotentialFix> faultFix = new ArrayList<>();
@@ -148,7 +148,11 @@ public class FaultReportWriter {
     return header + "<br>" + html;
   }
 
-  private String printList(String headline, String htmlId, List<? extends FaultInfo> infos, boolean useOrderedList){
+  protected String printList(
+      String headline,
+      String htmlId,
+      List<? extends FaultInfo> infos,
+      boolean useOrderedList){
     List<? extends FaultInfo> copy = new ArrayList<>(infos);
     Collections.sort(copy);
     String listType = useOrderedList? "ol":"ul";
@@ -164,7 +168,7 @@ public class FaultReportWriter {
     return out.toString();
   }
 
-  private String listDistinctLineNumbersAndJoin(List<CFAEdge> edges){
+  protected String listDistinctLineNumbersAndJoin(List<CFAEdge> edges){
     return edges
         .stream()
         .mapToInt(l -> l.getFileLocation().getStartingLineInOrigin())
