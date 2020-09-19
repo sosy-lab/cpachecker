@@ -108,6 +108,11 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
       finalGeneratedPath = successfulGeneratedPath.get(0);
     } else if (successfulGeneratedPath.size() > 1) {
       finalGeneratedPath = comparePaths(branchesCe, successfulGeneratedPath);
+      if (finalGeneratedPath == null) {
+        // Case the control flow distance metric couldn't find any differences
+        // because the paths are too short
+        finalGeneratedPath = successfulGeneratedPath.get(0);
+      }
     } else {
       return;
     }
@@ -376,7 +381,8 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
     // In Case that the last branch has more than one feasible safe paths
     // then this technique finds all of them and returns them in the form
     // of List<List<CFAEdge>>
-    List<ARGPath> paths = distanceHelper.generateAllSuccessfulExecutions(null, lastBranchAsState, false);
+    List<ARGPath> paths =
+        distanceHelper.generateAllSuccessfulExecutions(null, lastBranchAsState, false);
     List<List<CFAEdge>> filteredPaths = new ArrayList<>();
 
     for (ARGPath path : paths) {

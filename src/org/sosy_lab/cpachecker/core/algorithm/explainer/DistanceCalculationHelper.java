@@ -58,6 +58,9 @@ public class DistanceCalculationHelper {
    * @return the new - clean of useless nodes - Path
    */
   public List<CFAEdge> cleanPath(List<CFAEdge> path) {
+    if (path == null) {
+      return null;
+    }
     List<CFAEdge> filteredEdges = new ArrayList<>();
 
     Integer errorLine = null;
@@ -83,7 +86,6 @@ public class DistanceCalculationHelper {
       }
       filteredEdges.add(f);
     }
-
     return filteredEdges;
   }
 
@@ -206,7 +208,7 @@ public class DistanceCalculationHelper {
           // Path Generation needs all the children
           children = ImmutableList.copyOf(currentNode.getChildren());
         }
-        if (children.size() > 0) {
+        if (!children.isEmpty()) {
           handleChildren(nodeWaitList, numberOfCurrentPath, children);
         } else {
           break;

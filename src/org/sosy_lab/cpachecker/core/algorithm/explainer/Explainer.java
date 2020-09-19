@@ -216,7 +216,6 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
   private List<CFAEdge> startADM(List<ARGPath> safePaths, ARGPath targetPath) {
     DistanceMetric metric;
     @SuppressWarnings("resource")
-    // Solver solver = cpa.getSolver();
     BooleanFormulaManagerView bfmgr =
         cpa.getSolver().getFormulaManager().getBooleanFormulaManager();
     metric = new AbstractDistanceMetric(new DistanceCalculationHelper(bfmgr));
