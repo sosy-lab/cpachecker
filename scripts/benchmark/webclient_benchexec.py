@@ -26,6 +26,7 @@ from . import util
 from .webclient import (
     WebInterface,
     WebClientError,
+    UserAbortError,
     handle_result,
     CORELIMIT,
     MEMLIMIT,
@@ -103,7 +104,7 @@ def execute_benchmark(benchmark, output_handler):
             try:
                 result_futures = _submitRunsParallel(runSet, benchmark, output_handler)
                 _handle_results(result_futures, output_handler, benchmark, runSet)
-            except KeyboardInterrupt:
+            except (KeyboardInterrupt, UserAbortError):
                 STOPPED_BY_INTERRUPT = True
                 output_handler.set_error("interrupted", runSet)
             output_handler.output_after_run_set(runSet)
@@ -210,7 +211,9 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
         for future in submission_futures.keys():
             future.cancel()  # for example in case of interrupt
 
-    _webclient.flush_runs()
+    threadlocal_webclient = _webclient
+    if threadlocal_webclient:
+        threadlocal_webclient.flush_runs()
     logging.info("Run submission finished.")
     return result_futures
 
@@ -221,6 +224,8 @@ def _log_future_exception(result):
 
 
 def _handle_results(result_futures, output_handler, benchmark, run_set):
+    if not _webclient:
+        raise UserAbortError("User interrupt detected during _handle_results")
     executor = ThreadPoolExecutor(max_workers=_webclient.thread_count)
 
     for result_future in as_completed(result_futures.keys()):
@@ -235,6 +240,9 @@ def _handle_results(result_futures, output_handler, benchmark, run_set):
         except WebClientError as e:
             output_handler.set_error("VerifierCloud problem", run_set)
             logging.warning("Execution of %s failed: %s", run.identifier, e)
+        except UserAbortError as e:
+            output_handler.set_error("interrupted", run_set)
+            logging.warning("Execution of %s aborted: %s", run.identifier, e)
 
     executor.shutdown(wait=True)
 

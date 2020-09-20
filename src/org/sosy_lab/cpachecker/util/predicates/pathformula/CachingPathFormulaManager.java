@@ -15,7 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.sosy_lab.common.time.Timer;
+import java.util.concurrent.atomic.LongAdder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -27,6 +27,8 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
+import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer.TimerWrapper;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
@@ -37,8 +39,9 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
  */
 public class CachingPathFormulaManager implements PathFormulaManager {
 
-  public final Timer pathFormulaComputationTimer = new Timer();
-  public int pathFormulaCacheHits = 0;
+  public final ThreadSafeTimerContainer pathFormulaComputationTimer =
+      new ThreadSafeTimerContainer(null);
+  public LongAdder pathFormulaCacheHits = new LongAdder();
 
   public final PathFormulaManager delegate;
 
@@ -66,14 +69,15 @@ public class CachingPathFormulaManager implements PathFormulaManager {
     final Pair<CFAEdge, PathFormula> formulaCacheKey = Pair.of(pEdge, pOldFormula);
     Pair<PathFormula, ErrorConditions> result = andFormulaWithConditionsCache.get(formulaCacheKey);
     if (result == null) {
-      pathFormulaComputationTimer.start();
+      TimerWrapper t = pathFormulaComputationTimer.getNewTimer();
+      t.start();
       // compute new pathFormula with the operation on the edge
       result = delegate.makeAndWithErrorConditions(pOldFormula, pEdge);
-      pathFormulaComputationTimer.stop();
+      t.stop();
       andFormulaWithConditionsCache.put(formulaCacheKey, result);
 
     } else {
-      pathFormulaCacheHits++;
+      pathFormulaCacheHits.increment();
     }
     return result;
   }
@@ -83,17 +87,17 @@ public class CachingPathFormulaManager implements PathFormulaManager {
     final Pair<CFAEdge, PathFormula> formulaCacheKey = Pair.of(pEdge, pOldFormula);
     PathFormula result = andFormulaCache.get(formulaCacheKey);
     if (result == null) {
+      TimerWrapper t = pathFormulaComputationTimer.getNewTimer();
       try {
-      pathFormulaComputationTimer.start();
-      // compute new pathFormula with the operation on the edge
+        t.start(); // compute new pathFormula with the operation on the edge
       result = delegate.makeAnd(pOldFormula, pEdge);
       andFormulaCache.put(formulaCacheKey, result);
       } finally {
-        pathFormulaComputationTimer.stop();
+        t.stop();
       }
 
     } else {
-      pathFormulaCacheHits++;
+      pathFormulaCacheHits.increment();
     }
     return result;
   }
@@ -112,7 +116,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
       result = delegate.makeOr(pF1, pF2);
       orFormulaCache.put(formulaCacheKey, result);
     } else {
-      pathFormulaCacheHits++;
+      pathFormulaCacheHits.increment();
     }
     return result;
   }
@@ -129,7 +133,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
       result = delegate.makeEmptyPathFormula(pOldFormula);
       emptyFormulaCache.put(pOldFormula, result);
     } else {
-      pathFormulaCacheHits++;
+      pathFormulaCacheHits.increment();
     }
     return result;
   }
@@ -211,7 +215,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   @Override
   public void printStatistics(PrintStream out) {
-    int cacheHits = this.pathFormulaCacheHits;
+    int cacheHits = this.pathFormulaCacheHits.intValue();
     int totalPathFormulaComputations =
         this.pathFormulaComputationTimer.getNumberOfIntervals() + cacheHits;
     out.println(

@@ -39,6 +39,7 @@ SPDX-License-Identifier: Apache-2.0
   <tasks name="value">
     <include>../programs/benchmarks/recursive-simple/a*.yml</include>
     <include>../programs/benchmarks/recursive-simple/f*.yml</include>
+    <exclude>../programs/benchmarks/recursive-simple/fibo_2calls_15-2.yml</exclude>
     <option name="-valueAnalysis-bam-rec"/>
   </tasks>
 
@@ -145,8 +146,10 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
     <exclude>../programs/benchmarks/seq-mthreaded/*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/*lcr-var*</exclude> <!-- mostly timeout -->
+    <exclude>../programs/benchmarks/seq-mthreaded-reduced//pals_floodmax.4.4.ufo.UNBOUNDED.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_floodmax.5.2.ufo.UNBOUNDED.pals.c.v+nlh-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_opt-floodmax.3.4.ufo.BOUNDED-6.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_opt-floodmax.4.1.ufo.UNBOUNDED.pals.c.v+lhb-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_opt-floodmax.4.3.ufo.BOUNDED-8.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-pthread/*</exclude>
     <exclude>../programs/benchmarks/systemc/token_ring.*</exclude>

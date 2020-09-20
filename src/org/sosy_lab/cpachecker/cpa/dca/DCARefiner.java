@@ -75,8 +75,12 @@ import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManagerOptions;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionStatistics;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils;
+import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils.AbstractionPosition;
+import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -96,6 +100,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.predicates.weakening.WeakeningOptions;
 import org.sosy_lab.java_smt.SolverContextFactory;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -126,28 +131,30 @@ public class DCARefiner implements Refiner, StatisticsProvider {
   private final InterpolationAutomatonBuilder itpAutomatonBuilder;
   private final AbstractionManager abstractionManager;
   private final PredicateAbstractionManager predicateAbstractionManager;
+  private final PredicateAbstractionStatistics abstractionStats =
+      new PredicateAbstractionStatistics();
 
   private final PathChecker pathChecker;
 
   private int curRefinementIteration = 0;
 
   @Option(
-      secure = false,
+    secure = true,
       description = "Allows to abort the analysis early in order to only produce the ARG")
   private boolean skipAnalysis = false;
 
   @Option(
-      secure = false,
+    secure = true,
       description = "Abort the refinement of finite prefixes for the purpose of better debugging")
   private boolean skipRefinement = false;
 
   @Option(
-      secure = false,
+    secure = true,
       description = "Keep infeasible dummy states that allow for better debugging")
   private boolean keepInfeasibleStates = false;
 
   @Option(
-      secure = false,
+    secure = true,
       description = "Set number of refinements for the trace abstraction algorithm")
   private int maxRefinementIterations = 0;
 
@@ -227,19 +234,31 @@ public class DCARefiner implements Refiner, StatisticsProvider {
 
     SymbolicRegionManager regionManager = new SymbolicRegionManager(solver);
     abstractionManager = new AbstractionManager(regionManager, pConfig, pLogger, solver);
+    PredicateAbstractionManagerOptions abstractionOptions =
+        new PredicateAbstractionManagerOptions(pConfig);
+    PredicateAbstractionsStorage abstractionStorage;
     try {
-      predicateAbstractionManager =
-          new PredicateAbstractionManager(
-              abstractionManager,
-              pathFormulaManager,
-              solver,
-              pConfig,
-              pLogger,
-              pNotifier,
-              TrivialInvariantSupplier.INSTANCE);
+      abstractionStorage =
+          new PredicateAbstractionsStorage(
+              abstractionOptions.getReuseAbstractionsFrom(),
+              logger,
+              solver.getFormulaManager(),
+              null);
     } catch (PredicateParsingFailedException e) {
       throw new InvalidConfigurationException(e.getMessage(), e);
     }
+    predicateAbstractionManager =
+        new PredicateAbstractionManager(
+            abstractionManager,
+            pathFormulaManager,
+            solver,
+            abstractionOptions,
+            new WeakeningOptions(pConfig),
+            abstractionStorage,
+            pLogger,
+            pNotifier,
+            abstractionStats,
+            TrivialInvariantSupplier.INSTANCE);
 
     itpAutomatonBuilder =
         new InterpolationAutomatonBuilder(
@@ -367,7 +386,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
                   solver,
                   (ARGState) reached.getFirstState(),
                   stemPath.asStatesList(),
-                  false);
+                  AbstractionPosition.NONE);
           PathFormula stemPathFormula = createSinglePathFormula(stemPathFormulaList);
 
           // create loop
@@ -379,7 +398,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
                   loopPath.asStatesList(),
                   stemPathFormula.getSsa(),
                   Iterables.getLast(stemPathFormulaList).getPointerTargetSet(),
-                  false);
+                  AbstractionPosition.NONE);
           PathFormula loopPathFormula =
               createSinglePathFormula(loopPathFormulaList, stemPathFormula);
 
@@ -526,7 +545,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
               solver,
               (ARGState) reached.getFirstState(),
               path.asStatesList(),
-              false);
+              AbstractionPosition.NONE);
 
       // check path for infeasibility
       ImmutableList<BooleanFormula> bfList =

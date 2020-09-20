@@ -179,6 +179,90 @@ public class PJBDDRegionManager implements RegionManager {
     return wrap(bdd);
   }
 
+  @Options(prefix = "bdd.pjbdd")
+  private static class BuildFromConfig {
+
+    @Option(secure = true, description = "unique table's concurrency factor")
+    @IntegerOption(min = 1)
+    private int tableParallelism = 10000;
+
+    @Option(secure = true, description = "initial variable count")
+    @IntegerOption(min = 1)
+    private int varCount = 100;
+
+    @Option(secure = true, description = "increase factor for resizing tables")
+    @IntegerOption(min = 1)
+    private int increaseFactor = 1;
+
+    @Option(secure = true, description = "size of the BDD cache.")
+    @IntegerOption(min = 1)
+    private int cacheSize = 0;
+
+    @Option(
+        secure = true,
+        description =
+            "Number of worker threads, Runtime.getRuntime().availableProcessors() default")
+    @IntegerOption(min = 1)
+    private int threads = Runtime.getRuntime().availableProcessors();
+
+    @Option(
+        secure = true,
+        description =
+            "Initial size of the BDD node table in percentage of available Java heap memory (only used if initTableSize is 0).")
+    private double initTableRatio = 0.001;
+
+    @Option(
+        secure = true,
+        description = "Initial size of the BDD node table, use 0 for size based on initTableRatio.")
+    @IntegerOption(min = 0)
+    private int initTableSize = 0;
+
+    @Option(
+        secure = true,
+        description =
+            "Size of the BDD cache in relation to the node table size (set to 0 to use fixed BDD cache size).")
+    private double cacheRatio = 0.1;
+
+    private BDDBuilder builder;
+
+    private BuildFromConfig(Configuration pConfig) throws InvalidConfigurationException {
+      pConfig.inject(this);
+      builder = Builders.newBDDBuilder();
+    }
+
+    private Creator makeCreator() {
+      resolveProperties(builder);
+      return builder.build();
+    }
+
+    private void resolveProperties(BDDBuilder pBuilder) {
+
+      if ((initTableRatio <= 0 || initTableRatio >= 1) && initTableSize == 0) {
+        initTableSize = 100000;
+      }
+      if (initTableSize == 0) {
+        // JFactory uses 5 ints of 4 byte sizes for each entry in the BDD table
+        double size = Runtime.getRuntime().maxMemory() * initTableRatio / 5 / 8;
+        initTableSize = (size > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int) size;
+      }
+
+      if (cacheSize == 0) {
+        cacheSize = (int) (initTableSize * cacheRatio);
+      }
+
+      pBuilder
+          .setParallelism(tableParallelism)
+          .setVarCount(varCount)
+          .setSelectedCacheSize(cacheSize)
+          .setThreads(threads)
+          .setTableSize(initTableSize)
+          .setIncreaseFactor(increaseFactor);
+      if (threads == 1) {
+        pBuilder.setParallelizationType(ParallelizationType.NONE);
+      }
+    }
+  }
+
   /**
    * Class for creating BDDs out of a formula. This class directly uses the BDD objects and their
    * manual reference counting, because for large formulas, the
@@ -351,7 +435,7 @@ public class PJBDDRegionManager implements RegionManager {
 
         BDD[] clauses = cubes.stream().filter(bdd -> bdd != null).toArray(BDD[]::new);
 
-        BDD result = bddCreator.makeTrue();
+        BDD result = bddCreator.makeFalse();
 
         for (BDD bdd : clauses) {
           result = bddCreator.makeOr(result, bdd);
@@ -368,90 +452,6 @@ public class PJBDDRegionManager implements RegionManager {
     public void close() {
       checkState(currentCube == null);
       cubes.clear();
-    }
-  }
-
-  @Options(prefix = "bdd.pjbdd")
-  private static class BuildFromConfig {
-
-    @Option(secure = true, description = "unique table's concurrency factor")
-    @IntegerOption(min = 1)
-    private int tableParallelism = 10000;
-
-    @Option(secure = true, description = "initial variable count")
-    @IntegerOption(min = 1)
-    private int varCount = 100;
-
-    @Option(secure = true, description = "increase factor for resizing tables")
-    @IntegerOption(min = 1)
-    private int increaseFactor = 1;
-
-    @Option(secure = true, description = "size of the BDD cache.")
-    @IntegerOption(min = 1)
-    private int cacheSize = 0;
-
-    @Option(
-        secure = true,
-        description =
-            "Number of worker threads, Runtime.getRuntime().availableProcessors() default")
-    @IntegerOption(min = 1)
-    private int threads = Runtime.getRuntime().availableProcessors();
-
-    @Option(
-        secure = true,
-        description =
-            "Initial size of the BDD node table in percentage of available Java heap memory (only used if initTableSize is 0).")
-    private double initTableRatio = 0.001;
-
-    @Option(
-        secure = true,
-        description = "Initial size of the BDD node table, use 0 for size based on initTableRatio.")
-    @IntegerOption(min = 0)
-    private int initTableSize = 0;
-
-    @Option(
-        secure = true,
-        description =
-            "Size of the BDD cache in relation to the node table size (set to 0 to use fixed BDD cache size).")
-    private double cacheRatio = 0.1;
-
-    private BDDBuilder builder;
-
-    private BuildFromConfig(Configuration pConfig) throws InvalidConfigurationException {
-      pConfig.inject(this);
-      builder = Builders.newBDDBuilder();
-    }
-
-    private Creator makeCreator() {
-      resolveProperties(builder);
-      return builder.build();
-    }
-
-    private void resolveProperties(BDDBuilder pBuilder) {
-
-      if ((initTableRatio <= 0 || initTableRatio >= 1) && initTableSize == 0) {
-        initTableSize = 100000;
-      }
-      if (initTableSize == 0) {
-        // JFactory uses 5 ints of 4 byte sizes for each entry in the BDD table
-        double size = Runtime.getRuntime().maxMemory() * initTableRatio / 5 / 8;
-        initTableSize = (size > Integer.MAX_VALUE) ? Integer.MAX_VALUE : (int) size;
-      }
-
-      if (cacheSize == 0) {
-        cacheSize = (int) (initTableSize * cacheRatio);
-      }
-
-      pBuilder
-          .setParallelism(tableParallelism)
-          .setVarCount(varCount)
-          .setSelectedCacheSize(cacheSize)
-          .setThreads(threads)
-          .setTableSize(initTableSize)
-          .setIncreaseFactor(increaseFactor);
-      if (threads == 1) {
-        pBuilder.setParallelizationType(ParallelizationType.NONE);
-      }
     }
   }
 }

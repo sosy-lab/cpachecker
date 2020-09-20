@@ -58,18 +58,15 @@ import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
-import org.sosy_lab.cpachecker.cpa.powerset.PowerSetCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
@@ -77,6 +74,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 public class ResidualProgramConstructionAlgorithm implements Algorithm, StatisticsProvider {
 
   public enum ResidualGenStrategy {
+    REACHABILITY,
     SLICING,
     CONDITION,
     CONDITION_PLUS_FOLD,
@@ -308,7 +306,8 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
   }
 
   private String getResidualProgramText(
-      final ARGState pARGRoot, @Nullable final Set<ARGState> pAddPragma) throws CPAException {
+      final ARGState pARGRoot, @Nullable final Set<ARGState> pAddPragma)
+      throws CPAException, IOException {
     ARGState root = pARGRoot;
     if (constructionStrategy == ResidualGenStrategy.CONDITION_PLUS_FOLD) {
       Preconditions.checkState(pAddPragma == null);
@@ -393,21 +392,6 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
           considersLocation = true;
         } else if (innerCPA instanceof CallstackCPA) {
           considersCallstack = true;
-        } else if (!(innerCPA instanceof ControlAutomatonCPA)) {
-          if (innerCPA instanceof PowerSetCPA) {
-            for (ConfigurableProgramAnalysis cpaInSetJoin : CPAs
-                .asIterable(((PowerSetCPA) innerCPA).getWrappedCPAs().get(0))) {
-              if (!(cpaInSetJoin instanceof ControlAutomatonCPA
-                  || cpaInSetJoin instanceof CompositeCPA)) {
-                throw new InvalidConfigurationException(
-                      "The CompositeCPA may only consider LocationCPA, CallstackCPA, SetJoinCPA, and AutomatonCPAs.");
-              }
-            }
-          } else {
-
-            throw new InvalidConfigurationException(
-                "The CompositeCPA may only consider LocationCPA, CallstackCPA, SetJoinCPA, and AutomatonCPAs.");
-          }
         }
       }
 
