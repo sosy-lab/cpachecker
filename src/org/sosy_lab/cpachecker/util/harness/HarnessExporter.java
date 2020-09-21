@@ -164,23 +164,20 @@ public class HarnessExporter {
       CounterexampleInfo pCounterexampleInfo)
       throws IOException {
 
-
     // Find a path with sufficient test vector info
-    Optional<TargetTestVector> testVector =
+    Optional<TargetTestVector> optionalTestVector =
         extractTestVector(
             pRootState, pIsRelevantState, pIsRelevantEdge, getValueMap(pCounterexampleInfo));
-    if (testVector.isPresent()) {
-
+    if (optionalTestVector.isPresent()) {
+      TargetTestVector testVector = optionalTestVector.get();
       Set<AFunctionDeclaration> externalFunctions = getExternalFunctions();
 
       CodeAppender codeAppender = new CodeAppender(pTarget, cfa);
       codeAppender.appendIncludes();
       codeAppender.appendGenericBoilerplate();
 
-      // implement error-function
-      CFAEdge edgeToTarget = testVector.get().edgeToTarget;
       Optional<AFunctionDeclaration> errorFunction =
-          getErrorFunction(edgeToTarget, externalFunctions);
+          getErrorFunction(externalFunctions, testVector);
 
       Set<AFunctionDeclaration> externalFunctionsWithoutErrorFunction =
           getFunctionDeclarationSetWithoutElement(externalFunctions, errorFunction);
@@ -188,11 +185,8 @@ public class HarnessExporter {
       codeAppender = appendErrorFunctionIfNeeded(errorFunction, codeAppender);
       codeAppender = writeVerifierAssumeIfNeeded(externalFunctions, codeAppender);
 
-      // implement actual harness
-      TestVector vector = testVector.get().testVector;
-
-      // TestVector vector =
-      completeExternalFunctions(testVector.get().testVector, externalFunctionsWithoutErrorFunction);
+      TestVector vector =
+          completeExternalFunctions(testVector.testVector, externalFunctionsWithoutErrorFunction);
       codeAppender.append(vector);
 
     } else {
@@ -203,7 +197,15 @@ public class HarnessExporter {
 
   private Set<AFunctionDeclaration> getFunctionDeclarationSetWithoutElement(
       Set<AFunctionDeclaration> pBaseSet, Optional<AFunctionDeclaration> pElementToRemove) {
-    return pElementToRemove.isPresent() ? pBaseSet.stream().filter(Predicates.not(Predicates.equalTo(pElementToRemove.get()))).collect(Collectors.toSet()) : pBaseSet;
+    Set<AFunctionDeclaration> result = pBaseSet;
+    if (pElementToRemove.isPresent()) {
+      result =
+          pBaseSet
+              .stream()
+              .filter(Predicates.not(Predicates.equalTo(pElementToRemove.get())))
+              .collect(Collectors.toSet());
+    }
+    return result;
   }
 
   private CodeAppender appendErrorFunctionIfNeeded(
@@ -226,11 +228,11 @@ public class HarnessExporter {
     return pCodeAppender;
   }
 
-
   private Optional<AFunctionDeclaration> getErrorFunction(
-      CFAEdge pEdgeToTarget, Set<AFunctionDeclaration> pExternalFunctions) {
-    if (pEdgeToTarget instanceof AStatementEdge) {
-      AStatementEdge statementEdge = (AStatementEdge) pEdgeToTarget;
+      Set<AFunctionDeclaration> pExternalFunctions, TargetTestVector pTestVector) {
+    CFAEdge edgeToTarget = pTestVector.edgeToTarget;
+    if (edgeToTarget instanceof AStatementEdge) {
+      AStatementEdge statementEdge = (AStatementEdge) edgeToTarget;
       AStatement statement = statementEdge.getStatement();
       if (statement instanceof AFunctionCall) {
         AFunctionCall functionCallStatement = (AFunctionCall) statement;
