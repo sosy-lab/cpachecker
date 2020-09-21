@@ -136,8 +136,6 @@ public class HarnessExporter {
 
   private static final String TMP_VAR = "__tmp_var";
 
-  private static final String ERR_MSG = "cpa_witness2test: violation";
-
   private final CFA cfa;
 
   private final LogManager logger;
@@ -175,26 +173,16 @@ public class HarnessExporter {
       Set<AFunctionDeclaration> externalFunctions = getExternalFunctions();
 
       CodeAppender codeAppender = new CodeAppender(pTarget, cfa);
-
       codeAppender.appendIncludes();
-
       codeAppender.appendGenericBoilerplate();
 
       // implement error-function
       CFAEdge edgeToTarget = testVector.get().edgeToTarget;
       Optional<AFunctionDeclaration> errorFunction =
           getErrorFunction(edgeToTarget, externalFunctions);
-      if (errorFunction.isPresent()) {
-        codeAppender.appendErrorFunctionImplementation(errorFunction.get());
-      } else {
-        logger.log(Level.WARNING, "Could not find a call to an error function.");
-      }
 
-      if (externalFunctions.stream().anyMatch(PredefinedTypes::isVerifierAssume)) {
-        // implement __VERIFIER_assume with exit (EXIT_SUCCESS)
-        codeAppender.appendln(
-            "void __VERIFIER_assume(int cond) { if (!(cond)) { exit(0); }}");
-      }
+      codeAppender = appendErrorFunctionIfNeeded(errorFunction, codeAppender);
+      codeAppender = writeVerifierAssumeIfNeeded(externalFunctions, codeAppender);
 
       // implement actual harness
       TestVector vector = testVector.get().testVector;
@@ -212,6 +200,27 @@ public class HarnessExporter {
           Level.WARNING, "Could not export a test harness, some test-vector values are missing.");
     }
   }
+
+  private CodeAppender appendErrorFunctionIfNeeded(
+      Optional<AFunctionDeclaration> pErrorFunction, CodeAppender pCodeAppender)
+      throws IOException {
+    if (pErrorFunction.isPresent()) {
+      pCodeAppender.appendErrorFunctionImplementation(pErrorFunction.get());
+    } else {
+      logger.log(Level.WARNING, "Could not find a call to an error function.");
+    }
+    return pCodeAppender;
+  }
+
+  private CodeAppender writeVerifierAssumeIfNeeded(
+      Set<AFunctionDeclaration> pExternalFunctions, CodeAppender pCodeAppender) throws IOException {
+    if (pExternalFunctions.stream().anyMatch(PredefinedTypes::isVerifierAssume)) {
+      // implement __VERIFIER_assume with exit (EXIT_SUCCESS)
+      pCodeAppender.appendln("void __VERIFIER_assume(int cond) { if (!(cond)) { exit(0); }}");
+    }
+    return pCodeAppender;
+  }
+
 
   private Optional<AFunctionDeclaration> getErrorFunction(
       CFAEdge pEdgeToTarget, Set<AFunctionDeclaration> pExternalFunctions) {
