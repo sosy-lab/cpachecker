@@ -26,10 +26,6 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 
 public class IntervalReportWriter extends FaultReportWriter {
 
-  public IntervalReportWriter() {
-    super();
-  }
-
   @Override
   public String toHtml(Fault pFault) {
     if (pFault instanceof Interval) {

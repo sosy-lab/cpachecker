@@ -194,7 +194,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
         for (int j = allSelectors.indexOf(prev); j < allSelectors.indexOf(next); j++) {
           curr.add(allSelectors.get(j));
         }
-        if (curr.size() == 0) {
+        if (curr.isEmpty()) {
           curr.add(prev);
         }
         String description = extractRelevantInformation(fmgr, curr);
@@ -353,7 +353,6 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
 
     public Interval(
         int pStart, int pEnd, BooleanFormula pInvariant) {
-      super();
       start = pStart;
       end = pEnd;
       invariant = pInvariant;

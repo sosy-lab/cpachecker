@@ -162,7 +162,7 @@ public class Fault extends ForwardingSet<FaultContribution> {
    * Set an intended index to force this fault to be on the pIntendedIndex-th place.
    * Afterwards apply concatHeuristicsIntendedIndex.
    * @see FaultRankingUtils#concatHeuristicsIntendedIndex(FaultRanking...)
-   * @param pIntendedIndex
+   * @param pIntendedIndex the intended place in the final list for this fault
    */
   public void setIntendedIndex(int pIntendedIndex) {
     intendedIndex = Optional.of(pIntendedIndex);

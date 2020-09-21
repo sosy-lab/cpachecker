@@ -104,7 +104,7 @@ public class FaultRankingUtils {
    * @return a list sorted by the intended indices.
    */
   public static FaultRanking concatHeuristicsIntendedIndex(FaultRanking... pRanking) {
-    return l -> new IntendedIndexRanking().rank(new HashSet(forAll(l, f -> 0.0, pRanking)));
+    return l -> new IntendedIndexRanking().rank(new HashSet<>(forAll(l, f -> 0.0, pRanking)));
   }
 
   public static FaultRanking concatHeuristicsDefaultFinalScoring(FaultRanking... pRanking) {
