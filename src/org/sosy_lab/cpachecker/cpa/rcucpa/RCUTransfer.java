@@ -137,6 +137,7 @@ public class RCUTransfer extends SingleEdgeTransferRelation{
 
   private final LogManager logger;
   private final Set<MemoryLocation> rcuPointers;
+  private final RCUStatistics stats;
 
   RCUTransfer(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
@@ -148,6 +149,7 @@ public class RCUTransfer extends SingleEdgeTransferRelation{
       logger.log(Level.WARNING, "RCU information is not given, analysis is useless");
       rcuPointers = ImmutableSet.of();
     }
+    stats = new RCUStatistics();
   }
 
   private Set<MemoryLocation> parseFile(Path pInput) {
@@ -344,8 +346,10 @@ public class RCUTransfer extends SingleEdgeTransferRelation{
       } else if (fName.equals(fictReadUnlock) || fName.equals(fictWriteUnlock)) {
         result = result.clearLock();
       } else if (fName.equals(sync)) {
+        stats.synchNum.inc();
         result = result.fillLocal();
       } else if (fName.equals(assign)) {
+        stats.assignNum.inc();
         CExpression rcuPtr = pCallExpression.getParameterExpressions().get(0);
         CExpression ptr = pCallExpression.getParameterExpressions().get(1);
 
@@ -362,6 +366,7 @@ public class RCUTransfer extends SingleEdgeTransferRelation{
     // This case is covered by the normal assignment expression
     CFunctionDeclaration functionDeclaration = assignment.getFunctionCallExpression().getDeclaration();
     if (functionDeclaration != null && functionDeclaration.getName().equals(deref)) {
+      stats.derefNum.inc();
       return handleAssignment(assignment.getLeftHandSide(), assignment.getFunctionCallExpression()
           .getParameterExpressions()
           .get(0), functionName, pResult, false);
@@ -402,4 +407,7 @@ public class RCUTransfer extends SingleEdgeTransferRelation{
     return pResult;
   }
 
+  RCUStatistics getStatistics() {
+    return stats;
+  }
 }

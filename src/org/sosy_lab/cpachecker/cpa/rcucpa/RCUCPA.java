@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.rcucpa;
 
+import java.util.Collection;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
@@ -34,8 +35,11 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 
-public class RCUCPA extends AbstractCPA implements ConfigurableProgramAnalysisWithBAM {
+public class RCUCPA extends AbstractCPA
+    implements ConfigurableProgramAnalysisWithBAM, StatisticsProvider {
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(RCUCPA.class);
@@ -52,5 +56,10 @@ public class RCUCPA extends AbstractCPA implements ConfigurableProgramAnalysisWi
   public AbstractState getInitialState(
       CFANode node, StateSpacePartition partition) throws InterruptedException {
     return new RCUState();
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(((RCUTransfer) getTransferRelation()).getStatistics());
   }
 }
