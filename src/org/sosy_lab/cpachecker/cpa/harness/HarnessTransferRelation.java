@@ -43,7 +43,6 @@ import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -299,9 +298,9 @@ public class HarnessTransferRelation implements TransferRelation {
           throws InvalidConfigurationException {
     CStatement statement = pEdge.getStatement();
     if (statement instanceof AFunctionCallAssignmentStatement) {
-      AFunctionCallAssignmentStatement functionCallAssignmentStatement =
+      /*AFunctionCallAssignmentStatement functionCallAssignmentStatement =
           (AFunctionCallAssignmentStatement) statement;
-      ALeftHandSide leftHandSide = functionCallAssignmentStatement.getLeftHandSide();
+      ALeftHandSide leftHandSide = functionCallAssignmentStatement.getLeftHandSide();*/
       CompositeCPA compositeCPA = (CompositeCPA) wrappedCpa;
       for (ConfigurableProgramAnalysis innerCPA : compositeCPA.getWrappedCPAs()) {
         if (innerCPA instanceof ControlAutomatonCPA) {
