@@ -26,6 +26,7 @@ package org.sosy_lab.cpachecker.cpa.harness;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
@@ -36,6 +37,7 @@ import org.sosy_lab.java_smt.api.Formula;
 public class HarnessState extends AbstractSingleWrapperState implements AbstractState {
 
   private static final long serialVersionUID = 1L;
+  private List<Integer> externFunctionReturnValuesTest = new LinkedList<>();
   private final ImmutableList<Formula> orderedExternallyKnownLocations;
   private Map<AFunctionDeclaration, List<Integer>> functionToIndicesMap;
 

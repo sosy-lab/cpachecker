@@ -41,7 +41,9 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
@@ -56,6 +58,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocations;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
+import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
+import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
@@ -293,6 +297,17 @@ public class HarnessTransferRelation implements TransferRelation {
           FormulaFromExpressionBuilder pFormulaFromExpressionBuilder)
           throws InvalidConfigurationException {
     CStatement statement = pEdge.getStatement();
+    if (statement instanceof AFunctionCallAssignmentStatement) {
+      AFunctionCallAssignmentStatement functionCallAssignmentStatement =
+          (AFunctionCallAssignmentStatement) statement;
+      ALeftHandSide leftHandSide = functionCallAssignmentStatement.getLeftHandSide();
+      CompositeCPA compositeCPA = (CompositeCPA) wrappedCpa;
+      for (ConfigurableProgramAnalysis innerCPA : compositeCPA.getWrappedCPAs()) {
+        if (innerCPA instanceof ControlAutomatonCPA) {
+          // the one i want can be filtered from here
+        }
+      }
+    }
     if (statement instanceof CFunctionCall) {
       CFunctionCall functionCall = (CFunctionCall) statement;
       CFunctionCallExpression functionCallExpression =

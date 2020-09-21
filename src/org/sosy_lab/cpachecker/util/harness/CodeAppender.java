@@ -191,7 +191,7 @@ class CodeAppender implements Appendable {
   }
 
   private CodeAppender appendHarnessBoilerplate() throws IOException {
-    String externPointersArrayName = "HARNESS_externPointersArray";
+    // String externPointersArrayName = "HARNESS_externPointersArray";
     String arrayPushCounterName = "HARNESS_externPointersArrayCounter";
     append("long int ");
     append(arrayPushCounterName);
