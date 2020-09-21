@@ -49,6 +49,7 @@ import java.util.Set;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.UniqueIdGenerator;
 import org.sosy_lab.common.configuration.Configuration;
@@ -181,24 +182,28 @@ public class HarnessExporter {
       Optional<AFunctionDeclaration> errorFunction =
           getErrorFunction(edgeToTarget, externalFunctions);
 
+      Set<AFunctionDeclaration> externalFunctionsWithoutErrorFunction =
+          getFunctionDeclarationSetWithoutElement(externalFunctions, errorFunction);
+
       codeAppender = appendErrorFunctionIfNeeded(errorFunction, codeAppender);
       codeAppender = writeVerifierAssumeIfNeeded(externalFunctions, codeAppender);
 
       // implement actual harness
       TestVector vector = testVector.get().testVector;
+
       // TestVector vector =
-          completeExternalFunctions(
-              testVector.get().testVector,
-              errorFunction.isPresent()
-                  ? FluentIterable.from(externalFunctions)
-                      .filter(Predicates.not(Predicates.equalTo(errorFunction.get())))
-                  : externalFunctions);
+      completeExternalFunctions(testVector.get().testVector, externalFunctionsWithoutErrorFunction);
       codeAppender.append(vector);
 
     } else {
       logger.log(
           Level.WARNING, "Could not export a test harness, some test-vector values are missing.");
     }
+  }
+
+  private Set<AFunctionDeclaration> getFunctionDeclarationSetWithoutElement(
+      Set<AFunctionDeclaration> pBaseSet, Optional<AFunctionDeclaration> pElementToRemove) {
+    return pElementToRemove.isPresent() ? pBaseSet.stream().filter(Predicates.not(Predicates.equalTo(pElementToRemove.get()))).collect(Collectors.toSet()) : pBaseSet;
   }
 
   private CodeAppender appendErrorFunctionIfNeeded(
