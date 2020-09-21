@@ -24,10 +24,10 @@
 package org.sosy_lab.cpachecker.util.harness;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.util.ArrayList;
-import com.google.common.collect.ImmutableList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -181,6 +181,69 @@ class CodeAppender implements Appendable {
       append(";");
       appendln();
     }
+  }
+
+  public CodeAppender appendTestVector(TestVector pVector) throws IOException {
+    appendHarnessBoilerplate();
+    appendFunctionDeclarations(pVector.getFunctionDeclarations());
+    appendInputVariables(pVector);
+    return this;
+  }
+
+  private CodeAppender appendHarnessBoilerplate() throws IOException {
+    String externPointersArrayName = "HARNESS_externPointersArray";
+    String arrayPushCounterName = "HARNESS_externPointersArrayCounter";
+    append("long int ");
+    append(arrayPushCounterName);
+    appendln(" = 0;");
+    return this;
+  }
+
+  private CodeAppender appendInputVariables(TestVector pVector) throws IOException {
+    for (AVariableDeclaration inputVariable : pVector.getInputVariables()) {
+      InitializerTestValue inputValue = pVector.getInputValue(inputVariable);
+      List<AAstNode> auxiliaryStatmenets = inputValue.getAuxiliaryStatements();
+      Type type = PredefinedTypes.getCanonicalType(inputVariable.getType());
+      boolean requiresInitialization = HarnessExporter.canInitialize(type);
+      if (requiresInitialization && !auxiliaryStatmenets.isEmpty()) {
+        for (AAstNode statement : inputValue.getAuxiliaryStatements()) {
+          appendln(statement.toASTString());
+        }
+      }
+      final AInitializer initializer;
+      if (!requiresInitialization) {
+        initializer = null;
+      } else {
+        initializer = inputValue.getValue();
+      }
+      final AVariableDeclaration internalDeclaration;
+      if (inputVariable instanceof CVariableDeclaration) {
+        internalDeclaration =
+            new CVariableDeclaration(
+                FileLocation.DUMMY,
+                inputVariable.isGlobal(),
+                CStorageClass.AUTO,
+                (CType) inputVariable.getType(),
+                inputVariable.getName(),
+                inputVariable.getOrigName(),
+                inputVariable.getQualifiedName(),
+                (CInitializer) initializer);
+      } else if (inputVariable instanceof JVariableDeclaration) {
+        internalDeclaration =
+            new JVariableDeclaration(
+                FileLocation.DUMMY,
+                (JType) inputVariable.getType(),
+                inputVariable.getName(),
+                inputVariable.getOrigName(),
+                inputVariable.getQualifiedName(),
+                initializer,
+                ((JVariableDeclaration) inputVariable).isFinal());
+      } else {
+        throw new AssertionError("Unsupported declaration type: " + inputVariable);
+      }
+      appendln(internalDeclaration.toASTString());
+    }
+    return this;
   }
 
   public CodeAppender append(TestVector pVector) throws IOException {
