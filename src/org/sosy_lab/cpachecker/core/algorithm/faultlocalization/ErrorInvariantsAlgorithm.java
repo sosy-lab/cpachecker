@@ -367,14 +367,17 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     public boolean equals(Object q){
       if(q instanceof Interval){
         Interval compare = (Interval)q;
-        return compare.start == start && compare.end == end && invariant.equals(compare.invariant);
+        return compare.start == start &&
+            compare.end == end &&
+            invariant.equals(compare.invariant) &&
+            super.equals(q);
       }
       return false;
     }
 
     @Override
     public int hashCode(){
-      return Objects.hash(invariant, start, end);
+      return Objects.hash(invariant, start, end, super.hashCode());
     }
 
     @Override
