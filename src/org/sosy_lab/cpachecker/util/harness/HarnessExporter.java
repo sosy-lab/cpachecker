@@ -178,22 +178,14 @@ public class HarnessExporter {
 
       codeAppender.appendIncludes();
 
-      codeAppender.appendln("struct _IO_FILE;");
-      codeAppender.appendln("typedef struct _IO_FILE FILE;");
-      codeAppender.appendln("extern struct _IO_FILE *stderr;");
-      codeAppender.appendln("extern int fprintf(FILE *__restrict __stream, const char *__restrict __format, ...);");
-      codeAppender.appendln("extern void exit(int __status) __attribute__ ((__noreturn__));");
+      codeAppender.appendGenericBoilerplate();
 
       // implement error-function
       CFAEdge edgeToTarget = testVector.get().edgeToTarget;
       Optional<AFunctionDeclaration> errorFunction =
           getErrorFunction(edgeToTarget, externalFunctions);
       if (errorFunction.isPresent()) {
-        codeAppender.append(errorFunction.get());
-        codeAppender.appendln(" {");
-        codeAppender.appendln("  fprintf(stderr, \"" + ERR_MSG + "\\n\");");
-        codeAppender.appendln("  exit(107);");
-        codeAppender.appendln("}");
+        codeAppender.appendErrorFunctionImplementation(errorFunction.get());
       } else {
         logger.log(Level.WARNING, "Could not find a call to an error function.");
       }

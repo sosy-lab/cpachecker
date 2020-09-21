@@ -199,6 +199,27 @@ class CodeAppender implements Appendable {
     return this;
   }
 
+  public CodeAppender appendGenericBoilerplate() throws IOException {
+    appendln("struct _IO_FILE;");
+    appendln("typedef struct _IO_FILE FILE;");
+    appendln("extern struct _IO_FILE *stderr;");
+    appendln(
+        "extern int fprintf(FILE *__restrict __stream, const char *__restrict __format, ...);");
+    appendln("extern void exit(int __status) __attribute__ ((__noreturn__));");
+    return this;
+  }
+
+  public CodeAppender appendErrorFunctionImplementation(
+      AFunctionDeclaration pErrorFunctionDeclaration) throws IOException {
+    String ERR_MSG = "cpa_witness2test: violation";
+    append(pErrorFunctionDeclaration);
+    appendln(" {");
+    appendln("  fprintf(stderr, \"" + ERR_MSG + "\\n\");");
+    appendln("  exit(107);");
+    appendln("}");
+    return this;
+  }
+
   private CodeAppender appendInputVariables(TestVector pVector) throws IOException {
     for (AVariableDeclaration inputVariable : pVector.getInputVariables()) {
       InitializerTestValue inputValue = pVector.getInputValue(inputVariable);
