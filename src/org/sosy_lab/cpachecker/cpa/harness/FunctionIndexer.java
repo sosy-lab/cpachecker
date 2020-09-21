@@ -20,6 +20,7 @@
 package org.sosy_lab.cpachecker.cpa.harness;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -101,7 +102,7 @@ public class FunctionIndexer {
               constantFunctionString,
               pathFormulaManager,
               pPredicateState);
-      for (BooleanFormula atom : atoms) {
+      for (BooleanFormula atom : Lists.reverse(atoms.asList())) {
 
         Set<String> atomVariables = formulaManagerView.extractVariableNames(atom);
 

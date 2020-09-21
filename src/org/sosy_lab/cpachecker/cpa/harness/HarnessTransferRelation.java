@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
@@ -315,10 +316,30 @@ public class HarnessTransferRelation implements TransferRelation {
       if (isExternFunction(functionCallExpression)) {
         List<CExpression> functionParameters = functionCallExpression.getParameterExpressions();
         List<CExpression> functionParametersOfPointerType =
-            functionParameters.stream()
+            functionParameters
+                .stream()
                 .filter(
-                    cExpression -> (cExpression.getExpressionType() instanceof CPointerType)
-                        || cExpression.getExpressionType() instanceof CArrayType)
+                    cExpression ->
+                        (cExpression.getExpressionType() instanceof CPointerType)
+                            || cExpression.getExpressionType() instanceof CArrayType)
+                .map(
+                    cExpression -> {
+                      if (cExpression.getExpressionType() instanceof CArrayType
+                          && cExpression instanceof CIdExpression) {
+                        CIdExpression cIdExpression = (CIdExpression) cExpression;
+                        CPointerType asPointerType = CPointerType.POINTER_TO_VOID;
+                        CExpression newExpression =
+                            new CIdExpression(
+                                cIdExpression.getFileLocation(),
+                                asPointerType,
+                                cIdExpression.toASTString(),
+                                cIdExpression.getDeclaration());
+                        return newExpression;
+
+                      } else {
+                        return cExpression;
+                      }
+                    })
                 .collect(Collectors.toList());
 
         List<Formula> formulas =
