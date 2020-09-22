@@ -88,8 +88,9 @@ public class SMTHeapWithByteArray implements SMTHeap {
           formulaManager.getFormulaType(bfmgr.makeBitvector(8, 0));
       final ArrayFormula<I, BitvectorFormula> arrayFormula =
           afmgr.makeArray(SINGLE_BYTEARRAY_HEAP_NAME, bvAddressType, bv8TargetType);
-
-      return handleBitVectorDeref(arrayFormula, address, bvTargetType);
+      @SuppressWarnings("unchecked")
+      E returnVal = (E) handleBitVectorDeref(arrayFormula, address, bvTargetType);
+      return returnVal;
     } else {
       throw new UnsupportedOperationException(
           "ByteArray Heap encoding does not support " + targetType.toString());
@@ -106,14 +107,16 @@ public class SMTHeapWithByteArray implements SMTHeap {
       BitvectorType bv8TargetType = FormulaType.getBitvectorTypeWithSize(8);
       final ArrayFormula<I, BitvectorFormula> arrayFormula =
           afmgr.makeArray(SINGLE_BYTEARRAY_HEAP_NAME, ssaIndex, addressType, bv8TargetType);
-      return handleBitVectorDeref(arrayFormula, address, bvTargetType);
+      @SuppressWarnings("unchecked")
+      V returnVal = (V) handleBitVectorDeref(arrayFormula, address, bvTargetType);
+      return returnVal;
     } else {
       throw new UnsupportedOperationException(
           "ByteArray Heap encoding does not support " + targetType.toString());
     }
   }
 
-  private <I extends Formula, V extends Formula> V handleBitVectorDeref(
+  private <I extends Formula> BitvectorFormula handleBitVectorDeref(
       ArrayFormula<I, BitvectorFormula> arrayFormula, I address, BitvectorType targetType) {
     int offset = 0;
     int theN = targetType.getSize();
@@ -129,9 +132,7 @@ public class SMTHeapWithByteArray implements SMTHeap {
               ? bfmgr.concat(result, nextBVPart)
               : bfmgr.concat(nextBVPart, result);
     }
-    @SuppressWarnings("unchecked")
-    V returnVal = (V) result;
-    return returnVal;
+    return result;
   }
 
   private <I extends Formula> BooleanFormula handleBitVectorAssignment(
