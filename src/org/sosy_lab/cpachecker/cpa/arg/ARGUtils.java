@@ -1340,10 +1340,6 @@ public class ARGUtils {
 
   /**
    * Returns all possible paths from the given state to the root of the ARG.
-   *
-   * @param pReachedSet input.
-   * @param pStart whether targetStates or safeStates.
-   * @return All possible paths from root to the chosen state.
    */
   public static Set<ARGPath> getAllPaths(final ReachedSet pReachedSet, final ARGState pStart) {
     ARGState root = AbstractStates.extractStateByType(pReachedSet.getFirstState(), ARGState.class);
