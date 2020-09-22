@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,6 +27,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.SingleFaultOfRankingAlgo;
 import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.SuspiciousnessMeasure;
@@ -99,11 +101,13 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
 
       CoverageInformation coverageInformation =
           new CoverageInformation(shutdownNotifier, safePaths, errorPaths);
-      List<Fault> faults;
-      faults = getFinalResult(safePaths, errorPaths, coverageInformation);
+      SuspiciousnessMeasure chosenRankingAlgorithm = getSuspiciousBuilder(rankingAlgorithmType);
 
-      logger.log(Level.INFO, faults);
       for (CounterexampleInfo counterexample : counterExamples) {
+        List<SingleFaultOfRankingAlgo> faultsOfRankingAlgo = filterByCounterexamples(chosenRankingAlgorithm.getAllFaultsOfRankingAlgo(
+            safePaths, errorPaths, coverageInformation),counterexample);
+        List<Fault> faults = getFinalResult(faultsOfRankingAlgo);
+
         info = new FaultLocalizationInfo(faults, counterexample);
         info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
         info.apply();
@@ -126,26 +130,32 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
   /**
    * Gets list of corresponding faults by option which is set by variable <code>rankingAlgorithmType<code/>.
    *
-   * @param pSafePaths set of all safe paths.
-   * @param pErrorPaths set of all error paths.
-   * @param pCoverageInformation coverage information of each CFAEdge.
    * @return list of faults.
    */
   public List<Fault> getFinalResult(
-      Set<ARGPath> pSafePaths, Set<ARGPath> pErrorPaths, CoverageInformation pCoverageInformation)
-      throws InterruptedException {
+       List<SingleFaultOfRankingAlgo> faultsOfRankingAlgo) {
     List<Fault> faults = new ArrayList<>();
-    SuspiciousnessMeasure chosenRankingAlgorithm = getSuspiciousBuilder(rankingAlgorithmType);
-    List<SingleFaultOfRankingAlgo> faultsOfRankingAlgo =
-        chosenRankingAlgorithm.getAllFaultsOfRankingAlgo(
-            pSafePaths, pErrorPaths, pCoverageInformation);
     for (SingleFaultOfRankingAlgo singleFault : faultsOfRankingAlgo) {
+
       Fault fault = new Fault(singleFault.getHint());
       fault.setScore(singleFault.getLineScore());
       faults.add(fault);
     }
 
     return sortingByScoreReversed(faults);
+  }
+
+  public List<SingleFaultOfRankingAlgo> filterByCounterexamples(
+      List<SingleFaultOfRankingAlgo> pSingleFaultOfRankingAlgos,
+      CounterexampleInfo counterexample) {
+    ImmutableSet<CFAEdge> fullPath = ImmutableSet.copyOf(counterexample.getTargetPath().getFullPath());
+    List<SingleFaultOfRankingAlgo> faultsOnCounterExampleTrace;
+    faultsOnCounterExampleTrace =
+        pSingleFaultOfRankingAlgos.stream()
+            .filter(fault -> fullPath.contains(fault.getHint().correspondingEdge()))
+            .collect(Collectors.toList());
+
+    return faultsOnCounterExampleTrace;
   }
 
   private List<Fault> sortingByScoreReversed(List<Fault> faults) {
