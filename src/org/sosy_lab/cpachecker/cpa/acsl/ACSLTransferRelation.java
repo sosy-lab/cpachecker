@@ -13,6 +13,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Set;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFAWithACSLAnnotationLocations;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.acsl.ACSLAnnotation;
@@ -21,20 +22,24 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class ACSLTransferRelation extends SingleEdgeTransferRelation {
 
   private final CFAWithACSLAnnotationLocations cfa;
   private final ACSLTermToCExpressionVisitor visitor;
   private final boolean usePureExpressionsOnly;
+  private final boolean ignoreTargetStates;
 
   public ACSLTransferRelation(
       CFAWithACSLAnnotationLocations pCFA,
       ACSLTermToCExpressionVisitor pVisitor,
-      boolean pUsePureExpressionsOnly) {
+      boolean pUsePureExpressionsOnly,
+      boolean pIgnoreTargetStates) {
     cfa = pCFA;
     visitor = pVisitor;
     usePureExpressionsOnly = pUsePureExpressionsOnly;
+    ignoreTargetStates = pIgnoreTargetStates;
   }
 
   @Override
@@ -51,5 +56,22 @@ public class ACSLTransferRelation extends SingleEdgeTransferRelation {
       return ImmutableList.of(new ACSLState(annotations, visitor));
     }
     return ImmutableList.of(new ACSLState(annotationsForEdge, visitor));
+  }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState state,
+      Iterable<AbstractState> otherStates,
+      @Nullable CFAEdge cfaEdge,
+      Precision precision)
+      throws CPATransferException, InterruptedException {
+    if (ignoreTargetStates) {
+      for (AbstractState otherState : otherStates) {
+        if (AbstractStates.isTargetState(otherState)) {
+          return ImmutableList.of();
+        }
+      }
+    }
+    return ImmutableList.of(state);
   }
 }

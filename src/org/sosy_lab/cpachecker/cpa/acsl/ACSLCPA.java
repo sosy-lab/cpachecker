@@ -44,6 +44,11 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
       description = "only store pure C expressions without ACSL-specific constructs")
   private boolean usePureExpressionsOnly = true;
 
+  @Option(
+      secure = true,
+      description = "do not return a successor if another analysis finds a target state")
+  private boolean ignoreTargetStates = false;
+
   private final CFAWithACSLAnnotationLocations cfa;
   private final ACSLTermToCExpressionVisitor visitor;
 
@@ -66,7 +71,7 @@ public class ACSLCPA extends AbstractCPA implements ConfigurableProgramAnalysis 
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new ACSLTransferRelation(cfa, visitor, usePureExpressionsOnly);
+    return new ACSLTransferRelation(cfa, visitor, usePureExpressionsOnly, ignoreTargetStates);
   }
 
   @Override
