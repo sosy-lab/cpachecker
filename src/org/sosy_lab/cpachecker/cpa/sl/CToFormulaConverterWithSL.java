@@ -67,9 +67,11 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
   private final SLStatistics stats;
   @Option(
     secure = true,
-    description = "States whether allocation checks are solved with a SMT or SL solver."
-        + "Further a SMT check is divided into multiple equialence checks for each key"
-        + "on the heap or a single solver call using a procedure based on ALLSAT.")
+    description = "States whether allocation checks are solved with a SMT or SL solver. "
+        + "Further a SMT check is divided into multiple equialence checks for each key "
+        + "on the heap (SMT) or a single solver call based on model generation "
+        + "(SMT_MODELSAT). For the SL approach, the solver chosen by the option "
+        + "solver.solver has to support SL.")
   private AllocationCheckProcedure allocationCheckProcedure = AllocationCheckProcedure.SL;
 
   public enum AllocationCheckProcedure {
@@ -391,11 +393,7 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
     for (CParameterDeclaration param : fe.getFunctionParameters()) {
       String varNameWithAmper = UnaryOperator.AMPER.getOperator() + param.getQualifiedName();
       CType t = delegate.makeLocationTypeForVariableType(param.getType());
-      Formula var =
-          makeVariable(
-              varNameWithAmper,
-              t,
-              pSsa);
+      Formula var = makeVariable(varNameWithAmper, t, pSsa);
       delegate.deallocateFromStack(var, false);
     }
     // Deallocate temp return variable.

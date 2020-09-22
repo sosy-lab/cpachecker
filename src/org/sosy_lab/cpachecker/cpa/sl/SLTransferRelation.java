@@ -50,19 +50,17 @@ public class SLTransferRelation extends SingleEdgeTransferRelation {
       getAbstractSuccessorsForEdge(AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
           throws CPATransferException, InterruptedException {
     state = ((SLState) pState).copyWithoutErrors();
+
+    // Process current edge
     pfm.setContext(state);
     pfm.makeAnd(state.getPathFormula(), pCfaEdge);
 
-    // String info = "";
-    // info += pCfaEdge.getCode() + "\n";
-    // info += state + "\n";
-    // info += "---------------------------";
-    // logger.log(Level.INFO, info);
     if (pCfaEdge instanceof AssumeEdge) {
+      // Feasibility check
       try {
         return handleAssumption();
       } catch (SolverException e) {
-        throw new CPATransferException("Termination check failed.", e);
+        throw new CPATransferException("Feasibility check failed.", e);
       }
     }
     return ImmutableList.of(state);

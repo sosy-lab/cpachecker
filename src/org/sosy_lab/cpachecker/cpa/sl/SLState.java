@@ -38,17 +38,45 @@ public class SLState implements AbstractState, AbstractQueryableState {
   }
 
 
+  /**
+   * The PathFormula describing the state. Currently needed for the SSAMap.
+   */
   private PathFormula pathFormula;
+
+  /**
+   * The map representing the memory state. Can be eventually converted to a SL formula in the form
+   * key_1->value_1 * ... * key_n->value_n
+   */
   private final Map<Formula, Formula> heap;
   private final Map<Formula, Formula> stack;
-  private final List<Formula> heapKeys; // Insertion order
-  private final List<Formula> stackKeys; // Insertion order
 
+  /**
+   * Models the insertion order of the keys of the corresponding heap map to improve solver
+   * performance according to consecutive memory segments.
+   */
+  private final List<Formula> heapKeys;
+  private final List<Formula> stackKeys;
+
+  /**
+   * The pure part of the SL formula.
+   */
   private final Set<BooleanFormula> constraints;
 
+  /**
+   * Tracks the allocation size of each memory segment. The key represents the start address of the
+   * respective segment.
+   */
   private final Map<Formula, BigInteger> allocationSizes;
+
+  /**
+   * The start address of all segments allocated by the function call alloca(). The key represents
+   * the function scope in which the segment is allocated mapping to a set of arbitrary segments.
+   */
   private final Map<String, Set<Formula>> allocas;
 
+  /**
+   * All memory safety properties violated by the current state.
+   */
   private final Set<SLStateError> errors = new HashSet<>();
 
 

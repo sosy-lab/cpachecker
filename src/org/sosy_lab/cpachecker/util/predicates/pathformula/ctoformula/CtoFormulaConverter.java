@@ -1479,12 +1479,8 @@ public class CtoFormulaConverter {
       l = buildLvalueTerm(lhs, edge, function, ssa, pts, constraints, errorConditions);
     }
 
-    r = makeCast(
-            rhs.getExpressionType(),
-          lhsType,
-          r,
-          constraints,
-          edge);
+    r = makeCast(rhs.getExpressionType(), lhsType, r, constraints, edge);
+
     return fmgr.assignment(l, r);
   }
 
@@ -1644,13 +1640,7 @@ public class CtoFormulaConverter {
       CFAEdge pEdge, String pFunction,
       SSAMapBuilder ssa, PointerTargetSetBuilder pts,
       Constraints constraints, ErrorConditions errorConditions) {
-    return new ExpressionToFormulaVisitor(
-        this,
-        fmgr,
-        pEdge,
-        pFunction,
-        ssa,
-        constraints);
+    return new ExpressionToFormulaVisitor(this, fmgr, pEdge, pFunction, ssa, constraints);
   }
 
   protected CLeftHandSideVisitor<Formula, UnrecognizedCodeException> createCLeftHandSideVisitor(

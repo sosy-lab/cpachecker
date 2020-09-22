@@ -44,7 +44,9 @@ public class LvalueVisitor extends DefaultCExpressionVisitor<Formula, Unrecogniz
       CFAEdge pEdge,
       String pFunction,
       SSAMapBuilder pSsa,
-      PointerTargetSetBuilder pPts, Constraints pConstraints, ErrorConditions pErrorConditions) {
+      PointerTargetSetBuilder pPts,
+      Constraints pConstraints,
+      ErrorConditions pErrorConditions) {
 
     conv = pConv;
     edge = pEdge;
