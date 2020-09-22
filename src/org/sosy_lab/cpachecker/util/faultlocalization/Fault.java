@@ -44,7 +44,7 @@ public class Fault extends ForwardingSet<FaultContribution> {
   }
 
   public Fault(){
-    this(Collections.emptySet(), 0);
+    this(ImmutableSet.of(), 0);
   }
 
   /**
