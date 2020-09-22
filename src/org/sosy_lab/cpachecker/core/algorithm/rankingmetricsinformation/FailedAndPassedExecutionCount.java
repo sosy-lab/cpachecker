@@ -7,12 +7,20 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation;
 
-public class FaultLocalizationCasesStatus {
+/**
+ * Stores the number of failed executions and passed executions.
+ *
+ * <p>A failed execution is a program execution that eventually reaches a property violation. A
+ * passed execution is a program execution that does never reach a property violation.
+ *
+ * @see CoverageInformationBuilder
+ */
+public class FailedAndPassedExecutionCount {
 
   private final int failedCases;
   private final int passedCases;
 
-  public FaultLocalizationCasesStatus(int pFailedCases, int pPassedCases) {
+  public FailedAndPassedExecutionCount(int pFailedCases, int pPassedCases) {
 
     this.failedCases = pFailedCases;
     this.passedCases = pPassedCases;

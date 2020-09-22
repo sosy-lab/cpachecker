@@ -16,42 +16,42 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 
 /**
- * Class CoverageInformation represents the coverage data of each CFAEdge by each safe/error paths.
- * The status of the coverage will be saved in the class <code>FaultLocalizationCasesStatus<code/>.
+ * This class creates the coverage data of each CFAEdge by each safe/error paths. The status of the
+ * coverage is represented by class {@link FailedAndPassedExecutionCount}.
  */
-public class CoverageInformation {
+public class CoverageInformationBuilder {
   private final ShutdownNotifier shutdownNotifier;
   private final Set<ARGPath> safePaths;
   private final Set<ARGPath> errorPaths;
 
-  public CoverageInformation(
+  public CoverageInformationBuilder(
       ShutdownNotifier pShutdownNotifier, Set<ARGPath> pSafePaths, Set<ARGPath> pErrorPaths) {
     shutdownNotifier = pShutdownNotifier;
     safePaths = pSafePaths;
     errorPaths = pErrorPaths;
   }
 
-  private Map<CFAEdge, FaultLocalizationCasesStatus> calculateCoverageInformation(
+  private Map<CFAEdge, FailedAndPassedExecutionCount> calculateCoverageInformation(
       Set<ARGPath> paths) throws InterruptedException {
-    Map<CFAEdge, FaultLocalizationCasesStatus> coverageInfo = new LinkedHashMap<>();
+    Map<CFAEdge, FailedAndPassedExecutionCount> coverageInfo = new LinkedHashMap<>();
 
     for (ARGPath path : paths) {
       for (CFAEdge cfaEdge : path.getFullPath()) {
         shutdownNotifier.shutdownIfNecessary();
-        FaultLocalizationCasesStatus caseStatus;
+        FailedAndPassedExecutionCount caseStatus;
         if (!coverageInfo.containsKey(cfaEdge)) {
-          coverageInfo.put(cfaEdge, new FaultLocalizationCasesStatus(0, 0));
+          coverageInfo.put(cfaEdge, new FailedAndPassedExecutionCount(0, 0));
         }
         caseStatus = coverageInfo.get(cfaEdge);
         // Check whether the path is a error path
         if (path.getLastState().isTarget()) {
           caseStatus =
-              new FaultLocalizationCasesStatus(
+              new FailedAndPassedExecutionCount(
                   caseStatus.getFailedCases() + 1, caseStatus.getPassedCases());
 
         } else {
           caseStatus =
-              new FaultLocalizationCasesStatus(
+              new FailedAndPassedExecutionCount(
                   caseStatus.getFailedCases(), caseStatus.getPassedCases() + 1);
         }
 
@@ -71,7 +71,7 @@ public class CoverageInformation {
    *
    * @return result as edge and its case status.
    */
-  public Map<CFAEdge, FaultLocalizationCasesStatus> getCoverageInformation()
+  public Map<CFAEdge, FailedAndPassedExecutionCount> getCoverageInformation()
       throws InterruptedException {
     return calculateCoverageInformation(Sets.union(safePaths, errorPaths));
   }

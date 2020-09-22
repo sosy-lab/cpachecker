@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.ochiai;
 import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.SuspiciousnessMeasure;
 
 public class OchiaiSuspiciousnessMeasure extends SuspiciousnessMeasure {
+
   /**
    * Calculates suspicious of Ochiai measure. calculateSuspiciousness = (fail(s)/sqrt(totalFailed *
    * (pFailed + pPassed)))

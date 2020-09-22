@@ -13,7 +13,6 @@ import static com.google.common.collect.FluentIterable.from;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
@@ -29,12 +28,11 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.SingleFaultOfRankingAlgo;
 import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.SuspiciousnessMeasure;
 import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.dstar.DStarSuspiciousnessMeasure;
 import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.ochiai.OchiaiSuspiciousnessMeasure;
 import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.tarantula.TarantulaSuspiciousnessMeasure;
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation.CoverageInformation;
+import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation.CoverageInformationBuilder;
 import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation.FailedCase;
 import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation.SafeCase;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -64,7 +62,7 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
       secure = true,
       name = "type",
       description = "Ranking algorithm to use for fault localization")
-  private AlgorithmType rankingAlgorithmType = AlgorithmType.TARANTULA;
+  private AlgorithmType rankingMeasure = AlgorithmType.TARANTULA;
 
   private final StatTimer totalTime = new StatTimer("Total time of fault localization");
   private final Algorithm algorithm;
@@ -99,13 +97,12 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
       Set<ARGPath> safePaths = safeCase.getSafePaths();
       Set<ARGPath> errorPaths = failedCase.getErrorPaths();
 
-      CoverageInformation coverageInformation =
-          new CoverageInformation(shutdownNotifier, safePaths, errorPaths);
-      SuspiciousnessMeasure chosenRankingAlgorithm = getSuspiciousBuilder(rankingAlgorithmType);
+      CoverageInformationBuilder coverageInformation =
+          new CoverageInformationBuilder(shutdownNotifier, safePaths, errorPaths);
+      SuspiciousnessMeasure suspiciousnessMeasure = createSuspiciousnessMeasure(rankingMeasure);
       final List<Fault> faults =
-          getFinalResult(
-              chosenRankingAlgorithm.getAllFaultsOfRankingAlgo(
-                  safePaths, errorPaths, coverageInformation));
+          getFaultsSortedByRank(
+              suspiciousnessMeasure.getAllFaults(safePaths, errorPaths, coverageInformation));
 
       for (CounterexampleInfo counterexample : counterExamples) {
         List<Fault> faultsForCex = getFaultsForCex(faults, counterexample);
@@ -134,17 +131,8 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
    *
    * @return list of faults.
    */
-  public List<Fault> getFinalResult(
-       List<SingleFaultOfRankingAlgo> faultsOfRankingAlgo) {
-    List<Fault> faults = new ArrayList<>();
-    for (SingleFaultOfRankingAlgo singleFault : faultsOfRankingAlgo) {
-
-      Fault fault = new Fault(singleFault.getHint());
-      fault.setScore(singleFault.getLineScore());
-      faults.add(fault);
-    }
-
-    return sortingByScoreReversed(faults);
+  public List<Fault> getFaultsSortedByRank(List<Fault> pFaults) {
+    return sortingByScoreReversed(pFaults);
   }
 
   public List<Fault> getFaultsForCex(List<Fault> pFaults, CounterexampleInfo counterexample) {
@@ -161,8 +149,8 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
         .collect(Collectors.toList());
   }
 
-  private SuspiciousnessMeasure getSuspiciousBuilder(AlgorithmType pAlgorithmType) {
-    logger.log(Level.INFO, "ranking-algorithm type: " + pAlgorithmType + " starts");
+  private SuspiciousnessMeasure createSuspiciousnessMeasure(AlgorithmType pAlgorithmType) {
+    logger.log(Level.INFO, "Ranking-algorithm type: " + pAlgorithmType + " starts");
     switch (pAlgorithmType) {
       case TARANTULA:
         return new TarantulaSuspiciousnessMeasure();
@@ -191,6 +179,6 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
 
   @Override
   public String getName() {
-    return "Fault Localization with " + rankingAlgorithmType;
+    return getClass().getCanonicalName() + "(" + rankingMeasure + ")";
   }
 }
