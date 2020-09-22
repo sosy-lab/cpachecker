@@ -223,23 +223,26 @@ public class NumericTransferRelation
       logger.log(Level.FINEST, edge, "has no successors");
       return ImmutableSet.of();
     } else {
-      for (NumericState successor : successors) {
-        StringBuilder builder = new StringBuilder();
-        for (Variable var : successor.getValue().getEnvironment().getIntVariables()) {
-          builder.append(var).append("=").append(successor.getValue().getBounds(var)).append(";");
+      if (logger.wouldBeLogged(Level.FINEST)) {
+        for (NumericState successor : successors) {
+          StringBuilder builder = new StringBuilder();
+          for (Variable var : successor.getValue().getEnvironment().getIntVariables()) {
+            builder.append(var).append("=").append(successor.getValue().getBounds(var)).append(";");
+          }
+          for (Variable var : successor.getValue().getEnvironment().getRealVariables()) {
+            builder.append(var).append("=").append(successor.getValue().getBounds(var)).append(";");
+          }
+          logger.log(
+              Level.FINEST,
+              edge.getEdgeType(),
+              edge.getCode(),
+              ":",
+              edge.getCode(),
+              "successor:",
+              successor,
+              "intervals:",
+              builder.toString());
         }
-        for (Variable var : successor.getValue().getEnvironment().getRealVariables()) {
-          builder.append(var).append("=").append(successor.getValue().getBounds(var)).append(";");
-        }
-        logger.log(
-            Level.FINEST,
-            edge.getEdgeType(),
-            ":",
-            edge.getCode(),
-            "successors:",
-            successor,
-            "intervals:",
-            builder.toString());
       }
       return ImmutableSet.copyOf(successors);
     }
