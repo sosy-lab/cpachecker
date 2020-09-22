@@ -80,8 +80,8 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
 
     pConfig.inject(this);
     algorithm = pAlgorithm;
-    this.shutdownNotifier = pShutdownNotifier;
-    this.logger = pLogger;
+    shutdownNotifier = pShutdownNotifier;
+    logger = pLogger;
   }
 
   @Override
