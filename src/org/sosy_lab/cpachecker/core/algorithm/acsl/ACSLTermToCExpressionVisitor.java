@@ -192,7 +192,7 @@ public class ACSLTermToCExpressionVisitor {
       result =
           new CIntegerLiteralExpression(
               FileLocation.DUMMY,
-              CNumericTypes.LONG_LONG_INT,
+              CNumericTypes.INT,
               BigInteger.valueOf(integerLiteral.getLiteral()));
       cache.put(integerLiteral, result);
     }
