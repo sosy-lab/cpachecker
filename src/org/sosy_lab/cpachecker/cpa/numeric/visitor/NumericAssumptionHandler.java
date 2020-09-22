@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cpa.numeric.NumericState;
 import org.sosy_lab.cpachecker.cpa.numeric.NumericTransferRelation;
+import org.sosy_lab.cpachecker.cpa.numeric.NumericTransferRelation.HandleNumericTypes;
 import org.sosy_lab.cpachecker.cpa.numeric.visitor.PartialState.ApplyEpsilon;
 import org.sosy_lab.cpachecker.cpa.numeric.visitor.PartialState.TruthAssumption;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -42,9 +43,13 @@ public class NumericAssumptionHandler
   private final NumericState state;
   private final TruthAssumption truthAssumption;
   private final LogManager logger;
+  private final HandleNumericTypes handledTypes;
 
   public NumericAssumptionHandler(
-      NumericState pState, boolean pTruthAssumption, LogManager logManager) {
+      NumericState pState,
+      HandleNumericTypes pHandledTypes,
+      boolean pTruthAssumption,
+      LogManager logManager) {
     state = pState;
     logger = logManager;
     if (pTruthAssumption) {
@@ -52,6 +57,7 @@ public class NumericAssumptionHandler
     } else {
       truthAssumption = TruthAssumption.ASSUME_FALSE;
     }
+    handledTypes = pHandledTypes;
   }
 
   @Override
@@ -68,11 +74,15 @@ public class NumericAssumptionHandler
     Collection<PartialState> statesLeft =
         pIastBinaryExpression
             .getOperand1()
-            .accept(new NumericRightHandSideVisitor(state.getValue().getEnvironment(), null));
+            .accept(
+                new NumericRightHandSideVisitor(
+                    state.getValue().getEnvironment(), handledTypes, logger));
     Collection<PartialState> statesRight =
         pIastBinaryExpression
             .getOperand2()
-            .accept(new NumericRightHandSideVisitor(state.getValue().getEnvironment(), null));
+            .accept(
+                new NumericRightHandSideVisitor(
+                    state.getValue().getEnvironment(), handledTypes, logger));
 
     Collection<PartialState> states;
 
@@ -102,6 +112,10 @@ public class NumericAssumptionHandler
     for (PartialState partialState : states) {
       Optional<NumericState> successor = state.meet(partialState.getConstraints());
       successor.ifPresent(successorsBuilder::add);
+      if (successor.isPresent() && logger.wouldBeLogged(Level.FINEST)) {
+        logger.log(
+            Level.FINEST, partialState, "\napplied to: ", successor.get(), " \nstate:", state);
+      }
     }
 
     Collection<NumericState> successors = successorsBuilder.build();

@@ -24,6 +24,7 @@ import org.sosy_lab.numericdomains.Value;
 import org.sosy_lab.numericdomains.Value.NewVariableValue;
 import org.sosy_lab.numericdomains.Value.ValueType;
 import org.sosy_lab.numericdomains.constraint.TreeConstraint;
+import org.sosy_lab.numericdomains.constraint.tree.TreeNode;
 import org.sosy_lab.numericdomains.environment.Environment;
 import org.sosy_lab.numericdomains.environment.Variable;
 
@@ -69,8 +70,7 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
 
   @Override
   public String toString() {
-    return "NumericState: "
-        + value.toPrettyString(false);
+    return "NumericState: " + value.toPrettyString(false);
   }
 
   @Override
@@ -220,12 +220,26 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
     }
   }
 
+  public NumericState assignTreeExpression(Variable variable, TreeNode expression) {
+    Optional<Value> newValue = value.assign(variable, expression);
+
+    if (newValue.isPresent()) {
+      return new NumericState(manager, newValue.get(), logger);
+    } else {
+      throw new IllegalStateException(
+          "Could not assign expression to variable. variable"
+              + variable
+              + " expression:"
+              + expression);
+    }
+  }
+
   /**
    * Creates a copy of the numeric state.
    *
    * @return a copy of the state containing a copy of the value
    */
-  NumericState createCopy() {
+  public NumericState createCopy() {
     return new NumericState(manager, getValue().copy(), logger);
   }
 

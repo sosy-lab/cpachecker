@@ -54,7 +54,7 @@ public class NumericCPA extends AbstractCPA {
         "SEP",
         "SEP",
         DelegateAbstractDomain.getInstance(),
-        new NumericTransferRelation(logManager));
+        new NumericTransferRelation(config, logManager));
     config.inject(this);
     this.logger = logManager;
 

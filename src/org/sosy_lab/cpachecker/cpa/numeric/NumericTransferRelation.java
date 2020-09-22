@@ -8,13 +8,17 @@
 
 package org.sosy_lab.cpachecker.cpa.numeric;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -50,14 +54,25 @@ import org.sosy_lab.numericdomains.constraint.TreeConstraint;
 import org.sosy_lab.numericdomains.environment.Environment;
 import org.sosy_lab.numericdomains.environment.Variable;
 
+@Options(prefix = "cpa.numeric.NumericTransferRelation")
 public class NumericTransferRelation
     extends ForwardingTransferRelation<
         Collection<NumericState>, NumericState, VariableTrackingPrecision> {
 
   private final LogManager logger;
 
-  NumericTransferRelation(LogManager logManager) {
+  @Option(
+      secure = true,
+      name = "handledVariableTypes",
+      toUppercase = true,
+      description = "Use this to set which type of variables should be handled.")
+  private HandleNumericTypes handledVariableTypes = HandleNumericTypes.INTEGERS_AND_DOUBLES;
+
+  NumericTransferRelation(Configuration config, LogManager logManager)
+      throws InvalidConfigurationException {
+    config.inject(this);
     logger = logManager;
+    logger.log(Level.CONFIG, handledVariableTypes);
   }
 
   @Override
@@ -70,13 +85,15 @@ public class NumericTransferRelation
   protected Collection<NumericState> handleAssumption(
       CAssumeEdge cfaEdge, CExpression cExpression, boolean truthAssumption)
       throws UnrecognizedCodeException {
-    return cExpression.accept(new NumericAssumptionHandler(state, truthAssumption, logger));
+    return cExpression.accept(
+        new NumericAssumptionHandler(state, handledVariableTypes, truthAssumption, logger));
   }
 
   @Override
   protected Collection<NumericState> handleDeclarationEdge(
       CDeclarationEdge cfaEdge, CDeclaration declaration) throws UnrecognizedCodeException {
-    NumericState successor = declaration.accept(new NumericDeclarationVisitor(state, logger));
+    NumericState successor =
+        declaration.accept(new NumericDeclarationVisitor(state, logger, handledVariableTypes));
 
     if (successor != null) {
       return ImmutableSet.of(successor);
@@ -88,7 +105,7 @@ public class NumericTransferRelation
   @Override
   protected Collection<NumericState> handleStatementEdge(
       CStatementEdge cfaEdge, CStatement statement) throws UnrecognizedCodeException {
-    return statement.accept(new NumericStatementVisitor(state, logger));
+    return statement.accept(new NumericStatementVisitor(state, logger, handledVariableTypes));
   }
 
   @Override
@@ -130,7 +147,7 @@ public class NumericTransferRelation
 
     for (int i = 0; i < parameters.size(); i++) {
       Collection<NumericState> tempStates =
-          applyAssignmentConstraints(
+          assignParameterValue(
               arguments.get(i), parameters.get(i), successors, extendedEnvironment);
       disposeAll(successors);
       successors = tempStates;
@@ -138,7 +155,7 @@ public class NumericTransferRelation
     return successors;
   }
 
-  private Collection<NumericState> applyAssignmentConstraints(
+  private Collection<NumericState> assignParameterValue(
       CExpression expression,
       CParameterDeclaration declaration,
       Collection<NumericState> pStates,
@@ -147,25 +164,66 @@ public class NumericTransferRelation
     if (expression == null || declaration == null || pStates == null) {
       throw new IllegalArgumentException("Parameters can not be null.");
     }
+    if (pStates.isEmpty()) {
+      throw new IllegalArgumentException("pStates can not be empty.");
+    }
 
     Variable variable = createVariableFromDeclaration(declaration);
     logger.log(Level.FINEST, "ApplyAssignmentConstraints", variable, expression);
 
     ImmutableSet.Builder<NumericState> statesBuilder = new ImmutableSet.Builder<>();
     Collection<PartialState> partialAssignments =
-        expression.accept(new NumericRightHandSideVisitor(pEnvironment, null));
+        expression.accept(
+            new NumericRightHandSideVisitor(pEnvironment, handledVariableTypes, logger));
     for (PartialState partialAssignment : partialAssignments) {
       ImmutableList.Builder<NumericState> successorCandidates = new ImmutableList.Builder<>();
       for (NumericState current : pStates) {
-        successorCandidates.add(current);
+        successorCandidates.add(current.createCopy());
       }
-      Collection<TreeConstraint> assignmentConstraints =
-          partialAssignment.assignToVariable(pEnvironment, variable);
-      for (NumericState tempState : successorCandidates.build()) {
-        tempState.meet(assignmentConstraints).ifPresent(statesBuilder::add);
+
+      if (pEnvironment.containsVariable(variable)) {
+        AssignParameter(variable, statesBuilder, partialAssignment, successorCandidates);
       }
     }
     return statesBuilder.build();
+  }
+
+  private void AssignParameter(
+      Variable pVariable,
+      Builder<NumericState> pStatesBuilder,
+      PartialState partialAssignment,
+      ImmutableList.Builder<NumericState> pSuccessorCandidates) {
+    Collection<TreeConstraint> assignmentConstraints = partialAssignment.getConstraints();
+    // Meet the constraints and then assign the value
+    for (NumericState successorCandidate : pSuccessorCandidates.build()) {
+      Optional<NumericState> tempState = successorCandidate.meet(assignmentConstraints);
+      Optional<NumericState> out =
+          tempState.map(
+              (st) -> st.assignTreeExpression(pVariable, partialAssignment.getPartialConstraint()));
+      tempState.ifPresent((st) -> st.getValue().dispose());
+      out.ifPresent(
+          (st) -> {
+            if (!st.getValue().isBottom()) {
+              pStatesBuilder.add(st);
+            }
+          });
+
+      if (logger.wouldBeLogged(Level.FINEST)) {
+        logger.log(
+            Level.FINEST,
+            "To",
+            successorCandidate,
+            "Add parameter: ",
+            pVariable,
+            "=",
+            partialAssignment.getPartialConstraint(),
+            " by using: ",
+            assignmentConstraints,
+            "successors:",
+            (out.isPresent() ? out.get() : "EMPTY"));
+      }
+      successorCandidate.getValue().dispose();
+    }
   }
 
   private void disposeAll(Collection<NumericState> states) {
@@ -177,17 +235,21 @@ public class NumericTransferRelation
   @Override
   protected Collection<NumericState> handleReturnStatementEdge(CReturnStatementEdge cfaEdge)
       throws UnrecognizedCodeException {
-    Optional<CAssignment> assignment = cfaEdge.asAssignment();
+    Optional<CAssignment> assignment = cfaEdge.asAssignment().toJavaUtil();
 
     if (assignment.isPresent()) {
       Optional<? extends AVariableDeclaration> declaration =
-          cfaEdge.getSuccessor().getEntryNode().getReturnVariable();
+          cfaEdge.getSuccessor().getEntryNode().getReturnVariable().toJavaUtil();
 
       if (declaration.isPresent() && declaration.get() instanceof CVariableDeclaration) {
         NumericState intermediateStates =
-            ((CDeclaration) declaration.get()).accept(new NumericDeclarationVisitor(state, logger));
+            ((CDeclaration) declaration.get())
+                .accept(new NumericDeclarationVisitor(state, logger, handledVariableTypes));
         Collection<NumericState> statesAfterAssignment =
-            assignment.get().accept(new NumericStatementVisitor(intermediateStates, logger));
+            assignment
+                .get()
+                .accept(
+                    new NumericStatementVisitor(intermediateStates, logger, handledVariableTypes));
         // Dispose of value in intermediate state
         if (!statesAfterAssignment.contains(intermediateStates)) {
           intermediateStates.getValue().dispose();
@@ -210,14 +272,15 @@ public class NumericTransferRelation
     if (expr instanceof CFunctionCallAssignmentStatement) {
       CFunctionCallAssignmentStatement assignment = (CFunctionCallAssignmentStatement) expr;
       Optional<CVariableDeclaration> returnVarDeclaration =
-          fnkCall.getFunctionEntry().getReturnVariable();
+          fnkCall.getFunctionEntry().getReturnVariable().toJavaUtil();
       if (!returnVarDeclaration.isPresent()) {
         throw new IllegalStateException("Can not handle CAssignment without return value.");
       }
 
       Variable returnVariable = createVariableFromDeclaration(returnVarDeclaration.get());
       Collection<NumericState> tempStates =
-          assignment.accept(new NumericStatementVisitor(state, returnVariable));
+          assignment.accept(
+              new NumericStatementVisitor(state, handledVariableTypes, returnVariable, logger));
       ImmutableSet.Builder<NumericState> successorsBuilder = new ImmutableSet.Builder<>();
       for (NumericState tempState : tempStates) {
         successorsBuilder.add(tempState.removeVariables(ImmutableSet.of(returnVariable)));
@@ -308,84 +371,21 @@ public class NumericTransferRelation
     return new Variable(pDeclaration.getQualifiedName());
   }
 
-  /**
-   * Represents a variable substitution.
-   *
-   * <p>The variable substitution consists of the variable which should be substituted and the
-   * substitute.
-   */
-  public static class VariableSubstitution {
-    private static final String SUBSTITUTE_SUFFIX = "__SUBSTITUTE__";
+  /** Sets which variable types should be considered. */
+  public enum HandleNumericTypes {
+    /** Consider only integer valued variables. */
+    ONLY_INTEGERS,
+    /** Consider only real valued variables. */
+    ONLY_DOUBLES,
+    /** Consider both integer and real valued variables. */
+    INTEGERS_AND_DOUBLES;
 
-    /**
-     * Create a substitution for the variable.
-     *
-     * @param pVariable variable for which the substitution is created
-     * @param additionalSuffix suffix that is added to the name of the variable in addition to the
-     *     default suffix {@link VariableSubstitution#SUBSTITUTE_SUFFIX}
-     * @return variable substitution consisting of the source variable and the substitute
-     */
-    public static VariableSubstitution createSubstitutionOf(
-        Variable pVariable, @Nullable String additionalSuffix) {
-      String name =
-          pVariable.getName()
-              + SUBSTITUTE_SUFFIX
-              + (additionalSuffix != null ? additionalSuffix : "");
-      return new VariableSubstitution(pVariable, new Variable(name));
+    public boolean handleReals() {
+      return this == ONLY_DOUBLES || this == INTEGERS_AND_DOUBLES;
     }
 
-    private final Variable from;
-    private final Variable substitute;
-    /** Tracks whether the substitution was applied. */
-    private boolean wasUsed;
-
-    /**
-     * Creates a substitution.
-     *
-     * @param pFrom variable that should be substituted
-     * @param pSubstitute variable with which pFrom is substituted
-     */
-    private VariableSubstitution(Variable pFrom, Variable pSubstitute) {
-      from = pFrom;
-      substitute = pSubstitute;
-    }
-
-    /**
-     * Applies the substitution for the variable.
-     *
-     * <p>The variable is only substituted if the variable equals the {@link
-     * VariableSubstitution#from} variable that was used to create this substitution.
-     *
-     * @param pVariable variable that may be substituted
-     * @return substitute if the pVariable is the variable that should be substituted, pVariable
-     *     otherwise
-     */
-    public Variable applyTo(Variable pVariable) {
-      if (pVariable.equals(from)) {
-        wasUsed = true;
-        return substitute;
-      } else {
-        return pVariable;
-      }
-    }
-
-    /**
-     * Checks whether the substitution was used.
-     *
-     * @return {@code true} if the substitution was used, {@code false} otherwise
-     */
-    public boolean wasUsed() {
-      return wasUsed;
-    }
-
-    /** Returns the variable which will be substituted. */
-    public Variable getFrom() {
-      return from;
-    }
-
-    /** Returns the substitute. */
-    public Variable getSubstitute() {
-      return substitute;
+    public boolean handleIntegers() {
+      return this == ONLY_INTEGERS || this == INTEGERS_AND_DOUBLES;
     }
   }
 }

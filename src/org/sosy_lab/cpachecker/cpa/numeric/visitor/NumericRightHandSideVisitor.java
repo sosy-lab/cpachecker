@@ -12,8 +12,8 @@ import com.google.common.collect.ImmutableSet;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.EnumSet;
-import java.util.Optional;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.ExtendedRational;
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cpa.numeric.NumericTransferRelation;
-import org.sosy_lab.cpachecker.cpa.numeric.NumericTransferRelation.VariableSubstitution;
+import org.sosy_lab.cpachecker.cpa.numeric.NumericTransferRelation.HandleNumericTypes;
 import org.sosy_lab.cpachecker.cpa.numeric.visitor.PartialState.ApplyEpsilon;
 import org.sosy_lab.cpachecker.cpa.numeric.visitor.PartialState.TruthAssumption;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -46,7 +46,6 @@ import org.sosy_lab.numericdomains.constraint.tree.ConstantTreeNode;
 import org.sosy_lab.numericdomains.constraint.tree.RoundingType;
 import org.sosy_lab.numericdomains.constraint.tree.TreeNode;
 import org.sosy_lab.numericdomains.constraint.tree.UnaryOperator;
-import org.sosy_lab.numericdomains.constraint.tree.UnaryTreeNode;
 import org.sosy_lab.numericdomains.constraint.tree.VariableTreeNode;
 import org.sosy_lab.numericdomains.environment.Environment;
 import org.sosy_lab.numericdomains.environment.Variable;
@@ -59,26 +58,27 @@ import org.sosy_lab.numericdomains.environment.Variable;
 public class NumericRightHandSideVisitor
     implements CRightHandSideVisitor<Collection<PartialState>, UnrecognizedCodeException> {
 
-  /** If present, this is a variable substitution that should be applied. */
-  private final Optional<VariableSubstitution> variableSubstitution;
-
   /**
    * The environment of the right hand side expression. This is not necessarily equal to the
    * environment of the state.
    */
   private final Environment environment;
 
+  private final HandleNumericTypes handledTypes;
+
+  private final LogManager logger;
+
   /**
    * Creates a right hand side visitor for numeric domains.
    *
-   * @param pEnvironment environment of the right hand side
-   * @param pVariableSubstitution variable substitution that should be applied if the variable is
-   *     encountered in the right hand side
+   * @param pEnvironment environment of the right hand side encountered in the right hand side
+   * @param pHandledTypes specifies which numeric types should be handled
    */
   public NumericRightHandSideVisitor(
-      Environment pEnvironment, @Nullable VariableSubstitution pVariableSubstitution) {
+      Environment pEnvironment, HandleNumericTypes pHandledTypes, LogManager pLogManager) {
     environment = pEnvironment;
-    variableSubstitution = Optional.ofNullable(pVariableSubstitution);
+    handledTypes = pHandledTypes;
+    logger = pLogManager;
   }
 
   @Override
@@ -155,11 +155,15 @@ public class NumericRightHandSideVisitor
             "'" + pIastBinaryExpression.getOperator() + "' is not an arithmetic operation.");
     }
 
+    RoundingType roundingType;
+    if (operator != BinaryOperator.MODULO) {
+      roundingType = PartialState.convertToRoundingType(pIastBinaryExpression);
+    } else {
+      roundingType = RoundingType.NONE;
+    }
+
     return PartialState.applyBinaryArithmeticOperator(
-        operator,
-        leftExpressions,
-        rightExpressions,
-        PartialState.convertToRoundingType(pIastBinaryExpression));
+        operator, leftExpressions, rightExpressions, roundingType);
   }
 
   @Override
@@ -190,13 +194,7 @@ public class NumericRightHandSideVisitor
     ExtendedRational rational = new ExtendedRational(Rational.ofBigDecimal(decimal));
     Coefficient coeff = MpqScalar.of(rational);
     TreeNode constNode = new ConstantTreeNode(coeff);
-
-    final RoundingType roundingType =
-        PartialState.convertToRoundingType(pIastFloatLiteralExpression);
-    TreeNode root =
-        new UnaryTreeNode(
-            UnaryOperator.CAST, constNode, roundingType, PartialState.DEFAULT_ROUNDING_MODE);
-    PartialState out = new PartialState(root, ImmutableSet.of());
+    PartialState out = new PartialState(constNode, ImmutableSet.of());
     return ImmutableSet.of(out);
   }
 
@@ -266,14 +264,32 @@ public class NumericRightHandSideVisitor
   @Override
   public Collection<PartialState> visit(CIdExpression pIastIdExpression)
       throws UnrecognizedCodeException {
-    final Variable maybeVariable =
-        NumericTransferRelation.createVariableFromDeclaration(pIastIdExpression.getDeclaration());
 
-    Variable variable =
-        variableSubstitution.map((varSub) -> varSub.applyTo(maybeVariable)).orElse(maybeVariable);
-    TreeNode node = new VariableTreeNode(variable);
-    PartialState out = new PartialState(node, ImmutableSet.of());
-    return ImmutableSet.of(out);
+    if (pIastIdExpression.getDeclaration().getType() instanceof CSimpleType) {
+      CSimpleType type = (CSimpleType) pIastIdExpression.getDeclaration().getType();
+      if ((type.getType().isFloatingPointType() && handledTypes.handleReals())
+          || (type.getType().isIntegerType() && handledTypes.handleIntegers())) {
+        final Variable variable =
+            NumericTransferRelation.createVariableFromDeclaration(
+                pIastIdExpression.getDeclaration());
+        TreeNode node = new VariableTreeNode(variable);
+        PartialState out = new PartialState(node, ImmutableSet.of());
+        return ImmutableSet.of(out);
+      }
+    }
+
+    logger.log(
+        Level.FINEST,
+        "Unhandled variable",
+        pIastIdExpression,
+        "substituted with [-Infinity, Infinity].");
+    // Type can not be handled therefore it is substituted with an unconstrained value:
+    return ImmutableSet.of(createUnconstrainedPartialState());
+  }
+
+  private PartialState createUnconstrainedPartialState() {
+    return new PartialState(
+        new ConstantTreeNode(PartialState.UNCONSTRAINED_INTERVAL), ImmutableSet.of());
   }
 
   @Override

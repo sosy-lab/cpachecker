@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Optional;
-import java.util.Set;
+import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -20,16 +20,19 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cpa.numeric.NumericState;
 import org.sosy_lab.cpachecker.cpa.numeric.NumericTransferRelation;
-import org.sosy_lab.cpachecker.cpa.numeric.NumericTransferRelation.VariableSubstitution;
+import org.sosy_lab.cpachecker.cpa.numeric.NumericTransferRelation.HandleNumericTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.numericdomains.Value.NewVariableValue;
 import org.sosy_lab.numericdomains.constraint.ConstraintType;
 import org.sosy_lab.numericdomains.constraint.TreeConstraint;
 import org.sosy_lab.numericdomains.constraint.tree.BinaryOperator;
 import org.sosy_lab.numericdomains.constraint.tree.BinaryTreeNode;
+import org.sosy_lab.numericdomains.constraint.tree.ConstantTreeNode;
 import org.sosy_lab.numericdomains.constraint.tree.TreeNode;
 import org.sosy_lab.numericdomains.constraint.tree.VariableTreeNode;
 import org.sosy_lab.numericdomains.environment.Variable;
@@ -46,9 +49,15 @@ public class NumericStatementVisitor
    */
   private final Optional<Variable> returnVariable;
 
-  public NumericStatementVisitor(NumericState pState, LogManager logManager) {
+  private final LogManager logger;
+  private final HandleNumericTypes handledTypes;
+
+  public NumericStatementVisitor(
+      NumericState pState, LogManager logManager, HandleNumericTypes pHandledTypes) {
     state = pState;
     returnVariable = Optional.empty();
+    logger = logManager;
+    handledTypes = pHandledTypes;
   }
 
   /**
@@ -58,11 +67,18 @@ public class NumericStatementVisitor
    * other statements, the value is ignored.
    *
    * @param pState state for which the statement visitor is created
+   * @param pHandledTypes specifies which types should be handled
    * @param pReturnVariable return variable used for a CFunctionCallAssignmentStatement
    */
-  public NumericStatementVisitor(NumericState pState, @Nullable Variable pReturnVariable) {
+  public NumericStatementVisitor(
+      NumericState pState,
+      HandleNumericTypes pHandledTypes,
+      @Nullable Variable pReturnVariable,
+      LogManager logManager) {
     state = pState;
     returnVariable = Optional.ofNullable(pReturnVariable);
+    logger = logManager;
+    handledTypes = pHandledTypes;
   }
 
   @Override
@@ -81,62 +97,72 @@ public class NumericStatementVisitor
           "Left hand side is not a Variable.", pIastExpressionAssignmentStatement);
     }
 
-    // Create variable to which the value is assigned
-    Variable variable =
-        NumericTransferRelation.createVariableFromDeclaration(
-            ((CIdExpression) pIastExpressionAssignmentStatement.getLeftHandSide())
-                .getDeclaration());
+    CSimpleDeclaration declaration =
+        ((CIdExpression) pIastExpressionAssignmentStatement.getLeftHandSide()).getDeclaration();
 
-    // Create substitution of variable if necessary
-    VariableSubstitution substitution = VariableSubstitution.createSubstitutionOf(variable, null);
+    boolean isIntegerVariable;
+
+    // Check if the type should be handled
+    if (declaration.getType() instanceof CSimpleType) {
+      CSimpleType type = (CSimpleType) declaration.getType();
+      isIntegerVariable = type.getType().isIntegerType();
+      if ((isIntegerVariable && handledTypes.handleIntegers())
+          || (!isIntegerVariable && handledTypes.handleReals())) {
+      } else {
+        return ImmutableSet.of(state.createCopy());
+      }
+    } else {
+      return ImmutableSet.of(state.createCopy());
+    }
+
+    // Create variable to which the value is assigned
+    Variable variable = NumericTransferRelation.createVariableFromDeclaration(declaration);
+
+    final NumericState extendedState;
+
+    if (state.getValue().getEnvironment().containsVariable(variable)) {
+      extendedState = state.createCopy();
+    } else {
+      Collection<Variable> newVariable = ImmutableSet.of(variable);
+      if (isIntegerVariable) {
+        extendedState = state.addVariables(newVariable, ImmutableSet.of(), NewVariableValue.ZERO);
+      } else {
+        extendedState =
+            state.addVariables(ImmutableSet.of(), newVariable, NewVariableValue.UNCONSTRAINED);
+      }
+    }
 
     Collection<PartialState> expressions =
         pIastExpressionAssignmentStatement
             .getRightHandSide()
             .accept(
-                new NumericRightHandSideVisitor(state.getValue().getEnvironment(), substitution));
-    TreeNode variableNode = new VariableTreeNode(variable);
-
-    // Expand the environment if the assignment is dependent on the variable that will be assigned,
-    // before forgetting its value
-    NumericState newState;
-    if (substitution.wasUsed()) {
-      NumericState tempState =
-          state.addTemporaryCopyOf(substitution.getFrom(), substitution.getSubstitute());
-      newState =
-          tempState.forget(ImmutableSet.of(substitution.getFrom()), NewVariableValue.UNCONSTRAINED);
-      tempState.getValue().dispose();
-    } else {
-      newState = state.forget(ImmutableSet.of(variable), NewVariableValue.UNCONSTRAINED);
-    }
+                new NumericRightHandSideVisitor(
+                    extendedState.getValue().getEnvironment(), handledTypes, logger));
 
     ImmutableList.Builder<NumericState> successors = new ImmutableList.Builder<>();
 
-    // Compute successors by applying the constraints for each expression to the current value.
-    // States will not be created if the value after the meet does not exist or if it is empty.
-    for (PartialState expression : expressions) {
-      TreeNode root =
-          new BinaryTreeNode(
-              BinaryOperator.SUBTRACT, variableNode, expression.getPartialConstraint());
-      TreeConstraint constraint =
-          new TreeConstraint(
-              newState.getValue().getEnvironment(), ConstraintType.EQUALS, null, root);
-      ImmutableSet.Builder<TreeConstraint> constraintsBuilder = new ImmutableSet.Builder<>();
-      constraintsBuilder.addAll(expression.getConstraints());
-      constraintsBuilder.add(constraint);
-
-      Optional<NumericState> successor = newState.meet(constraintsBuilder.build());
-      if (successor.isPresent()) {
-        if (substitution.wasUsed()) {
-          NumericState realSuccessor =
-              successor.get().removeVariables(Set.of(substitution.getSubstitute()));
-          successors.add(realSuccessor);
-          successor.get().getValue().dispose();
-        } else {
-          successors.add(successor.get());
-        }
+    for (PartialState partialState : expressions) {
+      NumericState newState =
+          extendedState.assignTreeExpression(variable, partialState.getPartialConstraint());
+      if (logger.wouldBeLogged(Level.FINEST)) {
+        logger.log(
+            Level.FINEST,
+            pIastExpressionAssignmentStatement,
+            "as",
+            partialState,
+            "assign to:",
+            variable,
+            "results in:",
+            newState,
+            " isBottom?",
+            newState.getValue().isBottom());
+      }
+      if (!newState.getValue().isBottom()) {
+        successors.add(newState);
       }
     }
+
+    extendedState.getValue().dispose();
 
     return successors.build();
   }
@@ -150,18 +176,21 @@ public class NumericStatementVisitor
           NumericTransferRelation.createVariableFromDeclaration(
               ((CIdExpression) pIastFunctionCallAssignmentStatement.getLeftHandSide())
                   .getDeclaration());
-      if (returnVariable.isPresent()) {
-        return handleReturnVariable(variable);
-      } else {
-        // Function is extern, so the value can not be constrained
-        NumericState newState =
-            state.forget(ImmutableSet.of(variable), NewVariableValue.UNCONSTRAINED);
-        return ImmutableSet.of(newState);
+      if (state.getValue().getEnvironment().containsVariable(variable)) {
+        if (returnVariable.isPresent()) {
+          return handleReturnVariable(variable);
+        } else {
+          // Function is extern, so the value can not be constrained
+          NumericState newState =
+              state.assignTreeExpression(
+                  variable, new ConstantTreeNode(PartialState.UNCONSTRAINED_INTERVAL));
+          return ImmutableSet.of(newState);
+        }
       }
     }
 
     // If it can not be handled do nothing
-    return ImmutableSet.of(state);
+    return ImmutableSet.of(state.createCopy());
   }
 
   private Collection<NumericState> handleReturnVariable(Variable variable) {

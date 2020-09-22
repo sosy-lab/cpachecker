@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.Collection;
+import org.sosy_lab.common.rationals.ExtendedRational;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -28,9 +29,7 @@ import org.sosy_lab.numericdomains.constraint.tree.RoundingType;
 import org.sosy_lab.numericdomains.constraint.tree.TreeNode;
 import org.sosy_lab.numericdomains.constraint.tree.UnaryOperator;
 import org.sosy_lab.numericdomains.constraint.tree.UnaryTreeNode;
-import org.sosy_lab.numericdomains.constraint.tree.VariableTreeNode;
 import org.sosy_lab.numericdomains.environment.Environment;
-import org.sosy_lab.numericdomains.environment.Variable;
 
 /**
  * Represents intermediate states when looking at a {@link
@@ -50,18 +49,24 @@ public class PartialState {
   static final RoundingType DEFAULT_ROUNDING_TYPE = RoundingType.NONE;
   static final RoundingMode DEFAULT_ROUNDING_MODE = RoundingMode.RANDOM;
 
+  static final Interval UNCONSTRAINED_INTERVAL =
+      new Interval(MpqScalar.of(ExtendedRational.NEG_INFTY), MpqScalar.of(ExtendedRational.INFTY));
+
   private static final TreeNode TRUE_COMPARISON_RESULT = new ConstantTreeNode(MpqScalar.of(1));
   private static final TreeNode FALSE_COMPARISON_RESULT = new ConstantTreeNode(MpqScalar.of(0));
 
   /** Epsilon used for comparison of floating point values. */
   private static final Scalar EPSILON = MpqScalar.of(BigInteger.ONE, BigInteger.valueOf(1000000));
-  /** Epsilon Interval [-{@link PartialState#EPSILON}, {@link PartialState#EPSILON}]used for equality comparison of floating point values. */
+  /**
+   * Epsilon Interval [-{@link PartialState#EPSILON}, {@link PartialState#EPSILON}]used for equality
+   * comparison of floating point values.
+   */
   private static final Interval EPSILON_INTERVAL = new Interval(EPSILON.negate().get(), EPSILON);
 
   private final TreeNode partialConstraint;
   private final ImmutableCollection<TreeConstraint> constraints;
 
-  PartialState(TreeNode pCurrentNode, Collection<TreeConstraint> pConstraints) {
+  public PartialState(TreeNode pCurrentNode, Collection<TreeConstraint> pConstraints) {
     if (pCurrentNode == null || pConstraints == null) {
       throw new IllegalArgumentException("Parameters can not be null.");
     }
@@ -70,29 +75,7 @@ public class PartialState {
     constraints = ImmutableSet.copyOf(pConstraints);
   }
 
-  /**
-   * Returns a collection of {@link TreeConstraint}s which are needed to assign the partial
-   * constraint to the variable.
-   *
-   * @param environment environment of the constraint
-   * @param variable variable to which the partial constraint should be assigned
-   * @return constraint containing the assignment to the variable and all other constraints in the
-   *     partial state
-   */
-  public Collection<TreeConstraint> assignToVariable(Environment environment, Variable variable) {
-    if (!environment.containsVariable(variable)) {
-      throw new IllegalArgumentException("Variable must be contained in environment.");
-    }
-    TreeNode variableNode = new VariableTreeNode(variable);
-    TreeNode root = new BinaryTreeNode(BinaryOperator.SUBTRACT, variableNode, partialConstraint);
-    TreeConstraint assignment = new TreeConstraint(environment, ConstraintType.EQUALS, null, root);
-    ImmutableSet.Builder<TreeConstraint> assignmentConstraints = new ImmutableSet.Builder<>();
-    assignmentConstraints.addAll(constraints);
-    assignmentConstraints.add(assignment);
-    return assignmentConstraints.build();
-  }
-
-  TreeNode getPartialConstraint() {
+  public TreeNode getPartialConstraint() {
     return partialConstraint;
   }
 
@@ -345,7 +328,6 @@ public class PartialState {
 
     Comparison bigger = new Comparison(biggerRoot, ConstraintType.BIGGER);
     Comparison smaller = new Comparison(smallerRoot, ConstraintType.BIGGER);
-
     return ImmutableSet.of(bigger, smaller);
   }
 
@@ -425,7 +407,7 @@ public class PartialState {
   private static TreeNode subtract(TreeNode leftNode, TreeNode rightNode) {
     if (leftNode instanceof ConstantTreeNode
         && ((ConstantTreeNode) leftNode).getConstant().isZero()) {
-      return rightNode;
+      return new UnaryTreeNode(UnaryOperator.NEGATE, rightNode);
     } else if (rightNode instanceof ConstantTreeNode
         && ((ConstantTreeNode) rightNode).getConstant().isZero()) {
       return leftNode;
@@ -465,7 +447,7 @@ public class PartialState {
    * @param pRoundingMode direction of the rounding operation
    * @return new partial state
    */
-  static Collection<PartialState> applyUnaryArithmeticOperator(
+  public static Collection<PartialState> applyUnaryArithmeticOperator(
       UnaryOperator operator,
       Collection<PartialState> pState,
       RoundingType pRoundingType,

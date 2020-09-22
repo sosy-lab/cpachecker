@@ -20,6 +20,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cpa.numeric.NumericState;
+import org.sosy_lab.cpachecker.cpa.numeric.NumericTransferRelation.HandleNumericTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.numericdomains.Value.NewVariableValue;
 import org.sosy_lab.numericdomains.environment.Variable;
@@ -28,10 +29,13 @@ public class NumericDeclarationVisitor
     implements CSimpleDeclarationVisitor<NumericState, UnrecognizedCodeException> {
   private final NumericState state;
   private final LogManager logger;
+  private final HandleNumericTypes handledTypes;
 
-  public NumericDeclarationVisitor(NumericState pState, LogManager logManager) {
+  public NumericDeclarationVisitor(
+      NumericState pState, LogManager logManager, HandleNumericTypes pHandledTypes) {
     this.state = pState;
     logger = logManager;
+    handledTypes = pHandledTypes;
   }
 
   @Override
@@ -45,10 +49,24 @@ public class NumericDeclarationVisitor
       final ImmutableSet<Variable> realVar;
       if (simpleType.getType().isFloatingPointType()) {
         intVar = ImmutableSet.of();
-        realVar = ImmutableSet.of(variable);
+        if (handledTypes.handleReals()) {
+          realVar = ImmutableSet.of(variable);
+        } else {
+          // Since the variable is not handled anyway it doesn't need to be added to the state
+          realVar = ImmutableSet.of();
+        }
       } else {
-        intVar = ImmutableSet.of(variable);
+        if (handledTypes.handleIntegers()) {
+          intVar = ImmutableSet.of(variable);
+        } else {
+          // Since the variable is not handled anyway it doesn't need to be added to the state
+          intVar = ImmutableSet.of();
+        }
         realVar = ImmutableSet.of();
+      }
+
+      if (intVar.size() == 0 && realVar.size() == 0) {
+        return state.createCopy();
       }
 
       // Checks the default value of the uninitialized variable
