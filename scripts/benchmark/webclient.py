@@ -437,7 +437,8 @@ class WebInterface:
             )
 
     def getUserAndPassword(self, user_pwd):
-        tokens = user_pwd.split(":", maxsplit=1) # split only once, password might contain special char ':'
+        # split only once, password might contain special char ':'
+        tokens = user_pwd.split(":", maxsplit=1)
         if len(tokens) == 2 and all(tokens):
             user, password = tokens
         else:
