@@ -306,7 +306,8 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
   }
 
   private String getResidualProgramText(
-      final ARGState pARGRoot, @Nullable final Set<ARGState> pAddPragma) throws CPAException {
+      final ARGState pARGRoot, @Nullable final Set<ARGState> pAddPragma)
+      throws CPAException, IOException {
     ARGState root = pARGRoot;
     if (constructionStrategy == ResidualGenStrategy.CONDITION_PLUS_FOLD) {
       Preconditions.checkState(pAddPragma == null);

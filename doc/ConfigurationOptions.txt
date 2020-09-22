@@ -1188,6 +1188,10 @@ cpa.arg.export.code.handleTargetStates = NONE
 # write include directives
 cpa.arg.export.code.header = true
 
+# If specified, metadata about the produced C program will be exported to
+# this file
+cpa.arg.export.code.metadataOutput = no default value
+
 # export final ARG as .dot file
 cpa.arg.file = "ARG.dot"
 
@@ -2250,9 +2254,7 @@ cpa.predicate.merge.mergeAbstractionStatesWithSamePredecessor = false
 # need them. Mentioning a function in this list has only an effect, if it is
 # an 'external function', i.e., no source is given in the code for this
 # function.
-cpa.predicate.nondetFunctions = {
-      "sscanf",
-      "random"}
+cpa.predicate.nondetFunctions = {"sscanf", "rand", "random"}
 
 # Regexp pattern for functions that should be considered as giving a
 # non-deterministic return value (c.f. cpa.predicate.nondedFunctions)
