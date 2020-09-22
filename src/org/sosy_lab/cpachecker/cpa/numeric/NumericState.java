@@ -14,11 +14,12 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.numericdomains.Manager;
+import org.sosy_lab.numericdomains.NumericalLibrary;
+import org.sosy_lab.numericdomains.NumericalLibraryLoader;
 import org.sosy_lab.numericdomains.Value;
 import org.sosy_lab.numericdomains.Value.NewVariableValue;
 import org.sosy_lab.numericdomains.Value.ValueType;
@@ -68,10 +69,8 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
 
   @Override
   public String toString() {
-    StringBuilder builder = new StringBuilder();
-    builder.append("NumericState: ");
-    builder.append(value.toPrettyString(false));
-    return builder.toString();
+    return "NumericState: "
+        + value.toPrettyString(false);
   }
 
   @Override
@@ -102,38 +101,35 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
    * @return state containing the meet as value, empty if the resulting value is the bottom value
    */
   public Optional<NumericState> meet(Collection<TreeConstraint> pConstraints) {
+    // Fix problem where elina does not compute meet with TreeConstraints correctly
+    // Instead create a value from the constraints and compute the meet between the values
+    if (NumericalLibraryLoader.getLoadedLibrary() == NumericalLibrary.ELINA) {
+      Value temp =
+          new Value(
+              value.getManager(),
+              value.getEnvironment(),
+              pConstraints.toArray(TreeConstraint[]::new));
+      Optional<NumericState> newState = meet(temp);
+      if (manager instanceof org.sosy_lab.numericdomains.elina.PolyhedraManager) {
+        // do nothing
+        // Temporary fix for a problem, where a value can not be disposed correctly by elina.
+      } else {
+        temp.dispose();
+      }
+      return newState;
+    }
+
     Optional<Value> newAbs = value.meet(pConstraints.toArray(TreeConstraint[]::new));
 
     if (newAbs.isPresent()) {
       if (!newAbs.get().isBottom()) {
-        logger.log(
-            Level.FINEST,
-            value.toString(),
-            "meet",
-            Arrays.toString(pConstraints.toArray(TreeConstraint[]::new)),
-            "=>",
-            newAbs.toString());
         return Optional.of(new NumericState(manager, newAbs.get(), logger));
       } else {
-        logger.log(
-            Level.FINEST,
-            "meet of",
-            newAbs.get(),
-            "and",
-            Arrays.toString(pConstraints.toArray(TreeConstraint[]::new)),
-            " was empty");
         // If the new Value is the bottom value it can be ignored
         newAbs.get().dispose();
       }
-    } else {
-      logger.log(
-          Level.FINEST,
-          "meet of",
-          newAbs.get(),
-          "and",
-          Arrays.toString(pConstraints.toArray(TreeConstraint[]::new)),
-          " could not be computed.");
     }
+
     return Optional.empty();
   }
 
@@ -222,6 +218,15 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
       throw new IllegalStateException(
           "Could not forget value of variables " + variables + " in value " + value);
     }
+  }
+
+  /**
+   * Creates a copy of the numeric state.
+   *
+   * @return a copy of the state containing a copy of the value
+   */
+  NumericState createCopy() {
+    return new NumericState(manager, getValue().copy(), logger);
   }
 
   /** Returns the value representing the state. */

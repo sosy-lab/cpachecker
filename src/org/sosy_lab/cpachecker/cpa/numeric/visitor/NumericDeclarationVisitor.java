@@ -18,6 +18,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclarationVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeDefDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cpa.numeric.NumericState;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.numericdomains.Value.NewVariableValue;
@@ -36,8 +37,33 @@ public class NumericDeclarationVisitor
   @Override
   public NumericState visit(CVariableDeclaration pDecl) throws UnrecognizedCodeException {
     Variable variable = new Variable(pDecl.getQualifiedName());
-    logger.log(Level.FINEST, "Variable declaration: " + variable.toString());
-    return state.addVariables(ImmutableSet.of(variable), ImmutableSet.of(), NewVariableValue.ZERO);
+
+    if (pDecl.getType() instanceof CSimpleType) {
+      CSimpleType simpleType = (CSimpleType) pDecl.getType();
+
+      final ImmutableSet<Variable> intVar;
+      final ImmutableSet<Variable> realVar;
+      if (simpleType.getType().isFloatingPointType()) {
+        intVar = ImmutableSet.of();
+        realVar = ImmutableSet.of(variable);
+      } else {
+        intVar = ImmutableSet.of(variable);
+        realVar = ImmutableSet.of();
+      }
+
+      // Checks the default value of the uninitialized variable
+      final NewVariableValue initialValue;
+      if (pDecl.isGlobal()) {
+        initialValue = NewVariableValue.ZERO;
+      } else {
+        initialValue = NewVariableValue.UNCONSTRAINED;
+      }
+
+      logger.log(Level.FINEST, "Variable declaration: " + variable.toString());
+      return state.addVariables(intVar, realVar, initialValue);
+    } else {
+      return state;
+    }
   }
 
   @Override

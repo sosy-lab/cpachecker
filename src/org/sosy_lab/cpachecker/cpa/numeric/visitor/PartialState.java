@@ -10,14 +10,21 @@ package org.sosy_lab.cpachecker.cpa.numeric.visitor;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
+import java.math.BigInteger;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.numericdomains.coefficients.Interval;
 import org.sosy_lab.numericdomains.coefficients.MpqScalar;
+import org.sosy_lab.numericdomains.coefficients.Scalar;
 import org.sosy_lab.numericdomains.constraint.ConstraintType;
 import org.sosy_lab.numericdomains.constraint.TreeConstraint;
 import org.sosy_lab.numericdomains.constraint.tree.BinaryOperator;
 import org.sosy_lab.numericdomains.constraint.tree.BinaryTreeNode;
 import org.sosy_lab.numericdomains.constraint.tree.ConstantTreeNode;
+import org.sosy_lab.numericdomains.constraint.tree.RoundingMode;
+import org.sosy_lab.numericdomains.constraint.tree.RoundingType;
 import org.sosy_lab.numericdomains.constraint.tree.TreeNode;
 import org.sosy_lab.numericdomains.constraint.tree.UnaryOperator;
 import org.sosy_lab.numericdomains.constraint.tree.UnaryTreeNode;
@@ -26,7 +33,7 @@ import org.sosy_lab.numericdomains.environment.Environment;
 import org.sosy_lab.numericdomains.environment.Variable;
 
 /**
- * Represents an intermediate states when looking at a {@link
+ * Represents intermediate states when looking at a {@link
  * org.sosy_lab.cpachecker.cfa.ast.c.CExpression}.
  *
  * <p>The intermediate states are represented by a partial constraint and the constraints it depends
@@ -40,6 +47,17 @@ import org.sosy_lab.numericdomains.environment.Variable;
  * </ul>
  */
 public class PartialState {
+  static final RoundingType DEFAULT_ROUNDING_TYPE = RoundingType.NONE;
+  static final RoundingMode DEFAULT_ROUNDING_MODE = RoundingMode.RANDOM;
+
+  private static final TreeNode TRUE_COMPARISON_RESULT = new ConstantTreeNode(MpqScalar.of(1));
+  private static final TreeNode FALSE_COMPARISON_RESULT = new ConstantTreeNode(MpqScalar.of(0));
+
+  /** Epsilon used for comparison of floating point values. */
+  private static final Scalar EPSILON = MpqScalar.of(BigInteger.ONE, BigInteger.valueOf(1000000));
+  /** Epsilon Interval [-{@link PartialState#EPSILON}, {@link PartialState#EPSILON}]used for equality comparison of floating point values. */
+  private static final Interval EPSILON_INTERVAL = new Interval(EPSILON.negate().get(), EPSILON);
+
   private final TreeNode partialConstraint;
   private final ImmutableCollection<TreeConstraint> constraints;
 
@@ -100,13 +118,18 @@ public class PartialState {
   }
 
   private static PartialState applyBinaryArithmeticOperator(
-      BinaryOperator operator, PartialState leftExpression, PartialState rightExpression) {
+      BinaryOperator operator,
+      PartialState leftExpression,
+      PartialState rightExpression,
+      RoundingType pRoundingType) {
     // Apply the arithmetic operator on the current node of both partial states
     TreeNode newCurrentNode =
         new BinaryTreeNode(
             operator,
             leftExpression.getPartialConstraint(),
-            rightExpression.getPartialConstraint());
+            rightExpression.getPartialConstraint(),
+            pRoundingType,
+            RoundingMode.RANDOM);
 
     // Add all constraints from the left and the right partial state
     ImmutableSet.Builder<TreeConstraint> builder = new ImmutableSet.Builder<>();
@@ -118,12 +141,15 @@ public class PartialState {
   static ImmutableCollection<PartialState> applyBinaryArithmeticOperator(
       BinaryOperator operator,
       Collection<PartialState> leftExpressions,
-      Collection<PartialState> rightExpressions) {
+      Collection<PartialState> rightExpressions,
+      RoundingType pRoundingType) {
     ImmutableSet.Builder<PartialState> builder = new ImmutableSet.Builder<>();
     // Create one possible state for each combination of left expression and right expression
     for (PartialState leftExpression : leftExpressions) {
       for (PartialState rightExpression : rightExpressions) {
-        builder.add(applyBinaryArithmeticOperator(operator, leftExpression, rightExpression));
+        builder.add(
+            applyBinaryArithmeticOperator(
+                operator, leftExpression, rightExpression, pRoundingType));
       }
     }
     return builder.build();
@@ -134,6 +160,7 @@ public class PartialState {
       Collection<PartialState> leftExpressions,
       Collection<PartialState> rightExpressions,
       TruthAssumption truthAssumption,
+      ApplyEpsilon useEpsilon,
       Environment environment) {
     ImmutableSet.Builder<PartialState> builder = new ImmutableSet.Builder<>();
     // Create one possible state for each combination of left expression and right expression
@@ -141,10 +168,185 @@ public class PartialState {
       for (PartialState rightExpression : rightExpressions) {
         builder.addAll(
             applyComparisonOperator(
-                operator, leftExpression, rightExpression, truthAssumption, environment));
+                operator,
+                leftExpression,
+                rightExpression,
+                truthAssumption,
+                useEpsilon,
+                environment));
       }
     }
     return builder.build();
+  }
+
+  private static class Comparison {
+    private final TreeNode rootNode;
+    private final ConstraintType type;
+
+    private Comparison(TreeNode pRootNode, ConstraintType pType) {
+      rootNode = pRootNode;
+      type = pType;
+    }
+
+    TreeNode getRootNode() {
+      return rootNode;
+    }
+
+    ConstraintType getConstraintType() {
+      return type;
+    }
+  }
+
+  private static Collection<Comparison> buildComparison(
+      CBinaryExpression.BinaryOperator pOperator,
+      TreeNode leftExpression,
+      TreeNode rightExpression,
+      TruthAssumption pAssumption,
+      ApplyEpsilon useEpsilon) {
+    if (pAssumption == TruthAssumption.ASSUME_EITHER) {
+      throw new IllegalArgumentException("Assumption can not be: " + pAssumption);
+    }
+
+    final EpsilonType epsilonType;
+
+    switch (pOperator) {
+      case EQUALS:
+        if (pAssumption == TruthAssumption.ASSUME_TRUE) {
+          epsilonType =
+              (useEpsilon == ApplyEpsilon.APPLY_EPSILON
+                  ? EpsilonType.INTERVAL_EPSILON
+                  : EpsilonType.EXACT);
+          return ImmutableSet.of(
+              buildSimpleComparison(
+                  ConstraintType.EQUALS, leftExpression, rightExpression, epsilonType));
+        } else {
+          epsilonType =
+              (useEpsilon == ApplyEpsilon.APPLY_EPSILON
+                  ? EpsilonType.SUBTRACT_EPSILON
+                  : EpsilonType.EXACT);
+          return buildAndSplitInequalityComparison(leftExpression, rightExpression, epsilonType);
+        }
+      case NOT_EQUALS:
+        if (pAssumption == TruthAssumption.ASSUME_TRUE) {
+          epsilonType =
+              (useEpsilon == ApplyEpsilon.APPLY_EPSILON
+                  ? EpsilonType.SUBTRACT_EPSILON
+                  : EpsilonType.EXACT);
+          return buildAndSplitInequalityComparison(leftExpression, rightExpression, epsilonType);
+        } else {
+          epsilonType =
+              (useEpsilon == ApplyEpsilon.APPLY_EPSILON
+                  ? EpsilonType.INTERVAL_EPSILON
+                  : EpsilonType.EXACT);
+          return ImmutableSet.of(
+              buildSimpleComparison(
+                  ConstraintType.EQUALS, leftExpression, rightExpression, epsilonType));
+        }
+      case GREATER_THAN:
+        if (pAssumption == TruthAssumption.ASSUME_TRUE) {
+          epsilonType =
+              (useEpsilon == ApplyEpsilon.APPLY_EPSILON
+                  ? EpsilonType.SUBTRACT_EPSILON
+                  : EpsilonType.EXACT);
+          return ImmutableSet.of(
+              buildSimpleComparison(
+                  ConstraintType.BIGGER, leftExpression, rightExpression, epsilonType));
+        } else {
+          epsilonType =
+              (useEpsilon == ApplyEpsilon.APPLY_EPSILON
+                  ? EpsilonType.ADD_EPSILON
+                  : EpsilonType.EXACT);
+          return ImmutableSet.of(
+              buildSimpleComparison(
+                  ConstraintType.BIGGER_EQUALS, rightExpression, leftExpression, epsilonType));
+        }
+      case GREATER_EQUAL:
+        if (pAssumption == TruthAssumption.ASSUME_TRUE) {
+          epsilonType =
+              (useEpsilon == ApplyEpsilon.APPLY_EPSILON
+                  ? EpsilonType.ADD_EPSILON
+                  : EpsilonType.EXACT);
+          return ImmutableSet.of(
+              buildSimpleComparison(
+                  ConstraintType.BIGGER_EQUALS, leftExpression, rightExpression, epsilonType));
+        } else {
+          epsilonType =
+              (useEpsilon == ApplyEpsilon.APPLY_EPSILON
+                  ? EpsilonType.SUBTRACT_EPSILON
+                  : EpsilonType.EXACT);
+          return ImmutableSet.of(
+              buildSimpleComparison(
+                  ConstraintType.BIGGER, rightExpression, leftExpression, epsilonType));
+        }
+      case LESS_THAN:
+        if (pAssumption == TruthAssumption.ASSUME_TRUE) {
+          epsilonType =
+              (useEpsilon == ApplyEpsilon.APPLY_EPSILON
+                  ? EpsilonType.SUBTRACT_EPSILON
+                  : EpsilonType.EXACT);
+          return ImmutableSet.of(
+              buildSimpleComparison(
+                  ConstraintType.BIGGER, rightExpression, leftExpression, epsilonType));
+        } else {
+          epsilonType =
+              (useEpsilon == ApplyEpsilon.APPLY_EPSILON
+                  ? EpsilonType.ADD_EPSILON
+                  : EpsilonType.EXACT);
+          return ImmutableSet.of(
+              buildSimpleComparison(
+                  ConstraintType.BIGGER_EQUALS, leftExpression, rightExpression, epsilonType));
+        }
+      case LESS_EQUAL:
+        if (pAssumption == TruthAssumption.ASSUME_TRUE) {
+          epsilonType =
+              (useEpsilon == ApplyEpsilon.APPLY_EPSILON
+                  ? EpsilonType.ADD_EPSILON
+                  : EpsilonType.EXACT);
+          return ImmutableSet.of(
+              buildSimpleComparison(
+                  ConstraintType.BIGGER_EQUALS, rightExpression, leftExpression, epsilonType));
+        } else {
+          epsilonType =
+              (useEpsilon == ApplyEpsilon.APPLY_EPSILON
+                  ? EpsilonType.SUBTRACT_EPSILON
+                  : EpsilonType.EXACT);
+          return ImmutableSet.of(
+              buildSimpleComparison(
+                  ConstraintType.BIGGER, leftExpression, rightExpression, epsilonType));
+        }
+      default:
+        throw new AssertionError(pOperator + " is not a valid comparison.");
+    }
+  }
+
+  private static Comparison buildSimpleComparison(
+      ConstraintType comparisonType,
+      TreeNode leftExpression,
+      TreeNode rightExpression,
+      EpsilonType useEpsilon) {
+    TreeNode newRoot = subtractWithEpsilon(leftExpression, rightExpression, useEpsilon);
+    return new Comparison(newRoot, comparisonType);
+  }
+
+  /**
+   * Creates the comparisons for an inequality.
+   *
+   * <p>Splits inequalities: a + [-epsilon,+epsilon] != b to a-b+epsilon > 0 and -a+b+epsilon > 0
+   *
+   * @param leftExpression left expression of the constraint
+   * @param rightExpression right expression of the constraint
+   * @param useEpsilon whether the epsilon should be applied
+   * @return inequality comparison split into bigger comparison and smaller comparison
+   */
+  private static Collection<Comparison> buildAndSplitInequalityComparison(
+      TreeNode leftExpression, TreeNode rightExpression, EpsilonType useEpsilon) {
+    final TreeNode biggerRoot = subtractWithEpsilon(leftExpression, rightExpression, useEpsilon);
+    final TreeNode smallerRoot = subtractWithEpsilon(rightExpression, leftExpression, useEpsilon);
+
+    Comparison bigger = new Comparison(biggerRoot, ConstraintType.BIGGER);
+    Comparison smaller = new Comparison(smallerRoot, ConstraintType.BIGGER);
+
+    return ImmutableSet.of(bigger, smaller);
   }
 
   /**
@@ -157,6 +359,7 @@ public class PartialState {
    * @param leftExpression partial state containing the first part of the constraint
    * @param rightExpression partial state containing the second part of the constraint
    * @param assumption describes whether the assumption is expected to be true, false or either
+   * @param useEpsilon whether the comparison should use epsilons or should be exact
    * @param environment environment of the constraints in the partial state
    * @return collection of the partial states after applying the comparison operator
    */
@@ -165,110 +368,48 @@ public class PartialState {
       PartialState leftExpression,
       PartialState rightExpression,
       TruthAssumption assumption,
+      ApplyEpsilon useEpsilon,
       Environment environment) {
-    TreeNode leftMinusRight =
-        createNewConstraintRoot(
-            leftExpression.getPartialConstraint(), rightExpression.getPartialConstraint());
-    TreeNode rightMinusLeft =
-        createNewConstraintRoot(
-            rightExpression.getPartialConstraint(), leftExpression.getPartialConstraint());
-
-    // Create all information needed to create the new constraint
-    final TreeNode trueRootNode;
-    final TreeNode falseRootNode;
-    final ConstraintType trueConstraintType;
-    final ConstraintType falseConstraintType;
-
-    switch (operator) {
-      case EQUALS:
-        trueRootNode = leftMinusRight;
-        trueConstraintType = ConstraintType.EQUALS;
-        falseRootNode = trueRootNode;
-        falseConstraintType = ConstraintType.NOT_EQUALS;
-        break;
-      case NOT_EQUALS:
-        trueRootNode = leftMinusRight;
-        trueConstraintType = ConstraintType.NOT_EQUALS;
-        falseRootNode = trueRootNode;
-        falseConstraintType = ConstraintType.EQUALS;
-        break;
-      case GREATER_THAN:
-        trueRootNode = leftMinusRight;
-        trueConstraintType = ConstraintType.BIGGER;
-        falseRootNode = rightMinusLeft;
-        falseConstraintType = ConstraintType.BIGGER_EQUALS;
-        break;
-      case GREATER_EQUAL:
-        trueRootNode = leftMinusRight;
-        trueConstraintType = ConstraintType.BIGGER_EQUALS;
-        falseRootNode = rightMinusLeft;
-        falseConstraintType = ConstraintType.BIGGER;
-        break;
-      case LESS_THAN:
-        trueRootNode = rightMinusLeft;
-        trueConstraintType = ConstraintType.BIGGER;
-        falseRootNode = leftMinusRight;
-        falseConstraintType = ConstraintType.BIGGER_EQUALS;
-        break;
-      case LESS_EQUAL:
-        trueRootNode = rightMinusLeft;
-        trueConstraintType = ConstraintType.BIGGER_EQUALS;
-        falseRootNode = leftMinusRight;
-        falseConstraintType = ConstraintType.BIGGER;
-        break;
-      default:
-        throw new AssertionError(operator + " is not a comparison.");
-    }
 
     ImmutableSet.Builder<PartialState> statesBuilder = new ImmutableSet.Builder<>();
     if (assumption == TruthAssumption.ASSUME_TRUE || assumption == TruthAssumption.ASSUME_EITHER) {
-      TreeConstraint trueConstraint =
-          new TreeConstraint(environment, trueConstraintType, null, trueRootNode);
-      for (TreeConstraint constraint : splitInequalityConstraint(trueConstraint)) {
+      for (Comparison comparison :
+          buildComparison(
+              operator,
+              leftExpression.getPartialConstraint(),
+              rightExpression.getPartialConstraint(),
+              TruthAssumption.ASSUME_TRUE,
+              useEpsilon)) {
+        TreeConstraint constraint =
+            new TreeConstraint(
+                environment, comparison.getConstraintType(), null, comparison.getRootNode());
         Collection<TreeConstraint> constraints =
             buildConstraintCollection(
                 constraint, leftExpression.getConstraints(), rightExpression.getConstraints());
         statesBuilder.add(new PartialState(TRUE_COMPARISON_RESULT, constraints));
       }
     }
+
     if (assumption == TruthAssumption.ASSUME_FALSE || assumption == TruthAssumption.ASSUME_EITHER) {
-      TreeConstraint falseConstraint =
-          new TreeConstraint(environment, falseConstraintType, null, falseRootNode);
-      for (TreeConstraint constraint : splitInequalityConstraint(falseConstraint)) {
+      for (Comparison comparison :
+          buildComparison(
+              operator,
+              leftExpression.getPartialConstraint(),
+              rightExpression.getPartialConstraint(),
+              TruthAssumption.ASSUME_FALSE,
+              useEpsilon)) {
+        TreeConstraint constraint =
+            new TreeConstraint(
+                environment, comparison.getConstraintType(), null, comparison.getRootNode());
         Collection<TreeConstraint> constraints =
             buildConstraintCollection(
                 constraint, leftExpression.getConstraints(), rightExpression.getConstraints());
         statesBuilder.add(new PartialState(FALSE_COMPARISON_RESULT, constraints));
       }
     }
+
     return statesBuilder.build();
   }
-
-  /**
-   * Splits inequality constraints into a bigger and a smaller constraint.
-   *
-   * <p>If the supplied constraint is not an inequality, the constraint is returned unchanged.
-   *
-   * @param constraint inequality constraint that should be split
-   * @return constraints after splitting the inequality, unchanged constraint if the constraint is
-   *     not an inequality
-   */
-  private static Collection<TreeConstraint> splitInequalityConstraint(TreeConstraint constraint) {
-    if (constraint.getConstraintType() == ConstraintType.NOT_EQUALS) {
-      // Split inequalities: a-b != 0 to a-b > 0 and a-b < 0
-      TreeConstraint bigger = constraint.changeConstraintType(ConstraintType.BIGGER, null);
-      TreeConstraint smaller =
-          constraint
-              .addUnaryOperation(UnaryOperator.NEGATE)
-              .changeConstraintType(ConstraintType.BIGGER, null);
-      return ImmutableSet.of(bigger, smaller);
-    } else {
-      return ImmutableSet.of(constraint);
-    }
-  }
-
-  private static final TreeNode TRUE_COMPARISON_RESULT = new ConstantTreeNode(MpqScalar.of(1));
-  private static final TreeNode FALSE_COMPARISON_RESULT = new ConstantTreeNode(MpqScalar.of(0));
 
   private static Collection<TreeConstraint> buildConstraintCollection(
       TreeConstraint constraint,
@@ -281,8 +422,38 @@ public class PartialState {
     return builder.build();
   }
 
-  private static TreeNode createNewConstraintRoot(TreeNode leftNode, TreeNode rightNode) {
-    return new BinaryTreeNode(BinaryOperator.SUBTRACT, leftNode, rightNode);
+  private static TreeNode subtract(TreeNode leftNode, TreeNode rightNode) {
+    if (leftNode instanceof ConstantTreeNode
+        && ((ConstantTreeNode) leftNode).getConstant().isZero()) {
+      return rightNode;
+    } else if (rightNode instanceof ConstantTreeNode
+        && ((ConstantTreeNode) rightNode).getConstant().isZero()) {
+      return leftNode;
+    } else {
+      return new BinaryTreeNode(BinaryOperator.SUBTRACT, leftNode, rightNode);
+    }
+  }
+
+  private static TreeNode subtractWithEpsilon(
+      TreeNode leftNode, TreeNode rightNode, EpsilonType epsilonType) {
+    TreeNode temp = subtract(leftNode, rightNode);
+    switch (epsilonType) {
+      case ADD_EPSILON:
+        temp = new BinaryTreeNode(BinaryOperator.ADD, temp, new ConstantTreeNode(EPSILON));
+        break;
+      case SUBTRACT_EPSILON:
+        temp = new BinaryTreeNode(BinaryOperator.SUBTRACT, temp, new ConstantTreeNode(EPSILON));
+        break;
+      case INTERVAL_EPSILON:
+        temp = new BinaryTreeNode(BinaryOperator.ADD, temp, new ConstantTreeNode(EPSILON_INTERVAL));
+        break;
+      case EXACT:
+        // add no epsilon
+        break;
+      default:
+        throw new AssertionError("Unhandled EpsilonType: " + epsilonType);
+    }
+    return temp;
   }
 
   /**
@@ -290,31 +461,84 @@ public class PartialState {
    *
    * @param operator unary arithmetic operator that is applied to the state
    * @param pState state on which the arithmetic operator is applied
+   * @param pRoundingType type the unary expression is rounded to
+   * @param pRoundingMode direction of the rounding operation
    * @return new partial state
    */
   static Collection<PartialState> applyUnaryArithmeticOperator(
-      UnaryOperator operator, Collection<PartialState> pState) {
+      UnaryOperator operator,
+      Collection<PartialState> pState,
+      RoundingType pRoundingType,
+      RoundingMode pRoundingMode) {
     ImmutableSet.Builder<PartialState> builder = new ImmutableSet.Builder<>();
     for (PartialState expression : pState) {
-      builder.add(applyUnaryArithmeticOperator(operator, expression));
+      builder.add(applyUnaryArithmeticOperator(operator, expression, pRoundingType, pRoundingMode));
     }
     return builder.build();
   }
 
   private static PartialState applyUnaryArithmeticOperator(
-      UnaryOperator operator, PartialState pState) {
+      UnaryOperator operator,
+      PartialState pState,
+      RoundingType pRoundingType,
+      RoundingMode pRoundingMode) {
     TreeNode root = pState.getPartialConstraint();
-    root = new UnaryTreeNode(operator, root);
+    root = new UnaryTreeNode(operator, root, pRoundingType, pRoundingMode);
     return new PartialState(root, pState.getConstraints());
+  }
+
+  static RoundingType convertToRoundingType(CExpression expr) {
+    if (expr.getExpressionType() instanceof CSimpleType) {
+      return convertToRoundingType((CSimpleType) expr.getExpressionType());
+    } else {
+      return DEFAULT_ROUNDING_TYPE;
+    }
+  }
+
+  static RoundingType convertToRoundingType(CSimpleType type) {
+    switch (type.getType()) {
+      case BOOL:
+      case CHAR:
+      case INT128:
+      case INT: // fall through
+        return RoundingType.INT;
+      case FLOAT:
+        return RoundingType.FLOAT;
+      case DOUBLE:
+        return RoundingType.DOUBLE;
+      case FLOAT128:
+        return RoundingType.QUAD;
+      case UNSPECIFIED: // fall through
+      default:
+        return DEFAULT_ROUNDING_TYPE;
+    }
   }
 
   /** Describes the assumption that should be made when computing the constraints. */
   enum TruthAssumption {
-    /** Assumption is false. */
+    /** Assumption is true. */
     ASSUME_TRUE,
     /** Assumption is false. */
     ASSUME_FALSE,
     /** Assumption can be either true or false. */
     ASSUME_EITHER;
+  }
+
+  public enum ApplyEpsilon {
+    /** Apply an epsilon to the constraint. */
+    APPLY_EPSILON,
+    /** Use the exact constraint. */
+    EXACT;
+  }
+
+  private enum EpsilonType {
+    /** No epsilon value should be used. */
+    EXACT,
+    /** Increase the values by scalar epsilon. */
+    ADD_EPSILON,
+    /** Decrease the values by scalar epsilon. */
+    SUBTRACT_EPSILON,
+    /** Widen the values by the interval. */
+    INTERVAL_EPSILON;
   }
 }

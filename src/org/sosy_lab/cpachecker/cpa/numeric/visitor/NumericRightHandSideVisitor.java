@@ -9,11 +9,13 @@
 package org.sosy_lab.cpachecker.cpa.numeric.visitor;
 
 import com.google.common.collect.ImmutableSet;
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Optional;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.rationals.ExtendedRational;
+import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
@@ -31,16 +33,20 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cpa.numeric.NumericTransferRelation;
 import org.sosy_lab.cpachecker.cpa.numeric.NumericTransferRelation.VariableSubstitution;
+import org.sosy_lab.cpachecker.cpa.numeric.visitor.PartialState.ApplyEpsilon;
 import org.sosy_lab.cpachecker.cpa.numeric.visitor.PartialState.TruthAssumption;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.numericdomains.coefficients.Coefficient;
 import org.sosy_lab.numericdomains.coefficients.MpqScalar;
 import org.sosy_lab.numericdomains.constraint.tree.BinaryOperator;
 import org.sosy_lab.numericdomains.constraint.tree.ConstantTreeNode;
+import org.sosy_lab.numericdomains.constraint.tree.RoundingType;
 import org.sosy_lab.numericdomains.constraint.tree.TreeNode;
 import org.sosy_lab.numericdomains.constraint.tree.UnaryOperator;
+import org.sosy_lab.numericdomains.constraint.tree.UnaryTreeNode;
 import org.sosy_lab.numericdomains.constraint.tree.VariableTreeNode;
 import org.sosy_lab.numericdomains.environment.Environment;
 import org.sosy_lab.numericdomains.environment.Variable;
@@ -52,7 +58,6 @@ import org.sosy_lab.numericdomains.environment.Variable;
  */
 public class NumericRightHandSideVisitor
     implements CRightHandSideVisitor<Collection<PartialState>, UnrecognizedCodeException> {
-  private final LogManager logger;
 
   /** If present, this is a variable substitution that should be applied. */
   private final Optional<VariableSubstitution> variableSubstitution;
@@ -69,13 +74,9 @@ public class NumericRightHandSideVisitor
    * @param pEnvironment environment of the right hand side
    * @param pVariableSubstitution variable substitution that should be applied if the variable is
    *     encountered in the right hand side
-   * @param logManager log manager used for logging
    */
   public NumericRightHandSideVisitor(
-      Environment pEnvironment,
-      @Nullable VariableSubstitution pVariableSubstitution,
-      LogManager logManager) {
-    logger = logManager;
+      Environment pEnvironment, @Nullable VariableSubstitution pVariableSubstitution) {
     environment = pEnvironment;
     variableSubstitution = Optional.ofNullable(pVariableSubstitution);
   }
@@ -108,19 +109,30 @@ public class NumericRightHandSideVisitor
       Collection<PartialState> pLeftExpression,
       Collection<PartialState> pRightExpression) {
 
-    return PartialState.applyComparisonOperator(
-        pIastBinaryExpression.getOperator(),
-        pLeftExpression,
-        pRightExpression,
-        TruthAssumption.ASSUME_EITHER,
-        environment);
+    if (checkIsFloatComparison(pIastBinaryExpression)) {
+      return PartialState.applyComparisonOperator(
+          pIastBinaryExpression.getOperator(),
+          pLeftExpression,
+          pRightExpression,
+          TruthAssumption.ASSUME_EITHER,
+          ApplyEpsilon.APPLY_EPSILON,
+          environment);
+    } else {
+      return PartialState.applyComparisonOperator(
+          pIastBinaryExpression.getOperator(),
+          pLeftExpression,
+          pRightExpression,
+          TruthAssumption.ASSUME_EITHER,
+          ApplyEpsilon.EXACT,
+          environment);
+    }
   }
 
   private Collection<PartialState> handleArithmeticOperator(
       CBinaryExpression pIastBinaryExpression,
       Collection<PartialState> leftExpressions,
       Collection<PartialState> rightExpressions) {
-    BinaryOperator operator;
+    final BinaryOperator operator;
 
     switch (pIastBinaryExpression.getOperator()) {
       case PLUS:
@@ -143,7 +155,11 @@ public class NumericRightHandSideVisitor
             "'" + pIastBinaryExpression.getOperator() + "' is not an arithmetic operation.");
     }
 
-    return PartialState.applyBinaryArithmeticOperator(operator, leftExpressions, rightExpressions);
+    return PartialState.applyBinaryArithmeticOperator(
+        operator,
+        leftExpressions,
+        rightExpressions,
+        PartialState.convertToRoundingType(pIastBinaryExpression));
   }
 
   @Override
@@ -155,7 +171,10 @@ public class NumericRightHandSideVisitor
   @Override
   public Collection<PartialState> visit(CCastExpression pIastCastExpression)
       throws UnrecognizedCodeException {
-    throw new UnsupportedOperationException();
+    RoundingType roundingType = PartialState.convertToRoundingType(pIastCastExpression);
+    Collection<PartialState> operandStates = pIastCastExpression.getOperand().accept(this);
+    return PartialState.applyUnaryArithmeticOperator(
+        UnaryOperator.CAST, operandStates, roundingType, PartialState.DEFAULT_ROUNDING_MODE);
   }
 
   @Override
@@ -167,7 +186,18 @@ public class NumericRightHandSideVisitor
   @Override
   public Collection<PartialState> visit(CFloatLiteralExpression pIastFloatLiteralExpression)
       throws UnrecognizedCodeException {
-    throw new UnsupportedOperationException();
+    BigDecimal decimal = pIastFloatLiteralExpression.getValue();
+    ExtendedRational rational = new ExtendedRational(Rational.ofBigDecimal(decimal));
+    Coefficient coeff = MpqScalar.of(rational);
+    TreeNode constNode = new ConstantTreeNode(coeff);
+
+    final RoundingType roundingType =
+        PartialState.convertToRoundingType(pIastFloatLiteralExpression);
+    TreeNode root =
+        new UnaryTreeNode(
+            UnaryOperator.CAST, constNode, roundingType, PartialState.DEFAULT_ROUNDING_MODE);
+    PartialState out = new PartialState(root, ImmutableSet.of());
+    return ImmutableSet.of(out);
   }
 
   @Override
@@ -197,10 +227,12 @@ public class NumericRightHandSideVisitor
     CUnaryExpression.UnaryOperator operator = pIastUnaryExpression.getOperator();
 
     Collection<PartialState> states = pIastUnaryExpression.getOperand().accept(this);
+    RoundingType roundingType = PartialState.convertToRoundingType(pIastUnaryExpression);
 
     switch (operator) {
       case MINUS:
-        return PartialState.applyUnaryArithmeticOperator(UnaryOperator.NEGATE, states);
+        return PartialState.applyUnaryArithmeticOperator(
+            UnaryOperator.NEGATE, states, roundingType, PartialState.DEFAULT_ROUNDING_MODE);
       default:
         throw new UnrecognizedCodeException(
             "Cant handle unary expression: " + operator, pIastUnaryExpression);
@@ -273,4 +305,13 @@ public class NumericRightHandSideVisitor
           CBinaryExpression.BinaryOperator.GREATER_THAN,
           CBinaryExpression.BinaryOperator.LESS_EQUAL,
           CBinaryExpression.BinaryOperator.LESS_THAN);
+
+  private static boolean checkIsFloatComparison(CBinaryExpression pIastBinaryExpression) {
+    CSimpleType typeOperand1 =
+        (CSimpleType) pIastBinaryExpression.getOperand1().getExpressionType();
+    CSimpleType typeOperand2 =
+        (CSimpleType) pIastBinaryExpression.getOperand2().getExpressionType();
+    return (typeOperand1.getType().isFloatingPointType()
+        || typeOperand2.getType().isFloatingPointType());
+  }
 }

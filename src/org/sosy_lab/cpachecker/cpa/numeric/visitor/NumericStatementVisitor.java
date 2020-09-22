@@ -36,7 +36,7 @@ import org.sosy_lab.numericdomains.environment.Variable;
 
 public class NumericStatementVisitor
     implements CStatementVisitor<Collection<NumericState>, UnrecognizedCodeException> {
-  private final LogManager logger;
+
   private final NumericState state;
 
   /**
@@ -47,7 +47,6 @@ public class NumericStatementVisitor
   private final Optional<Variable> returnVariable;
 
   public NumericStatementVisitor(NumericState pState, LogManager logManager) {
-    logger = logManager;
     state = pState;
     returnVariable = Optional.empty();
   }
@@ -60,11 +59,8 @@ public class NumericStatementVisitor
    *
    * @param pState state for which the statement visitor is created
    * @param pReturnVariable return variable used for a CFunctionCallAssignmentStatement
-   * @param logManager used for logging
    */
-  public NumericStatementVisitor(
-      NumericState pState, @Nullable Variable pReturnVariable, LogManager logManager) {
-    logger = logManager;
+  public NumericStatementVisitor(NumericState pState, @Nullable Variable pReturnVariable) {
     state = pState;
     returnVariable = Optional.ofNullable(pReturnVariable);
   }
@@ -98,8 +94,7 @@ public class NumericStatementVisitor
         pIastExpressionAssignmentStatement
             .getRightHandSide()
             .accept(
-                new NumericRightHandSideVisitor(
-                    state.getValue().getEnvironment(), substitution, logger));
+                new NumericRightHandSideVisitor(state.getValue().getEnvironment(), substitution));
     TreeNode variableNode = new VariableTreeNode(variable);
 
     // Expand the environment if the assignment is dependent on the variable that will be assigned,

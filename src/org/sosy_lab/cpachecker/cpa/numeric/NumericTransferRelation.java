@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.numeric.visitor.NumericAssumptionHandler;
@@ -97,11 +98,23 @@ public class NumericTransferRelation
       List<CParameterDeclaration> parameters,
       String calledFunctionName)
       throws UnrecognizedCodeException {
-    // Collect all variables to add them in one native function call
+    // Collect all variables to add them in one function call
     ImmutableSet.Builder<Variable> integerVariables = new ImmutableSet.Builder<>();
+    ImmutableSet.Builder<Variable> realVariables = new ImmutableSet.Builder<>();
+
     for (CParameterDeclaration declaration : parameters) {
+      if (!(declaration.getType() instanceof CSimpleType)) {
+        // Do nothing for types that aren't handled by the cpa
+        continue;
+      }
       Variable variable = createVariableFromDeclaration(declaration);
-      integerVariables.add(variable);
+      CSimpleType declarationType = (CSimpleType) declaration.getType();
+
+      if (declarationType.getType().isFloatingPointType()) {
+        realVariables.add(variable);
+      } else {
+        integerVariables.add(variable);
+      }
       if (state.getValue().getEnvironment().containsVariable(variable)) {
         throw new IllegalStateException("Variable is already contained in environment.");
       }
@@ -109,7 +122,7 @@ public class NumericTransferRelation
 
     NumericState extendedState =
         state.addVariables(
-            integerVariables.build(), ImmutableSet.of(), NewVariableValue.UNCONSTRAINED);
+            integerVariables.build(), realVariables.build(), NewVariableValue.UNCONSTRAINED);
     Environment extendedEnvironment = extendedState.getValue().getEnvironment();
 
     // Set values of the variables one by one
@@ -140,7 +153,7 @@ public class NumericTransferRelation
 
     ImmutableSet.Builder<NumericState> statesBuilder = new ImmutableSet.Builder<>();
     Collection<PartialState> partialAssignments =
-        expression.accept(new NumericRightHandSideVisitor(pEnvironment, null, logger));
+        expression.accept(new NumericRightHandSideVisitor(pEnvironment, null));
     for (PartialState partialAssignment : partialAssignments) {
       ImmutableList.Builder<NumericState> successorCandidates = new ImmutableList.Builder<>();
       for (NumericState current : pStates) {
@@ -204,7 +217,7 @@ public class NumericTransferRelation
 
       Variable returnVariable = createVariableFromDeclaration(returnVarDeclaration.get());
       Collection<NumericState> tempStates =
-          assignment.accept(new NumericStatementVisitor(state, returnVariable, logger));
+          assignment.accept(new NumericStatementVisitor(state, returnVariable));
       ImmutableSet.Builder<NumericState> successorsBuilder = new ImmutableSet.Builder<>();
       for (NumericState tempState : tempStates) {
         successorsBuilder.add(tempState.removeVariables(ImmutableSet.of(returnVariable)));
@@ -236,7 +249,7 @@ public class NumericTransferRelation
    * @param pStates states from which the variables will be removed
    * @return collection of states with the variables removed
    */
-  private Collection<NumericState> removeVariablesFromEachAndDispose(
+  private Collection<NumericState> removeVariablesFromEach(
       Collection<Variable> pVariables, Collection<NumericState> pStates) {
     if (pVariables.isEmpty()) {
       return pStates;
@@ -246,42 +259,39 @@ public class NumericTransferRelation
 
     for (NumericState newState : pStates) {
       successorsBuilder.add(newState.removeVariables(pVariables));
-      newState.getValue().dispose();
     }
 
     return successorsBuilder.build();
+  }
+
+  /** Removes all empty states. */
+  public static Collection<NumericState> removeEmptyStates(Collection<NumericState> pStates) {
+    ImmutableSet.Builder<NumericState> stateBuilder = new ImmutableSet.Builder<>();
+
+    for (NumericState tempState : pStates) {
+      if (!tempState.getValue().isBottom()) {
+        stateBuilder.add(tempState);
+      }
+    }
+
+    return stateBuilder.build();
   }
 
   @Override
   protected Collection<NumericState> postProcessing(
       Collection<NumericState> successors, CFAEdge edge) {
     if (successors == null) {
-      logger.log(Level.FINEST, edge, "has no successors");
       return ImmutableSet.of();
     } else {
       // Remove out of scope variables from each successor
       Collection<Variable> outOfScopeVariables =
           createOutOfScopeVariables(edge.getSuccessor().getOutOfScopeVariables());
       Collection<NumericState> newSuccessors =
-          removeVariablesFromEachAndDispose(outOfScopeVariables, successors);
+          removeVariablesFromEach(outOfScopeVariables, successors);
 
       if (logger.wouldBeLogged(Level.FINEST)) {
         for (NumericState successor : newSuccessors) {
-          StringBuilder builder = new StringBuilder();
-          for (Variable var : successor.getValue().getEnvironment().getIntVariables()) {
-            builder.append(var).append("=").append(successor.getValue().getBounds(var)).append(";");
-          }
-          for (Variable var : successor.getValue().getEnvironment().getRealVariables()) {
-            builder.append(var).append("=").append(successor.getValue().getBounds(var)).append(";");
-          }
-          logger.log(
-              Level.FINEST,
-              edge.getEdgeType(),
-              edge.getCode(),
-              "successor:",
-              successor,
-              "intervals:",
-              builder.toString());
+          logger.log(Level.FINEST, edge.getEdgeType(), edge.getCode(), "successor:", successor);
         }
       }
       return ImmutableSet.copyOf(newSuccessors);
