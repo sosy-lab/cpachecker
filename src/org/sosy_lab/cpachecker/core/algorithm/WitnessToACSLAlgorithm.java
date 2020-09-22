@@ -11,8 +11,8 @@ package org.sosy_lab.cpachecker.core.algorithm;
 import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.google.common.io.Files;
 import java.io.File;
@@ -119,7 +119,7 @@ public class WitnessToACSLAlgorithm implements Algorithm {
         logger.logfUserException(Level.SEVERE, pE, "Could not read file %s", file);
       }
 
-      List<Integer> sortedLocations = Lists.newArrayList(locationsToInvariants.keySet());
+      List<Integer> sortedLocations = new ArrayList<>(locationsToInvariants.keySet());
       Collections.sort(sortedLocations);
       Iterator<Integer> iterator = sortedLocations.iterator();
       Integer currentLocation;
@@ -238,12 +238,21 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     for (int i = 0; i < node.getNumLeavingEdges(); i++) {
       CFAEdge edge = node.getLeavingEdge(i);
       Optional<? extends AAstNode> astNodeOptional = edge.getRawAST();
+      boolean skip = false;
       while (!astNodeOptional.isPresent()) {
-        assert edge.getPredecessor().getNumEnteringEdges() == 1
-            : String.format(
-                "Node %s likely does not correspond to a position in the program source", node);
+        if (edge.getPredecessor().getNumEnteringEdges() != 1) {
+          logger.logf(
+              Level.WARNING,
+              "Node %s likely does not correspond to a position in the program source, ignoring invariant(s) there.",
+              node);
+          skip = true;
+          break;
+        }
         edge = edge.getPredecessor().getEnteringEdge(0);
         astNodeOptional = edge.getRawAST();
+      }
+      if (skip) {
+        continue;
       }
       if (edge instanceof AssumeEdge) {
         // ACSL annotations are not allowed within conditions
