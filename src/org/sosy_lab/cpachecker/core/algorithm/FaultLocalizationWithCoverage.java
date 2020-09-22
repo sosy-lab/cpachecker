@@ -75,13 +75,13 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
       Algorithm pAlgorithm,
       ShutdownNotifier pShutdownNotifier,
       final LogManager pLogger,
-      Configuration config)
+      Configuration pConfig)
       throws InvalidConfigurationException {
 
+    pConfig.inject(this);
     algorithm = pAlgorithm;
     this.shutdownNotifier = pShutdownNotifier;
     this.logger = pLogger;
-    config.inject(this);
   }
 
   @Override
