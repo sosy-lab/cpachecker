@@ -24,6 +24,7 @@ import ssl
 import zipfile
 import zlib
 
+from getpass import getpass
 from time import sleep
 from time import time
 
@@ -359,7 +360,7 @@ class WebInterface:
         Creates a new WebInterface object.
         The given svn revision is resolved (e.g. 'HEAD' -> 17495).
         @param web_interface_url: the base URL of the VerifierCloud's web interface
-        @param user_pwd: user name and password in the format '<user_name>:<password>' or none if no authentification is required
+        @param user_pwd: user name (and password) in the format '<user_name>[:<password>]' or none if no authentification is required
         @param revision: the svn revision string, defaults to 'trunk:HEAD'
         @param thread_count: the number of threads for fetching results in parallel
         @param result_poll_interval: the number of seconds to wait between polling results
@@ -415,7 +416,7 @@ class WebInterface:
         if user_pwd:
             if not ":" in user_pwd:
                 sys.exit("Missing password for user name")
-            self._connection.auth = tuple(user_pwd.split(":", maxsplit=1))
+            self._connection.auth = self.getUserAndPassword(user_pwd)
 
         self._unfinished_runs = {}
         self._unfinished_runs_lock = threading.Lock()
@@ -436,6 +437,15 @@ class WebInterface:
             self._result_downloader = PollingResultDownloader(
                 self, result_poll_interval
             )
+
+    def getUserAndPassword(self, user_pwd):
+        tokens = user_pwd.split(":", maxsplit=1) # split only once, password might contain special char ':'
+        if len(tokens) == 2 and all(tokens):
+            user, password = tokens
+        else:
+            user = user_pwd
+            password = getpass("Please enter password for user '" + user + "': ")
+        return user, password
 
     def _read_hash_code_cache(self):
         if not os.path.isfile(HASH_CODE_CACHE_PATH):
