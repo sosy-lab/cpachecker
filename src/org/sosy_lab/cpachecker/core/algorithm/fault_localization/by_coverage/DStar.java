@@ -5,15 +5,12 @@
 // SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
-package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.ochiai;
+package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_coverage;
 
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.SuspiciousnessMeasure;
-
-public class OchiaiSuspiciousnessMeasure extends SuspiciousnessMeasure {
-
+public class DStar extends SuspiciousnessMeasure {
   /**
-   * Calculates suspicious of Ochiai measure. calculateSuspiciousness = (fail(s)/sqrt(totalFailed *
-   * (pFailed + pPassed)))
+   * Calculates suspicious of DStar measure. calculateSuspiciousness =
+   * (fail(s)^2/pass(s)+(totalFailed/fail(s))).
    *
    * @param pFailed Is the number of pFailed cases in each edge.
    * @param pPassed Is the number of pPassed cases in each edge.
@@ -24,11 +21,11 @@ public class OchiaiSuspiciousnessMeasure extends SuspiciousnessMeasure {
   @Override
   public double calculateSuspiciousness(
       double pFailed, double pPassed, double totalFailed, double totalPassed) {
-
-    double denominator = Math.sqrt(totalFailed * (pFailed + pPassed));
+    double numerator = Math.pow(pFailed, 2);
+    double denominator = pPassed + (totalFailed - pFailed);
     if (denominator == 0.0) {
       return 0.0;
     }
-    return pFailed / denominator;
+    return numerator / denominator;
   }
 }

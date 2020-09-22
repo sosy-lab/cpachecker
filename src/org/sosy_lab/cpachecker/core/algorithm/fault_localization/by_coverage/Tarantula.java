@@ -5,11 +5,9 @@
 // SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
-package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.tarantula;
+package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_coverage;
 
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.SuspiciousnessMeasure;
-
-public class TarantulaSuspiciousnessMeasure extends SuspiciousnessMeasure {
+public class Tarantula extends SuspiciousnessMeasure {
   /**
    * Calculates suspicious of tarantula measure
    * calculateSuspiciousness=(fail(s)/totalFailed)/((fail(s)/totalFailed) + (pass(s)/totalPassed))).

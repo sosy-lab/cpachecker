@@ -5,5 +5,6 @@
 // SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
-/** All Relevant Data structures for Fault localization technique with ranking metrics. */
-package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation;
+
+/** Fault localization algorithms based on execution and statement coverage. */
+package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_coverage;

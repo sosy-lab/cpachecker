@@ -92,7 +92,7 @@ public class CoreComponentsFactory {
   @Option(
       secure = true,
       name = "algorithm.faultLocalization",
-      description = "use faultlocalization ")
+      description = "use fault localization")
   private boolean useFaultLocalization = false;
 
   @Option(secure=true, description="use assumption collecting algorithm")

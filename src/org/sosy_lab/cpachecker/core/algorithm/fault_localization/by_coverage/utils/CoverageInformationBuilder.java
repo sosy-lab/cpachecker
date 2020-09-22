@@ -5,7 +5,7 @@
 // SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
-package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation;
+package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_coverage.utils;
 
 import com.google.common.collect.Sets;
 import java.util.LinkedHashMap;

@@ -202,6 +202,9 @@ analysis.algorithm.analysisWithEnabler = false
 # use adjustable conditions algorithm
 analysis.algorithm.conditionAdjustment = false
 
+# use fault localization
+analysis.algorithm.faultLocalization = false
+
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
 
@@ -3256,6 +3259,10 @@ enabledanalysis.allowLazyRefinement = false
 # Which CPA is used as enabler in the current analysis.
 enabledanalysis.enablerCPA = PREDICATE
   enum:     [APRON, INTERVAL, OCTAGON, PREDICATE, VALUE]
+
+# Ranking algorithm to use for fault localization
+faultLocalization.type = TARANTULA
+  enum:     [TARANTULA, DSTAR, OCHIAI]
 
 # Configuration for programs containing more than @Option adressedRatio
 # addressed vars.

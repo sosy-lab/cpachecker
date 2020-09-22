@@ -28,13 +28,13 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.SuspiciousnessMeasure;
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.dstar.DStarSuspiciousnessMeasure;
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.ochiai.OchiaiSuspiciousnessMeasure;
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm.tarantula.TarantulaSuspiciousnessMeasure;
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation.CoverageInformationBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation.FailedCase;
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation.SafeCase;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_coverage.DStar;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_coverage.Ochiai;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_coverage.SuspiciousnessMeasure;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_coverage.Tarantula;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_coverage.utils.CoverageInformationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_coverage.utils.FailedCase;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_coverage.utils.SafeCase;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -153,11 +153,11 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
     logger.log(Level.INFO, "Ranking-algorithm type: " + pAlgorithmType + " starts");
     switch (pAlgorithmType) {
       case TARANTULA:
-        return new TarantulaSuspiciousnessMeasure();
+        return new Tarantula();
       case DSTAR:
-        return new DStarSuspiciousnessMeasure();
+        return new DStar();
       case OCHIAI:
-        return new OchiaiSuspiciousnessMeasure();
+        return new Ochiai();
       default:
         throw new AssertionError("Unexpected ranking-algorithm type: " + pAlgorithmType);
     }

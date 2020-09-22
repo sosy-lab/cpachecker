@@ -5,12 +5,13 @@
 // SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
-package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation;
+package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_coverage.utils;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
@@ -43,7 +44,7 @@ public class SafeCase {
     ImmutableSet.Builder<ARGPath> allSafePathsTogether = ImmutableSet.builder();
 
     for (ARGState safeState : getSafeStates()) {
-      allSafePathsTogether.addAll(FaultLocalizationUtils.getAllPaths(reachedSet, safeState));
+      allSafePathsTogether.addAll(ARGUtils.getAllPaths(reachedSet, safeState));
     }
     return allSafePathsTogether.build();
   }

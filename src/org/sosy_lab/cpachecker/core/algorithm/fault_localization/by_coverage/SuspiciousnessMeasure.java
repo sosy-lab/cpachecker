@@ -6,15 +6,15 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.rankingmetricsalgorithm;
+package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_coverage;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation.CoverageInformationBuilder;
-import org.sosy_lab.cpachecker.core.algorithm.rankingmetricsinformation.FailedAndPassedExecutionCount;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_coverage.utils.CoverageInformationBuilder;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_coverage.utils.FailedAndPassedExecutionCount;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;

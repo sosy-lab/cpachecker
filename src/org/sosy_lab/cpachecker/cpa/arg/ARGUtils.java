@@ -656,10 +656,12 @@ public class ARGUtils {
 
     for (ARGState e : from(pReached).transform(toState(ARGState.class))) {
       assert e != null : "Reached set contains abstract state without ARGState.";
-      assert !e.isDestroyed() : "Reached set contains destroyed ARGState, which should have been removed.";
+      assert !e.isDestroyed()
+          : "Reached set contains destroyed ARGState, which should have been removed.";
 
       for (ARGState parent : e.getParents()) {
-        assert parent.getChildren().contains(e) : "Reference from parent to child is missing in ARG";
+        assert parent.getChildren().contains(e)
+            : "Reference from parent to child is missing in ARG";
         assert pReached.contains(parent) : "Referenced parent is missing in reached";
       }
 
@@ -809,7 +811,14 @@ public class ARGUtils {
 
             // inner part (without first and last edge)
             for (; i < allEdges.size() - 1; i++) {
-              sb.append("STATE USEFIRST ARG" + child.getStateId() + "_" + i + "_" + multiEdgeCount + " :\n");
+              sb.append(
+                  "STATE USEFIRST ARG"
+                      + child.getStateId()
+                      + "_"
+                      + i
+                      + "_"
+                      + multiEdgeCount
+                      + " :\n");
               sb.append("    MATCH \"");
               escape(allEdges.get(i).getRawStatement(), sb);
               sb.append("\" -> ");
@@ -819,7 +828,14 @@ public class ARGUtils {
 
             // last edge connecting it with the real successor
             edge = allEdges.get(i);
-            sb.append("STATE USEFIRST ARG" + child.getStateId() + "_" + i + "_" + multiEdgeCount + " :\n");
+            sb.append(
+                "STATE USEFIRST ARG"
+                    + child.getStateId()
+                    + "_"
+                    + i
+                    + "_"
+                    + multiEdgeCount
+                    + " :\n");
           }
 
           handleMatchCase(sb, edge);
@@ -984,7 +1000,14 @@ public class ARGUtils {
 
                 // inner part (without first and last edge)
                 for (; i < allEdges.size() - 1; i++) {
-                  sb.append("STATE USEFIRST ARG" + child.getStateId() + "_" + i + "_" + multiEdgeCount + " :\n");
+                  sb.append(
+                      "STATE USEFIRST ARG"
+                          + child.getStateId()
+                          + "_"
+                          + i
+                          + "_"
+                          + multiEdgeCount
+                          + " :\n");
                   sb.append("    MATCH \"");
                   escape(allEdges.get(i).getRawStatement(), sb);
                   sb.append("\" -> ");
@@ -994,7 +1017,14 @@ public class ARGUtils {
 
                 // last edge connecting it with the real successor
                 edge = allEdges.get(i);
-                sb.append("STATE USEFIRST ARG" + child.getStateId() + "_" + i + "_" + multiEdgeCount + " :\n");
+                sb.append(
+                    "STATE USEFIRST ARG"
+                        + child.getStateId()
+                        + "_"
+                        + i
+                        + "_"
+                        + multiEdgeCount
+                        + " :\n");
               }
 
               handleMatchCase(sb, edge);
@@ -1312,5 +1342,47 @@ public class ARGUtils {
         .transform(s -> AbstractStates.extractStateByType(s, ARGState.class))
         .filter(ARGState::isTarget)
         .toList();
+  }
+
+  /**
+   * Returns all possible paths from the given state to the root of the ARG.
+   *
+   * @param pReachedSet input.
+   * @param pStart whether targetStates or safeStates.
+   * @return All possible paths from root to the chosen state.
+   */
+  public static Set<ARGPath> getAllPaths(final ReachedSet pReachedSet, final ARGState pStart) {
+    ARGState root = AbstractStates.extractStateByType(pReachedSet.getFirstState(), ARGState.class);
+    List<ARGState> states = new ArrayList<>();
+    ImmutableSet.Builder<ARGPath> results = ImmutableSet.builder();
+    List<List<ARGState>> paths = new ArrayList<>();
+
+    states.add(pStart);
+    paths.add(states);
+
+    // This is assuming from each node there is a way to go to the start
+    // Loop until all paths reached the root
+    while (!paths.isEmpty()) {
+      // Expand currently considered path
+      List<ARGState> curPath = paths.remove(paths.size() - 1);
+      Preconditions.checkNotNull(curPath);
+      // If there is no more to expand - add this path and continue
+      if (curPath.get(curPath.size() - 1) == root) {
+        results.add(new ARGPath(Lists.reverse(curPath)));
+
+        continue;
+      }
+
+      // Add all parents of currently first state on the current path
+      for (ARGState parentElement : curPath.get(curPath.size() - 1).getParents()) {
+        ImmutableList.Builder<ARGState> tmp =
+            ImmutableList.builderWithExpectedSize(curPath.size() + 1);
+        tmp.addAll(curPath);
+
+        tmp.add(parentElement);
+        paths.add(tmp.build());
+      }
+    }
+    return results.build();
   }
 }
