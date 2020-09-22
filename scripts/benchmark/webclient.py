@@ -10,7 +10,6 @@ import sys
 
 sys.dont_write_bytecode = True  # prevent creation of .pyc files
 
-import base64
 import fnmatch
 import hashlib
 import io
@@ -415,11 +414,6 @@ class WebInterface:
 
         if user_pwd:
             self._connection.auth = (user_pwd.split(":")[0], user_pwd.split(":")[1])
-            self._base64_user_pwd = base64.b64encode(user_pwd.encode("utf-8")).decode(
-                "utf-8"
-            )
-        else:
-            self._base64_user_pwd = None
 
         self._unfinished_runs = {}
         self._unfinished_runs_lock = threading.Lock()
