@@ -34,16 +34,15 @@ public class NumericCPA extends AbstractCPA {
       name = "numericLibrary",
       toUppercase = true,
       description = "Use this to switch the underlying numerical library.")
-  private String numericLibrary = "APRON";
+  private NumericalLibrary numericLibrary = NumericalLibrary.APRON;
 
   @Option(
       secure = true,
       name = "numericDomain",
       toUppercase = true,
-      description = "Use this to switch between domains of a library.")
+      description = "Use this to switch between domains of a library.",
+      values = {"POLYHEDRA", "OCTAGON", "ZONES", "BOX"})
   private String numericDomain = "OCTAGON";
-
-  private final NumericalLibrary library;
 
   private final Supplier<Manager> managerSupplier;
 
@@ -59,10 +58,9 @@ public class NumericCPA extends AbstractCPA {
     config.inject(this);
     this.logger = logManager;
 
-    library = chooseLibrary(numericLibrary);
-    NumericalLibraryLoader.loadLibrary(library);
+    NumericalLibraryLoader.loadLibrary(numericLibrary);
 
-    managerSupplier = chooseDomain(numericDomain, library);
+    managerSupplier = chooseDomain(numericDomain, numericLibrary);
     Manager manager = Manager.createManager(managerSupplier);
     logger.log(
         Level.INFO,
@@ -71,22 +69,9 @@ public class NumericCPA extends AbstractCPA {
         "version",
         manager.getDomainVersion(),
         "from",
-        library,
+        numericLibrary,
         "as numerical domain.");
     manager.dispose();
-  }
-
-  private NumericalLibrary chooseLibrary(String pNumericLibrary)
-      throws InvalidConfigurationException {
-    switch (pNumericLibrary) {
-      case "APRON":
-        return NumericalLibrary.APRON;
-      case "ELINA":
-        return NumericalLibrary.ELINA;
-      default:
-        logger.log(Level.SEVERE, "Unknown numerical library: " + numericLibrary);
-        throw new InvalidConfigurationException("Unknown numerical library.");
-    }
   }
 
   private Supplier<Manager> chooseDomain(String domainName, NumericalLibrary pLibrary) {
