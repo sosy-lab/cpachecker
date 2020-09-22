@@ -37,7 +37,7 @@ public class NumericDeclarationVisitor
   public NumericState visit(CVariableDeclaration pDecl) throws UnrecognizedCodeException {
     Variable variable = new Variable(pDecl.getQualifiedName());
     logger.log(Level.FINEST, "Variable declaration: " + variable.toString());
-    return state.addToFrame(ImmutableSet.of(variable), ImmutableSet.of(), NewVariableValue.ZERO);
+    return state.addVariables(ImmutableSet.of(variable), ImmutableSet.of(), NewVariableValue.ZERO);
   }
 
   @Override

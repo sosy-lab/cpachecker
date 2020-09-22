@@ -108,7 +108,8 @@ public class NumericTransferRelation
     }
 
     NumericState extendedState =
-        state.addFrame(integerVariables.build(), ImmutableSet.of(), NewVariableValue.UNCONSTRAINED);
+        state.addVariables(
+            integerVariables.build(), ImmutableSet.of(), NewVariableValue.UNCONSTRAINED);
     Environment extendedEnvironment = extendedState.getValue().getEnvironment();
 
     // Set values of the variables one by one
@@ -202,18 +203,53 @@ public class NumericTransferRelation
       }
 
       Variable returnVariable = createVariableFromDeclaration(returnVarDeclaration.get());
-
-      Collection<NumericState> successors =
+      Collection<NumericState> tempStates =
           assignment.accept(new NumericStatementVisitor(state, returnVariable, logger));
-      ImmutableSet.Builder<NumericState> statesBuilder = new ImmutableSet.Builder<>();
-      for (NumericState successor : successors) {
-        statesBuilder.add(successor.dropFrame());
+      ImmutableSet.Builder<NumericState> successorsBuilder = new ImmutableSet.Builder<>();
+      for (NumericState tempState : tempStates) {
+        successorsBuilder.add(tempState.removeVariables(ImmutableSet.of(returnVariable)));
+        tempState.getValue().dispose();
       }
-      return statesBuilder.build();
+      return successorsBuilder.build();
     } else {
-      // Only remove variable frame
-      return ImmutableSet.of(state.dropFrame());
+      // nothing to do
+      return ImmutableSet.of(state);
     }
+  }
+
+  private Collection<Variable> createOutOfScopeVariables(
+      Collection<CSimpleDeclaration> declarations) {
+    ImmutableSet.Builder<Variable> outOfScopeBuilder = new ImmutableSet.Builder<>();
+    for (CSimpleDeclaration declaration : declarations) {
+      outOfScopeBuilder.add(createVariableFromDeclaration(declaration));
+    }
+    return outOfScopeBuilder.build();
+  }
+
+  /**
+   * Returns the states with the variables removed.
+   *
+   * <p>If at least one variable is given, the returned state is a copy of the original state and
+   * all original states will be disposed.
+   *
+   * @param pVariables variables that will be removed
+   * @param pStates states from which the variables will be removed
+   * @return collection of states with the variables removed
+   */
+  private Collection<NumericState> removeVariablesFromEachAndDispose(
+      Collection<Variable> pVariables, Collection<NumericState> pStates) {
+    if (pVariables.isEmpty()) {
+      return pStates;
+    }
+
+    ImmutableSet.Builder<NumericState> successorsBuilder = new ImmutableSet.Builder<>();
+
+    for (NumericState newState : pStates) {
+      successorsBuilder.add(newState.removeVariables(pVariables));
+      newState.getValue().dispose();
+    }
+
+    return successorsBuilder.build();
   }
 
   @Override
@@ -223,8 +259,14 @@ public class NumericTransferRelation
       logger.log(Level.FINEST, edge, "has no successors");
       return ImmutableSet.of();
     } else {
+      // Remove out of scope variables from each successor
+      Collection<Variable> outOfScopeVariables =
+          createOutOfScopeVariables(edge.getSuccessor().getOutOfScopeVariables());
+      Collection<NumericState> newSuccessors =
+          removeVariablesFromEachAndDispose(outOfScopeVariables, successors);
+
       if (logger.wouldBeLogged(Level.FINEST)) {
-        for (NumericState successor : successors) {
+        for (NumericState successor : newSuccessors) {
           StringBuilder builder = new StringBuilder();
           for (Variable var : successor.getValue().getEnvironment().getIntVariables()) {
             builder.append(var).append("=").append(successor.getValue().getBounds(var)).append(";");
@@ -236,15 +278,13 @@ public class NumericTransferRelation
               Level.FINEST,
               edge.getEdgeType(),
               edge.getCode(),
-              ":",
-              edge.getCode(),
               "successor:",
               successor,
               "intervals:",
               builder.toString());
         }
       }
-      return ImmutableSet.copyOf(successors);
+      return ImmutableSet.copyOf(newSuccessors);
     }
   }
 

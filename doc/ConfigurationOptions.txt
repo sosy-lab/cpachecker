@@ -1859,9 +1859,11 @@ cpa.nondeterminism.acceptConstrained = true
 
 # Use this to switch between domains of a library.
 cpa.numeric.numericDomain = "OCTAGON"
+  allowed values: [POLYHEDRA, OCTAGON, ZONES, BOX]
 
 # Use this to switch the underlying numerical library.
-cpa.numeric.numericLibrary = "APRON"
+cpa.numeric.numericLibrary = APRON
+  enum:     [ELINA, APRON]
 
 # this option determines which initial precision should be used
 cpa.octagon.initialPrecisionType = "STATIC_FULL"

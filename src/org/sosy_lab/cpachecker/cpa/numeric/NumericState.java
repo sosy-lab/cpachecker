@@ -8,9 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.numeric;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
@@ -33,14 +31,10 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
   private final Value value;
   private final LogManager logger;
 
-  private final ImmutableList<Frame> variableFrames;
-
-  NumericState(
-      Manager pManager, Value pValue, ImmutableList<Frame> pVariableFrames, LogManager logManager) {
+  NumericState(Manager pManager, Value pValue, LogManager logManager) {
     value = pValue;
     manager = pManager;
     logger = logManager;
-    variableFrames = pVariableFrames;
   }
 
   /**
@@ -55,7 +49,6 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
     Environment environment = new Environment(new Variable[] {}, new Variable[] {});
     logger = logManager;
     value = new Value(manager, environment, ValueType.TOP);
-    variableFrames = ImmutableList.of(new Frame(ImmutableSet.of(), ImmutableSet.of()));
   }
 
   @Override
@@ -77,11 +70,7 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
   public String toString() {
     StringBuilder builder = new StringBuilder();
     builder.append("NumericState: ");
-    for (Frame frame : variableFrames) {
-      builder.append(">");
-      builder.append(frame.toString());
-    }
-    builder.append(value.toIntervalString(true));
+    builder.append(value.toPrettyString(false));
     return builder.toString();
   }
 
@@ -89,7 +78,7 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
   public NumericState join(NumericState pState2) {
     Optional<Value> val = this.value.join(pState2.value);
     if (val.isPresent()) {
-      return new NumericState(manager, val.get(), variableFrames, logger);
+      return new NumericState(manager, val.get(), logger);
     } else {
       return null;
     }
@@ -103,7 +92,7 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
    */
   public Optional<NumericState> meet(Value pMeetValue) {
     Optional<Value> val = value.meet(pMeetValue);
-    return val.map(pValue -> new NumericState(manager, pValue, variableFrames, logger));
+    return val.map(pValue -> new NumericState(manager, pValue, logger));
   }
 
   /**
@@ -124,7 +113,7 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
             Arrays.toString(pConstraints.toArray(TreeConstraint[]::new)),
             "=>",
             newAbs.toString());
-        return Optional.of(new NumericState(manager, newAbs.get(), variableFrames, logger));
+        return Optional.of(new NumericState(manager, newAbs.get(), logger));
       } else {
         logger.log(
             Level.FINEST,
@@ -162,10 +151,9 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
    */
   public NumericState addTemporaryCopyOf(Variable pVariable, Variable copy) {
     Optional<Value> expandedValue = value.expand(pVariable, Set.of(copy));
-    ImmutableList<Frame> frames = addVariablesToFrame(Set.of(copy), Set.of());
 
     if (expandedValue.isPresent()) {
-      return new NumericState(manager, expandedValue.get(), frames, logger);
+      return new NumericState(manager, expandedValue.get(), logger);
     } else {
       throw new IllegalStateException(
           "Could not add a copy of the variable " + pVariable + " to the value." + value);
@@ -173,118 +161,50 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
   }
 
   /**
-   * Adds a new frame with the variables in it.
+   * Add the variables to the state.
    *
-   * @param intVariables int variables in the new frame
-   * @param realVariables real variables in the new frame
-   * @param newVariableValue value of the new variables
-   * @return state with the frame added to it
+   * @param intVariables variables that will be added as integer variables
+   * @param realVariables variables that will be added as real varibles
+   * @param initialValue initial value of the new variables
+   * @return state with the added variables
    */
-  NumericState addFrame(
+  public NumericState addVariables(
       Collection<Variable> intVariables,
       Collection<Variable> realVariables,
-      NewVariableValue newVariableValue) {
-    ImmutableList.Builder<Frame> newVariableFramesBuilder = new ImmutableList.Builder<>();
-    Frame frame = new Frame(intVariables, realVariables);
-    newVariableFramesBuilder.add(frame);
-    newVariableFramesBuilder.addAll(variableFrames);
-    Environment newEnvironment =
-        value
-            .getEnvironment()
-            .add(intVariables.toArray(new Variable[] {}), realVariables.toArray(new Variable[] {}));
-    return new NumericState(
-        manager,
-        changeEnvironment(newEnvironment, newVariableValue),
-        newVariableFramesBuilder.build(),
-        logger);
-  }
+      NewVariableValue initialValue) {
+    Optional<Value> newValue = value.addVariables(intVariables, realVariables, initialValue);
 
-  /**
-   * Adds the variables to the uppermost frame.
-   *
-   * @param intVariables int variables which will be added to the frame
-   * @param realVariables real variables which will be added to the frame
-   * @return state with the variables added to the uppermost frame
-   */
-  public NumericState addToFrame(
-      Collection<Variable> intVariables,
-      Collection<Variable> realVariables,
-      NewVariableValue initialState) {
-    ImmutableList<Frame> frames = addVariablesToFrame(intVariables, realVariables);
-
-    Environment newEnvironment =
-        value
-            .getEnvironment()
-            .add(intVariables.toArray(new Variable[0]), realVariables.toArray(new Variable[0]));
-    return new NumericState(
-        manager, changeEnvironment(newEnvironment, initialState), frames, logger);
-  }
-
-  private ImmutableList<Frame> addVariablesToFrame(
-      Collection<Variable> intVariables, Collection<Variable> realVariables) {
-    if (variableFrames.size() == 0) {
-      throw new IllegalStateException("Tried to add variable to frame, but no frame exists.");
-    }
-
-    Frame newFirstFrame = variableFrames.get(0).addVariablesToFrame(intVariables, realVariables);
-    ImmutableList.Builder<Frame> newFramesBuilder = new ImmutableList.Builder<>();
-    newFramesBuilder.add(newFirstFrame);
-    if (variableFrames.size() > 1) {
-      newFramesBuilder.addAll(variableFrames.subList(1, variableFrames.size()));
-    }
-
-    return newFramesBuilder.build();
-  }
-
-  /**
-   * Removes the uppermost frame and removes the variables from the environment.
-   *
-   * @return state without the uppermost frame
-   */
-  NumericState dropFrame() {
-    if (variableFrames.size() == 0) {
-      throw new IllegalStateException("Tried to drop frame, but no frame exists.");
-    }
-
-    ImmutableList<Frame> newVariableFrames;
-    if (variableFrames.size() > 1) {
-      newVariableFrames = variableFrames.subList(1, variableFrames.size());
+    if (newValue.isPresent()) {
+      return new NumericState(manager, newValue.get(), logger);
     } else {
-      newVariableFrames = ImmutableList.of();
+      throw new IllegalStateException(
+          "Could not add the integer variables "
+              + Arrays.toString(intVariables.toArray(Variable[]::new))
+              + " and the real variables "
+              + Arrays.toString(realVariables.toArray(Variable[]::new))
+              + " to the value "
+              + value);
     }
-    Environment newEnvironment =
-        value
-            .getEnvironment()
-            .remove(variableFrames.get(0).getVariables().toArray(new Variable[] {}));
-    return new NumericState(
-        manager,
-        changeEnvironment(newEnvironment, NewVariableValue.UNCONSTRAINED),
-        newVariableFrames,
-        logger);
   }
 
   /**
-   * Removes the variables from the first frame of the state.
+   * Removes the variables from the environment.
    *
-   * @param pVariables variables that should no longer be tracked
+   * @param pVariables variables that will be removed from the environment
    * @return state with the variables removed
    */
-  public NumericState removeFromFrame(Collection<Variable> pVariables) {
-    Frame newFirstFrame = variableFrames.get(0).removeVariablesFromFrame(pVariables);
-    ImmutableList.Builder<Frame> newFramesBuilder = new ImmutableList.Builder<>();
-    newFramesBuilder.add(newFirstFrame);
-    newFramesBuilder.addAll(variableFrames.subList(1, variableFrames.size()));
-    Optional<Value> updatedValue = value.removeVariables(pVariables);
+  public NumericState removeVariables(Collection<Variable> pVariables) {
+    Optional<Value> newValue = value.removeVariables(pVariables);
 
-    if (updatedValue.isEmpty()) {
+    if (newValue.isPresent()) {
+      return new NumericState(manager, newValue.get(), logger);
+    } else {
       throw new IllegalStateException(
-          "Could not remove variables "
+          "Could not remove the variables "
               + Arrays.toString(pVariables.toArray(Variable[]::new))
               + " from value "
-              + value.toString());
+              + value.toPrettyString(false));
     }
-
-    return new NumericState(manager, updatedValue.get(), newFramesBuilder.build(), logger);
   }
 
   /**
@@ -297,18 +217,10 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
   public NumericState forget(ImmutableSet<Variable> variables, NewVariableValue newVariableValue) {
     Optional<Value> newAbstractValue = value.forgetAll(variables, newVariableValue);
     if (newAbstractValue.isPresent()) {
-      return new NumericState(manager, newAbstractValue.get(), getVariableFrames(), logger);
+      return new NumericState(manager, newAbstractValue.get(), logger);
     } else {
-      throw new IllegalStateException("Could not forget value of variable.");
-    }
-  }
-
-  private Value changeEnvironment(Environment newEnvironment, NewVariableValue variableHandling) {
-    Optional<Value> newAbs = value.changeEnvironment(newEnvironment, variableHandling);
-    if (newAbs.isEmpty()) {
-      throw new IllegalStateException("Could not change environment of abstract value.");
-    } else {
-      return newAbs.get();
+      throw new IllegalStateException(
+          "Could not forget value of variables " + variables + " in value " + value);
     }
   }
 
@@ -320,54 +232,5 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
   /** Returns the manager used with the value. */
   public Manager getManager() {
     return manager;
-  }
-
-  /** Returns the list of frames in the state. */
-  ImmutableList<Frame> getVariableFrames() {
-    return variableFrames;
-  }
-
-  /**
-   * A frame is a set of variables which are contained in the environment of the state.
-   *
-   * <p>Frames are useful to keep track of local variables in a function call.
-   */
-  private static class Frame {
-    private final Set<Variable> variables;
-
-    public Frame(Collection<Variable> pVariables) {
-      variables = ImmutableSet.copyOf(pVariables);
-    }
-
-    private Frame(Collection<Variable> pVariables1, Collection<Variable> pVariables2) {
-      ImmutableSet.Builder<Variable> newVariables = new ImmutableSet.Builder<>();
-      newVariables.addAll(pVariables1);
-      newVariables.addAll(pVariables2);
-      variables = newVariables.build();
-    }
-
-    private Frame addVariablesToFrame(
-        Collection<Variable> pVariables1, Collection<Variable> pVariables2) {
-      ImmutableSet.Builder<Variable> newVariables = new ImmutableSet.Builder<>();
-      newVariables.addAll(variables);
-      newVariables.addAll(pVariables1);
-      newVariables.addAll(pVariables2);
-      return new Frame(newVariables.build());
-    }
-
-    private Frame removeVariablesFromFrame(Collection<Variable> pVariables) {
-      ImmutableSet<Variable> newVariables =
-          Sets.difference(variables, ImmutableSet.copyOf(pVariables)).immutableCopy();
-      return new Frame(newVariables);
-    }
-
-    private Set<Variable> getVariables() {
-      return variables;
-    }
-
-    @Override
-    public String toString() {
-      return Arrays.toString(variables.toArray());
-    }
   }
 }

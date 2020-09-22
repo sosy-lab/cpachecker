@@ -134,7 +134,7 @@ public class NumericStatementVisitor
       if (successor.isPresent()) {
         if (substitution.wasUsed()) {
           NumericState realSuccessor =
-              successor.get().removeFromFrame(Set.of(substitution.getSubstitute()));
+              successor.get().removeVariables(Set.of(substitution.getSubstitute()));
           successors.add(realSuccessor);
           successor.get().getValue().dispose();
         } else {
