@@ -102,13 +102,15 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
       CoverageInformation coverageInformation =
           new CoverageInformation(shutdownNotifier, safePaths, errorPaths);
       SuspiciousnessMeasure chosenRankingAlgorithm = getSuspiciousBuilder(rankingAlgorithmType);
+      final List<Fault> faults =
+          getFinalResult(
+              chosenRankingAlgorithm.getAllFaultsOfRankingAlgo(
+                  safePaths, errorPaths, coverageInformation));
 
       for (CounterexampleInfo counterexample : counterExamples) {
-        List<SingleFaultOfRankingAlgo> faultsOfRankingAlgo = filterByCounterexamples(chosenRankingAlgorithm.getAllFaultsOfRankingAlgo(
-            safePaths, errorPaths, coverageInformation),counterexample);
-        List<Fault> faults = getFinalResult(faultsOfRankingAlgo);
+        List<Fault> faultsForCex = getFaultsForCex(faults, counterexample);
 
-        info = new FaultLocalizationInfo(faults, counterexample);
+        info = new FaultLocalizationInfo(faultsForCex, counterexample);
         info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
         info.apply();
       }
@@ -145,17 +147,11 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
     return sortingByScoreReversed(faults);
   }
 
-  public List<SingleFaultOfRankingAlgo> filterByCounterexamples(
-      List<SingleFaultOfRankingAlgo> pSingleFaultOfRankingAlgos,
-      CounterexampleInfo counterexample) {
+  public List<Fault> getFaultsForCex(List<Fault> pFaults, CounterexampleInfo counterexample) {
     ImmutableSet<CFAEdge> fullPath = ImmutableSet.copyOf(counterexample.getTargetPath().getFullPath());
-    List<SingleFaultOfRankingAlgo> faultsOnCounterExampleTrace;
-    faultsOnCounterExampleTrace =
-        pSingleFaultOfRankingAlgos.stream()
-            .filter(fault -> fullPath.contains(fault.getHint().correspondingEdge()))
-            .collect(Collectors.toList());
-
-    return faultsOnCounterExampleTrace;
+    return pFaults.stream()
+        .filter(f -> f.stream().anyMatch(e -> fullPath.contains(e.correspondingEdge())))
+        .collect(Collectors.toList());
   }
 
   private List<Fault> sortingByScoreReversed(List<Fault> faults) {
