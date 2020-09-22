@@ -414,9 +414,7 @@ class WebInterface:
         self._connection.verify = cert_path or True
 
         if user_pwd:
-            if not ":" in user_pwd:
-                sys.exit("Missing password for user name")
-            self._connection.auth = self.getUserAndPassword(user_pwd)
+             self._connection.auth = self.getUserAndPassword(user_pwd)
 
         self._unfinished_runs = {}
         self._unfinished_runs_lock = threading.Lock()
