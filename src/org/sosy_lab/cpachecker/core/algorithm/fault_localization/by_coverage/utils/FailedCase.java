@@ -21,15 +21,16 @@ public class FailedCase {
   public FailedCase(ReachedSet pReachedSet) {
     reachedSet = pReachedSet;
   }
+
   /**
    * Gets all possible error paths.
    *
-   * @return Detected all error Paths.
+   * @return all error paths.
    */
   public Set<ARGPath> getErrorPaths() {
     Set<ARGPath> allErrorPathsTogether = new HashSet<>();
 
-    for (ARGState errorState : ARGUtils.getErrorStates(reachedSet)) {
+    for (ARGState errorState : ARGUtils.getAllTargetStates(reachedSet)) {
       allErrorPathsTogether.addAll(ARGUtils.getAllPaths(reachedSet, errorState));
     }
     return allErrorPathsTogether;

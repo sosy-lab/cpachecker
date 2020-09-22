@@ -1330,18 +1330,12 @@ public class ARGUtils {
   public static FluentIterable<ARGState> getNonCoveredStatesInSubgraph(ARGState pRoot) {
     return pRoot.getSubgraph().filter(s -> !s.isCovered());
   }
-  /**
-   * Gets error states (error leaves) from ARG.
-   *
-   * @param pReachedSet input.
-   * @return Detected error states.
-   */
-  public static List<ARGState> getErrorStates(ReachedSet pReachedSet) {
 
+  /** Gets all target states in reached set. */
+  public static FluentIterable<ARGState> getAllTargetStates(ReachedSet pReachedSet) {
     return FluentIterable.from(pReachedSet)
         .transform(s -> AbstractStates.extractStateByType(s, ARGState.class))
-        .filter(ARGState::isTarget)
-        .toList();
+        .filter(ARGState::isTarget);
   }
 
   /**
