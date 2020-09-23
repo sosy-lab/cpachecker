@@ -225,8 +225,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithm, Sta
    * @return relevant information
    */
   private String extractRelevantInformation(FormulaManagerView fmgr, Interval interval) {
-    SyntaxTree tree = new SyntaxTree(interval.invariant.toString());
-    tree.getRoot();
+    SyntaxTree tree = new SyntaxTree();
     BooleanFormulaManager bmgr = fmgr.getBooleanFormulaManager();
     List<String> helpfulFormulas = new ArrayList<>();
     Set<BooleanFormula> conjunctions = bmgr.toConjunctionArgs(interval.invariant, true);
@@ -241,7 +240,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithm, Sta
           }
         }
       }
-      helpfulFormulas.add(new SyntaxTree(fmgr.uninstantiate(f).toString()).toString());
+      helpfulFormulas.add(tree.parse(fmgr.uninstantiate(f)).toString());
     }
     //return "<ul><li>"  + helpfulFormulas.stream().distinct().map(s -> s.replaceAll("@", "")).collect(Collectors.joining(" </li><li> ")) + "</li></ul>";
     return helpfulFormulas.stream().distinct().map(s -> s.replaceAll("@", "")).collect(Collectors.joining(" ∧ "));

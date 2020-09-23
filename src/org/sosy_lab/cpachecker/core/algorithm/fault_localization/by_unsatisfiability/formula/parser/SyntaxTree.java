@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.parser.FormulaNode.FormulaNodeType;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class SyntaxTree {
 
@@ -24,6 +25,13 @@ public class SyntaxTree {
 
   public SyntaxTree(String pFormula) {
     root = parse(pFormula);
+  }
+  public SyntaxTree() {
+    root = LiteralNode.EMPTY;
+  }
+
+  public FormulaNode parse(BooleanFormula formula) {
+    return parse(formula.toString());
   }
 
   public FormulaNode parse(String formula) {

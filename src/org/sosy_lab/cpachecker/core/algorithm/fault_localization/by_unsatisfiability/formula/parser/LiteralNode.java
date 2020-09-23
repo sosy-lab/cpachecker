@@ -20,6 +20,7 @@ public class LiteralNode extends ExpressionNode {
   public static final LiteralNode CLOSE_BRACKET = new LiteralNode(")");
   public static final LiteralNode TRUE = new LiteralNode("TRUE");
   public static final LiteralNode FALSE = new LiteralNode("FALSE");
+  public static final LiteralNode EMPTY = new LiteralNode("()");
 
   public LiteralNode(String pLiteral) {
     super("LITERAL");
