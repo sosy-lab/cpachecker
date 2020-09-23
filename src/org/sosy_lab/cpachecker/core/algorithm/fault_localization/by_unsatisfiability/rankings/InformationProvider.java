@@ -81,7 +81,7 @@ public class InformationProvider {
           break;
         }
         if (hasIter) {
-          fault.addInfo(FaultInfo.hint("This line use an iteration variable. This may be especially prone to errors."));
+          fault.addInfo(FaultInfo.hint("This line uses an iteration variable. This may be especially prone to errors."));
           break;
         }
         if (hasCalc) {
