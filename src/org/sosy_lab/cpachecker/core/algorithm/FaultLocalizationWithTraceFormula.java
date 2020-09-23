@@ -77,7 +77,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix="faultlocalization")
-public class FaultLocalizationWithTraceFormulas implements Algorithm, StatisticsProvider, Statistics {
+public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsProvider, Statistics {
 
   private final Algorithm algorithm;
   private final LogManager logger;
@@ -99,13 +99,13 @@ public class FaultLocalizationWithTraceFormulas implements Algorithm, Statistics
 
   @Option(secure=true, name="fstf",
       description="enable flow-sensitive trace formula") //can decrease runtime
-  private boolean fstf = false;
+  private boolean fstf = true;
 
   @Option(secure=true, name="ban",
       description="ban faults with certain variables")
   private String ban = "";
 
-  public FaultLocalizationWithTraceFormulas(
+  public FaultLocalizationWithTraceFormula(
       final Algorithm pStoreAlgorithm,
       final Configuration pConfig,
       final LogManager pLogger,

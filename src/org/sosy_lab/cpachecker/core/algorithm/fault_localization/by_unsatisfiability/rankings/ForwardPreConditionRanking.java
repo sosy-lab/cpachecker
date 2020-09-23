@@ -37,7 +37,7 @@ public class ForwardPreConditionRanking implements FaultRanking {
   /**
    * Tell the user which initial variable assignment lead to an error.
    * This is not an actual ranking.
-   * @param result The result of any FaultLocalizationWithTraceFormulas
+   * @param result The result of any FaultLocalizationWithTraceFormula
    * @return Faults ranked by identity
    */
   @Override

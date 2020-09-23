@@ -22,7 +22,7 @@ public class SetSizeRanking implements FaultRanking {
   /**
    * Ranks the sets according to the size of the Faults. The smaller a set
    * the higher the rank.
-   * @param result The result of any FaultLocalizationWithTraceFormulas
+   * @param result The result of any FaultLocalizationWithTraceFormula
    * @return Ranked list of faults
    */
   @Override
