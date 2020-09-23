@@ -44,7 +44,6 @@ import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiabi
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.TraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.TraceFormula.TraceFormulaOptions;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.TraceFormula.TraceFormulaType;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.parser.BooleanFormulaParser;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.CallHierarchyRanking;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.EdgeTypeRanking;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.ForwardPreConditionRanking;

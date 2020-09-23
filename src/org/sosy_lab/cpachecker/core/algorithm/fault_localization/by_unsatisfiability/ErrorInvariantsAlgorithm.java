@@ -363,7 +363,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithm, Sta
 
     @Override
     public String toString() {
-      return "Interval [" + start + ";" + end + "]: " + invariant;
+      return "Interval [" + start + ";" + end + "]: " + BooleanFormulaParser.parse(invariant);
     }
 
     @Override

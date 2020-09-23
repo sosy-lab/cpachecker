@@ -12,7 +12,6 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.parser.BooleanFormulaParser;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
@@ -32,7 +31,6 @@ public class FormulaContext {
    * This class maintains the most often used objects in fault localization.
    * @param pSolver the solver for BooleanFormulas
    * @param pManager manager to concatenate CFAEdges to a boolean formula
-   * @param pConverter converter to convert formulas to infix notation.
    * @param pConfiguration configuration settings
    * @param pLogManager the logger
    * @param pMutableCFA the mutable CFA
