@@ -79,6 +79,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManagerOptions;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionStatistics;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils;
+import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils.AbstractionPosition;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -385,7 +386,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
                   solver,
                   (ARGState) reached.getFirstState(),
                   stemPath.asStatesList(),
-                  false);
+                  AbstractionPosition.NONE);
           PathFormula stemPathFormula = createSinglePathFormula(stemPathFormulaList);
 
           // create loop
@@ -397,7 +398,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
                   loopPath.asStatesList(),
                   stemPathFormula.getSsa(),
                   Iterables.getLast(stemPathFormulaList).getPointerTargetSet(),
-                  false);
+                  AbstractionPosition.NONE);
           PathFormula loopPathFormula =
               createSinglePathFormula(loopPathFormulaList, stemPathFormula);
 
@@ -544,7 +545,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
               solver,
               (ARGState) reached.getFirstState(),
               path.asStatesList(),
-              false);
+              AbstractionPosition.NONE);
 
       // check path for infeasibility
       ImmutableList<BooleanFormula> bfList =
