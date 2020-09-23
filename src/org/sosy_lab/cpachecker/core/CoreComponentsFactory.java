@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CounterexampleStoreAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithTraceFormulas;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithCoverage;
 import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
@@ -282,7 +283,7 @@ public class CoreComponentsFactory {
       secure = true,
       name = "algorithm.FaultLocalization",
       description = "use FaultLocalization")
-  boolean useFaultLocalization = false;
+  boolean useFaultLocalizationUNSAT = false;
 
   private final Configuration config;
   private final LogManager logger;
@@ -577,11 +578,11 @@ public class CoreComponentsFactory {
         algorithm = new MPVAlgorithm(cpa, config, logger, shutdownNotifier, specification, cfa);
       }
 
-      if(useFaultLocalization) {
+      if(useFaultLocalizationUNSAT) {
         if (!(algorithm instanceof CounterexampleStoreAlgorithm)){
           throw new InvalidConfigurationException("CounterexampleStoreAlgorithm required");
         }
-        algorithm = new FaultLocalizationAlgorithm(algorithm, config, logger, cfa, shutdownNotifier);
+        algorithm = new FaultLocalizationWithTraceFormulas(algorithm, config, logger, cfa, shutdownNotifier);
       }
     }
 

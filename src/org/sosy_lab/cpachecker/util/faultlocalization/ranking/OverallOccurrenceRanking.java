@@ -25,7 +25,7 @@ public class OverallOccurrenceRanking implements FaultRanking {
   /**
    * Count how often a certain FaultContribution is in a Fault.
    * Afterwards assign a likelihood to every fault equal to the relative frequency of all elements in result
-   * @param result The result of any FaultLocalizationAlgorithm
+   * @param result The result of any FaultLocalizationWithTraceFormulas
    * @return ranked list of Faults
    */
   @Override

@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.rankings;
+package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings;
 
 import com.google.common.base.Splitter;
 import java.util.ArrayList;
@@ -15,8 +15,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.FormulaContext;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.TraceFormula;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
@@ -36,7 +36,7 @@ public class ForwardPreConditionRanking implements FaultRanking {
   /**
    * Tell the user which initial variable assignment lead to an error.
    * This is not an actual ranking.
-   * @param result The result of any FaultLocalizationAlgorithm
+   * @param result The result of any FaultLocalizationWithTraceFormulas
    * @return Faults ranked by identity
    */
   @Override

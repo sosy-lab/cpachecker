@@ -43,12 +43,10 @@ public class Fault extends ForwardingSet<FaultContribution> {
    */
   public Fault(Collection<FaultContribution> pErrorSet){
     this(pErrorSet, 0);
-    intendedIndex = Optional.empty();
   }
 
   public Fault(){
     this(ImmutableSet.of(), 0);
-    intendedIndex = Optional.empty();
   }
 
   /**
@@ -67,6 +65,7 @@ public class Fault extends ForwardingSet<FaultContribution> {
     errorSet = ImmutableSet.copyOf(pContribs);
     infos = new ArrayList<>();
     score = pScore;
+    intendedIndex = Optional.empty();
   }
 
   /**
@@ -175,6 +174,10 @@ public class Fault extends ForwardingSet<FaultContribution> {
 
   public Optional<Integer> getIntendedIndex() {
     return intendedIndex;
+  }
+
+  public void replaceErrorSet(ImmutableSet<FaultContribution> contributions) {
+    errorSet = contributions;
   }
 
   @Override

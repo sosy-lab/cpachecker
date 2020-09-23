@@ -2,17 +2,17 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.faultlocalization;
+package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability;
 
 import com.google.common.base.VerifyException;
 import java.util.Set;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.FormulaContext;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.TraceFormula;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.java_smt.api.SolverException;
@@ -20,7 +20,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 /**
  * Implements a method to obtain a set of faults out of a trace formula
  */
-public interface FaultLocalizationAlgorithmInterface {
+public interface FaultLocalizationAlgorithm {
 
   Set<Fault> run(FormulaContext context, TraceFormula tf)
       throws CPAException, InterruptedException, SolverException, VerifyException,

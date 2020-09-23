@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.rankings;
+package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings;
 
 import java.util.List;
 import java.util.Map.Entry;

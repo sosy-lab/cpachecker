@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.rankings;
+package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;

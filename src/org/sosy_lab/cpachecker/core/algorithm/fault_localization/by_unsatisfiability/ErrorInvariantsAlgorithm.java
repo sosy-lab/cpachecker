@@ -2,15 +2,16 @@
 // a tool for configurable software verification:
 // https://cpachecker.sosy-lab.org
 //
-// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.faultlocalization;
+package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability;
 
 import com.google.common.base.Splitter;
 import com.google.common.base.VerifyException;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -29,15 +30,17 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.AbstractTraceElement;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.Selector;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.AbstractTraceElement;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.FormulaContext;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.Selector;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.TraceFormula;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.parser.SyntaxTree;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.CounterexampleTraceInfo;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.InterpolationManager;
@@ -52,7 +55,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInterface, Statistics {
+public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithm, Statistics {
 
   private ShutdownNotifier shutdownNotifier;
   private Configuration config;
@@ -191,12 +194,14 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
         } else {
           next = allSelectors.get(allSelectors.size()-1);
         }
+        Set<FaultContribution> contributions = new HashSet<>();
         for (int j = allSelectors.indexOf(prev); j < allSelectors.indexOf(next); j++) {
-          curr.add(allSelectors.get(j));
+          contributions.add(allSelectors.get(j));
         }
         if (curr.isEmpty()) {
-          curr.add(prev);
+          contributions.add(prev);
         }
+        curr.replaceErrorSet(ImmutableSet.copyOf(contributions));
         String description = extractRelevantInformation(fmgr, curr);
         curr.addInfo(FaultInfo.justify("The describing interpolant: " + description));
         curr.addInfo(FaultInfo.hint("This interpolant sums up the meaning of the marked edges."));
@@ -224,22 +229,20 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithmInter
     List<String> helpfulFormulas = new ArrayList<>();
     Set<BooleanFormula> conjunctions = bmgr.toConjunctionArgs(interval.invariant, true);
     for(BooleanFormula f: conjunctions){
-      if (!f.toString().contains("_ADDRESS_OF")){
-        helpfulFormulas.add(formulaContext.getConverter().convert(fmgr.uninstantiate(f)).trim());
-      } else {
+      if (f.toString().contains("_ADDRESS_OF")) {
         List<String> findName = Splitter.on("__ADDRESS_OF_").splitToList(f.toString());
         if (findName.size() > 1) {
           List<String> extractName = Splitter.on("@").splitToList(findName.get(1));
           if (!extractName.isEmpty()) {
-            helpfulFormulas.add("\"values of " + extractName.get(0) + "\"");
+            helpfulFormulas.add("(`values_of` " + extractName.get(0) + ")");
             continue;
           }
         }
-        helpfulFormulas.add(formulaContext.getConverter().convert(fmgr.uninstantiate(f)));
       }
+      helpfulFormulas.add(new SyntaxTree(fmgr.uninstantiate(f).toString()).toString());
     }
     //return "<ul><li>"  + helpfulFormulas.stream().distinct().map(s -> s.replaceAll("@", "")).collect(Collectors.joining(" </li><li> ")) + "</li></ul>";
-    return helpfulFormulas.stream().distinct().map(s -> s.replaceAll("@", "")).collect(Collectors.joining(" and "));
+    return helpfulFormulas.stream().distinct().map(s -> s.replaceAll("@", "")).collect(Collectors.joining(" ∧ "));
   }
 
   /**

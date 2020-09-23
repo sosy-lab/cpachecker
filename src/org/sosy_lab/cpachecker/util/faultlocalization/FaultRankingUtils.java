@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.rankings.IntendedIndexRanking;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.IntendedIndexRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.InfoType;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.IdentityRanking;

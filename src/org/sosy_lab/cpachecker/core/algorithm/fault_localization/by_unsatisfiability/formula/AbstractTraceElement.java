@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula;
+package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula;
 
 /**
  * Marker interface for types that can be a part of an abstract error trace.

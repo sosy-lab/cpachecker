@@ -33,22 +33,22 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.ErrorInvariantsAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.FaultLocalizationAlgorithmInterface;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.IntervalReportWriter;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.ModifiedMaxSatAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.OriginalMaxSatAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.SingleUnsatCoreAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.ExpressionConverter;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.FormulaContext;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.Selector;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula.TraceFormulaOptions;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.formula.TraceFormula.TraceFormulaType;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.rankings.CallHierarchyRanking;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.rankings.EdgeTypeRanking;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.rankings.ForwardPreConditionRanking;
-import org.sosy_lab.cpachecker.core.algorithm.faultlocalization.rankings.InformationProvider;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.ErrorInvariantsAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizationAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.IntervalReportWriter;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.ModifiedMaxSatAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.OriginalMaxSatAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.SingleUnsatCoreAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.ExpressionConverter;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.FormulaContext;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.Selector;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.TraceFormula;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.TraceFormula.TraceFormulaOptions;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.TraceFormula.TraceFormulaType;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.CallHierarchyRanking;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.EdgeTypeRanking;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.ForwardPreConditionRanking;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.InformationProvider;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -78,7 +78,7 @@ import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix="faultlocalization")
-public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider, Statistics {
+public class FaultLocalizationWithTraceFormulas implements Algorithm, StatisticsProvider, Statistics {
 
   private final Algorithm algorithm;
   private final LogManager logger;
@@ -87,7 +87,7 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
   private final PathFormulaManagerImpl manager;
   private final TraceFormulaOptions options;
 
-  private final FaultLocalizationAlgorithmInterface faultAlgorithm;
+  private final FaultLocalizationAlgorithm faultAlgorithm;
   private final StatTimer totalTime = new StatTimer("Total time");
 
   @Option(secure=true, name="type", toUppercase=true, values={"UNSAT", "MAXSAT", "ERRINV", "MAXORG"},
@@ -106,7 +106,7 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
       description="ban faults with certain variables")
   private String ban = "";
 
-  public FaultLocalizationAlgorithm(
+  public FaultLocalizationWithTraceFormulas(
       final Algorithm pStoreAlgorithm,
       final Configuration pConfig,
       final LogManager pLogger,
@@ -210,7 +210,7 @@ public class FaultLocalizationAlgorithm implements Algorithm, StatisticsProvider
   }
 
   private void runAlgorithm(
-      CounterexampleInfo pInfo, FaultLocalizationAlgorithmInterface pAlgorithm)
+      CounterexampleInfo pInfo, FaultLocalizationAlgorithm pAlgorithm)
       throws CPAException, InterruptedException {
 
     // Run the algorithm and create a CFAPathWithAssumptions to the last reached state.

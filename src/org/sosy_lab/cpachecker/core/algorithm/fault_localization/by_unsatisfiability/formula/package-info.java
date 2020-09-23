@@ -7,6 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * Custom rankings for fault localization with unsat cores
+ * Implementation of a trace formula.
+ * A trace formula is the conjunction of every edge from the start to the error location.
  */
-package org.sosy_lab.cpachecker.core.algorithm.faultlocalization.rankings;
+package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula;
