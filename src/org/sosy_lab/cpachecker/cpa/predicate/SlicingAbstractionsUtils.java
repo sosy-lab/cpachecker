@@ -54,6 +54,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -262,6 +263,24 @@ public class SlicingAbstractionsUtils {
   }
 
   /**
+   * See {@link SlicingAbstractionsUtils#buildPathFormula(ARGState, ARGState, List, SSAMap,
+   * PointerTargetSet, FormulaManagerView, PathFormulaManager, boolean)}
+   */
+  @Deprecated
+  public static PathFormula buildPathFormula(
+      ARGState start,
+      ARGState stop,
+      SSAMap pSSAMap,
+      PointerTargetSet pPts,
+      Solver pSolver,
+      PathFormulaManager pPfmgr,
+      boolean withInvariants)
+      throws CPATransferException, InterruptedException {
+    return buildPathFormula(
+        start, stop, pSSAMap, pPts, pSolver.getFormulaManager(), pPfmgr, withInvariants);
+  }
+
+  /**
    * Create a path formula for a part of the ARG.
    *
    * @param start The (abstraction) state to start at
@@ -269,7 +288,7 @@ public class SlicingAbstractionsUtils {
    *     from start!)
    * @param pSSAMap The SSAMap to start with (needed e.g. for building sequences of PathFormulas,
    *     see {@link SlicingAbstractionsBlockFormulaStrategy}
-   * @param pSolver solver object that provides the formula manager
+   * @param pFmgr formula manager used for instantiation of formulas
    * @param pPfmgr {@link PathFormulaManager} for making PathFormulas from {@link CFAEdge}s
    * @param withInvariants whether to include the abstraction formulas of start and stop (with the
    *     right SSA indices)
@@ -283,7 +302,7 @@ public class SlicingAbstractionsUtils {
       ARGState stop,
       SSAMap pSSAMap,
       PointerTargetSet pPts,
-      Solver pSolver,
+      FormulaManagerView pFmgr,
       PathFormulaManager pPfmgr,
       boolean withInvariants)
       throws CPATransferException, InterruptedException {
@@ -291,17 +310,51 @@ public class SlicingAbstractionsUtils {
     if (segmentList == null) {
       segmentList = ImmutableList.of();
     }
-    return buildPathFormula(start, stop, segmentList, pSSAMap, pPts, pSolver, pPfmgr, withInvariants);
+    return buildPathFormula(start, stop, segmentList, pSSAMap, pPts, pFmgr, pPfmgr, withInvariants);
   }
 
   /**
-   * For better scaling, call this method instead of
-   * {@link SlicingAbstractionsUtils#buildPathFormula(ARGState, ARGState, SSAMap, PointerTargetSet, Solver, PathFormulaManager, boolean)}
-   * if you already have calculated the segmentList (states between start and stop state).
+   * See {@link SlicingAbstractionsUtils#buildPathFormula(ARGState, ARGState, List, SSAMap,
+   * PointerTargetSet, FormulaManagerView, PathFormulaManager, boolean)}
    */
-  public static PathFormula buildPathFormula(ARGState start, ARGState stop,
-      List<ARGState> segmentList, SSAMap pSSAMap, PointerTargetSet pPts, Solver pSolver, PathFormulaManager pPfmgr, boolean withInvariants)
-          throws CPATransferException, InterruptedException {
+  @Deprecated
+  public static PathFormula buildPathFormula(
+      ARGState start,
+      ARGState stop,
+      List<ARGState> segmentList,
+      SSAMap pSSAMap,
+      PointerTargetSet pPts,
+      Solver pSolver,
+      PathFormulaManager pPfmgr,
+      boolean withInvariants)
+      throws CPATransferException, InterruptedException {
+    return buildPathFormula(
+        start,
+        stop,
+        segmentList,
+        pSSAMap,
+        pPts,
+        pSolver.getFormulaManager(),
+        pPfmgr,
+        withInvariants);
+  }
+
+  /**
+   * For better scaling, call this method instead of {@link
+   * SlicingAbstractionsUtils#buildPathFormula(ARGState, ARGState, SSAMap, PointerTargetSet, Solver,
+   * PathFormulaManager, boolean)} if you already have calculated the segmentList (states between
+   * start and stop state).
+   */
+  public static PathFormula buildPathFormula(
+      ARGState start,
+      ARGState stop,
+      List<ARGState> segmentList,
+      SSAMap pSSAMap,
+      PointerTargetSet pPts,
+      FormulaManagerView pFmgr,
+      PathFormulaManager pPfmgr,
+      boolean withInvariants)
+      throws CPATransferException, InterruptedException {
 
     final PathFormula pathFormula;
     PathFormula startFormula;
@@ -310,9 +363,10 @@ public class SlicingAbstractionsUtils {
     // start with either an empty PathFormula or the abstraction state of start
     // (depending on what the caller specified)
     if (withInvariants) {
-      startFormula = invariantPathFormulaFromState(start, pSSAMap, pPts, pSolver);
+      startFormula = invariantPathFormulaFromState(start, pSSAMap, pPts, pFmgr);
     } else {
-      startFormula = emptyPathFormulaWithSSAMap(pSolver.getFormulaManager().getBooleanFormulaManager().makeTrue(), pSSAMap, pPts);
+      startFormula =
+          emptyPathFormulaWithSSAMap(pFmgr.getBooleanFormulaManager().makeTrue(), pSSAMap, pPts);
     }
 
     // Add assumptions if any:
@@ -401,9 +455,9 @@ public class SlicingAbstractionsUtils {
   }
 
   private static PathFormula invariantPathFormulaFromState(
-      ARGState state, SSAMap pSSAMap, PointerTargetSet pPts, Solver pSolver) {
+      ARGState state, SSAMap pSSAMap, PointerTargetSet pPts, FormulaManagerView fmgr) {
     BooleanFormula initFormula = getPredicateState(state).getAbstractionFormula().asFormula();
-    BooleanFormula instatiatedInitFormula = pSolver.getFormulaManager().instantiate(initFormula,pSSAMap);
+    BooleanFormula instatiatedInitFormula = fmgr.instantiate(initFormula, pSSAMap);
     return emptyPathFormulaWithSSAMap(instatiatedInitFormula, pSSAMap, pPts);
   }
 
