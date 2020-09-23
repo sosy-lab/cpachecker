@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -84,22 +85,29 @@ public class PredicateAbstractionManager {
 
   static class Stats {
 
-    public int numCallsAbstraction = 0; // total calls
-    public int numAbstractionReuses = 0; // total reuses
+    public AtomicInteger numCallsAbstraction = new AtomicInteger(0); // total calls
+    public AtomicInteger numAbstractionReuses = new AtomicInteger(0); // total reuses
 
-    public int numSymbolicAbstractions = 0; // precision completely empty, no computation
-    public int numSatCheckAbstractions = 0; // precision was {false}, only sat check
-    public int numCallsAbstractionCached = 0; // result was cached, no computation
-    public int numInductivePathFormulaCacheUsed = 0; // loop was cached, no new computation
+    // precision completely empty, no computation
+    public AtomicInteger numSymbolicAbstractions = new AtomicInteger(0);
 
-    public int numTotalPredicates = 0;
-    public int maxPredicates = 0;
-    public int numIrrelevantPredicates = 0;
-    public int numTrivialPredicates = 0;
-    public int numInductivePredicates = 0;
-    public int numCartesianAbsPredicates = 0;
-    public int numCartesianAbsPredicatesCached = 0;
-    public int numBooleanAbsPredicates = 0;
+    // precision was {false}, only sat check
+    public AtomicInteger numSatCheckAbstractions = new AtomicInteger(0);
+
+    // result was cached, no computation
+    public AtomicInteger numCallsAbstractionCached = new AtomicInteger(0);
+
+    // loop was cached, no new computation
+    public AtomicInteger numInductivePathFormulaCacheUsed = new AtomicInteger(0);
+
+    public AtomicInteger numTotalPredicates = new AtomicInteger(0);
+    public AtomicInteger maxPredicates = new AtomicInteger(0);
+    public AtomicInteger numIrrelevantPredicates = new AtomicInteger(0);
+    public AtomicInteger numTrivialPredicates = new AtomicInteger(0);
+    public AtomicInteger numInductivePredicates = new AtomicInteger(0);
+    public AtomicInteger numCartesianAbsPredicates = new AtomicInteger(0);
+    public AtomicInteger numCartesianAbsPredicatesCached = new AtomicInteger(0);
+    public AtomicInteger numBooleanAbsPredicates = new AtomicInteger(0);
     public final Timer abstractionReuseTime = new Timer();
     public final StatTimer abstractionReuseImplicationTime = new StatTimer("Time for checking reusability of abstractions");
     public final Timer trivialPredicatesTime = new Timer();
@@ -300,9 +308,15 @@ public class PredicateAbstractionManager {
       final Collection<AbstractionPredicate> pPredicates)
       throws SolverException, InterruptedException {
 
-    stats.numCallsAbstraction++;
+    int currentAbstractionId = stats.numCallsAbstraction.getAndIncrement();
 
-    logger.log(Level.FINEST, "Computing abstraction", stats.numCallsAbstraction, "with", pPredicates.size(), "predicates");
+    logger.log(
+        Level.FINEST,
+        "Computing abstraction",
+        currentAbstractionId,
+        "with",
+        pPredicates.size(),
+        "predicates");
     logger.log(Level.ALL, "Old abstraction:", abstractionFormula.asFormula());
     logger.log(Level.ALL, "Path formula:", pathFormula);
     logger.log(Level.ALL, "Predicates:", pPredicates);
@@ -324,8 +338,8 @@ public class PredicateAbstractionManager {
 
     // Shortcut if the precision is empty
     if (pPredicates.isEmpty() && (abstractionType != AbstractionType.ELIMINATION)) {
-      logger.log(Level.FINEST, "Abstraction", stats.numCallsAbstraction, "with empty precision is true");
-      stats.numSymbolicAbstractions++;
+      logger.log(Level.FINEST, "Abstraction", currentAbstractionId, "with empty precision is true");
+      stats.numSymbolicAbstractions.incrementAndGet();
       return makeTrueAbstractionFormula(pathFormula);
     }
 
@@ -364,9 +378,9 @@ public class PredicateAbstractionManager {
 
         result = new AbstractionFormula(fmgr, result.asRegion(), stateFormula,
             instantiatedFormula, pathFormula, result.getIdsOfStoredAbstractionReused());
-        logger.log(Level.FINEST, "Abstraction", stats.numCallsAbstraction, "was cached");
+        logger.log(Level.FINEST, "Abstraction", currentAbstractionId, "was cached");
         logger.log(Level.ALL, "Abstraction result is", result.asFormula());
-        stats.numCallsAbstractionCached++;
+        stats.numCallsAbstractionCached.incrementAndGet();
         return result;
       }
 
@@ -374,8 +388,12 @@ public class PredicateAbstractionManager {
                             || unsatisfiabilityCache.contains(f);
       if (unsatisfiable) {
         // block is infeasible
-        logger.log(Level.FINEST, "Block feasibility of abstraction", stats.numCallsAbstraction, "was cached and is false.");
-        stats.numCallsAbstractionCached++;
+        logger.log(
+            Level.FINEST,
+            "Block feasibility of abstraction",
+            currentAbstractionId,
+            "was cached and is false.");
+        stats.numCallsAbstractionCached.incrementAndGet();
         return new AbstractionFormula(fmgr, rmgr.makeFalse(),
             bfmgr.makeFalse(), bfmgr.makeFalse(),
             pathFormula, noAbstractionReuse);
@@ -439,7 +457,7 @@ public class PredicateAbstractionManager {
 
     if (dumpHardAbstractions && abstractionTime > 10000) {
       // we want to dump "hard" problems...
-      dumpAbstractionProblem(f, pPredicates, result);
+      dumpAbstractionProblem(f, pPredicates, result, currentAbstractionId);
     }
 
     return result;
@@ -462,15 +480,15 @@ public class PredicateAbstractionManager {
   public BooleanFormula computeAbstraction(
       final BooleanFormula pF, final Collection<AbstractionPredicate> pPredicates)
       throws InterruptedException, SolverException {
-    stats.numCallsAbstraction++;
+    stats.numCallsAbstraction.getAndIncrement();
 
     if (pPredicates.isEmpty()) {
-      stats.numSymbolicAbstractions++;
+      stats.numSymbolicAbstractions.incrementAndGet();
       return bfmgr.makeTrue();
     }
 
     if (unsatisfiabilityCache.contains(pF)) {
-      stats.numCallsAbstractionCached++;
+      stats.numCallsAbstractionCached.incrementAndGet();
       return bfmgr.makeFalse();
     }
 
@@ -589,7 +607,7 @@ public class PredicateAbstractionManager {
         stats.abstractionReuseImplicationTime.stop();
 
         if (implication) {
-          stats.numAbstractionReuses++;
+          stats.numAbstractionReuses.incrementAndGet();
 
           Region reuseFormulaRegion = amgr.convertFormulaToRegion(reuseFormula);
           return new AbstractionFormula(
@@ -655,9 +673,9 @@ public class PredicateAbstractionManager {
       }
     }
 
-    stats.numTotalPredicates += pPredicates.size();
-    stats.maxPredicates = Math.max(stats.maxPredicates, pPredicates.size());
-    stats.numIrrelevantPredicates += pPredicates.size() - relevantPredicates.size();
+    stats.numTotalPredicates.addAndGet(pPredicates.size());
+    stats.maxPredicates.accumulateAndGet(pPredicates.size(), Math::max);
+    stats.numIrrelevantPredicates.addAndGet(pPredicates.size() - relevantPredicates.size());
 
     return relevantPredicates;
   }
@@ -703,7 +721,7 @@ public class PredicateAbstractionManager {
           // we can just copy it to the output
           region = regionCreator.makeAnd(region, predicateVar);
           predicateIt.remove(); // mark predicate as handled
-          stats.numTrivialPredicates++;
+          stats.numTrivialPredicates.incrementAndGet();
           logger.log(Level.FINEST, "Predicate", predicate, "is unconditionally true in old abstraction and can be copied to the result.");
 
         } else {
@@ -713,7 +731,7 @@ public class PredicateAbstractionManager {
             // we can just copy it to the output
             region = regionCreator.makeAnd(region, negatedPredicateVar);
             predicateIt.remove(); // mark predicate as handled
-            stats.numTrivialPredicates++;
+            stats.numTrivialPredicates.incrementAndGet();
             logger.log(Level.FINEST, "Negation of predicate", predicate, "is unconditionally true in old abstraction and can be copied to the result.");
 
           } else {
@@ -751,7 +769,7 @@ public class PredicateAbstractionManager {
       thmProver.push(f);
 
       if (remainingPredicates.isEmpty()) {
-        stats.numSatCheckAbstractions++;
+        stats.numSatCheckAbstractions.incrementAndGet();
 
         stats.abstractionSolveTime.start();
         boolean feasibility;
@@ -781,7 +799,7 @@ public class PredicateAbstractionManager {
 
         if (abstractionType != AbstractionType.CARTESIAN && !remainingPredicates.isEmpty()) {
           // Last do boolean abstraction if desired and necessary
-          stats.numBooleanAbsPredicates += remainingPredicates.size();
+          stats.numBooleanAbsPredicates.addAndGet(remainingPredicates.size());
           stats.booleanAbstractionTime.start();
           try {
             abs =
@@ -845,16 +863,16 @@ public class PredicateAbstractionManager {
         Pair<BooleanFormula, AbstractionPredicate> cacheKey = Pair.of(f, p);
         if (useCache && cartesianAbstractionCache.containsKey(cacheKey)) {
           byte predVal = cartesianAbstractionCache.get(cacheKey);
-          stats.numCartesianAbsPredicatesCached++;
+          stats.numCartesianAbsPredicatesCached.incrementAndGet();
 
           stats.abstractionEnumTime.getCurentInnerTimer().start();
           Region v = p.getAbstractVariable();
           if (predVal == -1) { // pred is false
-            stats.numCartesianAbsPredicates++;
+            stats.numCartesianAbsPredicates.incrementAndGet();
             v = rmgr.makeNot(v);
             absbdd = rmgr.makeAnd(absbdd, v);
           } else if (predVal == 1) { // pred is true
-            stats.numCartesianAbsPredicates++;
+            stats.numCartesianAbsPredicates.incrementAndGet();
             absbdd = rmgr.makeAnd(absbdd, v);
           } else {
             assert predVal == 0 : "predicate value is neither false, true, nor unknown";
@@ -878,7 +896,7 @@ public class PredicateAbstractionManager {
           thmProver.pop();
 
           if (isTrue) {
-            stats.numCartesianAbsPredicates++;
+            stats.numCartesianAbsPredicates.incrementAndGet();
             stats.abstractionEnumTime.getCurentInnerTimer().start();
             Region v = p.getAbstractVariable();
             absbdd = rmgr.makeAnd(absbdd, v);
@@ -893,7 +911,7 @@ public class PredicateAbstractionManager {
             thmProver.pop();
 
             if (isFalse) {
-              stats.numCartesianAbsPredicates++;
+              stats.numCartesianAbsPredicates.incrementAndGet();
               stats.abstractionEnumTime.getCurentInnerTimer().start();
               Region v = p.getAbstractVariable();
               v = rmgr.makeNot(v);
@@ -1105,21 +1123,22 @@ public class PredicateAbstractionManager {
   private void dumpAbstractionProblem(
       final BooleanFormula f,
       final Collection<AbstractionPredicate> predicates,
-      final AbstractionFormula result) {
+      final AbstractionFormula result,
+      int pCurrentAbstractionId) {
     Path dumpFile;
 
-    dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "input", 0);
+    dumpFile = fmgr.formatFormulaOutputFile("abstraction", pCurrentAbstractionId, "input", 0);
     fmgr.dumpFormulaToFile(f, dumpFile);
 
     dumpFile =
-        fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "predicates", 0);
+        fmgr.formatFormulaOutputFile("abstraction", pCurrentAbstractionId, "predicates", 0);
     try (Writer w = IO.openOutputFile(dumpFile, Charset.defaultCharset())) {
       Joiner.on('\n').appendTo(w, predicates);
     } catch (IOException e) {
       logger.logUserException(Level.WARNING, e, "Failed to wrote predicates to file");
     }
 
-    dumpFile = fmgr.formatFormulaOutputFile("abstraction", stats.numCallsAbstraction, "result", 0);
+    dumpFile = fmgr.formatFormulaOutputFile("abstraction", pCurrentAbstractionId, "result", 0);
     fmgr.dumpFormulaToFile(result.asInstantiatedFormula(), dumpFile);
   }
 
