@@ -94,7 +94,7 @@ public class CoreComponentsFactory {
       secure = true,
       name = "algorithm.faultLocalization",
       description = "use fault localization")
-  private boolean useFaultLocalization = false;
+  private boolean useFaultLocalizationWithCoverage = false;
 
   @Option(secure=true, description="use assumption collecting algorithm")
   private boolean collectAssumptions = false;
@@ -281,9 +281,9 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
-      name = "algorithm.FaultLocalization",
+      name = "algorithm.faultLocalizationTF",
       description = "use FaultLocalization")
-  boolean useFaultLocalizationUNSAT = false;
+  boolean useFaultLocalizationWithTraceFormulas = false;
 
   private final Configuration config;
   private final LogManager logger;
@@ -541,7 +541,7 @@ public class CoreComponentsFactory {
             new ResultCheckAlgorithm(
                 algorithm, cpa, cfa, config, logger, shutdownNotifier, specification);
       }
-      if (useFaultLocalization) {
+      if (useFaultLocalizationWithCoverage) {
         algorithm = new FaultLocalizationWithCoverage(algorithm, shutdownNotifier, logger,config);
       }
 
@@ -578,7 +578,7 @@ public class CoreComponentsFactory {
         algorithm = new MPVAlgorithm(cpa, config, logger, shutdownNotifier, specification, cfa);
       }
 
-      if(useFaultLocalizationUNSAT) {
+      if(useFaultLocalizationWithTraceFormulas) {
         if (!(algorithm instanceof CounterexampleStoreAlgorithm)){
           throw new InvalidConfigurationException("CounterexampleStoreAlgorithm required");
         }
