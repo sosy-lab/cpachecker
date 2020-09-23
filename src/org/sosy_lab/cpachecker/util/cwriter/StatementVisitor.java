@@ -15,16 +15,16 @@ import org.sosy_lab.cpachecker.util.cwriter.Statement.InlinedFunction;
 import org.sosy_lab.cpachecker.util.cwriter.Statement.Label;
 import org.sosy_lab.cpachecker.util.cwriter.Statement.SimpleStatement;
 
-interface StatementVisitor {
-  void visit(SimpleStatement pS);
+interface StatementVisitor<E extends Exception> {
+  void visit(SimpleStatement pS) throws E;
 
-  void visit(Label pS);
+  void visit(Label pS) throws E;
 
-  void visit(FunctionDefinition pS);
+  void visit(FunctionDefinition pS) throws E;
 
-  void visit(EmptyStatement pS);
+  void visit(EmptyStatement pS) throws E;
 
-  void visit(CompoundStatement pS);
+  void visit(CompoundStatement pS) throws E;
 
-  void visit(InlinedFunction pS);
+  void visit(InlinedFunction pS) throws E;
 }

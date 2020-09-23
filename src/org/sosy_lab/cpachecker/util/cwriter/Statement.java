@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.cwriter;
 
 import com.google.common.collect.ImmutableList;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -20,7 +21,7 @@ public abstract class Statement {
   private boolean isGotoTarget = false;
   private String gotoLabel = null;
 
-  public abstract void accept(StatementVisitor pVisitor);
+  public abstract <E extends Exception> void accept(StatementVisitor<E> pVisitor) throws E;
 
   public Optional<String> getLabelIfUsed() {
     if (!isGotoTarget) {
@@ -51,8 +52,12 @@ public abstract class Statement {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    StatementWriter w = new StatementWriter(sb);
-    accept(w);
+    StatementVisitor<IOException> w = StatementWriter.getWriter(sb);
+    try {
+      accept(w);
+    } catch (IOException pE) {
+      throw new AssertionError("IOException should not be possible for StringBuilder", pE);
+    }
     return sb.toString();
   }
 
@@ -80,7 +85,7 @@ public abstract class Statement {
     }
 
     @Override
-    public void accept(StatementVisitor pVisitor) {
+    public <E extends Exception> void accept(StatementVisitor<E> pVisitor) throws E {
       pVisitor.visit(this);
     }
 
@@ -103,7 +108,7 @@ public abstract class Statement {
 
   static class SimpleStatement extends Statement {
     private final String code;
-    private CFAEdge origin;
+    private final CFAEdge origin;
 
     public SimpleStatement(String pCode) {
       this(null, pCode);
@@ -115,7 +120,7 @@ public abstract class Statement {
     }
 
     @Override
-    public void accept(StatementVisitor pVisitor) {
+    public <E extends Exception> void accept(StatementVisitor<E> pVisitor) throws E {
       pVisitor.visit(this);
     }
 
@@ -138,7 +143,7 @@ public abstract class Statement {
     }
 
     @Override
-    public void accept(StatementVisitor pVisitor) {
+    public <E extends Exception> void accept(StatementVisitor<E> pVisitor) throws E {
       pVisitor.visit(this);
     }
 
@@ -160,7 +165,7 @@ public abstract class Statement {
     }
 
     @Override
-    public void accept(StatementVisitor pVisitor) {
+    public <E extends Exception> void accept(StatementVisitor<E> pVisitor) throws E {
       pVisitor.visit(this);
     }
 
@@ -178,7 +183,7 @@ public abstract class Statement {
   static class EmptyStatement extends Statement {
 
     @Override
-    public void accept(StatementVisitor pVisitor) {
+    public <E extends Exception> void accept(StatementVisitor<E> pVisitor) throws E {
       pVisitor.visit(this);
     }
   }
