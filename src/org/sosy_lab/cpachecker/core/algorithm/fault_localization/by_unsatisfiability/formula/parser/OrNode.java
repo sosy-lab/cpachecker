@@ -38,7 +38,7 @@ public class OrNode implements FormulaNode {
 
   @Override
   public boolean equals(Object pO) {
-    if (!(pO instanceof AndNode)) {
+    if (!(pO instanceof OrNode)) {
       return false;
     }
     OrNode orNode = (OrNode) pO;

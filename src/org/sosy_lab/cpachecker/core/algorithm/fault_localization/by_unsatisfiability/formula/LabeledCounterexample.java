@@ -34,7 +34,7 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
   private List<LabeledFormula> annotatedCounterexample;
 
   /**
-   * The LabeledCounterexample adds the labels IF, ENDIF, BOTH and OTHER to every statement in the counterexample
+   * The LabeledCounterexample adds the labels IF and ENDIF to fitting statements in the counterexample
    * @param pCounterexample the counterexample for which we want to compute the labels
    *
    * @param pContext the context
@@ -78,11 +78,11 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
       }
     }
 
-    annotatedCounterexample.clear();
+    clear();
     for (int i = 0; i < path.size(); i++) {
       LabeledFormula formula = new LabeledFormula(withoutPrecond.get(i));
       labels.get(i).forEach(formula::addLabel);
-      annotatedCounterexample.add(formula);
+      add(formula);
     }
   }
 

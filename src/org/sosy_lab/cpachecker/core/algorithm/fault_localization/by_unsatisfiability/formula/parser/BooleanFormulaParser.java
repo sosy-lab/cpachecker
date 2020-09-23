@@ -17,10 +17,20 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class BooleanFormulaParser {
 
+  /**
+   * Parse the a boolean formula, reduce and simplify clauses and convert it to infix notation.
+   * @param formula the formula to be parsed
+   * @return A syntax tree of the boolean formula
+   */
   public static FormulaNode parse(BooleanFormula formula) {
     return parse(formula.toString());
   }
 
+  /**
+   * Parse the string representation of a boolean formula, reduce and simplify clauses and convert it to infix notation.
+   * @param formula the formula to be parsed
+   * @return A syntax tree of the boolean formula
+   */
   public static FormulaNode parse(String formula) {
     ArrayDeque<FormulaNode> syntaxStack = new ArrayDeque<>();
     String currentString = "";
