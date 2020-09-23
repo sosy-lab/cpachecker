@@ -29,7 +29,7 @@ public class LiteralNode extends ExpressionNode {
 
   @Override
   public boolean equals(Object pO) {
-    if (pO == null || !(pO instanceof LiteralNode)) {
+    if (!(pO instanceof LiteralNode)) {
       return false;
     }
     LiteralNode that = (LiteralNode) pO;

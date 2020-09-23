@@ -23,6 +23,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.LabeledCounterexample.FormulaLabel;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.LabeledCounterexample.LabeledFormula;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.parser.BooleanFormulaParser;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
@@ -367,5 +368,10 @@ public class TraceFormula {
         edge.getEntry().setAtom(implication);
       }
     }
+  }
+
+  @Override
+  public String toString() {
+    return "TraceFormula{" + BooleanFormulaParser.parse(getTraceFormula()) + "}";
   }
 }

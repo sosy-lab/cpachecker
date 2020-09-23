@@ -40,7 +40,7 @@ public class AndNode implements FormulaNode {
 
   @Override
   public boolean equals(Object pO) {
-    if (pO == null || !(pO instanceof AndNode)) {
+    if (!(pO instanceof AndNode)) {
       return false;
     }
     AndNode andNode = (AndNode) pO;

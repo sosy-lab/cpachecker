@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiabi
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.TraceFormula;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.parser.SyntaxTree;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.parser.BooleanFormulaParser;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
@@ -225,7 +225,6 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithm, Sta
    * @return relevant information
    */
   private String extractRelevantInformation(FormulaManagerView fmgr, Interval interval) {
-    SyntaxTree tree = new SyntaxTree();
     BooleanFormulaManager bmgr = fmgr.getBooleanFormulaManager();
     List<String> helpfulFormulas = new ArrayList<>();
     Set<BooleanFormula> conjunctions = bmgr.toConjunctionArgs(interval.invariant, true);
@@ -240,7 +239,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithm, Sta
           }
         }
       }
-      helpfulFormulas.add(tree.parse(fmgr.uninstantiate(f)).toString());
+      helpfulFormulas.add(BooleanFormulaParser.parse(fmgr.uninstantiate(f)).toString());
     }
     //return "<ul><li>"  + helpfulFormulas.stream().distinct().map(s -> s.replaceAll("@", "")).collect(Collectors.joining(" </li><li> ")) + "</li></ul>";
     return helpfulFormulas.stream().distinct().map(s -> s.replaceAll("@", "")).collect(Collectors.joining(" ∧ "));

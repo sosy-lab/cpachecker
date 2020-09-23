@@ -36,7 +36,7 @@ public class NotNode implements FormulaNode {
 
   @Override
   public boolean equals(Object pO) {
-    if (pO == null || !(pO instanceof NotNode)) {
+    if (!(pO instanceof NotNode)) {
       return false;
     }
     NotNode notNode = (NotNode) pO;

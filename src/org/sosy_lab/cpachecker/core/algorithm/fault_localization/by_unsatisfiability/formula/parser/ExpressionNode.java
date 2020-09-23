@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.parser;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,7 +45,7 @@ public class ExpressionNode implements FormulaNode {
 
   @Override
   public boolean equals(Object pO) {
-    if (pO == null  || !(pO instanceof ExpressionNode)) {
+    if (!(pO instanceof ExpressionNode)) {
       return false;
     }
     ExpressionNode that = (ExpressionNode) pO;
@@ -52,7 +53,7 @@ public class ExpressionNode implements FormulaNode {
       return false;
     }
     for (int i = 0; i < operands.size(); i++) {
-      if (!(operands.get(i).equals(that.operands.get(i)))) {
+      if (!operands.get(i).equals(that.operands.get(i))) {
         return false;
       }
     }
@@ -73,7 +74,7 @@ public class ExpressionNode implements FormulaNode {
   public String toString() {
     String op = operator;
     if (op.contains("_") && !op.startsWith("_")) {
-      op = op.split("_")[0];
+      op = Splitter.on("_").splitToList(operator).get(0);
     }
     if (operands.size() == 2) {
       return "(" + operands.get(0) + " " + op + " "  + operands.get(1) + ")";

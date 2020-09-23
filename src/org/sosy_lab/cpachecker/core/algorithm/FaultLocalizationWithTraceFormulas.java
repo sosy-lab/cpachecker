@@ -39,12 +39,12 @@ import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiabi
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.ModifiedMaxSatAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.OriginalMaxSatAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.SingleUnsatCoreAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.ExpressionConverter;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.TraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.TraceFormula.TraceFormulaOptions;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.TraceFormula.TraceFormulaType;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.parser.BooleanFormulaParser;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.CallHierarchyRanking;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.EdgeTypeRanking;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.ForwardPreConditionRanking;
@@ -137,7 +137,7 @@ public class FaultLocalizationWithTraceFormulas implements Algorithm, Statistics
             pCfa,
             AnalysisDirection.FORWARD);
     bmgr = solver.getFormulaManager().getBooleanFormulaManager();
-    context = new FormulaContext(solver, manager, new ExpressionConverter(pConfig), pCfa, logger, pConfig, pShutdownNotifier);
+    context = new FormulaContext(solver, manager, pCfa, logger, pConfig, pShutdownNotifier);
 
     switch (algorithmType){
       case "MAXORG":

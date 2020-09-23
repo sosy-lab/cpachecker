@@ -12,6 +12,7 @@ import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.parser.BooleanFormulaParser;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
@@ -22,7 +23,6 @@ public class FormulaContext {
   private Solver solver;
   private PathFormulaManagerImpl manager;
   private ProverEnvironment prover;
-  private ExpressionConverter converter;
   private CFA cfa;
   private LogManager logger;
   private Configuration configuration;
@@ -38,19 +38,14 @@ public class FormulaContext {
    * @param pMutableCFA the mutable CFA
    * @param pShutdownNotifier the shutdown notifier
    */
-  public FormulaContext(Solver pSolver, PathFormulaManagerImpl pManager, ExpressionConverter pConverter, CFA pMutableCFA, LogManager pLogManager, Configuration pConfiguration, ShutdownNotifier pShutdownNotifier) {
+  public FormulaContext(Solver pSolver, PathFormulaManagerImpl pManager, CFA pMutableCFA, LogManager pLogManager, Configuration pConfiguration, ShutdownNotifier pShutdownNotifier) {
     solver = pSolver;
     manager = pManager;
     prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);
-    converter = pConverter;
     cfa = pMutableCFA;
     logger = pLogManager;
     configuration = pConfiguration;
     shutdownNotifier = pShutdownNotifier;
-  }
-
-  public ExpressionConverter getConverter() {
-    return converter;
   }
 
   public Solver getSolver() {

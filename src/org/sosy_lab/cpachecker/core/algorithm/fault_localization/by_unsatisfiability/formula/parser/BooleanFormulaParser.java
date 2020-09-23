@@ -15,26 +15,13 @@ import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.parser.FormulaNode.FormulaNodeType;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class SyntaxTree {
+public class BooleanFormulaParser {
 
-  private FormulaNode root;
-
-  public FormulaNode getRoot() {
-    return root;
-  }
-
-  public SyntaxTree(String pFormula) {
-    root = parse(pFormula);
-  }
-  public SyntaxTree() {
-    root = LiteralNode.EMPTY;
-  }
-
-  public FormulaNode parse(BooleanFormula formula) {
+  public static FormulaNode parse(BooleanFormula formula) {
     return parse(formula.toString());
   }
 
-  public FormulaNode parse(String formula) {
+  public static FormulaNode parse(String formula) {
     ArrayDeque<FormulaNode> syntaxStack = new ArrayDeque<>();
     String currentString = "";
     for (int i = 0; i < formula.length(); i++) {
@@ -86,7 +73,7 @@ public class SyntaxTree {
     return syntaxStack.pop();
   }
 
-  private void evaluate(ArrayDeque<FormulaNode> pSyntaxStack) {
+  private static void evaluate(ArrayDeque<FormulaNode> pSyntaxStack) {
 
     ArrayDeque<FormulaNode> reversed = new ArrayDeque<>();
     FormulaNode curr;
@@ -125,7 +112,7 @@ public class SyntaxTree {
   }
 
 
-  private void evaluateOrNode(OrNode orNode,
+  private static void evaluateOrNode(OrNode orNode,
                                ArrayDeque<FormulaNode> reversed,
                                ArrayDeque<FormulaNode> pSyntaxStack) {
     FormulaNode left = reversed.pop();
@@ -211,7 +198,7 @@ public class SyntaxTree {
     pSyntaxStack.push(finalNode);
   }
 
-  private void evaluateAndNode(AndNode andNode,
+  private static void evaluateAndNode(AndNode andNode,
                                ArrayDeque<FormulaNode> reversed,
                                ArrayDeque<FormulaNode> pSyntaxStack) {
     FormulaNode left = reversed.pop();
@@ -297,7 +284,7 @@ public class SyntaxTree {
     pSyntaxStack.push(finalNode);
   }
 
-  private void evaluateNotNode(NotNode notNode,
+  private static void evaluateNotNode(NotNode notNode,
                                ArrayDeque<FormulaNode> reversed,
                                ArrayDeque<FormulaNode> pSyntaxStack) {
     FormulaNode top = reversed.pop();
@@ -315,8 +302,4 @@ public class SyntaxTree {
     }
   }
 
-  @Override
-  public String toString() {
-    return root.toString();
-  }
 }

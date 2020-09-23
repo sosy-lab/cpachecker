@@ -17,6 +17,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.TraceFormula;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.parser.BooleanFormulaParser;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
@@ -80,15 +81,14 @@ public class ForwardPreConditionRanking implements FaultRanking {
       }
     }
 
-    String hint = "The program fails for the initial variable assignment ";
-
     List<BooleanFormula> atoms = traceFormula.getEntries().toAtomList();
     for(Entry<String, String> entry: mapFormulaToValue.entrySet()){
       for (int i = 0 ; i < atoms.size(); i++) {
         BooleanFormula atom = atoms.get(i);
         if(atom.toString().contains(entry.getKey())){
           atom = context.getSolver().getFormulaManager().uninstantiate(atom);
-          String assignment = context.getConverter().convert(atom.toString().replaceAll(entry.getKey(), entry.getValue()));
+          String assignment = BooleanFormulaParser
+              .parse(atom.toString().replaceAll(entry.getKey(), entry.getValue())).toString();
           assignments.add(assignment);
         }
       }
@@ -96,7 +96,7 @@ public class ForwardPreConditionRanking implements FaultRanking {
 
     String allAssignments = String.join(", ", assignments);
     for (Fault fault : rankedList) {
-      fault.addInfo(FaultInfo.hint(hint + allAssignments));
+      fault.addInfo(FaultInfo.hint("The program fails for the initial variable assignment " + allAssignments));
     }
 
     return rankedList;
