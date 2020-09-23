@@ -6,14 +6,14 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability;
+package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.errorinvariants;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.ErrorInvariantsAlgorithm.Interval;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.errorinvariants.ErrorInvariantsAlgorithm.Interval;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultReportWriter;
@@ -69,13 +69,23 @@ public class IntervalReportWriter extends FaultReportWriter {
         + "</strong><br>";
     StringBuilder html = new StringBuilder();
 
-    html.append(" Relevant lines:\n<ul class=\"fault-lines\">\n");
-    correspondingEdges.stream().sorted(Comparator.comparingInt(e -> e.getFileLocation().getStartingLineInOrigin()))
-        .forEach(e -> html.append("<li>" + "<span class=\"line-number\">")
-            .append(e.getFileLocation().getStartingLineInOrigin()).append("</span>")
-            .append("<span class=\"line-content\">").append(e.getDescription()).append("</span>")
-            .append("</li>"));
-    html.append("</ul>\n");
+    if (!correspondingEdges.isEmpty()) {
+      html.append(" Relevant lines:\n<ul class=\"fault-lines\">\n");
+      correspondingEdges.stream()
+          .sorted(Comparator.comparingInt(e -> e.getFileLocation().getStartingLineInOrigin()))
+          .forEach(
+              e ->
+                  html.append("<li>" + "<span class=\"line-number\">")
+                      .append(e.getFileLocation().getStartingLineInOrigin())
+                      .append("</span>")
+                      .append("<span class=\"line-content\">")
+                      .append(e.getDescription())
+                      .append("</span>")
+                      .append("</li>"));
+      html.append("</ul>\n");
+    } else {
+      header = "Additional Information";
+    }
 
     if (!faultReasons.isEmpty() && !hideTypes.contains(InfoType.REASON)) {
       html.append(printList("Detected <strong>" +

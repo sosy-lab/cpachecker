@@ -174,6 +174,10 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     }
   }
 
+  public List<Fault> getRankedList() {
+    return rankedList;
+  }
+
   public FaultReportWriter getHtmlWriter() {
     return htmlWriter;
   }

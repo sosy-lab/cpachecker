@@ -9,18 +9,25 @@
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings;
 
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableSet;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import org.antlr.v4.runtime.misc.MultiMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.parser.BooleanFormulaParser;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.trace.TraceFormula;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
+import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class InformationProvider {
 
@@ -31,71 +38,115 @@ public class InformationProvider {
    * @param edges counterexample as list of edges
    */
   public static void searchForAdditionalInformation(Collection<Fault> faults, List<CFAEdge> edges){
+    // matches eg "x = x + 1", "test = test4    - 3" but not "test = 3 + test4"
+    final Pattern matchIteration = Pattern.compile(".+=.+[+\\-/*][ 1-9]+[0-9]+");
+    // matches eg "x = 4 + arr[c + 3]
+    final Pattern matchArrayOperation = Pattern.compile(".*\\[.*[+\\-/*]+.*].*");
+
+    //Find iteration variables
+    Map<Object, Long> counts = edges.
+        stream().
+        map(e -> e.getDescription()).
+        collect(Collectors.groupingBy(e -> e, Collectors.counting()));
     Set<String> iterationVariables = new HashSet<>();
-    Set<CFAEdge> arrayEdges = new HashSet<>();
-    Set<String> operators = ImmutableSet.of("+", "-", "*", "/", "%");
-    Set<String> iterationPatterns = ImmutableSet.of("++", "--", "/", "%");
-
-    MultiMap<String, CFAEdge> descToEdges = new MultiMap<>();
-    edges.forEach(e -> descToEdges.map(e.getRawStatement(), e));
-
-    for (Entry<String, List<CFAEdge>> entry : descToEdges.entrySet()) {
-      String description = entry.getKey();
-      for (CFAEdge cfaEdge : entry.getValue()) {
-        if (cfaEdge.getEdgeType().equals(CFAEdgeType.StatementEdge) && description.contains("[")) {
-          String arrayContent = Splitter.on("[").splitToList(description).get(1);
-          for (String operator : operators) {
-            if (arrayContent.contains(operator)) {
-              arrayEdges.add(cfaEdge);
+    for (Entry<Object, Long> entry: counts.entrySet()) {
+      if (entry.getValue() > 3) {
+        String curr = (String)entry.getKey();
+        Matcher itMatch = matchIteration.matcher(curr);
+        if (itMatch.matches()) {
+          List<String> parts = Splitter.on(" ").splitToList(curr);
+          parts.removeIf(String::isBlank);
+          if (parts.size() > 2) {
+            if (parts.get(0).equals(parts.get(2))) {
+              iterationVariables.add(parts.get(0));
             }
           }
         }
-      }
-      // CPAchecker transforms the description of edges of source code like i++ to i = i + 1
-      if (description.contains("=")) {
-        List<String> operands = Splitter.on("=").splitToList(description);
-        if (operands.size() == 2) {
-          if (entry.getValue().size() > 2 && operands.get(1).contains(operands.get(0) + " + 1")) {
-            iterationVariables.add(operands.get(0).trim());
-          }
-          if (entry.getValue().size() > 2 && operands.get(1).contains(operands.get(0) + " - 1")) {
-            iterationVariables.add(operands.get(0).trim());
-          }
-        }
-      } else {
-        iterationPatterns.forEach(p -> {
-          if (description.startsWith(p) || description.endsWith(p)) {
-            iterationVariables.add(description.replace(p, ""));
-          }
-        });
       }
     }
 
     for (Fault fault : faults) {
       for (FaultContribution faultContribution : fault) {
-        boolean containsIterVar = false;
+        String description = faultContribution.correspondingEdge().getDescription();
+        boolean hasIter = false;
         for (String iterationVariable : iterationVariables) {
-          if (faultContribution.correspondingEdge().getRawStatement().contains("::"+iterationVariable)) {
-            containsIterVar = true;
+          if (description.contains(iterationVariable)) {
+            hasIter = true;
             break;
           }
         }
-        boolean isArrayVar = arrayEdges.contains(faultContribution.correspondingEdge());
-        if (isArrayVar && containsIterVar) {
-          fault.addInfo(FaultInfo.fix("Detected a suspicious operation within the array brackets using an iteration variable. Perhaps the iteration variable is initialized or used incorrectly."));
+        boolean hasCalc = matchArrayOperation.matcher(description).matches();
+        if (hasIter && hasCalc) {
+          fault.addInfo(FaultInfo.hint("Detected suspicious calculation within the array subscript using an iteration variable. Have a closer look to this line."));
           break;
         }
-        if (isArrayVar) {
-          fault.addInfo(FaultInfo.fix("Detected a suspicious operation within the array brackets. Perhaps adapting the calculation fixes the bug."));
+        if (hasIter) {
+          fault.addInfo(FaultInfo.hint("This line use an iteration variable. This may be especially prone to errors."));
+          break;
         }
-        if (containsIterVar) {
-          fault.addInfo(FaultInfo.hint("This edge uses an iteration variable. Check the initialization or the usage of it within the iteration-body."));
+        if (hasCalc) {
+          fault.addInfo(FaultInfo.hint("Detected suspicious calculation within the array subscript. This may be especially prone to errors"));
+          break;
         }
       }
     }
   }
 
 
+  public static void propagatePreCondition(List<Fault> rankedList, TraceFormula traceFormula, FormulaManagerView fmgr) {
+    if(!traceFormula.getPrecondition().toString().contains("_VERIFIER_nondet_")){
+      return;
+    }
+    Set<BooleanFormula> preconditions = fmgr.getBooleanFormulaManager().toConjunctionArgs(traceFormula.getPrecondition(), true);
+
+    Map<String, String> mapFormulaToValue = new HashMap<>();
+    List<String> assignments = new ArrayList<>();
+
+    for (BooleanFormula precondition : preconditions) {
+      String formulaString = precondition.toString();
+      formulaString = formulaString.replaceAll("\\(", "").replaceAll("\\)", "");
+      List<String> operatorAndOperands = Splitter.on("` ").splitToList(formulaString);
+      if(operatorAndOperands.size() != 2) {
+        return;
+      }
+      String withoutOperator = operatorAndOperands.get(1);
+      List<String> operands = Splitter.on(" ").splitToList(withoutOperator);
+      if(operands.size() != 2){
+        return;
+      }
+      if (operands.get(0).contains("__VERIFIER_nondet_") || (operands.get(0).contains("::") && operands.get(0).contains("@"))){
+        if((operands.get(0).contains("::") && operands.get(0).contains("@"))){
+          assignments.add(Splitter.on("@").splitToList(operands.get(0)).get(0) + " = " + operands.get(1));
+        } else {
+          mapFormulaToValue.put(operands.get(0), operands.get(1));
+        }
+      } else {
+        if((operands.get(1).contains("::") && operands.get(1).contains("@"))){
+          assignments.add(Splitter.on("@").splitToList(operands.get(1)).get(0) + " = " + operands.get(0));
+        } else {
+          mapFormulaToValue.put(operands.get(1), operands.get(0));
+        }
+      }
+    }
+
+    List<BooleanFormula> atoms = traceFormula.getEntries().toAtomList();
+    for(Entry<String, String> entry: mapFormulaToValue.entrySet()){
+      for (int i = 0 ; i < atoms.size(); i++) {
+        BooleanFormula atom = atoms.get(i);
+        if(atom.toString().contains(entry.getKey())){
+          atom = fmgr.uninstantiate(atom);
+          String assignment = BooleanFormulaParser
+              .parse(atom.toString().replaceAll(entry.getKey(), entry.getValue())).toString();
+          assignments.add(assignment);
+        }
+      }
+    }
+
+    String allAssignments = String.join(", ", assignments);
+    for (Fault fault : rankedList) {
+      fault.addInfo(FaultInfo.hint("The program fails for the following initial variable assignment: " + allAssignments));
+    }
+  }
 
 
 }
