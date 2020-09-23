@@ -41,10 +41,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
 import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
@@ -77,10 +74,10 @@ import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@Options(prefix = "cpa.predicate")
 public class PredicateAbstractionManager {
 
   final PredicateAbstractionStatistics stats = new PredicateAbstractionStatistics();
+  private final PredicateAbstractionManagerOptions options;
 
   private final LogManager logger;
   private final FormulaManagerView fmgr;
@@ -96,49 +93,13 @@ public class PredicateAbstractionManager {
 
   private static final Set<Integer> noAbstractionReuse = ImmutableSet.of();
 
-  private static enum AbstractionType {
+  static enum AbstractionType {
     CARTESIAN,
     CARTESIAN_BY_WEAKENING,
     BOOLEAN,
     COMBINED,
     ELIMINATION;
   }
-
-  @Option(secure=true, name = "abstraction.cartesian",
-      description = "whether to use Boolean (false) or Cartesian (true) abstraction")
-  @Deprecated
-  private boolean cartesianAbstraction = false;
-
-  @Option(secure=true, name = "abstraction.computation",
-      description = "whether to use Boolean or Cartesian abstraction or both")
-  private AbstractionType abstractionType = AbstractionType.BOOLEAN;
-
-  @Option(secure=true, name = "abstraction.dumpHardQueries",
-      description = "dump the abstraction formulas if they took to long")
-  private boolean dumpHardAbstractions = false;
-
-  @Option(secure=true, name = "abstraction.reuseAbstractionsFrom",
-      description="An initial set of comptued abstractions that might be reusable")
-  @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
-  private Path reuseAbstractionsFrom;
-
-  @Option(secure=true, description = "Max. number of edge of the abstraction tree to prescan for reuse")
-  private int maxAbstractionReusePrescan = 1;
-
-  @Option(secure=true, name = "abs.useCache", description = "use caching of abstractions")
-  private boolean useCache = true;
-
-  @Option(secure=true, name="refinement.splitItpAtoms",
-      description="split each arithmetic equality into two inequalities when extracting predicates from interpolants")
-  private boolean splitItpAtoms = false;
-
-  @Option(secure=true, name = "abstraction.identifyTrivialPredicates",
-      description="Identify those predicates where the result is trivially known before abstraction computation and omit them.")
-  private boolean identifyTrivialPredicates = false;
-
-  @Option(secure=true, name = "abstraction.simplify",
-      description="Simplify the abstraction formula that is stored to represent the state space. Helpful when debugging (formulas get smaller).")
-  private boolean simplifyAbstractionFormula = false;
 
   private boolean warnedOfCartesianAbstraction = false;
 
@@ -166,7 +127,7 @@ public class PredicateAbstractionManager {
       throws InvalidConfigurationException, PredicateParsingFailedException {
     shutdownNotifier = pShutdownNotifier;
 
-    pConfig.inject(this, PredicateAbstractionManager.class);
+    options = new PredicateAbstractionManagerOptions(pConfig);
 
     logger = pLogger;
     fmgr = pSolver.getFormulaManager();
@@ -177,20 +138,20 @@ public class PredicateAbstractionManager {
     solver = pSolver;
     invariantSupplier = pInvariantsSupplier;
 
-    if (cartesianAbstraction) {
-      abstractionType = AbstractionType.CARTESIAN;
+    if (options.isCartesianAbstraction()) {
+      options.setAbstractionType(AbstractionType.CARTESIAN);
     }
-    if (abstractionType == AbstractionType.COMBINED) {
+    if (options.getAbstractionType() == AbstractionType.COMBINED) {
       warnedOfCartesianAbstraction = true; // warning is not necessary
     }
-    if (abstractionType == AbstractionType.CARTESIAN_BY_WEAKENING) {
+    if (options.getAbstractionType() == AbstractionType.CARTESIAN_BY_WEAKENING) {
       weakeningManager =
           new InductiveWeakeningManager(pConfig, pSolver, pLogger, pShutdownNotifier);
     } else {
       weakeningManager = null;
     }
 
-    if (useCache) {
+    if (options.isUseCache()) {
       abstractionCache = new HashMap<>();
       unsatisfiabilityCache = new HashSet<>();
     } else {
@@ -198,13 +159,14 @@ public class PredicateAbstractionManager {
       unsatisfiabilityCache = null;
     }
 
-    if (useCache && (abstractionType != AbstractionType.BOOLEAN)) {
+    if (options.isUseCache() && (options.getAbstractionType() != AbstractionType.BOOLEAN)) {
       cartesianAbstractionCache = new HashMap<>();
     } else {
       cartesianAbstractionCache = null;
     }
 
-    abstractionStorage = new PredicateAbstractionsStorage(reuseAbstractionsFrom, logger, fmgr, null);
+    abstractionStorage =
+        new PredicateAbstractionsStorage(options.getReuseAbstractionsFrom(), logger, fmgr, null);
   }
 
   /**
@@ -243,7 +205,7 @@ public class PredicateAbstractionManager {
   }
 
   public void clear() {
-    if (useCache) {
+    if (options.isUseCache()) {
       abstractionCache.clear();
       unsatisfiabilityCache.clear();
     }
@@ -285,8 +247,7 @@ public class PredicateAbstractionManager {
     final SSAMap ssa = pathFormula.getSsa();
 
     // Try to reuse stored abstractions
-    if (reuseAbstractionsFrom != null
-        && !abstractionReuseDisabledBecauseOfAmbiguity) {
+    if (options.getReuseAbstractionsFrom() != null && !abstractionReuseDisabledBecauseOfAmbiguity) {
       AbstractionFormula reused =
           reuseAbstractionIfPossible(abstractionFormula, pathFormula, primaryFormula, location);
       if (reused != null) {
@@ -295,7 +256,7 @@ public class PredicateAbstractionManager {
     }
 
     // Shortcut if the precision is empty
-    if (pPredicates.isEmpty() && (abstractionType != AbstractionType.ELIMINATION)) {
+    if (pPredicates.isEmpty() && (options.getAbstractionType() != AbstractionType.ELIMINATION)) {
       logger.log(Level.FINEST, "Abstraction", currentAbstractionId, "with empty precision is true");
       stats.numSymbolicAbstractions.incrementAndGet();
       return makeTrueAbstractionFormula(pathFormula);
@@ -320,7 +281,7 @@ public class PredicateAbstractionManager {
 
     // caching
     Pair<BooleanFormula, ImmutableSet<BooleanFormula>> absKey = null;
-    if (useCache) {
+    if (options.isUseCache()) {
       ImmutableSet<BooleanFormula> instantiatedPreds =
           Collections3.transformedImmutableSetCopy(
               remainingPredicates, pred -> instantiator.apply(pred.getSymbolicAtom()));
@@ -362,7 +323,7 @@ public class PredicateAbstractionManager {
     // Compute result for those predicates
     // where we can trivially identify their truthness in the result
     Region abs = rmgr.makeTrue();
-    if (identifyTrivialPredicates) {
+    if (options.isIdentifyTrivialPredicates()) {
       stats.trivialPredicatesTime.start();
       abs = handleTrivialPredicates(remainingPredicates, abstractionFormula, pathFormula);
       stats.trivialPredicatesTime.stop();
@@ -382,7 +343,7 @@ public class PredicateAbstractionManager {
       }
     }
 
-    if (abstractionType == AbstractionType.ELIMINATION) {
+    if (options.getAbstractionType() == AbstractionType.ELIMINATION) {
       stats.quantifierEliminationTime.start();
       try {
         BooleanFormula eliminationResult = fmgr.uninstantiate(fmgr.eliminateDeadVariables(f, ssa));
@@ -390,7 +351,7 @@ public class PredicateAbstractionManager {
       } finally {
         stats.quantifierEliminationTime.stop();
       }
-    } else if (abstractionType == AbstractionType.CARTESIAN_BY_WEAKENING) {
+    } else if (options.getAbstractionType() == AbstractionType.CARTESIAN_BY_WEAKENING) {
       abs = rmgr.makeAnd(abs, buildCartesianAbstractionUsingWeakening(f, ssa, remainingPredicates));
 
     } else {
@@ -399,7 +360,7 @@ public class PredicateAbstractionManager {
 
     AbstractionFormula result = makeAbstractionFormula(abs, ssa, pathFormula);
 
-    if (useCache) {
+    if (options.isUseCache()) {
       abstractionCache.put(absKey, result);
 
       if (result.isFalse()) {
@@ -413,7 +374,7 @@ public class PredicateAbstractionManager {
     logger.log(Level.FINEST, "Computing abstraction took", abstractionTime, "ms");
     logger.log(Level.ALL, "Abstraction result is", result.asFormula());
 
-    if (dumpHardAbstractions && abstractionTime > 10000) {
+    if (options.isDumpHardAbstractions() && abstractionTime > 10000) {
       // we want to dump "hard" problems...
       dumpAbstractionProblem(f, pPredicates, result, currentAbstractionId);
     }
@@ -459,7 +420,7 @@ public class PredicateAbstractionManager {
 
     BooleanFormula symbolicAbs = amgr.convertRegionToFormula(abs);
 
-    if (simplifyAbstractionFormula) {
+    if (options.isSimplifyAbstractionFormula()) {
       symbolicAbs = fmgr.simplify(symbolicAbs);
     }
 
@@ -502,7 +463,7 @@ public class PredicateAbstractionManager {
         final int tryBasedOnAbstractionId = tryBasedOn.getFirst();
         final int tryLevel = tryBasedOn.getSecond();
 
-        if (tryLevel > maxAbstractionReusePrescan) {
+        if (tryLevel > options.getMaxAbstractionReusePrescan()) {
           continue;
         }
 
@@ -680,7 +641,11 @@ public class PredicateAbstractionManager {
           region = regionCreator.makeAnd(region, predicateVar);
           predicateIt.remove(); // mark predicate as handled
           stats.numTrivialPredicates.incrementAndGet();
-          logger.log(Level.FINEST, "Predicate", predicate, "is unconditionally true in old abstraction and can be copied to the result.");
+          logger.log(
+              Level.FINEST,
+              "Predicate",
+              predicate,
+              "is unconditionally true in old abstraction and can be copied to the result.");
 
         } else {
           final Region negatedPredicateVar = regionCreator.makeNot(predicateVar);
@@ -690,11 +655,19 @@ public class PredicateAbstractionManager {
             region = regionCreator.makeAnd(region, negatedPredicateVar);
             predicateIt.remove(); // mark predicate as handled
             stats.numTrivialPredicates.incrementAndGet();
-            logger.log(Level.FINEST, "Negation of predicate", predicate, "is unconditionally true in old abstraction and can be copied to the result.");
+            logger.log(
+                Level.FINEST,
+                "Negation of predicate",
+                predicate,
+                "is unconditionally true in old abstraction and can be copied to the result.");
 
           } else {
             // predicate is used in old abs and there is no easy way to handle it
-            logger.log(Level.FINEST, "Predicate", predicate, "is relevant because it appears in the old abstraction.");
+            logger.log(
+                Level.FINEST,
+                "Predicate",
+                predicate,
+                "is relevant because it appears in the old abstraction.");
           }
         }
       }
@@ -742,7 +715,7 @@ public class PredicateAbstractionManager {
         }
 
       } else {
-        if (abstractionType != AbstractionType.BOOLEAN) {
+        if (options.getAbstractionType() != AbstractionType.BOOLEAN) {
           // First do cartesian abstraction if desired
           stats.cartesianAbstractionTime.start();
           try {
@@ -755,7 +728,8 @@ public class PredicateAbstractionManager {
           }
         }
 
-        if (abstractionType != AbstractionType.CARTESIAN && !remainingPredicates.isEmpty()) {
+        if (options.getAbstractionType() != AbstractionType.CARTESIAN
+            && !remainingPredicates.isEmpty()) {
           // Last do boolean abstraction if desired and necessary
           stats.numBooleanAbsPredicates.addAndGet(remainingPredicates.size());
           stats.booleanAbstractionTime.start();
@@ -819,7 +793,7 @@ public class PredicateAbstractionManager {
       while (predicateIt.hasNext()) {
         final AbstractionPredicate p = predicateIt.next();
         Pair<BooleanFormula, AbstractionPredicate> cacheKey = Pair.of(f, p);
-        if (useCache && cartesianAbstractionCache.containsKey(cacheKey)) {
+        if (options.isUseCache() && cartesianAbstractionCache.containsKey(cacheKey)) {
           byte predVal = cartesianAbstractionCache.get(cacheKey);
           stats.numCartesianAbsPredicatesCached.incrementAndGet();
 
@@ -881,7 +855,7 @@ public class PredicateAbstractionManager {
             }
           }
 
-          if (useCache) {
+          if (options.isUseCache()) {
             cartesianAbstractionCache.put(cacheKey, predVal);
           }
         }
@@ -1197,12 +1171,7 @@ public class PredicateAbstractionManager {
     PathFormula newBlockFormula = pfmgr.makeOr(a1.getBlockFormula(), a2.getBlockFormula());
 
     return new AbstractionFormula(
-        fmgr,
-        region,
-        formula,
-        instantiatedFormula,
-        newBlockFormula,
-        noAbstractionReuse);
+        fmgr, region, formula, instantiatedFormula, newBlockFormula, noAbstractionReuse);
   }
 
   AbstractionFormula makeAbstractionFormula(Region abs, SSAMap ssaMap, PathFormula blockFormula)
@@ -1210,7 +1179,7 @@ public class PredicateAbstractionManager {
     BooleanFormula symbolicAbs = amgr.convertRegionToFormula(abs);
     BooleanFormula instantiatedSymbolicAbs = fmgr.instantiate(symbolicAbs, ssaMap);
 
-    if (simplifyAbstractionFormula) {
+    if (options.isSimplifyAbstractionFormula()) {
       symbolicAbs = fmgr.simplify(symbolicAbs);
       instantiatedSymbolicAbs = fmgr.simplify(instantiatedSymbolicAbs);
     }
@@ -1232,7 +1201,7 @@ public class PredicateAbstractionManager {
       return ImmutableSet.of(amgr.makeFalsePredicate());
     }
 
-    Set<BooleanFormula> atoms = fmgr.extractAtoms(pFormula, splitItpAtoms);
+    Set<BooleanFormula> atoms = fmgr.extractAtoms(pFormula, options.isSplitItpAtoms());
 
     ImmutableSet<AbstractionPredicate> preds =
         Collections3.transformedImmutableSetCopy(
