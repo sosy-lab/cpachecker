@@ -267,10 +267,11 @@ public class SlicingAbstractionsUtils {
     START,
     END;
 
-    public static EnumSet<AbstractionPosition> BOTH = EnumSet.of(START, END);
-    public static EnumSet<AbstractionPosition> NONE = EnumSet.noneOf(AbstractionPosition.class);
-    public static EnumSet<AbstractionPosition> ONLY_START = EnumSet.of(START);
-    public static EnumSet<AbstractionPosition> ONLY_END = EnumSet.of(END);
+    public static final EnumSet<AbstractionPosition> BOTH = EnumSet.of(START, END);
+    public static final EnumSet<AbstractionPosition> NONE =
+        EnumSet.noneOf(AbstractionPosition.class);
+    public static final EnumSet<AbstractionPosition> ONLY_START = EnumSet.of(START);
+    public static final EnumSet<AbstractionPosition> ONLY_END = EnumSet.of(END);
   }
 
   /**
