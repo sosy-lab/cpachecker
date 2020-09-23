@@ -26,6 +26,7 @@ from . import util
 from .webclient import (
     WebInterface,
     WebClientError,
+    UserAbortError,
     handle_result,
     CORELIMIT,
     MEMLIMIT,
@@ -235,6 +236,9 @@ def _handle_results(result_futures, output_handler, benchmark, run_set):
         except WebClientError as e:
             output_handler.set_error("VerifierCloud problem", run_set)
             logging.warning("Execution of %s failed: %s", run.identifier, e)
+        except UserAbortError as e:
+            output_handler.set_error("interrupted", run_set)
+            logging.warning("Execution of %s aborted: %s", run.identifier, e)
 
     executor.shutdown(wait=True)
 
