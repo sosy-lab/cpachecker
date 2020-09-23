@@ -240,7 +240,7 @@ class PredicateCPAStatistics implements Statistics {
       loopInvariantsWriter.exportLoopInvariantsAsPrecision(invariantPrecisionsFile, reached);
     }
 
-    PredicateAbstractionManager.Stats as = amgr.stats;
+    PredicateAbstractionStatistics as = amgr.stats;
 
     int numAbstractions = statistics.numAbstractions.getUpdateCount();
     out.println("Number of abstractions:            " + numAbstractions + " (" + toPercent(numAbstractions, statistics.postTimer.getNumberOfIntervals()) + " of all post computations)");
