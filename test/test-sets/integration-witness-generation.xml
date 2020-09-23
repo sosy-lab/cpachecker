@@ -84,6 +84,7 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/floats-cdfpl/sine_3*</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/floats-cdfpl/square*</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/float-benchs/filter*</exclude> <!-- mostly timeout -->
+    <exclude>../programs/benchmarks/float-benchs/exp_loop.yml</exclude> <!-- mostly timeout -->
     <exclude>../programs/benchmarks/float-newlib/float_req_bl_*b.yml</exclude> <!-- *a.yml is sufficient -->
     <exclude>../programs/benchmarks/float-newlib/float_req_bl_*c.yml</exclude> <!-- *a.yml is sufficient -->
     <exclude>../programs/benchmarks/float-newlib/double_req_bl_0720.yml</exclude> <!-- flapping timeout -->
