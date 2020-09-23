@@ -1185,6 +1185,10 @@ cpa.arg.export.code.handleTargetStates = NONE
 # write include directives
 cpa.arg.export.code.header = true
 
+# If specified, metadata about the produced C program will be exported to
+# this file
+cpa.arg.export.code.metadataOutput = no default value
+
 # export final ARG as .dot file
 cpa.arg.file = "ARG.dot"
 
