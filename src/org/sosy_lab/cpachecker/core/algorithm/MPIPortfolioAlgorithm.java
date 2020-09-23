@@ -279,7 +279,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
     verify(limitSubanalyses > 0);
 
-    return String.valueOf(limitSubanalyses) + "s";
+    return limitSubanalyses + "s";
   }
 
   private static Path getPathOrThrowError(String pRequiredBin)
