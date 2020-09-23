@@ -315,6 +315,24 @@ public class CtoFormulaConverter {
         case FLOAT:
           return FormulaType.getSinglePrecisionFloatingPointType();
         case DOUBLE:
+          if (simpleType.isLong()) {
+            if (machineModel.getSizeofLongDouble() == machineModel.getSizeofDouble()) {
+              // architecture without extended precision format
+              return FormulaType.getDoublePrecisionFloatingPointType();
+            } else if (machineModel == MachineModel.LINUX32
+                || machineModel == MachineModel.LINUX64) {
+              // gcc uses the x87 extended precision for long double on x86
+              // https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html (search for
+              // -m96bit-long-double)
+              // https://en.wikipedia.org/wiki/Long_double#Implementations
+              // The x87 extended precision has 15+63 bits:
+              // https://en.wikipedia.org/wiki/Extended_precision#x86_extended_precision_format
+              return FormulaType.getFloatingPointType(15, 63);
+            } else {
+              throw new AssertionError(
+                  "Missing implementation of long double for machine model " + machineModel);
+            }
+          }
           return FormulaType.getDoublePrecisionFloatingPointType();
         case FLOAT128:
           return FormulaType.getFloatingPointType(15, 112);

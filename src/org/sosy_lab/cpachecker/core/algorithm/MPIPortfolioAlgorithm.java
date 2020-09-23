@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.core.algorithm;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.base.Verify.verify;
@@ -81,12 +82,19 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> configFiles;
 
-  @Option(secure = true, required = true, description = "Number of processes to be used by MPI.")
+  @Option(secure = true, description = "Max. amount of processes to be used by MPI.")
   private int numberProcesses;
 
-  @Option(description = "File containing the ip addresses to be used by MPI.")
+  @Option(secure = true, description = "File containing the ip addresses to be used by MPI.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path hostfile;
+
+  @Option(
+    secure = true,
+    description = "The MCA parameter ('Modular Component Architecture') "
+        + "is available only on Open MPI frameworks. It might thus need to be "
+        + "disabled if unavailable on the working machine.")
+  private boolean disableMCAOptions;
 
   private final Configuration globalConfig;
   private final LogManager logger;
@@ -96,6 +104,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
   private final Map<String, Path> binaries;
   private final ImmutableList<SubanalysisConfig> subanalyses;
+  private final int availableProcessors;
 
   private final String mpiArgs;
 
@@ -117,13 +126,27 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     binaries.put(PYTHON3_BIN, getPathOrThrowError(PYTHON3_BIN));
     binaries.put(MPI_BIN, getPathOrThrowError(MPI_BIN));
 
+    String subanalysesTimelimit = computeTimelimitForSubanalyses(config);
+
     ImmutableList.Builder<SubanalysisConfig> subanalysesBuilder = new ImmutableList.Builder<>();
     for (int i = 0; i < configFiles.size(); i++) {
-      subanalysesBuilder.add(new SubanalysisConfig(i));
+      subanalysesBuilder.add(new SubanalysisConfig(i, subanalysesTimelimit));
     }
     subanalyses = subanalysesBuilder.build();
 
-    if (numberProcesses <= 1) {
+    stats.subanalysesTimelimit = subanalysesTimelimit;
+
+    availableProcessors = Runtime.getRuntime().availableProcessors();
+    verify(availableProcessors > 0);
+    logger.logf(Level.INFO, "Found %d logical processors on main node", availableProcessors);
+
+    if (numberProcesses < 1) {
+      // The user has not specified an amount of copies of the program that are to be executed on
+      // the given nodes. A heuristic is therefore computed below.
+
+      numberProcesses = 1;
+      numberProcesses *= availableProcessors;
+
       String numNodesEnv = System.getenv("AWS_BATCH_JOB_NUM_NODES");
       if (!isNullOrEmpty(numNodesEnv)) {
         logger.logf(
@@ -131,25 +154,34 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
             "Env variable 'AWS_BATCH_JOB_NUM_NODES' found with value '%s'. Continuing using this value.",
             numNodesEnv);
         try {
-          numberProcesses = Integer.parseInt(numNodesEnv);
+          numberProcesses *= Integer.parseInt(numNodesEnv);
         } catch (NumberFormatException e) {
           throw new InvalidConfigurationException(
-              "Env variable 'AWS_BATCH_JOB_NUM_NODES' does not contain a valid int value",
+              "Env variable 'AWS_BATCH_JOB_NUM_NODES' does not contain a valid integer value",
               e);
         }
-      } else {
-        numberProcesses = 1;
-        logger.logf(
-            Level.INFO,
-            "No information about the amount of available processes for MPI found. "
-                + "Taking %d as default value.",
-            numberProcesses);
       }
+    } else {
+      logger.logf(
+          Level.INFO,
+          "Number of available processes specified (%d). Not using a heuristic.",
+          numberProcesses);
     }
+
+    if (configFiles.size() < numberProcesses) {
+      numberProcesses = configFiles.size();
+    }
+
+    stats.noOfAlgorithmsExecuted = numberProcesses;
+    stats.usedSubanalyses =
+        FluentIterable.from(subanalyses)
+            .filter(x -> x.getIndex() < numberProcesses)
+            .transform(x -> x.getConfigName().toString())
+            .join(Joiner.on(", "));
 
     if (hostfile == null) {
       String envVariable = System.getenv("HOST_FILE_PATH");
-      if (envVariable != null) {
+      if (!isNullOrEmpty(envVariable)) {
         hostfile = Path.of(envVariable);
         logger.logf(
             Level.INFO,
@@ -160,19 +192,8 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
             Level.INFO,
             "Neither was a hostfile specified nor is one found in path. "
                 + "Running analysis on the local machine only.");
-
-        if (numberProcesses > 1) {
-          logger.log(
-              Level.WARNING,
-              "No hostfile was given, but a number of available processes was specified. "
-                  + "The sequential execution using MPI is not supported. Setting the "
-                  + "number of processes to 1.");
-          numberProcesses = 1;
-        }
       }
     }
-
-    stats.noOfAlgorithmsExecuted = numberProcesses;
 
     if (hostfile != null) {
       verify(
@@ -228,6 +249,43 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     }
   }
 
+  @SuppressWarnings("deprecation")
+  private static String computeTimelimitForSubanalyses(Configuration pConfig)
+      throws InvalidConfigurationException {
+    if (!pConfig.hasProperty("limits.time.cpu")) {
+      return SubanalysisConfig.SUBPROCESS_DEFAULT_TIMELIMIT;
+    }
+
+    @Nullable
+    String property = pConfig.getProperty("limits.time.cpu");
+    verify(!isNullOrEmpty(property));
+
+    String rawValue = Iterables.get(Splitter.on('s').split(property), 0).strip();
+    int limitMain;
+    try {
+      limitMain = Integer.parseInt(rawValue);
+    } catch (NumberFormatException e) {
+      throw new InvalidConfigurationException(
+          String.format("Unable to turn the value '%s' into an int value", rawValue),
+          e);
+    }
+
+    int limitSubanalyses;
+
+    // the values below were arbitrarily chosen, but I found them to be reasonable.
+    if (limitMain < 60) {
+      limitSubanalyses = (int) (limitMain * 0.8);
+    } else if (limitMain < 150) {
+      limitSubanalyses = limitMain - 15;
+    } else {
+      limitSubanalyses = Math.max((int) (limitMain * 0.8), limitMain - 90);
+    }
+
+    verify(limitSubanalyses > 0);
+
+    return limitSubanalyses + "s";
+  }
+
   private static Path getPathOrThrowError(String pRequiredBin)
       throws InvalidConfigurationException {
     Optional<Path> pathOpt =
@@ -260,26 +318,39 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     // for the subanalyses will be executed on the local machine only
     if (hostfile != null) {
 
-      // Force Open MPI to only send messages via eth0
-      // https://stackoverflow.com/a/15256822
-      //
-      // Addendum: The following command is apparently not available to all MPI frameworks
-      //
-      // cmdList.add("--mca");
-      // cmdList.add("btl_tcp_if_include");
-      // cmdList.add("eth0");
+      // The MCA parameter ('Modular Component Architecture') is only available to Open MPI
+      // frameworks
+      if (!disableMCAOptions) {
+        // Force Open MPI to only send messages via eth0.
+        // https://stackoverflow.com/a/15256822
+        cmdList.add("--mca");
+        cmdList.add("btl_tcp_if_include");
+        cmdList.add("eth0");
+      }
 
       cmdList.add("-hostfile");
       cmdList.add(hostfile.normalize().toString());
-
-      if (numberProcesses > 1) {
-        cmdList.add("-np");
-        cmdList.add(String.valueOf(numberProcesses));
-      }
-
-      cmdList.add("--map-by");
-      cmdList.add("node");
+    } else {
+      // Setting the following option makes by default use of the 'use-hwthreads-as-cpus' option,
+      // which leads to hardware threads being used as independent cpus.
+      cmdList.add("--host");
+      cmdList.add("localhost:" + numberProcesses);
     }
+
+    cmdList.add("-np");
+    cmdList.add(String.valueOf(numberProcesses));
+
+    /*
+     * The map-by argument uses the following syntax: ppr:N:resource:<options>
+     *
+     * ppr is short for 'processes per resource'. The above line means "assign N processes to each
+     * resource of type 'resource' available on the host".
+     *
+     * An exhaustive description that explains all options in detail can be found at
+     * https://www.open-mpi.org/doc/v3.0/man1/mpirun.1.php
+     */
+    cmdList.add("--map-by");
+    cmdList.add("ppr:" + availableProcessors + ":core");
 
     cmdList.add(binaries.get(PYTHON3_BIN).toString());
     cmdList.add(MPI_PYTHON_MAIN_PATH.normalize().toString());
@@ -316,6 +387,15 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
         logger.log(Level.INFO, "MPI has finished its job. Continuing in main node.");
 
         if (exitCode != 0) {
+          if (executor.getErrorOutput()
+              .stream()
+              .anyMatch(x -> x.contains("unrecognized argument mca"))) {
+            logger.log(
+                Level.SEVERE,
+                "The error log of the MPI binary indicates that the 'mca' option"
+                    + "is not available. You can try executing this analysis again "
+                    + "with this option disabled (mpiAlgorithm.disableMCAOptions=true)");
+          }
           throw new CPAException("MPI script has failed with exit code " + exitCode);
         }
       } finally {
@@ -417,7 +497,7 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
   private class SubanalysisConfig {
 
-    private static final String SUBPROCESS_TIMELIMIT = "750s"; // arbitrary value for now
+    private static final String SUBPROCESS_DEFAULT_TIMELIMIT = "750s"; // arbitrarily chosen
 
     private static final String OUTPUT_DIR = "output";
     private static final String SUBANALYSIS_DIR = "output_portfolio-analysis_";
@@ -441,8 +521,10 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     private ImmutableList<String> resultLog = null;
     private CPAcheckerResult result = null;
 
-    SubanalysisConfig(int index) throws InvalidConfigurationException {
+    SubanalysisConfig(int index, String pSubanalysesTimelimit)
+        throws InvalidConfigurationException {
       subanalysis_index = index;
+      checkArgument(!isNullOrEmpty(pSubanalysesTimelimit));
 
       configPath = configFiles.get(subanalysis_index);
       outputPath = Path.of(OUTPUT_DIR, SUBANALYSIS_DIR + subanalysis_index);
@@ -466,9 +548,10 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
               .clearOption("mpiAlgorithm.configFiles")
               .clearOption("analysis.name")
               .clearOption("mpiAlgorithm.numberProcesses")
-              .setOption("limits.time.cpu", SUBPROCESS_TIMELIMIT)
-              .setOption("output.path", outputPath.toString())
-              .setOption("specification", specPath.toString())
+              .clearOption("mpiAlgorithm.disableMCAOptions")
+              .setOption("limits.time.cpu", pSubanalysesTimelimit)
+              .setOption("output.path", checkNotNull(outputPath.toString()))
+              .setOption("specification", checkNotNull(specPath.toString()))
               .build();
 
       // Bring the command-line into a format which is executable by a python-script
@@ -488,6 +571,10 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
       builder.put(LOGFILE_KEY, outputPath.resolve(logfileName).toString());
 
       return ImmutableMap.of("Analysis_" + subanalysis_index, builder.build());
+    }
+
+    int getIndex() {
+      return subanalysis_index;
     }
 
     Path getConfigName() {
@@ -539,17 +626,21 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
 
   private static class MPIPortfolioAlgorithmStatistics implements Statistics {
 
-    private int noOfAlgorithmsExecuted = 0;
-    private String hostfilePath = null;
+    private int noOfAlgorithmsExecuted;
+    private String usedSubanalyses;
+    private String hostfilePath;
     private final Timer mpiBinaryTotalTimer = new Timer();
+    private String subanalysesTimelimit;
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-      pOut.println("Number of algorithms used:         " + noOfAlgorithmsExecuted);
+      pOut.println("Number of algorithms used:                  " + noOfAlgorithmsExecuted);
+      pOut.println("Subanalyses executed by MPI:                " + usedSubanalyses);
       if (hostfilePath != null) {
-        pOut.println("Hostfile path:                     " + hostfilePath);
+        pOut.println("Hostfile path:                              " + hostfilePath);
       }
-      pOut.println("MPI binary total execution time:   " + mpiBinaryTotalTimer);
+      pOut.println("MPI binary total execution time:         " + mpiBinaryTotalTimer);
+      pOut.println("Timelimit for the CPAchecker sub-instances: " + subanalysesTimelimit);
     }
 
     @Override

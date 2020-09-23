@@ -9,9 +9,10 @@
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
 import com.google.common.collect.ForwardingSet;
+import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -27,7 +28,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
  */
 public class Fault extends ForwardingSet<FaultContribution> {
 
-  private Set<FaultContribution> errorSet;
+  private ImmutableSet<FaultContribution> errorSet;
   private List<FaultInfo> infos;
   private Optional<Integer> intendedIndex;
 
@@ -40,17 +41,13 @@ public class Fault extends ForwardingSet<FaultContribution> {
    * Error Indicators indicate a subset of all edges that most likely contain an error.
    * @param pErrorSet set to forward
    */
-  public Fault(Set<FaultContribution> pErrorSet){
-    errorSet = pErrorSet;
-    infos = new ArrayList<>();
-    score = 0;
+  public Fault(Collection<FaultContribution> pErrorSet){
+    this(pErrorSet, 0);
     intendedIndex = Optional.empty();
   }
 
   public Fault(){
-    errorSet = new HashSet<>();
-    infos = new ArrayList<>();
-    score = 0;
+    this(ImmutableSet.of(), 0);
     intendedIndex = Optional.empty();
   }
 
@@ -59,9 +56,17 @@ public class Fault extends ForwardingSet<FaultContribution> {
    * @param singleton a FaultContribution that is transformed into a singleton set
    */
   public Fault(FaultContribution singleton){
-    errorSet = new HashSet<>(Collections.singleton(singleton));
+    this(Collections.singleton(singleton), 0);
+  }
+
+  public Fault(FaultContribution pContribs, double pScore) {
+    this(Collections.singleton(pContribs), pScore);
+  }
+
+  public Fault(Collection<FaultContribution> pContribs, double pScore) {
+    errorSet = ImmutableSet.copyOf(pContribs);
     infos = new ArrayList<>();
-    score = 0;
+    score = pScore;
   }
 
   /**
