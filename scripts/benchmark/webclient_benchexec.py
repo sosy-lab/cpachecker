@@ -104,7 +104,7 @@ def execute_benchmark(benchmark, output_handler):
             try:
                 result_futures = _submitRunsParallel(runSet, benchmark, output_handler)
                 _handle_results(result_futures, output_handler, benchmark, runSet)
-            except KeyboardInterrupt:
+            except (KeyboardInterrupt, UserAbortError):
                 STOPPED_BY_INTERRUPT = True
                 output_handler.set_error("interrupted", runSet)
             output_handler.output_after_run_set(runSet)
@@ -224,6 +224,8 @@ def _log_future_exception(result):
 
 
 def _handle_results(result_futures, output_handler, benchmark, run_set):
+    if not _webclient:
+        raise UserAbortError("User interrupt detected during _handle_results")
     executor = ThreadPoolExecutor(max_workers=_webclient.thread_count)
 
     for result_future in as_completed(result_futures.keys()):
