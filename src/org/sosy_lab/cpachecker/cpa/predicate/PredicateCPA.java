@@ -118,7 +118,6 @@ public class PredicateCPA
   private final PredicatePrecision initialPrecision;
   private final PathFormulaManager pathFormulaManager;
   private final Solver solver;
-  private final PredicateAbstractionManager predicateManager;
   private final PredicateCPAStatistics stats;
   private final PredicatePrecisionBootstrapper precisionBootstraper;
   private final CFA cfa;
@@ -197,20 +196,6 @@ public class PredicateCPA
             solver.getFormulaManager(),
             null);
     weakeningOptions = new WeakeningOptions(config);
-    predicateManager =
-        new PredicateAbstractionManager(
-            abstractionManager,
-            pathFormulaManager,
-            solver,
-            abstractionOptions,
-            weakeningOptions,
-            abstractionStorage,
-            logger,
-            shutdownNotifier,
-            abstractionStats,
-            invariantsManager.appendToAbstractionFormula()
-                ? invariantsManager
-                : TrivialInvariantSupplier.INSTANCE);
 
     statistics = new PredicateStatistics();
     options = new PredicateCpaOptions(config);
@@ -223,12 +208,12 @@ public class PredicateCPA
             formulaManager,
             shutdownNotifier,
             pathFormulaManager,
-            predicateManager);
+            getPredicateManager());
     initialPrecision = precisionBootstraper.prepareInitialPredicates();
     logger.log(Level.FINEST, "Initial precision is", initialPrecision);
 
     predicateProvider =
-        new PredicateProvider(config, pCfa, logger, formulaManager, predicateManager);
+        new PredicateProvider(config, pCfa, logger, formulaManager, getPredicateManager());
 
     stats =
         new PredicateCPAStatistics(
@@ -246,7 +231,7 @@ public class PredicateCPA
 
   @Override
   public AbstractDomain getAbstractDomain() {
-    return new PredicateAbstractDomain(predicateManager, symbolicCoverageCheck, statistics);
+    return new PredicateAbstractDomain(getPredicateManager(), symbolicCoverageCheck, statistics);
   }
 
   @Override
@@ -257,7 +242,7 @@ public class PredicateCPA
         formulaManager,
         pathFormulaManager,
         blk,
-        predicateManager,
+        getPredicateManager(),
         statistics,
         options);
   }
@@ -269,11 +254,7 @@ public class PredicateCPA
         return MergeSepOperator.getInstance();
       case "ABE":
         return new PredicateMergeOperator(
-            logger,
-            pathFormulaManager,
-            statistics,
-            mergeAbstractionStates,
-            predicateManager);
+            logger, pathFormulaManager, statistics, mergeAbstractionStates, getPredicateManager());
       default:
         throw new InternalError("Update list of allowed merge operators");
     }
@@ -285,7 +266,7 @@ public class PredicateCPA
       case "SEP":
         return new PredicateStopOperator(getAbstractDomain());
       case "SEPPCC":
-        return new PredicatePCCStopOperator(pathFormulaManager, predicateManager);
+        return new PredicatePCCStopOperator(pathFormulaManager, getPredicateManager());
       case "SEPNAA":
         return new PredicateNeverAtAbstractionStopOperator(getAbstractDomain());
       default:
@@ -294,7 +275,19 @@ public class PredicateCPA
   }
 
   public PredicateAbstractionManager getPredicateManager() {
-    return predicateManager;
+    return new PredicateAbstractionManager(
+        abstractionManager,
+        pathFormulaManager,
+        solver,
+        abstractionOptions,
+        weakeningOptions,
+        abstractionStorage,
+        logger,
+        shutdownNotifier,
+        abstractionStats,
+        invariantsManager.appendToAbstractionFormula()
+            ? invariantsManager
+            : TrivialInvariantSupplier.INSTANCE);
   }
 
   public PathFormulaManager getPathFormulaManager() {
@@ -321,7 +314,7 @@ public class PredicateCPA
   public AbstractState getInitialState(CFANode node, StateSpacePartition pPartition) {
     return PredicateAbstractState.mkAbstractionState(
         pathFormulaManager.makeEmptyPathFormula(),
-        predicateManager.makeTrueAbstractionFormula(null),
+        getPredicateManager().makeTrueAbstractionFormula(null),
         PathCopyingPersistentTreeMap.of());
   }
 
@@ -337,7 +330,7 @@ public class PredicateCPA
         formulaManager,
         pathFormulaManager,
         blk,
-        predicateManager,
+        getPredicateManager(),
         invariantsManager,
         predicateProvider,
         statistics);
@@ -374,11 +367,11 @@ public class PredicateCPA
 
     if (e1.isAbstractionState() && e2.isAbstractionState()) {
       try {
-        return predicateManager.checkCoverage(
-            e1.getAbstractionFormula(),
-            pathFormulaManager.makeEmptyPathFormula(e1.getPathFormula()),
-            e2.getAbstractionFormula()
-        );
+        return getPredicateManager()
+            .checkCoverage(
+                e1.getAbstractionFormula(),
+                pathFormulaManager.makeEmptyPathFormula(e1.getPathFormula()),
+                e2.getAbstractionFormula());
       } catch (SolverException e) {
         throw new CPAException("Solver Failure", e);
       }
