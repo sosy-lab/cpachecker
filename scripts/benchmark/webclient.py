@@ -98,12 +98,14 @@ class WebClientError(Exception):
     def _str_(self):
         return repr(self.value)
 
+
 class UserAbortError(Exception):
     def _init_(self, value):
         self.value = value
 
     def _str_(self):
         return repr(self.value)
+
 
 class PollingResultDownloader:
     def __init__(self, web_interface, result_poll_interval, unfinished_runs=None):
@@ -261,8 +263,8 @@ if HAS_SSECLIENT:
 
                 for message in self._sse_client:
                     if self._shutdown:
-                      self._sse_client.resp.close()
-                      break
+                        self._sse_client.resp.close()
+                        break
                     data = message.data
                     tokens = data.split(" ")
                     if len(tokens) == 2:
@@ -394,7 +396,9 @@ class WebInterface:
 
         self._connection = requests.Session()
         # increase the pool size a bit to get rid of warnings on aborting with SIGINT:
-        self._connection.mount('https://', requests.adapters.HTTPAdapter(pool_maxsize=100))
+        self._connection.mount(
+            "https://", requests.adapters.HTTPAdapter(pool_maxsize=100)
+        )
         self._connection.headers.update(default_headers)
         try:
             cert_paths = ssl.get_default_verify_paths()
@@ -1019,7 +1023,9 @@ class WebInterface:
                 for runId in self._unfinished_runs.keys():
                     stop_tasks.add(stop_executor.submit(self._stop_run, runId))
                     self._unfinished_runs[runId].set_exception(
-                        UserAbortError("Run was canceled because user requested shutdown.")
+                        UserAbortError(
+                            "Run was canceled because user requested shutdown."
+                        )
                     )
                 self._unfinished_runs.clear()
 
