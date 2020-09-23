@@ -365,6 +365,10 @@ class WebInterface:
         @param thread_count: the number of threads for fetching results in parallel
         @param result_poll_interval: the number of seconds to wait between polling results
         """
+        # this attribute is used to communicate shutdown to the futures
+        # of the run submission in case the user cancels while the run submission is still ongoing:
+        self.active = True
+
         if not (1 <= thread_count <= MAX_SUBMISSION_THREADS):
             sys.exit(
                 "Invalid number {} of client threads, needs to be between 1 and {}.".format(
@@ -588,8 +592,11 @@ class WebInterface:
         @param result_files_patterns: list of result_files_pattern (optional)
         @param required_files: list of additional file required to execute the run (optional)
         @raise WebClientError: if the HTTP request could not be created
+        @raise UserAbortError: if the user already requested shutdown on this instance
         @raise HTTPError: if the HTTP request was not successful
         """
+        if not self.active:
+            raise UserAbortError("User interrupt detected while submitting runs.")
         if result_files_pattern:
             if result_files_patterns:
                 raise ValueError(
@@ -1013,6 +1020,7 @@ class WebInterface:
         """
         Cancels all unfinished runs and stops all internal threads.
         """
+        self.active = False
         self._result_downloader.shutdown()
 
         if len(self._unfinished_runs) > 0:
