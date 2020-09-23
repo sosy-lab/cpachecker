@@ -40,8 +40,6 @@ import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.collect.Collections3;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.TimeSpan;
@@ -52,7 +50,6 @@ import org.sosy_lab.cpachecker.core.algorithm.invariants.InvariantSupplier.Trivi
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage.AbstractionNode;
-import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionFormula;
 import org.sosy_lab.cpachecker.util.predicates.AbstractionManager;
@@ -68,6 +65,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
+import org.sosy_lab.cpachecker.util.predicates.weakening.WeakeningOptions;
 import org.sosy_lab.java_smt.api.BasicProverEnvironment.AllSatCallback;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
@@ -78,7 +76,6 @@ public class PredicateAbstractionManager {
 
   final PredicateAbstractionStatistics stats = new PredicateAbstractionStatistics();
   private final PredicateAbstractionManagerOptions options;
-
   private final LogManager logger;
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
@@ -120,15 +117,15 @@ public class PredicateAbstractionManager {
       AbstractionManager pAmgr,
       PathFormulaManager pPfmgr,
       Solver pSolver,
-      Configuration pConfig,
+      PredicateAbstractionManagerOptions pOptions,
+      WeakeningOptions weakeningOptions,
+      PredicateAbstractionsStorage pAbstractionStorage,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      InvariantSupplier pInvariantsSupplier)
-      throws InvalidConfigurationException, PredicateParsingFailedException {
+      InvariantSupplier pInvariantsSupplier) {
     shutdownNotifier = pShutdownNotifier;
 
-    options = new PredicateAbstractionManagerOptions(pConfig);
-
+    options = pOptions;
     logger = pLogger;
     fmgr = pSolver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
@@ -146,7 +143,7 @@ public class PredicateAbstractionManager {
     }
     if (options.getAbstractionType() == AbstractionType.CARTESIAN_BY_WEAKENING) {
       weakeningManager =
-          new InductiveWeakeningManager(pConfig, pSolver, pLogger, pShutdownNotifier);
+          new InductiveWeakeningManager(weakeningOptions, pSolver, pLogger, pShutdownNotifier);
     } else {
       weakeningManager = null;
     }
@@ -165,8 +162,7 @@ public class PredicateAbstractionManager {
       cartesianAbstractionCache = null;
     }
 
-    abstractionStorage =
-        new PredicateAbstractionsStorage(options.getReuseAbstractionsFrom(), logger, fmgr, null);
+    abstractionStorage = pAbstractionStorage;
   }
 
   /**

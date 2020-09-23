@@ -98,7 +98,7 @@ public class PredicateAbstractionManagerOptions {
     return dumpHardAbstractions;
   }
 
-  Path getReuseAbstractionsFrom() {
+  public Path getReuseAbstractionsFrom() {
     return reuseAbstractionsFrom;
   }
 

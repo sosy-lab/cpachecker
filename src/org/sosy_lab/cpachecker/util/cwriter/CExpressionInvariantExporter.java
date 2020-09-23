@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
+import org.sosy_lab.cpachecker.util.predicates.weakening.WeakeningOptions;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 
@@ -67,9 +68,9 @@ public class CExpressionInvariantExporter {
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     formulaToCExpressionConverter = new FormulaToCExpressionConverter(fmgr);
-    inductiveWeakeningManager = new InductiveWeakeningManager(
-        pConfiguration,
-        solver, pLogManager, pShutdownNotifier);
+    inductiveWeakeningManager =
+        new InductiveWeakeningManager(
+            new WeakeningOptions(pConfiguration), solver, pLogManager, pShutdownNotifier);
   }
 
   /**
