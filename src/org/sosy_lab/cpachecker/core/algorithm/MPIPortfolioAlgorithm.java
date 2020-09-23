@@ -81,12 +81,18 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private List<Path> configFiles;
 
-  @Option(secure = true, required = true, description = "Number of processes to be used by MPI.")
+  @Option(secure = true, description = "Max. amount of processes to be used by MPI.")
   private int numberProcesses;
 
   @Option(description = "File containing the ip addresses to be used by MPI.")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path hostfile;
+
+  @Option(
+    description = "The MCA parameter ('Modular Component Architecture') "
+        + "is available only on Open MPI frameworks. It might thus need to be "
+        + "disabled if unavailable on the working machine.")
+  private boolean disableMCAOptions;
 
   private final Configuration globalConfig;
   private final LogManager logger;
@@ -260,14 +266,15 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
     // for the subanalyses will be executed on the local machine only
     if (hostfile != null) {
 
-      // Force Open MPI to only send messages via eth0
-      // https://stackoverflow.com/a/15256822
-      //
-      // Addendum: The following command is apparently not available to all MPI frameworks
-      //
-      // cmdList.add("--mca");
-      // cmdList.add("btl_tcp_if_include");
-      // cmdList.add("eth0");
+      // The MCA parameter ('Modular Component Architecture') is only available to Open MPI
+      // frameworks
+      if (!disableMCAOptions) {
+        // Force Open MPI to only send messages via eth0.
+        // https://stackoverflow.com/a/15256822
+        cmdList.add("--mca");
+        cmdList.add("btl_tcp_if_include");
+        cmdList.add("eth0");
+      }
 
       cmdList.add("-hostfile");
       cmdList.add(hostfile.normalize().toString());
@@ -316,6 +323,15 @@ public class MPIPortfolioAlgorithm implements Algorithm, StatisticsProvider {
         logger.log(Level.INFO, "MPI has finished its job. Continuing in main node.");
 
         if (exitCode != 0) {
+          if (executor.getErrorOutput()
+              .stream()
+              .anyMatch(x -> x.contains("unrecognized argument mca"))) {
+            logger.log(
+                Level.SEVERE,
+                "The error log of the MPI binary indicates that the 'mca' option"
+                    + "is not available. You can try executing this analysis again "
+                    + "with this option disabled (mpiAlgorithm.disableMCAOptions=true)");
+          }
           throw new CPAException("MPI script has failed with exit code " + exitCode);
         }
       } finally {
