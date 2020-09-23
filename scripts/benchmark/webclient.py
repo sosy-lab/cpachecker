@@ -252,17 +252,10 @@ if HAS_SSECLIENT:
                     self._fall_back()
                     return
 
-                # instead of a nice loop aka 'for message in self._sse_client',
-                # we use a generator to handle exceptions (AttributeError) in a better way
-                def iterate(sseClient):
-                    try:
-                        for message in sseClient:
-                            yield message
-                    except AttributeError as e:
-                        logging.warning("SSE connection terminated: %s", e)
-                        raise StopIteration
-
-                for message in iterate(self._sse_client):
+                for message in self._sse_client:
+                    if self._shutdown:
+                      self._sse_client.resp.close()
+                      break
                     data = message.data
                     tokens = data.split(" ")
                     if len(tokens) == 2:
@@ -322,8 +315,6 @@ if HAS_SSECLIENT:
 
         def shutdown(self, wait=True):
             self._shutdown = True
-            if self._sse_client:
-                self._sse_client.resp.close()
             self._state_receive_executor.shutdown(wait=wait)
 
 
