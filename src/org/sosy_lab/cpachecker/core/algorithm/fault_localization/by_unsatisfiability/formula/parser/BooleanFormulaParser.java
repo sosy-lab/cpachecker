@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiab
 import java.util.ArrayDeque;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.parser.FormulaNode.FormulaNodeType;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -99,8 +98,7 @@ public class BooleanFormulaParser {
     switch (curr.getType()) {
       case ExpressionNode:
         ExpressionNode currExprNode = (ExpressionNode) curr;
-        currExprNode.getOperands().addAll(reversed.stream().map(fn -> (ExpressionNode)fn).collect(
-            Collectors.toList()));
+        currExprNode.getOperands().addAll(reversed);
         pSyntaxStack.push(currExprNode);
         break;
       case AndNode:

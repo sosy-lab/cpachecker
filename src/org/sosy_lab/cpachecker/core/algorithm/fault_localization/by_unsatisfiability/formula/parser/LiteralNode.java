@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 import java.util.Objects;
 
-public class LiteralNode extends ExpressionNode {
+public class LiteralNode implements FormulaNode {
 
   private final String literal;
 
@@ -23,7 +23,6 @@ public class LiteralNode extends ExpressionNode {
   public static final LiteralNode EMPTY = new LiteralNode("()");
 
   public LiteralNode(String pLiteral) {
-    super("LITERAL");
     literal = pLiteral;
   }
 

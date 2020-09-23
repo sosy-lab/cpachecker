@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 public class ExpressionNode implements FormulaNode {
 
   private String operator;
-  private List<ExpressionNode> operands;
+  private List<FormulaNode> operands;
 
   public ExpressionNode(String pOperator) {
     operator = pOperator;
@@ -39,7 +39,7 @@ public class ExpressionNode implements FormulaNode {
     operands.add(node);
   }
 
-  public List<ExpressionNode> getOperands() {
+  public List<FormulaNode> getOperands() {
     return operands;
   }
 
@@ -64,7 +64,7 @@ public class ExpressionNode implements FormulaNode {
   public int hashCode() {
     int hashCode = 17;
     hashCode = Objects.hash(hashCode, operator);
-    for (ExpressionNode operand : operands) {
+    for (FormulaNode operand : operands) {
       hashCode = Objects.hash(hashCode, operand);
     }
     return hashCode;
@@ -82,7 +82,7 @@ public class ExpressionNode implements FormulaNode {
     return "(" + op + " " + operands.stream().map(opt -> opt.toString()).collect(Collectors.joining(" ")) + ")";
   }
 
-  public void setOperands(List<ExpressionNode> pOperands) {
+  public void setOperands(List<FormulaNode> pOperands) {
     operands = pOperands;
   }
 }
