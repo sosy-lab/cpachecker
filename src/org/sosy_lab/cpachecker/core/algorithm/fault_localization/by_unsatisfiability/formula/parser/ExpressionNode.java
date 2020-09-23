@@ -72,14 +72,31 @@ public class ExpressionNode implements FormulaNode {
 
   @Override
   public String toString() {
-    String op = operator;
-    if (op.contains("_") && !op.startsWith("_")) {
-      op = Splitter.on("_").splitToList(operator).get(0);
-    }
+    String op = readableOperator(operator);
     if (operands.size() == 2) {
       return "(" + operands.get(0) + " " + op + " "  + operands.get(1) + ")";
     }
     return "(" + op + " " + operands.stream().map(opt -> opt.toString()).collect(Collectors.joining(" ")) + ")";
+  }
+
+  private String readableOperator (String pOperator) {
+    String copy = pOperator;
+    if (pOperator.contains("_") && !pOperator.startsWith("_")) {
+      pOperator = Splitter.on("_").splitToList(pOperator).get(0);
+    }
+    switch (pOperator) {
+      case "bvsdiv":
+        return "/";
+      case "bvadd":
+        return "+";
+      case "bvslt":
+        return "<";
+      case "bvextract":
+        return copy;
+      default:
+        return pOperator;
+    }
+
   }
 
   public void setOperands(List<FormulaNode> pOperands) {
