@@ -294,9 +294,7 @@ class MPIMain:
                         outputfile.write(proc_stdout)
                         proc_output = proc_stdout.split("\n")
 
-            logger.info(
-                "Process returned with status code %d", self.process.returncode,
-            )
+            logger.info("Process returned with status code %d", self.process.returncode)
             if not self.shutdown_requested:
                 self.shutdown_requested = True
                 self.publish_completion_of_subprocess(proc_output)
