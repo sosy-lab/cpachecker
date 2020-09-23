@@ -102,7 +102,7 @@ class PredicateCPAStatistics implements Statistics {
   private final BlockOperator blk;
   private final RegionManager rmgr;
   private final AbstractionManager absmgr;
-  private final PredicateAbstractionManager amgr;
+  private final PredicateAbstractionStatistics abstractionStats;
 
   private final PredicateStatistics statistics;
   private final PredicateMapWriter precisionWriter;
@@ -118,7 +118,7 @@ class PredicateCPAStatistics implements Statistics {
       BlockOperator pBlk,
       RegionManager pRmgr,
       AbstractionManager pAbsmgr,
-      PredicateAbstractionManager pPredAbsMgr,
+      PredicateAbstractionStatistics pAbstractionStats,
       PredicateStatistics pStatistics)
       throws InvalidConfigurationException {
     pConfig.inject(this, PredicateCPAStatistics.class);
@@ -129,7 +129,7 @@ class PredicateCPAStatistics implements Statistics {
     blk = pBlk;
     rmgr = pRmgr;
     absmgr = pAbsmgr;
-    amgr = pPredAbsMgr;
+    abstractionStats = pAbstractionStats;
     statistics = pStatistics;
 
     FormulaManagerView fmgr = pSolver.getFormulaManager();
@@ -240,7 +240,7 @@ class PredicateCPAStatistics implements Statistics {
       loopInvariantsWriter.exportLoopInvariantsAsPrecision(invariantPrecisionsFile, reached);
     }
 
-    PredicateAbstractionStatistics as = amgr.stats;
+    PredicateAbstractionStatistics as = abstractionStats;
 
     int numAbstractions = statistics.numAbstractions.getUpdateCount();
     out.println("Number of abstractions:            " + numAbstractions + " (" + toPercent(numAbstractions, statistics.postTimer.getNumberOfIntervals()) + " of all post computations)");

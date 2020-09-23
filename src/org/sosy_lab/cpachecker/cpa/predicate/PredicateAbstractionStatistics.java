@@ -13,7 +13,7 @@ import org.sosy_lab.common.time.NestedTimer;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 
-class PredicateAbstractionStatistics {
+public class PredicateAbstractionStatistics {
 
   AtomicInteger numCallsAbstraction = new AtomicInteger(0); // total calls
   AtomicInteger numAbstractionReuses = new AtomicInteger(0); // total reuses
@@ -56,6 +56,5 @@ class PredicateAbstractionStatistics {
   long allSatCount = 0;
   int maxAllSatCount = 0;
 
-  PredicateAbstractionStatistics() {
-  }
+  public PredicateAbstractionStatistics() {}
 }

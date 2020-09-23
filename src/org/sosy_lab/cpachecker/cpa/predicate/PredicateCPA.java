@@ -130,7 +130,10 @@ public class PredicateCPA
   private final FormulaManagerView formulaManager;
   private final PredicateCpaOptions options;
   private final PredicateAbstractionManagerOptions abstractionOptions;
+  private final WeakeningOptions weakeningOptions;
   private final PredicateAbstractionsStorage abstractionStorage;
+  private final PredicateAbstractionStatistics abstractionStats =
+      new PredicateAbstractionStatistics();
 
   // path formulas for PCC
   private final Map<PredicateAbstractState, PathFormula> computedPathFormulaePcc = new HashMap<>();
@@ -193,7 +196,7 @@ public class PredicateCPA
             logger,
             solver.getFormulaManager(),
             null);
-    WeakeningOptions weakeningOptions = new WeakeningOptions(config);
+    weakeningOptions = new WeakeningOptions(config);
     predicateManager =
         new PredicateAbstractionManager(
             abstractionManager,
@@ -203,7 +206,8 @@ public class PredicateCPA
             weakeningOptions,
             abstractionStorage,
             logger,
-            pShutdownNotifier,
+            shutdownNotifier,
+            abstractionStats,
             invariantsManager.appendToAbstractionFormula()
                 ? invariantsManager
                 : TrivialInvariantSupplier.INSTANCE);
@@ -236,7 +240,7 @@ public class PredicateCPA
             blk,
             regionManager,
             abstractionManager,
-            predicateManager,
+            abstractionStats,
             statistics);
   }
 

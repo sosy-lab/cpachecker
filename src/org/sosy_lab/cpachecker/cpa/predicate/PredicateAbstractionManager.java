@@ -74,7 +74,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public class PredicateAbstractionManager {
 
-  final PredicateAbstractionStatistics stats = new PredicateAbstractionStatistics();
+  private final PredicateAbstractionStatistics stats;
   private final PredicateAbstractionManagerOptions options;
   private final LogManager logger;
   private final FormulaManagerView fmgr;
@@ -122,6 +122,7 @@ public class PredicateAbstractionManager {
       PredicateAbstractionsStorage pAbstractionStorage,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
+      PredicateAbstractionStatistics pAbstractionStats,
       InvariantSupplier pInvariantsSupplier) {
     shutdownNotifier = pShutdownNotifier;
 
@@ -134,6 +135,7 @@ public class PredicateAbstractionManager {
     pfmgr = pPfmgr;
     solver = pSolver;
     invariantSupplier = pInvariantsSupplier;
+    stats = pAbstractionStats;
 
     if (options.isCartesianAbstraction()) {
       options.setAbstractionType(AbstractionType.CARTESIAN);
