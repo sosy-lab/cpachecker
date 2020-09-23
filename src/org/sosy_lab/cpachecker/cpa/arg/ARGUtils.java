@@ -1331,13 +1331,6 @@ public class ARGUtils {
     return pRoot.getSubgraph().filter(s -> !s.isCovered());
   }
 
-  /** Gets all target states in reached set. */
-  public static FluentIterable<ARGState> getAllTargetStates(ReachedSet pReachedSet) {
-    return FluentIterable.from(pReachedSet)
-        .transform(s -> AbstractStates.extractStateByType(s, ARGState.class))
-        .filter(ARGState::isTarget);
-  }
-
   /**
    * Returns all possible paths from the given state to the root of the ARG.
    */
