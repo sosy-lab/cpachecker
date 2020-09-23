@@ -1046,11 +1046,18 @@ class WebInterface:
         try:
             self._request("DELETE", path, expectedStatusCodes=[200, 204, 404])
         except HTTPError as e:
+            reason = e.reason if hasattr(e, "reason") else "<unknown>"
+            content = (
+                e.response.content
+                if hasattr(e, "response") and hasattr(e.response, "content")
+                else "<unknown>"
+            )
             logging.info(
-                "Stopping of run %s failed: %s\n%s",
+                "Stopping of run %s failed: %s\n%s\n%s",
                 run_id,
-                e.reason,
-                e.response.content or "",
+                e,
+                reason,
+                content or "",
             )
 
     def _request(
