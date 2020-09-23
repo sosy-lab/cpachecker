@@ -21,7 +21,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks>
     <requiredfiles>../programs/java/Symbolic</requiredfiles>
-    <option name="-cp">test/programs/java/Symbolic</option>
+    <option name="-cp">${benchmark_path}/../programs/java/Symbolic</option>
     <withoutfile>ContradictiveIf_true_assert</withoutfile>
     <withoutfile>NondetAssignment_false_assert</withoutfile>
     <withoutfile>NondetAssignment_true_assert</withoutfile>
@@ -31,7 +31,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks>
     <requiredfiles>../programs/java/CallTests</requiredfiles>
-    <option name="-cp">test/programs/java/CallTests</option>
+    <option name="-cp">${benchmark_path}/../programs/java/CallTests</option>
     <withoutfile>pack1.BooleanOperators</withoutfile>
     <withoutfile>pack1.CreateObjects_true_assert</withoutfile>
     <withoutfile>pack1.Arrays1</withoutfile>
@@ -46,7 +46,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks>
     <requiredfiles>../programs/java/Misc</requiredfiles>
-    <option name="-cp">test/programs/java/Misc</option>
+    <option name="-cp">${benchmark_path}/../programs/java/Misc</option>
     <withoutfile>pack4.CastTest_true_assert</withoutfile>
     <withoutfile>pack4.Class1_true_assert</withoutfile>
     <withoutfile>pack4.Class2_true_assert</withoutfile>
@@ -56,7 +56,7 @@ SPDX-License-Identifier: Apache-2.0
 
   <tasks>
     <requiredfiles>../programs/java/Statements</requiredfiles>
-    <option name="-cp">test/programs/java/Statements</option>
+    <option name="-cp">${benchmark_path}/../programs/java/Statements</option>
     <withoutfile>Arrays_true_assert</withoutfile>
     <withoutfile>Assert1_true_assert</withoutfile>
     <withoutfile>Assert2_true_assert</withoutfile>
