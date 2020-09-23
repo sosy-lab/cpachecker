@@ -225,6 +225,8 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithm, Sta
    * @return relevant information
    */
   private String extractRelevantInformation(FormulaManagerView fmgr, Interval interval) {
+    SyntaxTree tree = new SyntaxTree(interval.invariant.toString());
+    tree.getRoot();
     BooleanFormulaManager bmgr = fmgr.getBooleanFormulaManager();
     List<String> helpfulFormulas = new ArrayList<>();
     Set<BooleanFormula> conjunctions = bmgr.toConjunctionArgs(interval.invariant, true);
