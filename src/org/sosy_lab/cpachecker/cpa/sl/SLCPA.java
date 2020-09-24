@@ -77,7 +77,7 @@ public class SLCPA extends AbstractCPA implements StatisticsProvider {
   public SLState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
     PathFormula store = pfm.makeEmptyPathFormula();
-    return new SLState(store);
+    return new SLState.Builder(store).build();
   }
 
   @Override

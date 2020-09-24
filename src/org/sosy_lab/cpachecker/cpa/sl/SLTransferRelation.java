@@ -32,8 +32,6 @@ public class SLTransferRelation extends SingleEdgeTransferRelation {
   private final PathFormulaManager pfm;
   private final SLStatistics stats;
 
-  private SLState state;
-
   public SLTransferRelation(
       LogManager pLogger,
       Solver pSolver,
@@ -49,16 +47,16 @@ public class SLTransferRelation extends SingleEdgeTransferRelation {
   public Collection<? extends AbstractState>
       getAbstractSuccessorsForEdge(AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
           throws CPATransferException, InterruptedException {
-    state = ((SLState) pState).copyWithoutErrors();
+    SLState state = new SLState.Builder((SLState) pState, false).build();
 
     // Process current edge
     pfm.setContext(state);
     pfm.makeAnd(state.getPathFormula(), pCfaEdge);
-
+    state = (SLState) pfm.getContext();
     if (pCfaEdge instanceof AssumeEdge) {
       // Feasibility check
       try {
-        return handleAssumption();
+        return handleAssumption(state);
       } catch (SolverException e) {
         throw new CPATransferException("Feasibility check failed.", e);
       }
@@ -66,7 +64,8 @@ public class SLTransferRelation extends SingleEdgeTransferRelation {
     return ImmutableList.of(state);
   }
 
-  private List<SLState> handleAssumption() throws SolverException, InterruptedException {
+  private List<SLState> handleAssumption(SLState state)
+      throws SolverException, InterruptedException {
     BooleanFormula constraints =
         solver.getFormulaManager().getBooleanFormulaManager().and(state.getConstraints());
     boolean unsat = false;

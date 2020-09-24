@@ -25,6 +25,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.cpa.sl.CToFormulaConverterWithSL.AllocationCheckProcedure;
+import org.sosy_lab.cpachecker.cpa.sl.SLState.Builder;
 import org.sosy_lab.cpachecker.cpa.sl.SLState.SLStateError;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
@@ -49,7 +50,7 @@ import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProvider {
 
   private final Solver solver;
-  private final SLState state;
+  private SLState state;
   private final FormulaManagerView fm;
   private final SLFormulaManager slfm;
   private final BooleanFormulaManagerView bfm;
@@ -57,7 +58,6 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
   private final MachineModel machineModel;
   private final LogManager logger;
   private final AllocationCheckProcedure acProc;
-
 
   private final BitvectorType heapAddressFormulaType;
   private final BitvectorType heapValueFormulaType;
@@ -154,7 +154,6 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     return checkAllocation(loc);
   }
 
-
   /**
    * Checks whether the given location is allocated in the memory and assigns the given value to
    * that location.
@@ -172,8 +171,9 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
       Formula oldVal = getValueForLocation(onHeap, loc, segmentSize);
       boolean res = assignValueToLocation(onHeap, allocatedLoc.orElseThrow(), pVal, segmentSize);
       Optional<Formula> heapPtr = checkHeapAllocation(oldVal);
-      if (heapPtr.isPresent() && !isReachable(new HashSet<>(), firstByte((BitvectorFormula) heapPtr.orElseThrow()))) {
-        state.addError(SLStateError.MEMORY_LEAK);
+      if (heapPtr.isPresent()
+          && !isReachable(new HashSet<>(), firstByte((BitvectorFormula) heapPtr.orElseThrow()))) {
+        state = new SLState.Builder(state, true).addError(SLStateError.MEMORY_LEAK).build();
       }
       return res;
     } else {
@@ -181,8 +181,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     }
   }
 
-  private Formula
-      getValueForLocation(boolean onHeap, Formula pLoc, int size) {
+  private Formula getValueForLocation(boolean onHeap, Formula pLoc, int size) {
     Map<Formula, Formula> memory = onHeap ? state.getHeap() : state.getStack();
     List<Formula> byteLocs = state.getSegment(onHeap, pLoc, size);
     Formula res = memory.get(byteLocs.remove(0));
@@ -192,8 +191,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     return res;
   }
 
-  private boolean
-      assignValueToLocation(boolean onHeap, Formula pLoc, Formula pVal, int size) {
+  private boolean assignValueToLocation(boolean onHeap, Formula pLoc, Formula pVal, int size) {
     Map<Formula, Formula> memory = onHeap ? state.getHeap() : state.getStack();
     List<Formula> byteLocs = state.getSegment(onHeap, pLoc, size);
     if (byteLocs.get(0) == null) {
@@ -208,8 +206,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     return true;
   }
 
-  private Optional<Formula>
-      checkAllocation(Map<Formula, Formula> pMemory, Formula fLoc) {
+  private Optional<Formula> checkAllocation(Map<Formula, Formula> pMemory, Formula fLoc) {
     if (pMemory.isEmpty() || !fm.getFormulaType(fLoc).equals(heapAddressFormulaType)) {
       return Optional.empty();
     }
@@ -254,8 +251,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     BooleanFormula toCheck =
         slfm.makePointsTo(pLoc, fm.makeVariable(heapValueFormulaType, "__dummyVal"));
     try (ProverEnvironment prover =
-        solver.newProverEnvironment(
-            ProverOptions.ENABLE_SEPARATION_LOGIC)) {
+        solver.newProverEnvironment(ProverOptions.ENABLE_SEPARATION_LOGIC)) {
       prover.addConstraint(slfm.makeStar(toCheck, symHeap));
       stats.startSolverTime();
       return prover.isUnsat();
@@ -268,8 +264,8 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
   }
 
   /**
-   * Checks for location match on the heap by generating a model rather than checking each pair individually.
-   * However, segmentation faults occur on CVC4 solver side.
+   * Checks for location match on the heap by generating a model rather than checking each pair
+   * individually. However, segmentation faults occur on CVC4 solver side.
    */
   private Formula getLocation(Map<Formula, Formula> pMemory, Formula pLoc) {
     Set<Formula> keys = pMemory.keySet();
@@ -278,7 +274,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     BooleanFormula f = bfm.makeTrue();
     // Construct formula: ((Loc = key_0) <=> v_0) & ... & ((Loc = key_n) <=> v_n)
     for (int i = 0; i < keyArray.length; i++) {
-     BooleanFormula tmp = bfm.makeVariable(dummyVar + i);
+      BooleanFormula tmp = bfm.makeVariable(dummyVar + i);
       f = fm.makeAnd(f, fm.makeEqual(fm.makeEqual(pLoc, keyArray[i]), tmp));
     }
 
@@ -294,7 +290,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
           String var = a.getName();
           if (var.contains(dummyVar)) {
             // return key_n for v_n = true
-            if(bfm.isTrue((BooleanFormula) a.getValueAsFormula())) {
+            if (bfm.isTrue((BooleanFormula) a.getValueAsFormula())) {
               int index = Integer.parseInt(var.substring(var.indexOf('#') + 1));
               Formula match = keyArray[index];
               if (checkEquivalenceSMT(pLoc, match)) {
@@ -338,8 +334,7 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
       return false;
     }
     BooleanFormula tmp = fm.makeEqual(pF0, pF1);
-    try (ProverEnvironment prover =
-        solver.newProverEnvironment()) {
+    try (ProverEnvironment prover = solver.newProverEnvironment()) {
       prover.addConstraint(tmp);
       stats.startSolverTime();
       if (prover.isUnsat()) {
@@ -371,20 +366,21 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
   }
 
   public void addError(SLStateError pError) {
-    state.addError(pError);
+    state = new SLState.Builder(state, true).addError(pError).build();
   }
 
   private void allocate(boolean onHeap, Formula var, int size) {
+    Builder b = new SLState.Builder(state, true);
     BitvectorFormula key = (BitvectorFormula) var;
     assert fm.getFormulaType(key).equals(heapAddressFormulaType) : String
         .format("Type:%s Var:%s HeapType:%s", fm.getFormulaType(key), var, heapAddressFormulaType);
-    state.putOn(onHeap, var, fm.makeNumber(heapValueFormulaType, 0L));
-
-    state.getAllocationSizes().put(var, BigInteger.valueOf(size));
+    b.putOn(onHeap, var, fm.makeNumber(heapValueFormulaType, 0L));
+    b.addSegmentSize(var, BigInteger.valueOf(size));
     for (int i = 1; i < size; i++) {
       Formula loc = fm.makePlus(var, fm.makeNumber(heapAddressFormulaType, i));
-      state.putOn(onHeap, loc, fm.makeNumber(heapValueFormulaType, 0L));
+      b.putOn(onHeap, loc, fm.makeNumber(heapValueFormulaType, 0L));
     }
+    state = b.build();
   }
 
   private void allocateOnStack(Formula var, int size) {
@@ -395,35 +391,33 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     allocate(true, var, size);
   }
 
-  public boolean
-      deallocate(boolean fromHeap, Formula var, boolean checkLeak) {
+  public boolean deallocate(boolean fromHeap, Formula pLoc, boolean checkLeak) {
     Map<Formula, Formula> memory = fromHeap ? state.getHeap() : state.getStack();
-    BigInteger size = state.getAllocationSizes().remove(var);
+    BigInteger size = state.getAllocationSizes().get(pLoc);
     if (size == null) {
-      logger.log(Level.SEVERE, "Deallocate: " + var + " not found in SSAMap");
+      logger.log(Level.SEVERE, "Deallocate: " + pLoc + " not found in SSAMap");
       return false;
     }
-    if (!memory.containsKey(var)) {
+    if (!memory.containsKey(pLoc)) {
       return false;
     }
-    Formula loc = var;
-    Formula val =
-        getValueForLocation(
-            fromHeap,
-            loc,
-            size.intValueExact());
+    Builder b = new SLState.Builder(state, true);
+    b.removeSegmentSize(pLoc);
+    Formula val = getValueForLocation(fromHeap, pLoc, size.intValueExact());
+    Formula loc = pLoc;
     for (int i = 0; i < size.intValueExact(); i++) {
       if (i > 0) {
-        loc = fm.makePlus(var, fm.makeNumber(heapAddressFormulaType, i));
+        loc = fm.makePlus(pLoc, fm.makeNumber(heapAddressFormulaType, i));
       }
-      state.removeFrom(fromHeap, loc);
+      b.removeFrom(fromHeap, loc);
     }
+    state = b.build();
     // Check for leak.
     if (checkLeak) {
       Optional<Formula> heapPtr = checkHeapAllocation(val);
       if (heapPtr.isPresent()) {
         if (!isReachable(new HashSet<>(), firstByte((BitvectorFormula) heapPtr.orElseThrow()))) {
-          state.addError(SLStateError.MEMORY_LEAK);
+          state = b.addError(SLStateError.MEMORY_LEAK).build();
         }
       }
     }
@@ -473,18 +467,17 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     allocateOnHeap(pLoc, pSize);
   }
 
-  public void handleAlloca(Formula pLoc, int pSize, String functionName) {
+  public void handleAlloca(Formula pLoc, int pSize, String pFunctionName) {
     allocateOnStack(pLoc, pSize);
-    state.addAlloca(pLoc, functionName);
+    state = new SLState.Builder(state, true).addAlloca(pLoc, pFunctionName).build();
   }
 
   public void releaseAllocas(String functionScope) {
-    if (state.getAllocas().containsKey(functionScope)) {
-      Set<Formula> segments = state.getAllocas().get(functionScope);
-      for (Formula formula : segments) {
-        deallocateFromStack(formula, true);
-      }
-    }
+      state.getAllocas()
+          .entrySet()
+          .stream()
+          .filter(e -> e.getValue().equals(functionScope))
+          .map(e -> deallocateFromStack(e.getKey(), true));
   }
 
   public void handleVarDeclaration(Formula pVar, CType pType) {
@@ -551,25 +544,23 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     } else {
       res = slfm.makeStar(heap, stack);
     }
-    // BooleanFormula constraints = fm.getBooleanFormulaManager().and(state.getConstraints());
-    // return fm.makeAnd(res, constraints);
     return res;
   }
 
   private BooleanFormula makeSLFormula(Map<Formula, Formula> pMemory) {
     BooleanFormula formula = null;
     for (Entry<Formula, Formula> entry : pMemory.entrySet()) {
-Formula f = entry.getKey();
-BitvectorFormula key = (BitvectorFormula)f;
-assert fm.getFormulaType(key).equals(heapAddressFormulaType) : key;
-BitvectorFormula target = (BitvectorFormula)entry.getValue();
-BooleanFormula ptsTo = slfm.makePointsTo(f, target);
-if (formula == null) {
-formula = ptsTo;
-} else {
-formula = slfm.makeStar(formula, ptsTo);
-}
-}
+      Formula f = entry.getKey();
+      BitvectorFormula key = (BitvectorFormula) f;
+      assert fm.getFormulaType(key).equals(heapAddressFormulaType) : key;
+      BitvectorFormula target = (BitvectorFormula) entry.getValue();
+      BooleanFormula ptsTo = slfm.makePointsTo(f, target);
+      if (formula == null) {
+        formula = ptsTo;
+      } else {
+        formula = slfm.makeStar(formula, ptsTo);
+      }
+    }
     return formula;
   }
 
@@ -589,8 +580,7 @@ formula = slfm.makeStar(formula, ptsTo);
 
   public void checkMemLeak() {
     if (!state.heapIsEmpty()) {
-      state.addError(SLStateError.MEMORY_LEAK);
+      state = new SLState.Builder(state, true).addError(SLStateError.MEMORY_LEAK).build();
     }
-
   }
 }

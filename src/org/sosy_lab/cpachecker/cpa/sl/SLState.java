@@ -7,22 +7,21 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.cpa.sl;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import java.util.Map.Entry;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
-public class SLState implements AbstractState, AbstractQueryableState {
+public class SLState implements AbstractState, AbstractQueryableState, Graphable {
 
   private static final String HAS_INVALID_READS = "has-invalid-reads";
   private static final String HAS_INVALID_WRITES = "has-invalid-writes";
@@ -41,134 +40,193 @@ public class SLState implements AbstractState, AbstractQueryableState {
   /**
    * The PathFormula describing the state. Currently needed for the SSAMap.
    */
-  private PathFormula pathFormula;
+  private final PathFormula pathFormula;
 
   /**
    * The map representing the memory state. Can be eventually converted to a SL formula in the form
    * key_1->value_1 * ... * key_n->value_n
    */
-  private final Map<Formula, Formula> heap;
-  private final Map<Formula, Formula> stack;
-
-  /**
-   * Models the insertion order of the keys of the corresponding heap map to improve solver
-   * performance according to consecutive memory segments.
-   */
-  private final List<Formula> heapKeys;
-  private final List<Formula> stackKeys;
+  private final ImmutableMap<Formula, Formula> heap;
+  private final ImmutableMap<Formula, Formula> stack;
 
   /**
    * The pure part of the SL formula.
    */
-  private final Set<BooleanFormula> constraints;
+  private final ImmutableSet<BooleanFormula> constraints;
 
   /**
    * Tracks the allocation size of each memory segment. The key represents the start address of the
    * respective segment.
    */
-  private final Map<Formula, BigInteger> allocationSizes;
+  private final ImmutableMap<Formula, BigInteger> allocationSizes;
 
   /**
-   * The start address of all segments allocated by the function call alloca(). The key represents
-   * the function scope in which the segment is allocated mapping to a set of arbitrary segments.
+   * The start address of all segments allocated by the function call alloca() mapped to their
+   * associated function scope.
    */
-  private final Map<String, Set<Formula>> allocas;
+  private final ImmutableMap<Formula, String> allocas;
 
   /**
    * All memory safety properties violated by the current state.
    */
-  private final Set<SLStateError> errors = new HashSet<>();
+  private final ImmutableSet<SLStateError> errors;
 
+  public static class Builder {
+    private PathFormula pathFormula;
+    private ImmutableMap<Formula, String> allocas;
+    private ImmutableMap<Formula, BigInteger> segmentSizes;
+    private ImmutableMap<Formula, Formula> heap;
+    private ImmutableMap<Formula, Formula> stack;
+    private ImmutableSet<BooleanFormula> constraints;
+    private ImmutableSet<SLStateError> errors;
 
-  public SLState(
-      PathFormula pPathFormula,
-      Map<Formula, Formula> pHeap,
-      Map<Formula, Formula> pStack,
-      List<Formula> pHeapKeys,
-      List<Formula> pStackKeys,
-      Set<BooleanFormula> pConstraints,
-      Map<Formula, BigInteger> pAllocationSizes,
-      Map<String, Set<Formula>> pAllocas,
-      SLStateError pError) {
-    pathFormula = pPathFormula;
-    heap = pHeap;
-    stack = pStack;
-    heapKeys = pHeapKeys;
-    stackKeys = pStackKeys;
-    constraints = pConstraints;
-    allocationSizes = pAllocationSizes;
-    allocas = pAllocas;
-    if (pError != null) {
-      errors.add(pError);
+    public Builder(PathFormula pPathFormula) {
+      pathFormula = pPathFormula;
+      allocas = ImmutableMap.of();
+      segmentSizes = ImmutableMap.of();
+      heap = ImmutableMap.of();
+      stack = ImmutableMap.of();
+      constraints = ImmutableSet.of();
+      errors = ImmutableSet.of();
     }
 
+    public Builder(SLState pState, boolean includeErrors) {
+      pathFormula = pState.getPathFormula();
+      allocas = pState.getAllocas();
+      segmentSizes = pState.getAllocationSizes();
+      heap = pState.getHeap();
+      stack = pState.getStack();
+      constraints = pState.getConstraints();
+      if(includeErrors) {
+        errors = pState.getErrors();
+      } else {
+        errors = ImmutableSet.of();
+      }
+    }
+
+    public Builder pathFormula(PathFormula pPathFormula) {
+      pathFormula = pPathFormula;
+      return this;
+    }
+
+    public Builder addSegmentSize(Formula pStartLoc, BigInteger pSize) {
+      ImmutableMap.Builder<Formula, BigInteger> b = new ImmutableMap.Builder<>();
+      segmentSizes = b.putAll(segmentSizes).put(pStartLoc, pSize).build();
+      return this;
+    }
+
+    public Builder removeSegmentSize(Formula pStartLoc) {
+      ImmutableMap.Builder<Formula, BigInteger> b = new ImmutableMap.Builder<>();
+      segmentSizes.entrySet()
+          .stream()
+          .filter(e -> !e.getKey().equals(pStartLoc))
+          .map(e -> b.put(e));
+      segmentSizes = b.build();
+      return this;
+    }
+
+    public Builder addAlloca(Formula pLoc, String pFunctionScope) {
+      ImmutableMap.Builder<Formula, String> b = new ImmutableMap.Builder<>();
+      allocas = b.putAll(allocas).put(pLoc, pFunctionScope).build();
+      return this;
+    }
+
+    public Builder addConstraint(BooleanFormula pConstraint) {
+      ImmutableSet.Builder<BooleanFormula> b = new ImmutableSet.Builder<>();
+      constraints = b.addAll(constraints).add(pConstraint).build();
+      return this;
+    }
+
+    public Builder addError(SLStateError pError) {
+      ImmutableSet.Builder<SLStateError> b = new ImmutableSet.Builder<>();
+      errors = b.addAll(errors).add(pError).build();
+      return this;
+    }
+
+    public Builder putOn(boolean onHeap, Formula pKey, Formula pVal) {
+      ImmutableMap.Builder<Formula, Formula> mapBuilder = new ImmutableMap.Builder<>();
+      ImmutableMap<Formula, Formula> memory = onHeap ? heap : stack;
+      if (!memory.containsKey(pKey)) {
+        mapBuilder.putAll(memory);
+        mapBuilder.put(pKey, pVal);
+      } else {
+        memory.forEach((k, v) -> {
+          if (k.equals(pKey)) {
+            mapBuilder.put(pKey, pVal);
+          } else {
+            mapBuilder.put(k, v);
+          }
+        });
+      }
+      ImmutableMap<Formula, Formula> res = mapBuilder.build();
+      if (onHeap) {
+        heap = res;
+      } else {
+        stack = res;
+      }
+      return this;
+    }
+
+    public Builder removeFrom(boolean fromHeap, Formula pKey) {
+      ImmutableMap.Builder<Formula, Formula> mapBuilder = new ImmutableMap.Builder<>();
+      ImmutableMap<Formula, Formula> memory = fromHeap ? heap : stack;
+      memory.entrySet().stream().filter(e -> !e.getKey().equals(pKey)).map(e -> mapBuilder.put(e));
+      ImmutableMap<Formula, Formula> res = mapBuilder.build();
+      if (fromHeap) {
+        heap = res;
+      } else {
+        stack = res;
+      }
+      return this;
+    }
+
+    public SLState build() {
+      return new SLState(this);
+    }
   }
 
-  public SLState(PathFormula pStore) {
-    this(
-        pStore,
-        new HashMap<>(),
-        new HashMap<>(),
-        new ArrayList<>(),
-        new ArrayList<>(),
-        new HashSet<>(),
-        new HashMap<>(),
-        new HashMap<>(),
-        null);
+  private SLState(Builder pBuilder) {
+    pathFormula = pBuilder.pathFormula;
+    allocas = pBuilder.allocas;
+    allocationSizes = pBuilder.segmentSizes;
+    heap = pBuilder.heap;
+    stack = pBuilder.stack;
+    constraints = pBuilder.constraints;
+    errors = pBuilder.errors;
   }
 
   public PathFormula getPathFormula() {
     return pathFormula;
   }
 
-  @Override
-  public String toString() {
-    return "Errors:   "
-        + errors;
-    // + "\nFormula: "
-    // + pathFormula
-    // + "\nHeap: "
-    // + heap
-    // + "\nStack: "
-    // + stack;
+  public ImmutableSet<SLStateError> getErrors() {
+    return errors;
   }
 
-  public Map<Formula, Formula> getHeap() {
+  public ImmutableMap<Formula, Formula> getHeap() {
     return heap;
   }
 
-  public Map<Formula, Formula> getStack() {
+  public ImmutableMap<Formula, Formula> getStack() {
     return stack;
-  }
-
-  public void putOn(boolean onHeap, Formula pKey, Formula pVal) {
-    Map<Formula, Formula> memory = onHeap ? heap : stack;
-    List<Formula> keys = onHeap ? heapKeys : stackKeys;
-    if (!memory.containsKey(pKey)) {
-      keys.add(pKey);
-    }
-    memory.put(pKey, pVal);
-  }
-
-  public Formula removeFrom(boolean fromHeap, Formula pKey) {
-    Map<Formula, Formula> memory = fromHeap ? heap : stack;
-    List<Formula> keys = fromHeap ? heapKeys : stackKeys;
-    keys.remove(pKey);
-    return memory.remove(pKey);
   }
 
   public List<Formula> getSegment(boolean fromHeap, Formula pKey, int size) {
     List<Formula> res = new ArrayList<>(size);
-    List<Formula> keys = fromHeap ? heapKeys : stackKeys;
-    int index = keys.indexOf(pKey);
-    for (int i = 0; i < size; i++) {
-      res.add(keys.get(index + i));
+    int counter = 0;
+    boolean found = false;
+    for (Entry<Formula, Formula> entry : fromHeap ? heap.entrySet() : stack.entrySet()) {
+      found = found || entry.getKey().equals(pKey);
+      if (found) {
+        if (counter < size) {
+          res.add(entry.getKey());
+          counter++;
+        } else {
+          break;
+        }
+      }
     }
     return res;
-  }
-
-  public void addError(SLStateError pError) {
-    errors.add(pError);
   }
 
   @Override
@@ -196,52 +254,15 @@ public class SLState implements AbstractState, AbstractQueryableState {
     }
   }
 
-  public @Nullable SLState copyWithoutErrors() {
-    PathFormula newFormula =
-        new PathFormula(
-            pathFormula.getFormula(),
-            pathFormula.getSsa(),
-            pathFormula.getPointerTargetSet(),
-            pathFormula.getLength());
-    SLState s =
-        new SLState(
-        newFormula,
-            new HashMap<>(heap),
-            new HashMap<>(stack),
-            new ArrayList<>(heapKeys),
-            new ArrayList<>(stackKeys),
-            new HashSet<>(constraints),
-            new HashMap<>(allocationSizes),
-            new HashMap<>(allocas),
-        null);
-    return s;
-  }
-
-  public Map<Formula, BigInteger> getAllocationSizes() {
+  public ImmutableMap<Formula, BigInteger> getAllocationSizes() {
     return allocationSizes;
   }
 
-  public Map<String, Set<Formula>> getAllocas() {
+  public ImmutableMap<Formula, String> getAllocas() {
     return allocas;
   }
 
-  public void setPathFormula(PathFormula pFormula) {
-    pathFormula = pFormula;
-  }
-
-  public void addAlloca(Formula pLoc, String pCaller) {
-    if (!allocas.containsKey(pCaller)) {
-      allocas.put(pCaller, new HashSet<>());
-    }
-    allocas.get(pCaller).add(pLoc);
-
-  }
-
-  public void addConstraint(BooleanFormula pConstraint) {
-    constraints.add(pConstraint);
-  }
-
-  public Set<BooleanFormula> getConstraints() {
+  public ImmutableSet<BooleanFormula> getConstraints() {
     return constraints;
   }
 
@@ -249,4 +270,13 @@ public class SLState implements AbstractState, AbstractQueryableState {
     return heap.isEmpty();
   }
 
+  @Override
+  public String toDOTLabel() {
+    return errors.toString();
+  }
+
+  @Override
+  public boolean shouldBeHighlighted() {
+    return false;
+  }
 }
