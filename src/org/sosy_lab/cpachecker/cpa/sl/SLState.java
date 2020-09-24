@@ -17,7 +17,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
@@ -38,9 +38,9 @@ public class SLState implements AbstractState, AbstractQueryableState, Graphable
 
 
   /**
-   * The PathFormula describing the state. Currently needed for the SSAMap.
+   * The SSAMap to construct formulas representing the symbolic locations of variables.
    */
-  private final PathFormula pathFormula;
+  private final SSAMap ssa;
 
   /**
    * The map representing the memory state. Can be eventually converted to a SL formula in the form
@@ -72,7 +72,7 @@ public class SLState implements AbstractState, AbstractQueryableState, Graphable
   private final ImmutableSet<SLStateError> errors;
 
   public static class Builder {
-    private PathFormula pathFormula;
+    private SSAMap ssa;
     private ImmutableMap<Formula, String> allocas;
     private ImmutableMap<Formula, BigInteger> segmentSizes;
     private ImmutableMap<Formula, Formula> heap;
@@ -80,8 +80,8 @@ public class SLState implements AbstractState, AbstractQueryableState, Graphable
     private ImmutableSet<BooleanFormula> constraints;
     private ImmutableSet<SLStateError> errors;
 
-    public Builder(PathFormula pPathFormula) {
-      pathFormula = pPathFormula;
+    private Builder() {
+      ssa = SSAMap.emptySSAMap();
       allocas = ImmutableMap.of();
       segmentSizes = ImmutableMap.of();
       heap = ImmutableMap.of();
@@ -91,7 +91,7 @@ public class SLState implements AbstractState, AbstractQueryableState, Graphable
     }
 
     public Builder(SLState pState, boolean includeErrors) {
-      pathFormula = pState.getPathFormula();
+      ssa = pState.getSsaMap();
       allocas = pState.getAllocas();
       segmentSizes = pState.getAllocationSizes();
       heap = pState.getHeap();
@@ -104,8 +104,8 @@ public class SLState implements AbstractState, AbstractQueryableState, Graphable
       }
     }
 
-    public Builder pathFormula(PathFormula pPathFormula) {
-      pathFormula = pPathFormula;
+    public Builder ssaMap(SSAMap pSsa) {
+      ssa = pSsa;
       return this;
     }
 
@@ -117,10 +117,11 @@ public class SLState implements AbstractState, AbstractQueryableState, Graphable
 
     public Builder removeSegmentSize(Formula pStartLoc) {
       ImmutableMap.Builder<Formula, BigInteger> b = new ImmutableMap.Builder<>();
-      segmentSizes.entrySet()
-          .stream()
-          .filter(e -> !e.getKey().equals(pStartLoc))
-          .map(e -> b.put(e));
+      segmentSizes.forEach((k, v) -> {
+        if(!k.equals(pStartLoc)) {
+          b.put(k, v);
+        }
+      });
       segmentSizes = b.build();
       return this;
     }
@@ -170,7 +171,11 @@ public class SLState implements AbstractState, AbstractQueryableState, Graphable
     public Builder removeFrom(boolean fromHeap, Formula pKey) {
       ImmutableMap.Builder<Formula, Formula> mapBuilder = new ImmutableMap.Builder<>();
       ImmutableMap<Formula, Formula> memory = fromHeap ? heap : stack;
-      memory.entrySet().stream().filter(e -> !e.getKey().equals(pKey)).map(e -> mapBuilder.put(e));
+      memory.forEach((k, v) -> {
+        if (!k.equals(pKey)) {
+          mapBuilder.put(k, v);
+        }
+      });
       ImmutableMap<Formula, Formula> res = mapBuilder.build();
       if (fromHeap) {
         heap = res;
@@ -186,7 +191,7 @@ public class SLState implements AbstractState, AbstractQueryableState, Graphable
   }
 
   private SLState(Builder pBuilder) {
-    pathFormula = pBuilder.pathFormula;
+    ssa = pBuilder.ssa;
     allocas = pBuilder.allocas;
     allocationSizes = pBuilder.segmentSizes;
     heap = pBuilder.heap;
@@ -195,8 +200,16 @@ public class SLState implements AbstractState, AbstractQueryableState, Graphable
     errors = pBuilder.errors;
   }
 
-  public PathFormula getPathFormula() {
-    return pathFormula;
+  public static SLState copyWithoutErrors(SLState state) {
+    return new SLState.Builder(state, false).build();
+  }
+
+  public static SLState empty() {
+    return new Builder().build();
+  }
+
+  public SSAMap getSsaMap() {
+    return ssa;
   }
 
   public ImmutableSet<SLStateError> getErrors() {
