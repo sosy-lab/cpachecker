@@ -9,12 +9,17 @@
 package org.sosy_lab.cpachecker.util.refinement;
 
 import java.util.List;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-
 
 public interface PrefixProvider {
 
   List<InfeasiblePrefix> extractInfeasiblePrefixes(ARGPath path)
       throws CPAException, InterruptedException;
+
+  interface Factory {
+    PrefixProvider create(ConfigurableProgramAnalysis pCpa) throws InvalidConfigurationException;
+  }
 }
