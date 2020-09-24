@@ -41,6 +41,7 @@ public class OriginalMaxSatAlgorithm implements FaultLocalizationAlgorithm, Stat
   private StatTimer totalTime = new StatTimer(StatKind.SUM, "Total time to find all subsets");
   private StatCounter unsatCalls = new StatCounter("Total calls to sat solver");
   private StatCounter savedCalls = new StatCounter("Total calls prevented by subset check");
+
   @Override
   public Set<Fault> run(FormulaContext pContext, TraceFormula tf)
       throws CPATransferException, InterruptedException, SolverException, VerifyException {

@@ -27,6 +27,11 @@ public class CallHierarchyRanking implements FaultRanking {
   private Map<CFAEdge, Integer> mapEdgeToPosition;
   private int firstErrorEdge;
 
+  /**
+   * Reward fault contributions that are closer to the error in the counterexample
+   * @param pEdgeList counterexample
+   * @param pNumberErrorEdges amount of post-condition edges
+   */
   public CallHierarchyRanking(List<CFAEdge> pEdgeList, int pNumberErrorEdges) {
     mapEdgeToPosition = new HashMap<>();
     for (int i = 0; i < pEdgeList.size(); i++) {
