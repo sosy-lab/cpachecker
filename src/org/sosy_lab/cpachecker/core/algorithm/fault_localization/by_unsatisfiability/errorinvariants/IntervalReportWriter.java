@@ -61,6 +61,7 @@ public class IntervalReportWriter extends FaultReportWriter {
         case RANK_INFO:
           faultInfo.add((RankInfo) info);
           break;
+        default: throw new AssertionError("Unknown InfoType");
       }
     }
 

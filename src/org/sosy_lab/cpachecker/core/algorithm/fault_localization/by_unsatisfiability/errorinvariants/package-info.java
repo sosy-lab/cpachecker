@@ -7,6 +7,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * contains the error invariants algorithm which tries to summarize parts of the program as interpolants.
+ * contains the error invariants algorithm which tries to summarize parts of the program as
+ * interpolants. For more detailed inforamtion see:
+ * Ermis Evren, Martin Schäf, and Thomas Wies: "Error invariants." International Symposium on Formal Methods.
+ * Springer, Berlin, Heidelberg, 2012
  */
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.errorinvariants;

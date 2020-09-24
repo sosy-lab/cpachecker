@@ -20,7 +20,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 /**
  * Implements a method to obtain a set of faults out of a trace formula
  */
-public interface FaultLocalizationAlgorithm {
+public interface FaultLocalizerWithTraceFormula {
 
   Set<Fault> run(FormulaContext context, TraceFormula tf)
       throws CPAException, InterruptedException, SolverException, VerifyException,

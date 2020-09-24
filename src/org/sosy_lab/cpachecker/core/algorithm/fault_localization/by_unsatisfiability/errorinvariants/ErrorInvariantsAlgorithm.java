@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -30,7 +29,7 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizationAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizerWithTraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.trace.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.trace.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.trace.TraceFormula;
@@ -55,7 +54,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithm, Statistics {
+public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula, Statistics {
 
   private ShutdownNotifier shutdownNotifier;
   private Configuration config;
@@ -73,6 +72,16 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithm, Sta
   private StatCounter solverCalls = new StatCounter("Solver calls");
   private StatCounter memoizationCalls = new StatCounter("Saved calls through memoization");
 
+  /**
+   * Calculate an alternating sequence of edges and summarizing interpolants of the program
+   * to make error detection more accessible.
+   * Based on the work of Ermis Evren, Martin Schäf, and Thomas Wies:
+   * "Error invariants." International Symposium on Formal Methods. Springer, Berlin, Heidelberg, 2012
+   * @param pShutdownNotifier the shutdown notifier
+   * @param pConfiguration the run configurations
+   * @param pLogger the logger
+   * @param pUseMem whether to cache interpolants
+   */
   public ErrorInvariantsAlgorithm(
       ShutdownNotifier pShutdownNotifier,
       Configuration pConfiguration,
@@ -130,8 +139,8 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithm, Sta
       BooleanFormula interpolant = interpolants.get(i);
       Interval current =
           new Interval(
-              search(0, i, x -> !isErrInv(interpolant, x)),
-              search(i, tf.traceSize(), x -> isErrInv(interpolant, x)) - 1,
+              search(0, i, interpolant, true),
+              search(i, tf.traceSize(), interpolant, false) - 1,
               interpolant);
       allIntervals.add(current);
     }
@@ -163,11 +172,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithm, Sta
 
   /**
    * Transforms an abstract error trace to faults.
-   * An abstract error trace looks (in the best case) like this:
-   * Interval[0;4] invariant1
-   * Selector 5
-   * Interval [6:10] invariant2
-   * ...
+   * An abstract error trace is an alternating sequence of intervals and selectors.
    * @param abstractTrace Abstract trace of a traceformula
    * @return faults for the report
    */
@@ -217,9 +222,9 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithm, Sta
   }
 
   /**
-   * Some interpolants (e.g. arrays) may have an unreadable format.
-   * Since most of the users will be confused by the internal representation we reduce
-   * the information to only the relevant one.
+   * Extracts the fault-relevant information from the given formula.
+   * Since the original trace formulas are often too detailed for a concise description of the fault,
+   * this method reduces the displayed information to the relevant one.
    * @param fmgr formula manager to instantiate and uninstantiate formulas
    * @param interval interval to extract information from
    * @return relevant information
@@ -249,19 +254,22 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithm, Sta
    * Perform a binary search to find the limits of an inductive interpolant
    * @param low start point
    * @param high end point
-   * @param incLow function that indicates the search direction
+   * @param interpolant interpolant which will guide the search direction
+   * @param negate whether the return value of the error invariants check should be negated.
    * @return the maximal or minimal bound of an inductive interval
    */
-  private int search(int low, int high, Function<Integer, Boolean> incLow) {
+  private int search(int low, int high, BooleanFormula interpolant, boolean negate)
+      throws SolverException, InterruptedException {
     searchCalls.inc();
     if (high < low) {
       return low;
     }
     int mid = (low + high) / 2;
-    if (incLow.apply(mid)) {
-      return search(mid + 1, high, incLow);
+    // shortcut for if (negate) then !isErrInv else isErrInv
+    if (isErrInv(interpolant, mid) ^ negate) {
+      return search(mid + 1, high, interpolant, negate);
     } else {
-      return search(low, mid - 1, incLow);
+      return search(low, mid - 1, interpolant, negate);
     }
   }
 
@@ -269,10 +277,11 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithm, Sta
   /**
    * Return if interpolant is inductive on position i.
    * @param interpolant A interpolant
-   * @param i position in the trace formula
+   * @param slice where to slice the trace formula
    * @return true if interpolant is inductive at i, false else
    */
-  private boolean isErrInv(BooleanFormula interpolant, int i) {
+  private boolean isErrInv(BooleanFormula interpolant, int slice)
+      throws SolverException, InterruptedException {
     Solver solver = formulaContext.getSolver();
     FormulaManagerView fmgr = solver.getFormulaManager();
     BooleanFormulaManager bmgr = solver.getFormulaManager().getBooleanFormulaManager();
@@ -280,43 +289,37 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithm, Sta
     BooleanFormula plainInterpolant = fmgr.uninstantiate(interpolant);
 
     //Memoization
-    if (useMem && memorize.containsKey(plainInterpolant)) {
+    boolean applyMemoization = useMem && memorize.containsKey(plainInterpolant);
+    if (applyMemoization) {
       memoizationCalls.inc();
-      if(memorize.get(plainInterpolant).contains(-i-1)) {
+      if (memorize.get(plainInterpolant).contains(-slice-1)) {
         return false;
       }
-      if(memorize.get(plainInterpolant).contains(i+1)) {
+      if (memorize.get(plainInterpolant).contains(slice+1)) {
         return true;
       }
     }
 
     // shift the interpolant to the correct time stamp
-    SSAMap shift =
-        SSAMap.merge(
-            maps.get(i),
+    SSAMap shift = SSAMap.merge(
+            maps.get(slice),
             maps.get(0),
             MapsDifference.collectMapsDifferenceTo(new ArrayList<>()));
     BooleanFormula shiftedInterpolant = fmgr.instantiate(plainInterpolant, shift);
 
     BooleanFormula firstFormula =
         bmgr.implication(
-            bmgr.and(errorTrace.getPrecondition(), errorTrace.slice(i)), shiftedInterpolant);
+            bmgr.and(errorTrace.getPrecondition(), errorTrace.slice(slice)), shiftedInterpolant);
     BooleanFormula secondFormula =
-            bmgr.and(shiftedInterpolant, errorTrace.slice(i, n), errorTrace.getPostcondition());
+            bmgr.and(shiftedInterpolant, errorTrace.slice(slice, n), errorTrace.getPostcondition());
 
-    try {
-      //isValid
-      solverCalls.inc();
-      //isUnsat
-      solverCalls.inc();
-      boolean isValid = isValid(firstFormula) && solver.isUnsat(secondFormula);
-      if(useMem) {
-        memorize.put(plainInterpolant, isValid?i+1:-i-1);
-      }
-      return isValid;
-    } catch (SolverException | InterruptedException pE) {
-      throw new AssertionError("first and second formula have to be solvable for the solver");
+    //isUnsat
+    solverCalls.inc();
+    boolean isValid = isValid(firstFormula) && solver.isUnsat(secondFormula);
+    if(useMem) {
+      memorize.put(plainInterpolant, isValid?slice+1:-slice-1);
     }
+    return isValid;
   }
 
   /**
@@ -326,6 +329,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizationAlgorithm, Sta
    * @return true if formula is a tautology, false else
    */
   private boolean isValid(BooleanFormula formula) throws SolverException, InterruptedException {
+    solverCalls.inc();
     BooleanFormulaManager bmgr = formulaContext.getSolver().getFormulaManager().getBooleanFormulaManager();
     return formulaContext.getSolver().isUnsat(bmgr.not(formula));
   }

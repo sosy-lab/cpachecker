@@ -20,7 +20,8 @@ import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 
 /**
- * Sort the faults by the time of execution
+ * Rank the faults by the position in the counterexample.
+ * The closer edges of a fault are to the error location the higher the rank.
  */
 public class CallHierarchyRanking implements FaultRanking {
 
@@ -30,7 +31,7 @@ public class CallHierarchyRanking implements FaultRanking {
   /**
    * Reward fault contributions that are closer to the error in the counterexample
    * @param pEdgeList counterexample
-   * @param pNumberErrorEdges amount of post-condition edges
+   * @param pNumberErrorEdges number of post-condition edges
    */
   public CallHierarchyRanking(List<CFAEdge> pEdgeList, int pNumberErrorEdges) {
     mapEdgeToPosition = new HashMap<>();
@@ -42,8 +43,11 @@ public class CallHierarchyRanking implements FaultRanking {
 
   @Override
   public List<Fault> rank(Set<Fault> result) {
-    FaultRankingUtils.RankingResults results =
-        FaultRankingUtils.rankedListFor(result, f -> f.stream().mapToDouble(fc -> mapEdgeToPosition.get(fc.correspondingEdge())).max().orElse(0));
+    FaultRankingUtils.RankingResults results = FaultRankingUtils.rankedListFor(result, f -> f.stream()
+            .mapToDouble(fc -> mapEdgeToPosition.get(fc.correspondingEdge()))
+            .max()
+            .orElse(0)
+        );
     double overallSum = results.getLikelihoodMap().values().stream().mapToDouble(Double::doubleValue).sum();
     for (Entry<Fault, Double> faultDoubleEntry : results.getLikelihoodMap().entrySet()) {
       int min = firstErrorEdge - (int)faultDoubleEntry.getValue().doubleValue();

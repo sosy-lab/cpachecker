@@ -16,7 +16,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizationAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizerWithTraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.trace.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.trace.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.trace.TraceFormula;
@@ -31,7 +31,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class SingleUnsatCoreAlgorithm implements FaultLocalizationAlgorithm, Statistics {
+public class SingleUnsatCoreAlgorithm implements FaultLocalizerWithTraceFormula, Statistics {
 
   private StatTimer totalTime = new StatTimer("Total time");
 

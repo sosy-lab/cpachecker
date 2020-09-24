@@ -299,7 +299,7 @@ public class TraceFormula {
   }
 
   /**
-   * Get all trace elements up to position end
+   * Get all elements from 0 up to and including end-1
    * @param end cut the trace at position end
    * @return all elements from the trace up to position end as boolean formula
    */
@@ -308,7 +308,7 @@ public class TraceFormula {
   }
 
   /**
-   * Get all trace elements from start up to position end
+   * Get all elements from start up to and including end-1
    * @param start start at position <code>start</code>
    * @param end cut the trace at position <code>end</code>>
    * @return all trace elements from start up to position end as boolean formula

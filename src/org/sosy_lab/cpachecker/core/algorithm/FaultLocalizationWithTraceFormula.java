@@ -34,7 +34,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.errorinvariants.ErrorInvariantsAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizationAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizerWithTraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.errorinvariants.IntervalReportWriter;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.ModifiedMaxSatAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.OriginalMaxSatAlgorithm;
@@ -89,7 +89,7 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
   private final PathFormulaManagerImpl manager;
   private final TraceFormulaOptions options;
 
-  private final FaultLocalizationAlgorithm faultAlgorithm;
+  private final FaultLocalizerWithTraceFormula faultAlgorithm;
   private final StatTimer totalTime = new StatTimer("Total time for fault localization");
 
   @Option(secure=true, name="type",
@@ -102,7 +102,7 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
 
   @Option(secure=true, name="errorInvariants.fstf",
       description="enable flow-sensitive trace formula (may decrease runtime)") //can decrease runtime
-  private boolean fstf = true;
+  private boolean fstf = false;
 
   @Option(secure=true, name="maxsat.ban",
       description="ban faults with certain variables")
@@ -204,7 +204,7 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
   }
 
   private void runAlgorithm(
-      CounterexampleInfo pInfo, FaultLocalizationAlgorithm pAlgorithm)
+      CounterexampleInfo pInfo, FaultLocalizerWithTraceFormula pAlgorithm)
       throws CPAException, InterruptedException {
 
     // Run the algorithm and create a CFAPathWithAssumptions to the last reached state.
@@ -301,6 +301,7 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
       throw new CPAException("The counterexample is spurious. Calculating interpolants is not possible.");
     } finally{
       context.getSolver().close();
+      context.getProver().close();
     }
   }
 

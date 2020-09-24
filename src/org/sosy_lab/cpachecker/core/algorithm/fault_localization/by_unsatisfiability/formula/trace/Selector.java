@@ -58,6 +58,7 @@ public class Selector extends FaultContribution implements AbstractTraceElement 
     context = pContext;
     edge = pEdge;
   }
+
   /**
    * The truth value of the corresponding edge is essential. Enabling a selector is equivalent to
    * making the corresponding constraint hard.

@@ -26,12 +26,15 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 
+/**
+ * The Alternative Precondition extracts edges of the form <code>datatype name = value;</code> *
+ * and adds it to the precondition. Additionally all entries that will be part of the
+ * AlternativePrecondition are removed from the entry set.
+ */
 public class AlternativePrecondition {
 
   /**
-   * The Alternative Precondition extracts edges of the form <code>datatype name = value;</code> *
-   * and adds it to the precondition. Additionally all entries that will be part of the
-   * AlternativePrecondition * are removed from the entryset.
+   * Find the alternative pre-condition for a given formula
    * @param pFilter functions which will be part of the precondition
    * @param pIgnore variables that will not be part of the precondition
    * @param pDefaultPrecondition model of the trace formula where the post condition is negated
