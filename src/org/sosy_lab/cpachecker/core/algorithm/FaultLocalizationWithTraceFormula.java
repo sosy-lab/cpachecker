@@ -90,21 +90,21 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
   private final TraceFormulaOptions options;
 
   private final FaultLocalizationAlgorithm faultAlgorithm;
-  private final StatTimer totalTime = new StatTimer("Total time");
+  private final StatTimer totalTime = new StatTimer("Total time for fault localization");
 
   @Option(secure=true, name="type",
       description="which algorithm to use")
   private AlgorithmTypes algorithmType = AlgorithmTypes.UNSAT;
 
-  @Option(secure=true, name="memoization",
-      description="memorize interpolants") //can decrease runtime
+  @Option(secure=true, name="errorInvariants.memoization",
+      description="cache interpolants to decrease runtime") //can decrease runtime
   private boolean memoization = false;
 
-  @Option(secure=true, name="fstf",
-      description="enable flow-sensitive trace formula") //can decrease runtime
+  @Option(secure=true, name="errorInvariants.fstf",
+      description="enable flow-sensitive trace formula (may decrease runtime)") //can decrease runtime
   private boolean fstf = true;
 
-  @Option(secure=true, name="ban",
+  @Option(secure=true, name="maxsat.ban",
       description="ban faults with certain variables")
   private String ban = "";
 
@@ -121,9 +121,7 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
     //Options
     pConfig.inject(this);
     options = new TraceFormulaOptions(pConfig);
-    if (!checkOptions()) {
-      logger.log(Level.INFO, "Auto adjusted wrong configurations.");
-    }
+    checkOptions();
 
     // Parent algorithm
     algorithm = pStoreAlgorithm;
@@ -158,57 +156,50 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
     }
   }
 
-  public boolean checkOptions(){
-    boolean correctConfiguration = true;
+  public void checkOptions () throws InvalidConfigurationException {
     if (!algorithmType.equals(AlgorithmTypes.ERRINV) && memoization) {
-      logger.log(Level.SEVERE, "The option memoization will be ignored since the error invariants algorithm is not selected");
-      memoization = false;
-      correctConfiguration = false;
+      throw new InvalidConfigurationException("The option memoization will be ignored since the error invariants algorithm is not selected");
     }
     if (!algorithmType.equals(AlgorithmTypes.ERRINV) && fstf) {
-      logger.log(Level.SEVERE, "The option flow-sensitive trace formula will be ignored since the error invariants algorithm is not selected");
-      fstf = false;
-      correctConfiguration = false;
+      throw new InvalidConfigurationException("The option flow-sensitive trace formula will be ignored since the error invariants algorithm is not selected");
     }
     if (algorithmType.equals(AlgorithmTypes.ERRINV) && !ban.isBlank()) {
-      logger.log(Level.SEVERE, "The option ban will be ignored since the error invariants algorithm is not selected");
-      ban = "";
-      correctConfiguration = false;
+      throw new InvalidConfigurationException("The option ban will be ignored since the error invariants algorithm is not selected");
     }
     if (!algorithmType.equals(AlgorithmTypes.MAXSAT) && options.isReduceSelectors()) {
-      logger.log(Level.SEVERE, "The option reduceselectors will be ignored since MAX-SAT is not selected");
-      options.setReduceSelectors(false);
-      correctConfiguration = false;
+      throw new InvalidConfigurationException("The option reduceselectors will be ignored since MAX-SAT is not selected");
     }
     if (!options.getDisable().isBlank() && algorithmType.equals(AlgorithmTypes.ERRINV)) {
-      logger.log(Level.SEVERE, "The option ban will be ignored because it is not applicable on the error invariants algorithm");
-      correctConfiguration = false;
+      throw new InvalidConfigurationException("The option ban will be ignored because it is not applicable on the error invariants algorithm");
     }
-    return correctConfiguration;
   }
 
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
 
     totalTime.start();
-    // Find error labels
-    AlgorithmStatus status = algorithm.run(reachedSet);
-    FluentIterable<CounterexampleInfo> counterExamples =
-        Optionals.presentInstances(
-            from(reachedSet)
-                .filter(AbstractStates::isTargetState)
-                .filter(ARGState.class)
-                .transform(ARGState::getCounterexampleInformation));
+    AlgorithmStatus status;
+    try {
+      // Find error labels
+      status = algorithm.run(reachedSet);
+      FluentIterable<CounterexampleInfo> counterExamples =
+          Optionals.presentInstances(
+              from(reachedSet)
+                  .filter(AbstractStates::isTargetState)
+                  .filter(ARGState.class)
+                  .transform(ARGState::getCounterexampleInformation));
 
 
-    // run algorithm for every error
-    logger.log(Level.INFO, "Starting fault localization...");
-    for (CounterexampleInfo info : counterExamples) {
-      logger.log(Level.INFO, "Find explanations for fault #" + info.getUniqueId());
-      runAlgorithm(info, faultAlgorithm);
+      // run algorithm for every error
+      logger.log(Level.INFO, "Starting fault localization...");
+      for (CounterexampleInfo info : counterExamples) {
+        logger.log(Level.INFO, "Find explanations for fault #" + info.getUniqueId());
+        runAlgorithm(info, faultAlgorithm);
+      }
+      logger.log(Level.INFO, "Stopping fault localization...");
+    } finally{
+      totalTime.stop();
     }
-    logger.log(Level.INFO, "Stopping fault localization...");
-    totalTime.stop();
     return status;
   }
 
@@ -219,8 +210,7 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
     // Run the algorithm and create a CFAPathWithAssumptions to the last reached state.
     CFAPathWithAssumptions assumptions = pInfo.getCFAPathWithAssignments();
     if (assumptions.isEmpty()) {
-      logger.log(Level.INFO, "The analysis returned no assumptions.");
-      logger.log(Level.INFO, "No bugs found.");
+      logger.log(Level.INFO, "The analysis returned no assumptions. Fault localization not possible.");
       return;
     }
 
@@ -302,14 +292,13 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
           "Running " + pAlgorithm.getClass().getSimpleName() + ":\n" + info.toString());
 
     } catch (SolverException sE) {
-      logger.log(Level.INFO, "The solver was not able to find the UNSAT-core of the path formula.");
+      throw new CPAException("The solver was not able to find the UNSAT-core of the path formula.");
     } catch (VerifyException vE) {
-      logger.log(Level.INFO, "No bugs found because the trace formula is satisfiable or the counterexample is spurious.");
+      throw new CPAException( "No bugs found because the trace formula is satisfiable or the counterexample is spurious.");
     } catch (InvalidConfigurationException iE) {
-      logger.log(Level.INFO, "Incomplete analysis because of invalid configuration.");
+      throw new CPAException( "Incomplete analysis because of invalid configuration.");
     } catch (IllegalStateException iE) {
-      logger.log(
-          Level.INFO, "The counterexample is spurious. Calculating interpolants is not possible.");
+      throw new CPAException("The counterexample is spurious. Calculating interpolants is not possible.");
     } finally{
       context.getSolver().close();
     }
@@ -357,12 +346,12 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
   public void printStatistics(
       PrintStream out, Result result, UnmodifiableReachedSet reached) {
     StatisticsWriter w0  = StatisticsWriter.writingStatisticsTo(out);
-    w0.put("Total time", totalTime);
+    w0.put(totalTime);
   }
 
   @Override
   public @Nullable String getName() {
-    return "Fault Localization";
+    return getClass().getCanonicalName();
   }
 
 }

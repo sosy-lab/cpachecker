@@ -3269,18 +3269,18 @@ enabledanalysis.enablerCPA = PREDICATE
 faultLocalization.type = TARANTULA
   enum:     [TARANTULA, DSTAR, OCHIAI]
 
+# enable flow-sensitive trace formula (may decrease runtime)
+faultlocalization.errorInvariants.fstf = true
+
+# cache interpolants to decrease runtime
+faultlocalization.errorInvariants.memoization = false
+
 # ban faults with certain variables
-faultlocalization.ban = ""
-
-# enable flow-sensitive trace formula
-faultlocalization.fstf = true
-
-# memorize interpolants
-faultlocalization.memoization = false
+faultlocalization.maxsat.ban = ""
 
 # which algorithm to use
-faultlocalization.type = "UNSAT"
-  allowed values: [UNSAT, MAXSAT, ERRINV, MAXORG]
+faultlocalization.type = UNSAT
+  enum:     [UNSAT, MAXSAT, MAXORG, ERRINV]
 
 # Configuration for programs containing more than @Option adressedRatio
 # addressed vars.
