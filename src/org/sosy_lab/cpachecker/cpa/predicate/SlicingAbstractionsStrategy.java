@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGLogger;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils.AbstractionPosition;
 import org.sosy_lab.cpachecker.cpa.slab.EdgeSet;
 import org.sosy_lab.cpachecker.cpa.slab.SLARGState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -555,7 +556,17 @@ public class SlicingAbstractionsStrategy extends RefinementStrategy implements S
 
     SSAMap startSSAMap = SSAMap.emptySSAMap().withDefault(1);
     PointerTargetSet startPts = PointerTargetSet.emptyPointerTargetSet();
-    BooleanFormula formula = buildPathFormula(start, stop, segmentList, startSSAMap, startPts, solver, pfmgr, true).getFormula();
+    BooleanFormula formula =
+        buildPathFormula(
+                start,
+                stop,
+                segmentList,
+                startSSAMap,
+                startPts,
+                solver.getFormulaManager(),
+                pfmgr,
+                AbstractionPosition.BOTH)
+            .getFormula();
     try (ProverEnvironment thmProver = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       thmProver.push(formula);
       stats.increaseSolverCallCounter();

@@ -202,6 +202,9 @@ analysis.algorithm.analysisWithEnabler = false
 # use adjustable conditions algorithm
 analysis.algorithm.conditionAdjustment = false
 
+# use fault localization
+analysis.algorithm.faultLocalization = false
+
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
 
@@ -1184,6 +1187,10 @@ cpa.arg.export.code.handleTargetStates = NONE
 
 # write include directives
 cpa.arg.export.code.header = true
+
+# If specified, metadata about the produced C program will be exported to
+# this file
+cpa.arg.export.code.metadataOutput = no default value
 
 # export final ARG as .dot file
 cpa.arg.file = "ARG.dot"
@@ -2247,9 +2254,7 @@ cpa.predicate.merge.mergeAbstractionStatesWithSamePredecessor = false
 # need them. Mentioning a function in this list has only an effect, if it is
 # an 'external function', i.e., no source is given in the code for this
 # function.
-cpa.predicate.nondetFunctions = {
-      "sscanf",
-      "random"}
+cpa.predicate.nondetFunctions = {"sscanf", "rand", "random"}
 
 # Regexp pattern for functions that should be considered as giving a
 # non-deterministic return value (c.f. cpa.predicate.nondedFunctions)
@@ -2343,7 +2348,7 @@ cpa.predicate.refinement.global.stopAfterNRefinements = 0
 cpa.predicate.refinement.graphblockformulastrategy = false
 
 # Enable/Disable adding partial state invariants into the PathFormulas
-cpa.predicate.refinement.includePartialInvariants = true
+cpa.predicate.refinement.includePartialInvariants = AbstractionPosition.BOTH
 
 # Use incremental search in counterexample analysis to find a minimal
 # infeasible part of the trace. This will typically lead to interpolants that
@@ -3280,6 +3285,10 @@ enabledanalysis.allowLazyRefinement = false
 enabledanalysis.enablerCPA = PREDICATE
   enum:     [APRON, INTERVAL, OCTAGON, PREDICATE, VALUE]
 
+# Ranking algorithm to use for fault localization
+faultLocalization.type = TARANTULA
+  enum:     [TARANTULA, DSTAR, OCHIAI]
+
 # Configuration for programs containing more than @Option adressedRatio
 # addressed vars.
 heuristicSelection.addressedConfig = no default value
@@ -3436,10 +3445,15 @@ merge = "JOIN"
 # List of property-files to be run by the subprocesses.
 mpiAlgorithm.configFiles = no default value
 
+# The MCA parameter ('Modular Component Architecture') is available only on
+# Open MPI frameworks. It might thus need to be disabled if unavailable on
+# the working machine.
+mpiAlgorithm.disableMCAOptions = no default value
+
 # File containing the ip addresses to be used by MPI.
 mpiAlgorithm.hostfile = no default value
 
-# Number of processes to be used by MPI.
+# Max. amount of processes to be used by MPI.
 mpiAlgorithm.numberProcesses = no default value
 
 # Find all violations of each checked property.
@@ -3882,7 +3896,7 @@ residualprogram.statistics.size = false
 
 # which strategy to use to generate the residual program
 residualprogram.strategy = CONDITION
-  enum:     [SLICING, CONDITION, CONDITION_PLUS_FOLD, COMBINATION]
+  enum:     [REACHABILITY, SLICING, CONDITION, CONDITION_PLUS_FOLD, COMBINATION]
 
 # How often may a loop be unrolled before it must be folded
 residualprogram.unrollBound = 2

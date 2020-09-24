@@ -77,8 +77,8 @@ class Benchmark(benchexec.benchexec.BenchExec):
         vcloud_args.add_argument(
             "--cloudUser",
             dest="cloudUser",
-            metavar="USER:PWD",
-            help="The user and password for the VerifierCloud (if using the web interface).",
+            metavar="USER[:PWD]",
+            help="The user (and password) for the VerifierCloud (if using the web interface).",
         )
 
         vcloud_args.add_argument(
