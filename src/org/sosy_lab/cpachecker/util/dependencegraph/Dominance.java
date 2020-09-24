@@ -522,6 +522,36 @@ public final class Dominance {
     }
 
     /**
+     * Returns whether a specified ancestor-node is the ancestor of a specified descendant-node.
+     *
+     * <p>Returns {@code true} if and only if the the node with ID {@code pAncestorId} is an
+     * ancestor of the node with ID {@code pDescendantId} in this dominance tree. A node is strictly
+     * dominated by all its ancestors in the dominance tree.
+     *
+     * @param pAncestorId the ancestor-node's ID.
+     * @param pDescendantId the descendant-node's ID.
+     * @return true, if {@code pAncestorId} is indeed an ancestor of {@code pDescendantId} in this
+     *     dominance tree; otherwise, false.
+     * @throws IllegalArgumentException if any of the specified IDs is not valid. Valid IDs must be
+     *     {@code >= 0} and {@code < getNodeCount()}.
+     */
+    public boolean isAncestorOf(int pAncestorId, int pDescendantId) {
+
+      checkId(pAncestorId);
+      checkId(pDescendantId);
+
+      int id = pDescendantId;
+
+      while ((id = doms[id]) != UNDEFINED) {
+        if (id == pAncestorId) {
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    /**
      * Returns an iterator over the nodes in this dominance tree in ascending ID-order.
      *
      * @return an iterator over the nodes in this dominance tree in ascending ID-order.
