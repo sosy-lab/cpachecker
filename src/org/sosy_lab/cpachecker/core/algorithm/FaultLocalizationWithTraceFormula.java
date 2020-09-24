@@ -78,6 +78,10 @@ import org.sosy_lab.java_smt.api.SolverException;
 @Options(prefix="faultlocalization")
 public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsProvider, Statistics {
 
+  enum AlgorithmTypes {
+    UNSAT, MAXSAT, MAXORG, ERRINV
+  }
+
   private final Algorithm algorithm;
   private final LogManager logger;
   private final BooleanFormulaManager bmgr;
@@ -88,9 +92,9 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
   private final FaultLocalizationAlgorithm faultAlgorithm;
   private final StatTimer totalTime = new StatTimer("Total time");
 
-  @Option(secure=true, name="type", toUppercase=true, values={"UNSAT", "MAXSAT", "ERRINV", "MAXORG"},
+  @Option(secure=true, name="type",
       description="which algorithm to use")
-  private String algorithmType = "UNSAT";
+  private AlgorithmTypes algorithmType = AlgorithmTypes.UNSAT;
 
   @Option(secure=true, name="memoization",
       description="memorize interpolants") //can decrease runtime
@@ -138,44 +142,45 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
     context = new FormulaContext(solver, manager, pCfa, logger, pConfig, pShutdownNotifier);
 
     switch (algorithmType){
-      case "MAXORG":
+      case MAXORG:
         faultAlgorithm = new OriginalMaxSatAlgorithm();
         break;
-      case "MAXSAT":
+      case MAXSAT:
         faultAlgorithm = new ModifiedMaxSatAlgorithm();
         break;
-      case "ERRINV":
+      case ERRINV:
         faultAlgorithm = new ErrorInvariantsAlgorithm(pShutdownNotifier, pConfig, logger, memoization);
         break;
-      default:
+      case UNSAT:
         faultAlgorithm = new SingleUnsatCoreAlgorithm();
         break;
+      default: throw new InvalidConfigurationException("The specified algorithm type does not exist");
     }
   }
 
   public boolean checkOptions(){
     boolean correctConfiguration = true;
-    if (!algorithmType.equals("ERRINV") && memoization) {
+    if (!algorithmType.equals(AlgorithmTypes.ERRINV) && memoization) {
       logger.log(Level.SEVERE, "The option memoization will be ignored since the error invariants algorithm is not selected");
       memoization = false;
       correctConfiguration = false;
     }
-    if (!algorithmType.equals("ERRINV") && fstf) {
+    if (!algorithmType.equals(AlgorithmTypes.ERRINV) && fstf) {
       logger.log(Level.SEVERE, "The option flow-sensitive trace formula will be ignored since the error invariants algorithm is not selected");
       fstf = false;
       correctConfiguration = false;
     }
-    if (algorithmType.equals("ERRINV") && !ban.isBlank()) {
+    if (algorithmType.equals(AlgorithmTypes.ERRINV) && !ban.isBlank()) {
       logger.log(Level.SEVERE, "The option ban will be ignored since the error invariants algorithm is not selected");
       ban = "";
       correctConfiguration = false;
     }
-    if (!algorithmType.equals("MAXSAT") && options.isReduceSelectors()) {
+    if (!algorithmType.equals(AlgorithmTypes.MAXSAT) && options.isReduceSelectors()) {
       logger.log(Level.SEVERE, "The option reduceselectors will be ignored since MAX-SAT is not selected");
       options.setReduceSelectors(false);
       correctConfiguration = false;
     }
-    if (!options.getDisable().isBlank() && algorithmType.equals("ERRINV")) {
+    if (!options.getDisable().isBlank() && algorithmType.equals(AlgorithmTypes.ERRINV)) {
       logger.log(Level.SEVERE, "The option ban will be ignored because it is not applicable on the error invariants algorithm");
       correctConfiguration = false;
     }
@@ -240,8 +245,8 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
       //Find correct ranking
       FaultRanking ranking;
       switch(algorithmType){
-        case "MAXORG":
-        case "MAXSAT": {
+        case MAXORG:
+        case MAXSAT: {
           tf = new TraceFormula(TraceFormulaType.SELECTOR, context, options, edgeList);
           ranking =  FaultRankingUtils.concatHeuristicsDefaultFinalScoring(
               new EdgeTypeRanking(),
@@ -252,7 +257,7 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
               new CallHierarchyRanking(edgeList, tf.getPostConditionOffset()));
           break;
         }
-        case "ERRINV": {
+        case ERRINV: {
           tf = new TraceFormula(fstf ? TraceFormulaType.FLOW_SENSITIVE : TraceFormulaType.TRACE, context, options, edgeList);
           ranking = FaultRankingUtils.concatHeuristicsIntendedIndex(
               new EdgeTypeRanking(),
@@ -260,13 +265,15 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
               new CallHierarchyRanking(edgeList, tf.getPostConditionOffset()));
           break;
         }
-        default: {
+        case UNSAT: {
           tf = new TraceFormula(TraceFormulaType.TRACE, context, options, edgeList);
           ranking = FaultRankingUtils.concatHeuristicsDefaultFinalScoring(
               new EdgeTypeRanking(),
               new HintRanking(-1),
               new CallHierarchyRanking(edgeList, tf.getPostConditionOffset()));
+          break;
         }
+        default: throw new InvalidConfigurationException("The specified algorithm type does not exist");
       }
 
       if (!tf.isCalculationPossible()) {
@@ -276,7 +283,7 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
 
       Set<Fault> errorIndicators = pAlgorithm.run(context, tf);
 
-      if(!algorithmType.equals("ERRINV")) {
+      if(!algorithmType.equals(AlgorithmTypes.ERRINV)) {
         ban(errorIndicators);
       }
 
@@ -284,7 +291,7 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
       FaultLocalizationInfo info = new FaultLocalizationInfo(errorIndicators, ranking, pInfo);
       InformationProvider.propagatePreCondition(info.getRankedList(), tf, context.getSolver().getFormulaManager());
 
-      if (algorithmType.equals("ERRINV")) {
+      if (algorithmType.equals(AlgorithmTypes.ERRINV)) {
         info.replaceHtmlWriter(new IntervalReportWriter());
       }
 
