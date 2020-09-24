@@ -1494,12 +1494,9 @@ public class CtoFormulaConverter {
    * @param edge Reference edge, used for log messages only.
    * @return Created formula.
    */
-  public final Formula buildTermFromPathFormula(
-      PathFormula pFormula,
-      CRightHandSide expr,
-      CFAEdge edge)
-      throws UnrecognizedCodeException {
-
+  public final Formula
+      buildTermFromPathFormula(PathFormula pFormula, CIdExpression expr, CFAEdge edge)
+          throws UnrecognizedCodeException {
     String functionName = edge.getPredecessor().getFunctionName();
     Constraints constraints = new Constraints(bfmgr);
     return buildTerm(
