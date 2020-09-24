@@ -2120,7 +2120,8 @@ cpa.predicate.handleImplicitInitialization = true
 # careful when using cartesian abstraction.
 cpa.predicate.handlePointerAliasing = true
 
-# Handle pointer analysis with Separation Logic.
+# Distinct approach based on Separation Logic besides Predicate Analysis.
+# Makes use of the @CToFormulaConverterWithSL to construct formulas.
 cpa.predicate.handleSL = false
 
 # When a string literal initializer is encountered, initialize the contents
@@ -2624,9 +2625,11 @@ cpa.sign.stop = "SEP"
 # max length of a chain of states, -1 for infinity
 cpa.singleSuccessorCompactor.maxChainLength = -1
 
-# States whether allocation checks are solved with a SMT or SL solver.Further
-# a SMT check is divided into multiple equialence checks for each keyon the
-# heap or a single solver call using a procedure based on ALLSAT.
+# States whether allocation checks are solved with a SMT or SL solver.
+# Further a SMT check is divided into multiple equialence checks for each key
+# on the heap (SMT) or a single solver call based on model generation
+# (SMT_MODELSAT). For the SL approach, the solver chosen by the option
+# solver.solver has to support SL.
 cpa.sl.allocationCheckProcedure = SL
   enum:     [SL, SMT, SMT_MODELSAT]
 
