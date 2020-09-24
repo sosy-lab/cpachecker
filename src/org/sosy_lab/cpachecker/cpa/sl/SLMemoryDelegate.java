@@ -28,8 +28,6 @@ import org.sosy_lab.cpachecker.cpa.sl.CToFormulaConverterWithSL.AllocationCheckP
 import org.sosy_lab.cpachecker.cpa.sl.SLState.Builder;
 import org.sosy_lab.cpachecker.cpa.sl.SLState.SLStateError;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExpressionToFormulaVisitor;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -47,7 +45,7 @@ import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 /**
  * This class is used to pass relevant arguments to the {@link ExpressionToFormulaVisitor}.
  */
-public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProvider {
+public class SLMemoryDelegate implements StatisticsProvider {
 
   private final Solver solver;
   private SLState state;
@@ -87,11 +85,6 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     heapAddressFormulaType =
         FormulaType.getBitvectorTypeWithSize(machineModel.getSizeofPtrInBits());
     heapValueFormulaType = FormulaType.getBitvectorTypeWithSize(machineModel.getSizeofCharInBits());
-  }
-
-  @Override
-  public PointerTargetSet build() {
-    return PointerTargetSet.emptyPointerTargetSet();
   }
 
   /**
@@ -192,17 +185,18 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
   }
 
   private boolean assignValueToLocation(boolean onHeap, Formula pLoc, Formula pVal, int size) {
-    Map<Formula, Formula> memory = onHeap ? state.getHeap() : state.getStack();
     List<Formula> byteLocs = state.getSegment(onHeap, pLoc, size);
     if (byteLocs.get(0) == null) {
       return false;
     }
+    SLState.Builder b = new SLState.Builder(state, true);
     for (int i = 0; i < size; i++) {
       int lsb = i * heapValueFormulaType.getSize();
       int msb = lsb + heapValueFormulaType.getSize() - 1;
       Formula nthByte = fm.makeExtract(pVal, msb, lsb, true);
-      memory.put(byteLocs.get(i), nthByte);
+      b.putOn(onHeap, byteLocs.get(i), nthByte);
     }
+    state = b.build();
     return true;
   }
 
@@ -473,11 +467,11 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
   }
 
   public void releaseAllocas(String functionScope) {
-      state.getAllocas()
-          .entrySet()
-          .stream()
-          .filter(e -> e.getValue().equals(functionScope))
-          .map(e -> deallocateFromStack(e.getKey(), true));
+    state.getAllocas().forEach((k, v) -> {
+      if (v.equals(functionScope)) {
+        deallocateFromStack(k, true);
+      }
+    });
   }
 
   public void handleVarDeclaration(Formula pVar, CType pType) {
@@ -582,5 +576,9 @@ public class SLMemoryDelegate implements PointerTargetSetBuilder, StatisticsProv
     if (!state.heapIsEmpty()) {
       state = new SLState.Builder(state, true).addError(SLStateError.MEMORY_LEAK).build();
     }
+  }
+
+  public SLState getState() {
+    return state;
   }
 }
