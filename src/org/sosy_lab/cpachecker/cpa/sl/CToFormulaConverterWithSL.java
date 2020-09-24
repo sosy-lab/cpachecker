@@ -43,17 +43,15 @@ import org.sosy_lab.cpachecker.cpa.sl.SLState.SLStateError;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCFAEdgeException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaTypeHandler;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.FormulaEncodingOptions;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSet;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder.DummyPointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
@@ -80,26 +78,25 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
     SMT_MODELSAT
   }
 
+  private SLMemoryDelegate delegate;
+
   public CToFormulaConverterWithSL(
-      FormulaEncodingOptions pOptions,
       Solver pSolver,
       SLStatistics pStats,
       MachineModel pMachineModel,
-      Optional<VariableClassification> pVariableClassification,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
-      CtoFormulaTypeHandler pTypeHandler,
       AnalysisDirection pDirection,
       Configuration pConfig)
       throws InvalidConfigurationException {
     super(
-        pOptions,
+        new FormulaEncodingOptions(pConfig),
         pSolver.getFormulaManager(),
         pMachineModel,
-        pVariableClassification,
+        Optional.empty(),
         pLogger,
         pShutdownNotifier,
-        pTypeHandler,
+        new CtoFormulaTypeHandler(pLogger, pMachineModel),
         pDirection);
     pConfig.inject(this, CToFormulaConverterWithSL.class);
     solver = pSolver;
@@ -114,7 +111,14 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
       PointerTargetSetBuilder pPts,
       Constraints pConstraints,
       ErrorConditions pErrorConditions) {
-    return new SLRhsToFormulaVisitor(this, fmgr, pEdge, pFunction, pSsa, pPts, pConstraints);
+    return new SLRhsToFormulaVisitor(
+        this,
+        fmgr,
+        pEdge,
+        pFunction,
+        pSsa,
+        delegate,
+        pConstraints);
   }
 
   @Override
@@ -130,59 +134,53 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
         pEdge,
         pFunction,
         pSsa,
-        pPts,
         pConstraints,
         pErrorConditions,
-        solver.getFormulaManager());
+        solver.getFormulaManager(),
+        delegate);
   }
 
-  @Override
-  protected PointerTargetSetBuilder createPointerTargetSetBuilder(PointerTargetSet pPts) {
-    assert context instanceof SLState;
-    return makeDelegate();
-  }
 
-  private SLMemoryDelegate makeDelegate() {
-    assert context != null;
+  private SLMemoryDelegate makeDelegate(SLState pContext) {
+    assert pContext != null;
     return new SLMemoryDelegate(
         solver,
-        (SLState) context,
+        pContext,
         machineModel,
         logger,
         stats,
         allocationCheckProcedure);
   }
 
-  @Override
-  public PathFormula
-      makeAnd(PathFormula pOldFormula, CFAEdge pEdge, ErrorConditions pErrorConditions)
-          throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
+  public SLState makeAnd(SLState pState, CFAEdge pEdge)
+      throws UnrecognizedCodeException, UnrecognizedCFAEdgeException, InterruptedException {
+    delegate = makeDelegate(pState);
     String function =
         (pEdge.getPredecessor() != null) ? pEdge.getPredecessor().getFunctionName() : null;
 
-    SSAMapBuilder ssa = pOldFormula.getSsa().builder();
-    Constraints constraints = new Constraints(bfmgr);
-    PointerTargetSetBuilder pts = createPointerTargetSetBuilder(pOldFormula.getPointerTargetSet());
+    SSAMapBuilder ssa = pState.getSsaMap().builder();
 
-    // handle the edge
-    createFormulaForEdge(pEdge, function, ssa, pts, constraints, pErrorConditions);
+    // Handle the edge. Side-effects on SLMemoryDelegate context.
+    createFormulaForEdge(
+        pEdge,
+        function,
+        ssa,
+        DummyPointerTargetSetBuilder.INSTANCE,
+        new Constraints(bfmgr),
+        ErrorConditions.dummyInstance(bfmgr));
 
+    // Apply SSA changes before OutOfScope check
     SSAMap newSsa = ssa.build();
-    PointerTargetSet newPts = pts.build();
+    SLState newState = new SLState.Builder(delegate.getState(), true).ssaMap(newSsa).build();
+    delegate = makeDelegate(newState);
 
-    BooleanFormula newFormula = bfmgr.makeTrue();
-    int newLength = pOldFormula.getLength() + 1;
-
-    PathFormula res = new PathFormula(newFormula, newSsa, newPts, newLength);
-    SLState state = (SLState) context;
-    state.setPathFormula(res); // Update SSAIndices.
-    SLMemoryDelegate delegate = makeDelegate();
+    // OutOfScope check.
     for (CSimpleDeclaration v : pEdge.getSuccessor().getOutOfScopeVariables()) {
       if (v instanceof CVariableDeclaration && !((CVariableDeclaration) v).isGlobal()) {
         handleOutOfScopeVar(pEdge, delegate, (CVariableDeclaration) v, ssa);
       }
     }
-    return res;
+    return delegate.getState();
   }
 
   private void handleOutOfScopeVar(
@@ -222,7 +220,6 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
 
     CType type = decl.getType();
     String varNameWithAmper = UnaryOperator.AMPER.getOperator() + varName;
-    SLMemoryDelegate delegate = makeDelegate();
     CType t = delegate.makeLocationTypeForVariableType(type);
     Formula var = makeFreshVariable(varNameWithAmper, t, pSsa);
     delegate.handleVarDeclaration(var, type);
@@ -286,7 +283,6 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
 
     r = makeCast(rhs.getExpressionType(), lhsType, r, constraints, edge);
 
-    SLMemoryDelegate delegate = makeDelegate();
     // Skip main return statement assignment.
     if (!(edge instanceof CReturnStatementEdge && function.equals("main"))) {
       if (!delegate.dereferenceAssign(l, r, getSizeof(lhsType))) {
@@ -317,7 +313,9 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
             pPts,
             pConstraints,
             pErrorConditions);
-    ((SLState) context).addConstraint(constraint);
+    SLState context = delegate.getState();
+    context = new SLState.Builder(context, true).addConstraint(constraint).build();
+    delegate = makeDelegate(context);
     return constraint;
   }
 
@@ -330,7 +328,6 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
       Constraints constraints,
       ErrorConditions errorConditions)
       throws UnrecognizedCodeException, InterruptedException {
-    SLMemoryDelegate delegate = makeDelegate();
     List<CExpression> actualParams = edge.getArguments();
     CFunctionEntryNode fn = edge.getSuccessor();
     List<CParameterDeclaration> formalParams = fn.getFunctionParameters();
@@ -387,7 +384,7 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
       throws UnrecognizedCodeException, InterruptedException {
     BooleanFormula res =
         super.makeExitFunction(pCe, pCalledFunction, pSsa, pPts, pConstraints, pErrorConditions);
-    SLMemoryDelegate delegate = makeDelegate();
+
     // Deallocate parameters
     CFunctionEntryNode fe = pCe.getFunctionEntry();
     for (CParameterDeclaration param : fe.getFunctionParameters()) {

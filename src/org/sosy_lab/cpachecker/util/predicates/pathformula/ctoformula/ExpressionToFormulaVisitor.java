@@ -63,10 +63,10 @@ public class ExpressionToFormulaVisitor
     extends DefaultCExpressionVisitor<Formula, UnrecognizedCodeException>
     implements CRightHandSideVisitor<Formula, UnrecognizedCodeException> {
 
-  private final CtoFormulaConverter conv;
-  private final CFAEdge       edge;
-  private final String        function;
-  private final Constraints   constraints;
+  protected final CtoFormulaConverter conv;
+  protected final CFAEdge edge;
+  protected final String function;
+  protected final Constraints constraints;
   protected final FormulaManagerView mgr;
   protected final SSAMapBuilder ssa;
 
@@ -502,15 +502,6 @@ public class ExpressionToFormulaVisitor
     }
 
     case AMPER:
-        if (operand instanceof CIdExpression) {
-          CIdExpression idExp = (CIdExpression) operand;
-          String name =
-              UnaryOperator.AMPER.getOperator() + idExp.getDeclaration().getQualifiedName();
-          return conv.makeVariable(
-              name,
-              exp.getExpressionType(),
-              ssa);
-        }
       return visitDefault(exp);
 
     case SIZEOF:

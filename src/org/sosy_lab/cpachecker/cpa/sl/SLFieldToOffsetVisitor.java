@@ -27,15 +27,16 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypeVisitor;
 import org.sosy_lab.cpachecker.cfa.types.c.CTypedefType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 
 public class SLFieldToOffsetVisitor implements CTypeVisitor<Void, UnrecognizedCodeException> {
 
-  private final CToFormulaConverterWithSL delegate;
+  private final CtoFormulaConverter delegate;
   private String fieldName;
   private BigInteger offset;
   private CFAEdge edge;
 
-  public SLFieldToOffsetVisitor(CToFormulaConverterWithSL pDelegate) {
+  public SLFieldToOffsetVisitor(CtoFormulaConverter pDelegate) {
     delegate = pDelegate;
   }
 

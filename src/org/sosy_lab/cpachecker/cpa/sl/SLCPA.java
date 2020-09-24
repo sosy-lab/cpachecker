@@ -23,9 +23,6 @@ import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
 /**
@@ -41,7 +38,7 @@ public class SLCPA extends AbstractCPA implements StatisticsProvider {
   private final LogManager logger;
   private final Configuration config;
   private final ShutdownNotifier shutdownNotifier;
-  private final PathFormulaManager pfm;
+  private final CToFormulaConverterWithSL converter;
   private final Solver solver;
   private final SLStatistics stats;
 
@@ -60,29 +57,26 @@ public class SLCPA extends AbstractCPA implements StatisticsProvider {
     config = pConfig;
     shutdownNotifier = pShutdownNotifier;
     solver = Solver.create(config, logger, shutdownNotifier);
-    pfm =
-        new PathFormulaManagerImpl(
+    converter =
+        new CToFormulaConverterWithSL(
             solver,
-            solver.getFormulaManager(),
-            config,
+            stats,
+            cfa.getMachineModel(),
             logger,
             shutdownNotifier,
-            cfa.getMachineModel(),
-            cfa.getVarClassification(),
             AnalysisDirection.FORWARD,
-            stats);
+            config);
   }
 
   @Override
   public SLState getInitialState(CFANode pNode, StateSpacePartition pPartition)
       throws InterruptedException {
-    PathFormula store = pfm.makeEmptyPathFormula();
-    return new SLState.Builder(store).build();
+    return SLState.empty();
   }
 
   @Override
   public TransferRelation getTransferRelation() {
-    return new SLTransferRelation(logger, solver, pfm, stats);
+    return new SLTransferRelation(logger, solver, converter, stats);
   }
 
   @Override

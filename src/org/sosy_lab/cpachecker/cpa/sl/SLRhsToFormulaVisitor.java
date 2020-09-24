@@ -33,18 +33,12 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CtoFormulaConverter;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExpressionToFormulaVisitor;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.PointerTargetSetBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.Formula;
 
 public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
 
   private final SLMemoryDelegate delegate;
-  private final CToFormulaConverterWithSL converter;
-  private final Constraints constraints;
-  private final CFAEdge edge;
-  private final String functionName;
-  private final FormulaManagerView fm;
 
   public SLRhsToFormulaVisitor(
       CtoFormulaConverter pCtoFormulaConverter,
@@ -52,17 +46,10 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
       CFAEdge pEdge,
       String pFunction,
       SSAMapBuilder pSsa,
-      PointerTargetSetBuilder pPts,
+      SLMemoryDelegate pDelegate,
       Constraints pConstraints) {
     super(pCtoFormulaConverter, pFmgr, pEdge, pFunction, pSsa, pConstraints);
-    assert pCtoFormulaConverter instanceof CToFormulaConverterWithSL;
-    converter = (CToFormulaConverterWithSL) pCtoFormulaConverter;
-    assert pPts instanceof SLMemoryDelegate;
-    delegate = (SLMemoryDelegate) pPts;
-    constraints = pConstraints;
-    edge = pEdge;
-    functionName = pFunction;
-    fm = pFmgr;
+    delegate = pDelegate;
   }
 
   @Override
@@ -72,14 +59,6 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
     CExpression arrayExp = pE.getArrayExpression();
     Formula loc = arrayExp.accept(this);
     int size = getBaseTypeSize(arrayExp.getExpressionType());
-    // int size = converter.getSizeof(arrayExp.getExpressionType());
-    // offset =
-//        converter.makeCast(
-//            subscriptExp.getExpressionType(),
-//            arrayExp.getExpressionType(),
-//            offset,
-//            constraints,
-//            edge);
     Optional<Formula> value = delegate.dereference(loc, offset, size);
     if (value.isEmpty()) {
       delegate.addError(SLStateError.INVALID_READ);
@@ -91,7 +70,7 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
   @Override
   public Formula visit(CPointerExpression pE) throws UnrecognizedCodeException {
     Formula loc = pE.getOperand().accept(this);
-    int size = converter.getSizeof(pE.getExpressionType());
+    int size = conv.getSizeof(pE.getExpressionType());
     Optional<Formula> value = delegate.dereference(loc, size);
     if (value.isEmpty()) {
       delegate.addError(SLStateError.INVALID_READ);
@@ -106,18 +85,17 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
     if (op != UnaryOperator.AMPER) {
       return super.visit(pExp);
     }
-
     CExpression operand = pExp.getOperand();
     return operand.accept(
         new SLLhsToFormulaVisitor(
-            converter,
+            conv,
             edge,
-            functionName,
+            function,
             ssa,
-            delegate,
             constraints,
             null,
-            fm));
+            mgr,
+            delegate));
     // assert operand instanceof CIdExpression;
     // CIdExpression idExp = (CIdExpression) operand;
     // CType type = operand.getExpressionType();
@@ -137,7 +115,7 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
     } else if (type instanceof CPointerType) {
       type = ((CPointerType) type).getType();
     }
-    return converter.getSizeof(type);
+    return conv.getSizeof(type);
   }
 
   @Override
@@ -175,7 +153,7 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
               edge);
         }
         if (fCase == SLMemoryFunction.ALLOCA) {
-          delegate.handleAlloca(loc, size.intValueExact(), functionName);
+          delegate.handleAlloca(loc, size.intValueExact(), function);
         } else {
           delegate.handleMalloc(loc, size.intValueExact());
         }
@@ -217,18 +195,18 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
       type = ((CArrayType) type).asPointerType();
     }
     CPointerType t = new CPointerType(type.isConst(), type.isVolatile(), type);
-    Formula loc = converter.makeVariable(varName, t, ssa);
-    return delegate.dereference(loc, converter.getSizeof(type)).orElseThrow();
+    Formula loc = conv.makeVariable(varName, t, ssa);
+    return delegate.dereference(loc, conv.getSizeof(type)).orElseThrow();
   }
 
   @Override
   public Formula visit(CFieldReference pFExp) throws UnrecognizedCodeException {
     Formula loc = pFExp.getFieldOwner().accept(this);
-    SLFieldToOffsetVisitor v = new SLFieldToOffsetVisitor(converter);
+    SLFieldToOffsetVisitor v = new SLFieldToOffsetVisitor(conv);
     BigInteger offset = v.getOffset(pFExp, edge);
-    Formula off = fm.makeNumber(fm.getFormulaType(loc), offset.longValueExact());
-    loc = fm.makePlus(loc, off);
-    int size = converter.getSizeof(pFExp.getExpressionType());
+    Formula off = mgr.makeNumber(mgr.getFormulaType(loc), offset.longValueExact());
+    loc = mgr.makePlus(loc, off);
+    int size = conv.getSizeof(pFExp.getExpressionType());
     return delegate.dereference(loc, size).orElseThrow();
   }
 }

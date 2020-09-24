@@ -31,7 +31,7 @@ import org.sosy_lab.java_smt.api.Formula;
 
 public class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCodeException> {
 
-  private final CtoFormulaConverter conv;
+  protected final CtoFormulaConverter conv;
   protected final CFAEdge edge;
   protected final String function;
   protected final SSAMapBuilder ssa;

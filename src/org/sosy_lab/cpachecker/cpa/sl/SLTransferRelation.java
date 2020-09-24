@@ -19,7 +19,6 @@ import org.sosy_lab.cpachecker.core.defaults.SingleEdgeTransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
@@ -29,17 +28,17 @@ public class SLTransferRelation extends SingleEdgeTransferRelation {
 
   private final LogManager logger;
   private final Solver solver;
-  private final PathFormulaManager pfm;
+  private final CToFormulaConverterWithSL converter;
   private final SLStatistics stats;
 
   public SLTransferRelation(
       LogManager pLogger,
       Solver pSolver,
-      PathFormulaManager pPfm,
+      CToFormulaConverterWithSL pConverter,
       SLStatistics pStats) {
     logger = pLogger;
     solver = pSolver;
-    pfm = pPfm;
+    converter = pConverter;
     stats = pStats;
   }
 
@@ -47,12 +46,8 @@ public class SLTransferRelation extends SingleEdgeTransferRelation {
   public Collection<? extends AbstractState>
       getAbstractSuccessorsForEdge(AbstractState pState, Precision pPrecision, CFAEdge pCfaEdge)
           throws CPATransferException, InterruptedException {
-    SLState state = new SLState.Builder((SLState) pState, false).build();
-
-    // Process current edge
-    pfm.setContext(state);
-    pfm.makeAnd(state.getPathFormula(), pCfaEdge);
-    state = (SLState) pfm.getContext();
+    SLState state = SLState.copyWithoutErrors((SLState) pState);
+    state = converter.makeAnd(state, pCfaEdge);
     if (pCfaEdge instanceof AssumeEdge) {
       // Feasibility check
       try {
