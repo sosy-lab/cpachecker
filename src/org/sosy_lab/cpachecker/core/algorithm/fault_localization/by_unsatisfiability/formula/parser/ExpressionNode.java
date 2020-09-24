@@ -18,11 +18,17 @@ import java.util.stream.Collectors;
 public class ExpressionNode implements FormulaNode {
 
   private String operator;
+  private boolean negated;
   private List<FormulaNode> operands;
 
   public ExpressionNode(String pOperator) {
     operator = pOperator;
     operands = new ArrayList<>();
+    negated = false;
+  }
+
+  public void negateOperator() {
+    negated = !negated;
   }
 
   @Override
@@ -72,29 +78,31 @@ public class ExpressionNode implements FormulaNode {
 
   @Override
   public String toString() {
-    String op = readableOperator(operator);
+    String op = readableOperator(operator, negated);
     if (operands.size() == 2) {
       return "(" + operands.get(0) + " " + op + " "  + operands.get(1) + ")";
     }
     return "(" + op + " " + operands.stream().map(opt -> opt.toString()).collect(Collectors.joining(" ")) + ")";
   }
 
-  private String readableOperator (String pOperator) {
+  private String readableOperator (String pOperator, boolean pNegated) {
     String copy = pOperator;
     if (pOperator.contains("_") && !pOperator.startsWith("_")) {
       pOperator = Splitter.on("_").splitToList(pOperator).get(0);
     }
     switch (pOperator) {
+      case "=":
+        return pNegated ? "≠" : "=";
       case "bvsdiv":
         return "/";
       case "bvadd":
         return "+";
       case "bvslt":
-        return "<";
+        return pNegated ? "≥" : "<";
       case "bvextract":
         return copy;
       default:
-        return pOperator;
+        return pNegated ? "!" + pOperator : pOperator;
     }
 
   }

@@ -303,6 +303,9 @@ public class BooleanFormulaParser {
         pSyntaxStack.push(LiteralNode.FALSE);
       } else if (LiteralNode.FALSE.equals(top)) {
         pSyntaxStack.push(LiteralNode.TRUE);
+      } else if (top.getType().equals(FormulaNodeType.ExpressionNode)) {
+        ((ExpressionNode)top).negateOperator();
+        pSyntaxStack.push(top);
       } else {
         notNode.setNode(top);
         pSyntaxStack.push(notNode);
