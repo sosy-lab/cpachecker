@@ -183,9 +183,6 @@ analysis.algorithm.CBMC = false
 # Currently all refiner require the use of the ARGCPA.
 analysis.algorithm.CEGAR = false
 
-# use FaultLocalization
-analysis.algorithm.FaultLocalization = false
-
 # use McMillan's interpolation-based model checking algorithm, works only
 # with PredicateCPA and large-block encoding
 analysis.algorithm.IMC = false
@@ -207,6 +204,9 @@ analysis.algorithm.conditionAdjustment = false
 
 # use fault localization
 analysis.algorithm.faultLocalization = false
+
+# use FaultLocalization
+analysis.algorithm.faultLocalizationTF = false
 
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
@@ -3265,9 +3265,6 @@ enabledanalysis.allowLazyRefinement = false
 enabledanalysis.enablerCPA = PREDICATE
   enum:     [APRON, INTERVAL, OCTAGON, PREDICATE, VALUE]
 
-# transform boolean formulas
-exprconv.niceexpr = false
-
 # Ranking algorithm to use for fault localization
 faultLocalization.type = TARANTULA
   enum:     [TARANTULA, DSTAR, OCHIAI]
@@ -3276,7 +3273,7 @@ faultLocalization.type = TARANTULA
 faultlocalization.ban = ""
 
 # enable flow-sensitive trace formula
-faultlocalization.fstf = false
+faultlocalization.fstf = true
 
 # memorize interpolants
 faultlocalization.memoization = false
@@ -4136,7 +4133,8 @@ testcase.xml = no default value
 # Zip file into which all test case files are bundled
 testcase.zip.file = no default value
 
-# force alternative pre condition
+# add initial variable assignments to the pre-condition instead of just using
+# failing variable assignments for nondet variables
 traceformula.altpre = false
 
 # do not create selectors for this variables (separate by commas)

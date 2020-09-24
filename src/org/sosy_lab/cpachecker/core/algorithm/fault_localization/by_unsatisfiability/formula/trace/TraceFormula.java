@@ -79,7 +79,7 @@ public class TraceFormula {
     @Option(
         secure = true,
         name = "altpre",
-        description = "force alternative pre condition")
+        description = "add initial variable assignments to the pre-condition instead of just using failing variable assignments for nondet variables")
     private boolean forcePre = false;
 
     @Option(
