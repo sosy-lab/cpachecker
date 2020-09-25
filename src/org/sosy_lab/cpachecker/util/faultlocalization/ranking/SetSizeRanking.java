@@ -17,6 +17,6 @@ public class SetSizeRanking implements FaultRanking {
 
   @Override
   public RankInfo scoreFault(Fault fault) {
-    return FaultInfo.rankInfo("This set has a size of " + fault.size() + ".", 1/fault.size());
+    return FaultInfo.rankInfo("This set has a size of " + fault.size() + ".", 1d/fault.size());
   }
 }
