@@ -579,9 +579,6 @@ public class CoreComponentsFactory {
       }
 
       if(useFaultLocalizationWithTraceFormulas) {
-        if (!(algorithm instanceof CounterexampleStoreAlgorithm)){
-          throw new InvalidConfigurationException("CounterexampleStoreAlgorithm required");
-        }
         algorithm = new FaultLocalizationWithTraceFormula(algorithm, config, logger, cfa, shutdownNotifier);
       }
     }

@@ -16,14 +16,14 @@ import java.util.function.Function;
 public interface FaultRanking {
 
   /**
-   * Rank the input set for visualizing in the ReportManager.
+   * Rank the input set for visual representation in the ReportManager.
    *
    * If more than just one parameter is needed (here: result) a class that
    * implements this interface can be created.
    * For more details and an example see MaximalLineDistanceRanking.
    * To concatenate multiple heuristics FaultRankingUtils.concatHeuristics() can be used.
-   * @param result The result of any FaultLocalizationWithTraceFormula
-   * @return a ranked list of all contained FaultContribution objects.
+   * @param result The result of any fault localization algorithm
+   * @return a ranked list of all contained faults.
    * @see FaultRankingUtils#concatHeuristics(Function, FaultRanking...)
    * @see FaultRankingUtils#concatHeuristicsDefaultFinalScoring(FaultRanking...)
    * @see org.sosy_lab.cpachecker.util.faultlocalization.ranking.MaximalLineDistanceRanking

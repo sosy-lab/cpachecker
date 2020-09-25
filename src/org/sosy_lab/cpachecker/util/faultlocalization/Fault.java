@@ -26,7 +26,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
  * FaultReasons can be appended to a Fault to explain why this set of FaultContributions caused an error.
  * The score of a Fault is used to rank the Faults. The higher the score the higher the rank.
  */
-public class Fault extends ForwardingSet<FaultContribution> {
+public class Fault extends ForwardingSet<FaultContribution> implements Comparable<Fault>{
 
   private ImmutableSet<FaultContribution> errorSet;
   private List<FaultInfo> infos;
@@ -34,6 +34,8 @@ public class Fault extends ForwardingSet<FaultContribution> {
 
   /**
    * The recommended way is to calculate the score based on the likelihoods of the appended reasons.
+   * However, the implementation can be arbitrary.
+   * @see FaultRankingUtils#assignScoreTo(Fault) 
    */
   private double score;
 
@@ -192,5 +194,10 @@ public class Fault extends ForwardingSet<FaultContribution> {
   @Override
   protected Set<FaultContribution> delegate() {
     return errorSet;
+  }
+
+  @Override
+  public int compareTo(Fault o) {
+    return Double.compare(score, o.score);
   }
 }

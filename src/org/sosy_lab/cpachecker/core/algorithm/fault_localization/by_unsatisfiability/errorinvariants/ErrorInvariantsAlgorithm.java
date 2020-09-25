@@ -54,6 +54,12 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
+/**
+ * The ErrorInvariantsAlgorithm tries to abstract the trace formula by creating an
+ * alternating sequence of actual locations and summarizing interpolants.
+ * Based on the work of Ermis Evren, Martin Schäf, and Thomas Wies:
+ * "Error invariants." International Symposium on Formal Methods. Springer, Berlin, Heidelberg, 2012
+ */
 public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula, Statistics {
 
   private ShutdownNotifier shutdownNotifier;
@@ -75,8 +81,6 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
   /**
    * Calculate an alternating sequence of edges and summarizing interpolants of the program
    * to make error detection more accessible.
-   * Based on the work of Ermis Evren, Martin Schäf, and Thomas Wies:
-   * "Error invariants." International Symposium on Formal Methods. Springer, Berlin, Heidelberg, 2012
    * @param pShutdownNotifier the shutdown notifier
    * @param pConfiguration the run configurations
    * @param pLogger the logger
@@ -277,10 +281,10 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
   /**
    * Return if interpolant is inductive on position i.
    * @param interpolant A interpolant
-   * @param slice where to slice the trace formula
+   * @param slicePosition where to slice the trace formula
    * @return true if interpolant is inductive at i, false else
    */
-  private boolean isErrInv(BooleanFormula interpolant, int slice)
+  private boolean isErrInv(BooleanFormula interpolant, int slicePosition)
       throws SolverException, InterruptedException {
     Solver solver = formulaContext.getSolver();
     FormulaManagerView fmgr = solver.getFormulaManager();
@@ -292,32 +296,32 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
     boolean applyMemoization = useMem && memorize.containsKey(plainInterpolant);
     if (applyMemoization) {
       memoizationCalls.inc();
-      if (memorize.get(plainInterpolant).contains(-slice-1)) {
+      if (memorize.get(plainInterpolant).contains(-slicePosition-1)) {
         return false;
       }
-      if (memorize.get(plainInterpolant).contains(slice+1)) {
+      if (memorize.get(plainInterpolant).contains(slicePosition+1)) {
         return true;
       }
     }
 
     // shift the interpolant to the correct time stamp
     SSAMap shift = SSAMap.merge(
-            maps.get(slice),
+            maps.get(slicePosition),
             maps.get(0),
             MapsDifference.collectMapsDifferenceTo(new ArrayList<>()));
     BooleanFormula shiftedInterpolant = fmgr.instantiate(plainInterpolant, shift);
 
     BooleanFormula firstFormula =
         bmgr.implication(
-            bmgr.and(errorTrace.getPrecondition(), errorTrace.slice(slice)), shiftedInterpolant);
+            bmgr.and(errorTrace.getPrecondition(), errorTrace.slice(slicePosition)), shiftedInterpolant);
     BooleanFormula secondFormula =
-            bmgr.and(shiftedInterpolant, errorTrace.slice(slice, n), errorTrace.getPostcondition());
+            bmgr.and(shiftedInterpolant, errorTrace.slice(slicePosition, n), errorTrace.getPostcondition());
 
     //isUnsat
     solverCalls.inc();
     boolean isValid = isValid(firstFormula) && solver.isUnsat(secondFormula);
     if(useMem) {
-      memorize.put(plainInterpolant, isValid?slice+1:-slice-1);
+      memorize.put(plainInterpolant, isValid?slicePosition+1:-slicePosition-1);
     }
     return isValid;
   }
@@ -352,7 +356,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
   /**
    * Stores the interpolant for a selector and its boundaries
    */
-  public static class Interval extends Fault implements Comparable<Interval>, AbstractTraceElement {
+  public static class Interval extends Fault implements AbstractTraceElement {
 
     private int start;
     private int end;
@@ -387,7 +391,6 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
       return Objects.hash(invariant, start, end, super.hashCode());
     }
 
-    @Override
     public int compareTo(Interval pInterval) {
       return Integer.compare(start, pInterval.start);
     }

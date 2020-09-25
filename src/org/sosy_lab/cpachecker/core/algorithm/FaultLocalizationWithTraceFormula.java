@@ -97,7 +97,7 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
   private AlgorithmTypes algorithmType = AlgorithmTypes.UNSAT;
 
   @Option(secure=true, name="errorInvariants.memoization",
-      description="cache interpolants to decrease runtime") //can decrease runtime
+      description="memorize interpolants to decrease runtime") //can decrease runtime
   private boolean memoization = false;
 
   @Option(secure=true, name="errorInvariants.fstf",
@@ -115,6 +115,10 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
       final CFA pCfa,
       final ShutdownNotifier pShutdownNotifier)
       throws InvalidConfigurationException {
+
+    if (!(pStoreAlgorithm instanceof CounterexampleStoreAlgorithm)){
+      throw new InvalidConfigurationException("option CounterexampleStoreAlgorithm required");
+    }
 
     logger = pLogger;
 
@@ -152,7 +156,7 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
       case UNSAT:
         faultAlgorithm = new SingleUnsatCoreAlgorithm();
         break;
-      default: throw new InvalidConfigurationException("The specified algorithm type does not exist");
+      default: throw new AssertionError("The specified algorithm type does not exist");
     }
   }
 
@@ -263,7 +267,7 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
               new CallHierarchyRanking(edgeList, tf.getPostConditionOffset()));
           break;
         }
-        default: throw new InvalidConfigurationException("The specified algorithm type does not exist");
+        default: throw new AssertionError("The specified algorithm type does not exist");
       }
 
       if (!tf.isCalculationPossible()) {
@@ -292,13 +296,13 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
           "Running " + pAlgorithm.getClass().getSimpleName() + ":\n" + info.toString());
 
     } catch (SolverException sE) {
-      throw new CPAException("The solver was not able to find the UNSAT-core of the path formula.");
+      throw new CPAException("The solver was not able to find the UNSAT-core of the path formula.", sE);
     } catch (VerifyException vE) {
-      throw new CPAException( "No bugs found because the trace formula is satisfiable or the counterexample is spurious.");
+      throw new CPAException( "No bugs found because the trace formula is satisfiable or the counterexample is spurious.", vE);
     } catch (InvalidConfigurationException iE) {
-      throw new CPAException( "Incomplete analysis because of invalid configuration.");
+      throw new CPAException( "Incomplete analysis because of invalid configuration.", iE);
     } catch (IllegalStateException iE) {
-      throw new CPAException("The counterexample is spurious. Calculating interpolants is not possible.");
+      throw new CPAException("The counterexample is spurious. Calculating interpolants is not possible.", iE);
     } finally{
       context.getSolver().close();
       context.getProver().close();
