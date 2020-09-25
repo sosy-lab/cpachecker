@@ -18,22 +18,23 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.states.MemoryError;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
 public class SLState implements AbstractState, AbstractQueryableState, Graphable {
 
-  private static final String HAS_INVALID_READS = "has-invalid-reads";
-  private static final String HAS_INVALID_WRITES = "has-invalid-writes";
-  private static final String HAS_LEAKS = "has-leaks";
-  private static final String HAS_INVALID_FREES = "has-invalid-frees";
-
-  public enum SLStateError {
-    INVALID_READ,
-    INVALID_WRITE,
-    INVALID_FREE,
-    MEMORY_LEAK
-  }
+  // private static final String HAS_INVALID_READS = "has-invalid-reads";
+  // private static final String HAS_INVALID_WRITES = "has-invalid-writes";
+  // private static final String HAS_LEAKS = "has-leaks";
+  // private static final String HAS_INVALID_FREES = "has-invalid-frees";
+  //
+  // public enum SLStateError {
+  // INVALID_READ,
+  // INVALID_WRITE,
+  // INVALID_FREE,
+  // MEMORY_LEAK
+  // }
 
   /**
    * The SSAMap to construct formulas representing the symbolic locations of variables.
@@ -67,7 +68,7 @@ public class SLState implements AbstractState, AbstractQueryableState, Graphable
   /**
    * All memory safety properties violated by the current state.
    */
-  private final ImmutableSet<SLStateError> errors;
+  private final ImmutableSet<MemoryError> errors;
 
   public static class Builder {
     private SSAMap ssa;
@@ -76,7 +77,7 @@ public class SLState implements AbstractState, AbstractQueryableState, Graphable
     private ImmutableMap<Formula, Formula> heap;
     private ImmutableMap<Formula, Formula> stack;
     private ImmutableSet<BooleanFormula> constraints;
-    private ImmutableSet<SLStateError> errors;
+    private ImmutableSet<MemoryError> errors;
 
     private Builder() {
       ssa = SSAMap.emptySSAMap();
@@ -136,8 +137,8 @@ public class SLState implements AbstractState, AbstractQueryableState, Graphable
       return this;
     }
 
-    public Builder addError(SLStateError pError) {
-      ImmutableSet.Builder<SLStateError> b = new ImmutableSet.Builder<>();
+    public Builder addError(MemoryError pError) {
+      ImmutableSet.Builder<MemoryError> b = new ImmutableSet.Builder<>();
       errors = b.addAll(errors).add(pError).build();
       return this;
     }
@@ -210,7 +211,7 @@ public class SLState implements AbstractState, AbstractQueryableState, Graphable
     return ssa;
   }
 
-  public ImmutableSet<SLStateError> getErrors() {
+  public ImmutableSet<MemoryError> getErrors() {
     return errors;
   }
 
@@ -247,22 +248,11 @@ public class SLState implements AbstractState, AbstractQueryableState, Graphable
 
   @Override
   public boolean checkProperty(String property) throws InvalidQueryException {
-    switch (property) {
-      case HAS_LEAKS:
-        return errors.contains(SLStateError.MEMORY_LEAK);
-
-      case HAS_INVALID_READS:
-        return errors.contains(SLStateError.INVALID_READ);
-
-      case HAS_INVALID_WRITES:
-        return errors.contains(SLStateError.INVALID_WRITE);
-
-      case HAS_INVALID_FREES:
-        return errors.contains(SLStateError.INVALID_FREE);
-
-      default:
-        throw new InvalidQueryException("Query '" + property + "' is invalid.");
+    MemoryError error = MemoryError.getErrorForProperty(property);
+    if(error == null) {
+      throw new InvalidQueryException("Query '" + property + "' is invalid.");
     }
+    return errors.contains(error);
   }
 
   public ImmutableMap<Formula, BigInteger> getAllocationSizes() {

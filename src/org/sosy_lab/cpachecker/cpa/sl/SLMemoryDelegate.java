@@ -25,13 +25,13 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.cpa.sl.SLState.SLStateError;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CToFormulaConverterWithSL.AllocationCheckProcedure;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.states.MemoryError;
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
@@ -166,7 +166,7 @@ public class SLMemoryDelegate implements StatisticsProvider {
       Optional<Formula> heapPtr = checkHeapAllocation(oldVal);
       if (heapPtr.isPresent()
           && !isReachable(new HashSet<>(), firstByte((BitvectorFormula) heapPtr.orElseThrow()))) {
-        state = new SLState.Builder(state, true).addError(SLStateError.MEMORY_LEAK).build();
+        state = new SLState.Builder(state, true).addError(MemoryError.MEMORY_LEAK).build();
       }
       return res;
     } else {
@@ -359,7 +359,7 @@ public class SLMemoryDelegate implements StatisticsProvider {
     pStatsCollection.add(stats);
   }
 
-  public void addError(SLStateError pError) {
+  public void addError(MemoryError pError) {
     state = new SLState.Builder(state, true).addError(pError).build();
   }
 
@@ -411,7 +411,7 @@ public class SLMemoryDelegate implements StatisticsProvider {
       Optional<Formula> heapPtr = checkHeapAllocation(val);
       if (heapPtr.isPresent()) {
         if (!isReachable(new HashSet<>(), firstByte((BitvectorFormula) heapPtr.orElseThrow()))) {
-          state = b.addError(SLStateError.MEMORY_LEAK).build();
+          state = b.addError(MemoryError.MEMORY_LEAK).build();
         }
       }
     }
@@ -568,13 +568,13 @@ public class SLMemoryDelegate implements StatisticsProvider {
       deallocateFromHeap(loc.orElseThrow());
       allocateOnHeap(pLoc, pSize);
     } else {
-      addError(SLStateError.INVALID_FREE);
+      addError(MemoryError.INVALID_FREE);
     }
   }
 
   public void checkMemLeak() {
     if (!state.heapIsEmpty()) {
-      state = new SLState.Builder(state, true).addError(SLStateError.MEMORY_LEAK).build();
+      state = new SLState.Builder(state, true).addError(MemoryError.MEMORY_LEAK).build();
     }
   }
 

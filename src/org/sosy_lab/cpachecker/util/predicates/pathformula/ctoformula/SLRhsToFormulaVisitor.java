@@ -28,10 +28,11 @@ import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.sl.SLMemoryDelegate;
-import org.sosy_lab.cpachecker.cpa.sl.SLState.SLStateError;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.cpachecker.util.states.MemoryError;
+import org.sosy_lab.cpachecker.util.states.MemoryFunction;
 import org.sosy_lab.java_smt.api.Formula;
 
 public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
@@ -59,7 +60,7 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
     int size = getBaseTypeSize(arrayExp.getExpressionType());
     Optional<Formula> value = delegate.dereference(loc, offset, size);
     if (value.isEmpty()) {
-      delegate.addError(SLStateError.INVALID_READ);
+      delegate.addError(MemoryError.INVALID_READ);
       return super.visit(pE); // Add dummy variable
     }
     return value.orElseThrow();
@@ -71,7 +72,7 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
     int size = conv.getSizeof(pE.getExpressionType());
     Optional<Formula> value = delegate.dereference(loc, size);
     if (value.isEmpty()) {
-      delegate.addError(SLStateError.INVALID_READ);
+      delegate.addError(MemoryError.INVALID_READ);
       return super.visit(pE); // Add dummy variable
     }
     return value.orElseThrow();
@@ -114,7 +115,7 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
 
     Formula sizeValueFormula = null;
     BigInteger size = null;
-    SLMemoryFunction fCase = SLMemoryFunction.get(fctExp.getName());
+    MemoryFunction fCase = MemoryFunction.get(fctExp.getName());
     switch (fCase) {
       case CALLOC:
       case MALLOC: // always initialized with 0
@@ -122,7 +123,7 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
           CStatement s = ((CStatementEdge) edge).getStatement();
           if (!(s instanceof CAssignment)) {
             // allocated memory not used.
-            delegate.addError(SLStateError.MEMORY_LEAK);
+            delegate.addError(MemoryError.MEMORY_LEAK);
           }
         }
         //$FALL-THROUGH$
@@ -140,7 +141,7 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
               "Allocation size passed to malloc could not be determinded.",
               edge);
         }
-        if (fCase == SLMemoryFunction.ALLOCA) {
+        if (fCase == MemoryFunction.ALLOCA) {
           delegate.handleAlloca(loc, size.intValueExact(), function);
         } else {
           delegate.handleMalloc(loc, size.intValueExact());
@@ -164,7 +165,7 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
         assert params.size() == 1; // Should be ensured by compiler.
         Formula locToFree = params.get(0).accept(this);
         if (!delegate.handleFree(locToFree)) {
-          delegate.addError(SLStateError.INVALID_FREE);
+          delegate.addError(MemoryError.INVALID_FREE);
         }
         break;
 
