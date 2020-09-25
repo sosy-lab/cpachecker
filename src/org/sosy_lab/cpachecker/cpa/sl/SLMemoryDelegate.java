@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.sl;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -219,7 +220,6 @@ public class SLMemoryDelegate implements StatisticsProvider {
           if (match) {
             return Optional.of(formulaInMemory);
           }
-
         }
         break;
       case SMT_MODELSAT:
@@ -271,33 +271,34 @@ public class SLMemoryDelegate implements StatisticsProvider {
       f = fm.makeAnd(f, fm.makeEqual(fm.makeEqual(pLoc, keyArray[i]), tmp));
     }
 
+    boolean sat = false;
+    List<ValueAssignment> assignments = new ArrayList<>();
     try (ProverEnvironment prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
       prover.addConstraint(f);
-
       stats.startSolverTime();
       // Generate model
-      if (!prover.isUnsat()) {
-        stats.stopSolverTime();
-        List<ValueAssignment> assignments = prover.getModelAssignments();
-        for (ValueAssignment a : assignments) {
-          String var = a.getName();
-          if (var.contains(dummyVar)) {
-            // return key_n for v_n = true
-            if (bfm.isTrue((BooleanFormula) a.getValueAsFormula())) {
-              int index = Integer.parseInt(var.substring(var.indexOf('#') + 1));
-              Formula match = keyArray[index];
-              if (checkEquivalenceSMT(pLoc, match)) {
-                return match;
-              }
-            }
-          }
-
-        }
-      }
+      sat = !prover.isUnsat();
+      assignments = prover.getModelAssignments();
     } catch (Exception e) {
       logger.log(Level.SEVERE, e.getMessage());
     } finally {
       stats.stopSolverTime();
+    }
+    if (sat) {
+      for (ValueAssignment a : assignments) {
+        String var = a.getName();
+        if (var.contains(dummyVar)) {
+          // return key_n for v_n = true
+          if (bfm.isTrue((BooleanFormula) a.getValueAsFormula())) {
+            int index = Integer.parseInt(var.substring(var.indexOf('#') + 1));
+            Formula match = keyArray[index];
+            if (checkEquivalenceSMT(pLoc, match)) {
+              return match;
+            }
+          }
+        }
+
+      }
     }
     return null;
   }

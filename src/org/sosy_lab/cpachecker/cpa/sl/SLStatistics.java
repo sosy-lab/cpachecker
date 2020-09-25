@@ -41,9 +41,7 @@ public class SLStatistics implements Statistics {
   }
 
   public void stopSolverTime() {
-    if (solverTime.isRunning()) {
-      solverTime.stop();
-    }
+    solverTime.stop();
     solverCalls++;
   }
 }
