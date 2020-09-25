@@ -24,10 +24,9 @@ import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
-import org.sosy_lab.cpachecker.cpa.sl.SLState.Builder;
 import org.sosy_lab.cpachecker.cpa.sl.SLState.SLStateError;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CToFormulaConverterWithSL.AllocationCheckProcedure;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.ExpressionToFormulaVisitor;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -364,7 +363,7 @@ public class SLMemoryDelegate implements StatisticsProvider {
   }
 
   private void allocate(boolean onHeap, Formula var, int size) {
-    Builder b = new SLState.Builder(state, true);
+    SLState.Builder b = new SLState.Builder(state, true);
     BitvectorFormula key = (BitvectorFormula) var;
     assert fm.getFormulaType(key).equals(heapAddressFormulaType) : String
         .format("Type:%s Var:%s HeapType:%s", fm.getFormulaType(key), var, heapAddressFormulaType);
@@ -395,7 +394,7 @@ public class SLMemoryDelegate implements StatisticsProvider {
     if (!memory.containsKey(pLoc)) {
       return false;
     }
-    Builder b = new SLState.Builder(state, true);
+    SLState.Builder b = new SLState.Builder(state, true);
     b.removeSegmentSize(pLoc);
     Formula val = getValueForLocation(fromHeap, pLoc, size.intValueExact());
     Formula loc = pLoc;
