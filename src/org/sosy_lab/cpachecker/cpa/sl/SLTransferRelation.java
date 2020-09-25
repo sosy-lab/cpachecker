@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.cpa.sl;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.List;
-import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -51,17 +50,13 @@ public class SLTransferRelation extends SingleEdgeTransferRelation {
     state = converter.makeAnd(state, pCfaEdge);
     if (pCfaEdge instanceof AssumeEdge) {
       // Feasibility check
-      try {
-        return handleAssumption(state);
-      } catch (SolverException e) {
-        throw new CPATransferException("Feasibility check failed.", e);
-      }
+      return handleAssumption(state);
     }
     return ImmutableList.of(state);
   }
 
   private List<SLState> handleAssumption(SLState state)
-      throws SolverException, InterruptedException {
+      throws CPATransferException, InterruptedException {
     BooleanFormula constraints =
         solver.getFormulaManager().getBooleanFormulaManager().and(state.getConstraints());
     boolean unsat = false;
@@ -69,9 +64,8 @@ public class SLTransferRelation extends SingleEdgeTransferRelation {
       prover.addConstraint(constraints);
       stats.startSolverTime();
       unsat = prover.isUnsat();
-    } catch (SolverException | InterruptedException e) {
-      logger.log(Level.SEVERE, e.getMessage());
-      throw e;
+    } catch (SolverException e) {
+      throw new CPATransferException("Feasibility check failed.", e);
     } finally {
       stats.stopSolverTime();
     }
