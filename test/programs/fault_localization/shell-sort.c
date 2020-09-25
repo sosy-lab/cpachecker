@@ -6,6 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+// cannot be analyzed by cpachecker
 void shell_sort(int a[], int size) {
 	int i, j;
 	int h = 1;
