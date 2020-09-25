@@ -98,7 +98,7 @@ public final class CToFormulaConverterWithSL extends CtoFormulaConverter {
         pShutdownNotifier,
         new CtoFormulaTypeHandler(pLogger, pMachineModel),
         pDirection);
-    pConfig.inject(this, CToFormulaConverterWithSL.class);
+    pConfig.inject(this);
     solver = pSolver;
     stats = pStats;
   }
