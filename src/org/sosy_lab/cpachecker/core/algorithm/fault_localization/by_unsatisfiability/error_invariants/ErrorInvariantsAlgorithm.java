@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiab
 import com.google.common.base.Splitter;
 import com.google.common.base.VerifyException;
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.io.PrintStream;
 import java.util.ArrayList;
