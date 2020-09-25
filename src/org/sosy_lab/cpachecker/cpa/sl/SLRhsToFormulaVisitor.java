@@ -96,17 +96,6 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
             null,
             mgr,
             delegate));
-    // assert operand instanceof CIdExpression;
-    // CIdExpression idExp = (CIdExpression) operand;
-    // CType type = operand.getExpressionType();
-    // if (type instanceof CArrayType) {
-    // type = ((CArrayType) type).asPointerType();
-    // }
-    // String varName = idExp.getDeclaration().getQualifiedName();
-    // String varNameWithAmper = op.getOperator() + varName;
-    //
-    // CType t = delegate.makeLocationTypeForVariableType(type);
-    // return converter.makeVariable(varNameWithAmper, t, ssa);
   }
 
   private int getBaseTypeSize(CType type) {
@@ -140,6 +129,7 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
         }
         //$FALL-THROUGH$
       case ALLOCA:
+        assert params.size() == 1; // Should be ensured by compiler.
         CExpression p0 = params.get(0);
         if (p0 instanceof CIntegerLiteralExpression) {
           size = ((CIntegerLiteralExpression) p0).getValue();
@@ -160,6 +150,7 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
         break;
 
       case REALLOC:
+        assert params.size() == 2; // Should be ensured by compiler.
         Formula oldLoc = params.get(0).accept(this);
         CExpression p1 = params.get(1);
         if (p1 instanceof CIntegerLiteralExpression) {
@@ -172,6 +163,7 @@ public class SLRhsToFormulaVisitor extends ExpressionToFormulaVisitor {
         break;
 
       case FREE:
+        assert params.size() == 1; // Should be ensured by compiler.
         Formula locToFree = params.get(0).accept(this);
         if (!delegate.handleFree(locToFree)) {
           delegate.addError(SLStateError.INVALID_FREE);
