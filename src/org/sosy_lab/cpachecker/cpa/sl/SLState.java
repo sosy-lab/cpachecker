@@ -32,10 +32,8 @@ public class SLState implements AbstractState, AbstractQueryableState, Graphable
     INVALID_READ,
     INVALID_WRITE,
     INVALID_FREE,
-    MEMORY_LEAK,
-    NONE;
+    MEMORY_LEAK
   }
-
 
   /**
    * The SSAMap to construct formulas representing the symbolic locations of variables.
@@ -285,11 +283,11 @@ public class SLState implements AbstractState, AbstractQueryableState, Graphable
 
   @Override
   public String toDOTLabel() {
-    return errors.toString();
+    return errors.isEmpty() ? "No error" : "Errors: " + errors.toString();
   }
 
   @Override
   public boolean shouldBeHighlighted() {
-    return false;
+    return !errors.isEmpty();
   }
 }
