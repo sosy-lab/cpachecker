@@ -26,9 +26,6 @@ import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.CToFormulaConverterWithSL;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 
-/**
- *
- */
 public class SLCPA extends AbstractCPA implements StatisticsProvider {
 
   public static CPAFactory factory() {

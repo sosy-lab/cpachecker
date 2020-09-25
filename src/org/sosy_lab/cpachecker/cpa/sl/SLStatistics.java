@@ -17,7 +17,6 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
 public class SLStatistics implements Statistics {
 
-
   private Timer solverTime;
   private long solverCalls = 0;
 

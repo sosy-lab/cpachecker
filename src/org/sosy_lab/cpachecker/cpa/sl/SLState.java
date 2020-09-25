@@ -24,18 +24,6 @@ import org.sosy_lab.java_smt.api.Formula;
 
 public class SLState implements AbstractState, AbstractQueryableState, Graphable {
 
-  // private static final String HAS_INVALID_READS = "has-invalid-reads";
-  // private static final String HAS_INVALID_WRITES = "has-invalid-writes";
-  // private static final String HAS_LEAKS = "has-leaks";
-  // private static final String HAS_INVALID_FREES = "has-invalid-frees";
-  //
-  // public enum SLStateError {
-  // INVALID_READ,
-  // INVALID_WRITE,
-  // INVALID_FREE,
-  // MEMORY_LEAK
-  // }
-
   /**
    * The SSAMap to construct formulas representing the symbolic locations of variables.
    */

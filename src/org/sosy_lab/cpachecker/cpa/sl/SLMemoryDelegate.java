@@ -297,7 +297,6 @@ public class SLMemoryDelegate implements StatisticsProvider {
             }
           }
         }
-
       }
     }
     return null;
@@ -415,7 +414,6 @@ public class SLMemoryDelegate implements StatisticsProvider {
         }
       }
     }
-
     return true;
   }
 
@@ -496,7 +494,6 @@ public class SLMemoryDelegate implements StatisticsProvider {
     if (visited.contains(loc)) {
       return false;
     }
-
     for (Entry<Formula, Formula> entry : state.getStack().entrySet()) {
       if (checkEquivalenceSMT(loc, entry.getValue())) {
         return true;
