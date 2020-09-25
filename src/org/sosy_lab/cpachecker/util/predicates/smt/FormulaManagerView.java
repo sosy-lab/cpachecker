@@ -250,12 +250,6 @@ public class FormulaManagerView {
           approximations,
           "for encoding program semantics.");
     }
-
-    try {
-      slFormulaManager = new SLFormulaManagerView(wrappingHandler, manager.getSLFormulaManager());
-    } catch (UnsupportedOperationException e) {
-      // do nothing, solver does not support separation logic
-    }
   }
 
   /**
