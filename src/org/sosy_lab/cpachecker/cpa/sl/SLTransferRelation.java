@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.sl;
 import com.google.common.collect.ImmutableList;
 import java.util.Collection;
 import java.util.List;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -65,6 +66,7 @@ public class SLTransferRelation extends SingleEdgeTransferRelation {
       stats.startSolverTime();
       unsat = prover.isUnsat();
     } catch (SolverException e) {
+      logger.log(Level.SEVERE, "Feasibility solver call failed.");
       throw new CPATransferException("Feasibility check failed.", e);
     } finally {
       stats.stopSolverTime();
