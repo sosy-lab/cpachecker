@@ -5,7 +5,7 @@
 // SPDX-FileCopyrightText: 2020 Dirk Beyer <https://www.sosy-lab.org>
 //
 // SPDX-License-Identifier: Apache-2.0
-package org.sosy_lab.cpachecker.cpa.sl;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import java.util.HashMap;
 import java.util.Map;

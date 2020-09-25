@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.java_smt.api.BitvectorFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
-public class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCodeException> {
+class LvalueVisitor extends DefaultCExpressionVisitor<Formula, UnrecognizedCodeException> {
 
   protected final CtoFormulaConverter conv;
   protected final CFAEdge edge;
