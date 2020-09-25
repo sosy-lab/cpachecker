@@ -11,13 +11,11 @@ package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiab
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 
 /**
  * Rank the faults by the position in the counterexample.
@@ -42,18 +40,10 @@ public class CallHierarchyRanking implements FaultRanking {
   }
 
   @Override
-  public List<Fault> rank(Set<Fault> result) {
-    FaultRankingUtils.RankingResults results = FaultRankingUtils.rankedListFor(result, f -> f.stream()
-            .mapToDouble(fc -> mapEdgeToPosition.get(fc.correspondingEdge()))
-            .max()
-            .orElse(0)
-        );
-    double overallSum = results.getLikelihoodMap().values().stream().mapToDouble(Double::doubleValue).sum();
-    for (Entry<Fault, Double> faultDoubleEntry : results.getLikelihoodMap().entrySet()) {
-      int min = firstErrorEdge - (int)faultDoubleEntry.getValue().doubleValue();
-      faultDoubleEntry.getKey().addInfo(FaultInfo.rankInfo("This fault is " + min + " execution step(s) away from the error location.",
-          faultDoubleEntry.getValue() /overallSum));
-    }
-    return results.getRankedList();
+  public RankInfo scoreFault(Fault fault) {
+    int max = fault.stream().mapToInt(fc -> mapEdgeToPosition.getOrDefault(fc.correspondingEdge(), 0)).max().orElse(0);
+    int min = firstErrorEdge - max;
+    return FaultInfo.rankInfo("This fault is " + min + " execution step(s) away from the error location.", max);
   }
+
 }

@@ -15,7 +15,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
@@ -26,11 +25,11 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
  * FaultReasons can be appended to a Fault to explain why this set of FaultContributions caused an error.
  * The score of a Fault is used to rank the Faults. The higher the score the higher the rank.
  */
-public class Fault extends ForwardingSet<FaultContribution>{
+public class Fault extends ForwardingSet<FaultContribution> implements Comparable<Fault>{
 
-  private ImmutableSet<FaultContribution> errorSet;
+  private Set<FaultContribution> errorSet;
   private List<FaultInfo> infos;
-  private Optional<Integer> intendedIndex;
+  private int intendedIndex;
 
   /**
    * The recommended way is to calculate the score based on the likelihoods of the appended reasons.
@@ -67,7 +66,6 @@ public class Fault extends ForwardingSet<FaultContribution>{
     errorSet = ImmutableSet.copyOf(pContribs);
     infos = new ArrayList<>();
     score = pScore;
-    intendedIndex = Optional.empty();
   }
 
   /**
@@ -165,16 +163,15 @@ public class Fault extends ForwardingSet<FaultContribution>{
   }
 
   /**
-   * Set an intended index to force this fault to be on the pIntendedIndex-th place.
-   * Afterwards apply concatHeuristicsIntendedIndex.
-   * @see FaultRankingUtils#concatHeuristicsIntendedIndex(FaultRanking...)
+   * Set an intended index. Call sortIntended on FaultLocalizationInfo to sort ascending by intended
+   * index
    * @param pIntendedIndex the intended place in the final list for this fault
    */
   public void setIntendedIndex(int pIntendedIndex) {
-    intendedIndex = Optional.of(pIntendedIndex);
+    intendedIndex = pIntendedIndex;
   }
 
-  public Optional<Integer> getIntendedIndex() {
+  public int getIntendedIndex() {
     return intendedIndex;
   }
 
@@ -196,4 +193,9 @@ public class Fault extends ForwardingSet<FaultContribution>{
     return errorSet;
   }
 
+  @Override
+  public int compareTo(Fault o) {
+    // higher score means higher rank
+    return Double.compare(o.score, score);
+  }
 }

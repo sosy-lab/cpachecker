@@ -8,25 +8,27 @@
 
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 
-@FunctionalInterface
 public interface FaultRanking {
 
-  /**
-   * Rank the input set for visual representation in the ReportManager.
-   *
-   * If more than just one parameter is needed (here: result) a class that
-   * implements this interface can be created.
-   * For more details and an example see MaximalLineDistanceRanking.
-   * To concatenate multiple heuristics FaultRankingUtils.concatHeuristics() can be used.
-   * @param result The result of any fault localization algorithm
-   * @return a ranked list of all contained faults.
-   * @see FaultRankingUtils#concatHeuristics(Function, FaultRanking...)
-   * @see FaultRankingUtils#concatHeuristicsDefaultFinalScoring(FaultRanking...)
-   * @see org.sosy_lab.cpachecker.util.faultlocalization.ranking.MaximalLineDistanceRanking
-   */
-  List<Fault> rank(Set<Fault> result);
+  RankInfo scoreFault(Fault fault);
+
+  default void balancedScore(Set<Fault> faults) {
+    double overallScore = 0;
+    List<RankInfo> infos = new ArrayList<>();
+    for (Fault fault : faults) {
+      RankInfo info = scoreFault(fault);
+      overallScore += info.getScore();
+      infos.add(info);
+      fault.addInfo(info);
+    }
+    for (RankInfo info : infos) {
+      info.setScore(info.getScore()/overallScore);
+    }
+  }
+
 }

@@ -8,56 +8,48 @@
 
 package org.sosy_lab.cpachecker.util.faultlocalization.ranking;
 
-import com.google.common.collect.ImmutableList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 
 public class OverallOccurrenceRanking implements FaultRanking {
 
-  /**
-   * Count how often a certain FaultContribution is in a Fault.
-   * Afterwards assign a likelihood to every fault equal to the relative frequency of all elements in result
-   * @param result The result of any FaultLocalizationWithTraceFormula
-   * @return ranked list of Faults
-   */
+
+  private Map<Fault, Double> faultValue = new HashMap<>();
+
   @Override
-  public List<Fault> rank(
-      Set<Fault> result) {
+  public RankInfo scoreFault(Fault fault) {
+    return FaultInfo.rankInfo("Sorted by overall occurrence in all faults.", faultValue.get(fault));
+  }
 
-    if(result.isEmpty()){
-      return ImmutableList.of();
-    }
-
-    Map<Fault, Double> faultValue = new HashMap<>();
-    for(Fault f1: result) {
+  @Override
+  public void balancedScore(Set<Fault> faults) {
+    for(Fault f1: faults) {
       double value = 0;
-      for(Fault f2: result) {
+      for(Fault f2: faults) {
         Set<FaultContribution> intersection = new HashSet<>(f1);
         intersection.removeAll(f2);
         value += f1.size() - intersection.size();
       }
       faultValue.put(f1, value);
     }
-
     double sum = faultValue.values().stream().mapToDouble(Double::valueOf).sum();
     if(sum == 0) {
-      for(Fault f: result) {
-        f.addInfo(FaultInfo.rankInfo("Overall occurrence ranking", 1d/result.size()));
+      for(Fault f: faults) {
+        f.addInfo(FaultInfo.rankInfo("Sorted by overall occurrence in all faults.", 1d/faults.size()));
       }
     } else {
-      for(Fault f: result) {
-        f.addInfo(FaultInfo.rankInfo("Overall occurrence ranking", faultValue.get(f)/sum));
+      for(Fault f: faults) {
+        RankInfo info = scoreFault(f);
+        f.setScore(f.getScore()/sum);
+        f.addInfo(info);
       }
     }
-
-    return FaultRankingUtils.rankedListFor(result, f -> faultValue.get(f)).getRankedList();
   }
 }

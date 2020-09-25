@@ -8,19 +8,11 @@
 
 package org.sosy_lab.cpachecker.util.faultlocalization.ranking;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import com.google.common.collect.ImmutableList;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils.RankingResults;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 
 public class MaximalLineDistanceRanking implements FaultRanking {
 
@@ -36,55 +28,13 @@ public class MaximalLineDistanceRanking implements FaultRanking {
   }
 
   @Override
-  public List<Fault> rank(Set<Fault> result) {
-
-    if(result.isEmpty()){
-      return ImmutableList.of();
-    }
-
-    RankingResults ranking = FaultRankingUtils.rankedListFor(result,
-        e -> e.stream()
-        .mapToDouble(fc -> Math.abs(errorLocation - fc.correspondingEdge().getFileLocation().getStartingLineInOrigin()))
+  public RankInfo scoreFault(Fault fault) {
+    int max = fault
+        .stream()
+        .mapToInt(fc -> Math.abs(fc.correspondingEdge().getFileLocation().getStartingLineInOrigin() - errorLocation))
         .max()
-        .orElse(0.0));
-
-    if(ranking.getRankedList().size()==1){
-      Fault current = ranking.getRankedList().get(0);
-      current.addInfo(FaultInfo.rankInfo(
-          "Maximal distance to error location: " + (int)ranking.getLikelihoodMap().get(current).doubleValue() + " line(s)",
-          1d));
-      return ranking.getRankedList();
-    }
-
-    /* Example: dist(Fault A) = 1, dist(Fault B) = 5, dist(Fault C) = 5, dist(Fault D) = 10.
-     * Expected Likelihood: L(Fault A) = 1/9, L(Fault B) = 2/9, L(Fault C) = 2/9, L(Fault D) = 4/9.
-     * If two faults A and B do not have the same distance and are ranked exactly 1 apart,
-     * L(A) = 2*L(B) must hold. The code below ensures this.
-     * */
-    List<Double> sortedLikelihood = ranking.getLikelihoodMap().values().stream().distinct().sorted().collect(
-        Collectors.toList());
-    Map<Double, Integer> index = new HashMap<>();
-    for(int i = 0; i < sortedLikelihood.size(); i++){
-      index.put(sortedLikelihood.get(i), i);
-    }
-
-    int total = 0;
-
-    for(Double val: ranking.getLikelihoodMap().values()){
-      total += 1<<index.get(val);
-    }
-
-    double single = 1d/total;
-
-    for(Map.Entry<Fault, Double> entry: ranking.getLikelihoodMap().entrySet()){
-      Fault current = entry.getKey();
-      current.addInfo(FaultInfo.rankInfo(
-          "Maximal distance to error location: " + (int)ranking.getLikelihoodMap().get(current).doubleValue() + " line(s)",
-          Math.pow(2, index.get(entry.getValue()))*single));
-    }
-
-    return ranking.getRankedList();
-
+        .orElse(0);
+    return FaultInfo.rankInfo("This line is " + max + " line(s) away from the error location", max);
   }
 }
 

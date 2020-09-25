@@ -50,19 +50,19 @@ public abstract class FaultInfo implements Comparable<FaultInfo>{
         InfoType.FIX, new NoContextExplanation().explanationFor(new Fault(pFaultContribution)));
   }
 
-  public static FaultInfo fix(String pDescription){
+  public static PotentialFix fix(String pDescription){
     return new PotentialFix(InfoType.FIX, pDescription);
   }
 
-  public static FaultInfo rankInfo(String pDescription, double pLikelihood){
+  public static RankInfo rankInfo(String pDescription, double pLikelihood){
     return new RankInfo(InfoType.RANK_INFO, pDescription, pLikelihood);
   }
 
-  public static FaultInfo justify(String pDescription){
+  public static FaultReason justify(String pDescription){
     return new FaultReason(InfoType.REASON, pDescription);
   }
 
-  public static FaultInfo hint(String pDescription){
+  public static Hint hint(String pDescription){
     return new Hint(InfoType.HINT, pDescription);
   }
 

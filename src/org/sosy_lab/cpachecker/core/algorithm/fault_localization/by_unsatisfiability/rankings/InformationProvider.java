@@ -21,8 +21,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.parser.BooleanFormulaParser;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.trace.TraceFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print.BooleanFormulaParser;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
@@ -93,7 +93,7 @@ public class InformationProvider {
   }
 
 
-  public static void propagatePreCondition(List<Fault> rankedList, TraceFormula traceFormula, FormulaManagerView fmgr) {
+  public static void propagatePreCondition(Collection<Fault> rankedList, TraceFormula traceFormula, FormulaManagerView fmgr) {
     if(!traceFormula.getPrecondition().toString().contains("_VERIFIER_nondet_")){
       return;
     }
@@ -131,9 +131,8 @@ public class InformationProvider {
 
     List<BooleanFormula> atoms = traceFormula.getEntries().toAtomList();
     for(Entry<String, String> entry: mapFormulaToValue.entrySet()){
-      for (int i = 0 ; i < atoms.size(); i++) {
-        BooleanFormula atom = atoms.get(i);
-        if(atom.toString().contains(entry.getKey())){
+      for (BooleanFormula atom : atoms) {
+        if (atom.toString().contains(entry.getKey())) {
           atom = fmgr.uninstantiate(atom);
           String assignment = BooleanFormulaParser
               .parse(atom.toString().replaceAll(entry.getKey(), entry.getValue())).toString();
@@ -145,6 +144,27 @@ public class InformationProvider {
     String allAssignments = String.join(", ", assignments);
     for (Fault fault : rankedList) {
       fault.addInfo(FaultInfo.hint("The program fails for the following initial variable assignment: " + allAssignments));
+    }
+  }
+
+  public static void addDefaultPotentialFixesToFaults(Collection<Fault> result, int maxNumberOfHints) {
+    boolean maxNumberOfHintsNegative = maxNumberOfHints < 0;
+    Set<FaultContribution> alreadyAttached = new HashSet<>();
+    for (Fault faultLocalizationOutputs : result) {
+      int hints = 0;
+      for (FaultContribution faultContribution : faultLocalizationOutputs) {
+        FaultInfo
+            potFix = FaultInfo.possibleFixFor(faultContribution);
+        if(maxNumberOfHintsNegative || hints < maxNumberOfHints){
+          faultLocalizationOutputs.addInfo(potFix);
+        }
+        //Prevent attaching the same hint twice
+        if(!alreadyAttached.contains(faultContribution)) {
+          faultContribution.addInfo(potFix);
+          alreadyAttached.add(faultContribution);
+        }
+        hints++;
+      }
     }
   }
 

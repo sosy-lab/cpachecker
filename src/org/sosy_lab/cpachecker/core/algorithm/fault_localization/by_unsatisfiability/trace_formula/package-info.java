@@ -10,4 +10,4 @@
  * Implementation of a trace formula.
  * A trace formula is the conjunction of every edge from the start to the error location.
  */
-package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula;
+package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula;

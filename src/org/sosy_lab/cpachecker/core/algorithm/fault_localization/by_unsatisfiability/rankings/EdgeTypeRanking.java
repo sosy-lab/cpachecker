@@ -8,33 +8,19 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings;
 
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
-import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 
 /**
  * Sort faults based on their contained edge types.
  */
 public class EdgeTypeRanking implements FaultRanking {
 
-  @Override
-  public List<Fault> rank(Set<Fault> result) {
-    FaultRankingUtils.RankingResults results =
-        FaultRankingUtils.rankedListFor(result, f -> f.stream().mapToDouble(fc -> getScore(fc.correspondingEdge().getEdgeType())).sum());
-    double overallSum = results.getLikelihoodMap().values().stream().mapToDouble(Double::doubleValue).sum();
-    for (Entry<Fault, Double> faultDoubleEntry : results.getLikelihoodMap().entrySet()) {
-      faultDoubleEntry.getKey().addInfo(FaultInfo.rankInfo("Score calculated by edge type(s).", overallSum==0 ? 1d : faultDoubleEntry.getValue()/overallSum));
-    }
-    return results.getRankedList();
-  }
-
-  private double getScore(CFAEdgeType edgeType) {
-    switch (edgeType) {
+  private double getScore(CFAEdge edge) {
+    switch (edge.getEdgeType()) {
       case AssumeEdge:
         return 100d;
       case StatementEdge:
@@ -56,12 +42,10 @@ public class EdgeTypeRanking implements FaultRanking {
     }
   }
 
-/*  private String readableName(CFAEdgeType type){
-    StringJoiner joiner = new StringJoiner(" ");
-    for (String s : Splitter.onPattern("(?=\\p{Upper})").split(type.name())) {
-      joiner.add(s);
-    }
-    return joiner.toString();
-  }*/
+  @Override
+  public RankInfo scoreFault(Fault fault) {
+    double sum = fault.stream().mapToDouble(fc -> getScore(fc.correspondingEdge())).sum();
+    return FaultInfo.rankInfo("Score based on edge type(s).", sum);
+  }
 
 }

@@ -12,4 +12,4 @@
  * Ermis Evren, Martin Schäf, and Thomas Wies: "Error invariants." International Symposium on Formal Methods.
  * Springer, Berlin, Heidelberg, 2012
  */
-package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.errorinvariants;
+package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants;

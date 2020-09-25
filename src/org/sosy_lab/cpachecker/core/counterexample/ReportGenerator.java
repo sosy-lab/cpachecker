@@ -334,11 +334,16 @@ public class ReportGenerator {
     dotBuilder.writeMergedNodesList(writer);
 
     if (counterExample != null) {
-      writer.write(",\n\"errorPath\":");
-      counterExample.toJSON(writer);
-      if(counterExample instanceof FaultLocalizationInfo){
+      if (counterExample instanceof FaultLocalizationInfo) {
+        FaultLocalizationInfo flInfo = (FaultLocalizationInfo)counterExample;
+        flInfo.prepare();
+        writer.write(",\n\"errorPath\":");
+        counterExample.toJSON(writer);
         writer.write(",\n\"faults\":");
-        ((FaultLocalizationInfo)counterExample).faultsToJSON(writer);
+        flInfo.faultsToJSON(writer);
+      } else {
+        writer.write(",\n\"errorPath\":");
+        counterExample.toJSON(writer);
       }
     }
 

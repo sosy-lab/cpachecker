@@ -17,6 +17,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -33,16 +34,16 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.errorinvariants.ErrorInvariantsAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants.ErrorInvariantsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizerWithTraceFormula;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.errorinvariants.IntervalReportWriter;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants.IntervalReportWriter;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.ModifiedMaxSatAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.OriginalMaxSatAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.SingleUnsatCoreAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.trace.FormulaContext;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.trace.Selector;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.trace.TraceFormula;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.trace.TraceFormula.TraceFormulaOptions;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.Selector;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.TraceFormulaOptions;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.CallHierarchyRanking;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.EdgeTypeRanking;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.InformationProvider;
@@ -62,7 +63,6 @@ import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.InfoType;
-import org.sosy_lab.cpachecker.util.faultlocalization.ranking.HintRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.MinimalLineDistanceRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.OverallOccurrenceRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.SetSizeRanking;
@@ -234,10 +234,9 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
         case MAXORG:
         case MAXSAT: {
           tf = new TraceFormula.SelectorTrace(context, options, edgeList);
-          ranking =  FaultRankingUtils.concatHeuristicsDefaultFinalScoring(
+          ranking =  FaultRankingUtils.concatHeuristics(
               new EdgeTypeRanking(),
               new SetSizeRanking(),
-              new HintRanking(3),
               new OverallOccurrenceRanking(),
               new MinimalLineDistanceRanking(edgeList.get(edgeList.size()-1)),
               new CallHierarchyRanking(edgeList, tf.getPostConditionOffset()));
@@ -245,17 +244,15 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
         }
         case ERRINV: {
           tf = disableFSTF ? new TraceFormula.FlowSensitiveTrace(context, options, edgeList) : new TraceFormula.DefaultTrace(context, options, edgeList);
-          ranking = FaultRankingUtils.concatHeuristicsIntendedIndex(
+          ranking = FaultRankingUtils.concatHeuristics(
               new EdgeTypeRanking(),
-              new HintRanking(3),
               new CallHierarchyRanking(edgeList, tf.getPostConditionOffset()));
           break;
         }
         case UNSAT: {
           tf = new TraceFormula.DefaultTrace(context, options, edgeList);
-          ranking = FaultRankingUtils.concatHeuristicsDefaultFinalScoring(
+          ranking = FaultRankingUtils.concatHeuristics(
               new EdgeTypeRanking(),
-              new HintRanking(-1),
               new CallHierarchyRanking(edgeList, tf.getPostConditionOffset()));
           break;
         }
@@ -274,11 +271,13 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
       }
 
       InformationProvider.searchForAdditionalInformation(errorIndicators, edgeList);
+      InformationProvider.addDefaultPotentialFixesToFaults(errorIndicators, 3);
+      InformationProvider.propagatePreCondition(errorIndicators, tf, context.getSolver().getFormulaManager());
       FaultLocalizationInfo info = new FaultLocalizationInfo(errorIndicators, ranking, pInfo);
-      InformationProvider.propagatePreCondition(info.getRankedList(), tf, context.getSolver().getFormulaManager());
 
       if (algorithmType.equals(AlgorithmTypes.ERRINV)) {
         info.replaceHtmlWriter(new IntervalReportWriter());
+        info.sortIntended();
       }
 
       info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);

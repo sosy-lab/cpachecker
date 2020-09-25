@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.errorinvariants;
+package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants;
 
 import com.google.common.base.Splitter;
 import com.google.common.base.VerifyException;
@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -30,10 +31,10 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizerWithTraceFormula;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.trace.FormulaContext;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.trace.Selector;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.trace.TraceFormula;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.parser.BooleanFormulaParser;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.Selector;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print.BooleanFormulaParser;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
@@ -134,7 +135,6 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
 
     // calculate interval boundaries for each interpolant
     for (int i = 0; i < interpolants.size(); i++) {
-      // TODO actualForm can evaluate to false (c.f. SingleUnsatCore)
       BooleanFormula interpolant = interpolants.get(i);
       Interval current =
           new Interval(
@@ -145,7 +145,10 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
     }
 
     //sort the intervals and calculate abstrace error trace
-    List<Interval> sortedIntervals = allIntervals.stream().sorted().collect(Collectors.toList());
+    List<Interval> sortedIntervals = allIntervals
+        .stream()
+        .sorted(Comparator.comparingInt(interval -> interval.start))
+        .collect(Collectors.toList());
     List<Selector> selectors = errorTrace.getEntries().toSelectorList();
     Interval maxInterval = sortedIntervals.get(0);
     int prevEnd = 0;
@@ -348,7 +351,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
   /**
    * Stores the interpolant for a selector and its boundaries
    */
-  public static class Interval extends Fault implements Comparable<Interval>, AbstractTraceElement {
+  public static class Interval extends Fault implements AbstractTraceElement {
 
     private int start;
     private int end;
@@ -381,11 +384,6 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
     @Override
     public int hashCode(){
       return Objects.hash(invariant, start, end, super.hashCode());
-    }
-
-    @Override
-    public int compareTo(Interval pInterval) {
-      return Integer.compare(start, pInterval.start);
     }
   }
 }

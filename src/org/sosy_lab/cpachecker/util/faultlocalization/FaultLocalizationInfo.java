@@ -13,6 +13,8 @@ import com.google.common.collect.Multimap;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -58,7 +60,8 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         pParent.getCFAPathWithAssignments(),
         pParent.isPreciseCounterExample(),
         CFAPathWithAdditionalInfo.empty());
-    initialize(pFaults);
+    rankedList = pFaults;
+    htmlWriter = new FaultReportWriter();
   }
 
   /**
@@ -86,28 +89,32 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         pParent.getCFAPathWithAssignments(),
         pParent.isPreciseCounterExample(),
         CFAPathWithAdditionalInfo.empty());
-    List<Fault> rankedFault = pRanking.rank(pFaults);
-    for (Fault fault : rankedFault) {
+    pRanking.balancedScore(pFaults);
+    rankedList = new ArrayList<>();
+    for (Fault fault : pFaults) {
       FaultRankingUtils.assignScoreTo(fault);
       for (FaultContribution faultContribution : fault) {
         FaultRankingUtils.assignScoreTo(faultContribution);
       }
+      rankedList.add(fault);
     }
-    initialize(rankedFault);
+    Collections.sort(rankedList);
+    htmlWriter = new FaultReportWriter();
   }
 
-  private void initialize(List<Fault> pRankedFaults){
+  public void prepare(){
     mapEdgeToFaultContribution = new HashMap<>();
     mapEdgeToRankedFaultIndex = ArrayListMultimap.create();
-    for(int i = 0; i < pRankedFaults.size(); i++){
-      for (FaultContribution faultContribution : pRankedFaults.get(i)) {
+    for(int i = 0; i < rankedList.size(); i++){
+      for (FaultContribution faultContribution : rankedList.get(i)) {
         mapEdgeToRankedFaultIndex.put(faultContribution.correspondingEdge(), i);
         mapEdgeToFaultContribution.put(faultContribution.correspondingEdge(), faultContribution);
       }
     }
+  }
 
-    rankedList = pRankedFaults;
-    htmlWriter = new FaultReportWriter();
+  public void sortIntended() {
+    rankedList.sort(Comparator.comparingInt(fault ->  fault.getIntendedIndex()));
   }
 
   public int getRankOfSet(Fault set) {
@@ -188,6 +195,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
 
   /**
    * Replace default CounterexampleInfo with this extended version of a CounterexampleInfo.
+   * Call this method to activate the visual representation of fault localization.
    */
   public void apply(){
     super.getTargetPath().getLastState().replaceCounterexampleInformation(this);
