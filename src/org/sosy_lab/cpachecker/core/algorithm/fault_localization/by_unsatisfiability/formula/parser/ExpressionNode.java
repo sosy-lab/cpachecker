@@ -68,8 +68,7 @@ public class ExpressionNode implements FormulaNode {
 
   @Override
   public int hashCode() {
-    int hashCode = 17;
-    hashCode = Objects.hash(hashCode, operator);
+    int hashCode = Objects.hash(ExpressionNode.class, operator);
     for (FormulaNode operand : operands) {
       hashCode = Objects.hash(hashCode, operand);
     }

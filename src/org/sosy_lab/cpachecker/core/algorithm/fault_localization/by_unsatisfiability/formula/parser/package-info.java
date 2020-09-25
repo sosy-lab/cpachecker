@@ -6,5 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-//Parses boolean formulas for multiple use cases (ExpressionConverter, Simplifier)
+/** Parses boolean formulas to improve readability of the string representation of BooleanFormulas */
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.parser;

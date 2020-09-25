@@ -45,7 +45,7 @@ public class NotNode implements FormulaNode {
 
   @Override
   public int hashCode() {
-    return Objects.hash(node, 47);
+    return Objects.hash(node, NotNode.class);
   }
 
   @Override

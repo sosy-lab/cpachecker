@@ -48,7 +48,7 @@ public class OrNode implements FormulaNode {
 
   @Override
   public int hashCode() {
-    return Objects.hash(left, right, 13);
+    return Objects.hash(left, right, NotNode.class);
   }
 
   @Override

@@ -50,7 +50,7 @@ public class AndNode implements FormulaNode {
 
   @Override
   public int hashCode() {
-    return Objects.hash(left, right, 37);
+    return Objects.hash(left, right, AndNode.class);
   }
 
   @Override

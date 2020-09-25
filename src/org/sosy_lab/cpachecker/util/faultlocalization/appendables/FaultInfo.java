@@ -35,7 +35,7 @@ public abstract class FaultInfo implements Comparable<FaultInfo>{
   protected String description;
   private InfoType type;
 
-  protected FaultInfo(InfoType pType){
+  protected FaultInfo(InfoType pType) {
     type = pType;
   }
 
