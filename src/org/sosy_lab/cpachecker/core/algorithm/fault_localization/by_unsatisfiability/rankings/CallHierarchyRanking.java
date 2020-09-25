@@ -18,8 +18,8 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 
 /**
- * Rank the faults by the position in the counterexample.
- * The closer edges of a fault are to the error location the higher the rank.
+ * Rank the faults by the position in the counterexample. The closer edges of a fault are to the
+ * error location the higher the rank.
  */
 public class CallHierarchyRanking implements FaultRanking {
 
@@ -28,22 +28,27 @@ public class CallHierarchyRanking implements FaultRanking {
 
   /**
    * Reward fault contributions that are closer to the error in the counterexample
+   *
    * @param pEdgeList counterexample
    * @param pNumberErrorEdges number of post-condition edges
    */
   public CallHierarchyRanking(List<CFAEdge> pEdgeList, int pNumberErrorEdges) {
     mapEdgeToPosition = new HashMap<>();
     for (int i = 0; i < pEdgeList.size(); i++) {
-      mapEdgeToPosition.put(pEdgeList.get(i), i+1);
+      mapEdgeToPosition.put(pEdgeList.get(i), i + 1);
     }
-    firstErrorEdge = pEdgeList.size()-pNumberErrorEdges+1;
+    firstErrorEdge = pEdgeList.size() - pNumberErrorEdges + 1;
   }
 
   @Override
   public RankInfo scoreFault(Fault fault) {
-    int max = fault.stream().mapToInt(fc -> mapEdgeToPosition.getOrDefault(fc.correspondingEdge(), 0)).max().orElse(0);
+    int max =
+        fault.stream()
+            .mapToInt(fc -> mapEdgeToPosition.getOrDefault(fc.correspondingEdge(), 0))
+            .max()
+            .orElse(0);
     int min = firstErrorEdge - max;
-    return FaultInfo.rankInfo("This fault is " + min + " execution step(s) away from the error location.", max);
+    return FaultInfo.rankInfo(
+        "This fault is " + min + " execution step(s) away from the error location.", max);
   }
-
 }

@@ -45,6 +45,7 @@ public class FormulaContext {
 
   /**
    * This class maintains the most often used objects in fault localization.
+   *
    * @param pSolver the solver for BooleanFormulas
    * @param pManager manager to concatenate CFAEdges to a boolean formula
    * @param pConfiguration configuration settings
@@ -52,7 +53,13 @@ public class FormulaContext {
    * @param pMutableCFA the mutable CFA
    * @param pShutdownNotifier the shutdown notifier
    */
-  public FormulaContext(Solver pSolver, PathFormulaManagerImpl pManager, CFA pMutableCFA, LogManager pLogManager, Configuration pConfiguration, ShutdownNotifier pShutdownNotifier) {
+  public FormulaContext(
+      Solver pSolver,
+      PathFormulaManagerImpl pManager,
+      CFA pMutableCFA,
+      LogManager pLogManager,
+      Configuration pConfiguration,
+      ShutdownNotifier pShutdownNotifier) {
     solver = pSolver;
     manager = pManager;
     prover = solver.newProverEnvironment(ProverOptions.GENERATE_MODELS);

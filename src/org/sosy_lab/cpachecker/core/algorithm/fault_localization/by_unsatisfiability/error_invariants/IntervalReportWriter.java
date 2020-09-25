@@ -29,31 +29,31 @@ public class IntervalReportWriter extends FaultReportWriter {
   @Override
   public String toHtml(Fault pFault) {
     if (pFault instanceof Interval) {
-      List<CFAEdge> edges = pFault
-          .stream()
-          .map(FaultContribution::correspondingEdge)
-          .sorted(Comparator.comparingInt(l -> l.getFileLocation().getStartingLineInOrigin()))
-          .collect(Collectors.toList());
+      List<CFAEdge> edges =
+          pFault.stream()
+              .map(FaultContribution::correspondingEdge)
+              .sorted(Comparator.comparingInt(l -> l.getFileLocation().getStartingLineInOrigin()))
+              .collect(Collectors.toList());
       return intervalToHtml(pFault.getInfos(), edges);
     } else {
       return super.toHtml(pFault);
     }
   }
 
-  public String intervalToHtml(List<FaultInfo> infos, List<CFAEdge> correspondingEdges){
+  public String intervalToHtml(List<FaultInfo> infos, List<CFAEdge> correspondingEdges) {
     List<FaultReason> faultReasons = new ArrayList<>();
     List<RankInfo> faultInfo = new ArrayList<>();
     List<PotentialFix> faultFix = new ArrayList<>();
     List<Hint> faultHint = new ArrayList<>();
 
-    //Sorted insert
+    // Sorted insert
     for (FaultInfo info : infos) {
-      switch(info.getType()){
+      switch (info.getType()) {
         case FIX:
           faultFix.add((PotentialFix) info);
           break;
         case HINT:
-          faultHint.add((Hint)info);
+          faultHint.add((Hint) info);
           break;
         case REASON:
           faultReasons.add((FaultReason) info);
@@ -61,13 +61,15 @@ public class IntervalReportWriter extends FaultReportWriter {
         case RANK_INFO:
           faultInfo.add((RankInfo) info);
           break;
-        default: throw new AssertionError("Unknown InfoType");
+        default:
+          throw new AssertionError("Unknown InfoType");
       }
     }
 
-
-    String header = "Interpolant describing line(s): <strong>" + listDistinctLineNumbersAndJoin(correspondingEdges)
-        + "</strong><br>";
+    String header =
+        "Interpolant describing line(s): <strong>"
+            + listDistinctLineNumbersAndJoin(correspondingEdges)
+            + "</strong><br>";
     StringBuilder html = new StringBuilder();
 
     if (!correspondingEdges.isEmpty()) {
@@ -89,32 +91,44 @@ public class IntervalReportWriter extends FaultReportWriter {
     }
 
     if (!faultReasons.isEmpty() && !hideTypes.contains(InfoType.REASON)) {
-      html.append(printList("Detected <strong>" +
-              faultReasons.size() + "</strong> possible reason" + (faultReasons.size() == 1? ":":"s:"), "",
-          faultReasons, true))
+      html.append(
+              printList(
+                  "Detected <strong>"
+                      + faultReasons.size()
+                      + "</strong> possible reason"
+                      + (faultReasons.size() == 1 ? ":" : "s:"),
+                  "",
+                  faultReasons,
+                  true))
           .append("<br>");
     }
 
     if (!faultFix.isEmpty() && !hideTypes.contains(InfoType.FIX)) {
-      html.append(printList("Found <strong>" + faultFix.size() + "</strong> possible bug-fix" + (faultFix.size() == 1?":":"es:"), "fix-list",
-          faultFix, false))
+      html.append(
+              printList(
+                  "Found <strong>"
+                      + faultFix.size()
+                      + "</strong> possible bug-fix"
+                      + (faultFix.size() == 1 ? ":" : "es:"),
+                  "fix-list",
+                  faultFix,
+                  false))
           .append("<br>");
     }
 
     if (!faultHint.isEmpty() && !hideTypes.contains(InfoType.HINT)) {
-      String headline = faultHint.size() == 1? "hint is available:" : "hints are available:";
+      String headline = faultHint.size() == 1 ? "hint is available:" : "hints are available:";
       html.append(
-          printList(
-              "<strong>" + faultHint.size() + "</strong> " + headline,
-              "hint-list",
-              faultHint,
-              false))
+              printList(
+                  "<strong>" + faultHint.size() + "</strong> " + headline,
+                  "hint-list",
+                  faultHint,
+                  false))
           .append("<br>");
     }
 
-    if (!faultInfo.isEmpty()  && !hideTypes.contains(InfoType.RANK_INFO)) {
-      html.append(printList("The score is obtained by:", "", faultInfo, true))
-          .append("<br>");
+    if (!faultInfo.isEmpty() && !hideTypes.contains(InfoType.RANK_INFO)) {
+      html.append(printList("The score is obtained by:", "", faultInfo, true)).append("<br>");
     }
 
     return header + "<br>" + html;

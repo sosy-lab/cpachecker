@@ -14,9 +14,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 
-/**
- * Sort faults based on their contained edge types.
- */
+/** Sort faults based on their contained edge types. */
 public class EdgeTypeRanking implements FaultRanking {
 
   private double getScore(CFAEdge edge) {
@@ -47,5 +45,4 @@ public class EdgeTypeRanking implements FaultRanking {
     double sum = fault.stream().mapToDouble(fc -> getScore(fc.correspondingEdge())).sum();
     return FaultInfo.rankInfo("Score based on edge type(s).", sum);
   }
-
 }

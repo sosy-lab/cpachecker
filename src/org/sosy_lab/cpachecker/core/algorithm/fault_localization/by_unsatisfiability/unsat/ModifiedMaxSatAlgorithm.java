@@ -37,7 +37,7 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
   private Solver solver;
   private BooleanFormulaManager bmgr;
 
-  //Statistics
+  // Statistics
   private StatTimer totalTime = new StatTimer(StatKind.SUM, "Total time to find all subsets");
   private StatCounter unsatCalls = new StatCounter("Total calls to sat solver");
   private StatCounter savedCalls = new StatCounter("Total calls prevented by subset check");
@@ -53,8 +53,12 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
 
     Set<FaultContribution> soft = new HashSet<>(tf.getEntries().toSelectorList());
     int initSize = soft.size();
-    //if a selector is true (i. e. enabled) it cannot be part of the result set. This usually happens if the selector is a part of the pre-condition
-    soft.removeIf(fc -> bmgr.isTrue(((Selector)fc).getFormula()) || bmgr.isFalse(((Selector)fc).getFormula()));
+    // if a selector is true (i. e. enabled) it cannot be part of the result set. This usually
+    // happens if the selector is a part of the pre-condition
+    soft.removeIf(
+        fc ->
+            bmgr.isTrue(((Selector) fc).getFormula())
+                || bmgr.isFalse(((Selector) fc).getFormula()));
     int numberSelectors = soft.size();
 
     Fault minUnsatCore = new Fault();
@@ -62,7 +66,7 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
     totalTime.start();
     // loop as long as new unsat cores are found.
     // if the newly found unsat core has the size of all left selectors break.
-    while(minUnsatCore.size() != numberSelectors){
+    while (minUnsatCore.size() != numberSelectors) {
       minUnsatCore = getMinUnsatCore(soft, tf, hard);
       if (minUnsatCore.size() == 1) {
         soft.removeAll(minUnsatCore);
@@ -70,7 +74,7 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
       }
       // adding all possible selectors yields no information because the user knows that the program
       // has bugs
-      if(minUnsatCore.size() != initSize) {
+      if (minUnsatCore.size() != initSize) {
         hard.add(minUnsatCore);
       }
     }
@@ -79,10 +83,10 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
   }
 
   /**
-   * Get a minimal subset of selectors considering the already found ones
-   * Minimal means that we cannot remove a single selector from the returned set and maintain unsatisfiability.
-   * Minimal does not mean that there does not exist a smaller unsat-core here.
-   * Since we find all solutions the order does not matter.
+   * Get a minimal subset of selectors considering the already found ones Minimal means that we
+   * cannot remove a single selector from the returned set and maintain unsatisfiability. Minimal
+   * does not mean that there does not exist a smaller unsat-core here. Since we find all solutions
+   * the order does not matter.
    *
    * @param pTraceFormula TraceFormula to the error
    * @param pHardSet already found minimal sets
@@ -98,7 +102,7 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
     do {
       changed = false;
       for (FaultContribution fc : result) {
-        Selector s = (Selector)fc;
+        Selector s = (Selector) fc;
         Fault copy = new Fault(new HashSet<>(result));
         copy.remove(s);
         if (!isSubsetOrSupersetOf(copy, pHardSet)) {
@@ -136,11 +140,11 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
   }
 
   @Override
-  public void printStatistics(
-      PrintStream out, Result result, UnmodifiableReachedSet reached) {
+  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
     StatisticsWriter w0 = StatisticsWriter.writingStatisticsTo(out);
-    w0.put("Total time", totalTime).put("Total calls to solver", unsatCalls)
-    .put("Total calls saved", savedCalls);
+    w0.put("Total time", totalTime)
+        .put("Total calls to solver", unsatCalls)
+        .put("Total calls saved", savedCalls);
   }
 
   @Override

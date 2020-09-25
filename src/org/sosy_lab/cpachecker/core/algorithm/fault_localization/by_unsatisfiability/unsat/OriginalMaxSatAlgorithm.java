@@ -37,7 +37,7 @@ public class OriginalMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
   private Solver solver;
   private BooleanFormulaManager bmgr;
 
-  //Statistics
+  // Statistics
   private StatTimer totalTime = new StatTimer(StatKind.SUM, "Total time to find all subsets");
   private StatCounter unsatCalls = new StatCounter("Total calls to sat solver");
   private StatCounter savedCalls = new StatCounter("Total calls prevented by subset check");
@@ -51,15 +51,19 @@ public class OriginalMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
 
     Set<Fault> hard = new HashSet<>();
 
-    //if selectors are reduced the set ensures to remove duplicates
+    // if selectors are reduced the set ensures to remove duplicates
     Set<FaultContribution> soft = new HashSet<>(tf.getEntries().toSelectorList());
-    //if a selector is true (i. e. enabled) it cannot be part of the result set. This usually happens if the selector is a part of the pre-condition
-    soft.removeIf(fc -> bmgr.isTrue(((Selector)fc).getFormula()) || bmgr.isFalse(((Selector)fc).getFormula()));
+    // if a selector is true (i. e. enabled) it cannot be part of the result set. This usually
+    // happens if the selector is a part of the pre-condition
+    soft.removeIf(
+        fc ->
+            bmgr.isTrue(((Selector) fc).getFormula())
+                || bmgr.isFalse(((Selector) fc).getFormula()));
 
     Fault complement;
     totalTime.start();
     // loop as long as new maxsat cores are found.
-    while(true){
+    while (true) {
       complement = coMSS(soft, tf, hard);
       if (complement.isEmpty()) {
         break;
@@ -86,14 +90,12 @@ public class OriginalMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
     Set<FaultContribution> selectors = new HashSet<>(pSoftSet);
     Fault result = new Fault();
     BooleanFormula composedFormula =
-        bmgr.and(
-            pTraceFormula.getTraceFormula(),
-            hardSetFormula(pHardSet));
+        bmgr.and(pTraceFormula.getTraceFormula(), hardSetFormula(pHardSet));
     boolean changed;
     do {
       changed = false;
       for (FaultContribution fc : selectors) {
-        Selector s = (Selector)fc;
+        Selector s = (Selector) fc;
         Fault copy = new Fault(new HashSet<>(result));
         copy.add(s);
         unsatCalls.inc();
@@ -110,11 +112,12 @@ public class OriginalMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
 
   /**
    * Conjunct of all selector-formulas
+   *
    * @param softSet left selectors
    * @return boolean formula as conjunct of all selector formulas
    */
   private BooleanFormula softSetFormula(Fault softSet) {
-    return softSet.stream().map(f -> ((Selector)f).getFormula()).collect(bmgr.toConjunction());
+    return softSet.stream().map(f -> ((Selector) f).getFormula()).collect(bmgr.toConjunction());
   }
 
   /**
@@ -125,15 +128,15 @@ public class OriginalMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
    */
   private BooleanFormula hardSetFormula(Set<Fault> hardSet) {
     return hardSet.stream()
-        .map(l -> l.stream().map(f -> ((Selector)f).getFormula()).collect(bmgr.toDisjunction()))
+        .map(l -> l.stream().map(f -> ((Selector) f).getFormula()).collect(bmgr.toDisjunction()))
         .collect(bmgr.toConjunction());
   }
 
   @Override
-  public void printStatistics(
-      PrintStream out, Result result, UnmodifiableReachedSet reached) {
+  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
     StatisticsWriter w0 = StatisticsWriter.writingStatisticsTo(out);
-    w0.put("Total time", totalTime).put("Total calls to solver", unsatCalls)
+    w0.put("Total time", totalTime)
+        .put("Total calls to solver", unsatCalls)
         .put("Total calls saved", savedCalls);
   }
 

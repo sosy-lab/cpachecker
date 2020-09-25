@@ -40,32 +40,36 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
 
   private List<FormulaEntry> entries;
 
-  public FormulaEntryList(){
+  public FormulaEntryList() {
     entries = new ArrayList<>();
   }
-  public FormulaEntryList(List<FormulaEntry> pList){
+
+  public FormulaEntryList(List<FormulaEntry> pList) {
     entries = new ArrayList<>(pList);
   }
 
-  public void addEntry(int pos, int pAtomId, SSAMap pSSAMap, Selector pSelector, BooleanFormula pAtom){
+  public void addEntry(
+      int pos, int pAtomId, SSAMap pSSAMap, Selector pSelector, BooleanFormula pAtom) {
     entries.add(pos, new FormulaEntry(pAtomId, pSSAMap, pSelector, pAtom));
   }
 
-  public void addEntry(int pAtomId, SSAMap pSSAMap, Selector pSelector, BooleanFormula pAtom){
+  public void addEntry(int pAtomId, SSAMap pSSAMap, Selector pSelector, BooleanFormula pAtom) {
     entries.add(new FormulaEntry(pAtomId, pSSAMap, pSelector, pAtom));
   }
 
   /**
-   * If predicate remove holds on an entry, remove it from the set map it to T with <code>extract</code>
-   * and return all mapped elements as a list to the user.
+   * If predicate remove holds on an entry, remove it from the set map it to T with <code>extract
+   * </code> and return all mapped elements as a list to the user.
+   *
    * @param remove predicate to test if entry should be removed
    * @param extract function to extract a certain type out of the FormulaEntry
    * @param <T> Type to extract
    * @return List of all removed entries mapped to the correct type.
    */
-  public <T> List<T> removeExtract(Predicate<FormulaEntry> remove, Function<FormulaEntry, T> extract) {
+  public <T> List<T> removeExtract(
+      Predicate<FormulaEntry> remove, Function<FormulaEntry, T> extract) {
     List<T> values = new ArrayList<>();
-    for (int i = entries.size()-1; i >= 0; i--) {
+    for (int i = entries.size() - 1; i >= 0; i--) {
       FormulaEntry entry = entries.get(i);
       if (remove.test(entry)) {
         values.add(extract.apply(entry));
@@ -98,8 +102,6 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
         .collect(Collectors.toList());
   }
 
-
-
   @Override
   protected List<FormulaEntry> delegate() {
     return entries;
@@ -112,7 +114,7 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
     private BooleanFormula atom;
     private int atomId;
 
-    public FormulaEntry(int pAtomId, SSAMap pSSAMap, Selector pSelector, BooleanFormula pAtom){
+    public FormulaEntry(int pAtomId, SSAMap pSSAMap, Selector pSelector, BooleanFormula pAtom) {
       map = pSSAMap;
       selector = pSelector;
       atom = pAtom;
@@ -149,7 +151,7 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
 
     @Override
     public boolean equals(Object pO) {
-      if (!(pO instanceof FormulaEntry)){
+      if (!(pO instanceof FormulaEntry)) {
         return false;
       }
       FormulaEntry that = (FormulaEntry) pO;
@@ -158,10 +160,7 @@ public class FormulaEntryList extends ForwardingList<FormulaEntry> {
 
     @Override
     public String toString() {
-      return "FormulaEntry{" +
-          "atomId=" + atomId +
-          ", selector=" + selector +
-          '}';
+      return "FormulaEntry{" + "atomId=" + atomId + ", selector=" + selector + '}';
     }
 
     @Override

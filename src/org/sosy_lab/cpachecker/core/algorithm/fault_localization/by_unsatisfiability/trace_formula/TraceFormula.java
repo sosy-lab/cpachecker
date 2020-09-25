@@ -39,12 +39,12 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.LabeledCounterexample.FormulaLabel;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.LabeledCounterexample.LabeledFormula;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print.BooleanFormulaParser;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print.BooleanFormulaParser;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
@@ -67,26 +67,36 @@ public abstract class TraceFormula {
 
   protected TraceFormulaOptions options;
 
-  @Options(prefix="traceformula")
+  @Options(prefix = "traceformula")
   public static class TraceFormulaOptions {
-    @Option(secure=true, name="filter",
-        description="filter the alternative precondition by scopes")
+    @Option(
+        secure = true,
+        name = "filter",
+        description = "filter the alternative precondition by scopes")
     private String filter = "main";
 
-    //Usage: If a variable is contained in the post-condition it may be useful to ignore it in the pre-condition
-    @Option(secure=true, name="ignore",
-        description="do not add variables to alternative precondition (separate by commas)")
+    // Usage: If a variable is contained in the post-condition it may be useful to ignore it in the
+    // pre-condition
+    @Option(
+        secure = true,
+        name = "ignore",
+        description = "do not add variables to alternative precondition (separate by commas)")
     private String ignore = "";
 
-    //Usage: If a variable is contained in the post-condition it may be useful to ignore it in the pre-condition
-    @Option(secure=true, name="disable",
-        description="do not create selectors for this variables (separate by commas)")
+    // Usage: If a variable is contained in the post-condition it may be useful to ignore it in the
+    // pre-condition
+    @Option(
+        secure = true,
+        name = "disable",
+        description = "do not create selectors for this variables (separate by commas)")
     private String disable = "";
 
     @Option(
         secure = true,
         name = "altpre",
-        description = "add initial variable assignments to the pre-condition instead of just using failing variable assignments for nondet variables")
+        description =
+            "add initial variable assignments to the pre-condition instead of just using failing"
+                + " variable assignments for nondet variables")
     private boolean forcePre = false;
 
     @Option(
@@ -122,6 +132,7 @@ public abstract class TraceFormula {
 
   /**
    * Creates the trace formula for a given list of CFAEdges.
+   *
    * @param pContext commonly used objects
    * @param pOptions set options for trace formula
    * @param pEdges counterexample
@@ -140,7 +151,7 @@ public abstract class TraceFormula {
   }
 
   public boolean isCalculationPossible() throws SolverException, InterruptedException {
-   return !context.getSolver().isUnsat(bmgr.and(postcondition, precondition));
+    return !context.getSolver().isUnsat(bmgr.and(postcondition, precondition));
   }
 
   public BooleanFormula getPostcondition() {
@@ -174,7 +185,7 @@ public abstract class TraceFormula {
       Preconditions.checkArgument(!prover.isUnsat(), "a model has to be existent");
       for (ValueAssignment modelAssignment : prover.getModelAssignments()) {
         BooleanFormula formula = modelAssignment.getAssignmentAsFormula();
-        if(formula.toString().contains("__VERIFIER_nondet")){
+        if (formula.toString().contains("__VERIFIER_nondet")) {
           precond = bmgr.and(precond, formula);
         }
       }
@@ -183,19 +194,21 @@ public abstract class TraceFormula {
     if (options.forcePre && bmgr.isTrue(precond)) {
       return AlternativePrecondition.of(options.filter, options.ignore, precond, context, entries);
     } else {
-      entries.addEntry(0,-1, SSAMap.emptySSAMap(), null, null);
+      entries.addEntry(0, -1, SSAMap.emptySSAMap(), null, null);
     }
     return precond;
   }
 
   /**
    * Calculate trace
+   *
    * @return the trace pi according to the inputted type
    */
   protected abstract BooleanFormula calculateTrace();
 
   /**
    * Calculates the post-condition as the conjunct of the last consecutive assume edges
+   *
    * @return post-condition
    */
   private BooleanFormula calculatePostCondition() {
@@ -205,24 +218,32 @@ public abstract class TraceFormula {
       CFAEdge curr = edges.get(i);
       if (curr.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
         if (lastAssume == -1) {
-          //init position and postcond
+          // init position and postcond
           final int currI = i;
           lastAssume = curr.getFileLocation().getStartingLineInOrigin();
-          BooleanFormula formula = bmgr.and(entries.removeExtract(entry -> entry.getAtomId()==currI, edge -> edge.getAtom()));
+          BooleanFormula formula =
+              bmgr.and(
+                  entries.removeExtract(
+                      entry -> entry.getAtomId() == currI, edge -> edge.getAtom()));
           postCond = bmgr.and(postCond, formula);
           postConditionOffset = i;
         } else {
-          // as soon as curr is on another line or the edge type changes, break. Otherwise add to postcond.
+          // as soon as curr is on another line or the edge type changes, break. Otherwise add to
+          // postcond.
           if (lastAssume != curr.getFileLocation().getStartingLineInOrigin()) {
             break;
           } else {
-            BooleanFormula formula = bmgr.and(entries.removeExtract(entry -> entry.getSelector().getEdge().equals(curr), edge -> edge.getAtom()));
+            BooleanFormula formula =
+                bmgr.and(
+                    entries.removeExtract(
+                        entry -> entry.getSelector().getEdge().equals(curr),
+                        edge -> edge.getAtom()));
             postCond = bmgr.and(postCond, formula);
             postConditionOffset = i;
           }
         }
       } else {
-        //ensures that only consecutive assume edges are valid
+        // ensures that only consecutive assume edges are valid
         if (lastAssume != -1) {
           break;
         }
@@ -231,9 +252,7 @@ public abstract class TraceFormula {
     return bmgr.not(postCond);
   }
 
-  /**
-   * Calculate the boolean formulas for every edge including the SSA-maps and the selectors.
-   */
+  /** Calculate the boolean formulas for every edge including the SSA-maps and the selectors. */
   private void calculateEntries() throws CPATransferException, InterruptedException {
     PathFormulaManagerImpl manager = context.getManager();
 
@@ -254,9 +273,12 @@ public abstract class TraceFormula {
           currentAtom = formulaList.get(1);
         }
       }
-      String selectorIdentifier = e.getDescription() + " "
-          + e.getEdgeType() + " "
-          + e.getFileLocation().getStartingLineInOrigin();
+      String selectorIdentifier =
+          e.getDescription()
+              + " "
+              + e.getEdgeType()
+              + " "
+              + e.getFileLocation().getStartingLineInOrigin();
       Selector selector;
       if (options.reduceSelectors && foundSelectors.containsKey(selectorIdentifier)) {
         selector = foundSelectors.get(selectorIdentifier);
@@ -290,6 +312,7 @@ public abstract class TraceFormula {
 
   /**
    * Get all elements from 0 up to and including end-1
+   *
    * @param end cut the trace at position end
    * @return all elements from the trace up to position end as boolean formula
    */
@@ -299,6 +322,7 @@ public abstract class TraceFormula {
 
   /**
    * Get all elements from start up to and including end-1
+   *
    * @param start start at position <code>start</code>
    * @param end cut the trace at position <code>end</code>>
    * @return all trace elements from start up to position end as boolean formula
@@ -323,16 +347,17 @@ public abstract class TraceFormula {
 
   public static class SelectorTrace extends TraceFormula {
 
-    public SelectorTrace(FormulaContext pFormulaContext, TraceFormulaOptions pTraceFormulaOptions, List<CFAEdge> pCounterexample)
+    public SelectorTrace(
+        FormulaContext pFormulaContext,
+        TraceFormulaOptions pTraceFormulaOptions,
+        List<CFAEdge> pCounterexample)
         throws CPAException, InterruptedException, SolverException {
       super(pFormulaContext, pTraceFormulaOptions, pCounterexample);
     }
 
     @Override
     protected BooleanFormula calculateTrace() {
-      return entries
-          .toSelectorList()
-          .stream()
+      return entries.toSelectorList().stream()
           .map(entry -> bmgr.implication(entry.getFormula(), entry.getEdgeFormula()))
           .collect(bmgr.toConjunction());
     }
@@ -340,21 +365,26 @@ public abstract class TraceFormula {
 
   public static class DefaultTrace extends TraceFormula {
 
-    public DefaultTrace(FormulaContext pFormulaContext, TraceFormulaOptions pTraceFormulaOptions, List<CFAEdge> pCounterexample)
+    public DefaultTrace(
+        FormulaContext pFormulaContext,
+        TraceFormulaOptions pTraceFormulaOptions,
+        List<CFAEdge> pCounterexample)
         throws CPAException, InterruptedException, SolverException {
       super(pFormulaContext, pTraceFormulaOptions, pCounterexample);
     }
 
     @Override
     protected BooleanFormula calculateTrace() {
-          return bmgr.and(entries.toAtomList());
+      return bmgr.and(entries.toAtomList());
     }
-
   }
 
-  public static class FlowSensitiveTrace extends TraceFormula{
+  public static class FlowSensitiveTrace extends TraceFormula {
 
-    public FlowSensitiveTrace(FormulaContext pFormulaContext, TraceFormulaOptions pTraceFormulaOptions, List<CFAEdge> pCounterexample)
+    public FlowSensitiveTrace(
+        FormulaContext pFormulaContext,
+        TraceFormulaOptions pTraceFormulaOptions,
+        List<CFAEdge> pCounterexample)
         throws CPAException, InterruptedException, SolverException {
       super(pFormulaContext, pTraceFormulaOptions, pCounterexample);
     }
@@ -365,13 +395,11 @@ public abstract class TraceFormula {
       return bmgr.and(entries.toAtomList());
     }
 
-    /**
-     * Modify statements such that all dominating assumes imply the statement.
-     * Cannot be undone.
-     */
+    /** Modify statements such that all dominating assumes imply the statement. Cannot be undone. */
     private void makeFlowSensitive() {
-      //NOTE: can be undone by manually coping the current "entries" and replacing it afterwards.
-      //NOTE: Edges containing the label ENDIF indicate that their predecessor nodes are merge points.
+      // NOTE: can be undone by manually coping the current "entries" and replacing it afterwards.
+      // NOTE: Edges containing the label ENDIF indicate that their predecessor nodes are merge
+      // points.
       LabeledCounterexample cex = new LabeledCounterexample(entries, context);
       ArrayDeque<BooleanFormula> conditions = new ArrayDeque<>();
 
@@ -382,25 +410,27 @@ public abstract class TraceFormula {
         for (FormulaLabel label : edge.getLabels()) {
 
           switch (label) {
-            case IF: {
-              // add a condition to the stack
-              conditions.push(edge.getEntry().getAtom());
-              entries.remove(edge.getEntry());
-              isIf = true;
+            case IF:
+              {
+                // add a condition to the stack
+                conditions.push(edge.getEntry().getAtom());
+                entries.remove(edge.getEntry());
+                isIf = true;
+                continue;
+              }
+            case ENDIF:
+              {
+                // an if statement ended here -> pop it from the stack
+                conditions.pop();
+                continue;
+              }
+            default:
               continue;
-            }
-            case ENDIF: {
-              // an if statement ended here -> pop it from the stack
-              conditions.pop();
-              continue;
-            }
-            default: continue;
           }
-
         }
 
         // if the current edge is not an assume edge replace the atom with the implication
-        if(!isIf) {
+        if (!isIf) {
           BooleanFormula conditionsConjunct = bmgr.and(conditions);
           BooleanFormula implication =
               bmgr.implication(conditionsConjunct, edge.getEntry().getAtom());
@@ -409,5 +439,4 @@ public abstract class TraceFormula {
       }
     }
   }
-
 }

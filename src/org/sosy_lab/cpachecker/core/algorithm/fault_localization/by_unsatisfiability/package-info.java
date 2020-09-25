@@ -6,7 +6,5 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/**
- * Fault localization algorithms based on error invariants and minimal unsat cores
- */
+/** Fault localization algorithms based on error invariants and minimal unsat cores */
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability;

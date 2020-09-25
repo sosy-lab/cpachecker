@@ -8,11 +8,9 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants;
 
-/**
- * Marker interface for types that can be part of an abstract error trace.
- */
+/** Marker interface for types that can be part of an abstract error trace. */
 public interface AbstractTraceElement {
 
-  //intended to be exclusively implemented by Selector and Interval
+  // intended to be exclusively implemented by Selector and Interval
 
 }

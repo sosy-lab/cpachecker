@@ -50,9 +50,10 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
   private List<LabeledFormula> annotatedCounterexample;
 
   /**
-   * The LabeledCounterexample adds the labels IF and ENDIF to fitting statements in the counterexample
-   * @param pCounterexample the counterexample for which we want to compute the labels
+   * The LabeledCounterexample adds the labels IF and ENDIF to fitting statements in the
+   * counterexample
    *
+   * @param pCounterexample the counterexample for which we want to compute the labels
    * @param pContext the context
    */
   public LabeledCounterexample(FormulaEntryList pCounterexample, FormulaContext pContext) {
@@ -69,13 +70,14 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
     }
     withoutPrecond.remove(0);
 
-    MergePoint<CFANode> mergePoints = new MergePoint<>(
-        pCfa.getMainFunction().getExitNode(),
-        CFAUtils::successorsOf,
-        CFAUtils::predecessorsOf);
+    MergePoint<CFANode> mergePoints =
+        new MergePoint<>(
+            pCfa.getMainFunction().getExitNode(), CFAUtils::successorsOf, CFAUtils::predecessorsOf);
 
-    List<CFANode> path = withoutPrecond.toEdgeList().stream().map(e -> e.getPredecessor()).collect(
-        Collectors.toList());
+    List<CFANode> path =
+        withoutPrecond.toEdgeList().stream()
+            .map(e -> e.getPredecessor())
+            .collect(Collectors.toList());
     List<List<FormulaLabel>> labels = new ArrayList<>();
     for (int i = 0; i < path.size(); i++) {
       labels.add(new ArrayList<>());
@@ -127,6 +129,7 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
 
     /**
      * Adds a label to a FormulaEntry
+     *
      * @param pEntry the corresponding entry
      */
     public LabeledFormula(FormulaEntry pEntry) {
@@ -150,8 +153,7 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
     public boolean equals(Object pO) {
       if (pO instanceof LabeledFormula) {
         LabeledFormula that = (LabeledFormula) pO;
-        return entry.equals(that.entry) &&
-            labels.equals(that.labels);
+        return entry.equals(that.entry) && labels.equals(that.labels);
       }
       return false;
     }
@@ -164,11 +166,7 @@ final class LabeledCounterexample extends ForwardingList<LabeledFormula> {
     @Override
     public String toString() {
       String labelString = labels.stream().map(l -> l.toString()).collect(Collectors.joining(","));
-      return "LabeledFormula{" +
-          "entry=" + entry +
-          ", labels=" + labelString +
-          '}';
+      return "LabeledFormula{" + "entry=" + entry + ", labels=" + labelString + '}';
     }
   }
-
 }

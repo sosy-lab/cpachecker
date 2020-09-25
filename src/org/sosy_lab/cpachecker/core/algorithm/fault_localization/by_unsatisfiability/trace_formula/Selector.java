@@ -60,7 +60,11 @@ public class Selector extends FaultContribution implements AbstractTraceElement 
   }
 
   private Selector(
-      int pUniqueIndex, BooleanFormula pSelectorFormula, BooleanFormula pEdgeFormula, CFAEdge pEdge, FormulaContext pContext) {
+      int pUniqueIndex,
+      BooleanFormula pSelectorFormula,
+      BooleanFormula pEdgeFormula,
+      CFAEdge pEdge,
+      FormulaContext pContext) {
     super(pEdge);
     if (pEdge == null) {
       name = "S" + pUniqueIndex + ": unknown reference";
@@ -77,24 +81,24 @@ public class Selector extends FaultContribution implements AbstractTraceElement 
 
   /**
    * The truth value of the corresponding edge is essential. Enabling a selector is equivalent to
-   * making the corresponding constraint hard.
-   * Note as soon as the selector is part of a formula enable, disable and free will not have any effect.
+   * making the corresponding constraint hard. Note as soon as the selector is part of a formula
+   * enable, disable and free will not have any effect.
    */
   public void enable() {
     formula = context.getSolver().getFormulaManager().getBooleanFormulaManager().makeTrue();
   }
 
   /**
-   * The truth value of the corresponding edge is ignored
-   * Note as soon as the selector is part of a formula enable, disable and free will not have any effect.
+   * The truth value of the corresponding edge is ignored Note as soon as the selector is part of a
+   * formula enable, disable and free will not have any effect.
    */
   public void disable() {
     formula = context.getSolver().getFormulaManager().getBooleanFormulaManager().makeFalse();
   }
 
   /**
-   * The solver does not know the truth value of this selector.
-   * Note as soon as the selector is part of a formula enable, disable and free will not have any effect.
+   * The solver does not know the truth value of this selector. Note as soon as the selector is part
+   * of a formula enable, disable and free will not have any effect.
    */
   public void free() {
     formula = selectorFormula;
@@ -116,7 +120,8 @@ public class Selector extends FaultContribution implements AbstractTraceElement 
       return s;
     }
 
-    s = new Selector(
+    s =
+        new Selector(
             maxIndex,
             pContext
                 .getSolver()
@@ -139,13 +144,17 @@ public class Selector extends FaultContribution implements AbstractTraceElement 
   }
 
   /**
-   * Changes the selector formula. Needed for example after loop enrolling.
-   * Statements on the exact same location in the program should have the same selector
+   * Changes the selector formula. Needed for example after loop enrolling. Statements on the exact
+   * same location in the program should have the same selector
+   *
    * @param selector This selector copies the formula from the given selector
    */
   public void changeSelectorFormula(Selector selector) {
-    assert selector.correspondingEdge().getDescription().equals(correspondingEdge().getDescription());
-    if(selectorFormula.equals(formula)){
+    assert selector
+        .correspondingEdge()
+        .getDescription()
+        .equals(correspondingEdge().getDescription());
+    if (selectorFormula.equals(formula)) {
       selectorFormula = selector.selectorFormula;
       formula = selectorFormula;
     } else {
@@ -176,5 +185,4 @@ public class Selector extends FaultContribution implements AbstractTraceElement 
     // a selector stays a selector for one edge (reasons do not matter)
     return Objects.hash(31, name.hashCode());
   }
-
 }
