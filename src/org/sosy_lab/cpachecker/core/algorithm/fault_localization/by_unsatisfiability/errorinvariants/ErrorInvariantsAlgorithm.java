@@ -67,7 +67,6 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
   private LogManager logger;
   private TraceFormula errorTrace;
   private FormulaContext formulaContext;
-  private boolean useMem;
   private List<SSAMap> maps;
 
   //Memorize already processed interpolants to minimize solver calls
@@ -84,18 +83,14 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
    * @param pShutdownNotifier the shutdown notifier
    * @param pConfiguration the run configurations
    * @param pLogger the logger
-   * @param pUseMem whether to cache interpolants
    */
   public ErrorInvariantsAlgorithm(
       ShutdownNotifier pShutdownNotifier,
       Configuration pConfiguration,
-      LogManager pLogger,
-      boolean pUseMem
-      ) {
+      LogManager pLogger) {
     shutdownNotifier = pShutdownNotifier;
     config = pConfiguration;
     logger = pLogger;
-    useMem = pUseMem;
     memorize = ArrayListMultimap.create();
   }
 
@@ -293,8 +288,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
     BooleanFormula plainInterpolant = fmgr.uninstantiate(interpolant);
 
     //Memoization
-    boolean applyMemoization = useMem && memorize.containsKey(plainInterpolant);
-    if (applyMemoization) {
+    if (memorize.containsKey(plainInterpolant)) {
       memoizationCalls.inc();
       if (memorize.get(plainInterpolant).contains(-slicePosition-1)) {
         return false;
@@ -320,9 +314,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
     //isUnsat
     solverCalls.inc();
     boolean isValid = isValid(firstFormula) && solver.isUnsat(secondFormula);
-    if(useMem) {
-      memorize.put(plainInterpolant, isValid?slicePosition+1:-slicePosition-1);
-    }
+    memorize.put(plainInterpolant, isValid?slicePosition+1:-slicePosition-1);
     return isValid;
   }
 
@@ -356,7 +348,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
   /**
    * Stores the interpolant for a selector and its boundaries
    */
-  public static class Interval extends Fault implements AbstractTraceElement {
+  public static class Interval extends Fault implements Comparable<Interval>, AbstractTraceElement {
 
     private int start;
     private int end;
@@ -391,6 +383,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
       return Objects.hash(invariant, start, end, super.hashCode());
     }
 
+    @Override
     public int compareTo(Interval pInterval) {
       return Integer.compare(start, pInterval.start);
     }

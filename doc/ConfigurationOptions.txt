@@ -3292,11 +3292,8 @@ enabledanalysis.enablerCPA = PREDICATE
 faultLocalization.type = TARANTULA
   enum:     [TARANTULA, DSTAR, OCHIAI]
 
-# enable flow-sensitive trace formula (may decrease runtime)
-faultlocalization.errorInvariants.fstf = true
-
-# cache interpolants to decrease runtime
-faultlocalization.errorInvariants.memoization = false
+# disable flow-sensitive trace formula (may increase runtime)
+faultlocalization.errorInvariants.disableFSTF = false
 
 # ban faults with certain variables
 faultlocalization.maxsat.ban = ""

@@ -35,28 +35,19 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class TraceFormula {
+public abstract class TraceFormula {
 
-  public enum TraceFormulaType {
-    // conjunct of pre trace and post
-    TRACE,
-    // selectors for every atom in trace
-    SELECTOR,
-    // fstf (implies if blocks)
-    FLOW_SENSITIVE
-  }
+  protected FormulaContext context;
 
-  private FormulaContext context;
+  protected BooleanFormulaManager bmgr;
+  protected BooleanFormula postcondition;
+  protected BooleanFormula precondition;
+  protected BooleanFormula trace;
 
-  private BooleanFormulaManager bmgr;
-  private BooleanFormula postcondition;
-  private BooleanFormula precondition;
-  private BooleanFormula trace;
+  protected int postConditionOffset;
 
-  private int postConditionOffset;
-
-  private FormulaEntryList entries;
-  private List<CFAEdge> edges;
+  protected FormulaEntryList entries;
+  protected List<CFAEdge> edges;
 
   protected TraceFormulaOptions options;
 
@@ -119,7 +110,7 @@ public class TraceFormula {
    * @param pOptions set options for trace formula
    * @param pEdges counterexample
    */
-  public TraceFormula(TraceFormulaType pType, FormulaContext pContext, TraceFormulaOptions pOptions, List<CFAEdge> pEdges)
+  private TraceFormula(FormulaContext pContext, TraceFormulaOptions pOptions, List<CFAEdge> pEdges)
       throws CPAException, InterruptedException, SolverException {
     entries = new FormulaEntryList();
     edges = pEdges;
@@ -129,7 +120,7 @@ public class TraceFormula {
     calculateEntries();
     postcondition = calculatePostCondition();
     precondition = calculatePrecondition();
-    trace = calculateTrace(pType);
+    trace = calculateTrace();
   }
 
   public boolean isCalculationPossible() throws SolverException, InterruptedException {
@@ -183,26 +174,9 @@ public class TraceFormula {
 
   /**
    * Calculate trace
-   * @param type the trace formula type
    * @return the trace pi according to the inputted type
    */
-  private BooleanFormula calculateTrace(TraceFormulaType type) {
-    switch(type) {
-      case SELECTOR:
-        return entries
-          .toSelectorList()
-          .stream()
-          .map(entry -> bmgr.implication(entry.getFormula(), entry.getEdgeFormula()))
-          .collect(bmgr.toConjunction());
-      case FLOW_SENSITIVE:
-        makeFlowSensitive();
-        return bmgr.and(entries.toAtomList());
-      case TRACE:
-        return bmgr.and(entries.toAtomList());
-      default:
-        throw new AssertionError("unknown type for trace formula");
-    }
-  }
+  protected abstract BooleanFormula calculateTrace();
 
   /**
    * Calculates the post-condition as the conjunct of the last consecutive assume edges
@@ -326,52 +300,98 @@ public class TraceFormula {
     return entries.toAtomList().size();
   }
 
-  /**
-   * Modify statements such that all dominating assumes imply the statement.
-   * Cannot be undone.
-   */
-  private void makeFlowSensitive() {
-    //NOTE: can be undone by manually coping the current "entries" and replacing it afterwards.
-    //NOTE: Edges containing the label ENDIF indicate that their predecessor nodes are merge points.
-    LabeledCounterexample cex = new LabeledCounterexample(entries, context);
-    ArrayDeque<BooleanFormula> conditions = new ArrayDeque<>();
-
-    boolean isIf;
-    for (LabeledFormula edge : cex) {
-
-      isIf = false;
-      for (FormulaLabel label : edge.getLabels()) {
-
-        switch (label) {
-          case IF: {
-            // add a condition to the stack
-            conditions.push(edge.getEntry().getAtom());
-            entries.remove(edge.getEntry());
-            isIf = true;
-            continue;
-          }
-          case ENDIF: {
-            // an if statement ended here -> pop ist from the stack
-            conditions.pop();
-            continue;
-          }
-          default: continue;
-        }
-
-      }
-
-      // if the current edge is not an assume edge replace the atom with the implication
-      if(!isIf) {
-        BooleanFormula conditionsConjunct = bmgr.and(conditions);
-        BooleanFormula implication =
-            bmgr.implication(conditionsConjunct, edge.getEntry().getAtom());
-        edge.getEntry().setAtom(implication);
-      }
-    }
-  }
-
   @Override
   public String toString() {
     return "TraceFormula{" + BooleanFormulaParser.parse(getTraceFormula()) + "}";
   }
+
+  public static class SelectorTrace extends TraceFormula {
+
+    public SelectorTrace(FormulaContext pFormulaContext, TraceFormulaOptions pTraceFormulaOptions, List<CFAEdge> pCounterexample)
+        throws CPAException, InterruptedException, SolverException {
+      super(pFormulaContext, pTraceFormulaOptions, pCounterexample);
+    }
+
+    @Override
+    protected BooleanFormula calculateTrace() {
+      return entries
+          .toSelectorList()
+          .stream()
+          .map(entry -> bmgr.implication(entry.getFormula(), entry.getEdgeFormula()))
+          .collect(bmgr.toConjunction());
+    }
+  }
+
+  public static class DefaultTrace extends TraceFormula {
+
+    public DefaultTrace(FormulaContext pFormulaContext, TraceFormulaOptions pTraceFormulaOptions, List<CFAEdge> pCounterexample)
+        throws CPAException, InterruptedException, SolverException {
+      super(pFormulaContext, pTraceFormulaOptions, pCounterexample);
+    }
+
+    @Override
+    protected BooleanFormula calculateTrace() {
+          return bmgr.and(entries.toAtomList());
+    }
+
+  }
+
+  public static class FlowSensitiveTrace extends TraceFormula{
+
+    public FlowSensitiveTrace(FormulaContext pFormulaContext, TraceFormulaOptions pTraceFormulaOptions, List<CFAEdge> pCounterexample)
+        throws CPAException, InterruptedException, SolverException {
+      super(pFormulaContext, pTraceFormulaOptions, pCounterexample);
+    }
+
+    @Override
+    protected BooleanFormula calculateTrace() {
+      makeFlowSensitive();
+      return bmgr.and(entries.toAtomList());
+    }
+
+    /**
+     * Modify statements such that all dominating assumes imply the statement.
+     * Cannot be undone.
+     */
+    private void makeFlowSensitive() {
+      //NOTE: can be undone by manually coping the current "entries" and replacing it afterwards.
+      //NOTE: Edges containing the label ENDIF indicate that their predecessor nodes are merge points.
+      LabeledCounterexample cex = new LabeledCounterexample(entries, context);
+      ArrayDeque<BooleanFormula> conditions = new ArrayDeque<>();
+
+      boolean isIf;
+      for (LabeledFormula edge : cex) {
+
+        isIf = false;
+        for (FormulaLabel label : edge.getLabels()) {
+
+          switch (label) {
+            case IF: {
+              // add a condition to the stack
+              conditions.push(edge.getEntry().getAtom());
+              entries.remove(edge.getEntry());
+              isIf = true;
+              continue;
+            }
+            case ENDIF: {
+              // an if statement ended here -> pop ist from the stack
+              conditions.pop();
+              continue;
+            }
+            default: continue;
+          }
+
+        }
+
+        // if the current edge is not an assume edge replace the atom with the implication
+        if(!isIf) {
+          BooleanFormula conditionsConjunct = bmgr.and(conditions);
+          BooleanFormula implication =
+              bmgr.implication(conditionsConjunct, edge.getEntry().getAtom());
+          edge.getEntry().setAtom(implication);
+        }
+      }
+    }
+  }
+
 }

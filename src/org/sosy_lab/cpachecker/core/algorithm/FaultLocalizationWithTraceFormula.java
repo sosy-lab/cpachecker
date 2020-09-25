@@ -43,7 +43,6 @@ import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiabi
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.trace.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.trace.TraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.trace.TraceFormula.TraceFormulaOptions;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.formula.trace.TraceFormula.TraceFormulaType;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.CallHierarchyRanking;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.EdgeTypeRanking;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.InformationProvider;
@@ -96,13 +95,9 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
       description="which algorithm to use")
   private AlgorithmTypes algorithmType = AlgorithmTypes.UNSAT;
 
-  @Option(secure=true, name="errorInvariants.memoization",
-      description="memorize interpolants to decrease runtime") //can decrease runtime
-  private boolean memoization = false;
-
-  @Option(secure=true, name="errorInvariants.fstf",
-      description="enable flow-sensitive trace formula (may decrease runtime)") //can decrease runtime
-  private boolean fstf = false;
+  @Option(secure=true, name="errorInvariants.disableFSTF",
+      description="disable flow-sensitive trace formula (may increase runtime)") //can decrease runtime
+  private boolean disableFSTF = false;
 
   @Option(secure=true, name="maxsat.ban",
       description="ban faults with certain variables")
@@ -151,7 +146,7 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
         faultAlgorithm = new ModifiedMaxSatAlgorithm();
         break;
       case ERRINV:
-        faultAlgorithm = new ErrorInvariantsAlgorithm(pShutdownNotifier, pConfig, logger, memoization);
+        faultAlgorithm = new ErrorInvariantsAlgorithm(pShutdownNotifier, pConfig, logger);
         break;
       case UNSAT:
         faultAlgorithm = new SingleUnsatCoreAlgorithm();
@@ -161,10 +156,7 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
   }
 
   public void checkOptions () throws InvalidConfigurationException {
-    if (!algorithmType.equals(AlgorithmTypes.ERRINV) && memoization) {
-      throw new InvalidConfigurationException("The option memoization will be ignored since the error invariants algorithm is not selected");
-    }
-    if (!algorithmType.equals(AlgorithmTypes.ERRINV) && fstf) {
+    if (!algorithmType.equals(AlgorithmTypes.ERRINV) && disableFSTF) {
       throw new InvalidConfigurationException("The option flow-sensitive trace formula will be ignored since the error invariants algorithm is not selected");
     }
     if (algorithmType.equals(AlgorithmTypes.ERRINV) && !ban.isBlank()) {
@@ -235,13 +227,13 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
         return;
       }
 
+      //Find correct ranking and correct trace formula for the specified algorithm
       TraceFormula tf;
-      //Find correct ranking
       FaultRanking ranking;
       switch(algorithmType){
         case MAXORG:
         case MAXSAT: {
-          tf = new TraceFormula(TraceFormulaType.SELECTOR, context, options, edgeList);
+          tf = new TraceFormula.SelectorTrace(context, options, edgeList);
           ranking =  FaultRankingUtils.concatHeuristicsDefaultFinalScoring(
               new EdgeTypeRanking(),
               new SetSizeRanking(),
@@ -252,7 +244,7 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
           break;
         }
         case ERRINV: {
-          tf = new TraceFormula(fstf ? TraceFormulaType.FLOW_SENSITIVE : TraceFormulaType.TRACE, context, options, edgeList);
+          tf = disableFSTF ? new TraceFormula.FlowSensitiveTrace(context, options, edgeList) : new TraceFormula.DefaultTrace(context, options, edgeList);
           ranking = FaultRankingUtils.concatHeuristicsIntendedIndex(
               new EdgeTypeRanking(),
               new HintRanking(3),
@@ -260,7 +252,7 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
           break;
         }
         case UNSAT: {
-          tf = new TraceFormula(TraceFormulaType.TRACE, context, options, edgeList);
+          tf = new TraceFormula.DefaultTrace(context, options, edgeList);
           ranking = FaultRankingUtils.concatHeuristicsDefaultFinalScoring(
               new EdgeTypeRanking(),
               new HintRanking(-1),
