@@ -208,7 +208,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
         if (curr.isEmpty()) {
           contributions.add(prev);
         }
-        curr.replaceErrorSet(ImmutableSet.copyOf(contributions));
+        curr.replaceErrorSet(contributions);
         String description = extractRelevantInformation(fmgr, curr);
         curr.addInfo(FaultInfo.justify("The describing interpolant: " + description));
         curr.addInfo(FaultInfo.hint("This interpolant sums up the meaning of the marked edges."));

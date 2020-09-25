@@ -9,10 +9,10 @@
 package org.sosy_lab.cpachecker.util.faultlocalization;
 
 import com.google.common.collect.ForwardingSet;
-import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -47,7 +47,7 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
   }
 
   public Fault(){
-    this(ImmutableSet.of(), 0);
+    this(new HashSet<>(), 0);
   }
 
   /**
@@ -63,7 +63,7 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
   }
 
   public Fault(Collection<FaultContribution> pContribs, double pScore) {
-    errorSet = ImmutableSet.copyOf(pContribs);
+    errorSet = new HashSet<>(pContribs);
     infos = new ArrayList<>();
     score = pScore;
   }
@@ -175,10 +175,6 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
     return intendedIndex;
   }
 
-  public void replaceErrorSet(ImmutableSet<FaultContribution> contributions) {
-    errorSet = contributions;
-  }
-
   @Override
   public int hashCode(){
     int result = 4;
@@ -197,5 +193,9 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
   public int compareTo(Fault o) {
     // higher score means higher rank
     return Double.compare(o.score, score);
+  }
+
+  public void replaceErrorSet(Set<FaultContribution> pContributions) {
+    errorSet = pContributions;
   }
 }
