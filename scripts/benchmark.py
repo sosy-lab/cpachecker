@@ -141,9 +141,9 @@ class Benchmark(benchexec.benchexec.BenchExec):
         if self.config.cloud:
             if self.config.cloudMaster and "http" in self.config.cloudMaster:
                 webclient = True
-                import benchmark.webclient_benchexec as executor
+                import benchmark.webclient_executor as executor
             else:
-                import benchmark.vcloud as executor
+                import benchmark.benchmarkclient_executor as executor
             logging.debug(
                 "This is CPAchecker's benchmark.py (based on benchexec %s) "
                 "using the VerifierCloud %s API.",
