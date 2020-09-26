@@ -22,14 +22,13 @@ from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import as_completed
 
 import benchexec
+import benchexec.tooladapter
 from . import util
 from .webclient import (
     WebInterface,
     WebClientError,
     UserAbortError,
     handle_result,
-    CORELIMIT,
-    MEMLIMIT,
     RESULT_FILE_STDERR,
 )
 
@@ -146,10 +145,11 @@ def _submitRunsParallel(runSet, benchmark, output_handler):
     submission_futures = {}
     submissonCounter = 1
     limits = benchmark.rlimits
-    if CORELIMIT in limits and limits[CORELIMIT] != benchmark.requirements.cpu_cores:
+    if limits.cpu_cores and limits.cpu_cores != benchmark.requirements.cpu_cores:
         logging.warning("CPU core requirement is not supported by the WebInterface.")
-    if MEMLIMIT in limits and limits[MEMLIMIT] != benchmark.requirements.memory:
+    if limits.memory and limits.memory != benchmark.requirements.memory:
         logging.warning("Memory requirement is not supported by the WebInterface.")
+    limits = benchexec.tooladapter.convert_resource_limits_to_dict(limits)
 
     global_required_files = set(benchmark._required_files)
     cpu_model = benchmark.requirements.cpu_model
