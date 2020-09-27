@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.explainer;
 import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -169,17 +170,18 @@ public class AbstractDistanceMetric implements DistanceMetric {
       stateAlignments.addPair(argCeState, argSpState);
     }
 
-    for (int j = 0; j < stateAlignments.getCounterexample().size(); j++) {
+    Iterator<ARGState> iteratorOverAlignedStates = stateAlignments.iterator();
+    while (iteratorOverAlignedStates.hasNext()) {
       Set<BooleanFormula> predicatesCE =
           distanceHelper.splitPredicates(
               AbstractStates.extractStateByType(
-                      stateAlignments.getCounterexampleElement(j), PredicateAbstractState.class)
+                  iteratorOverAlignedStates.next(), PredicateAbstractState.class)
                   .getAbstractionFormula()
                   .asFormula());
       Set<BooleanFormula> predicatesSafePath =
           distanceHelper.splitPredicates(
               AbstractStates.extractStateByType(
-                      stateAlignments.getSafePathElement(j), PredicateAbstractState.class)
+                  iteratorOverAlignedStates.next(), PredicateAbstractState.class)
                   .getAbstractionFormula()
                   .asFormula());
 
@@ -194,6 +196,7 @@ public class AbstractDistanceMetric implements DistanceMetric {
         }
       }
     }
+
     return distance;
   }
 
@@ -213,7 +216,7 @@ public class AbstractDistanceMetric implements DistanceMetric {
       for (CFAEdge spEdge : safePath1) {
         if (ceEdge.getPredecessor().getNodeNumber() == spEdge.getPredecessor().getNodeNumber()) {
           if (ceEdge.getSuccessor().getNodeNumber() != spEdge.getSuccessor().getNodeNumber()) {
-            // add the two aligned Edges in the Alignment Class
+            // add the two aligned Edges in the Alignments Class
             alignment.addPair(ceEdge, spEdge);
             // remove the aligned Edge
             safePath1.remove(spEdge);

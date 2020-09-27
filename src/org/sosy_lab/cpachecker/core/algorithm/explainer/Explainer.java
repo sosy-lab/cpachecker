@@ -58,7 +58,13 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 
 @Options(prefix = "explainer")
-public class Explainer extends NestingAlgorithm implements Algorithm {
+public class Explainer extends NestingAlgorithm {
+
+  private enum Metric {
+    ADM,
+    CFDM,
+    PG;
+  }
 
   @Option(
       secure = true,
@@ -71,7 +77,7 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
       secure = true,
       name = "distanceMetric",
       description = "The distance metric that ought to be used for the computation of the distance")
-  private String distanceMetric;
+  private Metric distanceMetric;
 
   private PredicateCPA cpa;
 
@@ -147,6 +153,7 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
             .transform(x -> AbstractStates.extractStateByType(x, ARGState.class))
             .filter(x -> x.getChildren().isEmpty())
             .filter(x -> !x.isTarget())
+            .filter(x -> x.wasExpanded())
             .toList();
 
     ARGState rootNode =
@@ -154,16 +161,16 @@ public class Explainer extends NestingAlgorithm implements Algorithm {
 
     List<CFAEdge> closestSuccessfulExecution = null;
 
-    if (distanceMetric.equals("PG")) {
+    if (distanceMetric.equals(Metric.PG)) {
       startPathGeneration(targetPath, counterExamples.get(0));
       return status;
     } else {
       List<ARGPath> safePaths = findAllSafePaths(safeLeafNodes, rootNode);
       switch (distanceMetric) {
-        case "ADM":
+        case ADM:
           closestSuccessfulExecution = startADM(safePaths, targetPath);
           break;
-        case "CFDM":
+        case CFDM:
           closestSuccessfulExecution = startCFDM(safePaths, targetPath);
           break;
         default:

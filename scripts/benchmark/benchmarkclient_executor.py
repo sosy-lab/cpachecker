@@ -16,13 +16,12 @@ import os
 import shutil
 import subprocess
 
-from benchexec.model import MEMLIMIT, TIMELIMIT, CORELIMIT
+import benchexec.tooladapter
 import benchexec.util
 import benchmark.util as util
 
 
 DEFAULT_CLOUD_TIMELIMIT = 300  # s
-DEFAULT_CLOUD_MEMLIMIT = None
 
 DEFAULT_CLOUD_MEMORY_REQUIREMENT = 7000000000  # 7 GB
 DEFAULT_CLOUD_CPUCORE_REQUIREMENT = 2  # one core with hyperthreading
@@ -40,7 +39,8 @@ _justReprocessResults = False
 def init(config, benchmark):
     global _justReprocessResults
     _justReprocessResults = config.reprocessResults
-    benchmark.executable = benchmark.tool.executable()
+    tool_locator = benchexec.tooladapter.create_tool_locator(config)
+    benchmark.executable = benchmark.tool.executable(tool_locator)
     benchmark.tool_version = benchmark.tool.version(benchmark.executable)
     environment = benchmark.environment()
     if environment.get("keepEnv", None) or environment.get("additionalEnv", None):
@@ -219,9 +219,9 @@ def getBenchmarkDataForCloud(benchmark):
     ]
 
     # get limits and number of Runs
-    timeLimit = benchmark.rlimits.get(TIMELIMIT, DEFAULT_CLOUD_TIMELIMIT)
-    memLimit = bytes_to_mb(benchmark.rlimits.get(MEMLIMIT, DEFAULT_CLOUD_MEMLIMIT))
-    coreLimit = benchmark.rlimits.get(CORELIMIT, None)
+    timeLimit = benchmark.rlimits.cputime_hard or DEFAULT_CLOUD_TIMELIMIT
+    memLimit = bytes_to_mb(benchmark.rlimits.memory)
+    coreLimit = benchmark.rlimits.cpu_cores
     numberOfRuns = sum(
         len(runSet.runs) for runSet in benchmark.run_sets if runSet.should_be_executed()
     )

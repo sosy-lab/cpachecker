@@ -29,7 +29,6 @@ public final class OverflowState
 
   private final ImmutableSet<? extends AExpression> assumptions;
   private final OverflowState parent;
-  private final boolean hasOverflow;
   private final boolean nextHasOverflow;
   private static final String PROPERTY_OVERFLOW = "overflow";
 
@@ -40,19 +39,12 @@ public final class OverflowState
   public OverflowState(
       Set<? extends AExpression> pAssumptions, boolean pNextHasOverflow, OverflowState pParent) {
     assumptions = ImmutableSet.copyOf(pAssumptions);
-    if (pParent != null) {
-      hasOverflow = pParent.nextHasOverflow();
-      parent = hasOverflow ? pParent : null;
-    } else {
-      hasOverflow = false;
-      parent = null;
-    }
-    assert !hasOverflow || pNextHasOverflow;
+    parent = pParent;
     nextHasOverflow = pNextHasOverflow;
   }
 
   public boolean hasOverflow() {
-    return hasOverflow;
+    return parent != null && parent.nextHasOverflow;
   }
 
   public boolean nextHasOverflow() {
@@ -70,7 +62,7 @@ public final class OverflowState
 
   @Override
   public int hashCode() {
-    return Objects.hash(assumptions, hasOverflow);
+    return Objects.hash(assumptions, nextHasOverflow);
   }
 
   @Override
@@ -83,7 +75,6 @@ public final class OverflowState
     }
     OverflowState that = (OverflowState) pO;
     return nextHasOverflow == that.nextHasOverflow
-        && hasOverflow == that.hasOverflow
         && assumptions.equals(that.assumptions);
   }
 
@@ -91,17 +82,15 @@ public final class OverflowState
   public String toString() {
     return "OverflowState{assumeEdges=["
         + getReadableAssumptions()
-        + "], hasOverflow="
-        + hasOverflow
-        + ", nextHasOverflow="
+        + "], nextHasOverflow="
         + nextHasOverflow
         + '}';
   }
 
   @Override
   public String toDOTLabel() {
-    if (hasOverflow) {
-      return "Preconditions:\n" + getReadableAssumptions(parent).replaceAll(", ", "\n");
+    if (hasOverflow()) {
+      return "Assumptions:\n" + getReadableAssumptions(this).replaceAll(", ", "\n");
     }
     return "";
   }
@@ -129,7 +118,7 @@ public final class OverflowState
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
     if (pProperty.equals(PROPERTY_OVERFLOW)) {
-      return hasOverflow;
+      return hasOverflow();
     }
     throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
   }

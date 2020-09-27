@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CounterexampleStoreAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithCoverage;
 import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
@@ -93,6 +94,12 @@ public class CoreComponentsFactory {
       name = "disable",
       description = "stop CPAchecker after startup (internal option, not intended for users)")
   private boolean disableAnalysis = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.faultLocalization",
+      description = "use fault localization")
+  private boolean useFaultLocalization = false;
 
   @Option(secure=true, description="use assumption collecting algorithm")
   private boolean collectAssumptions = false;
@@ -321,6 +328,7 @@ public class CoreComponentsFactory {
     if (checkCounterexamplesWithBDDCPARestriction) {
       checkCounterexamples = true;
     }
+
   }
 
   private boolean analysisNeedsShutdownManager() {
@@ -540,6 +548,9 @@ public class CoreComponentsFactory {
         algorithm =
             new ResultCheckAlgorithm(
                 algorithm, cpa, cfa, config, logger, shutdownNotifier, specification);
+      }
+      if (useFaultLocalization) {
+        algorithm = new FaultLocalizationWithCoverage(algorithm, shutdownNotifier, logger,config);
       }
 
       if (useCustomInstructionRequirementExtraction) {

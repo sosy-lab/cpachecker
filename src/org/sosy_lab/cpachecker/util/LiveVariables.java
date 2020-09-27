@@ -126,8 +126,8 @@ public class LiveVariables {
     @Option(secure=true, description="Overall timelimit for collecting the liveness information."
         + "(use seconds or specify a unit; 0 for infinite)")
     @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
-        defaultUserUnit=TimeUnit.SECONDS,
-        min=0)
+                    defaultUserUnit=TimeUnit.SECONDS,
+                    min=0)
     private TimeSpan overallLivenessCheckTime = TimeSpan.ofNanos(0);
 
     @Option(secure=true, description="Timelimit for collecting the liveness information with one approach,"
@@ -135,8 +135,8 @@ public class LiveVariables {
         + " will have the same time-limit afterwards to compute the live variables)."
         + "(use seconds or specify a unit; 0 for infinite)")
     @TimeSpanOption(codeUnit=TimeUnit.NANOSECONDS,
-        defaultUserUnit=TimeUnit.SECONDS,
-        min=0)
+                    defaultUserUnit=TimeUnit.SECONDS,
+                    min=0)
     private TimeSpan partwiseLivenessCheckTime = TimeSpan.ofSeconds(20);
 
     public LiveVariablesConfiguration(Configuration config) throws InvalidConfigurationException {
@@ -263,9 +263,9 @@ public class LiveVariables {
 
     if (globalVariables.contains(wrappedDecl)
         || (language == Language.C
-        && variableClassification.getAddressedVariables().contains(varName))
+             && variableClassification.getAddressedVariables().contains(varName))
         || (evaluationStrategy == EvaluationStrategy.FUNCTION_WISE
-        && !varName.startsWith(location.getFunctionName()))) {
+            && !varName.startsWith(location.getFunctionName()))) {
       return true;
     }
 
@@ -276,9 +276,9 @@ public class LiveVariables {
   public boolean isVariableLive(final String varName, CFANode location) {
     if (globalVariablesStrings.contains(varName)
         || (language == Language.C
-        && variableClassification.getAddressedVariables().contains(varName))
+             && variableClassification.getAddressedVariables().contains(varName))
         || (evaluationStrategy == EvaluationStrategy.FUNCTION_WISE
-        && !varName.startsWith(location.getFunctionName()))) {
+            && !varName.startsWith(location.getFunctionName()))) {
       return true;
     }
 
@@ -398,8 +398,8 @@ public class LiveVariables {
       case GLOBAL:
         globalVariables = ImmutableSet.of();
         break;
-      default:
-        throw new AssertionError("Unhandled case statement: " + config.evaluationStrategy);
+    default:
+      throw new AssertionError("Unhandled case statement: " + config.evaluationStrategy);
     }
 
     final ResourceLimitChecker limitChecker;
@@ -462,7 +462,7 @@ public class LiveVariables {
 
   public final static Function<Equivalence.Wrapper<ASimpleDeclaration>, String>
       FROM_EQUIV_WRAPPER_TO_STRING =
-      Functions.compose(ASimpleDeclaration::getQualifiedName, FROM_EQUIV_WRAPPER);
+          Functions.compose(ASimpleDeclaration::getQualifiedName, FROM_EQUIV_WRAPPER);
 
   private static Multimap<CFANode, Wrapper<ASimpleDeclaration>> addLiveVariablesFromCFA(
       final CFA pCfa,
@@ -542,9 +542,9 @@ public class LiveVariables {
   }
 
   private static Optional<AnalysisParts> getNecessaryAnalysisComponents(final CFA cfa,
-                                                                        final LogManager logger,
-                                                                        final ShutdownNotifier shutdownNotifier,
-                                                                        final EvaluationStrategy evaluationStrategy) {
+      final LogManager logger,
+      final ShutdownNotifier shutdownNotifier,
+      final EvaluationStrategy evaluationStrategy) {
 
     try {
       String configFile;
@@ -565,9 +565,9 @@ public class LiveVariables {
           new CPABuilder(config, logger, shutdownNotifier, reachedFactory)
               .buildCPAs(cfa, Specification.alwaysSatisfied(), new AggregatedReachedSets());
       Algorithm algorithm = CPAAlgorithm.create(cpa,
-          logger,
-          config,
-          shutdownNotifier);
+                                                logger,
+                                                config,
+                                                shutdownNotifier);
       ReachedSet reached = reachedFactory.create();
       return Optional.of(new AnalysisParts(cpa, algorithm, reached));
 

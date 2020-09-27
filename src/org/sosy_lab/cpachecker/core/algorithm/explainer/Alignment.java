@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.explainer;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -17,7 +18,7 @@ import java.util.List;
  *
  * @param <T> T is here either a CFAEdge or a ARGState
  */
-class Alignment<T> {
+class Alignment<T> implements Iterable<T> {
 
   private final List<T> counterexample = new ArrayList<>();
   private final List<T> safePath = new ArrayList<>();
@@ -41,5 +42,15 @@ class Alignment<T> {
 
   public List<T> getSafePath() {
     return safePath;
+  }
+
+  @Override
+  public Iterator<T> iterator() {
+    List<T> joinLists = new ArrayList<>();
+    for (int i = 0; i < counterexample.size(); i++) {
+      joinLists.add(counterexample.get(i));
+      joinLists.add(safePath.get(i));
+    }
+    return joinLists.iterator();
   }
 }

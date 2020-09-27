@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.Pair;
 
 /**
  * This Class contains one metric for program executions and an automated Path Generation technique
@@ -162,47 +161,23 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
       distances.add(calculateDistance(ceEvents, events));
     }
 
-    Pair<List<List<CFAEdge>>, List<List<Event>>> safePathsDistancesPair =
-        Pair.of(safePaths, distances);
     // get rid of useless safe paths with distance = 0
-    safePathsDistancesPair = eliminateZeroDistances(safePathsDistancesPair);
+    PathDistancePair<CFAEdge, Event> safePathsDistancesPair =
+        new PathDistancePair<>(safePaths, distances);
 
     // find the closest successful execution
     Integer closestSuccessfulRunIndex =
-        findClosestSuccessfulRun(safePathsDistancesPair.getSecond());
+        findClosestSuccessfulRun(safePathsDistancesPair.getDistances());
 
     if (closestSuccessfulRunIndex == null) {
       // NO CLOSEST SUCCESSFUL EXECUTION WAS FOUND
       return null;
     }
 
-    assert safePathsDistancesPair.getFirst() != null;
-    return safePathsDistancesPair.getFirst().get(closestSuccessfulRunIndex);
+    assert safePathsDistancesPair.getPaths() != null;
+    return safePathsDistancesPair.getPaths().get(closestSuccessfulRunIndex);
   }
 
-  /**
-   * Get rid of safe paths with distance = 0
-   *
-   * @param pSafePathsDistancePair a pair of the successful executions and their distances
-   * @return a new Pair that contains all the successful executions, with distance != 0, paired with
-   *     their distances
-   */
-  private Pair<List<List<CFAEdge>>, List<List<Event>>> eliminateZeroDistances(
-      Pair<List<List<CFAEdge>>, List<List<Event>>> pSafePathsDistancePair) {
-    assert !pSafePathsDistancePair.getFirst().isEmpty();
-    assert !pSafePathsDistancePair.getSecond().isEmpty();
-
-    List<List<CFAEdge>> safePaths = new ArrayList<>();
-    List<List<Event>> finalDistances = new ArrayList<>();
-
-    for (int i = 0; i < pSafePathsDistancePair.getSecond().size(); i++) {
-      if (!pSafePathsDistancePair.getSecond().get(i).isEmpty()) {
-        safePaths.add(pSafePathsDistancePair.getFirst().get(i));
-        finalDistances.add(pSafePathsDistancePair.getSecond().get(i));
-      }
-    }
-    return Pair.of(safePaths, finalDistances);
-  }
 
   /**
    * Finds the closest successful execution to the counterexample
@@ -392,4 +367,51 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
     }
     return filteredPaths;
   }
+}
+
+/**
+ * Class PathDistancePair is responsible to store program executions and their distances
+ * @param <T> Could be CFAEdge or ARGState or CFANode
+ * @param <Y> The distance: Integer or Event
+ */
+class PathDistancePair<T, Y> {
+
+  private List<List<T>> paths;
+  private List<List<Y>> distances;
+
+  PathDistancePair(List<List<T>> programExecution, List<List<Y>> listOfDistances) {
+    assert programExecution.size() == listOfDistances.size();
+    paths = programExecution;
+    distances = listOfDistances;
+    eliminateZeroDistances();
+  }
+
+  public List<List<Y>> getDistances() {
+    return distances;
+  }
+
+  public List<List<T>> getPaths() {
+    return paths;
+  }
+
+  /**
+   * Get rid of safe paths with distance = 0 / Empty
+   */
+  private void eliminateZeroDistances() {
+    assert !distances.isEmpty();
+    assert !paths.isEmpty();
+
+    List<List<T>> safePaths = new ArrayList<>();
+    List<List<Y>> finalDistances = new ArrayList<>();
+
+    for (int i = 0; i < distances.size(); i++) {
+      if (!distances.get(i).isEmpty()) {
+        safePaths.add(paths.get(i));
+        finalDistances.add(distances.get(i));
+      }
+    }
+    distances = finalDistances;
+    paths = safePaths;
+  }
+
 }

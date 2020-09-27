@@ -202,6 +202,9 @@ analysis.algorithm.analysisWithEnabler = false
 # use adjustable conditions algorithm
 analysis.algorithm.conditionAdjustment = false
 
+# use fault localization
+analysis.algorithm.faultLocalization = false
+
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
 
@@ -2254,9 +2257,7 @@ cpa.predicate.merge.mergeAbstractionStatesWithSamePredecessor = false
 # need them. Mentioning a function in this list has only an effect, if it is
 # an 'external function', i.e., no source is given in the code for this
 # function.
-cpa.predicate.nondetFunctions = {
-      "sscanf",
-      "random"}
+cpa.predicate.nondetFunctions = {"sscanf", "rand", "random"}
 
 # Regexp pattern for functions that should be considered as giving a
 # non-deterministic return value (c.f. cpa.predicate.nondedFunctions)
@@ -2643,15 +2644,30 @@ cpa.slicing.preRunSyntacticWeakening = true
 # slice, or a statically computed, fixed slicing precision
 cpa.slicing.refinableSlice = false
 
-# Add all assumptions of an infeasible target path to the slice, in addition
-# to the original slice
-cpa.slicing.refinement.addCexConstraintsToSlice = true
-
 # Allow counterexamples that are valid only on the program slice. If you set
 # this to `false`, you may have to set takeEagerSlice=true to avoid failed
 # refinements. If this is set to true, the counterexample check won't work
 # (in general), so you have to turn it off.
 cpa.slicing.refinement.counterexampleCheckOnSlice = false
+
+# Which prefix provider to use? (give class name) If the package name starts
+# with 'org.sosy_lab.cpachecker.', this prefix can be omitted.
+cpa.slicing.refinement.prefixProvider = no default value
+
+# How to refine the slice:
+# - CEX_ASSUME_DEPS: Add the dependencies of all counterexample assume edges
+# to the slice.
+# - INFEASIBLE_PREFIX_ASSUME_DEPS: Find an infeasible prefix and add the
+# dependencies of all assume edges that are part of the infeasible prefix to
+# the slice. Requires a prefix provider
+# ('cpa.slicing.refinement.prefixProvider').
+# - CEX_FIRST_ASSUME_DEPS: Add the dependencies of the first counterexample
+# assume edges, that is not already part of the slice, to the slice.
+# - CEX_LAST_ASSUME_DEPS: Add the dependencies of the last counterexample
+# assume edges, that is not already part of the slice, to the slice.
+cpa.slicing.refinement.refineStrategy = CEX_ASSUME_DEPS
+  enum:     [CEX_ASSUME_DEPS, INFEASIBLE_PREFIX_ASSUME_DEPS, CEX_FIRST_ASSUME_DEPS,
+             CEX_LAST_ASSUME_DEPS]
 
 # What kind of restart to do after a successful refinement
 cpa.slicing.refinement.restartStrategy = PIVOT
@@ -3232,6 +3248,14 @@ custominstructions.requirementsStateClassName = no default value
 cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
   enum:     [ALL_LOOPS, ONLY_LAST_LOOP]
 
+# Whether to take an assumption edge 'p' as control dependence if edge 'not
+# p' is a control dependence. This creates a larger slice, but may reduce the
+# size of the state space for deterministic programs. This behavior is also
+# closer to the static program slicing based on control-flow graphs (CFGs),
+# where branching is represented by a single assumption (with true- and
+# false-edges)
+dependencegraph.controldeps.considerInverseAssumption = false
+
 # Whether to consider control dependencies.
 dependencegraph.controldeps.use = true
 
@@ -3267,9 +3291,14 @@ enabledanalysis.enablerCPA = PREDICATE
 # The distance metric that ought to be used for the computation of the
 # distance
 explainer.distanceMetric = no default value
+  enum:     [ADM, CFDM, PG]
 
 # Configuration of the first step of the Explainer Algorithm
 explainer.firstStep = no default value
+
+# Ranking algorithm to use for fault localization
+faultLocalization.type = TARANTULA
+  enum:     [TARANTULA, DSTAR, OCHIAI]
 
 # Configuration for programs containing more than @Option adressedRatio
 # addressed vars.
