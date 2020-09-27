@@ -12,8 +12,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.math.BigInteger;
 
-public enum CompoundMathematicalIntervalManager implements CompoundIntervalManager {
-
+enum CompoundMathematicalIntervalManager implements CompoundIntervalManager {
   INSTANCE;
 
   @Override

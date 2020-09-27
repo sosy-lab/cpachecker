@@ -13,6 +13,7 @@ package org.sosy_lab.cpachecker.util.predicates;
  * predicates during the predicate analysis.
  */
 public enum PredicateOrderingStrategy {
+  DISABLE(false), // do not execute any reordering.
   SIMILARITY(false),
   FREQUENCY(false),
   IMPLICATION(false),

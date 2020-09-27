@@ -967,8 +967,15 @@ public class SMGTransferRelation
 
     //string literal handling
     if (pInitializer instanceof CInitializerExpression && ((CInitializerExpression) pInitializer).getExpression() instanceof CStringLiteralExpression){
-      return handleStringInitializer(pNewState,pVarDecl , pEdge, pNewObject,
-          pOffset, pInitializer.getFileLocation(), (CStringLiteralExpression) ((CInitializerExpression) pInitializer).getExpression());
+      return handleStringInitializer(
+          pNewState,
+          pVarDecl,
+          pEdge,
+          pNewObject,
+          pOffset,
+          pLValueType,
+          pInitializer.getFileLocation(),
+          (CStringLiteralExpression) ((CInitializerExpression) pInitializer).getExpression());
 
     } else if (pInitializer instanceof CInitializerExpression) {
         return assignFieldToState(pNewState, pEdge, pNewObject,
@@ -1015,8 +1022,16 @@ public class SMGTransferRelation
    * else
    *  - create char array from string and call list init for given region
    */
-  private List<SMGState> handleStringInitializer(SMGState pNewState, CVariableDeclaration pVarDecl, CFAEdge pEdge, SMGObject pNewObject,
-      long pOffset,FileLocation pFileLocation, CStringLiteralExpression pExpression) throws CPATransferException {
+  private List<SMGState> handleStringInitializer(
+      SMGState pNewState,
+      CVariableDeclaration pVarDecl,
+      CFAEdge pEdge,
+      SMGObject pNewObject,
+      long pOffset,
+      CType pLValueType,
+      FileLocation pFileLocation,
+      CStringLiteralExpression pExpression)
+      throws CPATransferException {
     CType realCType = TypeUtils.getRealExpressionType(pVarDecl);
     if(realCType instanceof CArrayType){
       realCType = ((CArrayType) realCType).getType();
@@ -1024,8 +1039,8 @@ public class SMGTransferRelation
       realCType = ((CPointerType) realCType).getType();
     }
 
-    //handle string initializer nested in struct type
-    if (realCType instanceof CCompositeType ) {
+    // handle string initializer nested in struct type or assign string to pointer
+    if (realCType instanceof CCompositeType || pLValueType instanceof CPointerType) {
       // create a new region for string expression
       SMGRegion region =
           pNewState
