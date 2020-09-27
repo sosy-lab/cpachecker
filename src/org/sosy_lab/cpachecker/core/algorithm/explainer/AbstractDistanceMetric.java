@@ -145,24 +145,24 @@ public class AbstractDistanceMetric implements DistanceMetric {
     // First find the ARGStates that are mapped to the equivalent CFANode
     // and put them in a List
     for (int i = 0; i < alignments.getCounterexample().size(); i++) {
+      CFANode safePathCFANode = alignments.getSafePathElement(i).getPredecessor();
+      CFANode ceCFANode = alignments.getCounterexampleElement(i).getPredecessor();
       ARGState argCeState = null;
       ARGState argSpState = null;
       for (ARGState ceState : ceStates) {
-        CFANode cfaNode = alignments.getCounterexampleElement(i).getPredecessor();
         CFANode equivalentCFANode =
             AbstractStates.extractStateByType(ceState, AbstractStateWithLocation.class)
                 .getLocationNode();
-        if (cfaNode.equals(equivalentCFANode)) {
+        if (ceCFANode.equals(equivalentCFANode)) {
           argCeState = ceState;
           break;
         }
       }
       for (ARGState pathState : pathsStates) {
-        CFANode cfaNode = alignments.getSafePathElement(i).getPredecessor();
         CFANode equivalentCFANode =
             AbstractStates.extractStateByType(pathState, AbstractStateWithLocation.class)
                 .getLocationNode();
-        if (cfaNode.equals(equivalentCFANode)) {
+        if (safePathCFANode.equals(equivalentCFANode)) {
           argSpState = pathState;
           break;
         }

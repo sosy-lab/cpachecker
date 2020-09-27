@@ -3290,7 +3290,7 @@ enabledanalysis.enablerCPA = PREDICATE
 
 # The distance metric that ought to be used for the computation of the
 # distance
-explainer.distanceMetric = no default value
+explainer.distanceMetric = ADM
   enum:     [ADM, CFDM, PG]
 
 # Configuration of the first step of the Explainer Algorithm

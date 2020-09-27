@@ -77,7 +77,7 @@ public class Explainer extends NestingAlgorithm {
       secure = true,
       name = "distanceMetric",
       description = "The distance metric that ought to be used for the computation of the distance")
-  private Metric distanceMetric;
+  private Metric distanceMetric = Metric.ADM;
 
   private PredicateCPA cpa;
 
