@@ -4,7 +4,7 @@
   <option name="-heap">10000M</option>
 
   <rundefinition name="sv-comp19">
-    <option name="-sv-comp19"/>
+    <option name="-svcomp19"/>
     <option name="-benchmark"/>
   </rundefinition>
 
