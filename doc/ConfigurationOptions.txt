@@ -202,6 +202,9 @@ analysis.algorithm.analysisWithEnabler = false
 # use adjustable conditions algorithm
 analysis.algorithm.conditionAdjustment = false
 
+# use fault localization
+analysis.algorithm.faultLocalization = false
+
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
 
@@ -1183,6 +1186,11 @@ cpa.arg.deleteInCPAEnabledAnalysis = false
 # algorithm? (for debugging and demonstration)
 cpa.arg.dumpAfterIteration = false
 
+# Enable reduction for nested abstract states when entering or leaving a
+# block abstraction for BAM. The reduction can lead to a higher
+# cache-hit-rate for BAM and a faster sub-analysis for blocks.
+cpa.arg.enableStateReduction = true
+
 # export final ARG as .dot file
 cpa.arg.export = true
 
@@ -1201,6 +1209,10 @@ cpa.arg.export.code.handleTargetStates = NONE
 
 # write include directives
 cpa.arg.export.code.header = true
+
+# If specified, metadata about the produced C program will be exported to
+# this file
+cpa.arg.export.code.metadataOutput = no default value
 
 # export final ARG as .dot file
 cpa.arg.file = "ARG.dot"
@@ -1690,8 +1702,8 @@ cpa.invariants.analyzeTargetPathsOnly = true
 # controls the condition adjustment logic: STATIC means that condition
 # adjustment is a no-op, INTERESTING_VARIABLES increases the interesting
 # variable limit, MAXIMUM_FORMULA_DEPTH increases the maximum formula depth,
-# ABSTRACTION_STRATEGY tries to choose a more precise abstraction strategy
-# and COMPOUND combines the other strategies (minus STATIC).
+# ABSTRACTION_STRATEGY tries to choose a more precise abstraction strategy,
+# COMPOUND combines the other strategies (minus STATIC).
 cpa.invariants.conditionAdjusterFactory = COMPOUND
   enum:     [STATIC, INTERESTING_VARIABLES, MAXIMUM_FORMULA_DEPTH,
              ABSTRACTION_STRATEGY, COMPOUND]
@@ -1922,7 +1934,7 @@ cpa.predicate.abortOnLargeArrays = true
 
 # Predicate ordering
 cpa.predicate.abs.predicateOrdering.method = CHRONOLOGICAL
-  enum:     [SIMILARITY, FREQUENCY, IMPLICATION, REV_IMPLICATION, RANDOMLY,
+  enum:     [DISABLE, SIMILARITY, FREQUENCY, IMPLICATION, REV_IMPLICATION, RANDOMLY,
              FRAMEWORK_RANDOM, FRAMEWORK_SIFT, FRAMEWORK_SIFTITE, FRAMEWORK_WIN2,
              FRAMEWORK_WIN2ITE, FRAMEWORK_WIN3, FRAMEWORK_WIN3ITE, CHRONOLOGICAL]
 
@@ -2264,9 +2276,7 @@ cpa.predicate.merge.mergeAbstractionStatesWithSamePredecessor = false
 # need them. Mentioning a function in this list has only an effect, if it is
 # an 'external function', i.e., no source is given in the code for this
 # function.
-cpa.predicate.nondetFunctions = {
-      "sscanf",
-      "random"}
+cpa.predicate.nondetFunctions = {"sscanf", "rand", "random"}
 
 # Regexp pattern for functions that should be considered as giving a
 # non-deterministic return value (c.f. cpa.predicate.nondedFunctions)
@@ -2360,7 +2370,7 @@ cpa.predicate.refinement.global.stopAfterNRefinements = 0
 cpa.predicate.refinement.graphblockformulastrategy = false
 
 # Enable/Disable adding partial state invariants into the PathFormulas
-cpa.predicate.refinement.includePartialInvariants = true
+cpa.predicate.refinement.includePartialInvariants = AbstractionPosition.BOTH
 
 # Use incremental search in counterexample analysis to find a minimal
 # infeasible part of the trace. This will typically lead to interpolants that
@@ -2653,15 +2663,30 @@ cpa.slicing.preRunSyntacticWeakening = true
 # slice, or a statically computed, fixed slicing precision
 cpa.slicing.refinableSlice = false
 
-# Add all assumptions of an infeasible target path to the slice, in addition
-# to the original slice
-cpa.slicing.refinement.addCexConstraintsToSlice = true
-
 # Allow counterexamples that are valid only on the program slice. If you set
 # this to `false`, you may have to set takeEagerSlice=true to avoid failed
 # refinements. If this is set to true, the counterexample check won't work
 # (in general), so you have to turn it off.
 cpa.slicing.refinement.counterexampleCheckOnSlice = false
+
+# Which prefix provider to use? (give class name) If the package name starts
+# with 'org.sosy_lab.cpachecker.', this prefix can be omitted.
+cpa.slicing.refinement.prefixProvider = no default value
+
+# How to refine the slice:
+# - CEX_ASSUME_DEPS: Add the dependencies of all counterexample assume edges
+# to the slice.
+# - INFEASIBLE_PREFIX_ASSUME_DEPS: Find an infeasible prefix and add the
+# dependencies of all assume edges that are part of the infeasible prefix to
+# the slice. Requires a prefix provider
+# ('cpa.slicing.refinement.prefixProvider').
+# - CEX_FIRST_ASSUME_DEPS: Add the dependencies of the first counterexample
+# assume edges, that is not already part of the slice, to the slice.
+# - CEX_LAST_ASSUME_DEPS: Add the dependencies of the last counterexample
+# assume edges, that is not already part of the slice, to the slice.
+cpa.slicing.refinement.refineStrategy = CEX_ASSUME_DEPS
+  enum:     [CEX_ASSUME_DEPS, INFEASIBLE_PREFIX_ASSUME_DEPS, CEX_FIRST_ASSUME_DEPS,
+             CEX_LAST_ASSUME_DEPS]
 
 # What kind of restart to do after a successful refinement
 cpa.slicing.refinement.restartStrategy = PIVOT
@@ -3242,6 +3267,14 @@ custominstructions.requirementsStateClassName = no default value
 cwriter.withLoops.loopDetectionStrategy = ALL_LOOPS
   enum:     [ALL_LOOPS, ONLY_LAST_LOOP]
 
+# Whether to take an assumption edge 'p' as control dependence if edge 'not
+# p' is a control dependence. This creates a larger slice, but may reduce the
+# size of the state space for deterministic programs. This behavior is also
+# closer to the static program slicing based on control-flow graphs (CFGs),
+# where branching is represented by a single assumption (with true- and
+# false-edges)
+dependencegraph.controldeps.considerInverseAssumption = false
+
 # Whether to consider control dependencies.
 dependencegraph.controldeps.use = true
 
@@ -3273,6 +3306,10 @@ enabledanalysis.allowLazyRefinement = false
 # Which CPA is used as enabler in the current analysis.
 enabledanalysis.enablerCPA = PREDICATE
   enum:     [APRON, INTERVAL, OCTAGON, PREDICATE, VALUE]
+
+# Ranking algorithm to use for fault localization
+faultLocalization.type = TARANTULA
+  enum:     [TARANTULA, DSTAR, OCHIAI]
 
 # Configuration for programs containing more than @Option adressedRatio
 # addressed vars.
@@ -3430,10 +3467,15 @@ merge = "JOIN"
 # List of property-files to be run by the subprocesses.
 mpiAlgorithm.configFiles = no default value
 
+# The MCA parameter ('Modular Component Architecture') is available only on
+# Open MPI frameworks. It might thus need to be disabled if unavailable on
+# the working machine.
+mpiAlgorithm.disableMCAOptions = no default value
+
 # File containing the ip addresses to be used by MPI.
 mpiAlgorithm.hostfile = no default value
 
-# Number of processes to be used by MPI.
+# Max. amount of processes to be used by MPI.
 mpiAlgorithm.numberProcesses = no default value
 
 # Find all violations of each checked property.
@@ -3876,7 +3918,7 @@ residualprogram.statistics.size = false
 
 # which strategy to use to generate the residual program
 residualprogram.strategy = CONDITION
-  enum:     [SLICING, CONDITION, CONDITION_PLUS_FOLD, COMBINATION]
+  enum:     [REACHABILITY, SLICING, CONDITION, CONDITION_PLUS_FOLD, COMBINATION]
 
 # How often may a loop be unrolled before it must be folded
 residualprogram.unrollBound = 2

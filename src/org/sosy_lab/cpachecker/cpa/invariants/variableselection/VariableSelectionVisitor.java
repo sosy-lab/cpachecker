@@ -8,8 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.invariants.variableselection;
 
-
-public interface VariableSelectionVisitor<ConstantType, T> {
+interface VariableSelectionVisitor<ConstantType, T> {
 
   T visit(AcceptAllVariableSelection<ConstantType> pAcceptAllVariableSelection);
 

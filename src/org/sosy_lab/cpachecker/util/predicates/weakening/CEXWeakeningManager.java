@@ -18,10 +18,6 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -37,13 +33,7 @@ import org.sosy_lab.java_smt.api.visitors.TraversalProcess;
 /**
  * Perform weakening using counter-examples to induction.
  */
-@Options(prefix="cpa.slicing")
 public class CEXWeakeningManager {
-  @Option(description="Strategy for abstracting children during CEX weakening", secure=true)
-  private SELECTION_STRATEGY removalSelectionStrategy = SELECTION_STRATEGY.ALL;
-
-  @Option(description="Depth limit for the 'LEAST_REMOVALS' strategy.")
-  private int leastRemovalsDepthLimit = 2;
 
   /**
    * Selection strategy for CEX-based weakening.
@@ -72,17 +62,18 @@ public class CEXWeakeningManager {
 
   private final BooleanFormulaManager bfmgr;
   private final Solver solver;
-  private final InductiveWeakeningManager.InductiveWeakeningStatistics
-      statistics;
+  private final InductiveWeakeningManager.InductiveWeakeningStatistics statistics;
   private final Random r = new Random(0);
   private final ShutdownNotifier shutdownNotifier;
+  private final WeakeningOptions options;
 
   public CEXWeakeningManager(
       FormulaManagerView pFmgr,
       Solver pSolver,
       InductiveWeakeningManager.InductiveWeakeningStatistics pStatistics,
-      Configuration config, ShutdownNotifier pShutdownNotifier) throws InvalidConfigurationException {
-    config.inject(this);
+      WeakeningOptions pOptions,
+      ShutdownNotifier pShutdownNotifier) {
+    options = pOptions;
     solver = pSolver;
     statistics = pStatistics;
     bfmgr = pFmgr.getBooleanFormulaManager();
@@ -217,7 +208,7 @@ public class CEXWeakeningManager {
       }
 
       private TraversalProcess selectChildren(List<BooleanFormula> operands) {
-        switch (removalSelectionStrategy) {
+        switch (options.getRemovalSelectionStrategy()) {
           case ALL:
             return TraversalProcess.CONTINUE;
           case FIRST:
@@ -227,7 +218,7 @@ public class CEXWeakeningManager {
             int rand = r.nextInt(operands.size());
             return TraversalProcess.custom(operands.get(rand));
           case LEAST_REMOVALS:
-            if (depth >= leastRemovalsDepthLimit) {
+            if (depth >= options.getLeastRemovalsDepthLimit()) {
               return TraversalProcess.custom(operands.iterator().next());
             }
             BooleanFormula out =
