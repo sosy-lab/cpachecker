@@ -82,7 +82,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    * @param pRanking the ranking for pFaults
    * @param pParent the counterexample info of the target state
    */
-  public FaultLocalizationInfo(Set<Fault> pFaults, FaultRanking pRanking, CounterexampleInfo pParent){
+  public FaultLocalizationInfo(Set<Fault> pFaults, FaultScoring pRanking, CounterexampleInfo pParent){
     super(
         pParent.isSpurious(),
         pParent.getTargetPath(),

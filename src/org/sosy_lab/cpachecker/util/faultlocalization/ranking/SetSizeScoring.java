@@ -9,11 +9,11 @@
 package org.sosy_lab.cpachecker.util.faultlocalization.ranking;
 
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultScoring;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 
-public class SetSizeRanking implements FaultRanking {
+public class SetSizeScoring implements FaultScoring {
 
   @Override
   public RankInfo scoreFault(Fault fault) {

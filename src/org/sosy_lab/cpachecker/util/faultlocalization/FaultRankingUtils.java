@@ -29,8 +29,8 @@ public class FaultRankingUtils {
               .orElse(0);
 
 
-  public static FaultRanking concatHeuristics(FaultRanking... pRanking) {
-    return new FaultRanking() {
+  public static FaultScoring concatHeuristics(FaultScoring... pRanking) {
+    return new FaultScoring() {
 
       @Override
       public RankInfo scoreFault(Fault fault) {
@@ -39,8 +39,8 @@ public class FaultRankingUtils {
 
       @Override
       public void balancedScore(Set<Fault> faults) {
-        for (FaultRanking faultRanking : pRanking) {
-          faultRanking.balancedScore(faults);
+        for (FaultScoring faultScoring : pRanking) {
+          faultScoring.balancedScore(faults);
         }
       }
     };

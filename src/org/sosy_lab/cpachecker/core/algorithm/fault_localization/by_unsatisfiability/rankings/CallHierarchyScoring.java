@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultScoring;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 
@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
  * Rank the faults by the position in the counterexample. The closer edges of a fault are to the
  * error location the higher the rank.
  */
-public class CallHierarchyRanking implements FaultRanking {
+public class CallHierarchyScoring implements FaultScoring {
 
   private Map<CFAEdge, Integer> mapEdgeToPosition;
   private int firstErrorEdge;
@@ -32,7 +32,7 @@ public class CallHierarchyRanking implements FaultRanking {
    * @param pEdgeList counterexample
    * @param pNumberErrorEdges number of post-condition edges
    */
-  public CallHierarchyRanking(List<CFAEdge> pEdgeList, int pNumberErrorEdges) {
+  public CallHierarchyScoring(List<CFAEdge> pEdgeList, int pNumberErrorEdges) {
     mapEdgeToPosition = new HashMap<>();
     for (int i = 0; i < pEdgeList.size(); i++) {
       mapEdgeToPosition.put(pEdgeList.get(i), i + 1);

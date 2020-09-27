@@ -43,8 +43,8 @@ import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiabi
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.TraceFormulaOptions;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.CallHierarchyRanking;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.EdgeTypeRanking;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.CallHierarchyScoring;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.EdgeTypeScoring;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.InformationProvider;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
@@ -59,12 +59,12 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultScoring;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.InfoType;
-import org.sosy_lab.cpachecker.util.faultlocalization.ranking.MinimalLineDistanceRanking;
-import org.sosy_lab.cpachecker.util.faultlocalization.ranking.OverallOccurrenceRanking;
-import org.sosy_lab.cpachecker.util.faultlocalization.ranking.SetSizeRanking;
+import org.sosy_lab.cpachecker.util.faultlocalization.ranking.MinimalLineDistanceScoring;
+import org.sosy_lab.cpachecker.util.faultlocalization.ranking.OverallOccurrenceScoring;
+import org.sosy_lab.cpachecker.util.faultlocalization.ranking.SetSizeScoring;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImpl;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -228,31 +228,31 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
 
       //Find correct ranking and correct trace formula for the specified algorithm
       TraceFormula tf;
-      FaultRanking ranking;
+      FaultScoring ranking;
       switch(algorithmType){
         case MAXORG:
         case MAXSAT: {
           tf = new TraceFormula.SelectorTrace(context, options, edgeList);
           ranking =  FaultRankingUtils.concatHeuristics(
-              new EdgeTypeRanking(),
-              new SetSizeRanking(),
-              new OverallOccurrenceRanking(),
-              new MinimalLineDistanceRanking(edgeList.get(edgeList.size()-1)),
-              new CallHierarchyRanking(edgeList, tf.getPostConditionOffset()));
+              new EdgeTypeScoring(),
+              new SetSizeScoring(),
+              new OverallOccurrenceScoring(),
+              new MinimalLineDistanceScoring(edgeList.get(edgeList.size()-1)),
+              new CallHierarchyScoring(edgeList, tf.getPostConditionOffset()));
           break;
         }
         case ERRINV: {
           tf = disableFSTF ? new TraceFormula.FlowSensitiveTrace(context, options, edgeList) : new TraceFormula.DefaultTrace(context, options, edgeList);
           ranking = FaultRankingUtils.concatHeuristics(
-              new EdgeTypeRanking(),
-              new CallHierarchyRanking(edgeList, tf.getPostConditionOffset()));
+              new EdgeTypeScoring(),
+              new CallHierarchyScoring(edgeList, tf.getPostConditionOffset()));
           break;
         }
         case UNSAT: {
           tf = new TraceFormula.DefaultTrace(context, options, edgeList);
           ranking = FaultRankingUtils.concatHeuristics(
-              new EdgeTypeRanking(),
-              new CallHierarchyRanking(edgeList, tf.getPostConditionOffset()));
+              new EdgeTypeScoring(),
+              new CallHierarchyScoring(edgeList, tf.getPostConditionOffset()));
           break;
         }
         default: throw new AssertionError("The specified algorithm type does not exist");

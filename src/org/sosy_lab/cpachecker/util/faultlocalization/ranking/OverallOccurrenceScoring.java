@@ -14,11 +14,11 @@ import java.util.Map;
 import java.util.Set;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultScoring;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 
-public class OverallOccurrenceRanking implements FaultRanking {
+public class OverallOccurrenceScoring implements FaultScoring {
 
 
   private Map<Fault, Double> faultValue = new HashMap<>();

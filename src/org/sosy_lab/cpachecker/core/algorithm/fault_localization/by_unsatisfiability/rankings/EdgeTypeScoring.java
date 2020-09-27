@@ -10,12 +10,12 @@ package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiab
 
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultScoring;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 
 /** Sort faults based on their contained edge types. */
-public class EdgeTypeRanking implements FaultRanking {
+public class EdgeTypeScoring implements FaultScoring {
 
   private double getScore(CFAEdge edge) {
     switch (edge.getEdgeType()) {
