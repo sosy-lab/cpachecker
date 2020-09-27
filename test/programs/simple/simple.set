@@ -12,4 +12,3 @@ arrays/*.yml
 *.yml
 nested_operators/*.yml
 builtin_overflow_functions/*.yml
-fault_localization/*.yml
