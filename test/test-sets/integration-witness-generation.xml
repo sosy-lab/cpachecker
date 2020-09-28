@@ -99,7 +99,7 @@ SPDX-License-Identifier: Apache-2.0
   <tasks name="ControlFlow">
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-    <exclude>../programs/benchmarks/ssh/s3_srvr.blast.1*.yml</exclude> <!-- large runtime -->
+    <exclude>../programs/benchmarks/openssl/s3_srvr.blast.1*.yml</exclude> <!-- large runtime -->
     <exclude>../programs/benchmarks/ntdrivers/cdaudio.i.cil-1.yml</exclude> <!-- flapping timeout/memout -->
   </tasks>
   <tasks name="Recursive">

@@ -27,13 +27,13 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
     <!-- only tasks which fulfill property -->
     <exclude>../programs/benchmarks/ntdrivers-simplified/*_false-unreach-call*.cil.c</exclude> 
-    <exclude>../programs/benchmarks/ssh-simplified/*_false-unreach-call*.cil.c</exclude>
+    <exclude>../programs/benchmarks/openssl-simplified/*_false-unreach-call*.cil.c</exclude>
     <exclude>../programs/benchmarks/locks/*_false-unreach-call*.c</exclude>
     <exclude>../programs/benchmarks/ntdrivers/*_false-unreach-call*.i.cil.c</exclude>
-    <exclude>../programs/benchmarks/ssh/*_false-unreach-call*.i.cil.c</exclude>
+    <exclude>../programs/benchmarks/openssl/*_false-unreach-call*.i.cil.c</exclude>
     <!-- exclude timeout, error tasks since PCC proof checking likely not started-->
-    <exclude>../programs/benchmarks/ssh/*</exclude>
-    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_4_true-unreach-call_false-termination.cil.c</exclude> <!-- flapping timeout / wrong result -->
+    <exclude>../programs/benchmarks/openssl/*</exclude>
+    <exclude>../programs/benchmarks/openssl-simplified/s3_srvr_4_true-unreach-call_false-termination.cil.c</exclude> <!-- flapping timeout / wrong result -->
     <exclude>../programs/benchmarks/ntdrivers/diskperf_true-unreach-call.i.cil.c</exclude> <!-- flapping timeout / wrong result -->
     <exclude>../programs/benchmarks/ntdrivers/floppy_true-unreach-call_true-valid-memsafety.i.cil.c</exclude> <!-- flapping timeout / error -->
   </tasks>

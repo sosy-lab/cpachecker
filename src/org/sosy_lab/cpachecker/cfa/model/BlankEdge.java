@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa.model;
 
-import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 
 
@@ -38,25 +37,5 @@ public class BlankEdge extends AbstractCFAEdge {
   @Override
   public CFAEdgeType getEdgeType() {
     return CFAEdgeType.BlankEdge;
-  }
-
-  @Override
-  public boolean equals(final Object pOther) {
-    if (this == pOther) {
-      return true;
-    }
-    if (!(pOther instanceof BlankEdge)) {
-      return false;
-    }
-    if (!super.equals(pOther)) {
-      return false;
-    }
-    final BlankEdge blankEdge = (BlankEdge) pOther;
-    return description.equals(blankEdge.description);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(super.hashCode(), description);
   }
 }

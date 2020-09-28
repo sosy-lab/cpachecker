@@ -36,12 +36,12 @@ SPDX-License-Identifier: Apache-2.0
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
 
     <!-- Instable: sometimes timeout, sometimes not -->
-    <exclude>../programs/benchmarks/ssh/*</exclude>
-    <exclude>../programs/benchmarks/ssh-simplified/s3_clnt_1*</exclude>
-    <exclude>../programs/benchmarks/ssh-simplified/s3_clnt_4.cil-2.yml</exclude>
-    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_13*</exclude>
-    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_1a*</exclude>
-    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_14.cil.yml</exclude>
+    <exclude>../programs/benchmarks/openssl/*</exclude>
+    <exclude>../programs/benchmarks/openssl-simplified/s3_clnt_1*</exclude>
+    <exclude>../programs/benchmarks/openssl-simplified/s3_clnt_4.cil-2.yml</exclude>
+    <exclude>../programs/benchmarks/openssl-simplified/s3_srvr_13*</exclude>
+    <exclude>../programs/benchmarks/openssl-simplified/s3_srvr_1a*</exclude>
+    <exclude>../programs/benchmarks/openssl-simplified/s3_srvr_14.cil.yml</exclude>
 
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
