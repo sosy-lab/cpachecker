@@ -33,19 +33,19 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants.ErrorInvariantsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizerWithTraceFormula;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants.ErrorInvariantsAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants.IntervalReportWriter;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.ModifiedMaxSatAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.OriginalMaxSatAlgorithm;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.SingleUnsatCoreAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.CallHierarchyScoring;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.EdgeTypeScoring;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.InformationProvider;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula.TraceFormulaOptions;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.CallHierarchyScoring;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.EdgeTypeScoring;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.InformationProvider;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.ModifiedMaxSatAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.OriginalMaxSatAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat.SingleUnsatCoreAlgorithm;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -59,8 +59,8 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultScoring;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultRankingUtils;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultScoring;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.InfoType;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.MinimalLineDistanceScoring;
 import org.sosy_lab.cpachecker.util.faultlocalization.ranking.OverallOccurrenceScoring;
@@ -73,8 +73,9 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@Options(prefix="faultlocalization")
-public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsProvider, Statistics {
+@Options(prefix = "faultLocalization.by_traceformula")
+public class FaultLocalizationWithTraceFormula
+    implements Algorithm, StatisticsProvider, Statistics {
 
   enum AlgorithmTypes {
     UNSAT, MAXSAT, MAXORG, ERRINV
@@ -94,8 +95,11 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
       description="which algorithm to use")
   private AlgorithmTypes algorithmType = AlgorithmTypes.UNSAT;
 
-  @Option(secure=true, name="errorInvariants.disableFSTF",
-      description="disable flow-sensitive trace formula (may increase runtime)") //can decrease runtime
+  @Option(
+      secure = true,
+      name = "errorInvariants.disableFSTF",
+      description =
+          "disable flow-sensitive trace formula (may increase runtime)") // can decrease runtime
   private boolean disableFSTF = false;
 
   @Option(secure=true, name="maxsat.ban",
@@ -156,16 +160,22 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
 
   public void checkOptions () throws InvalidConfigurationException {
     if (!algorithmType.equals(AlgorithmTypes.ERRINV) && disableFSTF) {
-      throw new InvalidConfigurationException("The option flow-sensitive trace formula will be ignored since the error invariants algorithm is not selected");
+      throw new InvalidConfigurationException(
+          "The option flow-sensitive trace formula will be ignored since the error invariants"
+              + " algorithm is not selected");
     }
     if (algorithmType.equals(AlgorithmTypes.ERRINV) && !ban.isBlank()) {
-      throw new InvalidConfigurationException("The option ban will be ignored since the error invariants algorithm is not selected");
+      throw new InvalidConfigurationException(
+          "The option ban will be ignored since the error invariants algorithm is not selected");
     }
     if (!algorithmType.equals(AlgorithmTypes.MAXSAT) && options.isReduceSelectors()) {
-      throw new InvalidConfigurationException("The option reduceselectors will be ignored since MAX-SAT is not selected");
+      throw new InvalidConfigurationException(
+          "The option reduceselectors will be ignored since MAX-SAT is not selected");
     }
     if (!options.getDisable().isBlank() && algorithmType.equals(AlgorithmTypes.ERRINV)) {
-      throw new InvalidConfigurationException("The option ban will be ignored because it is not applicable on the error invariants algorithm");
+      throw new InvalidConfigurationException(
+          "The option ban will be ignored because it is not applicable on the error invariants"
+              + " algorithm");
     }
   }
 
@@ -205,7 +215,8 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
     // Run the algorithm and create a CFAPathWithAssumptions to the last reached state.
     CFAPathWithAssumptions assumptions = pInfo.getCFAPathWithAssignments();
     if (assumptions.isEmpty()) {
-      logger.log(Level.INFO, "The analysis returned no assumptions. Fault localization not possible.");
+      logger.log(
+          Level.INFO, "The analysis returned no assumptions. Fault localization not possible.");
       return;
     }
 
@@ -259,7 +270,10 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
       }
 
       if (!tf.isCalculationPossible()) {
-        logger.log(Level.INFO, "Pre- and post-condition are unsatisfiable. No further analysis required. Most likely the variables in your post-condition never change their value.");
+        logger.log(
+            Level.INFO,
+            "Pre- and post-condition are unsatisfiable. No further analysis required. Most likely"
+                + " the variables in your post-condition never change their value.");
         return;
       }
 
@@ -286,13 +300,18 @@ public class FaultLocalizationWithTraceFormula implements Algorithm, StatisticsP
           "Running " + pAlgorithm.getClass().getSimpleName() + ":\n" + info.toString());
 
     } catch (SolverException sE) {
-      throw new CPAException("The solver was not able to find the UNSAT-core of the path formula.", sE);
+      throw new CPAException(
+          "The solver was not able to find the UNSAT-core of the path formula.", sE);
     } catch (VerifyException vE) {
-      throw new CPAException( "No bugs found because the trace formula is satisfiable or the counterexample is spurious.", vE);
+      throw new CPAException(
+          "No bugs found because the trace formula is satisfiable or the counterexample is"
+              + " spurious.",
+          vE);
     } catch (InvalidConfigurationException iE) {
       throw new CPAException( "Incomplete analysis because of invalid configuration.", iE);
     } catch (IllegalStateException iE) {
-      throw new CPAException("The counterexample is spurious. Calculating interpolants is not possible.", iE);
+      throw new CPAException(
+          "The counterexample is spurious. Calculating interpolants is not possible.", iE);
     } finally{
       context.getSolver().close();
       context.getProver().close();

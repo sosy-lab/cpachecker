@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.Info
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-@Options(prefix = "faultLocalization")
+@Options(prefix = "faultLocalization.by_coverage")
 public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvider, Statistics {
   private enum AlgorithmType {
     TARANTULA,
