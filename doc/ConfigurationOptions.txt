@@ -205,6 +205,9 @@ analysis.algorithm.conditionAdjustment = false
 # use fault localization
 analysis.algorithm.faultLocalization = false
 
+# use FaultLocalization
+analysis.algorithm.faultLocalizationTF = false
+
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
 
@@ -3289,6 +3292,16 @@ enabledanalysis.enablerCPA = PREDICATE
 faultLocalization.type = TARANTULA
   enum:     [TARANTULA, DSTAR, OCHIAI]
 
+# disable flow-sensitive trace formula (may increase runtime)
+faultlocalization.errorInvariants.disableFSTF = false
+
+# ban faults with certain variables
+faultlocalization.maxsat.ban = ""
+
+# which algorithm to use
+faultlocalization.type = UNSAT
+  enum:     [UNSAT, MAXSAT, MAXORG, ERRINV]
+
 # Configuration for programs containing more than @Option adressedRatio
 # addressed vars.
 heuristicSelection.addressedConfig = no default value
@@ -4139,6 +4152,22 @@ testcase.xml = no default value
 
 # Zip file into which all test case files are bundled
 testcase.zip.file = no default value
+
+# add initial variable assignments to the pre-condition instead of just using
+# failing variable assignments for nondet variables
+traceformula.altpre = false
+
+# do not create selectors for this variables (separate by commas)
+traceformula.disable = ""
+
+# filter the alternative precondition by scopes
+traceformula.filter = "main"
+
+# do not add variables to alternative precondition (separate by commas)
+traceformula.ignore = ""
+
+# equal statements on the same line get the same selector
+traceformula.uniqueselectors = false
 
 # Ignore functions that are defined by C11
 undefinedFunctionsCollector.allowC11Functions = true

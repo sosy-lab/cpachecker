@@ -8,20 +8,15 @@
 
 package org.sosy_lab.cpachecker.util.faultlocalization.ranking;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultRanking;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultScoring;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
+import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 
-public class IdentityRanking implements FaultRanking {
+public class SetSizeScoring implements FaultScoring {
 
   @Override
-  public List<Fault> rank(
-      Set<Fault> pFaults) {
-    pFaults.forEach(c -> c.addInfo(FaultInfo.hint("Ranked by Identity.")));
-    return new ArrayList<>(pFaults);
+  public RankInfo scoreFault(Fault fault) {
+    return FaultInfo.rankInfo("This set has a size of " + fault.size() + ".", 1d/fault.size());
   }
-
 }

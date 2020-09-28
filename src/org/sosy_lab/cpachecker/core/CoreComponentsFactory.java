@@ -30,6 +30,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CounterexampleStoreAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtractingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithTraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithCoverage;
 import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
@@ -93,7 +94,7 @@ public class CoreComponentsFactory {
       secure = true,
       name = "algorithm.faultLocalization",
       description = "use fault localization")
-  private boolean useFaultLocalization = false;
+  private boolean useFaultLocalizationWithCoverage = false;
 
   @Option(secure=true, description="use assumption collecting algorithm")
   private boolean collectAssumptions = false;
@@ -277,6 +278,12 @@ public class CoreComponentsFactory {
       name = "algorithm.CBMC",
       description = "use CBMC as an external tool from CPAchecker")
   boolean runCBMCasExternalTool = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.faultLocalizationTF",
+      description = "use FaultLocalization")
+  boolean useFaultLocalizationWithTraceFormulas = false;
 
   private final Configuration config;
   private final LogManager logger;
@@ -534,7 +541,7 @@ public class CoreComponentsFactory {
             new ResultCheckAlgorithm(
                 algorithm, cpa, cfa, config, logger, shutdownNotifier, specification);
       }
-      if (useFaultLocalization) {
+      if (useFaultLocalizationWithCoverage) {
         algorithm = new FaultLocalizationWithCoverage(algorithm, shutdownNotifier, logger,config);
       }
 
@@ -569,6 +576,10 @@ public class CoreComponentsFactory {
 
       if (useMPV) {
         algorithm = new MPVAlgorithm(cpa, config, logger, shutdownNotifier, specification, cfa);
+      }
+
+      if(useFaultLocalizationWithTraceFormulas) {
+        algorithm = new FaultLocalizationWithTraceFormula(algorithm, config, logger, cfa, shutdownNotifier);
       }
     }
 
