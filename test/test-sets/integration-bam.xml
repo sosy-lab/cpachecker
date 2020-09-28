@@ -153,7 +153,6 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/seq-mthreaded-reduced/pals_opt-floodmax.4.3.ufo.BOUNDED-8.pals.c.v+cfa-reducer.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/seq-pthread/*</exclude>
     <exclude>../programs/benchmarks/systemc/token_ring.*</exclude>
-    <exclude>../programs/benchmarks/systemc/toy1.cil.c</exclude>
     <exclude>../programs/benchmarks/systemc/transmitter.1*</exclude>
   </tasks>
   <tasks>
