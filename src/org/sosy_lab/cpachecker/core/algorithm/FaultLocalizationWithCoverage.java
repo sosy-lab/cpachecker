@@ -88,7 +88,17 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
     AlgorithmStatus status;
     try {
       status = algorithm.run(reachedSet);
-      FluentIterable<CounterexampleInfo> counterExamples = getCounterexampleInfos(reachedSet);
+      List<CounterexampleInfo> counterExamples = getCounterexampleInfos(reachedSet).toList();
+
+      if (counterExamples.isEmpty()) {
+        logger.log(
+            Level.INFO,
+            "No counterexamples found in computed reached set"
+                + " - stopping fault localization early."
+                + " If CPAchecker found a property violation,"
+                + " consider analysis.alwaysStoreCounterexamples=true");
+        return status;
+      }
 
       SafeCase safeCase = new SafeCase(reachedSet);
       FailedCase failedCase = new FailedCase(reachedSet);
