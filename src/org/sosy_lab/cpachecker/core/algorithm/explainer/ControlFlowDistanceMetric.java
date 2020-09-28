@@ -10,9 +10,11 @@ package org.sosy_lab.cpachecker.core.algorithm.explainer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithLocation;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -46,9 +48,9 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
   public List<CFAEdge> startDistanceMetric(List<ARGPath> safePaths, ARGPath counterexample) {
     List<CFAEdge> ce = distanceHelper.cleanPath(counterexample);
     // find all Branches in Counterexample
-    List<CFAEdge> branches_ce = findBranches(ce);
+    List<CFAEdge> counterexampleBranches = findBranches(ce);
     // compare all the paths with their distance
-    return comparePaths(branches_ce, distanceHelper.convertPathsToEdges(safePaths));
+    return comparePaths(counterexampleBranches, distanceHelper.convertPathsToEdges(safePaths));
   }
 
   /**
@@ -78,14 +80,10 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
     // default location is 0 - the first node
     int locationOfLastChangedNode = 0;
 
-    int spRootNodeNumber =
-        successfulGeneratedPath
-            .get(0)
-            .get(0)
-            .getPredecessor()
-            .getEnteringEdge(0)
-            .getPredecessor()
-            .getNodeNumber();
+    List<CFAEdge> firstGeneratedPath = successfulGeneratedPath.get(0);
+    CFANode firstNodeOfSafePath = firstGeneratedPath.get(0).getPredecessor();
+
+    int spRootNodeNumber = firstNodeOfSafePath.getEnteringEdge(0).getPredecessor().getNodeNumber();
 
     for (int i = 0; i < ce.size(); i++) {
       if (ce.get(i).getPredecessor().getNodeNumber() == spRootNodeNumber) {
@@ -178,7 +176,6 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
     return safePathsDistancesPair.getPaths().get(closestSuccessfulRunIndex);
   }
 
-
   /**
    * Finds the closest successful execution to the counterexample
    *
@@ -240,16 +237,18 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
    * @return the aligned Events
    */
   private Alignment<Event> createAlignments(List<Event> pCEvents, List<Event> pSafeEvents) {
-    List<Event> eventsWaitList = new ArrayList<>(pSafeEvents);
+    HashSet<Event> alreadyAligned = new HashSet<>();
     Alignment<Event> alignments = new Alignment<>();
 
     for (Event pCEvent : pCEvents) {
-      for (int j = 0; j < eventsWaitList.size(); j++) {
-        if (pCEvent.getNode().getNodeNumber() == eventsWaitList.get(j).getNode().getNodeNumber()) {
-          alignments.addPair(pCEvent, eventsWaitList.get(j));
-          // remove the aligned events from the wait-list
-          eventsWaitList.remove(j);
-          break;
+      for (Event pSafeEvent : pSafeEvents) {
+        if (pCEvent.getNode().getNodeNumber() == pSafeEvent.getNode().getNodeNumber()) {
+          if (!alreadyAligned.contains(pSafeEvent)) {
+            alignments.addPair(pCEvent, pSafeEvent);
+            // remove the aligned events from the wait-list
+            alreadyAligned.add(pSafeEvent);
+            break;
+          }
         }
       }
     }
@@ -371,6 +370,7 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
 
 /**
  * Class PathDistancePair is responsible to store program executions and their distances
+ *
  * @param <T> Could be CFAEdge or ARGState or CFANode
  * @param <Y> The distance: Integer or Event
  */
@@ -394,9 +394,7 @@ class PathDistancePair<T, Y> {
     return paths;
   }
 
-  /**
-   * Get rid of safe paths with distance = 0 / Empty
-   */
+  /** Get rid of safe paths with distance = 0 / Empty */
   private void eliminateZeroDistances() {
     assert !distances.isEmpty();
     assert !paths.isEmpty();
@@ -404,14 +402,13 @@ class PathDistancePair<T, Y> {
     List<List<T>> safePaths = new ArrayList<>();
     List<List<Y>> finalDistances = new ArrayList<>();
 
-    for (int i = 0; i < distances.size(); i++) {
-      if (!distances.get(i).isEmpty()) {
-        safePaths.add(paths.get(i));
-        finalDistances.add(distances.get(i));
+    for (List<Y> distance : distances) {
+      if (!distance.isEmpty()) {
+        safePaths.add(paths.get(distances.indexOf(distance)));
+        finalDistances.add(distance);
       }
     }
     distances = finalDistances;
     paths = safePaths;
   }
-
 }
