@@ -10,16 +10,14 @@ package org.sosy_lab.cpachecker.cpa.arg;
 
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Deque;
-import java.util.List;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 
 public class StronglyConnectedComponent {
 
-  private ARGState rootNode;
-  private Deque<ARGState> nodes = new ArrayDeque<>();
+  private final ARGState rootNode;
+  private final Deque<ARGState> nodes = new ArrayDeque<>();
 
   public StronglyConnectedComponent(ARGState pRootnode) {
     rootNode = pRootnode;
@@ -46,11 +44,11 @@ public class StronglyConnectedComponent {
 
   @Override
   public String toString() {
-    List<String> formattedNodes =
+    return String.format(
+        "[%s]",
         nodes
             .stream()
             .map(x -> (x.getStateId() + ":" + AbstractStates.extractLocation(x)))
-            .collect(Collectors.toCollection(ArrayList::new));
-    return String.valueOf(formattedNodes);
+            .collect(Collectors.joining(", ")));
   }
 }
