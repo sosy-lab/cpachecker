@@ -19,25 +19,32 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Streams;
 import de.uni_freiburg.informatik.ultimate.icfgtransformer.transformulatransformers.TermException;
 import de.uni_freiburg.informatik.ultimate.lassoranker.Lasso;
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgument;
 import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.MoreStrings;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
@@ -133,10 +140,10 @@ public class DCARefiner implements Refiner, StatisticsProvider {
   private final PredicateAbstractionManager predicateAbstractionManager;
   private final PredicateAbstractionStatistics abstractionStats =
       new PredicateAbstractionStatistics();
-
   private final PathChecker pathChecker;
 
   private int curRefinementIteration = 0;
+  private ReachedSet reached;
 
   @Option(
     secure = true,
@@ -158,7 +165,15 @@ public class DCARefiner implements Refiner, StatisticsProvider {
       description = "Set number of refinements for the trace abstraction algorithm")
   private int maxRefinementIterations = 0;
 
-  private ReachedSet reached;
+  @Option(secure = true, name = "dotExport", description = "export automaton to file")
+  private boolean export = false;
+
+  @Option(
+    secure = true,
+    name = "dotExportFile",
+    description = "file for saving the automaton in DOT format (%s will be replaced with automaton name)")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate dotExportFile = PathTemplate.ofFormatString("%s.dot");
 
   @SuppressWarnings({"resource", "unchecked"})
   private DCARefiner(
@@ -633,8 +648,19 @@ public class DCARefiner implements Refiner, StatisticsProvider {
       itpAutomatonBuilder.addAdditionalTransitions(itpAutomaton, pPath, interpolants);
       Automaton automaton = itpAutomaton.createAutomaton();
 
-      // TODO: dump automaton to file (optionally) instead of printing it to stdout
-      logger.log(Level.INFO, automaton);
+      if (export) {
+        logger.log(Level.INFO, automaton);
+        if (dotExportFile != null) {
+          try (Writer w =
+              IO.openOutputFile(
+                  dotExportFile.getPath(automaton.getName()),
+                  Charset.defaultCharset())) {
+            automaton.writeDotFile(w);
+          } catch (IOException e) {
+            logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
+          }
+        }
+      }
 
       if (skipRefinement || curRefinementIteration >= maxRefinementIterations) {
         logger.log(Level.SEVERE, "Skipping the refinement");
