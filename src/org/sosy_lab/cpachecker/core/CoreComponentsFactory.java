@@ -574,10 +574,6 @@ public class CoreComponentsFactory {
             new ResultCheckAlgorithm(
                 algorithm, cpa, cfa, config, logger, shutdownNotifier, specification);
       }
-      if (useFaultLocalizationWithCoverage) {
-        algorithm = new FaultLocalizationWithCoverage(algorithm, shutdownNotifier, logger,config);
-      }
-
       if (useCustomInstructionRequirementExtraction) {
         algorithm = new CustomInstructionRequirementsExtractingAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa);
       }
@@ -611,6 +607,9 @@ public class CoreComponentsFactory {
         algorithm = new MPVAlgorithm(cpa, config, logger, shutdownNotifier, specification, cfa);
       }
 
+      if (useFaultLocalizationWithCoverage) {
+        algorithm = new FaultLocalizationWithCoverage(algorithm, shutdownNotifier, logger, config);
+      }
       if(useFaultLocalizationWithTraceFormulas) {
         algorithm = new FaultLocalizationWithTraceFormula(algorithm, config, logger, cfa, shutdownNotifier);
       }
