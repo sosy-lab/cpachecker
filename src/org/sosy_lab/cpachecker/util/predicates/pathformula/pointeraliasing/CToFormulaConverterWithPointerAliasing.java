@@ -115,7 +115,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   final FormulaType<?> voidPointerFormulaType;
   final Formula nullPointer;
   private MemoryRegionManager regionMgr;
-  private Optional<String> varNameForSafeDereference;
 
   public CToFormulaConverterWithPointerAliasing(
       final FormulaEncodingWithPointerAliasingOptions pOptions,
@@ -154,7 +153,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
 
     voidPointerFormulaType = typeHandler.getPointerType();
     nullPointer = fmgr.makeNumber(voidPointerFormulaType, 0);
-    varNameForSafeDereference = Optional.empty();
   }
 
   private MemoryRegionManager buildBnBMemoryRegions() {
@@ -350,14 +348,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     final String ufName = regionMgr.getPointerAccessName(region);
     final int index = getIndex(ufName, type, ssa);
     final FormulaType<?> returnType;
-    if (options.useVariableClassification()) {
-      assert varNameForSafeDereference
-          .isPresent() : "Missing variable name for safe dereference with variable classification!";
-      returnType = getFormulaType(type, varNameForSafeDereference.get());
-      varNameForSafeDereference = Optional.empty();
-    } else {
-      returnType = getFormulaTypeFromCType(type);
-    }
+    returnType = getFormulaTypeFromCType(type);
     return ptsMgr.makePointerDereference(ufName, returnType, index, address);
   }
 
@@ -521,9 +512,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         MemoryRegion newRegion = region;
         if (newRegion == null) {
           newRegion = regionMgr.makeMemoryRegion(baseType);
-        }
-        if (options.useVariableClassification()) {
-          setVarNameForSafeDereference(baseName);
         }
         constraints.addConstraint(
             fmgr.makeEqual(
@@ -1401,11 +1389,6 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
   @Override
   protected CExpression convertLiteralToFloatIfNecessary(CExpression pExp, CType pTargetType) {
     return super.convertLiteralToFloatIfNecessary(pExp, pTargetType);
-  }
-
-  public void setVarNameForSafeDereference(String varName) {
-    assert varNameForSafeDereference.isEmpty() : "Variable name information is still in use!";
-    varNameForSafeDereference = Optional.of(varName);
   }
 
   @Override
