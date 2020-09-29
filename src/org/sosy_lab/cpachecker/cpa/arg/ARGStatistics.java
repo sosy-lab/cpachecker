@@ -214,12 +214,7 @@ public class ARGStatistics implements Statistics {
       exportARG = false;
     }
 
-    if (((proofWitness == null && proofWitnessDot == null) || !exportARG)
-        && counterexampleOptions.disabledCompletely()) {
-      argWitnessExporter = null;
-    } else {
-      argWitnessExporter = new WitnessExporter(config, logger, pSpecification, cfa);
-    }
+    argWitnessExporter = new WitnessExporter(config, logger, pSpecification, cfa);
 
     if (counterexampleOptions.disabledCompletely()) {
       cexExporter = null;
