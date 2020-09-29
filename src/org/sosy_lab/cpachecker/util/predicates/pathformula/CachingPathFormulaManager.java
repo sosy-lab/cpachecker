@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
 
+import com.google.common.base.Equivalence;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.List;
@@ -45,10 +46,11 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   public final PathFormulaManager delegate;
 
-  private final Map<Pair<CFAEdge, PathFormula>, Pair<PathFormula, ErrorConditions>> andFormulaWithConditionsCache
-            = new HashMap<>();
-  private final Map<Pair<CFAEdge, PathFormula>, PathFormula> andFormulaCache
-            = new HashMap<>();
+  private final Map<
+          Pair<Equivalence.Wrapper<CFAEdge>, PathFormula>, Pair<PathFormula, ErrorConditions>>
+      andFormulaWithConditionsCache = new HashMap<>();
+  private final Map<Pair<Equivalence.Wrapper<CFAEdge>, PathFormula>, PathFormula> andFormulaCache =
+      new HashMap<>();
 
   private final Map<Pair<PathFormula, PathFormula>, PathFormula> orFormulaCache
             = new HashMap<>();
@@ -66,7 +68,8 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   @Override
   public Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException, InterruptedException {
 
-    final Pair<CFAEdge, PathFormula> formulaCacheKey = Pair.of(pEdge, pOldFormula);
+    final Pair<Equivalence.Wrapper<CFAEdge>, PathFormula> formulaCacheKey =
+        Pair.of(Equivalence.identity().wrap(pEdge), pOldFormula);
     Pair<PathFormula, ErrorConditions> result = andFormulaWithConditionsCache.get(formulaCacheKey);
     if (result == null) {
       TimerWrapper t = pathFormulaComputationTimer.getNewTimer();
@@ -84,7 +87,8 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   @Override
   public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException, InterruptedException {
-    final Pair<CFAEdge, PathFormula> formulaCacheKey = Pair.of(pEdge, pOldFormula);
+    final Pair<Equivalence.Wrapper<CFAEdge>, PathFormula> formulaCacheKey =
+        Pair.of(Equivalence.identity().wrap(pEdge), pOldFormula);
     PathFormula result = andFormulaCache.get(formulaCacheKey);
     if (result == null) {
       TimerWrapper t = pathFormulaComputationTimer.getNewTimer();
