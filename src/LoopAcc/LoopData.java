@@ -180,7 +180,6 @@ public class LoopData implements Comparable<LoopData> {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
         if (node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.StatementEdge) ||
         node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.DeclarationEdge)) {
-
           boolean flag = true;
 
           for (String s : output) {
@@ -189,12 +188,20 @@ public class LoopData implements Comparable<LoopData> {
                 CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i))
                     .split(OUTPUT_NAME_SYMBOL_CUT)[OUTPUT_VARIABLE_ARRAY_POSITION])) {
               flag = false;
+
             }
           }
+
+          if (node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.DeclarationEdge)) {
+            ADeclarationEdge v = (ADeclarationEdge) node.getLeavingEdge(i);
+          }
+
+
           if (flag
               && CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i)) != null
               && !CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i))
                   .contains("__CPAchecker_")) {
+
             String temp =
                 CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i))
                     .split(OUTPUT_NAME_SYMBOL_CUT)[OUTPUT_VARIABLE_ARRAY_POSITION]

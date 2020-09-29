@@ -74,47 +74,86 @@ public class LoopAbstractionAdvanced {
         "extern void __VERIFIER_error() __attribute__ ((__noreturn__));" + System.lineSeparator();
 
     boolean flagInt = true;
+    boolean flaguInt = true;
     boolean flagChar = true;
+    boolean flaguChar = true;
     boolean flagShort = true;
+    boolean flaguShort = true;
     boolean flagLong = true;
+    boolean flaguLong = true;
     boolean flagLongLong = true;
     boolean flagDouble = true;
     for (LoopData lD : loopInfo.getLoopData()) {
       for (String io : lD.getInputsOutputs()) {
         switch (io.split("&")[1]) {
           case "int":
+          case "signed int":
             if (flagInt) {
+              content +=
+                  "extern unsigned int __VERIFIER_nondet_int(void);" + System.lineSeparator();
+              content += "extern void __VERIFIER_assume(int cond);" + System.lineSeparator();
+              flagInt = false;
+            }
+            break;
+          case "unsigned int":
+            if (flaguInt) {
             content += "extern unsigned int __VERIFIER_nondet_uint(void);" + System.lineSeparator();
-            content += "extern void __VERIFIER_assume(int cond);" + System.lineSeparator();
+            content += "extern void __VERIFIER_assume(unsigned int cond);" + System.lineSeparator();
             flagInt = false;
           }
             break;
           case "char":
+          case "signed char":
             if (flagChar) {
             content += "extern char __VERIFIER_nondet_char(void);" + System.lineSeparator();
             content += "extern void __VERIFIER_assume(char cond);" + System.lineSeparator();
             flagChar = false;
           }
             break;
+          case "unsigned char":
+            if (flaguChar) {
+              content += "extern char __VERIFIER_nondet_uchar(void);" + System.lineSeparator();
+              content +=
+                  "extern void __VERIFIER_assume(unsigned char cond);" + System.lineSeparator();
+              flagChar = false;
+            }
+            break;
           case "short":
+          case "signed short":
             if (flagShort) {
             content += "extern short __VERIFIER_nondet_short(void);" + System.lineSeparator();
             content += "extern void __VERIFIER_assume(short cond);" + System.lineSeparator();
             flagShort = false;
           }
             break;
+          case "unsigned short":
+            if (flaguShort) {
+              content += "extern short __VERIFIER_nondet_ushort(void);" + System.lineSeparator();
+              content +=
+                  "extern void __VERIFIER_assume(unsigned short cond);" + System.lineSeparator();
+              flagShort = false;
+            }
+            break;
           case "long":
+          case "signed long":
             if (flagLong) {
             content += "extern long __VERIFIER_nondet_long(void);" + System.lineSeparator();
             content += "extern void __VERIFIER_assume(long cond);" + System.lineSeparator();
             flagLong = false;
           }
+        case "unsigned long":
+          if (flaguLong) {
+            content += "extern long __VERIFIER_nondet_ulong(void);" + System.lineSeparator();
+            content +=
+                "extern void __VERIFIER_assume(unsigned long cond);" + System.lineSeparator();
+            flagLong = false;
+          }
             break;
-          case "long long":
+          case "long double":
             if (flagLongLong) {
             content +=
-                "extern longlong __VERIFIER_nondet_longlong(void);" + System.lineSeparator();
-            content += "extern void __VERIFIER_assume(longlong cond);" + System.lineSeparator();
+                "extern long double __VERIFIER_nondet_long_double(void);" + System.lineSeparator();
+            content += "extern void __VERIFIER_assume(long double cond);" + System.lineSeparator();
             flagLongLong = false;
           }
             break;
@@ -124,6 +163,13 @@ public class LoopAbstractionAdvanced {
             content += "extern void __VERIFIER_assume(double cond);" + System.lineSeparator();
             flagDouble = false;
           }
+            break;
+          case "float":
+            if (flagDouble) {
+              content += "extern double __VERIFIER_nondet_float(void);" + System.lineSeparator();
+              content += "extern void __VERIFIER_assume(float cond);" + System.lineSeparator();
+              flagDouble = false;
+            }
             break;
         }
 
@@ -212,6 +258,23 @@ public class LoopAbstractionAdvanced {
               for (String x : loopD.getInputsOutputs()) {
                     switch (x.split("&")[1]) {
                       case "int":
+                      case "signed int":
+                        if (Integer.parseInt(x.split("&")[2]) >= lineNumber
+                            && !preUsedVariables.contains(x)) {
+                          content +=
+                              x.split("&")[1]
+                                  + " "
+                                  + x.split("&")[0]
+                                  + ";"
+                                  + System.lineSeparator();
+                          preUsedVariables.add(x);
+                        }
+                        content +=
+                            (x.split("&")[0]
+                                + "=__VERIFIER_nondet_int();"
+                                + System.lineSeparator());
+                        break;
+                      case "unsigned int":
                         if (Integer.parseInt(x.split("&")[2]) >= lineNumber
                             && !preUsedVariables.contains(x)) {
                           content +=
@@ -225,22 +288,49 @@ public class LoopAbstractionAdvanced {
                         content += (x.split("&")[0] + "=__VERIFIER_nondet_uint();" + System.lineSeparator());
                         break;
                       case "char":
+                      case "signed char":
                         content += (x.split("&")[0] + "=__VERIFIER_nondet_char();" + System.lineSeparator());
                         break;
-                      case "short":
-                        content += (x.split("&")[0] + "=__VERIFIER_nondet_short();" + System.lineSeparator());
-                        break;
-                      case "long":
-                        content += (x.split("&")[0] + "=__VERIFIER_nondet_long();" + System.lineSeparator());
-                        break;
-                      case "long long":
+                      case "unsigned char":
                         content +=
                             (x.split("&")[0]
-                                + "=__VERIFIER_nondet_longlong();"
+                                + "=__VERIFIER_nondet_uchar();"
+                                + System.lineSeparator());
+                        break;
+                      case "short":
+                      case "signed short":
+                        content += (x.split("&")[0] + "=__VERIFIER_nondet_short();" + System.lineSeparator());
+                        break;
+                      case "unsigned short":
+                        content +=
+                            (x.split("&")[0]
+                                + "=__VERIFIER_nondet_ushort();"
+                                + System.lineSeparator());
+                        break;
+                      case "long":
+                      case "signed long":
+                        content += (x.split("&")[0] + "=__VERIFIER_nondet_long();" + System.lineSeparator());
+                        break;
+                      case "unsigned long":
+                        content +=
+                            (x.split("&")[0]
+                                + "=__VERIFIER_nondet_ulong();"
+                                + System.lineSeparator());
+                        break;
+                      case "long double":
+                        content +=
+                            (x.split("&")[0]
+                                + "=__VERIFIER_nondet_long_double();"
                                 + System.lineSeparator());
                         break;
                       case "double":
                         content += (x.split("&")[0] + "=__VERIFIER_nondet_double();" + System.lineSeparator());
+                        break;
+                      case "float":
+                        content +=
+                            (x.split("&")[0]
+                                + "=__VERIFIER_nondet_float();"
+                                + System.lineSeparator());
                         break;
                     }
               }
