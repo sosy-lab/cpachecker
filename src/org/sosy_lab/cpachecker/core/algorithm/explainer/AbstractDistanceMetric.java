@@ -175,13 +175,13 @@ public class AbstractDistanceMetric implements DistanceMetric {
       Set<BooleanFormula> predicatesCE =
           distanceHelper.splitPredicates(
               AbstractStates.extractStateByType(
-                  iteratorOverAlignedStates.next(), PredicateAbstractState.class)
+                      iteratorOverAlignedStates.next(), PredicateAbstractState.class)
                   .getAbstractionFormula()
                   .asFormula());
       Set<BooleanFormula> predicatesSafePath =
           distanceHelper.splitPredicates(
               AbstractStates.extractStateByType(
-                  iteratorOverAlignedStates.next(), PredicateAbstractState.class)
+                      iteratorOverAlignedStates.next(), PredicateAbstractState.class)
                   .getAbstractionFormula()
                   .asFormula());
 

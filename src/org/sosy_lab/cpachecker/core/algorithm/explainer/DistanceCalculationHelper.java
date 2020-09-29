@@ -91,6 +91,7 @@ public class DistanceCalculationHelper {
 
   /**
    * Convert a list of ARGPaths to a List of Lists of CFAEdges
+   *
    * @param paths the paths that out to be converted to Lists of CFAEdges
    * @return the paths as List of CFAEdges
    */
@@ -196,28 +197,40 @@ public class DistanceCalculationHelper {
     ARGState currentNode;
     for (int i = 0; i < nodeWaitList.size(); i++) {
       numberOfCurrentPath++;
+
+      List<ARGState> currentPath = nodeWaitList.get(numberOfCurrentPath);
+      ImmutableList<ARGState> children = ImmutableList.of();
       int lastNode = nodeWaitList.get(numberOfCurrentPath).size() - 1;
       currentNode = nodeWaitList.get(numberOfCurrentPath).get(lastNode);
 
-      while (true) {
-        ImmutableList<ARGState> children;
-        if (filterChildren) {
-          // for Explainer we need to consider only certain Nodes
-          children = from(currentNode.getChildren()).filter(pStatesOnPathTo::contains).toList();
-        } else {
-          // Path Generation needs all the children
-          children = ImmutableList.copyOf(currentNode.getChildren());
-        }
-        if (!children.isEmpty()) {
-          handleChildren(nodeWaitList, numberOfCurrentPath, children);
-        } else {
-          break;
-        }
-        currentNode = children.get(0);
+      if (filterChildren) {
+        // for Explainer we need to consider only certain Nodes
+        children = from(currentNode.getChildren()).filter(pStatesOnPathTo::contains).toList();
+      } else {
+        // Path Generation needs all the children
+        children = ImmutableList.copyOf(currentNode.getChildren());
       }
-      ARGPath targetPath = new ARGPath(nodeWaitList.get(numberOfCurrentPath));
+
+      do {
+        if (children.size() > 1) {
+          // add new paths to nodeWaitList
+          handleChildren(nodeWaitList, numberOfCurrentPath, children);
+        }
+        currentPath.add(children.get(0));
+        currentNode = children.get(0);
+        children =
+            filterChildren
+                ? from(currentNode.getChildren()).filter(pStatesOnPathTo::contains).toList()
+                : ImmutableList.copyOf(currentNode.getChildren());
+      } while (!children.isEmpty());
+    }
+
+    // create the final paths
+    for (List<ARGState> nextInLineNode : nodeWaitList) {
+      ARGPath targetPath = new ARGPath(nextInLineNode);
       paths.add(targetPath);
     }
+
     return paths;
   }
 
@@ -235,18 +248,14 @@ public class DistanceCalculationHelper {
       List<List<ARGState>> nodeWaitList,
       int numberOfCurrentPath,
       ImmutableList<ARGState> children) {
-    if (children.size() == 1) {
-      nodeWaitList.get(numberOfCurrentPath).add(children.get(0));
-    } else if (children.size() > 1) {
-      // create a new path for every new children
-      IntStream.range(1, children.size())
-          .forEach(
-              j -> {
-                List<ARGState> anotherPath = new ArrayList<>(nodeWaitList.get(numberOfCurrentPath));
-                anotherPath.add(children.get(j));
-                nodeWaitList.add(anotherPath);
-              });
-      nodeWaitList.get(numberOfCurrentPath).add(children.get(0));
-    }
+    // create a new path for every new children
+    IntStream.range(1, children.size())
+        .forEach(
+            j -> {
+              List<ARGState> anotherPath = new ArrayList<>(nodeWaitList.get(numberOfCurrentPath));
+              anotherPath.add(children.get(j));
+              nodeWaitList.add(anotherPath);
+            });
+    nodeWaitList.get(numberOfCurrentPath).add(children.get(0));
   }
 }
