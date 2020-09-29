@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -237,7 +238,7 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
    * @return the aligned Events
    */
   private Alignment<Event> createAlignments(List<Event> pCEvents, List<Event> pSafeEvents) {
-    HashSet<Event> alreadyAligned = new HashSet<>();
+    Set<Event> alreadyAligned = new HashSet<>();
     Alignment<Event> alignments = new Alignment<>();
 
     for (Event pCEvent : pCEvents) {
