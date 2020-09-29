@@ -1459,7 +1459,13 @@ public class ExpressionToFormulaVisitor
           if (mgr.getFormulaType(f1).equals(mgr.getFormulaType(f2))) {
             result = mgr.getFormulaType(f1);
           } else {
-            if (mgr.getFormulaType(f1).isIntegerType() || mgr.getFormulaType(f2).isIntegerType()) {
+            if ((mgr.getFormulaType(f1).isBitvectorType()
+                || mgr.getFormulaType(f2).isBitvectorType())
+                || (mgr.getFormulaType(f1).isFloatingPointType()
+                    || mgr.getFormulaType(f2).isFloatingPointType())) {
+              result = conv.getFormulaTypeFromCType(calculationType);
+            } else if (mgr.getFormulaType(f1).isIntegerType()
+                || mgr.getFormulaType(f2).isIntegerType()) {
               result = FormulaType.IntegerType;
             } else {
               result = conv.getFormulaTypeFromCType(calculationType);
