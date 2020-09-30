@@ -120,6 +120,7 @@ import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.KeyDef;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.NodeFlag;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
+import org.sosy_lab.cpachecker.util.expressions.CachingExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
@@ -1735,6 +1736,12 @@ class WitnessFactory implements EdgeAppender {
       ExpressionTree<Object> existingTree = (prev == null) ? other : prev;
       stateInvariants.put(pStateId, existingTree);
       return existingTree;
+    } else if (prev.equals(ExpressionTrees.getTrue())) {
+      stateInvariants.put(pStateId, other);
+      return other;
+    } else if (other.equals(ExpressionTrees.getTrue())) {
+      stateInvariants.put(pStateId, prev);
+      return prev;
     }
     ExpressionTree<Object> result = simplifier.simplify(factory.or(prev, other));
     stateInvariants.put(pStateId, result);
