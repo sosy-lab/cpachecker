@@ -35,8 +35,6 @@ public class ExplainTool {
     List<CFAEdge> deltasCe = new ArrayList<>();
     List<CFAEdge> deltasSp = new ArrayList<>();
 
-    // --------------------------------------------------
-    // BEFORE
     for (CFAEdge pEdge : counterexample) {
       if (!spEdges.contains(pEdge)) {
         deltasCe.add(pEdge);
@@ -44,17 +42,6 @@ public class ExplainTool {
         spEdges.remove(pEdge);
       }
     }
-
-    // AFTER
-    for (CFAEdge pEdge : counterexample) {
-      if (!spEdges.contains(pEdge)) {
-        deltasCe.add(pEdge);
-      } else {
-        spEdges.remove(pEdge);
-      }
-    }
-
-    // -----------------------------------------------------
 
     for (CFAEdge pEdge : closestExecution) {
       if (!counterexample.contains(pEdge)) {

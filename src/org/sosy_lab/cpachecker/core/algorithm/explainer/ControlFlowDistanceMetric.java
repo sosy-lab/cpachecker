@@ -246,7 +246,7 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
         if (pCEvent.getNode().getNodeNumber() == pSafeEvent.getNode().getNodeNumber()) {
           if (!alreadyAligned.contains(pSafeEvent)) {
             alignments.addPair(pCEvent, pSafeEvent);
-            // remove the aligned events from the wait-list
+            // insert the safePath edge to the list of already aligned events
             alreadyAligned.add(pSafeEvent);
             break;
           }

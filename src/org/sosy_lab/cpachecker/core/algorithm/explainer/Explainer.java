@@ -119,12 +119,12 @@ public class Explainer extends NestingAlgorithm {
     // currentReached
     AlgorithmStatus status;
     status = firstStepAlgorithm.run(currentReached);
-    int i = 0;
+    /*int i = 0;
     // TODO: Review: HAVE TO FIX THIS
     while (currentReached.hasWaitingState() && i < 40) {
       status = firstStepAlgorithm.run(currentReached);
       i++;
-    }
+    }*/
     reached.setDelegate(currentReached);
 
     // Find All Targets

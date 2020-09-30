@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.core.algorithm.explainer;
 import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -208,19 +209,20 @@ public class AbstractDistanceMetric implements DistanceMetric {
    * @return an Alignment with the aligned edges of the counterexample and the safe path
    */
   private Alignment<CFAEdge> createAlignments(List<CFAEdge> ce, List<CFAEdge> safePath) {
-    List<CFAEdge> ceCopy1 = new ArrayList<>(ce);
-    List<CFAEdge> safePath1 = new ArrayList<>(safePath);
     Alignment<CFAEdge> alignment = new Alignment<>();
+    Set<CFAEdge> alreadyAligned = new HashSet<>();
 
-    for (CFAEdge ceEdge : ceCopy1) {
-      for (CFAEdge spEdge : safePath1) {
+    for (CFAEdge ceEdge : ce) {
+      for (CFAEdge spEdge : safePath) {
         if (ceEdge.getPredecessor().getNodeNumber() == spEdge.getPredecessor().getNodeNumber()) {
           if (ceEdge.getSuccessor().getNodeNumber() != spEdge.getSuccessor().getNodeNumber()) {
-            // add the two aligned Edges in the Alignments Class
-            alignment.addPair(ceEdge, spEdge);
-            // remove the aligned Edge
-            safePath1.remove(spEdge);
-            break;
+            if (!alreadyAligned.contains(spEdge)) {
+              // add the two aligned Edges in the Alignments Class
+              alignment.addPair(ceEdge, spEdge);
+              // insert the safePath edge to the list of already aligned edges
+              alreadyAligned.add(spEdge);
+              break;
+            }
           }
         }
       }
