@@ -208,6 +208,22 @@ public class LoopAbstractionAdvanced {
                 line = reader.readLine();
                 boolean uVFlag = false;
                 for (String s : preUsedVariables) {
+                  if (!s.isEmpty() && s.contains("Array")) {
+                    // zweites line.contains kann zu problemen führen wenn der datentyp teilwort des
+                    // namens ist
+                    if (line != null
+                        && line.contains((s.split("&")[0] + "["))
+                        && line.contains(s.split("&")[1].split(":")[1])) {
+                      String tmpArray = line.split("=")[1];
+                      line =
+                          s.split("&")[1].split(":")[1]
+                              + " __cpachecker_tmp_array["
+                              + s.split("&")[1].split(":")[2]
+                              + "] = "
+                              + tmpArray;
+                      line = line + " " + s.split("&")[0] + " = __cpachecker_tmp_array;";
+                    }
+                  } else {
                   if (line != null
                       && !s.isEmpty()
                       && line.contains(s.split("&")[1])
@@ -228,12 +244,29 @@ public class LoopAbstractionAdvanced {
                     line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
                   }
                 }
+              }
                 content = content + whileCondition(loopD);
                 lineNumber++;
               } else if (loopD.getLoopType().equals("for")) {
                 line = reader.readLine();
                 boolean uVFlag = false;
                 for (String s : preUsedVariables) {
+                  if (!s.isEmpty() && s.contains("Array")) {
+                    // zweites line.contains kann zu problemen führen wenn der datentyp teilwort des
+                    // namens ist
+                    if (line != null
+                        && line.contains((s.split("&")[0] + "["))
+                        && line.contains(s.split("&")[1].split(":")[1])) {
+                      String tmpArray = line.split("=")[1];
+                      line =
+                          s.split("&")[1].split(":")[1]
+                              + " __cpachecker_tmp_array["
+                              + s.split("&")[1].split(":")[2]
+                              + "] = "
+                              + tmpArray;
+                      line = line + " " + s.split("&")[0] + " = __cpachecker_tmp_array;";
+                    }
+                  } else {
                   if (line != null
                       && !s.isEmpty()
                       && line.contains(s.split("&")[1])
@@ -252,11 +285,272 @@ public class LoopAbstractionAdvanced {
                     line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
                   }
                 }
+              }
                 content = content + forCondition(loopD, preUsedVariables);
                 lineNumber++;
               }
               for (String x : loopD.getInputsOutputs()) {
-                    switch (x.split("&")[1]) {
+                if(x.contains("Array")) {
+                  switch (x.split("&")[1].split(":")[1]) {
+                    case "int":
+                    case "signed int":
+                      if (Integer.parseInt(x.split("&")[2]) >= lineNumber
+                          && !preUsedVariables.contains(x)) {
+                        content +=
+                            x.split("&")[1].split(":")[1]
+                                + " "
+                                + x.split("&")[0]
+                                + "[" + x.split("&")[1].split(":")[2] + "]"
+                                + ";"
+                                + System.lineSeparator();
+                        preUsedVariables.add(x);
+                      }
+                      content +=
+                          "for(int __cpachecker_tmp_i = 0; __cpachecker_tmp_i < "
+                              + x.split("&")[1].split(":")[2]
+                              + "; __cpachecker_tmp_i++){"
+                              + (x.split("&")[0]
+                                  + "[__cpachecker_tmp_i]"
+                                  + "=__VERIFIER_nondet_int();}"
+                              + System.lineSeparator());
+                      break;
+                    case "unsigned int":
+                      if (Integer.parseInt(x.split("&")[2]) >= lineNumber
+                          && !preUsedVariables.contains(x)) {
+                        content +=
+                            x.split("&")[1].split(
+                                ":")[1]
+                                + " "
+                                + x.split("&")[0]
+                                + "["
+                                + x.split("&")[1].split(":")[2]
+                                + "]"
+                                + ";"
+                                + System.lineSeparator();
+                        preUsedVariables.add(x);
+                      }
+                      content +=
+                          "for(int __cpachecker_tmp_i = 0; __cpachecker_tmp_i < "
+                              + x.split("&")[1].split(":")[2]
+                              + "; __cpachecker_tmp_i++){"
+                              + (x.split("&")[0]
+                                  + "[__cpachecker_tmp_i]"
+                                  + "=__VERIFIER_nondet_uint();}"
+                                  + System.lineSeparator());
+                      break;
+                    case "char":
+                    case "signed char":
+                      if (Integer.parseInt(x.split("&")[2]) >= lineNumber
+                          && !preUsedVariables.contains(x)) {
+                        content +=
+                            x.split("&")[1].split(":")[1]
+                                + " "
+                                + x.split("&")[0]
+                                + "["
+                                + x.split("&")[1].split(":")[2]
+                                + "]"
+                                + ";"
+                                + System.lineSeparator();
+                        preUsedVariables.add(x);
+                      }
+                      content +=
+                          "for(int __cpachecker_tmp_i = 0; __cpachecker_tmp_i < "
+                              + x.split("&")[1].split(":")[2]
+                              + "; __cpachecker_tmp_i++){"
+                              + (x.split("&")[0]
+                                  + "[__cpachecker_tmp_i]"
+                                  + "=__VERIFIER_nondet_char();}"
+                                  + System.lineSeparator());
+                      break;
+                    case "unsigned char":
+                      if (Integer.parseInt(x.split("&")[2]) >= lineNumber
+                          && !preUsedVariables.contains(x)) {
+                        content +=
+                            x.split("&")[1].split(":")[1]
+                                + " "
+                                + x.split("&")[0]
+                                + "["
+                                + x.split("&")[1].split(":")[2]
+                                + "]"
+                                + ";"
+                                + System.lineSeparator();
+                        preUsedVariables.add(x);
+                      }
+                      content +=
+                          "for(int __cpachecker_tmp_i = 0; __cpachecker_tmp_i < "
+                              + x.split("&")[1].split(":")[2]
+                              + "; __cpachecker_tmp_i++){"
+                              + (x.split("&")[0]
+                                  + "[__cpachecker_tmp_i]"
+                                  + "=__VERIFIER_nondet_uchar();}"
+                              + System.lineSeparator());
+                      break;
+                    case "short":
+                    case "signed short":
+                      if (Integer.parseInt(x.split("&")[2]) >= lineNumber
+                          && !preUsedVariables.contains(x)) {
+                        content +=
+                            x.split("&")[1].split(":")[1]
+                                + " "
+                                + x.split("&")[0]
+                                + "["
+                                + x.split("&")[1].split(":")[2]
+                                + "]"
+                                + ";"
+                                + System.lineSeparator();
+                        preUsedVariables.add(x);
+                      }
+                      content +=
+                          "for(int __cpachecker_tmp_i = 0; __cpachecker_tmp_i < "
+                              + x.split("&")[1].split(":")[2]
+                              + "; __cpachecker_tmp_i++){"
+                              + (x.split("&")[0]
+                                  + "[__cpachecker_tmp_i]"
+                                  + "=__VERIFIER_nondet_short();}"
+                                  + System.lineSeparator());
+                      break;
+                    case "unsigned short":
+                      if (Integer.parseInt(x.split("&")[2]) >= lineNumber
+                          && !preUsedVariables.contains(x)) {
+                        content +=
+                            x.split("&")[1].split(":")[1]
+                                + " "
+                                + x.split("&")[0]
+                                + "["
+                                + x.split("&")[1].split(":")[2]
+                                + "]"
+                                + ";"
+                                + System.lineSeparator();
+                        preUsedVariables.add(x);
+                      }
+                      content +=
+                          "for(int __cpachecker_tmp_i = 0; __cpachecker_tmp_i < "
+                              + x.split("&")[1].split(":")[2]
+                              + "; __cpachecker_tmp_i++){"
+                              + (x.split("&")[0]
+                                  + "[__cpachecker_tmp_i]"
+                                  + "=__VERIFIER_nondet_ushort();}"
+                              + System.lineSeparator());
+                      break;
+                    case "long":
+                    case "signed long":
+                      if (Integer.parseInt(x.split("&")[2]) >= lineNumber
+                          && !preUsedVariables.contains(x)) {
+                        content +=
+                            x.split("&")[1].split(":")[1]
+                                + " "
+                                + x.split("&")[0]
+                                + "["
+                                + x.split("&")[1].split(":")[2]
+                                + "]"
+                                + ";"
+                                + System.lineSeparator();
+                        preUsedVariables.add(x);
+                      }
+                      content +=
+                          "for(int __cpachecker_tmp_i = 0; __cpachecker_tmp_i < "
+                              + x.split("&")[1].split(":")[2]
+                              + "; __cpachecker_tmp_i++){"
+                              + (x.split("&")[0]
+                                  + "[__cpachecker_tmp_i]"
+                                  + "=__VERIFIER_nondet_long();}"
+                                  + System.lineSeparator());
+                      break;
+                    case "unsigned long":
+                      if (Integer.parseInt(x.split("&")[2]) >= lineNumber
+                          && !preUsedVariables.contains(x)) {
+                        content +=
+                            x.split("&")[1].split(":")[1]
+                                + " "
+                                + x.split("&")[0]
+                                + "["
+                                + x.split("&")[1].split(":")[2]
+                                + "]"
+                                + ";"
+                                + System.lineSeparator();
+                        preUsedVariables.add(x);
+                      }
+                      content +=
+                          "for(int __cpachecker_tmp_i = 0; __cpachecker_tmp_i < "
+                              + x.split("&")[1].split(":")[2]
+                              + "; __cpachecker_tmp_i++){"
+                              + (x.split("&")[0]
+                                  + "[__cpachecker_tmp_i]"
+                                  + "=__VERIFIER_nondet_ulong();}"
+                              + System.lineSeparator());
+                      break;
+                    case "long double":
+                      if (Integer.parseInt(x.split("&")[2]) >= lineNumber
+                          && !preUsedVariables.contains(x)) {
+                        content +=
+                            x.split("&")[1].split(":")[1]
+                                + " "
+                                + x.split("&")[0]
+                                + "["
+                                + x.split("&")[1].split(":")[2]
+                                + "]"
+                                + ";"
+                                + System.lineSeparator();
+                        preUsedVariables.add(x);
+                      }
+                      content +=
+                          "for(int __cpachecker_tmp_i = 0; __cpachecker_tmp_i < "
+                              + x.split("&")[1].split(":")[2]
+                              + "; __cpachecker_tmp_i++){"
+                              + (x.split("&")[0]
+                                  + "[__cpachecker_tmp_i]"
+                                  + "=__VERIFIER_nondet_long_double();}"
+                              + System.lineSeparator());
+                      break;
+                    case "double":
+                      if (Integer.parseInt(x.split("&")[2]) >= lineNumber
+                          && !preUsedVariables.contains(x)) {
+                        content +=
+                            x.split("&")[1].split(":")[1]
+                                + " "
+                                + x.split("&")[0]
+                                + "["
+                                + x.split("&")[1].split(":")[2]
+                                + "]"
+                                + ";"
+                                + System.lineSeparator();
+                        preUsedVariables.add(x);
+                      }
+                      content +=
+                          "for(int __cpachecker_tmp_i = 0; __cpachecker_tmp_i < "
+                              + x.split("&")[1].split(":")[2]
+                              + "; __cpachecker_tmp_i++){"
+                              + (x.split("&")[0]
+                                  + "[__cpachecker_tmp_i]"
+                                  + "=__VERIFIER_nondet_double();}"
+                                  + System.lineSeparator());
+                      break;
+                    case "float":
+                      if (Integer.parseInt(x.split("&")[2]) >= lineNumber
+                          && !preUsedVariables.contains(x)) {
+                        content +=
+                            x.split("&")[1].split(":")[1]
+                                + " "
+                                + x.split("&")[0]
+                                + "["
+                                + x.split("&")[1].split(":")[2]
+                                + "]"
+                                + ";"
+                                + System.lineSeparator();
+                        preUsedVariables.add(x);
+                      }
+                      content +=
+                          "for(int __cpachecker_tmp_i = 0; __cpachecker_tmp_i < "
+                              + x.split("&")[1].split(":")[2]
+                              + "; __cpachecker_tmp_i++){"
+                              + (x.split("&")[0]
+                                  + "[__cpachecker_tmp_i]"
+                                  + "=__VERIFIER_nondet_float();}"
+                              + System.lineSeparator());
+                      break;
+                  }
+                }else {
+                switch (x.split("&")[1]) {
                       case "int":
                       case "signed int":
                         if (Integer.parseInt(x.split("&")[2]) >= lineNumber
@@ -289,9 +583,29 @@ public class LoopAbstractionAdvanced {
                         break;
                       case "char":
                       case "signed char":
+                        if (Integer.parseInt(x.split("&")[2]) >= lineNumber
+                            && !preUsedVariables.contains(x)) {
+                          content +=
+                              x.split("&")[1]
+                                  + " "
+                                  + x.split("&")[0]
+                                  + ";"
+                                  + System.lineSeparator();
+                          preUsedVariables.add(x);
+                        }
                         content += (x.split("&")[0] + "=__VERIFIER_nondet_char();" + System.lineSeparator());
                         break;
                       case "unsigned char":
+                        if (Integer.parseInt(x.split("&")[2]) >= lineNumber
+                            && !preUsedVariables.contains(x)) {
+                          content +=
+                              x.split("&")[1]
+                                  + " "
+                                  + x.split("&")[0]
+                                  + ";"
+                                  + System.lineSeparator();
+                          preUsedVariables.add(x);
+                        }
                         content +=
                             (x.split("&")[0]
                                 + "=__VERIFIER_nondet_uchar();"
@@ -299,9 +613,29 @@ public class LoopAbstractionAdvanced {
                         break;
                       case "short":
                       case "signed short":
+                        if (Integer.parseInt(x.split("&")[2]) >= lineNumber
+                            && !preUsedVariables.contains(x)) {
+                          content +=
+                              x.split("&")[1]
+                                  + " "
+                                  + x.split("&")[0]
+                                  + ";"
+                                  + System.lineSeparator();
+                          preUsedVariables.add(x);
+                        }
                         content += (x.split("&")[0] + "=__VERIFIER_nondet_short();" + System.lineSeparator());
                         break;
                       case "unsigned short":
+                        if (Integer.parseInt(x.split("&")[2]) >= lineNumber
+                            && !preUsedVariables.contains(x)) {
+                          content +=
+                              x.split("&")[1]
+                                  + " "
+                                  + x.split("&")[0]
+                                  + ";"
+                                  + System.lineSeparator();
+                          preUsedVariables.add(x);
+                        }
                         content +=
                             (x.split("&")[0]
                                 + "=__VERIFIER_nondet_ushort();"
@@ -309,30 +643,81 @@ public class LoopAbstractionAdvanced {
                         break;
                       case "long":
                       case "signed long":
+                        if (Integer.parseInt(x.split("&")[2]) >= lineNumber
+                            && !preUsedVariables.contains(x)) {
+                          content +=
+                              x.split("&")[1]
+                                  + " "
+                                  + x.split("&")[0]
+                                  + ";"
+                                  + System.lineSeparator();
+                          preUsedVariables.add(x);
+                        }
                         content += (x.split("&")[0] + "=__VERIFIER_nondet_long();" + System.lineSeparator());
                         break;
                       case "unsigned long":
+                        if (Integer.parseInt(x.split("&")[2]) >= lineNumber
+                            && !preUsedVariables.contains(x)) {
+                          content +=
+                              x.split("&")[1]
+                                  + " "
+                                  + x.split("&")[0]
+                                  + ";"
+                                  + System.lineSeparator();
+                          preUsedVariables.add(x);
+                        }
                         content +=
                             (x.split("&")[0]
                                 + "=__VERIFIER_nondet_ulong();"
                                 + System.lineSeparator());
                         break;
                       case "long double":
+                        if (Integer.parseInt(x.split("&")[2]) >= lineNumber
+                            && !preUsedVariables.contains(x)) {
+                          content +=
+                              x.split("&")[1]
+                                  + " "
+                                  + x.split("&")[0]
+                                  + ";"
+                                  + System.lineSeparator();
+                          preUsedVariables.add(x);
+                        }
                         content +=
                             (x.split("&")[0]
                                 + "=__VERIFIER_nondet_long_double();"
                                 + System.lineSeparator());
                         break;
                       case "double":
+                        if (Integer.parseInt(x.split("&")[2]) >= lineNumber
+                            && !preUsedVariables.contains(x)) {
+                          content +=
+                              x.split("&")[1]
+                                  + " "
+                                  + x.split("&")[0]
+                                  + ";"
+                                  + System.lineSeparator();
+                          preUsedVariables.add(x);
+                        }
                         content += (x.split("&")[0] + "=__VERIFIER_nondet_double();" + System.lineSeparator());
                         break;
                       case "float":
+                        if (Integer.parseInt(x.split("&")[2]) >= lineNumber
+                            && !preUsedVariables.contains(x)) {
+                          content +=
+                              x.split("&")[1]
+                                  + " "
+                                  + x.split("&")[0]
+                                  + ";"
+                                  + System.lineSeparator();
+                          preUsedVariables.add(x);
+                        }
                         content +=
                             (x.split("&")[0]
                                 + "=__VERIFIER_nondet_float();"
                                 + System.lineSeparator());
                         break;
                     }
+              }
               }
 
               if (loopD.getIsOuterLoop() == false) {
@@ -352,6 +737,21 @@ public class LoopAbstractionAdvanced {
                   line = reader.readLine();
                   boolean uVFlag = false;
                   for (String s : preUsedVariables) {
+                    if (!s.isEmpty() && s.contains("Array")) {
+                      //zweites line.contains kann zu problemen führen wenn der datentyp teilwort des namens ist
+                      if (line != null
+                          && line.contains((s.split("&")[0] + "["))
+                          && line.contains(s.split("&")[1].split(":")[1])) {
+                        String tmpArray = line.split("=")[1];
+                        line =
+                            s.split("&")[1].split(":")[1]
+                                + " __cpachecker_tmp_array["
+                                + s.split("&")[1].split(":")[2]
+                                + "] = "
+                                + tmpArray;
+                        line = line + " " + s.split("&")[0] + " = __cpachecker_tmp_array;";
+                      }
+                    } else {
                     if (line != null
                         && !s.isEmpty()
                         && line.contains(s.split("&")[1])
@@ -372,6 +772,7 @@ public class LoopAbstractionAdvanced {
                       line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
                     }
                   }
+                  }
                   closed = ifCaseClosed(line, closed);
                   content += line + System.lineSeparator();
                   lineNumber++;
@@ -390,8 +791,25 @@ public class LoopAbstractionAdvanced {
                 line = reader.readLine();
                 boolean uVFlag = false;
                 for (String s : preUsedVariables) {
+                  if (!s.isEmpty() && s.contains("Array")) {
+                    // zweites line.contains kann zu problemen führen wenn der datentyp teilwort des
+                    // namens ist
+                    if (line != null
+                        && line.contains((s.split("&")[0] + "["))
+                        && line.contains(s.split("&")[1].split(":")[1])) {
+                      String tmpArray = line.split("=")[1];
+                      line =
+                          s.split("&")[1].split(":")[1]
+                              + " __cpachecker_tmp_array["
+                              + s.split("&")[1].split(":")[2]
+                              + "] = "
+                              + tmpArray;
+                      line = line + " " + s.split("&")[0] + " = __cpachecker_tmp_array;";
+                    }
+                  } else {
                   if (line != null
-                      && !s.isEmpty()
+                      && !s
+                          .isEmpty()
                       && line.contains(s.split("&")[1])
                       && line.contains(";")) {
                     line = line.split(s.split("&")[1])[1];
@@ -407,6 +825,7 @@ public class LoopAbstractionAdvanced {
                     line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
                   }
                 }
+                }
                 if (line.contains("if")) {
                   flagTopIf2 = true;
                   flagKP2 = true;
@@ -419,8 +838,25 @@ public class LoopAbstractionAdvanced {
                   line = reader.readLine();
                   boolean uVFlag1 = false;
                   for (String s : preUsedVariables) {
+                    if (!s.isEmpty() && s.contains("Array")) {
+                      // zweites line.contains kann zu problemen führen wenn der datentyp teilwort
+                      // des namens ist
+                      if (line != null
+                          && line.contains((s.split("&")[0] + "["))
+                          && line.contains(s.split("&")[1].split(":")[1])) {
+                        String tmpArray = line.split("=")[1];
+                        line =
+                            s.split("&")[1].split(":")[1]
+                                + " __cpachecker_tmp_array["
+                                + s.split("&")[1].split(":")[2]
+                                + "] = "
+                                + tmpArray;
+                        line = line + " " + s.split("&")[0] + " = __cpachecker_tmp_array;";
+                      }
+                    } else {
                     if (line != null
-                        && !s.isEmpty()
+                        && !s
+                            .isEmpty()
                         && line.contains(s.split("&")[1])
                         && line.contains(
                             s.split(
@@ -440,6 +876,7 @@ public class LoopAbstractionAdvanced {
                     }
                   }
                 }
+                }
                 flagTopIf2 = true;
                   closed = ifCaseClosed(line, closed);
                   content += line + System.lineSeparator();
@@ -449,6 +886,22 @@ public class LoopAbstractionAdvanced {
                 line = reader.readLine();
                 boolean uVFlag2 = false;
                 for (String s : preUsedVariables) {
+                  if (!s.isEmpty() && s.contains("Array")) {
+                    // zweites line.contains kann zu problemen führen wenn der datentyp teilwort des
+                    // namens ist
+                    if (line != null
+                        && line.contains((s.split("&")[0] + "["))
+                        && line.contains(s.split("&")[1].split(":")[1])) {
+                      String tmpArray = line.split("=")[1];
+                      line =
+                          s.split("&")[1].split(":")[1]
+                              + " __cpachecker_tmp_array["
+                              + s.split("&")[1].split(":")[2]
+                              + "] = "
+                              + tmpArray;
+                      line = line + " " + s.split("&")[0] + " = __cpachecker_tmp_array;";
+                    }
+                  } else {
                   if (line != null
                       && !s.isEmpty()
                       && line.contains(s.split("&")[1])
@@ -467,6 +920,7 @@ public class LoopAbstractionAdvanced {
                   }
                 }
               }
+              }
                 closed = ifCaseClosed(line, closed);
                 content += line + System.lineSeparator();
                 lineNumber++;
@@ -474,8 +928,25 @@ public class LoopAbstractionAdvanced {
                   line = reader.readLine();
                   boolean uVFlag3 = false;
                   for (String s : preUsedVariables) {
+                    if (!s.isEmpty() && s.contains("Array")) {
+                      // zweites line.contains kann zu problemen führen wenn der datentyp teilwort
+                      // des namens ist
+                      if (line != null
+                          && line.contains((s.split("&")[0] + "["))
+                          && line.contains(s.split("&")[1].split(":")[1])) {
+                        String tmpArray = line.split("=")[1];
+                        line =
+                            s.split("&")[1].split(":")[1]
+                                + " __cpachecker_tmp_array["
+                                + s.split("&")[1].split(":")[2]
+                                + "] = "
+                                + tmpArray;
+                        line = line + " " + s.split("&")[0] + " = __cpachecker_tmp_array;";
+                      }
+                    } else {
                     if (line != null
-                        && !s.isEmpty()
+                        && !s
+                            .isEmpty()
                         && line.contains(s.split("&")[1])
                         && line.contains(
                             s.split(
@@ -494,6 +965,7 @@ public class LoopAbstractionAdvanced {
                       line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
                     }
                   }
+                }
                   closed = ifCaseClosed(line, closed);
                   content += line + System.lineSeparator();
                   lineNumber++;
@@ -510,8 +982,25 @@ public class LoopAbstractionAdvanced {
                   line = reader.readLine();
                   boolean uVFlag4 = false;
                   for (String s : preUsedVariables) {
+                    if (!s.isEmpty() && s.contains("Array")) {
+                      // zweites line.contains kann zu problemen führen wenn der datentyp teilwort
+                      // des namens ist
+                      if (line != null
+                          && line.contains((s.split("&")[0] + "["))
+                          && line.contains(s.split("&")[1].split(":")[1])) {
+                        String tmpArray = line.split("=")[1];
+                        line =
+                            s.split("&")[1].split(":")[1]
+                                + " __cpachecker_tmp_array["
+                                + s.split("&")[1].split(":")[2]
+                                + "] = "
+                                + tmpArray;
+                        line = line + " " + s.split("&")[0] + " = __cpachecker_tmp_array;";
+                      }
+                    } else {
                     if (line != null
-                        && !s.isEmpty()
+                        && !s
+                            .isEmpty()
                         && line.contains(s.split("&")[1])
                         && line.contains(
                             s.split(
@@ -530,6 +1019,7 @@ public class LoopAbstractionAdvanced {
                       line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
                     }
                   }
+                }
                   if (line.contains("if")) {
                     flagIf = true;
                     flagKP = true;
@@ -542,6 +1032,22 @@ public class LoopAbstractionAdvanced {
                     line = reader.readLine();
                     boolean uVFlag5 = false;
                     for (String s : preUsedVariables) {
+                      if (!s.isEmpty() && s.contains("Array")) {
+                        // zweites line.contains kann zu problemen führen wenn der datentyp teilwort
+                        // des namens ist
+                        if (line != null
+                            && line.contains((s.split("&")[0] + "["))
+                            && line.contains(s.split("&")[1].split(":")[1])) {
+                          String tmpArray = line.split("=")[1];
+                          line =
+                              s.split("&")[1].split(":")[1]
+                                  + " __cpachecker_tmp_array["
+                                  + s.split("&")[1].split(":")[2]
+                                  + "] = "
+                                  + tmpArray;
+                          line = line + " " + s.split("&")[0] + " = __cpachecker_tmp_array;";
+                        }
+                      } else {
                       if (line != null
                           && !s.isEmpty()
                           && line.contains(s.split("&")[1])
@@ -563,6 +1069,7 @@ public class LoopAbstractionAdvanced {
                       }
                     }
                   }
+                  }
                   flagIf = true;
                     closed = ifCaseClosed(line, closed);
                     content += line + System.lineSeparator();
@@ -572,6 +1079,22 @@ public class LoopAbstractionAdvanced {
                   line = reader.readLine();
                   boolean uVFlag6 = false;
                   for (String s : preUsedVariables) {
+                    if (!s.isEmpty() && s.contains("Array")) {
+                      // zweites line.contains kann zu problemen führen wenn der datentyp teilwort
+                      // des namens ist
+                      if (line != null
+                          && line.contains((s.split("&")[0] + "["))
+                          && line.contains(s.split("&")[1].split(":")[1])) {
+                        String tmpArray = line.split("=")[1];
+                        line =
+                            s.split("&")[1].split(":")[1]
+                                + " __cpachecker_tmp_array["
+                                + s.split("&")[1].split(":")[2]
+                                + "] = "
+                                + tmpArray;
+                        line = line + " " + s.split("&")[0] + " = __cpachecker_tmp_array;";
+                      }
+                    } else {
                     if (line != null
                         && !s.isEmpty()
                         && line.contains(s.split("&")[1])
@@ -593,6 +1116,7 @@ public class LoopAbstractionAdvanced {
                     }
                   }
                 }
+                }
                   closed = ifCaseClosed(line, closed);
                   content += line + System.lineSeparator();
                   lineNumber++;
@@ -600,6 +1124,22 @@ public class LoopAbstractionAdvanced {
                     line = reader.readLine();
                     boolean uVFlag7 = false;
                     for (String s : preUsedVariables) {
+                      if (!s.isEmpty() && s.contains("Array")) {
+                        // zweites line.contains kann zu problemen führen wenn der datentyp teilwort
+                        // des namens ist
+                        if (line != null
+                            && line.contains((s.split("&")[0] + "["))
+                            && line.contains(s.split("&")[1].split(":")[1])) {
+                          String tmpArray = line.split("=")[1];
+                          line =
+                              s.split("&")[1].split(":")[1]
+                                  + " __cpachecker_tmp_array["
+                                  + s.split("&")[1].split(":")[2]
+                                  + "] = "
+                                  + tmpArray;
+                          line = line + " " + s.split("&")[0] + " = __cpachecker_tmp_array;";
+                        }
+                      } else {
                       if (line != null
                           && !s.isEmpty()
                           && line.contains(s.split("&")[1])
@@ -620,6 +1160,7 @@ public class LoopAbstractionAdvanced {
                         line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
                       }
                     }
+                  }
                     closed = ifCaseClosed(line, closed);
                     content += line + System.lineSeparator();
                     lineNumber++;
@@ -658,6 +1199,22 @@ public class LoopAbstractionAdvanced {
                   line = reader.readLine();
                   boolean uVFlag = false;
                   for (String s : preUsedVariables) {
+                    if (!s.isEmpty() && s.contains("Array")) {
+                      // zweites line.contains kann zu problemen führen wenn der datentyp teilwort
+                      // des namens ist
+                      if (line != null
+                          && line.contains((s.split("&")[0] + "["))
+                          && line.contains(s.split("&")[1].split(":")[1])) {
+                        String tmpArray = line.split("=")[1];
+                        line =
+                            s.split("&")[1].split(":")[1]
+                                + " __cpachecker_tmp_array["
+                                + s.split("&")[1].split(":")[2]
+                                + "] = "
+                                + tmpArray;
+                        line = line + " " + s.split("&")[0] + " = __cpachecker_tmp_array;";
+                      }
+                    } else {
                     if (line != null
                         && !s.isEmpty()
                         && line.contains(s.split("&")[1])
@@ -678,6 +1235,7 @@ public class LoopAbstractionAdvanced {
                       line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
                     }
                   }
+                }
                   closed = ifCaseClosed(line, closed);
                   content += line + System.lineSeparator();
                   lineNumber++;
@@ -695,6 +1253,22 @@ public class LoopAbstractionAdvanced {
                 line = reader.readLine();
                 boolean uVFlag = false;
                 for (String s : preUsedVariables) {
+                  if (!s.isEmpty() && s.contains("Array")) {
+                    // zweites line.contains kann zu problemen führen wenn der datentyp teilwort des
+                    // namens ist
+                    if (line != null
+                        && line.contains((s.split("&")[0] + "["))
+                        && line.contains(s.split("&")[1].split(":")[1])) {
+                      String tmpArray = line.split("=")[1];
+                      line =
+                          s.split("&")[1].split(":")[1]
+                              + " __cpachecker_tmp_array["
+                              + s.split("&")[1].split(":")[2]
+                              + "] = "
+                              + tmpArray;
+                      line = line + " " + s.split("&")[0] + " = __cpachecker_tmp_array;";
+                    }
+                  } else {
                   if (line != null
                       && !s.isEmpty()
                       && line.contains(s.split("&")[1])
@@ -712,6 +1286,7 @@ public class LoopAbstractionAdvanced {
                     line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
                   }
                 }
+              }
                 if (line.contains("if")) {
                   flagIfTop = true;
                   flagKP = true;
@@ -724,6 +1299,22 @@ public class LoopAbstractionAdvanced {
                   line = reader.readLine();
                   boolean uVFlag8 = false;
                   for (String s : preUsedVariables) {
+                    if (!s.isEmpty() && s.contains("Array")) {
+                      // zweites line.contains kann zu problemen führen wenn der datentyp teilwort
+                      // des namens ist
+                      if (line != null
+                          && line.contains((s.split("&")[0] + "["))
+                          && line.contains(s.split("&")[1].split(":")[1])) {
+                        String tmpArray = line.split("=")[1];
+                        line =
+                            s.split("&")[1].split(":")[1]
+                                + " __cpachecker_tmp_array["
+                                + s.split("&")[1].split(":")[2]
+                                + "] = "
+                                + tmpArray;
+                        line = line + " " + s.split("&")[0] + " = __cpachecker_tmp_array;";
+                      }
+                    } else {
                     if (line != null
                         && !s.isEmpty()
                         && line.contains(s.split("&")[1])
@@ -745,6 +1336,7 @@ public class LoopAbstractionAdvanced {
                     }
                   }
                 }
+              }
                 flagIfTop = true;
                 closed = ifCaseClosed(line, closed);
                 content += line + System.lineSeparator();
@@ -754,6 +1346,22 @@ public class LoopAbstractionAdvanced {
               line = reader.readLine();
               boolean uVFlag9 = false;
               for (String s : preUsedVariables) {
+                if (!s.isEmpty() && s.contains("Array")) {
+                  // zweites line.contains kann zu problemen führen wenn der datentyp teilwort des
+                  // namens ist
+                  if (line != null
+                      && line.contains((s.split("&")[0] + "["))
+                      && line.contains(s.split("&")[1].split(":")[1])) {
+                    String tmpArray = line.split("=")[1];
+                    line =
+                        s.split("&")[1].split(":")[1]
+                            + " __cpachecker_tmp_array["
+                            + s.split("&")[1].split(":")[2]
+                            + "] = "
+                            + tmpArray;
+                    line = line + " " + s.split("&")[0] + " = __cpachecker_tmp_array;";
+                  }
+                } else {
                 if (line != null
                     && !s.isEmpty()
                     && line.contains(s.split("&")[1])
@@ -772,6 +1380,7 @@ public class LoopAbstractionAdvanced {
                 }
               }
               }
+            }
               closed = ifCaseClosed(line, closed);
               content += line + System.lineSeparator();
               lineNumber++;
@@ -780,6 +1389,22 @@ public class LoopAbstractionAdvanced {
                 line = reader.readLine();
                 boolean uVFlag10 = false;
                 for (String s : preUsedVariables) {
+                  if (!s.isEmpty() && s.contains("Array")) {
+                    // zweites line.contains kann zu problemen führen wenn der datentyp teilwort des
+                    // namens ist
+                    if (line != null
+                        && line.contains((s.split("&")[0] + "["))
+                        && line.contains(s.split("&")[1].split(":")[1])) {
+                      String tmpArray = line.split("=")[1];
+                      line =
+                          s.split("&")[1].split(":")[1]
+                              + " __cpachecker_tmp_array["
+                              + s.split("&")[1].split(":")[2]
+                              + "] = "
+                              + tmpArray;
+                      line = line + " " + s.split("&")[0] + " = __cpachecker_tmp_array;";
+                    }
+                  } else {
                   if (line != null
                       && !s.isEmpty()
                       && line.contains(s.split("&")[1])
@@ -797,6 +1422,7 @@ public class LoopAbstractionAdvanced {
                     line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
                   }
                 }
+              }
                 closed = ifCaseClosed(line, closed);
                 content += line + System.lineSeparator();
                 lineNumber++;
@@ -813,6 +1439,22 @@ public class LoopAbstractionAdvanced {
                   line = reader.readLine();
                   boolean uVFlag11 = false;
                   for (String s : preUsedVariables) {
+                    if (!s.isEmpty() && s.contains("Array")) {
+                      // zweites line.contains kann zu problemen führen wenn der datentyp teilwort
+                      // des namens ist
+                      if (line != null
+                          && line.contains((s.split("&")[0] + "["))
+                          && line.contains(s.split("&")[1].split(":")[1])) {
+                        String tmpArray = line.split("=")[1];
+                        line =
+                            s.split("&")[1].split(":")[1]
+                                + " __cpachecker_tmp_array["
+                                + s.split("&")[1].split(":")[2]
+                                + "] = "
+                                + tmpArray;
+                        line = line + " " + s.split("&")[0] + " = __cpachecker_tmp_array;";
+                      }
+                    } else {
                     if (line != null
                         && !s.isEmpty()
                         && line.contains(s.split("&")[1])
@@ -833,6 +1475,7 @@ public class LoopAbstractionAdvanced {
                       line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
                     }
                   }
+                }
                   if (line.contains("if")) {
                     flagIf = true;
                     flagBotKP = true;
@@ -845,6 +1488,22 @@ public class LoopAbstractionAdvanced {
                     line = reader.readLine();
                     boolean uVFlag12 = false;
                     for (String s : preUsedVariables) {
+                      if (!s.isEmpty() && s.contains("Array")) {
+                        // zweites line.contains kann zu problemen führen wenn der datentyp teilwort
+                        // des namens ist
+                        if (line != null
+                            && line.contains((s.split("&")[0] + "["))
+                            && line.contains(s.split("&")[1].split(":")[1])) {
+                          String tmpArray = line.split("=")[1];
+                          line =
+                              s.split("&")[1].split(":")[1]
+                                  + " __cpachecker_tmp_array["
+                                  + s.split("&")[1].split(":")[2]
+                                  + "] = "
+                                  + tmpArray;
+                          line = line + " " + s.split("&")[0] + " = __cpachecker_tmp_array;";
+                        }
+                      } else {
                       if (line != null
                           && !s.isEmpty()
                           && line.contains(s.split("&")[1])
@@ -866,6 +1525,7 @@ public class LoopAbstractionAdvanced {
                       }
                     }
                   }
+                  }
                   flagIf = true;
                     closed = ifCaseClosed(line, closed);
                     content += line + System.lineSeparator();
@@ -875,6 +1535,22 @@ public class LoopAbstractionAdvanced {
                   line = reader.readLine();
                   boolean uVFlag13 = false;
                   for (String s : preUsedVariables) {
+                    if (!s.isEmpty() && s.contains("Array")) {
+                      // zweites line.contains kann zu problemen führen wenn der datentyp teilwort
+                      // des namens ist
+                      if (line != null
+                          && line.contains((s.split("&")[0] + "["))
+                          && line.contains(s.split("&")[1].split(":")[1])) {
+                        String tmpArray = line.split("=")[1];
+                        line =
+                            s.split("&")[1].split(":")[1]
+                                + " __cpachecker_tmp_array["
+                                + s.split("&")[1].split(":")[2]
+                                + "] = "
+                                + tmpArray;
+                        line = line + " " + s.split("&")[0] + " = __cpachecker_tmp_array;";
+                      }
+                    } else {
                     if (line != null
                         && !s.isEmpty()
                         && line.contains(s.split("&")[1])
@@ -896,6 +1572,7 @@ public class LoopAbstractionAdvanced {
                     }
                   }
                 }
+                }
                   closed = ifCaseClosed(line, closed);
                   content += line + System.lineSeparator();
                   lineNumber++;
@@ -903,6 +1580,22 @@ public class LoopAbstractionAdvanced {
                     line = reader.readLine();
                     boolean uVFlag14 = false;
                     for (String s : preUsedVariables) {
+                      if (!s.isEmpty() && s.contains("Array")) {
+                        // zweites line.contains kann zu problemen führen wenn der datentyp teilwort
+                        // des namens ist
+                        if (line != null
+                            && line.contains((s.split("&")[0] + "["))
+                            && line.contains(s.split("&")[1].split(":")[1])) {
+                          String tmpArray = line.split("=")[1];
+                          line =
+                              s.split("&")[1].split(":")[1]
+                                  + " __cpachecker_tmp_array["
+                                  + s.split("&")[1].split(":")[2]
+                                  + "] = "
+                                  + tmpArray;
+                          line = line + " " + s.split("&")[0] + " = __cpachecker_tmp_array;";
+                        }
+                      } else {
                       if (line != null
                           && !s.isEmpty()
                           && line.contains(s.split("&")[1])
@@ -921,6 +1614,7 @@ public class LoopAbstractionAdvanced {
                         line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
                       }
                     }
+                  }
                     closed = ifCaseClosed(line, closed);
                     content += line + System.lineSeparator();
                     lineNumber++;
@@ -972,6 +1666,22 @@ public class LoopAbstractionAdvanced {
                 line = reader.readLine();
                 boolean uVFlag = false;
                 for (String s : preUsedVariables) {
+                  if (!s.isEmpty() && s.contains("Array")) {
+                    // zweites line.contains kann zu problemen führen wenn der datentyp teilwort des
+                    // namens ist
+                    if (line != null
+                        && line.contains((s.split("&")[0] + "["))
+                        && line.contains(s.split("&")[1].split(":")[1])) {
+                      String tmpArray = line.split("=")[1];
+                      line =
+                          s.split("&")[1].split(":")[1]
+                              + " __cpachecker_tmp_array["
+                              + s.split("&")[1].split(":")[2]
+                              + "] = "
+                              + tmpArray;
+                      line = line + " " + s.split("&")[0] + " = __cpachecker_tmp_array;";
+                    }
+                  } else {
                   if (line != null
                       && !s.isEmpty()
                       && line.contains(s.split("&")[1])
@@ -989,6 +1699,7 @@ public class LoopAbstractionAdvanced {
                     line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
                   }
                 }
+              }
                 closed = ifCaseClosed(line, closed);
                 content += line + System.lineSeparator();
                 lineNumber++;
@@ -1008,6 +1719,22 @@ public class LoopAbstractionAdvanced {
                 line = reader.readLine();
                 boolean uVFlag = false;
                 for (String s : preUsedVariables) {
+                  if (!s.isEmpty() && s.contains("Array")) {
+                    // zweites line.contains kann zu problemen führen wenn der datentyp teilwort des
+                    // namens ist
+                    if (line != null
+                        && line.contains((s.split("&")[0] + "["))
+                        && line.contains(s.split("&")[1].split(":")[1])) {
+                      String tmpArray = line.split("=")[1];
+                      line =
+                          s.split("&")[1].split(":")[1]
+                              + " __cpachecker_tmp_array["
+                              + s.split("&")[1].split(":")[2]
+                              + "] = "
+                              + tmpArray;
+                      line = line + " " + s.split("&")[0] + " = __cpachecker_tmp_array;";
+                    }
+                  } else {
                   if (line != null
                       && !s.isEmpty()
                       && line.contains(s.split("&")[1])
@@ -1025,6 +1752,7 @@ public class LoopAbstractionAdvanced {
                     line = s.split("&")[0] + "=" + s.split("&")[0] + ";";
                   }
                 }
+              }
                 closed = ifCaseClosed(line, closed);
                 content += line + System.lineSeparator();
                 lineNumber++;
@@ -1052,7 +1780,10 @@ public class LoopAbstractionAdvanced {
 
   private String whileCondition(LoopData loopD) {
     return "for(int cpachecker_i=0; cpachecker_i <"
-        + min(loopD.getAmountOfPaths(), loopD.getOutputs().size())
+        + min(
+            loopD.getAmountOfPaths(),
+            loopD
+                .getNumberOutputs())
         + "&&("
         + loopD.getCondition()
         + "); cpachecker_i++"
@@ -1074,7 +1805,10 @@ public class LoopAbstractionAdvanced {
         + ";"
         + System.lineSeparator()
         + "for(int cpachecker_i=0; cpachecker_i <"
-        + min(loopD.getAmountOfPaths(), loopD.getOutputs().size())
+        + min(
+            loopD.getAmountOfPaths(),
+            loopD
+                .getNumberOutputs())
         + "&&("
         + loopD.getCondition().split(";")[1]
         + "); cpachecker_i++"
@@ -1091,7 +1825,10 @@ public class LoopAbstractionAdvanced {
         + ";"
         + System.lineSeparator()
         + "for(int cpachecker_i=0; cpachecker_i <"
-        + min(loopD.getAmountOfPaths(), loopD.getOutputs().size())
+        + min(
+            loopD.getAmountOfPaths(),
+            loopD
+                .getNumberOutputs())
         + "&&("
         + loopD.getCondition().split(";")[1]
         + "); cpachecker_i++"

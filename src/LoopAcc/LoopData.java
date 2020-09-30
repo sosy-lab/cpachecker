@@ -51,6 +51,7 @@ public class LoopData implements Comparable<LoopData> {
   private String loopType = "";
 
   private int amountOfPaths;
+  private int numberAllOutputs;
 
   private boolean flagEndless = false;
   private boolean loopInLoop;
@@ -97,11 +98,14 @@ public class LoopData implements Comparable<LoopData> {
     condition = nodesToCondition();
     getAllPaths();
     inputOutput = getAllIO();
-
+    numberAllOutputs = getAllNumberOutputs(output);
     canBeAccelerated = canLoopBeAccelerated();
     amountOfPaths = getAllPaths();
   }
 
+  public int getNumberOutputs() {
+    return numberAllOutputs;
+  }
   /**
    * looks for the looptype of a loop
    *
@@ -192,27 +196,65 @@ public class LoopData implements Comparable<LoopData> {
             }
           }
 
-          if (node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.DeclarationEdge)) {
-            ADeclarationEdge v = (ADeclarationEdge) node.getLeavingEdge(i);
+          boolean flagCPAchecker = true;
+          if (CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i)) != null
+              && CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i))
+                  .contains("__CPAchecker_")) {
+            flagCPAchecker = false;
+          } else if (CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i)) != null
+              && CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i))
+                  .toString()
+                  .contains("__CPAchecker_")) {
+            flagCPAchecker = false;
           }
 
+          if (flag && flagCPAchecker) {
 
-          if (flag
-              && CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i)) != null
-              && !CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i))
-                  .contains("__CPAchecker_")) {
-
-            String temp =
-                CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i))
+            String temp = "";
+            if (CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i)) != null) {
+              if (CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(i)).toString().contains("[")) {
+                String tmpType = CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(i)).toString().split("\\)")[0];
+                tmpType = tmpType.split("\\(")[1];
+                temp =
+                    CFAEdgeUtils.getLeftHandVariable(
+                        node.getLeavingEdge(
+                            i))
+                      .split(OUTPUT_NAME_SYMBOL_CUT)[OUTPUT_VARIABLE_ARRAY_POSITION]
+                      + "&"
+                      + "Array:"
+                      + tmpType
+                      + ":"
+                        + CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(i))
+                            .toString()
+                            .split("\\[")[1].split("\\]")[0];
+              }else {
+              temp =
+                  CFAEdgeUtils.getLeftHandVariable(
+                      node.getLeavingEdge(
+                          i))
                     .split(OUTPUT_NAME_SYMBOL_CUT)[OUTPUT_VARIABLE_ARRAY_POSITION]
                     + "&"
                     + CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(i));
-
+              }
+            } else if (CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i))
+                .getClass()
+                .getName()
+                .contains("Array")) {
+              temp =
+                  CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i))
+                      .toString()
+                      .split(
+                          "\\[")[0]
+                      + "&"
+                      + "Array:"
+                      + CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i)).getExpressionType();
+            }
             tempOutput.add(temp);
           }
         }
       }
     }
+
     ArrayList<String> overwrite = new ArrayList<>();
     for (CFANode n : cfa.getAllNodes()) {
       for (int e = 0; e < n.getNumLeavingEdges(); e++) {
@@ -223,10 +265,30 @@ public class LoopData implements Comparable<LoopData> {
                 && s.split(
                     "&")[0]
                     .equals(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).split(":")[2])) {
-              String tempNew = s  +                   "&"
+              String tempNew = s;
+
+              if (tempNew.contains("Array") && tempNew.split(":").length != 3) {
+                String tmpNewStart = tempNew.split("&")[0];
+                String tmpNewEnd = tempNew.split("&")[1];
+
+                tmpNewEnd =
+                    tmpNewEnd
+                        +
+                    ":"
+                        + CFAEdgeUtils.getLeftHandType(n.getLeavingEdge(e))
+                            .toString()
+                .split("\\[")[1].split("\\]")[0];
+
+                tempNew = tmpNewStart + "&" + tmpNewEnd;
+              }
+
+              tempNew =
+                  tempNew
+                      + "&"
                   + ((ADeclarationEdge) n.getLeavingEdge(e)).getDeclaration()
                   .getFileLocation()
                   .getStartingLineInOrigin();
+
               overwrite.add(tempNew);
 
             }
@@ -235,7 +297,26 @@ public class LoopData implements Comparable<LoopData> {
       }
     }
     tempOutput = overwrite;
+    ArrayList<String> removeDuplicates = new ArrayList<>();
+    for(String duplicate:tempOutput) {
+      if(!removeDuplicates.contains(duplicate)){
+        removeDuplicates.add(duplicate);
+      }
+    }
+    tempOutput = removeDuplicates;
     return tempOutput;
+  }
+
+  private int getAllNumberOutputs(ArrayList<String> o) {
+    int tmpInt = 0;
+    for (String tmp : o) {
+      if (tmp.contains("Array")) {
+        tmpInt = tmpInt + Integer.parseInt(tmp.split("&")[1].split(":")[2]);
+      } else {
+        tmpInt = tmpInt + 1;
+      }
+    }
+    return tmpInt;
   }
 
   /**
@@ -265,7 +346,11 @@ public class LoopData implements Comparable<LoopData> {
         }
 
       }
+      for (String z : temp) {
+        if (temp.contains("Array")) {
 
+        }
+      }
     return temp;
   }
 
@@ -335,6 +420,11 @@ public class LoopData implements Comparable<LoopData> {
           && (!nodesInCondition.contains(node))
           && !node.equals(failedState)) {
         paths += (node.getNumLeavingEdges() - LAST_POSITION_OF_LIST);
+      }
+    }
+    for (String z : output) {
+      if (z.contains("Array")) {
+        paths += Integer.parseInt(z.split("&")[1].split(":")[2]);
       }
     }
     return paths;
