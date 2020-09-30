@@ -9,9 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Optional;
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.io.Files;
@@ -38,10 +36,12 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.ExpressionTreeLocationInvariant;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
@@ -103,12 +103,16 @@ public class WitnessToACSLAlgorithm implements Algorithm {
           // Current invariant belongs to another program
           continue;
         }
-        if (!inv.getLocation().toString().equals(inv.getGroupId())) {
-          // Only use invariants at their original location
-          continue;
-        }
-        for (int location : getEffectiveLocations(inv)) {
-          locationsToInvariants.put(location, inv);
+        Set<Integer> effectiveLocations = getEffectiveLocations(inv);
+        if (!effectiveLocations.isEmpty()) {
+          for (Integer location : effectiveLocations) {
+            locationsToInvariants.put(location, inv);
+          }
+        } else {
+          logger.logf(
+              Level.INFO,
+              "Could not determine a location for invariant %s, skipping.",
+              inv.asExpressionTree());
         }
       }
 
@@ -226,41 +230,37 @@ public class WitnessToACSLAlgorithm implements Algorithm {
     return indentation == null ? correctlyIndented : indentation;
   }
 
-  // TODO: Assertions should generally be placed after the entering but before any leaving edges of
-  //  the node
   private String makeACSLAnnotation(ExpressionTreeLocationInvariant inv) {
     return "/*@ assert " + inv.asExpressionTree() + "; */";
   }
 
-  private List<Integer> getEffectiveLocations(ExpressionTreeLocationInvariant inv) {
+  private Set<Integer> getEffectiveLocations(ExpressionTreeLocationInvariant inv) {
     CFANode node = inv.getLocation();
-    List<Integer> locations = new ArrayList<>(node.getNumLeavingEdges());
+    Set<Integer> locations = new HashSet<>(node.getNumLeavingEdges());
+
+    if (node instanceof FunctionEntryNode || node instanceof FunctionExitNode) {
+      // Cannot map to a position
+      return locations;
+    }
+
     for (int i = 0; i < node.getNumLeavingEdges(); i++) {
       CFAEdge edge = node.getLeavingEdge(i);
-      Optional<? extends AAstNode> astNodeOptional = edge.getRawAST();
-      boolean skip = false;
-      while (!astNodeOptional.isPresent()) {
-        if (edge.getPredecessor().getNumEnteringEdges() != 1) {
-          logger.logf(
-              Level.WARNING,
-              "Node %s likely does not correspond to a position in the program source, ignoring invariant(s) there.",
-              node);
-          skip = true;
-          break;
-        }
-        edge = edge.getPredecessor().getEnteringEdge(0);
-        astNodeOptional = edge.getRawAST();
+      if (!edge.getFileLocation().equals(FileLocation.DUMMY)
+          && !edge.getDescription().contains("CPAchecker_TMP")
+          && !(edge instanceof AssumeEdge)) {
+        locations.add(edge.getFileLocation().getStartingLineNumber() - 1);
       }
-      if (skip) {
-        continue;
-      }
-      if (edge instanceof AssumeEdge) {
-        // ACSL annotations are not allowed within conditions
-        continue;
-      }
-      AAstNode astNode = astNodeOptional.get();
-      locations.add(astNode.getFileLocation().getStartingLineNumber() - 1);
     }
+
+    for (int i = 0; i < node.getNumEnteringEdges(); i++) {
+      CFAEdge edge = node.getEnteringEdge(i);
+      if (!edge.getFileLocation().equals(FileLocation.DUMMY)
+          && !edge.getDescription().contains("CPAchecker_TMP")
+          && !(edge instanceof AssumeEdge)) {
+        locations.add(edge.getFileLocation().getEndingLineNumber());
+      }
+    }
+
     return locations;
   }
 }
