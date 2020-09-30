@@ -507,7 +507,7 @@ public class CPAMain {
           .copyFrom(config)
           .setOption("testcase.targets.type", TARGET_TYPES.get(properties.iterator().next()).name())
           .build();
-    } else if (Sets.filter(properties, Predicates.instanceOf(CoverFunction.class)).size() > 0) {
+    } else if (!Sets.filter(properties, Predicates.instanceOf(CoverFunction.class)).isEmpty()) {
       if (properties.size() != 1) {
         throw new InvalidConfigurationException(
             "Unsupported combination of properties: " + properties);
