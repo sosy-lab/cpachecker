@@ -59,9 +59,6 @@ public class WitnessOptions {
   @Option(secure = true, description = "Some redundant transitions will be removed")
   private boolean removeInsufficientEdges = true;
 
-  @Option(secure = true, description = "No edges will be removed")
-  private boolean keepAllEdges = false;
-
   @Option(
     secure = true,
     description = "Verification witness: Revert escaping/renaming of functions for threads?"
@@ -112,10 +109,6 @@ public class WitnessOptions {
 
   boolean removeInsufficientEdges() {
     return removeInsufficientEdges;
-  }
-
-  public boolean keepAllEdges() {
-    return keepAllEdges;
   }
 
   boolean revertThreadFunctionRenaming() {
