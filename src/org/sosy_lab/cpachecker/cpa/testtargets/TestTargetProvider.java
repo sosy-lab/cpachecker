@@ -40,13 +40,22 @@ public class TestTargetProvider implements Statistics {
       final CFA pCfa,
       final boolean pRunParallel,
       final TestTargetType pType,
+      final String pTargetFun,
       final TestTargetAdaption pGoalAdaption) {
     cfa = pCfa;
     runParallel = pRunParallel;
     type = pType;
     optimization = pGoalAdaption;
 
-    Set<CFAEdge> targets = extractEdgesByCriterion(type.getEdgeCriterion(), pGoalAdaption);
+    Predicate<CFAEdge> edgeCriterion;
+    switch (type) {
+      case FUN_CALL:
+        edgeCriterion = type.getEdgeCriterion(pTargetFun);
+        break;
+      default:
+        edgeCriterion = type.getEdgeCriterion();
+    }
+    Set<CFAEdge> targets = extractEdgesByCriterion(edgeCriterion, pGoalAdaption);
 
     if (runParallel) {
       uncoveredTargets = Collections.synchronizedSet(targets);
@@ -84,12 +93,13 @@ public class TestTargetProvider implements Statistics {
       final CFA pCfa,
       final boolean pRunParallel,
       final TestTargetType pType,
+      final String pTargetFun,
       TestTargetAdaption pTargetOptimization) {
     if (instance == null
         || pCfa != instance.cfa
         || instance.type != pType
         || instance.optimization != pTargetOptimization) {
-      instance = new TestTargetProvider(pCfa, pRunParallel, pType, pTargetOptimization);
+      instance = new TestTargetProvider(pCfa, pRunParallel, pType, pTargetFun, pTargetOptimization);
     }
     Preconditions.checkState(instance.runParallel || !pRunParallel);
     return instance.uncoveredTargets;

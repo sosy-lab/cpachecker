@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cpa.testtargets;
 
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -20,6 +21,11 @@ public enum TestTargetType {
     @Override
     public Predicate<CFAEdge> getEdgeCriterion() {
       return edge -> edge instanceof AssumeEdge;
+    }
+
+    @Override
+    public Predicate<CFAEdge> getEdgeCriterion(final String pProp) {
+      return getEdgeCriterion();
     }
   },
   ERROR_CALL {
@@ -34,6 +40,27 @@ public enum TestTargetType {
                   .toASTString()
                   .equals("__VERIFIER_error");
     }
+
+    @Override
+    public Predicate<CFAEdge> getEdgeCriterion(final String pProp) {
+      return getEdgeCriterion();
+    }
+  },
+  FUN_CALL {
+    @Override
+    public Predicate<CFAEdge> getEdgeCriterion() {
+      return Predicates.alwaysFalse();
+    }
+
+    @Override
+    public Predicate<CFAEdge> getEdgeCriterion(final String funName) {
+      return edge -> edge instanceof CStatementEdge
+          && ((CStatementEdge) edge).getStatement() instanceof CFunctionCall
+          && ((CFunctionCall) ((CStatementEdge) edge).getStatement()).getFunctionCallExpression()
+              .getFunctionNameExpression()
+              .toASTString()
+              .equals(funName);
+    }
   },
   STATEMENT {
     @Override
@@ -43,7 +70,14 @@ public enum TestTargetType {
               || edge.getEdgeType() == CFAEdgeType.ReturnStatementEdge
               || edge.getEdgeType() == CFAEdgeType.StatementEdge;
     }
+
+    @Override
+    public Predicate<CFAEdge> getEdgeCriterion(final String pProp) {
+      return getEdgeCriterion();
+    }
   };
 
   public abstract Predicate<CFAEdge> getEdgeCriterion();
+
+  public abstract Predicate<CFAEdge> getEdgeCriterion(String prop);
 }
