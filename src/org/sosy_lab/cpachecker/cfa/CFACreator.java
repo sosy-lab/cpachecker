@@ -474,7 +474,7 @@ public class CFACreator {
     return result;
 
     } finally {
-      if (flag == true) {
+      if (flag == true || loopIsAutomated == false) {
       stats.totalTime.stop();
     }
     }
