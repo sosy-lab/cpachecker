@@ -354,7 +354,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
           if (functionCallExpression.getFunctionNameExpression() instanceof AIdExpression) {
             AIdExpression idExpression =
                 (AIdExpression) functionCallExpression.getFunctionNameExpression();
-            if (idExpression.getName().equals(functionName)) {
+            if (idExpression.getDeclaration().getOrigName().equals(functionName)) {
               return CONST_TRUE;
             }
           }
@@ -391,7 +391,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
-      String functionNameFromEdge = edge.getSuccessor().getFunctionName();
+      String functionNameFromEdge = edge.getSuccessor().getFunction().getOrigName();
 
       // check cases like direct function calls and main-entry.
       if (functionNameFromEdge.equals(functionName)) {
@@ -500,19 +500,19 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
       CFAEdge edge = pArgs.getCfaEdge();
       if (edge instanceof FunctionReturnEdge) {
         FunctionReturnEdge returnEdge = (FunctionReturnEdge) edge;
-        if (returnEdge.getPredecessor().getFunctionName().equals(functionName)) {
+        if (returnEdge.getPredecessor().getFunction().getOrigName().equals(functionName)) {
           return CONST_TRUE;
         }
       } else if (edge instanceof AReturnStatementEdge) {
         AReturnStatementEdge returnStatementEdge = (AReturnStatementEdge) edge;
-        if (returnStatementEdge.getSuccessor().getFunctionName().equals(functionName)) {
+        if (returnStatementEdge.getSuccessor().getFunction().getOrigName().equals(functionName)) {
           return CONST_TRUE;
         }
       } else if (edge instanceof BlankEdge) {
         CFANode succ = edge.getSuccessor();
         if (succ instanceof FunctionExitNode
             && succ.getNumLeavingEdges() == 0
-            && succ.getFunctionName().equals(functionName)) {
+            && succ.getFunction().getOrigName().equals(functionName)) {
           assert "default return".equals(edge.getDescription());
           return CONST_TRUE;
         }
