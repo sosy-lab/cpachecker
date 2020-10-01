@@ -113,12 +113,17 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
   }
 
   private boolean isSubsetOrSupersetOf(Fault pSet, Set<Fault> pHardSet) {
-    for (Set<FaultContribution> hardSet : pHardSet) {
-      if (hardSet.containsAll(pSet) || pSet.containsAll(hardSet)) {
-        return true;
+    stats.timeForSubSupCheck.start();
+    try {
+      for (Set<FaultContribution> hardSet : pHardSet) {
+        if (hardSet.containsAll(pSet) || pSet.containsAll(hardSet)) {
+          return true;
+        }
       }
+      return false;
+    } finally {
+      stats.timeForSubSupCheck.stop();
     }
-    return false;
   }
 
   /**

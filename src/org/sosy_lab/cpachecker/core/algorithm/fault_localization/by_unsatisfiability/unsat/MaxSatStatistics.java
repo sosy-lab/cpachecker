@@ -23,13 +23,17 @@ class MaxSatStatistics implements Statistics {
   final StatTimer totalTime = new StatTimer(StatKind.SUM, "Total time for max-sat algorithm");
   final StatCounter unsatCalls = new StatCounter("Number of calls to sat solver");
   final StatCounter savedCalls = new StatCounter("Number of calls saved through subset check");
+  final StatTimer timeForSubSupCheck = new StatTimer(StatKind.SUM, "Time for subset/supset check");
 
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
     StatisticsWriter.writingStatisticsTo(out)
         .put(totalTime)
         .putIfUpdatedAtLeastOnce(unsatCalls)
-        .putIfUpdatedAtLeastOnce(savedCalls);
+        .putIfUpdatedAtLeastOnce(savedCalls)
+        .beginLevel() // Statistics for sup/subset checks
+        .putIfUpdatedAtLeastOnce(timeForSubSupCheck)
+        .endLevel();
   }
 
   @Override
