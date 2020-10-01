@@ -1594,6 +1594,13 @@ cpa.constraints.resolveDefinites = true
 cpa.constraints.satCheckStrategy = AT_ASSUME
   enum:     [AT_ASSUME, AT_TARGET]
 
+# export automaton to file
+cpa.dca.refiner.dotExport = false
+
+# file for saving the automaton in DOT format (%s will be replaced with
+# automaton name)
+cpa.dca.refiner.dotExportFile = "%s.dot"
+
 # Keep infeasible dummy states that allow for better debugging
 cpa.dca.refiner.keepInfeasibleStates = false
 
@@ -4137,13 +4144,16 @@ testcase.progress = RELATIVE_TOTAL
 # property specification
 testcase.reportCoveredErrorCallAsError = false
 
+# Name of target function if target type is FUN_CALL
+testcase.targets.funName = no default value
+
 # Which strategy to use to optimize set of test target edges
 testcase.targets.optimization.strategy = NONE
   enum:     [NONE, COVERED_NEXT_EDGE, TESTCOMP]
 
 # Which CFA edges to use as test targets
 testcase.targets.type = ASSUME
-  enum:     [ASSUME, ERROR_CALL, STATEMENT]
+  enum:     [ASSUME, ERROR_CALL, FUN_CALL, STATEMENT]
 
 # export test values to file (line separated)
 testcase.values = no default value
