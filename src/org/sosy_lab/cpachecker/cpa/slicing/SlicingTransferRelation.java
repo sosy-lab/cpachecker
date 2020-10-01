@@ -56,27 +56,16 @@ public class SlicingTransferRelation extends SingleEdgeTransferRelation {
         pPrecision.getClass().getSimpleName());
 
     SlicingPrecision slicingPrecision = (SlicingPrecision) pPrecision;
-    Precision wrappedPrecision = slicingPrecision.getWrappedPrec();
-
-    AbstractState wrappedState = pState;
     CFAEdge adjustedEdge = pCfaEdge;
 
     if (!slicingPrecision.isRelevant(pCfaEdge) && !isFunctionControlEdge(pCfaEdge)) {
-      try {
-
-        adjustedEdge = replaceWithNoop(pCfaEdge);
-        adjustedEdge.getPredecessor().addLeavingEdge(adjustedEdge);
-        adjustedEdge.getSuccessor().addEnteringEdge(adjustedEdge);
-
-        return delegate.getAbstractSuccessorsForEdge(wrappedState, wrappedPrecision, adjustedEdge);
-      } finally {
-
-        adjustedEdge.getPredecessor().removeLeavingEdge(adjustedEdge);
-        adjustedEdge.getSuccessor().removeEnteringEdge(adjustedEdge);
-      }
-    } else {
-      return delegate.getAbstractSuccessorsForEdge(wrappedState, wrappedPrecision, pCfaEdge);
+      adjustedEdge = replaceWithNoop(pCfaEdge);
     }
+
+    AbstractState wrappedState = pState;
+    Precision wrappedPrecision = slicingPrecision.getWrappedPrec();
+
+    return delegate.getAbstractSuccessorsForEdge(wrappedState, wrappedPrecision, adjustedEdge);
   }
 
   private boolean isFunctionControlEdge(CFAEdge pCfaEdge) {
