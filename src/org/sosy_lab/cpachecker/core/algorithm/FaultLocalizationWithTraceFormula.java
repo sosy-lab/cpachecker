@@ -348,24 +348,29 @@ public class FaultLocalizationWithTraceFormula
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     statsCollection.add(this);
-    if(algorithm instanceof Statistics){
-      statsCollection.add((Statistics)algorithm);
+    if (algorithm instanceof Statistics) {
+      statsCollection.add((Statistics) algorithm);
     }
-    if(faultAlgorithm instanceof Statistics){
-      statsCollection.add((Statistics)faultAlgorithm);
+    if (algorithm instanceof StatisticsProvider) {
+      ((StatisticsProvider) algorithm).collectStatistics(statsCollection);
+    }
+    if (faultAlgorithm instanceof Statistics) {
+      statsCollection.add((Statistics) faultAlgorithm);
+    }
+    if (faultAlgorithm instanceof StatisticsProvider) {
+      ((StatisticsProvider) faultAlgorithm).collectStatistics(statsCollection);
     }
   }
 
   @Override
   public void printStatistics(
       PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    StatisticsWriter w0  = StatisticsWriter.writingStatisticsTo(out);
-    w0.put(totalTime);
+    StatisticsWriter.writingStatisticsTo(out).put(totalTime);
   }
 
   @Override
   public @Nullable String getName() {
-    return getClass().getCanonicalName();
+    return getClass().getSimpleName();
   }
 
 }

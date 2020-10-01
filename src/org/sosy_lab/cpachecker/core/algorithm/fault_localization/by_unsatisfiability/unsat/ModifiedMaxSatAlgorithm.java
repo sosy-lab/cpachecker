@@ -38,9 +38,9 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
   private BooleanFormulaManager bmgr;
 
   // Statistics
-  private StatTimer totalTime = new StatTimer(StatKind.SUM, "Total time to find all subsets");
-  private StatCounter unsatCalls = new StatCounter("Total calls to sat solver");
-  private StatCounter savedCalls = new StatCounter("Total calls prevented by subset check");
+  private StatTimer totalTime = new StatTimer(StatKind.SUM, "Total time for max-sat algorithm");
+  private StatCounter unsatCalls = new StatCounter("Number of calls to sat solver");
+  private StatCounter savedCalls = new StatCounter("Number of calls saved through subset check");
 
   @Override
   public Set<Fault> run(FormulaContext pContext, TraceFormula tf)
@@ -141,14 +141,11 @@ public class ModifiedMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
 
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    StatisticsWriter w0 = StatisticsWriter.writingStatisticsTo(out);
-    w0.put("Total time", totalTime)
-        .put("Total calls to solver", unsatCalls)
-        .put("Total calls saved", savedCalls);
+    StatisticsWriter.writingStatisticsTo(out).put(totalTime).put(unsatCalls).put(savedCalls);
   }
 
   @Override
   public @Nullable String getName() {
-    return "MAX-SAT algorithm";
+    return getClass().getCanonicalName();
   }
 }

@@ -33,7 +33,7 @@ import org.sosy_lab.java_smt.api.SolverException;
 
 public class SingleUnsatCoreAlgorithm implements FaultLocalizerWithTraceFormula, Statistics {
 
-  private StatTimer totalTime = new StatTimer("Total time");
+  private StatTimer totalTime = new StatTimer("Total time for single-max-sat algorithm");
 
   /**
    * Calculate a single unsat-core (not necessarily minimal) and return the set.
@@ -71,12 +71,11 @@ public class SingleUnsatCoreAlgorithm implements FaultLocalizerWithTraceFormula,
 
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    StatisticsWriter w0 = StatisticsWriter.writingStatisticsTo(out);
-    w0.put("Total time", totalTime);
+    StatisticsWriter.writingStatisticsTo(out).put(totalTime);
   }
 
   @Override
   public @Nullable String getName() {
-    return "Single UNSAT-core";
+    return getClass().getCanonicalName();
   }
 }
