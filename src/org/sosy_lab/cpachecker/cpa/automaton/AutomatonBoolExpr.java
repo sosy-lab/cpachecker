@@ -405,7 +405,7 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
 
     @Override
     public String toString() {
-      return "MATCH FUNCTION CALL \"" + functionName + "\"";
+      return "MATCH FUNCTIONCALL \"" + functionName + "\"";
     }
 
     @Override
