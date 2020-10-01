@@ -97,7 +97,7 @@ SPDX-License-Identifier: Apache-2.0
 <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
 <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
 <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml </include>
+<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
 <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
 <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
 <include>../programs/benchmarks/systemc/toy.cil.yml</include>
@@ -182,7 +182,7 @@ SPDX-License-Identifier: Apache-2.0
 <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
 <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
 <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml </include>
+<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
 <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
 <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
 <include>../programs/benchmarks/systemc/toy.cil.yml</include>
@@ -197,7 +197,7 @@ SPDX-License-Identifier: Apache-2.0
 	<option name="-combinations-valueCegar60+pred-cmc"/>
 	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="-setprop">pcc.proofgen.doPCC=true</option>
-	<option name="-setprop">pcc.proofFile=ValuePredicateCMCItp_${inputfile_name}_arg.proof</option>
+	<option name="-setprop">pcc.proofFile=ValuePredicateCMCItp_${taskdef_name}_arg.proof</option>
 	<option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
 	<option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
@@ -213,7 +213,7 @@ SPDX-License-Identifier: Apache-2.0
 	<option name="-combinations-valueCegar60+pred-cmc"/>
 	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="-setprop">pcc.proofgen.doPCC=true</option>
-	<option name="-setprop">pcc.proofFile=ValuePredicateCMCItp+_${inputfile_name}_arg.proof</option>
+	<option name="-setprop">pcc.proofFile=ValuePredicateCMCItp+_${taskdef_name}_arg.proof</option>
     <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
     <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
@@ -227,7 +227,7 @@ SPDX-License-Identifier: Apache-2.0
 	<option name="-combinations-value10+pred-cmc"/>
 	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="-setprop">pcc.proofgen.doPCC=true</option>
-	<option name="-setprop">pcc.proofFile=ValuePredicateCMC_${inputfile_name}_arg.proof</option>
+	<option name="-setprop">pcc.proofFile=ValuePredicateCMC_${taskdef_name}_arg.proof</option>
     <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
     <option name="-setprop">pcc.strategy=arg.ARG_CPAStrategy</option>
@@ -244,7 +244,7 @@ SPDX-License-Identifier: Apache-2.0
 	<option name="-combinations-value10+pred-cmc"/>
 	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="-setprop">pcc.proofgen.doPCC=true</option>
-    <option name="-setprop">pcc.proofFile=ValuePredicateCMC+_${inputfile_name}_arg.proof</option>
+    <option name="-setprop">pcc.proofFile=ValuePredicateCMC+_${taskdef_name}_arg.proof</option>
     <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
     <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
@@ -260,7 +260,7 @@ SPDX-License-Identifier: Apache-2.0
 	  <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
 	  <option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
 	  <option name="-setprop">pcc.proofgen.doPCC=true</option>
-      <option name="-setprop">pcc.proofFile=ValueApronCMC_${inputfile_name}_arg.proof</option>
+      <option name="-setprop">pcc.proofFile=ValueApronCMC_${taskdef_name}_arg.proof</option>
       <option name="-setprop">pcc.strategy=arg.ARG_CPAStrategy</option>
 <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
 <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
@@ -275,13 +275,13 @@ SPDX-License-Identifier: Apache-2.0
 	  <option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
 	  <option name="-setprop">pcc.proofgen.doPCC=true</option>
 	  <option name="-setprop">pcc.strategy=arg.ARG_CPAStrategy</option>
-      <option name="-setprop">pcc.proofFile=ValueApronCMCItp_${inputfile_name}_arg.proof</option>
+      <option name="-setprop">pcc.proofFile=ValueApronCMCItp_${taskdef_name}_arg.proof</option>
 <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
 <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
 <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
 <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
 <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml </include>
+<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
 <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
 <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
 <include>../programs/benchmarks/systemc/toy.cil.yml</include>
@@ -293,7 +293,7 @@ SPDX-License-Identifier: Apache-2.0
 		<option name="-combinations-valueCegar60+pred-cmc"/>
 	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="-setprop">pcc.proofgen.doPCC=true</option>
-	<option name="-setprop">pcc.proofFile=ValuePredicateCMCItp_${inputfile_name}_reached.proof</option>
+	<option name="-setprop">pcc.proofFile=ValuePredicateCMCItp_${taskdef_name}_reached.proof</option>
 	<option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
 	<option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
 	<option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
@@ -309,7 +309,7 @@ SPDX-License-Identifier: Apache-2.0
 	<option name="-combinations-valueCegar60+pred-cmc"/>
 	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="-setprop">pcc.proofgen.doPCC=true</option>
-	<option name="-setprop">pcc.proofFile=ValuePredicateCMCItp+_${inputfile_name}_reached.proof</option>
+	<option name="-setprop">pcc.proofFile=ValuePredicateCMCItp+_${taskdef_name}_reached.proof</option>
     <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
     <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
 	<option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
@@ -323,7 +323,7 @@ SPDX-License-Identifier: Apache-2.0
 		<option name="-combinations-value10+pred-cmc"/>
 	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="-setprop">pcc.proofgen.doPCC=true</option>
-	<option name="-setprop">pcc.proofFile=ValuePredicateCMC_${inputfile_name}_reached.proof</option>
+	<option name="-setprop">pcc.proofFile=ValuePredicateCMC_${taskdef_name}_reached.proof</option>
     <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
 	<option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
@@ -339,7 +339,7 @@ SPDX-License-Identifier: Apache-2.0
 		<option name="-combinations-value10+pred-cmc"/>
 	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="-setprop">pcc.proofgen.doPCC=true</option>
-    <option name="-setprop">pcc.proofFile=ValuePredicateCMC+_${inputfile_name}_reached.proof</option>
+    <option name="-setprop">pcc.proofFile=ValuePredicateCMC+_${taskdef_name}_reached.proof</option>
     <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
 	<option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
@@ -356,7 +356,7 @@ SPDX-License-Identifier: Apache-2.0
 	  <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
 	  <option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
 	  <option name="-setprop">pcc.proofgen.doPCC=true</option>
-      <option name="-setprop">pcc.proofFile=ValueApronCMC_${inputfile_name}_reached.proof</option>
+      <option name="-setprop">pcc.proofFile=ValueApronCMC_${taskdef_name}_reached.proof</option>
 <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
 <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
 <include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
@@ -369,14 +369,14 @@ SPDX-License-Identifier: Apache-2.0
 	  <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
 	  <option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
 	  <option name="-setprop">pcc.proofgen.doPCC=true</option>
-      <option name="-setprop">pcc.proofFile=ValueApronCMCItp_${inputfile_name}_reached.proof</option>
+      <option name="-setprop">pcc.proofFile=ValueApronCMCItp_${taskdef_name}_reached.proof</option>
     <option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
 <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
 <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
 <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
 <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
 <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml </include>
+<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
 <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
 <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
 <include>../programs/benchmarks/systemc/toy.cil.yml</include>
@@ -389,7 +389,7 @@ SPDX-License-Identifier: Apache-2.0
 	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="-setprop">pcc.proofgen.doPCC=true</option>
 	<option name="-setprop">pcc.partial.certificateType=ARG</option>
-	<option name="-setprop">pcc.proofFile=ValuePredicateCMCItp_${inputfile_name}_partial.proof</option>
+	<option name="-setprop">pcc.proofFile=ValuePredicateCMCItp_${taskdef_name}_partial.proof</option>
 	<option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
 	<option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
 	<option name="-setprop">pcc.strategy=PartialReachedSetStrategy</option>
@@ -405,7 +405,7 @@ SPDX-License-Identifier: Apache-2.0
 		<option name="-combinations-valueCegar60+pred-cmc"/>
 	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="-setprop">pcc.proofgen.doPCC=true</option>
-	<option name="-setprop">pcc.proofFile=ValuePredicateCMCItp+_${inputfile_name}_partial.proof</option>
+	<option name="-setprop">pcc.proofFile=ValuePredicateCMCItp+_${taskdef_name}_partial.proof</option>
     <option name="-setprop">pcc.partial.certificateType=ARG</option>
     <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
     <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
@@ -420,7 +420,7 @@ SPDX-License-Identifier: Apache-2.0
 		<option name="-combinations-value10+pred-cmc"/>
 	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="-setprop">pcc.proofgen.doPCC=true</option>
-	<option name="-setprop">pcc.proofFile=ValuePredicateCMC_${inputfile_name}_partial.proof</option>
+	<option name="-setprop">pcc.proofFile=ValuePredicateCMC_${taskdef_name}_partial.proof</option>
     <option name="-setprop">pcc.partial.certificateType=ARG</option>
     <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
 	<option name="-setprop">pcc.strategy=PartialReachedSetStrategy</option>
@@ -438,7 +438,7 @@ SPDX-License-Identifier: Apache-2.0
 	<option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
 	<option name="-setprop">pcc.proofgen.doPCC=true</option>
 	<option name="-setprop">pcc.partial.certificateType=ARG</option>
-    <option name="-setprop">pcc.proofFile=ValuePredicateCMC+_${inputfile_name}_partial.proof</option>
+    <option name="-setprop">pcc.proofFile=ValuePredicateCMC+_${taskdef_name}_partial.proof</option>
     <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
 	<option name="-setprop">pcc.strategy=PartialReachedSetStrategy</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
@@ -455,7 +455,7 @@ SPDX-License-Identifier: Apache-2.0
 	  <option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
 	  <option name="-setprop">pcc.proofgen.doPCC=true</option>
 	  <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
-      <option name="-setprop">pcc.proofFile=ValueApronCMC_${inputfile_name}_partial.proof</option>
+      <option name="-setprop">pcc.proofFile=ValueApronCMC_${taskdef_name}_partial.proof</option>
     <option name="-setprop">pcc.strategy=PartialReachedSetStrategy</option>  
 <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
 <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
@@ -470,14 +470,14 @@ SPDX-License-Identifier: Apache-2.0
 	  <option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
 	  <option name="-setprop">pcc.proofgen.doPCC=true</option>
 	  <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
-      <option name="-setprop">pcc.proofFile=ValueApronCMCItp_${inputfile_name}_partial.proof</option>
+      <option name="-setprop">pcc.proofFile=ValueApronCMCItp_${taskdef_name}_partial.proof</option>
     <option name="-setprop">pcc.strategy=PartialReachedSetStrategy</option> 
 <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
 <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
 <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
 <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
 <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml </include>
+<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
 <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
 <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
 <include>../programs/benchmarks/systemc/toy.cil.yml</include>
@@ -488,7 +488,7 @@ SPDX-License-Identifier: Apache-2.0
     <tasks>
 		<option name="-combinations-valueCegar60+pred-cmc"/>
 	<option name="-setprop">pcc.proofgen.doPCC=true</option>
-	<option name="-setprop">pcc.proofFile=ValuePredicateCMCItp_${inputfile_name}_cmcarg.proof</option>
+	<option name="-setprop">pcc.proofFile=ValuePredicateCMCItp_${taskdef_name}_cmcarg.proof</option>
 	<option name="-setprop">analysis.memorizeReachedAfterRestart=true</option>
 	<option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
 	<option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
@@ -506,7 +506,7 @@ SPDX-License-Identifier: Apache-2.0
     <tasks>
 		<option name="-combinations-valueCegar60+pred-cmc"/>
 	<option name="-setprop">pcc.proofgen.doPCC=true</option>
-	<option name="-setprop">pcc.proofFile=ValuePredicateCMCItp+_${inputfile_name}_cmcarg.proof</option>
+	<option name="-setprop">pcc.proofFile=ValuePredicateCMCItp+_${taskdef_name}_cmcarg.proof</option>
     <option name="-setprop">analysis.memorizeReachedAfterRestart=true</option>
     <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
     <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
@@ -522,7 +522,7 @@ SPDX-License-Identifier: Apache-2.0
     <tasks>
 		<option name="-combinations-value10+pred-cmc"/>
 	<option name="-setprop">pcc.proofgen.doPCC=true</option>
-	<option name="-setprop">pcc.proofFile=ValuePredicateCMC_${inputfile_name}_cmcarg.proof</option>
+	<option name="-setprop">pcc.proofFile=ValuePredicateCMC_${taskdef_name}_cmcarg.proof</option>
     <option name="-setprop">analysis.memorizeReachedAfterRestart=true</option>
     <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
 	<option name="-setprop">pcc.strategy=arg.ARG_CMCStrategy</option>
@@ -540,7 +540,7 @@ SPDX-License-Identifier: Apache-2.0
     <tasks>
 		<option name="-combinations-value10+pred-cmc"/>
 	<option name="-setprop">pcc.proofgen.doPCC=true</option>
-    <option name="-setprop">pcc.proofFile=ValuePredicateCMC+_${inputfile_name}_cmcarg.proof</option>
+    <option name="-setprop">pcc.proofFile=ValuePredicateCMC+_${taskdef_name}_cmcarg.proof</option>
     <option name="-setprop">analysis.memorizeReachedAfterRestart=true</option>
     <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
 	<option name="-setprop">pcc.strategy=arg.ARG_CMCStrategy</option>
@@ -558,7 +558,7 @@ SPDX-License-Identifier: Apache-2.0
 		<option name="-config">config/unmaintained/combinations-value10+apron-cmc.properties</option>
 	  <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
 	  <option name="-setprop">pcc.proofgen.doPCC=true</option>
-      <option name="-setprop">pcc.proofFile=ValueApronCMC_${inputfile_name}_cmcarg.proof</option>
+      <option name="-setprop">pcc.proofFile=ValueApronCMC_${taskdef_name}_cmcarg.proof</option>
       <option name="-setprop">analysis.memorizeReachedAfterRestart=true</option>
     <option name="-setprop">pcc.strategy=arg.ARG_CMCStrategy</option>
     <option name="-setprop">counterexample.removeInfeasibleErrorState=false</option>
@@ -574,7 +574,7 @@ SPDX-License-Identifier: Apache-2.0
 		  <option name="-config">config/unmaintained/combinations-valueCegar60+apronCegar-cmc.properties</option>
 	  <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
 	  <option name="-setprop">pcc.proofgen.doPCC=true</option>
-      <option name="-setprop">pcc.proofFile=ValueApronCMCItp_${inputfile_name}_cmcarg.proof</option>
+      <option name="-setprop">pcc.proofFile=ValueApronCMCItp_${taskdef_name}_cmcarg.proof</option>
       <option name="-setprop">analysis.memorizeReachedAfterRestart=true</option>
     <option name="-setprop">pcc.strategy=arg.ARG_CMCStrategy</option> 
     <option name="-setprop">counterexample.removeInfeasibleErrorState=false</option>
@@ -584,7 +584,7 @@ SPDX-License-Identifier: Apache-2.0
 <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
 <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
 <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml </include>
+<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
 <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
 <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
 <include>../programs/benchmarks/systemc/toy.cil.yml</include>
@@ -598,7 +598,7 @@ SPDX-License-Identifier: Apache-2.0
      <tasks>
 	<option name="-config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
 	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
-    <option name="-setprop">pcc.proof=output/ValuePredicateCMCItp_${inputfile_name}_arg.proof</option>
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMCItp_${taskdef_name}_arg.proof</option>
     <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
     <option name="-setprop">PropertyCheckerCPA.cpa=cpa.arg.ARGCPA</option>
@@ -617,7 +617,7 @@ SPDX-License-Identifier: Apache-2.0
     <tasks>
     <option name="-config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
 	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
-    <option name="-setprop">pcc.proof=output/ValuePredicateCMCItp+_${inputfile_name}_arg.proof</option>
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMCItp+_${taskdef_name}_arg.proof</option>
     <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
     <option name="-setprop">PropertyCheckerCPA.cpa=cpa.arg.ARGCPA</option>
@@ -634,7 +634,7 @@ SPDX-License-Identifier: Apache-2.0
     <tasks>
 	<option name="-config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
 	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
-    <option name="-setprop">pcc.proof=output/ValuePredicateCMC_${inputfile_name}_arg.proof</option>
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMC_${taskdef_name}_arg.proof</option>
     <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
@@ -654,7 +654,7 @@ SPDX-License-Identifier: Apache-2.0
     <tasks>
 	<option name="-config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
 	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
-    <option name="-setprop">pcc.proof=output/ValuePredicateCMC+_${inputfile_name}_arg.proof</option>
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMC+_${taskdef_name}_arg.proof</option>
     <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
@@ -673,7 +673,7 @@ SPDX-License-Identifier: Apache-2.0
       <tasks>
 	<option name="-config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
 	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
-    <option name="-setprop">pcc.proof=output/ValueApronCMC_${inputfile_name}_arg.proof</option>
+    <option name="-setprop">pcc.proof=output/ValueApronCMC_${taskdef_name}_arg.proof</option>
     <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
     <option name="-setprop">PropertyCheckerCPA.cpa=cpa.arg.ARGCPA</option>
@@ -690,7 +690,7 @@ SPDX-License-Identifier: Apache-2.0
       <tasks>
     <option name="-config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
 	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
-    <option name="-setprop">pcc.proof=output/ValueApronCMCItp_${inputfile_name}_arg.proof</option>
+    <option name="-setprop">pcc.proof=output/ValueApronCMCItp_${taskdef_name}_arg.proof</option>
     <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
     <option name="-setprop">PropertyCheckerCPA.cpa=cpa.arg.ARGCPA</option>
@@ -702,7 +702,7 @@ SPDX-License-Identifier: Apache-2.0
 <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
 <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
 <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml </include>
+<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
 <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
 <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
 <include>../programs/benchmarks/systemc/toy.cil.yml</include>
@@ -717,7 +717,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">solver.solver=MATHSAT5</option>
     <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
 	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
-    <option name="-setprop">pcc.proof=output/ValuePredicateCMCItp_${inputfile_name}_reached.proof</option>
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMCItp_${taskdef_name}_reached.proof</option>
     <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
     <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
@@ -737,7 +737,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
     <option name="-config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
 	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
-    <option name="-setprop">pcc.proof=output/ValuePredicateCMCItp+_${inputfile_name}_reached.proof</option>
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMCItp+_${taskdef_name}_reached.proof</option>
     <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
     <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
@@ -751,7 +751,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
 	<option name="-config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
 	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
-    <option name="-setprop">pcc.proof=output/ValuePredicateCMC_${inputfile_name}_reached.proof</option>
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMC_${taskdef_name}_reached.proof</option>
     <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
@@ -771,7 +771,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
     <option name="-config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
 	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
-    <option name="-setprop">pcc.proof=output/ValuePredicateCMC+_${inputfile_name}_reached.proof</option>
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMC+_${taskdef_name}_reached.proof</option>
     <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
      <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
@@ -785,7 +785,7 @@ SPDX-License-Identifier: Apache-2.0
       <tasks>
     <option name="-config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
 	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
-    <option name="-setprop">pcc.proof=output/ValueApronCMC_${inputfile_name}_reached.proof</option>
+    <option name="-setprop">pcc.proof=output/ValueApronCMC_${taskdef_name}_reached.proof</option>
     <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
     <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
@@ -801,7 +801,7 @@ SPDX-License-Identifier: Apache-2.0
       <tasks>
 	<option name="-config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
 	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
-    <option name="-setprop">pcc.proof=output/ValueApronCMCItp_${inputfile_name}_reached.proof</option>
+    <option name="-setprop">pcc.proof=output/ValueApronCMCItp_${taskdef_name}_reached.proof</option>
     <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
     <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
@@ -812,7 +812,7 @@ SPDX-License-Identifier: Apache-2.0
 <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
 <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
 <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml </include>
+<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
 <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
 <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
 <include>../programs/benchmarks/systemc/toy.cil.yml</include>
@@ -827,7 +827,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
     <option name="-config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
 	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
-    <option name="-setprop">pcc.proof=output/ValuePredicateCMCItp_${inputfile_name}_partial.proof</option>
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMCItp_${taskdef_name}_partial.proof</option>
     <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="-setprop">pcc.partial.stopAddingAtReachedSetSize=true</option>
     <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
@@ -847,7 +847,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
 	<option name="-config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
 	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
-    <option name="-setprop">pcc.proof=output/ValuePredicateCMCItp+_${inputfile_name}_partial.proof</option>
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMCItp+_${taskdef_name}_partial.proof</option>
     <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="-setprop">pcc.partial.stopAddingAtReachedSetSize=true</option>
     <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
@@ -862,7 +862,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">solver.solver=MATHSAT5</option>
     <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
 	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
-    <option name="-setprop">pcc.proof=output/ValuePredicateCMC_${inputfile_name}_partial.proof</option>
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMC_${taskdef_name}_partial.proof</option>
     <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="-setprop">pcc.partial.stopAddingAtReachedSetSize=true</option>
     <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
@@ -883,7 +883,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
     <option name="-config">config/unmaintained/valueAnalysis-predicateAnalysis-proofcheck.properties</option>
 	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
-    <option name="-setprop">pcc.proof=output/ValuePredicateCMC+_${inputfile_name}_partial.proof</option>
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMC+_${taskdef_name}_partial.proof</option>
     <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="-setprop">pcc.partial.stopAddingAtReachedSetSize=true</option>
     <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
@@ -898,7 +898,7 @@ SPDX-License-Identifier: Apache-2.0
     <tasks>
 	<option name="-config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
 	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
-    <option name="-setprop">pcc.proof=output/ValueApronCMC_${inputfile_name}_partial.proof</option>
+    <option name="-setprop">pcc.proof=output/ValueApronCMC_${taskdef_name}_partial.proof</option>
     <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
     <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
@@ -915,7 +915,7 @@ SPDX-License-Identifier: Apache-2.0
       <tasks>
     <option name="-config">config/unmaintained/valueApronAnalysis-proofcheck.properties</option>
 	<option name="-setprop">analysis.algorithm.proofCheck=true</option>
-    <option name="-setprop">pcc.proof=output/ValueApronCMCItp_${inputfile_name}_partial.proof</option>
+    <option name="-setprop">pcc.proof=output/ValueApronCMCItp_${taskdef_name}_partial.proof</option>
     <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
     <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
@@ -926,7 +926,7 @@ SPDX-License-Identifier: Apache-2.0
 <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
 <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
 <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml </include>
+<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
 <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
 <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
 <include>../programs/benchmarks/systemc/toy.cil.yml</include>
@@ -937,7 +937,7 @@ SPDX-License-Identifier: Apache-2.0
      <tasks>
 	<option name="-config">config/unmaintained/combinations-value+pred-cmc-proofcheck.properties</option>
 	<option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
-    <option name="-setprop">pcc.proof=output/ValuePredicateCMCItp_${inputfile_name}_cmcarg.proof</option>	
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMCItp_${taskdef_name}_cmcarg.proof</option>	
 	<option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
     <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
@@ -950,7 +950,7 @@ SPDX-License-Identifier: Apache-2.0
 </tasks>
 
     <tasks>
-	<option name="-setprop">pcc.proof=output/ValuePredicateCMCItp+_${inputfile_name}_cmcarg.proof</option>
+	<option name="-setprop">pcc.proof=output/ValuePredicateCMCItp+_${taskdef_name}_cmcarg.proof</option>
     <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
     <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
@@ -966,7 +966,7 @@ SPDX-License-Identifier: Apache-2.0
 	<option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
 	<option name="-setprop">solver.solver=MATHSAT5</option>
 	<option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
-	<option name="-setprop">pcc.proof=output/ValuePredicateCMC_${inputfile_name}_cmcarg.proof</option>
+	<option name="-setprop">pcc.proof=output/ValuePredicateCMC_${taskdef_name}_cmcarg.proof</option>
 	<option name="-setprop">pcc.arg.checkPropertyPerElement=true</option>
  <include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
 <include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
@@ -982,7 +982,7 @@ SPDX-License-Identifier: Apache-2.0
 	<option name="-setprop">solver.solver=MATHSAT5</option>
 	<option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
     <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
-    <option name="-setprop">pcc.proof=output/ValuePredicateCMC+_${inputfile_name}_cmcarg.proof</option>
+    <option name="-setprop">pcc.proof=output/ValuePredicateCMC+_${taskdef_name}_cmcarg.proof</option>
     <option name="-setprop">pcc.arg.checkPropertyPerElement=true</option>
 <include>../programs/benchmarks/float-benchs/filter2.yml</include>
 <include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
@@ -993,7 +993,7 @@ SPDX-License-Identifier: Apache-2.0
     <tasks>
 	<option name="-config">config/unmaintained/combinations-value+apron-cmc-proofcheck.properties</option>
 	<option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
-    <option name="-setprop">pcc.proof=output/ValueApronCMC_${inputfile_name}_cmcarg.proof</option>
+    <option name="-setprop">pcc.proof=output/ValueApronCMC_${taskdef_name}_cmcarg.proof</option>
     <option name="-setprop">pcc.arg.checkPropertyPerElement=true</option>
 <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
 <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
@@ -1007,13 +1007,13 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-skipRecursion"/>
 	<option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
 	<option name="-setprop">pcc.arg.checkPropertyPerElement=true</option>
-    <option name="-setprop">pcc.proof=output/ValueApronCMCItp_${inputfile_name}_cmcarg.proof</option>
+    <option name="-setprop">pcc.proof=output/ValueApronCMCItp_${taskdef_name}_cmcarg.proof</option>
 <include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
 <include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
 <include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
 <include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
 <include>../programs/benchmarks/loop-lit/gr2006.yml</include>
-<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml </include>
+<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml</include>
 <include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
 <include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
 <include>../programs/benchmarks/systemc/toy.cil.yml</include>
