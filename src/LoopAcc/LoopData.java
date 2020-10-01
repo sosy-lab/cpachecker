@@ -236,7 +236,10 @@ public class LoopData implements Comparable<LoopData> {
                     + "&"
                     + CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(i));
               }
-            } else if (CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i))
+            } else if (CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i)) != null) {
+              if (CFAEdgeUtils.getLeftHandSide(
+                  node.getLeavingEdge(
+                      i))
                 .getClass()
                 .getName()
                 .contains("Array")) {
@@ -249,6 +252,7 @@ public class LoopData implements Comparable<LoopData> {
                       + "Array:"
                       + CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i)).getExpressionType();
             }
+          }
             tempOutput.add(temp);
           }
         }
@@ -260,7 +264,6 @@ public class LoopData implements Comparable<LoopData> {
       for (int e = 0; e < n.getNumLeavingEdges(); e++) {
         if (n.getLeavingEdge(e).getEdgeType().equals(CFAEdgeType.DeclarationEdge)) {
           for (String s : tempOutput) {
-
             if (CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)) != null
                 && s.split(
                     "&")[0]
@@ -271,13 +274,15 @@ public class LoopData implements Comparable<LoopData> {
                 String tmpNewStart = tempNew.split("&")[0];
                 String tmpNewEnd = tempNew.split("&")[1];
 
+                String arraySize =
+                    CFAEdgeUtils.getLeftHandType(n.getLeavingEdge(e)).toString().split("\\[")[1]
+                        .split("\\]")[0];
+
                 tmpNewEnd =
                     tmpNewEnd
                         +
                     ":"
-                        + CFAEdgeUtils.getLeftHandType(n.getLeavingEdge(e))
-                            .toString()
-                .split("\\[")[1].split("\\]")[0];
+                        + arraySize;
 
                 tempNew = tmpNewStart + "&" + tmpNewEnd;
               }
