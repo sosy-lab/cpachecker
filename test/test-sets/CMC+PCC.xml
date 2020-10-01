@@ -29,10 +29,10 @@ SPDX-License-Identifier: Apache-2.0
 	<option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
 	<option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
-<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_floodmax.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/benchmarks/loop-new/nested-1.yml</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -44,8 +44,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
     <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 	
@@ -55,11 +54,11 @@ SPDX-License-Identifier: Apache-2.0
 	<option name="-setprop">pcc.proofgen.doPCC=false</option>
     <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
-<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_iterated_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_STARTPALS_Triplicated_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.BOUNDED-6.pals_true-termination.c</include>
+<include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
+<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+<include>../programs/benchmarks/loop-new/nested-1.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -70,10 +69,9 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
     <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
-<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/benchmarks/float-benchs/filter2.yml</include>
+<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
     
@@ -82,11 +80,11 @@ SPDX-License-Identifier: Apache-2.0
 	  <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
 	  <option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
 	  <option name="-setprop">pcc.proofgen.doPCC=false</option>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_5_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float21_true-unreach-call.i</include>
+<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
       </tasks>
    
       <tasks>
@@ -94,15 +92,15 @@ SPDX-License-Identifier: Apache-2.0
 	  <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
 	  <option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
 	  <option name="-setprop">pcc.proofgen.doPCC=false</option>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/eca-rers2012/Problem16_label59_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loop-lit/gr2006_true-unreach-call_true-termination.c.i</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy2_true-unreach-call.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy_true-unreach-call_true-valid-memsafety.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/parport_true-unreach-call.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/systemc/toy_true-unreach-call_false-termination.cil.c</include>
+<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+<include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+<include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml </include>
+<include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+<include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+<include>../programs/benchmarks/systemc/toy.cil.yml</include>
       </tasks>
 
 </rundefinition>
@@ -116,10 +114,10 @@ SPDX-License-Identifier: Apache-2.0
 	<option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
 	<option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
-<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_floodmax.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/benchmarks/loop-new/nested-1.yml</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -131,8 +129,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
     <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 	
@@ -142,11 +139,11 @@ SPDX-License-Identifier: Apache-2.0
 	<option name="-setprop">pcc.proofgen.doPCC=false</option>
     <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
-<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_iterated_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_STARTPALS_Triplicated_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.BOUNDED-6.pals_true-termination.c</include>
+<include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
+<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+<include>../programs/benchmarks/loop-new/nested-1.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -157,10 +154,9 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
     <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
-<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/benchmarks/float-benchs/filter2.yml</include>
+<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
     
@@ -169,11 +165,11 @@ SPDX-License-Identifier: Apache-2.0
 	  <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
 	  <option name="-setprop">restartAlgorithm.combineARGsAfterRestart=false</option>
 	  <option name="-setprop">pcc.proofgen.doPCC=false</option>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_5_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float21_true-unreach-call.i</include>
+<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
       </tasks>
    
       <tasks>
@@ -181,15 +177,15 @@ SPDX-License-Identifier: Apache-2.0
 	  <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
 	  <option name="-setprop">restartAlgorithm.combineARGsAfterRestart=false</option>
 	  <option name="-setprop">pcc.proofgen.doPCC=false</option>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/eca-rers2012/Problem16_label59_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loop-lit/gr2006_true-unreach-call_true-termination.c.i</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy2_true-unreach-call.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy_true-unreach-call_true-valid-memsafety.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/parport_true-unreach-call.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/systemc/toy_true-unreach-call_false-termination.cil.c</include>
+<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+<include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+<include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml </include>
+<include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+<include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+<include>../programs/benchmarks/systemc/toy.cil.yml</include>
       </tasks>
 
 </rundefinition>
@@ -206,10 +202,10 @@ SPDX-License-Identifier: Apache-2.0
 	<option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
     <option name="-setprop">pcc.strategy=arg.ARG_CPAStrategy</option>
-<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_floodmax.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/benchmarks/loop-new/nested-1.yml</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -223,8 +219,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">solver.solver=MATHSAT5</option>
     <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
     <option name="-setprop">pcc.strategy=arg.ARG_CPAStrategy</option>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 	
@@ -236,11 +231,11 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
     <option name="-setprop">pcc.strategy=arg.ARG_CPAStrategy</option>
-<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_iterated_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_STARTPALS_Triplicated_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.BOUNDED-6.pals_true-termination.c</include>
+<include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
+<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+<include>../programs/benchmarks/loop-new/nested-1.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 
 </tasks>
@@ -254,10 +249,9 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">solver.solver=MATHSAT5</option>
     <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
     <option name="-setprop">pcc.strategy=arg.ARG_CPAStrategy</option>
-<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/benchmarks/float-benchs/filter2.yml</include>
+<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
     
@@ -268,11 +262,11 @@ SPDX-License-Identifier: Apache-2.0
 	  <option name="-setprop">pcc.proofgen.doPCC=true</option>
       <option name="-setprop">pcc.proofFile=ValueApronCMC_${inputfile_name}_arg.proof</option>
       <option name="-setprop">pcc.strategy=arg.ARG_CPAStrategy</option>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_5_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float21_true-unreach-call.i</include>
+<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
       </tasks>
    
       <tasks>
@@ -282,15 +276,15 @@ SPDX-License-Identifier: Apache-2.0
 	  <option name="-setprop">pcc.proofgen.doPCC=true</option>
 	  <option name="-setprop">pcc.strategy=arg.ARG_CPAStrategy</option>
       <option name="-setprop">pcc.proofFile=ValueApronCMCItp_${inputfile_name}_arg.proof</option>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/eca-rers2012/Problem16_label59_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loop-lit/gr2006_true-unreach-call_true-termination.c.i</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy2_true-unreach-call.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy_true-unreach-call_true-valid-memsafety.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/parport_true-unreach-call.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/systemc/toy_true-unreach-call_false-termination.cil.c</include>
+<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+<include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+<include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml </include>
+<include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+<include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+<include>../programs/benchmarks/systemc/toy.cil.yml</include>
       </tasks>
 
 
@@ -304,10 +298,10 @@ SPDX-License-Identifier: Apache-2.0
 	<option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
 	<option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
-<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_floodmax.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/benchmarks/loop-new/nested-1.yml</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -321,8 +315,7 @@ SPDX-License-Identifier: Apache-2.0
 	<option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
     <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -334,11 +327,11 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
 	<option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
-<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_iterated_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_STARTPALS_Triplicated_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.BOUNDED-6.pals_true-termination.c</include>
+<include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
+<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+<include>../programs/benchmarks/loop-new/nested-1.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 	
@@ -351,10 +344,9 @@ SPDX-License-Identifier: Apache-2.0
 	<option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
     <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
-<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/benchmarks/float-benchs/filter2.yml</include>
+<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
     
@@ -365,11 +357,11 @@ SPDX-License-Identifier: Apache-2.0
 	  <option name="-setprop">restartAlgorithm.combineARGsAfterRestart=true</option>
 	  <option name="-setprop">pcc.proofgen.doPCC=true</option>
       <option name="-setprop">pcc.proofFile=ValueApronCMC_${inputfile_name}_reached.proof</option>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_5_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float21_true-unreach-call.i</include>
+<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
       </tasks>
 	  
       <tasks>
@@ -379,15 +371,15 @@ SPDX-License-Identifier: Apache-2.0
 	  <option name="-setprop">pcc.proofgen.doPCC=true</option>
       <option name="-setprop">pcc.proofFile=ValueApronCMCItp_${inputfile_name}_reached.proof</option>
     <option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/eca-rers2012/Problem16_label59_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loop-lit/gr2006_true-unreach-call_true-termination.c.i</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy2_true-unreach-call.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy_true-unreach-call_true-valid-memsafety.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/parport_true-unreach-call.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/systemc/toy_true-unreach-call_false-termination.cil.c</include>
+<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+<include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+<include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml </include>
+<include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+<include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+<include>../programs/benchmarks/systemc/toy.cil.yml</include>
       </tasks>
 
 <!-- partial reached set proof -->
@@ -402,10 +394,10 @@ SPDX-License-Identifier: Apache-2.0
 	<option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
 	<option name="-setprop">pcc.strategy=PartialReachedSetStrategy</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
-<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_floodmax.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/benchmarks/loop-new/nested-1.yml</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 	
@@ -420,8 +412,7 @@ SPDX-License-Identifier: Apache-2.0
 	<option name="-setprop">pcc.strategy=PartialReachedSetStrategy</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
     <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -434,11 +425,11 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">assumptions.automatonIgnoreAssumptions=true</option>
 	<option name="-setprop">pcc.strategy=PartialReachedSetStrategy</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
-<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_iterated_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_STARTPALS_Triplicated_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.BOUNDED-6.pals_true-termination.c</include>
+<include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
+<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+<include>../programs/benchmarks/loop-new/nested-1.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -452,10 +443,9 @@ SPDX-License-Identifier: Apache-2.0
 	<option name="-setprop">pcc.strategy=PartialReachedSetStrategy</option>
     <option name="-setprop">solver.solver=MATHSAT5</option>
     <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
-<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/benchmarks/float-benchs/filter2.yml</include>
+<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -467,11 +457,11 @@ SPDX-License-Identifier: Apache-2.0
 	  <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
       <option name="-setprop">pcc.proofFile=ValueApronCMC_${inputfile_name}_partial.proof</option>
     <option name="-setprop">pcc.strategy=PartialReachedSetStrategy</option>  
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_5_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float21_true-unreach-call.i</include>
+<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
       </tasks>
 
       <tasks>
@@ -482,15 +472,15 @@ SPDX-License-Identifier: Apache-2.0
 	  <option name="-setprop">pcc.partial.certificateType=MONOTONESTOPARG</option>
       <option name="-setprop">pcc.proofFile=ValueApronCMCItp_${inputfile_name}_partial.proof</option>
     <option name="-setprop">pcc.strategy=PartialReachedSetStrategy</option> 
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/eca-rers2012/Problem16_label59_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loop-lit/gr2006_true-unreach-call_true-termination.c.i</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy2_true-unreach-call.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy_true-unreach-call_true-valid-memsafety.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/parport_true-unreach-call.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/systemc/toy_true-unreach-call_false-termination.cil.c</include>
+<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+<include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+<include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml </include>
+<include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+<include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+<include>../programs/benchmarks/systemc/toy.cil.yml</include>
       </tasks>
 
 <!-- CMC args proof -->
@@ -506,10 +496,10 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">solver.solver=MATHSAT5</option>
     <option name="-setprop">counterexample.removeInfeasibleErrorState=false</option>
     <option name="-setprop">assumptions.removeNonExploredWithoutSuccessors=true</option>
-<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_floodmax.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/benchmarks/loop-new/nested-1.yml</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -525,8 +515,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
     <option name="-setprop">counterexample.removeInfeasibleErrorState=false</option>
     <option name="-setprop">assumptions.removeNonExploredWithoutSuccessors=true</option>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -540,11 +529,11 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">solver.solver=MATHSAT5</option>
     <option name="-setprop">counterexample.removeInfeasibleErrorState=false</option>
     <option name="-setprop">assumptions.removeNonExploredWithoutSuccessors=true</option>
-<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_iterated_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_STARTPALS_Triplicated_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.BOUNDED-6.pals_true-termination.c</include>
+<include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
+<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+<include>../programs/benchmarks/loop-new/nested-1.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -559,10 +548,9 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
     <option name="-setprop">counterexample.removeInfeasibleErrorState=false</option>
     <option name="-setprop">assumptions.removeNonExploredWithoutSuccessors=true</option>
-<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/benchmarks/float-benchs/filter2.yml</include>
+<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -575,11 +563,11 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">pcc.strategy=arg.ARG_CMCStrategy</option>
     <option name="-setprop">counterexample.removeInfeasibleErrorState=false</option>
     <option name="-setprop">assumptions.removeNonExploredWithoutSuccessors=true</option>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_5_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float21_true-unreach-call.i</include>
+<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
       </tasks>
 	  
       <tasks>
@@ -591,15 +579,15 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">pcc.strategy=arg.ARG_CMCStrategy</option> 
     <option name="-setprop">counterexample.removeInfeasibleErrorState=false</option>
     <option name="-setprop">assumptions.removeNonExploredWithoutSuccessors=true</option>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/eca-rers2012/Problem16_label59_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loop-lit/gr2006_true-unreach-call_true-termination.c.i</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy2_true-unreach-call.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy_true-unreach-call_true-valid-memsafety.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/parport_true-unreach-call.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/systemc/toy_true-unreach-call_false-termination.cil.c</include>
+<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+<include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+<include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml </include>
+<include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+<include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+<include>../programs/benchmarks/systemc/toy.cil.yml</include>
       </tasks>
 
 </rundefinition>
@@ -619,10 +607,10 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">solver.solver=MATHSAT5</option>
     <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
     <option name="-setprop">pcc.strategy=arg.ARG_CPAStrategy</option>
-<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_floodmax.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/benchmarks/loop-new/nested-1.yml</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -639,8 +627,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
     <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
     <option name="-setprop">pcc.strategy=arg.ARG_CPAStrategy</option>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -656,11 +643,11 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">solver.solver=MATHSAT5</option>
     <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
     <option name="-setprop">pcc.strategy=arg.ARG_CPAStrategy</option>
- <include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_iterated_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_STARTPALS_Triplicated_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.BOUNDED-6.pals_true-termination.c</include>
+ <include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
+<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+<include>../programs/benchmarks/loop-new/nested-1.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -677,10 +664,9 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
     <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
     <option name="-setprop">pcc.strategy=arg.ARG_CPAStrategy</option>
-<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/benchmarks/float-benchs/filter2.yml</include>
+<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -694,11 +680,11 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">ARGCPA.cpa=cpa.composite.CompositeCPA</option>
     <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="-setprop">pcc.strategy=arg.ARG_CPAStrategy</option>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_5_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float21_true-unreach-call.i</include>
+<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
       </tasks>
 
       <tasks>
@@ -711,15 +697,15 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">ARGCPA.cpa=cpa.composite.CompositeCPA</option>
     <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="-setprop">pcc.strategy=arg.ARG_CPAStrategy</option>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/eca-rers2012/Problem16_label59_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loop-lit/gr2006_true-unreach-call_true-termination.c.i</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy2_true-unreach-call.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy_true-unreach-call_true-valid-memsafety.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/parport_true-unreach-call.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/systemc/toy_true-unreach-call_false-termination.cil.c</include>
+<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+<include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+<include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml </include>
+<include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+<include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+<include>../programs/benchmarks/systemc/toy.cil.yml</include>
       </tasks>
 
 <!-- Reached set proof -->
@@ -735,10 +721,10 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
     <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
-<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_floodmax.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/benchmarks/loop-new/nested-1.yml</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -755,8 +741,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
     <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -771,11 +756,11 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
     <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
- <include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_iterated_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_STARTPALS_Triplicated_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.BOUNDED-6.pals_true-termination.c</include>
+ <include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
+<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+<include>../programs/benchmarks/loop-new/nested-1.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 	
@@ -791,10 +776,9 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
      <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
     <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
-<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/benchmarks/float-benchs/filter2.yml</include>
+<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
    
@@ -807,11 +791,11 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
     <option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
     <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_5_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float21_true-unreach-call.i</include>
+<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
       </tasks>
 
       <tasks>
@@ -823,15 +807,15 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
     <option name="-setprop">pcc.strategy=ReachedSetStrategy</option>
     <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/eca-rers2012/Problem16_label59_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loop-lit/gr2006_true-unreach-call_true-termination.c.i</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy2_true-unreach-call.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy_true-unreach-call_true-valid-memsafety.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/parport_true-unreach-call.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/systemc/toy_true-unreach-call_false-termination.cil.c</include>
+<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+<include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+<include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml </include>
+<include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+<include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+<include>../programs/benchmarks/systemc/toy.cil.yml</include>
       </tasks>
 
 <!-- partial reached set proof -->
@@ -848,10 +832,10 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">pcc.partial.stopAddingAtReachedSetSize=true</option>
     <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
     <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
-<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_floodmax.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/benchmarks/loop-new/nested-1.yml</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -868,8 +852,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">pcc.partial.stopAddingAtReachedSetSize=true</option>
     <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
     <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -885,11 +868,11 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
     <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
     <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
- <include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_iterated_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_STARTPALS_Triplicated_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.BOUNDED-6.pals_true-termination.c</include>
+ <include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
+<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+<include>../programs/benchmarks/loop-new/nested-1.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -906,10 +889,9 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.composite.aggregateBasicBlocks=false</option>
      <option name="-setprop">cpa=cpa.PropertyChecker.PropertyCheckerCPA</option>
     <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
-<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/benchmarks/float-benchs/filter2.yml</include>
+<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -923,11 +905,11 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">pcc.strategy=PartialReachedSetStrategy</option> 
     <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option> 
 		  <!-- only possible in combination-->
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_5_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float21_true-unreach-call.i</include>
+<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
       </tasks>
 
       <tasks>
@@ -939,15 +921,15 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">PropertyCheckerCPA.cpa=cpa.composite.CompositeCPA</option>
      <option name="-setprop">pcc.strategy=PartialReachedSetStrategy</option>
     <option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/eca-rers2012/Problem16_label59_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loop-lit/gr2006_true-unreach-call_true-termination.c.i</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy2_true-unreach-call.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy_true-unreach-call_true-valid-memsafety.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/parport_true-unreach-call.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/systemc/toy_true-unreach-call_false-termination.cil.c</include>
+<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+<include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+<include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml </include>
+<include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+<include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+<include>../programs/benchmarks/systemc/toy.cil.yml</include>
       </tasks>
 
 <!-- CMC args proof -->
@@ -960,10 +942,10 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">solver.solver=MATHSAT5</option>
     <option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
     <option name="-setprop">pcc.arg.checkPropertyPerElement=true</option>
-<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_floodmax.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
+<include>../programs/benchmarks/loop-new/nested-1.yml</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_floodmax.3.ufo.UNBOUNDED.pals.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.UNBOUNDED.pals.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -975,8 +957,7 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
     <option name="-setprop">pcc.arg.checkPropertyPerElement=true</option>
 	<option name="-config">config/unmaintained/combinations-value+pred-cmc-proofcheck.properties</option>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -987,11 +968,11 @@ SPDX-License-Identifier: Apache-2.0
 	<option name="-setprop">cpa.predicate.blk.alwaysAtLoops=true</option>
 	<option name="-setprop">pcc.proof=output/ValuePredicateCMC_${inputfile_name}_cmcarg.proof</option>
 	<option name="-setprop">pcc.arg.checkPropertyPerElement=true</option>
- <include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_iterated_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loop-new/nested_true-unreach-call_true-termination.i</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_STARTPALS_Triplicated_true-unreach-call.ufo.UNBOUNDED.pals.c</include>
-<include>../programs/sv-benchmarks-svcomp17/seq-mthreaded/pals_lcr-var-start-time.3_true-unreach-call.ufo.BOUNDED-6.pals_true-termination.c</include>
+ <include>../programs/benchmarks/float-benchs/filter2_iterated.yml</include>
+<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+<include>../programs/benchmarks/loop-new/nested-1.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_STARTPALS_Triplicated.ufo.UNBOUNDED.pals.yml</include>
+<include>../programs/benchmarks/seq-mthreaded/pals_lcr-var-start-time.3.ufo.BOUNDED-6.pals.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -1003,10 +984,9 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-setprop">cpa.predicate.blk.alwaysAtJoin=true</option>
     <option name="-setprop">pcc.proof=output/ValuePredicateCMC+_${inputfile_name}_cmcarg.proof</option>
     <option name="-setprop">pcc.arg.checkPropertyPerElement=true</option>
-<include>../programs/sv-benchmarks-svcomp17/float-benchs/filter2_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-esbmc-regression/fabs_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.c</include>
-<include>../programs/sv-benchmarks-svcomp17/loops/matrix_true-unreach-call_true-termination.i</include>
+<include>../programs/benchmarks/float-benchs/filter2.yml</include>
+<include>../programs/benchmarks/floats-esbmc-regression/fabs.yml</include>
+<include>../programs/benchmarks/loops/matrix-1.yml</include>
 <include>../programs/CMC+PCC/bonus.c</include>
 </tasks>
 
@@ -1015,11 +995,11 @@ SPDX-License-Identifier: Apache-2.0
 	<option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
     <option name="-setprop">pcc.proof=output/ValueApronCMC_${inputfile_name}_cmcarg.proof</option>
     <option name="-setprop">pcc.arg.checkPropertyPerElement=true</option>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_5_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float21_true-unreach-call.i</include>
+<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_5.c.cil.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float21.yml</include>
       </tasks>
 
       <tasks>
@@ -1028,15 +1008,15 @@ SPDX-License-Identifier: Apache-2.0
 	<option name="-setprop">cpa.propertychecker.className=NoTargetStateChecker</option>
 	<option name="-setprop">pcc.arg.checkPropertyPerElement=true</option>
     <option name="-setprop">pcc.proof=output/ValueApronCMCItp_${inputfile_name}_cmcarg.proof</option>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_2_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/bitvector/soft_float_3_true-unreach-call_true-no-overflow.c.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/eca-rers2012/Problem16_label59_true-unreach-call.c</include>
-<include>../programs/sv-benchmarks-svcomp17/floats-cbmc-regression/float-rounding1_true-unreach-call.i</include>
-<include>../programs/sv-benchmarks-svcomp17/loop-lit/gr2006_true-unreach-call_true-termination.c.i</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy2_true-unreach-call.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/floppy_true-unreach-call_true-valid-memsafety.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/ntdrivers/parport_true-unreach-call.i.cil.c</include>
-<include>../programs/sv-benchmarks-svcomp17/systemc/toy_true-unreach-call_false-termination.cil.c</include>
+<include>../programs/benchmarks/bitvector/soft_float_2.c.cil.yml</include>
+<include>../programs/benchmarks/bitvector/soft_float_3.c.cil.yml</include>
+<include>../programs/benchmarks/eca-rers2012/Problem16_label59.yml</include>
+<include>../programs/benchmarks/floats-cbmc-regression/float-rounding1.yml</include>
+<include>../programs/benchmarks/loop-lit/gr2006.yml</include>
+<include>../programs/benchmarks/ntdrivers/floppy2.i.cil.yml </include>
+<include>../programs/benchmarks/ntdrivers/floppy.i.cil-3.yml</include>
+<include>../programs/benchmarks/ntdrivers/parport.i.cil-2.yml</include>
+<include>../programs/benchmarks/systemc/toy.cil.yml</include>
       </tasks>
 
 </rundefinition>
