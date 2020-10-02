@@ -182,8 +182,10 @@ public class LoopData implements Comparable<LoopData> {
 
     for (CFANode node : nodesInLoop) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-        if (node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.StatementEdge) ||
-        node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.DeclarationEdge)) {
+        if ((node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.StatementEdge)
+            || node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.DeclarationEdge))
+            && (CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i)) != null
+                || CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i)) != null)) {
           boolean flag = true;
 
           for (String s : output) {
@@ -228,6 +230,7 @@ public class LoopData implements Comparable<LoopData> {
                             .toString()
                             .split("\\[")[1].split("\\]")[0];
               }else {
+                if (CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i)).contains(":")) {
               temp =
                   CFAEdgeUtils.getLeftHandVariable(
                       node.getLeavingEdge(
@@ -235,6 +238,9 @@ public class LoopData implements Comparable<LoopData> {
                     .split(OUTPUT_NAME_SYMBOL_CUT)[OUTPUT_VARIABLE_ARRAY_POSITION]
                     + "&"
                     + CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(i));
+            } else {
+              temp = CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i));
+            }
               }
             } else if (CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i)) != null) {
               if (CFAEdgeUtils.getLeftHandSide(
@@ -264,8 +270,9 @@ public class LoopData implements Comparable<LoopData> {
       for (int e = 0; e < n.getNumLeavingEdges(); e++) {
         if (n.getLeavingEdge(e).getEdgeType().equals(CFAEdgeType.DeclarationEdge)) {
           for (String s : tempOutput) {
-            if (CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)) != null
-                && s.split(
+            if (CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)) != null){
+if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
+                 s.split(
                     "&")[0]
                     .equals(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).split(":")[2])) {
               String tempNew = s;
@@ -296,7 +303,37 @@ public class LoopData implements Comparable<LoopData> {
 
               overwrite.add(tempNew);
 
-            }
+            } else if (!CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":")
+                && s.split("&")[0].equals(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)))) {
+              String tempNew = s;
+
+              if (tempNew.contains("Array") && tempNew.split(":").length != 3) {
+                String tmpNewStart = tempNew.split("&")[0];
+                String tmpNewEnd = tempNew.split("&")[1];
+
+                String arraySize =
+                    CFAEdgeUtils.getLeftHandType(n.getLeavingEdge(e)).toString().split("\\[")[1]
+                        .split("\\]")[0];
+
+                tmpNewEnd =
+                    tmpNewEnd
+                        +
+                    ":"
+                        + arraySize;
+
+                tempNew = tmpNewStart + "&" + tmpNewEnd;
+              }
+
+              tempNew =
+                  tempNew
+                      + "&"
+                  + ((ADeclarationEdge) n.getLeavingEdge(e)).getDeclaration()
+                  .getFileLocation()
+                  .getStartingLineInOrigin();
+
+              overwrite.add(tempNew);
+}
+}
           }
         }
       }
