@@ -84,10 +84,9 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
 
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
+    AlgorithmStatus status = algorithm.run(reachedSet);
     totalTime.start();
-    AlgorithmStatus status;
     try {
-      status = algorithm.run(reachedSet);
       List<CounterexampleInfo> counterExamples = getCounterexampleInfos(reachedSet).toList();
 
       if (counterExamples.isEmpty()) {

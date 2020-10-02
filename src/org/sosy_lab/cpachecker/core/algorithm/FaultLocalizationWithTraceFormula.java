@@ -182,11 +182,9 @@ public class FaultLocalizationWithTraceFormula
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
 
+    AlgorithmStatus status = algorithm.run(reachedSet);
     totalTime.start();
-    AlgorithmStatus status;
     try {
-      // Find error labels
-      status = algorithm.run(reachedSet);
       FluentIterable<CounterexampleInfo> counterExamples =
           Optionals.presentInstances(
               from(reachedSet)
