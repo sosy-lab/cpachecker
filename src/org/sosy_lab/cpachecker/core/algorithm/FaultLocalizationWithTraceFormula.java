@@ -251,7 +251,7 @@ public class FaultLocalizationWithTraceFormula
           break;
         }
         case ERRINV: {
-          tf = disableFSTF ? new TraceFormula.FlowSensitiveTrace(context, options, edgeList) : new TraceFormula.DefaultTrace(context, options, edgeList);
+          tf = disableFSTF ? new TraceFormula.DefaultTrace(context, options, edgeList) : new TraceFormula.FlowSensitiveTrace(context, options, edgeList);
           ranking = FaultRankingUtils.concatHeuristics(
               new EdgeTypeScoring(),
               new CallHierarchyScoring(edgeList, tf.getPostConditionOffset()));
