@@ -83,11 +83,12 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JReferencedMethodInvocationExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JReturnStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.java.PendingExceptionOfJRunTimeType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JSuperConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.PendingExceptionOfJIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.PendingExceptionOfJRunTimeType;
 import org.sosy_lab.cpachecker.cfa.ast.java.VisibilityModifier;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -101,6 +102,7 @@ import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.java.JReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
+import org.sosy_lab.cpachecker.cfa.model.java.JThrowStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassOrInterfaceType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JConstructorType;
@@ -1925,8 +1927,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     final String thrownName;
     if (thrown != null) {
       thrownName = thrown.getName();
-    }
-    else{
+    } else {
       thrownName = pThrowStatement.getExpression().toString();
     }
     FileLocation fileloc = astCreator.getFileLocation(pThrowStatement);
@@ -1936,38 +1937,45 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     if (!tryStack.isEmpty() && !nodeIsInCatchClause(pThrowStatement)) {
       final Optional<CFANode> preCatchNode = getPreCatchNode();
 
-      BlankEdge blankEdge;
-      blankEdge =
-          new BlankEdge(
+      JLeftHandSide leftHandSide = PendingExceptionOfJIdExpression.create();
+      JIdExpression rightHandSide = new JIdExpression(fileloc, thrown.getType(), thrownName, null);
+
+      JExpressionAssignmentStatement jExpressionAssignmentStatement =
+          new JExpressionAssignmentStatement(fileloc, leftHandSide, rightHandSide);
+      JThrowStatementEdge jThrowStatementEdge =
+          new JThrowStatementEdge(
               pThrowStatement.toString(),
+              jExpressionAssignmentStatement,
               fileloc,
               prevNode,
-              preCatchNode.orElseGet(() -> cfa.getExitNode()),
-              "throw " + thrownName);
+              preCatchNode.orElseGet(() -> cfa.getExitNode()));
 
-      addToCFA(blankEdge);
+      addToCFA(jThrowStatementEdge);
 
       if (!locStack.isEmpty() && !elseStack.isEmpty()) {
         locStack.push(locStack.peek());
       } else {
         locStack.push(preCatchNode.orElseThrow());
       }
-    }
-    else{
+    } else {
       final CFANode nextNode = new CFANode(cfa.getFunction());
       cfaNodes.add(nextNode);
       locStack.push(nextNode);
 
-      BlankEdge blankEdge;
-      blankEdge =
-          new BlankEdge(
+      JLeftHandSide leftHandSide = new JIdExpression(fileloc, thrown.getType(), "thrown", null);
+      JIdExpression rightHandSide = new JIdExpression(fileloc, thrown.getType(), thrownName, null);
+
+      JExpressionAssignmentStatement jExpressionAssignmentStatement =
+          new JExpressionAssignmentStatement(fileloc, leftHandSide, rightHandSide);
+      JStatementEdge jStatementEdge =
+          new JStatementEdge(
               pThrowStatement.toString(),
+              jExpressionAssignmentStatement,
               fileloc,
               prevNode,
-              nextNode,
-              "throw " + thrownName);
+              nextNode);
 
-      addToCFA(blankEdge);
+      addToCFA(jStatementEdge);
     }
   }
 

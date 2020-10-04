@@ -16,7 +16,7 @@ public class PendingExceptionOfJIdExpression extends JIdExpression {
 
   private static final long serialVersionUID = 7788790137238292607L;
 
-  public PendingExceptionOfJIdExpression(
+  private PendingExceptionOfJIdExpression(
       FileLocation pFileLocation, JType pType, String pName, JSimpleDeclaration pDeclaration) {
     super(pFileLocation, pType, pName, pDeclaration);
   }
