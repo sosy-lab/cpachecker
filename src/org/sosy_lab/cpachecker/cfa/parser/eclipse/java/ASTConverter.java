@@ -15,7 +15,6 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableBiMap.Builder;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -168,7 +167,7 @@ class ASTConverter {
 
   /** Map for unboxing of JClassTypes */
   private static final ImmutableMap<String, JBasicType> unboxingMap =
-      new Builder<String, JBasicType>()
+       ImmutableMap.<String, JBasicType>builder()
           .put("java.lang.Boolean", JBasicType.BOOLEAN)
           .put("java.lang.Byte", JBasicType.BYTE)
           .put("java.lang.Character", JBasicType.CHAR)
