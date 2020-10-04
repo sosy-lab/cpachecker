@@ -346,7 +346,7 @@ public class RTTState extends AbstractAppender implements
     return constantsMap;
   }
 
-  public String getClassObjectScope() {
+  String getClassObjectScope() {
     return classObjectScope;
   }
 
