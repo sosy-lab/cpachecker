@@ -126,4 +126,25 @@ public class PendingExceptionTransferRelation
 
     return false;
   }
+
+  @Override
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState pState,
+      Iterable<AbstractState> pOtherStates,
+      @Nullable CFAEdge pCfaEdge,
+      Precision pPrecision)
+      throws CPATransferException, InterruptedException {
+    for (AbstractState abstractState : pOtherStates) {
+      if ((abstractState instanceof RTTState)) {
+        for (String variableName :
+            ((PendingExceptionState) pState).getPendingExceptions().keySet()) {
+          String value = ((RTTState) abstractState).getConstantsMap().get(variableName);
+          ((PendingExceptionState) pState)
+              .getPendingExceptions()
+              .put(variableName, ((RTTState) abstractState).getRunTimeClassOfUniqueObject(value));
+        }
+      }
+    }
+    return super.strengthen(pState, pOtherStates, pCfaEdge, pPrecision);
+  }
 }
