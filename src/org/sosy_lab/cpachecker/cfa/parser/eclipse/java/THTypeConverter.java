@@ -54,21 +54,22 @@ class THTypeConverter extends TypeConverter {
 
     // convert super class. Type of class 'Object' terminates this recursion.
     ITypeBinding superClass = t.getSuperclass();
-
     JClassType superClassType;
 
-    boolean isOfJavaLang = false;
-    if (superClass != null) {
+    if (superClass != null && !t.isRecovered()) {
       superClassType = convertClassType(superClass);
     } else if (t.isRecovered()) {
       Class<?> cls = null;
+      try {
+        cls = Class.forName(typeName);
+      } catch (ClassNotFoundException ignored) {
+      }
       try {
         cls = Class.forName("java.lang." + typeName);
       } catch (ClassNotFoundException ignored) {
       }
       if (cls != null && cls.getSuperclass() != null) {
         superClassType = createJClassTypeFromClass(cls.getSuperclass());
-        isOfJavaLang = true;
       } else {
         superClassType = JClassType.createUnresolvableType();
       }
@@ -86,10 +87,10 @@ class THTypeConverter extends TypeConverter {
     JClassType resultType;
 
     if (t.isTopLevel()) {
-      resultType = createClassType(t, superClassType, interfaces, isOfJavaLang);
+      resultType = createClassType(t, superClassType, interfaces);
     } else {
       JClassOrInterfaceType enclosingType = convertEnclosingType(t);
-      resultType = createClassType(t, superClassType, interfaces, enclosingType, isOfJavaLang);
+      resultType = createClassType(t, superClassType, interfaces, enclosingType);
     }
 
     typeTable.registerType(resultType);
@@ -189,15 +190,11 @@ class THTypeConverter extends TypeConverter {
   private JClassType createClassType(
       ITypeBinding t,
       JClassType pSuperClass,
-      Set<JInterfaceType> pImplementedInterfaces,
-      boolean isOfJavaLang) {
+      Set<JInterfaceType> pImplementedInterfaces) {
 
     checkArgument(t.isTopLevel());
 
-    String name =
-        isOfJavaLang
-            ? "java.lang." + NameConverter.convertClassOrInterfaceToFullName(t)
-            : NameConverter.convertClassOrInterfaceToFullName(t);
+    String name = NameConverter.convertClassOrInterfaceToFullName(t);
     String simpleName = t.getName();
 
     ModifierBean mB = ModifierBean.getModifiers(t);
@@ -228,15 +225,11 @@ class THTypeConverter extends TypeConverter {
       ITypeBinding t,
       JClassType pSuperClass,
       Set<JInterfaceType> pImplementedInterfaces,
-      JClassOrInterfaceType pEnclosingType,
-      boolean isOfJavaLang) {
+      JClassOrInterfaceType pEnclosingType) {
 
     checkArgument(!t.isTopLevel());
 
-    String name =
-        isOfJavaLang
-            ? "java.lang." + NameConverter.convertClassOrInterfaceToFullName(t)
-            : NameConverter.convertClassOrInterfaceToFullName(t);
+    String name = NameConverter.convertClassOrInterfaceToFullName(t);
     String simpleName = t.getName();
 
     if (simpleName.isEmpty()) {

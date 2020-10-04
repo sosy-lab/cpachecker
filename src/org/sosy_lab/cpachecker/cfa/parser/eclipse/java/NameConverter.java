@@ -100,8 +100,9 @@ final class NameConverter {
     } else if(classBinding.isRecovered()){
       // Dirty solution for MissingTypeBindings.
       try {
-        Class.forName("java.lang." + classBinding.getBinaryName());
-        return "java.lang." + classBinding.getBinaryName();
+        final String name = classBinding.getName();
+        Class.forName("java.lang." + name);
+        return "java.lang." + classBinding.getName();
       } catch (ClassNotFoundException e) {
         return classBinding.getQualifiedName();
       }

@@ -31,7 +31,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
@@ -1492,9 +1491,6 @@ class ASTConverter {
       jTypeOfSuperClass = typeOfObject;
     } else {
       final Set<JClassType> directSubClassesOfTypeObject = typeOfObject.getDirectSubClasses();
-      final List<String> collect = directSubClassesOfTypeObject.stream()
-          .map(v -> v.getName())
-          .collect(Collectors.toList());
       final java.util.Optional<JClassType> superClassInTypeOfObject = directSubClassesOfTypeObject.stream()
           .filter(v -> v.getName().equals(superclass.getName())).findFirst();
       if (superClassInTypeOfObject.isPresent()) {
