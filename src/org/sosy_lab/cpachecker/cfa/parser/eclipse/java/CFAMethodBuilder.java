@@ -14,7 +14,7 @@ import static org.sosy_lab.cpachecker.cfa.CFACreationUtils.isReachableNode;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
@@ -224,11 +225,14 @@ class CFAMethodBuilder extends ASTVisitor {
 
     JClassOrInterfaceType currentClassType = scope.getCurrentClassType();
 
-    Map<String, JFieldDeclaration> fieldDecl = scope.getNonStaticFieldDeclarationOfClass(currentClassType);
+    Map<String, JFieldDeclaration> fieldDecl =
+        scope.getNonStaticFieldDeclarationOfClass(currentClassType);
 
-    Collection<JFieldDeclaration> classFieldDeclaration = fieldDecl.values();
-
-    for (JDeclaration decl : classFieldDeclaration) {
+    List<JFieldDeclaration> classFieldDeclarations =
+        fieldDecl.values().stream()
+            .sorted(Comparator.comparingInt(v -> v.getFileLocation().getStartingLineNumber()))
+            .collect(Collectors.toList());
+    for (JDeclaration decl : classFieldDeclarations) {
 
       List<JDeclaration> declaration = ImmutableList.of(decl);
 
