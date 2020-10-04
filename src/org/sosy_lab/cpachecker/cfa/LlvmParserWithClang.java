@@ -23,25 +23,11 @@
  */
 package org.sosy_lab.cpachecker.cfa;
 
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.logging.Level;
-import org.sosy_lab.common.NativeLibraries;
 import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.common.time.Timer;
-import org.sosy_lab.cpachecker.cfa.ParseResult;
-import org.sosy_lab.cpachecker.cfa.Parser;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.parser.llvm.LlvmParser;
-import org.sosy_lab.cpachecker.exceptions.LLVMParserException;
+import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
-import org.sosy_lab.llvm_j.Context;
-import org.sosy_lab.llvm_j.LLVMException;
-import org.sosy_lab.llvm_j.Module;
 
 /**
  * Parser for the LLVM intermediate language to a CFA. LLVM IR is a typed, assembler-like language

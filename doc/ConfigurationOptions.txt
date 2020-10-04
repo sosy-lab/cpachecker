@@ -3401,6 +3401,17 @@ overflow.useLiveness = true
 # properly.
 parallelAlgorithm.configFiles = no default value
 
+# The command line for calling the clang processor. May contain binary name
+# and arguments, but won't be expanded by a shell. The source file name will
+# be appended to this string. The clang needs to print the output to stdout.
+parser.clang = "clang -S -emit-llvm -o /dev/stdout"
+
+# Directory where to dump the results of the processor.
+parser.clang.dumpDirectory = "processed"
+
+# Whether to dump the results of the processor to disk for debugging.
+parser.clang.dumpResults = true
+
 # C dialect for parser
 parser.dialect = GNUC
   enum:     [C99, GNUC]
@@ -3428,6 +3439,7 @@ parser.transformTokensToLines = false
 # For C files, run the preprocessor on them before parsing. Note that all
 # file numbers printed by CPAchecker will refer to the pre-processed file,
 # not the original input file.
+parser.useClang = false
 parser.usePreprocessor = false
 
 # Specifies the mode how HW requirements are detected in the proof.

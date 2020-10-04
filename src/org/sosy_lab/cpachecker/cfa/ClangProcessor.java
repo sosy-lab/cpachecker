@@ -62,12 +62,11 @@ public class ClangProcessor {
   private boolean dumpResults = true;
 
   @Option(
-    name = "clang.dumpDirectory",
-    description = "Directory where to dump the results of the processor."
-  )
+      name = "clang.dumpDirectory",
+      description = "Directory where to dump the results of the processor.")
 
   /*
-   * Die Klasse schreibt ihre Ouput Files in die processed directory. 
+   * Die Klasse schreibt ihre Output Files in die processed directory.
    */
   @FileOption(Type.OUTPUT_DIRECTORY)
   private Path dumpDirectory = Paths.get("processed");
@@ -82,7 +81,7 @@ public class ClangProcessor {
     }
   }
 
-  public Path getAndWriteDumpedFile(String programCode, String file) throws CParserException, InterruptedException {
+  public Path getAndWriteDumpedFile(String programCode, String file) {
     if (dumpResults && dumpDirectory != null) {
       final Path dumpFile = dumpDirectory.resolve(file.replaceAll("\\.c", ".ll")).normalize();
       if (dumpFile.startsWith(dumpDirectory)) {
