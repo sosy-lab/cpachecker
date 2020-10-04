@@ -14,6 +14,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 public class JThrowStatementEdge extends JStatementEdge {
 
+  private static final long serialVersionUID = 7788790137238262607L;
+
   public JThrowStatementEdge(
       String pRawStatement,
       JStatement pStatement,
