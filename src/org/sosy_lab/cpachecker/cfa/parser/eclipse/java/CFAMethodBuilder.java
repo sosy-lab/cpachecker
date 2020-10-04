@@ -32,6 +32,7 @@ import org.eclipse.jdt.core.dom.Block;
 import org.eclipse.jdt.core.dom.BooleanLiteral;
 import org.eclipse.jdt.core.dom.BreakStatement;
 import org.eclipse.jdt.core.dom.CatchClause;
+import org.eclipse.jdt.core.dom.ClassInstanceCreation;
 import org.eclipse.jdt.core.dom.ConditionalExpression;
 import org.eclipse.jdt.core.dom.ContinueStatement;
 import org.eclipse.jdt.core.dom.DoStatement;
@@ -1923,22 +1924,41 @@ private void handleTernaryExpression(ConditionalExpression condExp,
   @Override
   public void endVisit(ThrowStatement pThrowStatement) {
     handleElseCondition(pThrowStatement);
-    JSimpleDeclaration thrown = scope.lookupVariable(pThrowStatement.getExpression().toString());
+    final Expression throwStatementExpression;
+    if (pThrowStatement.getExpression() instanceof ParenthesizedExpression) {
+      throwStatementExpression =
+          ((ParenthesizedExpression) pThrowStatement.getExpression()).getExpression();
+    } else {
+      throwStatementExpression = pThrowStatement.getExpression();
+    }
+    JSimpleDeclaration thrown = scope.lookupVariable(throwStatementExpression.toString());
     final String thrownName;
     if (thrown != null) {
       thrownName = thrown.getName();
     } else {
-      thrownName = pThrowStatement.getExpression().toString();
+      thrownName = throwStatementExpression.toString();
     }
     FileLocation fileloc = astCreator.getFileLocation(pThrowStatement);
 
     CFANode prevNode = locStack.pop();
 
+    final JType jTypeOfThrown;
+    if (thrown == null && throwStatementExpression instanceof ClassInstanceCreation) {
+      Optional<JType> optionalJTypeOfThrown = getJTypeFromTypeHierarchy(throwStatementExpression);
+      if (optionalJTypeOfThrown.isEmpty()) {
+        astCreator.convertExpressionWithSideEffects(throwStatementExpression);
+        jTypeOfThrown = getJTypeFromTypeHierarchy(throwStatementExpression).get();
+      } else {
+        jTypeOfThrown = optionalJTypeOfThrown.get();
+      }
+    } else {
+      jTypeOfThrown = thrown.getType();
+    }
     if (!tryStack.isEmpty() && !nodeIsInCatchClause(pThrowStatement)) {
       final Optional<CFANode> preCatchNode = getPreCatchNode();
 
       JLeftHandSide leftHandSide = PendingExceptionOfJIdExpression.create();
-      JIdExpression rightHandSide = new JIdExpression(fileloc, thrown.getType(), thrownName, null);
+      JIdExpression rightHandSide = new JIdExpression(fileloc, jTypeOfThrown, thrownName, null);
 
       JExpressionAssignmentStatement jExpressionAssignmentStatement =
           new JExpressionAssignmentStatement(fileloc, leftHandSide, rightHandSide);
@@ -1962,8 +1982,8 @@ private void handleTernaryExpression(ConditionalExpression condExp,
       cfaNodes.add(nextNode);
       locStack.push(nextNode);
 
-      JLeftHandSide leftHandSide = new JIdExpression(fileloc, thrown.getType(), "thrown", null);
-      JIdExpression rightHandSide = new JIdExpression(fileloc, thrown.getType(), thrownName, null);
+      JLeftHandSide leftHandSide = new JIdExpression(fileloc, jTypeOfThrown, "thrown", null);
+      JIdExpression rightHandSide = new JIdExpression(fileloc, jTypeOfThrown, thrownName, null);
 
       JExpressionAssignmentStatement jExpressionAssignmentStatement =
           new JExpressionAssignmentStatement(fileloc, leftHandSide, rightHandSide);
@@ -1977,6 +1997,20 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
       addToCFA(jStatementEdge);
     }
+  }
+
+  private Optional<JType> getJTypeFromTypeHierarchy(Expression pExpression) {
+    if (scope.containsClassType(((ClassInstanceCreation) pExpression).getType().toString())) {
+      return Optional.of(
+          scope.getClassType(((ClassInstanceCreation) pExpression).getType().toString()));
+    } else if (scope.containsClassType(
+        "java.lang." + ((ClassInstanceCreation) pExpression).getType().toString())) {
+      return Optional.of(
+          scope.getClassType(
+              ("java.lang." + ((ClassInstanceCreation) pExpression).getType().toString())));
+    }
+
+    return Optional.empty();
   }
 
   private boolean nodeIsInCatchClause(ASTNode pASTNode) {
