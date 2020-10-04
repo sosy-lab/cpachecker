@@ -190,6 +190,23 @@ final class TypeHierarchy {
     updateFromTypeTable(typeTable);
   }
 
+  void updateTypeHierarchy(JClassType pJClassType) {
+
+    if (typeTable.containsType(pJClassType.getName())) {
+      return;
+    }
+    typeTable.registerType(pJClassType);
+
+    JClassType superClass = pJClassType.getParentClass();
+
+    while(superClass != null && !typeTable.containsType(superClass.getName())){
+      typeTable.registerType(superClass);
+      superClass = superClass.getParentClass();
+    }
+
+    updateFromTypeTable(typeTable);
+  }
+
   private void updateFromTypeTable(THTypeTable pTypeTable) {
     types = pTypeTable.getTypes();
     fileOfTypes = pTypeTable.getTypeOfFiles();

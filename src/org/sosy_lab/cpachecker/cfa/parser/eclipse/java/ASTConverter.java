@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
@@ -807,6 +808,15 @@ class ASTConverter {
     return new JConstructorType(declaringClass, paramTypes, pBinding.isVarargs());
   }
 
+  private JConstructorType convertConstructorType(IMethodBinding pBinding, List<?> arguments) {
+    Preconditions.checkArgument(pBinding.isConstructor());
+
+    // Constructors can't be declared by Interfaces
+    JClassType declaringClass = (JClassType) getDeclaringClassType(pBinding);
+
+    return new JConstructorType(declaringClass, getJTypesOfParameters(arguments), pBinding.isVarargs());
+  }
+
   private JMethodType convertMethodType(IMethodBinding pBinding) {
     Preconditions.checkArgument(!pBinding.isConstructor());
 
@@ -1377,7 +1387,7 @@ class ASTConverter {
     if (constructorBinding != null) {
       final ModifierBean mb = ModifierBean.getModifiers(constructorBinding);
 
-      final JConstructorType jConstructorType = convertConstructorType(constructorBinding);
+      final JConstructorType jConstructorType = convertConstructorType(constructorBinding, pCIC.arguments());
 
       List<JParameterDeclaration> parameterDeclarations= new ArrayList<>();
       for (JType parameter : jConstructorType.getParameters()) {
@@ -1385,8 +1395,9 @@ class ASTConverter {
             new JParameterDeclaration(
                 getFileLocation(pCIC),
                 parameter,
-                ((JClassOrInterfaceType) parameter).getSimpleName(),
-                ((JClassOrInterfaceType) parameter).getName(),
+                // TODO Naming for simple types
+                parameter instanceof JClassOrInterfaceType ? ((JClassOrInterfaceType) parameter).getSimpleName() : ((JSimpleType) parameter).toString(),
+                parameter instanceof JClassOrInterfaceType ? ((JClassOrInterfaceType) parameter).getName() : ((JSimpleType) parameter).toString(),
                 parameter instanceof JClassType && ((JClassType) parameter).isFinal()));
       }
 
@@ -1414,9 +1425,11 @@ class ASTConverter {
 
     if (constructorOptional.isPresent()) {
       JClassOrInterfaceType declaringClass = scope.getCurrentClassType();
+      final JClassType jTypeFromConstructor =
+          createOrFindJClassTypeFromConstructor(constructorOptional.get());
       JConstructorType constructorType =
           new JConstructorType(
-              declaringClass,
+              jTypeFromConstructor,
               getJTypesOfParameters(pCIC.arguments()),
               constructorOptional.get().isVarArgs());
       return new JConstructorDeclaration(
@@ -1426,7 +1439,7 @@ class ASTConverter {
           simpleName,
           createJParameterDeclarationsForArguments(pCIC.arguments()),
           getVisibilityModifierForConstructor(constructorOptional.get()),
-          (declaringClass instanceof JClassType && ((JClassType) declaringClass).isStrictFp()),
+          jTypeFromConstructor.isStrictFp(),
           declaringClass);
     }
 
@@ -1442,7 +1455,69 @@ class ASTConverter {
         JClassType.createUnresolvableType());
   }
 
-  private Set<ImportDeclaration> getImportDeclarations(ASTNode astNode) {
+  private JClassType createOrFindJClassTypeFromConstructor(final Constructor<?> pConstructor) {
+
+    final VisibilityModifier visibilityModifierForConstructor =
+        getVisibilityModifierForConstructor(pConstructor);
+
+    Class<?> pClazz = pConstructor.getDeclaringClass();
+
+    final TypeHierarchy typeHierarchy = scope.getTypeHierarchy();
+
+    final JClassType jClassTypeFromClass =
+        createJClassTypeFromClass(pClazz, visibilityModifierForConstructor,
+            typeHierarchy);
+
+    typeHierarchy.updateTypeHierarchy(jClassTypeFromClass);
+
+    return jClassTypeFromClass;
+
+  }
+
+  public static JClassType createJClassTypeFromClass(
+      final Class<?> pClazz,
+      VisibilityModifier pVisibilityModifier,
+      final TypeHierarchy pTypeHierarchy) {
+    final String name = pClazz.getName();
+    if (pTypeHierarchy.containsClassType(name)) {
+      return pTypeHierarchy.getClassType(name);
+    }
+
+    final String simpleName = pClazz.getSimpleName();
+    final Class<?> superclass = pClazz.getSuperclass();
+
+    JClassType jTypeOfSuperClass;
+    final JClassType typeOfObject = JClassType.getTypeOfObject();
+    if ("java.lang.Object".equals(superclass.getName())) {
+      jTypeOfSuperClass = typeOfObject;
+    } else {
+      final Set<JClassType> directSubClassesOfTypeObject = typeOfObject.getDirectSubClasses();
+      final List<String> collect = directSubClassesOfTypeObject.stream()
+          .map(v -> v.getName())
+          .collect(Collectors.toList());
+      final java.util.Optional<JClassType> superClassInTypeOfObject = directSubClassesOfTypeObject.stream()
+          .filter(v -> v.getName().equals(superclass.getName())).findFirst();
+      if (superClassInTypeOfObject.isPresent()) {
+        return superClassInTypeOfObject.get();
+      } else {
+        jTypeOfSuperClass =
+            createJClassTypeFromClass(superclass, VisibilityModifier.PUBLIC, pTypeHierarchy);
+      }
+    }
+
+    final ModifierBean modifiers = ModifierBean.getModifiers(pClazz.getModifiers());
+    return JClassType.valueOf(
+        name,
+        simpleName,
+        pVisibilityModifier,
+        modifiers.isFinal,
+        modifiers.isAbstract,
+        modifiers.isStrictFp,
+        jTypeOfSuperClass,
+        ImmutableSet.of());
+  }
+
+  private static Set<ImportDeclaration> getImportDeclarations(ASTNode astNode) {
     // Find CompilationUnit of class calling the constructor
     ASTNode compilationUnit = astNode.getParent();
     while (!(compilationUnit instanceof CompilationUnit)) {
