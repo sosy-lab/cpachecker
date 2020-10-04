@@ -15,6 +15,10 @@ public class JIdExpressionIsPendingExceptionThrown extends JIdExpression {
   private static final long serialVersionUID = 400773883593631874L;
 
   public JIdExpressionIsPendingExceptionThrown() {
-    super(FileLocation.DUMMY, JSimpleType.getBoolean(), "isPendingExceptionThrown", null);
+    super(
+        FileLocation.DUMMY,
+        JSimpleType.getBoolean(),
+        "isPendingExceptionThrown",
+        JFieldDeclaration.createUnresolvedFieldDeclaration());
   }
 }
