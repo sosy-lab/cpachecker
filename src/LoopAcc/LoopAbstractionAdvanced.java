@@ -57,10 +57,10 @@ public class LoopAbstractionAdvanced {
     ArrayList<String> preUsedVariables = new ArrayList<>();
     boolean closed = true;
     for (LoopData loopData : loopInfo.getLoopData()) {
-      if (loopData.getLoopType() == "while") {
+      if (loopData.getLoopType().equals("while")) {
         loopStarts.add(
             loopData.getLoopStart().getEnteringEdge(0).getFileLocation().getStartingLineInOrigin());
-      } else if (loopData.getLoopType() == "for") {
+      } else if (loopData.getLoopType().equals("for")) {
         loopStarts.add(
             loopData.getLoopStart().getEnteringEdge(0).getFileLocation().getStartingLineInOrigin()
         );
@@ -186,7 +186,9 @@ public class LoopAbstractionAdvanced {
           for (LoopData loopD : loopInfo.getLoopData()) {
 
 
-            if (((loopD.getLoopType() == "while"
+            if (((loopD.getLoopType()
+                .equals(
+                    "while")
                 || loopD
                     .getLoopInLoop())
                 && loopD.getLoopStart()
@@ -194,7 +196,9 @@ public class LoopAbstractionAdvanced {
                     .getFileLocation()
                     .getStartingLineInOrigin() == lineNumber)
                 || (loopD
-                    .getLoopType() == "for"
+                    .getLoopType()
+                    .equals(
+                        "for")
                     && loopD.getLoopStart()
                         .getEnteringEdge(0)
                         .getFileLocation()
@@ -645,8 +649,8 @@ public class LoopAbstractionAdvanced {
               }
               }
 
-              if (loopD.getIsOuterLoop() == false) {
-              if (loopD.getLoopType() == "while") {
+              if (!loopD.getIsOuterLoop()) {
+                if (loopD.getLoopType().equals("while")) {
                 content +=
                     ("__VERIFIER_assume(" + loopD.getCondition() + ");") + System.lineSeparator();
                 while (lineNumber >= endNodeCondition.getEnteringEdge(
@@ -742,13 +746,13 @@ public class LoopAbstractionAdvanced {
                     content += line + System.lineSeparator();
                     lineNumber++;
                   }
-                  if (outerLoopTemp.get(i).getLoopType() == "for") {
+                  if (outerLoopTemp.get(i).getLoopType().equals("for")) {
                     content +=
                         ("__VERIFIER_assume(!("
                             + outerLoopTemp.get(i).getCondition().split(";")[1]
                             + "));"
                             + System.lineSeparator());
-                  } else if (outerLoopTemp.get(i).getLoopType() == "while") {
+                  } else if (outerLoopTemp.get(i).getLoopType().equals("while")) {
                     content +=
                         ("__VERIFIER_assume(!("
                             + outerLoopTemp.get(i).getCondition()
@@ -757,7 +761,7 @@ public class LoopAbstractionAdvanced {
                   }
                 }
                 outerLoopTemp.clear();
-              } else if (loopD.getLoopType() == "for") {
+              } else if (loopD.getLoopType().equals("for")) {
                 content +=
                     ("__VERIFIER_assume("
                         + loopD.getCondition().split(";")[1]
@@ -857,7 +861,7 @@ public class LoopAbstractionAdvanced {
                     content += line + System.lineSeparator();
                     lineNumber++;
                   }
-                  if (outerLoopTemp.get(i).getLoopType() == "for") {
+                  if (outerLoopTemp.get(i).getLoopType().equals("for")) {
                   content +=
                       ("__VERIFIER_assume(!("
                           + outerLoopTemp.get(i)
@@ -865,7 +869,7 @@ public class LoopAbstractionAdvanced {
                               .split(";")[1]
                           + "));"
                           + System.lineSeparator());
-                } else if (outerLoopTemp.get(i).getLoopType() == "while") {
+                } else if (outerLoopTemp.get(i).getLoopType().equals("while")) {
                   content +=
                       ("__VERIFIER_assume(!("
                           + outerLoopTemp.get(i).getCondition()
@@ -876,16 +880,16 @@ public class LoopAbstractionAdvanced {
                 outerLoopTemp.clear();
               }
             } else if (loopD.getIsOuterLoop()) {
-              if (loopD.getLoopType() == "while") {
+              if (loopD.getLoopType().equals("while")) {
                 content +=
                     ("__VERIFIER_assume(" + loopD.getCondition() + ");") + System.lineSeparator();
-              } else if (loopD.getLoopType() == "for") {
+              } else if (loopD.getLoopType().equals("for")) {
                 content +=
                     ("__VERIFIER_assume(" + loopD.getCondition().split(";")[1] + ");")
                         + System.lineSeparator();
               }
               outerLoopTemp.add(loopD);
-              if (loopD.getLoopType() == "for") {
+              if (loopD.getLoopType().equals("for")) {
               while (lineNumber >= endNodeCondition.getEnteringEdge(0)
                   .getFileLocation()
                   .getEndingLineInOrigin()
@@ -908,7 +912,7 @@ public class LoopAbstractionAdvanced {
                 lineNumber++;
                 // lineNumber++;
               }
-            } else if (loopD.getLoopType() == "while") {
+            } else if (loopD.getLoopType().equals("while")) {
               while (lineNumber >= endNodeCondition.getEnteringEdge(0)
                   .getFileLocation()
                   .getEndingLineInOrigin()
@@ -1051,7 +1055,7 @@ public class LoopAbstractionAdvanced {
 
     if (line != null) {
       String temp = line.split("\\(")[0];
-      if (ifCaseC == false && line.contains("}")) {
+      if (!ifCaseC && line.contains("}")) {
         ifCaseC = true;
       }
       if (temp.contains("if") || line.contains("else")) {
@@ -1081,7 +1085,7 @@ public class LoopAbstractionAdvanced {
 
     String fileName;
 
-    if (automate == true) {
+    if (automate) {
       fileName = pathForNewFile;
     } else {
       fileName =

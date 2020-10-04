@@ -431,7 +431,7 @@ public class CFACreator {
     boolean flag = false;
 
     Preconditions.checkArgument(!sourceFiles.isEmpty(), "At least one source file must be provided!");
-    if (loopIsAutomated == false || automateAbstractLoopParser == true) {
+    if (!loopIsAutomated || automateAbstractLoopParser) {
     stats.totalTime.start();
   }
 
@@ -474,7 +474,7 @@ public class CFACreator {
     return result;
 
     } finally {
-      if (flag == true || loopIsAutomated == false) {
+      if (flag || !loopIsAutomated) {
       stats.totalTime.stop();
     }
     }
@@ -594,7 +594,7 @@ public class CFACreator {
       depGraph = Optional.empty();
     }
 
-    if (language == Language.C && loopIsAutomated == false) {
+    if (language == Language.C && !loopIsAutomated) {
       LoopInformation builder = new LoopInformation(config, logger, cfa);
       builder.collectStatistics(stats.statisticsCollection);
       LoopAbstractionHeader loopAbstraction =

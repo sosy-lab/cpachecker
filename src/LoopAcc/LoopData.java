@@ -771,7 +771,7 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
     }
   }
     for (Boolean b : temp) {
-      if (b == true) {
+      if (b) {
         canAccelerate = true;
       }
     }
