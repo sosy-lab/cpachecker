@@ -61,7 +61,8 @@ public class LoopAbstractionHeader {
    * @param loopI LoopInformation object that includes all the info needed to abstract a loop
    * @param config config object that enables switching between the 3 modes, default is that none of
    *        the data will be rewritten
-   * @throws InvalidConfigurationException
+   * @throws InvalidConfigurationException throws an exception if the configuration doesn't match
+   *         the supported options
    */
   public LoopAbstractionHeader(
       LoopInformation loopI,

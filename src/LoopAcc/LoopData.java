@@ -99,8 +99,8 @@ public class LoopData implements Comparable<LoopData> {
     getAllPaths();
     inputOutput = getAllIO();
     numberAllOutputs = getAllNumberOutputs(output);
-    canBeAccelerated = canLoopBeAccelerated();
     amountOfPaths = getAllPaths();
+    canBeAccelerated = canLoopBeAccelerated();
   }
 
   public int getNumberOutputs() {
@@ -476,7 +476,7 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
    * This method looks for all of the nodes in the condition and even cuts out the nodes that belong
    * to an if-case
    *
-   * @param cfa
+   * @param cfa used to get a list of all nodes to see which variables are already initialized
    * @return returns a list with all the nodes that are part of the condition
    */
   public ArrayList<CFANode> nodesInCondition(CFA cfa, LogManager pLogger, boolean loopTF) {
@@ -700,24 +700,31 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
         try {
           double d = Double.parseDouble(variable);
         } catch (NumberFormatException | NullPointerException nfe) {
+          temp.add(true);
+        }
           try {
             int d = Integer.parseInt(variable);
+            if (d > amountOfPaths || d > numberAllOutputs) {
+              temp.add(true);
+            }
           } catch (NumberFormatException | NullPointerException nfe1) {
+            temp.add(true);
+          }
             try {
               long d = Long.parseLong(variable);
             } catch (NumberFormatException | NullPointerException nfe2) {
+              temp.add(true);
+            }
               try {
                 float d = Float.parseFloat(variable);
               } catch (NumberFormatException | NullPointerException nfe3) {
+                temp.add(true);
+              }
                 try {
                   new BigInteger(variable);
                 } catch (NumberFormatException | NullPointerException nfe4) {
                   temp.add(true);
                 }
-              }
-            }
-          }
-        }
       }
 
     } else if (loopType.contentEquals("for")) {
@@ -733,24 +740,31 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
         try {
           double d = Double.parseDouble(variable);
         } catch (NumberFormatException | NullPointerException nfe) {
+          temp.add(true);
+        }
           try {
             int d = Integer.parseInt(variable);
+            if (d > amountOfPaths || d > numberAllOutputs) {
+              temp.add(true);
+            }
           } catch (NumberFormatException | NullPointerException nfe1) {
+            temp.add(true);
+          }
             try {
               long d = Long.parseLong(variable);
             } catch (NumberFormatException | NullPointerException nfe2) {
+              temp.add(true);
+            }
               try {
                 float d = Float.parseFloat(variable);
               } catch (NumberFormatException | NullPointerException nfe3) {
+                temp.add(true);
+              }
                 try {
                   new BigInteger(variable);
                 } catch (NumberFormatException | NullPointerException nfe4) {
                   temp.add(true);
                 }
-              }
-            }
-          }
-        }
       }
     } else {
       temp.add(true);
@@ -765,7 +779,7 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
   }
 
   private ArrayList<CFANode> copyList(ArrayList<CFANode> list) {
-    ArrayList<CFANode> temp = new ArrayList<CFANode>();
+    ArrayList<CFANode> temp = new ArrayList<>();
     for (CFANode n : list) {
       temp.add(n);
     }
