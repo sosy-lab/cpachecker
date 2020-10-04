@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.pendingException;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
+import java.util.HashMap;
+import java.util.Map;
 import org.sosy_lab.common.Appenders.AbstractAppender;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -17,14 +17,14 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 public class PendingExceptionState extends AbstractAppender
     implements LatticeAbstractState<PendingExceptionState> {
 
-  public Deque<String> getPendingExceptionStack() {
-    return pendingExceptionStack;
+  public Map<String, String> getPendingExceptions() {
+    return pendingExceptions;
   }
 
-  private final Deque<String> pendingExceptionStack;
+  private final Map<String, String> pendingExceptions;
 
   public PendingExceptionState() {
-    pendingExceptionStack = new ArrayDeque<>();
+    pendingExceptions = new HashMap<>();
   }
 
   @Override

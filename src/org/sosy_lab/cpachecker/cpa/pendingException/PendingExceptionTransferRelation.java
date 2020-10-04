@@ -8,17 +8,19 @@
 
 package org.sosy_lab.cpachecker.cpa.pendingException;
 
-import java.util.Deque;
+import java.util.Collection;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpressionIsPendingExceptionThrown;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.PendingExceptionOfJIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.PendingExceptionOfJRunTimeType;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodCallEdge;
@@ -30,7 +32,10 @@ import org.sosy_lab.cpachecker.cfa.model.java.JThrowStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
+import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
+import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class PendingExceptionTransferRelation
     extends ForwardingTransferRelation<PendingExceptionState, PendingExceptionState, Precision> {
@@ -45,18 +50,20 @@ public class PendingExceptionTransferRelation
   protected @Nullable PendingExceptionState handleAssumption(
       JAssumeEdge cfaEdge, JExpression expression, boolean truthAssumption) {
 
-    if (!(expression instanceof JIdExpressionIsPendingExceptionThrown)) {
+    // If we have no exception thrown, just continue
+    if (state.getPendingExceptions().isEmpty()) {
       return state;
     }
 
-    if (state == null) {
-      return state;
-    }
+    if (expression instanceof JRunTimeTypeEqualsType
+        && ((JRunTimeTypeEqualsType) expression).getRunTimeTypeExpression()
+        instanceof PendingExceptionOfJRunTimeType) {
 
-    Deque<String> pendingExceptionStack = state.getPendingExceptionStack();
-
-    if (pendingExceptionStack.isEmpty()) {
-      return state;
+      final String s = ((JRunTimeTypeEqualsType) expression).getTypeDef().toASTString("");
+      final boolean b = state.getPendingExceptions().containsValue(s);
+      if (!((truthAssumption && b) || (!truthAssumption && !b))) {
+        return null;
+      }
     }
 
     return state; // TODO
@@ -79,7 +86,9 @@ public class PendingExceptionTransferRelation
           ((JExpressionAssignmentStatement) statement).getRightHandSide();
 
       assert isThrowable(rightHandSide.getExpressionType());
-      state.getPendingExceptionStack().push(rightHandSide.toString());
+
+      // TODO Don't hardcode, use already existing method
+      state.getPendingExceptions().put(functionName + "::" + rightHandSide.toString(), "");
     }
 
     return state; // TODO Create copy?
@@ -123,7 +132,6 @@ public class PendingExceptionTransferRelation
     if (parentClass != null && parentClass.toString().equals("java.lang.Throwable")) {
       return true;
     }
-
     return false;
   }
 

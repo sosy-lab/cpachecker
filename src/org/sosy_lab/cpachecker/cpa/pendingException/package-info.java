@@ -7,6 +7,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * CPA for caught exceptions
+ * CPA for checking of caught exceptions
  */
 package org.sosy_lab.cpachecker.cpa.pendingException;
