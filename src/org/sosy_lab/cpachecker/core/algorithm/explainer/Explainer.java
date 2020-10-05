@@ -108,8 +108,10 @@ public class Explainer extends NestingAlgorithm {
       cpa =
           CPAs.retrieveCPAOrFail(
               secondAlg.getSecond(), PredicateCPA.class, ConfigurationException.class);
-    } catch (IOException | CPAException | InvalidConfigurationException | InterruptedException pE) {
+    } catch (IOException pE) {
       throw new AssertionError(pE);
+    } catch (InvalidConfigurationException pE) {
+      throw new CPAException("First Step Configuration File is invalid");
     }
 
     currentReached = secondAlg.getThird();

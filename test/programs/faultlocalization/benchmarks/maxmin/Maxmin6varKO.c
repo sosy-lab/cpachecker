@@ -9,7 +9,7 @@ can be used to trigger a wrong branching and result in a
 wrong output {max=1,min=0}, instead of {max=1,min=-4}.
 
 SPDX-FileCopyrightText: Mohammed Bekkouche <http://www.i3s.unice.fr>
-SPDX-License-Identifier: Apache-2.0
+SPDX-License-Identifier: GPL-3.0-or-later
 */
 
 extern int __VERIFIER_nondet_uint();

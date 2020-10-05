@@ -9,7 +9,7 @@ of i-j, however, the returned value should be 1. This program shows
 a a case where all if-condition are free from faults. 
 
 SPDX-FileCopyrightText: Mohammed Bekkouche <http://www.i3s.unice.fr>
-SPDX-License-Identifier: Apache-2.0
+SPDX-License-Identifier: GPL-3.0-or-later
 */
 
 extern int __VERIFIER_nondet_uint();

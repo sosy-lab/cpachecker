@@ -11,7 +11,7 @@ By taking as input {a=1, b=-3, c=0, d=-2, e=-1, f=-2},
 these errors trigger two wrong branching; the program 
 returns {max=0,min=-3} instead of {max=1,min=-3}.
 SPDX-FileCopyrightText: Mohammed Bekkouche <http://www.i3s.unice.fr>
-SPDX-License-Identifier: Apache-2.0
+SPDX-License-Identifier: GPL-3.0-or-later
 */
 
 extern int __VERIFIER_nondet_uint();

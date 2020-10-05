@@ -15,7 +15,7 @@ indicate the fact that the input does not correspond to a
 valid triangle. 
 
 SPDX-FileCopyrightText: Mohammed Bekkouche <http://www.i3s.unice.fr>
-SPDX-License-Identifier: Apache-2.0
+SPDX-License-Identifier: GPL-3.0-or-later
 */
 
 extern int __VERIFIER_nondet_uint();

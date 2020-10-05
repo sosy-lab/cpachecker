@@ -13,7 +13,7 @@ By taking the input {i=1,j=1,k=2}, the program returns as a sum of
 triangle sides the value 3, however, it should return the value 4. 
 
 SPDX-FileCopyrightText: Mohammed Bekkouche <http://www.i3s.unice.fr>
-SPDX-License-Identifier: Apache-2.0
+SPDX-License-Identifier: GPL-3.0-or-later
 */
 
 extern int __VERIFIER_nondet_uint();
