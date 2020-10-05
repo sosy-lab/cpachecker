@@ -51,7 +51,8 @@ public class LoopAbstractionAdvanced {
           LoopInformation loopInfo,
           LogManager logger,
           String pathForNewFile,
-          boolean automate) {
+          boolean automate,
+          boolean onlyAccL) {
     ArrayList<LoopData> outerLoopTemp = new ArrayList<>();
     ArrayList<Integer> loopStarts = new ArrayList<>();
     ArrayList<String> preUsedVariables = new ArrayList<>();
@@ -180,31 +181,25 @@ public class LoopAbstractionAdvanced {
       BufferedReader reader = new BufferedReader(freader);
 
       String line = "";
+      boolean accFlag = true;
 
       while (line != null) {
-        if (loopStarts.contains(lineNumber)) {
+        if (loopStarts.contains(lineNumber) && accFlag) {
           for (LoopData loopD : loopInfo.getLoopData()) {
 
-
-            if (((loopD.getLoopType()
-                .equals(
-                    "while")
-                || loopD
-                    .getLoopInLoop())
-                && loopD.getLoopStart()
+            if ((loopD
+                .getLoopStart()
                     .getEnteringEdge(0)
                     .getFileLocation()
-                    .getStartingLineInOrigin() == lineNumber)
-                || (loopD
-                    .getLoopType()
-                    .equals(
-                        "for")
-                    && loopD.getLoopStart()
-                        .getEnteringEdge(0)
-                        .getFileLocation()
-                        .getStartingLineInOrigin()
-
-                        == lineNumber)) {
+                .getStartingLineInOrigin() == lineNumber
+                && loopD.getCanBeAccelerated()
+                && onlyAccL)
+                || (loopD.getLoopStart()
+                    .getEnteringEdge(0)
+                    .getFileLocation()
+                    .getStartingLineInOrigin() == lineNumber
+                    && !onlyAccL)
+            ) {
 
               CFANode endNodeCondition = findLastNodeInCondition(loopD);
               if (loopD.getLoopType().equals("while")) {
@@ -931,9 +926,12 @@ public class LoopAbstractionAdvanced {
               }
             }
             }
+          } else {
+            accFlag = false;
           }
         }
-        } else if (!loopStarts.contains(lineNumber)) {
+      } else if (!loopStarts.contains(lineNumber) || !accFlag) {
+          accFlag = true;
           line = reader.readLine();
           if (line != null) {
             content += line + System.lineSeparator();

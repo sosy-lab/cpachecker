@@ -50,6 +50,12 @@ public class LoopAbstractionHeader {
   )
   private String pathForAbstractLoops = "../abstractLoops/";
 
+  @Option(
+    secure = true,
+    name = "onlyAccelerableLoops",
+    description = "Change this option only if you want all of the loops to be abstracted.")
+  private boolean accLoops = true;
+
   ArrayList<LoopData> loops;
   LoopAbstractionNaiv loopAbstractionN;
   LoopAbstractionAdvanced loopAbstractionAdv;
@@ -94,7 +100,8 @@ public class LoopAbstractionHeader {
     if (shouldAbstract.equals("naiv")) {
       loopAbstractionN.changeFileToAbstractFile(loopI, logger, pathForNewFile);
     } else if (shouldAbstract.equals("advanced")) {
-      loopAbstractionAdv.changeFileToAbstractFile(loopI, logger, pathForNewFile, automate);
+      loopAbstractionAdv
+          .changeFileToAbstractFile(loopI, logger, pathForNewFile, automate, accLoops);
     }
   }
 

@@ -699,6 +699,9 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
       for (String variable : rightSideVariable) {
         try {
           double d = Double.parseDouble(variable);
+          if (d > amountOfPaths || d > numberAllOutputs) {
+            temp.add(true);
+          }
         } catch (NumberFormatException | NullPointerException nfe) {
           temp.add(true);
         }
@@ -712,11 +715,17 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
           }
             try {
               long d = Long.parseLong(variable);
+              if (d > amountOfPaths || d > numberAllOutputs) {
+                temp.add(true);
+              }
             } catch (NumberFormatException | NullPointerException nfe2) {
               temp.add(true);
             }
               try {
                 float d = Float.parseFloat(variable);
+                if (d > amountOfPaths || d > numberAllOutputs) {
+                  temp.add(true);
+                }
               } catch (NumberFormatException | NullPointerException nfe3) {
                 temp.add(true);
               }
@@ -739,6 +748,9 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
       for (String variable : rightSideVariable) {
         try {
           double d = Double.parseDouble(variable);
+          if (d > amountOfPaths || d > numberAllOutputs) {
+            temp.add(true);
+          }
         } catch (NumberFormatException | NullPointerException nfe) {
           temp.add(true);
         }
@@ -752,11 +764,17 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
           }
             try {
               long d = Long.parseLong(variable);
+              if (d > amountOfPaths || d > numberAllOutputs) {
+                temp.add(true);
+              }
             } catch (NumberFormatException | NullPointerException nfe2) {
               temp.add(true);
             }
               try {
                 float d = Float.parseFloat(variable);
+                if (d > amountOfPaths || d > numberAllOutputs) {
+                  temp.add(true);
+                }
               } catch (NumberFormatException | NullPointerException nfe3) {
                 temp.add(true);
               }
