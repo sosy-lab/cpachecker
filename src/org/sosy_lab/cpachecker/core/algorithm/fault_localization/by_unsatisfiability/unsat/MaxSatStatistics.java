@@ -32,8 +32,7 @@ class MaxSatStatistics implements Statistics {
         .putIfUpdatedAtLeastOnce(unsatCalls)
         .putIfUpdatedAtLeastOnce(savedCalls)
         .beginLevel() // Statistics for sup/subset checks
-        .putIfUpdatedAtLeastOnce(timeForSubSupCheck)
-        .endLevel();
+        .putIfUpdatedAtLeastOnce(timeForSubSupCheck);
   }
 
   @Override
