@@ -285,7 +285,7 @@ def create_compile_cmd(
     return compile_cmd
 
 
-def _create_cpachecker_args(args):
+def _create_cpachecker_args(args, harness_output_dir):
     cpachecker_args = sys.argv[1:]
 
     for compile_arg in ["-gcc-args"] + args.compile_args:
@@ -293,6 +293,7 @@ def _create_cpachecker_args(args):
             cpachecker_args.remove(compile_arg)
 
     cpachecker_args.append("-witness2test")
+    cpachecker_args += ["-outputpath", harness_output_dir]
 
     return cpachecker_args
 
@@ -329,9 +330,9 @@ def get_cpachecker_executable():
     raise ValidationError("CPAchecker executable not found or not executable!")
 
 
-def create_harness_gen_cmd(args):
+def create_harness_gen_cmd(args, harness_output_dir):
     cpa_executable = get_cpachecker_executable()
-    harness_gen_args = _create_cpachecker_args(args)
+    harness_gen_args = _create_cpachecker_args(args, harness_output_dir)
     return [cpa_executable] + harness_gen_args
 
 
@@ -591,32 +592,38 @@ statistics = []
 def run():
     args = _parse_args()
     output_dir = args.output_path
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
 
     specification = get_spec(args.specification_file)
 
-    existing_harnesses = find_harnesses(output_dir)
-    logging.warn(f"Test harnesses exist and may be reused: {existing_harnesses}")
+    with tempfile.TemporaryDirectory(suffix="cpa_witness2test_") as harness_output_dir:
+        try:
+            harness_gen_cmd = create_harness_gen_cmd(args, harness_output_dir)
+            harness_gen_result = execute(harness_gen_cmd)
+            print(harness_gen_result.stderr)
+            _log_multiline(harness_gen_result.stdout, level=logging.DEBUG)
 
-    harness_gen_cmd = create_harness_gen_cmd(args)
-    harness_gen_result = execute(harness_gen_cmd)
-    print(harness_gen_result.stderr)
-    _log_multiline(harness_gen_result.stdout, level=logging.DEBUG)
+            created_harnesses = find_harnesses(harness_output_dir)
+            statistics.append(("Harnesses produced", len(created_harnesses)))
 
-    created_harnesses = find_harnesses(output_dir)
-    statistics.append(("Harnesses produced", len(created_harnesses)))
-
-    if created_harnesses:
-        with tempfile.NamedTemporaryFile(suffix=".c") as preprocessed_program:
-            _preprocess(args.file, specification, preprocessed_program.name)
-            result = _execute_harnesses(
-                created_harnesses,
-                preprocessed_program.name,
-                specification,
-                output_dir,
-                args,
-            )
-    else:
-        result = ValidationResult(RESULT_UNK)
+            if created_harnesses:
+                with tempfile.NamedTemporaryFile(suffix=".c") as preprocessed_program:
+                    _preprocess(args.file, specification, preprocessed_program.name)
+                    result = _execute_harnesses(
+                        created_harnesses,
+                        preprocessed_program.name,
+                        specification,
+                        harness_output_dir,
+                        args,
+                    )
+            else:
+                result = ValidationResult(RESULT_UNK)
+        finally:
+            for i in os.listdir(harness_output_dir):
+                shutil.move(
+                    os.path.join(harness_output_dir, i), os.path.join(output_dir, i)
+                )
 
     if args.stats:
         print(os.linesep + "Statistics:")
