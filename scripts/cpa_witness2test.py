@@ -595,6 +595,9 @@ def run():
 
     specification = get_spec(args.specification_file)
 
+    existing_harnesses = find_harnesses(output_dir)
+    logging.warn(f"Test harnesses exist and may be reused: {existing_harnesses}")
+
     harness_gen_cmd = create_harness_gen_cmd(args)
     harness_gen_result = execute(harness_gen_cmd)
     print(harness_gen_result.stderr)
