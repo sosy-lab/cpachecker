@@ -67,7 +67,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
 
   /**
    * Returns a cache key for the specified path formula and edge. Uses {@link Equivalence#identity}
-   * as an equivalence wrapper.
+   * as an equivalence wrapper for the edge.
    */
   private Pair<Equivalence.Wrapper<CFAEdge>, PathFormula> createFormulaCacheKey(
       PathFormula pOldFormula, CFAEdge pEdge) {
