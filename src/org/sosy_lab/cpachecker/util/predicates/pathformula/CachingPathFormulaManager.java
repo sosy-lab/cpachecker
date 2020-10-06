@@ -65,11 +65,20 @@ public class CachingPathFormulaManager implements PathFormulaManager {
     emptyFormula = delegate.makeEmptyPathFormula();
   }
 
-  @Override
-  public Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException, InterruptedException {
+  /**
+   * Returns a cache key for the specified path formula and edge. Uses {@link Equivalence#identity}
+   * as an equivalence wrapper.
+   */
+  private Pair<Equivalence.Wrapper<CFAEdge>, PathFormula> createFormulaCacheKey(
+      PathFormula pOldFormula, CFAEdge pEdge) {
+    return Pair.of(Equivalence.identity().wrap(pEdge), pOldFormula);
+  }
 
+  @Override
+  public Pair<PathFormula, ErrorConditions> makeAndWithErrorConditions(
+      PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException, InterruptedException {
     final Pair<Equivalence.Wrapper<CFAEdge>, PathFormula> formulaCacheKey =
-        Pair.of(Equivalence.identity().wrap(pEdge), pOldFormula);
+        createFormulaCacheKey(pOldFormula, pEdge);
     Pair<PathFormula, ErrorConditions> result = andFormulaWithConditionsCache.get(formulaCacheKey);
     if (result == null) {
       TimerWrapper t = pathFormulaComputationTimer.getNewTimer();
@@ -88,7 +97,7 @@ public class CachingPathFormulaManager implements PathFormulaManager {
   @Override
   public PathFormula makeAnd(PathFormula pOldFormula, CFAEdge pEdge) throws CPATransferException, InterruptedException {
     final Pair<Equivalence.Wrapper<CFAEdge>, PathFormula> formulaCacheKey =
-        Pair.of(Equivalence.identity().wrap(pEdge), pOldFormula);
+        createFormulaCacheKey(pOldFormula, pEdge);
     PathFormula result = andFormulaCache.get(formulaCacheKey);
     if (result == null) {
       TimerWrapper t = pathFormulaComputationTimer.getNewTimer();
