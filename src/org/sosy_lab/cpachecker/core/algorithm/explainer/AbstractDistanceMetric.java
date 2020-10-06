@@ -172,10 +172,8 @@ public class AbstractDistanceMetric implements DistanceMetric {
       stateAlignments.addPair(argCeState, argSpState);
     }
 
-    Iterator<Pair<ARGState, ARGState>> iteratorOverAlignedStates = stateAlignments.iterator();
-    while (iteratorOverAlignedStates.hasNext()) {
+    for (Pair<ARGState, ARGState> cePathStatePair : stateAlignments) {
 
-      Pair<ARGState, ARGState> cePathStatePair = iteratorOverAlignedStates.next();
       ARGState counterexampleState = cePathStatePair.getFirst();
       ARGState safePathState = cePathStatePair.getSecond();
 
