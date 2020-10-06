@@ -15,6 +15,9 @@ import subprocess
 import shutil
 import argparse
 
+from collections import namedtuple
+from typing import Optional, NamedTuple
+
 import logging
 import re
 
@@ -50,27 +53,42 @@ RESULT_REJECT = "TRUE"
 RESULT_UNK = "UNKNOWN"
 
 # Regular expressions used to match given specification properties
-REGEX_REACH = re.compile(r"G\s*!\s*call\(\s*__VERIFIER_error\(\)\s*\)")
+REGEX_REACH = re.compile(r"G\s*!\s*call\(\s*([a-zA-Z0-9_]+)\s*\(\)\s*\)")
 REGEX_OVERFLOW = re.compile(r"G\s*!\s*overflow")
 _REGEX_MEM_TEMPLATE = r"G\s*valid-%s"
 REGEX_MEM_FREE = re.compile(_REGEX_MEM_TEMPLATE % "free")
 REGEX_MEM_DEREF = re.compile(_REGEX_MEM_TEMPLATE % "deref")
 REGEX_MEM_MEMTRACK = re.compile(_REGEX_MEM_TEMPLATE % "memtrack")
 
-# Names of supported specifications
 SPEC_REACH = "unreach-call"
 SPEC_OVERFLOW = "no-overflow"
 SPEC_MEM_FREE = "valid-free"
 SPEC_MEM_DEREF = "valid-deref"
 SPEC_MEM_MEMTRACK = "valid-memtrack"
-# specifications -> regular expressions
-SPECIFICATIONS = {
-    SPEC_REACH: REGEX_REACH,
-    SPEC_OVERFLOW: REGEX_OVERFLOW,
-    SPEC_MEM_FREE: REGEX_MEM_FREE,
-    SPEC_MEM_DEREF: REGEX_MEM_DEREF,
-    SPEC_MEM_MEMTRACK: REGEX_MEM_MEMTRACK,
-}
+
+
+class Specification(NamedTuple):
+    no_overflow: bool
+    mem_free: bool
+    mem_deref: bool
+    mem_memtrack: bool
+    reach_method_call: Optional[str]
+
+    def is_reach_call(self):
+        return self.reach_method_call is not None
+
+    @property
+    def mem(self):
+        return any((self.mem_free, self.mem_deref, self.mem_memtrack))
+
+    def invalid(self):
+        return not (
+            self.no_overflow
+            or self.mem_free
+            or self.mem_deref
+            or self.mem_memtrack
+            or self.reach_method_call
+        )
 
 
 class ValidationError(Exception):
@@ -228,7 +246,7 @@ def create_compile_cmd(harness, target, args, specification, c_version="gnu11"):
     :param str harness: path to harness file
     :param str target: path to program under test
     :param args: arguments as parsed by argparse
-    :param list specification: list of properties to check against
+    :param Specification specification: specification to compile for
     :param str c_version: C standard to use for compilation
     :return: list of command-line keywords that can be given to method `execute`
     """
@@ -242,16 +260,13 @@ def create_compile_cmd(harness, target, args, specification, c_version="gnu11"):
     compile_cmd.append("-std={}".format(c_version))
 
     sanitizer_in_use = False
-    if SPEC_OVERFLOW in specification:
+    if specification.no_overflow:
         sanitizer_in_use = True
         compile_cmd += [
             "-fsanitize=signed-integer-overflow",
             "-fsanitize=float-cast-overflow",
         ]
-    if any(
-        spec in specification
-        for spec in (SPEC_MEM_FREE, SPEC_MEM_DEREF, SPEC_MEM_MEMTRACK)
-    ):
+    if specification.mem:
         sanitizer_in_use = True
         compile_cmd += ["-fsanitize=address", "-fsanitize=leak"]
 
@@ -347,7 +362,7 @@ def analyze_result(test_result, harness, specification):
 
     :param ExecutionResult test_result: result of test execution
     :param str harness: path to harness file
-    :param list specification: list of properties that are part of the specification
+    :param Specification specification: specification to check result against
     :return: tuple of the verdict of the test execution and the violated property, if any.
         The verdict is one of RESULT_ACCEPT, RESULT_REJECT and RESULT_UNK.
         The violated property is one element of the given specification.
@@ -362,15 +377,15 @@ def analyze_result(test_result, harness, specification):
     # For each specification property, check whether an error message
     # showing its violation was printed
     # TODO: Turn into dict() with loop to be more flexible and remove magic numbers
-    if SPEC_REACH in specification:
+    if specification.reach_method_call:
         check(107, EXPECTED_ERRMSG_REACH, SPEC_REACH)
-    if SPEC_OVERFLOW in specification:
+    if specification.no_overflow:
         check(1, EXPECTED_ERRMSG_OVERFLOW, SPEC_OVERFLOW)
-    if SPEC_MEM_FREE in specification:
+    if specification.mem_free:
         check(1, EXPECTED_ERRMSG_MEM_FREE, SPEC_MEM_FREE)
-    if SPEC_MEM_DEREF in specification:
+    if specification.mem_deref:
         check(1, EXPECTED_ERRMSG_MEM_DEREF, SPEC_MEM_DEREF)
-    if SPEC_MEM_MEMTRACK in specification:
+    if specification.mem_memtrack:
         check(1, EXPECTED_ERRMSG_MEM_MEMTRACK, SPEC_MEM_MEMTRACK)
 
     results = [r[0] for r in results_and_violated_props]
@@ -415,12 +430,11 @@ def _log_multiline(msg, level=logging.INFO):
 
 
 def get_spec(specification_file):
-    """Return the list of specification properties defined by the given
-    specification file.
+    """Return the specification defined by the given specification file.
 
     :param str specification_file: specification file to read.
-    :return List[str]: list of specification properties
-    :raise ValidationError: if no specification file given or it doesn't exist
+    :return Specification: specification described by file
+    :raise ValidationError: if no specification file given, invalid or doesn't exist
     """
 
     if not specification_file:
@@ -433,18 +447,30 @@ def get_spec(specification_file):
     with open(specification_file, "r") as inp:
         content = inp.read().strip()
 
-    specification = []
-    spec_matches = re.match(
-        r"CHECK\(\s*init\(.*\),\s*LTL\(\s*(.+)\s*\)\\r*\\n*", content
-    )
+    spec_matches = re.match(r"CHECK\(\s*init\(.*\),\s*LTL\(\s*(.+)\s*\)", content)
+    spec = None
     if spec_matches:
-        for spec, regex in SPECIFICATIONS.items():
-            if regex.search(content):
-                specification.append(spec)
+        no_overflow = REGEX_OVERFLOW.search(content)
+        mem_free = REGEX_MEM_FREE.search(content)
+        mem_deref = REGEX_MEM_DEREF.search(content)
+        mem_memtrack = REGEX_MEM_MEMTRACK.search(content)
+        try:
+            method_call = REGEX_REACH.search(content).group(1)
+        except AttributeError:
+            # search returned None
+            method_call = None
 
-    if not specification:
+        spec = Specification(
+            no_overflow=no_overflow,
+            mem_free=mem_free,
+            mem_deref=mem_deref,
+            mem_memtrack=mem_memtrack,
+            reach_method_call=method_call,
+        )
+
+    if spec is None or spec.invalid():
         raise ValidationError("No SV-COMP specification found in " + specification_file)
-    return specification
+    return spec
 
 
 def run():
