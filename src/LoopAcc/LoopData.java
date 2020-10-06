@@ -19,6 +19,7 @@
  */
 package LoopAcc;
 
+import com.google.common.collect.Iterables;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -150,7 +151,7 @@ public class LoopData implements Comparable<LoopData> {
   private boolean isInnerLoop(Loop loop, CFA cfa) {
     boolean tempInnerLoop = false;
 
-    for (Loop tempLoop : cfa.getLoopStructure().get().getAllLoops()) {
+    for (Loop tempLoop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
       if (tempLoop.isOuterLoopOf(loop)) {
         tempInnerLoop = true;
       }
@@ -162,7 +163,7 @@ public class LoopData implements Comparable<LoopData> {
   private boolean isOuterLoop(Loop loop, CFA cfa) {
     boolean tempOuterLoop = false;
 
-    for (Loop tempLoop : cfa.getLoopStructure().get().getAllLoops()) {
+    for (Loop tempLoop : cfa.getLoopStructure().orElseThrow().getAllLoops()) {
       if (loop.isOuterLoopOf(tempLoop)) {
         tempOuterLoop = true;
         innerLoop = tempLoop;
@@ -798,9 +799,7 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
 
   private ArrayList<CFANode> copyList(ArrayList<CFANode> list) {
     ArrayList<CFANode> temp = new ArrayList<>();
-    for (CFANode n : list) {
-      temp.add(n);
-    }
+    Iterables.addAll(temp, list);
     return temp;
   }
 

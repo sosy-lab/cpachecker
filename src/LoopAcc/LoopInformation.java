@@ -22,6 +22,7 @@ package LoopAcc;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.Iterables;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -84,15 +85,13 @@ public class LoopInformation implements StatisticsProvider {
    */
   public void lookForLoops() {
 
-    ImmutableCollection<Loop> allLoops = cfa.getLoopStructure().get().getAllLoops();
+    ImmutableCollection<Loop> allLoops = cfa.getLoopStructure().orElseThrow().getAllLoops();
 
     for (Loop loop : allLoops) {
 
       ArrayList<CFANode> loopNodes = new ArrayList<>();
 
-      for (CFANode node : loop.getLoopNodes()) {
-        loopNodes.add(node);
-      }
+      Iterables.addAll(loopNodes, loop.getLoopNodes());
 
       CFANode loopHead = loopNodes.get(FIRST_ELEMENT_OF_LIST);
 
