@@ -14,6 +14,7 @@ import glob
 import subprocess
 import shutil
 import argparse
+import tempfile
 
 from collections import namedtuple
 from typing import Optional, NamedTuple
@@ -65,6 +66,12 @@ SPEC_OVERFLOW = "no-overflow"
 SPEC_MEM_FREE = "valid-free"
 SPEC_MEM_DEREF = "valid-deref"
 SPEC_MEM_MEMTRACK = "valid-memtrack"
+
+
+class ValidationResult(NamedTuple):
+    verdict: str
+    violated_property: Optional[str] = None
+    successful_harness: Optional[str] = None
 
 
 class Specification(NamedTuple):
@@ -240,7 +247,9 @@ def _create_compiler_cmd_tail(harness, file, target):
     return ["-o", target, "-include", file, harness]
 
 
-def create_compile_cmd(harness, target, args, specification, c_version="gnu11"):
+def create_compile_cmd(
+    harness, program, target, args, specification, c_version="gnu11"
+):
     """Create the compile command.
 
     :param str harness: path to harness file
@@ -273,7 +282,7 @@ def create_compile_cmd(harness, target, args, specification, c_version="gnu11"):
     if sanitizer_in_use:
         # Do not continue execution after a sanitize error
         compile_cmd.append("-fno-sanitize-recover")
-    compile_cmd += _create_compiler_cmd_tail(harness, args.file, target)
+    compile_cmd += _create_compiler_cmd_tail(harness, program, target)
     return compile_cmd
 
 
@@ -473,21 +482,28 @@ def get_spec(specification_file):
     return spec
 
 
-def run():
-    statistics = []
-    args = _parse_args()
-    output_dir = args.output_path
+def _preprocess(program: str, spec: Specification, target: str):
+    with open(program, "r") as inp:
+        content = inp.read()
 
-    specification = get_spec(args.specification_file)
+    # IMPORTANT: This assumes that any target function is not defined or defined on a single line of code
+    if spec.reach_method_call:
+        method_def_to_rename = spec.reach_method_call
+        new_content = re.sub(
+            method_def_to_rename + r"(\s*\(.*\) ){.*}",
+            method_def_to_rename + r"\1;",
+            content,
+        )
+    else:
+        new_content = content
 
-    harness_gen_cmd = create_harness_gen_cmd(args)
-    harness_gen_result = execute(harness_gen_cmd)
-    print(harness_gen_result.stderr)
-    _log_multiline(harness_gen_result.stdout, level=logging.DEBUG)
+    with open(target, "w") as outp:
+        outp.write(new_content)
 
-    created_harnesses = find_harnesses(output_dir)
-    statistics.append(("Harnesses produced", len(created_harnesses)))
 
+def _execute_harnesses(
+    created_harnesses, program_file, specification, output_dir, args
+):
     final_result = None
     violated_property = None
     successful_harness = None
@@ -499,7 +515,9 @@ def run():
         iter_count += 1
         logging.info("Looking at {}".format(harness))
         exe_target = output_dir + os.sep + get_target_name(harness)
-        compile_cmd = create_compile_cmd(harness, exe_target, args, specification)
+        compile_cmd = create_compile_cmd(
+            harness, program_file, exe_target, args, specification
+        )
         compile_result = execute(compile_cmd)
 
         _log_multiline(compile_result.stderr, level=logging.INFO)
@@ -507,7 +525,7 @@ def run():
 
         if compile_result.returncode != 0:
             compile_cmd = create_compile_cmd(
-                harness, exe_target, args, specification, "gnu90"
+                harness, program_file, exe_target, args, specification, "gnu90"
             )
             compile_result = execute(compile_cmd)
             _log_multiline(compile_result.stderr, level=logging.INFO)
@@ -561,20 +579,57 @@ def run():
     statistics.append(("C11 compatible", c11_success_count))
     statistics.append(("Harnesses rejected", reject_count))
 
+    return ValidationResult(
+        verdict=final_result,
+        violated_property=violated_property,
+        successful_harness=successful_harness,
+    )
+
+
+statistics = []
+
+
+def run():
+    args = _parse_args()
+    output_dir = args.output_path
+
+    specification = get_spec(args.specification_file)
+
+    harness_gen_cmd = create_harness_gen_cmd(args)
+    harness_gen_result = execute(harness_gen_cmd)
+    print(harness_gen_result.stderr)
+    _log_multiline(harness_gen_result.stdout, level=logging.DEBUG)
+
+    created_harnesses = find_harnesses(output_dir)
+    statistics.append(("Harnesses produced", len(created_harnesses)))
+
+    if created_harnesses:
+        with tempfile.NamedTemporaryFile(suffix=".c") as preprocessed_program:
+            _preprocess(args.file, specification, preprocessed_program.name)
+            result = _execute_harnesses(
+                created_harnesses,
+                preprocessed_program.name,
+                specification,
+                output_dir,
+                args,
+            )
+    else:
+        result = ValidationResult(RESULT_UNK)
+
     if args.stats:
         print(os.linesep + "Statistics:")
         for prop, value in statistics:
             print("\t" + str(prop) + ": " + str(value))
         print()
 
-    if successful_harness:
-        print("Harness %s was successful." % successful_harness)
+    if result.successful_harness:
+        print("Harness %s was successful." % result.successful_harness)
 
-    result_str = "Verification result: %s" % final_result
-    if violated_property:
+    result_str = "Verification result: %s" % result.verdict
+    if result.violated_property:
         result_str += (
             ". Property violation (%s) found by chosen configuration."
-            % violated_property
+            % result.violated_property
         )
     print(result_str)
 
