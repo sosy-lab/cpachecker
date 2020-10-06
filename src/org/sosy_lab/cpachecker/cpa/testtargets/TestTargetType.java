@@ -14,6 +14,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
 import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 
 public enum TestTargetType {
@@ -54,12 +55,19 @@ public enum TestTargetType {
 
     @Override
     public Predicate<CFAEdge> getEdgeCriterion(final String funName) {
-      return edge -> edge instanceof CStatementEdge
+      return edge -> (edge instanceof CStatementEdge
           && ((CStatementEdge) edge).getStatement() instanceof CFunctionCall
           && ((CFunctionCall) ((CStatementEdge) edge).getStatement()).getFunctionCallExpression()
               .getFunctionNameExpression()
               .toASTString()
-              .equals(funName);
+              .equals(funName))
+          || (edge instanceof CFunctionCallEdge
+              && ((CFunctionCallEdge) edge).getRawAST().isPresent()
+              && ((CFunctionCallEdge) edge).getRawAST().get().getFunctionCallExpression()
+                  .getFunctionNameExpression()
+                  .toASTString()
+                  .equals(funName));
+
     }
   },
   STATEMENT {
