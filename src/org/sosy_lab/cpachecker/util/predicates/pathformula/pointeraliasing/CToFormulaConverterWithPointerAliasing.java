@@ -515,8 +515,17 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
         }
         constraints.addConstraint(
             fmgr.makeEqual(
-                makeSafeDereference(baseType, address, ssa, newRegion),
-                makeVariable(baseName, baseType, ssa)));
+                makeSafeDereference(
+                    baseType,
+                    address,
+                    ssa,
+                    newRegion),
+                makeFormulaTypeCast(
+                    getFormulaTypeFromCType(baseType),
+                    baseType,
+                    makeVariable(baseName, baseType, ssa),
+                    ssa,
+                    constraints)));
       }
     }
 
