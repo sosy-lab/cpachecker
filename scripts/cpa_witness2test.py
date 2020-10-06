@@ -16,7 +16,6 @@ import shutil
 import argparse
 import tempfile
 
-from collections import namedtuple
 from typing import Optional, NamedTuple
 
 import logging
