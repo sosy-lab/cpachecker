@@ -111,9 +111,6 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
         case REASON:
           out.append(" ".repeat(5));
           break;
-        case HINT:
-          out.append(" ".repeat(7));
-          break;
         case FIX:
           out.append(" ".repeat(8));
           break;

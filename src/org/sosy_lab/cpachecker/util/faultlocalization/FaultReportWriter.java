@@ -20,7 +20,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.InfoType;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultReason;
-import org.sosy_lab.cpachecker.util.faultlocalization.appendables.Hint;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.PotentialFix;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 
@@ -84,16 +83,12 @@ public class FaultReportWriter {
     List<FaultReason> faultReasons = new ArrayList<>();
     List<RankInfo> faultInfo = new ArrayList<>();
     List<PotentialFix> faultFix = new ArrayList<>();
-    List<Hint> faultHint = new ArrayList<>();
 
     //Sorted insert
     for (FaultInfo info : infos) {
       switch(info.getType()){
         case FIX:
           faultFix.add((PotentialFix) info);
-          break;
-        case HINT:
-          faultHint.add((Hint)info);
           break;
         case REASON:
           faultReasons.add((FaultReason) info);
@@ -138,17 +133,6 @@ public class FaultReportWriter {
     if (!faultFix.isEmpty() && !hideTypes.contains(InfoType.FIX)) {
       html.append(printList("Found <strong>" + faultFix.size() + "</strong> possible bug-fix" + (faultFix.size() == 1?":":"es:"), "fix-list",
           faultFix, false))
-          .append("<br>");
-    }
-
-    if (!faultHint.isEmpty() && !hideTypes.contains(InfoType.HINT)) {
-      String headline = faultHint.size() == 1? "hint is available:" : "hints are available:";
-      html.append(
-          printList(
-              "<strong>" + faultHint.size() + "</strong> " + headline,
-              "hint-list",
-              faultHint,
-              false))
           .append("<br>");
     }
 

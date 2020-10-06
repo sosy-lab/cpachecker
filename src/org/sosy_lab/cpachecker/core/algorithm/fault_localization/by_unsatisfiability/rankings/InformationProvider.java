@@ -79,20 +79,20 @@ public class InformationProvider {
         boolean hasCalc = matchArrayOperation.matcher(description).matches();
         if (hasIter && hasCalc) {
           fault.addInfo(
-              FaultInfo.hint(
+              FaultInfo.fix(
                   "Detected suspicious calculation within the array subscript using an iteration"
                       + " variable. Have a closer look to this line."));
           break;
         }
         if (hasIter) {
           fault.addInfo(
-              FaultInfo.hint(
+              FaultInfo.fix(
                   "This line uses an iteration variable. This may be especially prone to errors."));
           break;
         }
         if (hasCalc) {
           fault.addInfo(
-              FaultInfo.hint(
+              FaultInfo.fix(
                   "Detected suspicious calculation within the array subscript. This may be"
                       + " especially prone to errors"));
           break;
@@ -101,11 +101,8 @@ public class InformationProvider {
     }
   }
 
-  public static void propagatePreCondition(
+  public static String prettyPrecondition(
       Collection<Fault> rankedList, TraceFormula traceFormula, FormulaManagerView fmgr) {
-    if (!traceFormula.getPrecondition().toString().contains("_VERIFIER_nondet_")) {
-      return;
-    }
     Set<BooleanFormula> preconditions =
         fmgr.getBooleanFormulaManager().toConjunctionArgs(traceFormula.getPrecondition(), true);
 
@@ -117,12 +114,12 @@ public class InformationProvider {
       formulaString = formulaString.replaceAll("\\(", "").replaceAll("\\)", "");
       List<String> operatorAndOperands = Splitter.on("` ").splitToList(formulaString);
       if (operatorAndOperands.size() != 2) {
-        return;
+        continue;
       }
       String withoutOperator = operatorAndOperands.get(1);
       List<String> operands = Splitter.on(" ").splitToList(withoutOperator);
       if (operands.size() != 2) {
-        return;
+        continue;
       }
       if (operands.get(0).contains("__VERIFIER_nondet_")
           || (operands.get(0).contains("::") && operands.get(0).contains("@"))) {
@@ -156,13 +153,7 @@ public class InformationProvider {
       }
     }
 
-    String allAssignments = String.join(", ", assignments);
-    for (Fault fault : rankedList) {
-      fault.addInfo(
-          FaultInfo.hint(
-              "The program fails for the following initial variable assignment: "
-                  + allAssignments));
-    }
+    return String.join(", ", assignments);
   }
 
   public static void addDefaultPotentialFixesToFaults(

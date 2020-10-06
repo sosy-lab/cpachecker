@@ -20,8 +20,6 @@ public abstract class FaultInfo implements Comparable<FaultInfo>{
     REASON(0),
     /** Provides a possible fix */
     FIX(1),
-    /** Hints and explanations for the user */
-    HINT(2),
     /** Information provided by the rankings */
     RANK_INFO(3);
 
@@ -60,10 +58,6 @@ public abstract class FaultInfo implements Comparable<FaultInfo>{
 
   public static FaultReason justify(String pDescription){
     return new FaultReason(InfoType.REASON, pDescription);
-  }
-
-  public static Hint hint(String pDescription){
-    return new Hint(InfoType.HINT, pDescription);
   }
 
   public double getScore(){

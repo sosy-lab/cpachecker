@@ -283,11 +283,12 @@ public class FaultLocalizationWithTraceFormula
 
       InformationProvider.searchForAdditionalInformation(errorIndicators, edgeList);
       InformationProvider.addDefaultPotentialFixesToFaults(errorIndicators, 3);
-      InformationProvider.propagatePreCondition(errorIndicators, tf, context.getSolver().getFormulaManager());
+      // InformationProvider.propagatePreCondition(errorIndicators, tf,
+      // context.getSolver().getFormulaManager());
       FaultLocalizationInfo info = new FaultLocalizationInfo(errorIndicators, ranking, pInfo);
 
       if (algorithmType.equals(AlgorithmTypes.ERRINV)) {
-        info.replaceHtmlWriter(new IntervalReportWriter());
+        info.replaceHtmlWriter(new IntervalReportWriter(context.getSolver().getFormulaManager()));
         info.sortIntended();
       }
 
