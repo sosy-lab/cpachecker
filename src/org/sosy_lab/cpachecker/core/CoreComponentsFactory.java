@@ -86,7 +86,7 @@ public class CoreComponentsFactory {
 
   @Option(
       secure = true,
-      description = "Use explainer algorithm to prove (non-)termination.")
+      description = "Use explainer for fault localization with distance metrics ")
   private boolean useExplainer = false;
 
   @Option(

@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.core.algorithm.explainer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import org.sosy_lab.cpachecker.util.Pair;
 
 /**
  * Class Alignment is used for making alignments between two Elements. It guarantees that the size
@@ -18,7 +19,7 @@ import java.util.List;
  *
  * @param <T> T is here either a CFAEdge or a ARGState
  */
-class Alignment<T> implements Iterable<T> {
+class Alignment<T> implements Iterable<Pair<T, T>> {
 
   private final List<T> counterexample = new ArrayList<>();
   private final List<T> safePath = new ArrayList<>();
@@ -45,11 +46,10 @@ class Alignment<T> implements Iterable<T> {
   }
 
   @Override
-  public Iterator<T> iterator() {
-    List<T> joinLists = new ArrayList<>();
+  public Iterator<Pair<T, T>> iterator() {
+    List<Pair<T, T>> joinLists = new ArrayList<>();
     for (int i = 0; i < counterexample.size(); i++) {
-      joinLists.add(counterexample.get(i));
-      joinLists.add(safePath.get(i));
+      joinLists.add(Pair.of(counterexample.get(i), safePath.get(i)));
     }
     return joinLists.iterator();
   }

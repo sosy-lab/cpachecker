@@ -21,6 +21,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
@@ -171,18 +172,21 @@ public class AbstractDistanceMetric implements DistanceMetric {
       stateAlignments.addPair(argCeState, argSpState);
     }
 
-    Iterator<ARGState> iteratorOverAlignedStates = stateAlignments.iterator();
+    Iterator<Pair<ARGState, ARGState>> iteratorOverAlignedStates = stateAlignments.iterator();
     while (iteratorOverAlignedStates.hasNext()) {
+
+      Pair<ARGState, ARGState> cePathStatePair = iteratorOverAlignedStates.next();
+      ARGState counterexampleState = cePathStatePair.getFirst();
+      ARGState safePathState = cePathStatePair.getSecond();
+
       Set<BooleanFormula> predicatesCE =
           distanceHelper.splitPredicates(
-              AbstractStates.extractStateByType(
-                      iteratorOverAlignedStates.next(), PredicateAbstractState.class)
+              AbstractStates.extractStateByType(counterexampleState, PredicateAbstractState.class)
                   .getAbstractionFormula()
                   .asFormula());
       Set<BooleanFormula> predicatesSafePath =
           distanceHelper.splitPredicates(
-              AbstractStates.extractStateByType(
-                      iteratorOverAlignedStates.next(), PredicateAbstractState.class)
+              AbstractStates.extractStateByType(safePathState, PredicateAbstractState.class)
                   .getAbstractionFormula()
                   .asFormula());
 

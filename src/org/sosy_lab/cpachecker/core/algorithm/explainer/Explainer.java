@@ -111,7 +111,7 @@ public class Explainer extends NestingAlgorithm {
     } catch (IOException pE) {
       throw new AssertionError(pE);
     } catch (InvalidConfigurationException pE) {
-      throw new CPAException("First Step Configuration File is invalid");
+      throw new CPAException("First Step Configuration File is invalid", pE);
     }
 
     currentReached = secondAlg.getThird();
@@ -139,13 +139,11 @@ public class Explainer extends NestingAlgorithm {
     if (allTargets.isEmpty()) {
       return status;
     }
+
     // Get a Path to the Target
     FluentIterable<CounterexampleInfo> counterExamples =
         Optionals.presentInstances(
-            from(reached)
-                .filter(AbstractStates::isTargetState)
-                .filter(ARGState.class)
-                .transform(ARGState::getCounterexampleInformation));
+            FluentIterable.from(allTargets).transform(ARGState::getCounterexampleInformation));
 
     ARGPath targetPath = counterExamples.get(0).getTargetPath();
 
