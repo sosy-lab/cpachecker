@@ -200,19 +200,18 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
      */
 
     List<AbstractTraceElement> summarizedList = new ArrayList<>();
-
     Selector lastSelector = null;
 
     for (AbstractTraceElement abstractTraceElement : abstractTrace) {
       if (abstractTraceElement instanceof Selector) {
         if (abstractTraceElement.equals(lastSelector)) {
           Interval lastInterval = (Interval) summarizedList.remove(summarizedList.size() - 1);
-          Interval toMerge = (Interval) summarizedList.get(summarizedList.size() - 3);
+          Interval toMerge = (Interval) summarizedList.remove(summarizedList.size() - 3);
           int newStart = Integer.min(lastInterval.start, toMerge.start);
           int newEnd = Integer.max(lastInterval.end, toMerge.end);
           BooleanFormula conjunct = bmgr.and(lastInterval.invariant, toMerge.invariant);
           Interval merged = new Interval(newStart, newEnd, conjunct);
-          summarizedList.add(merged);
+          summarizedList.add(summarizedList.size()-1, merged);
         } else {
           summarizedList.add(abstractTraceElement);
           lastSelector = (Selector) abstractTraceElement;

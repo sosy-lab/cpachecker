@@ -25,6 +25,7 @@ import org.sosy_lab.common.JSON;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class FaultLocalizationInfo extends CounterexampleInfo {
 
@@ -102,6 +103,46 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     htmlWriter = new FaultReportWriter();
   }
 
+  /**
+   *
+   * Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to fix a bug.
+   * Transforming it into a Set of Faults enables the possibility to attach reasons of why this edge is in this set.
+   * After ranking the set of faults an instance of this class can be created.
+   *
+   * The class should be used to display information to the user.
+   *
+   * Note that there is no need to create multiple instances of this object if more than one
+   * ranking should be applied. FaultRankingUtils provides a method that concatenates multiple rankings.
+   *
+   * To see the result of FaultLocalizationInfo replace the CounterexampleInfo of the target state by this
+   * or simply call apply() on an instance of this class.
+   *
+   * @param pFaults set of faults obtained by a fault localization algorithm
+   * @param pRanking the ranking for pFaults
+   * @param pPrecondition the precondition of a trace formula
+   * @param pParent the counterexample info of the target state
+   */
+  public FaultLocalizationInfo(Set<Fault> pFaults, FaultScoring pRanking, BooleanFormula pPrecondition, CounterexampleInfo pParent){
+    super(
+        pParent.isSpurious(),
+        pParent.getTargetPath(),
+        pParent.getCFAPathWithAssignments(),
+        pParent.isPreciseCounterExample(),
+        CFAPathWithAdditionalInfo.empty());
+    pRanking.balancedScore(pFaults);
+    rankedList = new ArrayList<>();
+    for (Fault fault : pFaults) {
+      FaultRankingUtils.assignScoreTo(fault);
+      for (FaultContribution faultContribution : fault) {
+        FaultRankingUtils.assignScoreTo(faultContribution);
+      }
+      rankedList.add(fault);
+    }
+    Collections.sort(rankedList);
+    htmlWriter = new FaultReportWriter();
+  }
+
+  // called automatically when necessary
   public void prepare(){
     mapEdgeToFaultContribution = new HashMap<>();
     mapEdgeToRankedFaultIndex = ArrayListMultimap.create();
@@ -113,6 +154,10 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
     }
   }
 
+  /**
+   * Sort faults by their attribute <code>intendedIndex</code>.
+   * The index has to be set manually in advance.
+   */
   public void sortIntended() {
     rankedList.sort(Comparator.comparingInt(fault ->  fault.getIntendedIndex()));
   }
