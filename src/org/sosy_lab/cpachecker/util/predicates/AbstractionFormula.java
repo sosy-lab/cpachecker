@@ -107,6 +107,9 @@ public class AbstractionFormula implements Serializable {
   }
 
   public BooleanFormula asFormulaFromOtherSolver(FormulaManagerView pMgr) {
+    if (pMgr == fMgr) {
+      return formula;
+    }
     return pMgr.translateFrom(formula, fMgr);
   }
 

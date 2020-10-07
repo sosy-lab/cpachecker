@@ -391,10 +391,9 @@ interface AutomatonBoolExpr extends AutomatonExpression<Boolean> {
     @Override
     public ResultValue<Boolean> eval(AutomatonExpressionArguments pArgs) {
       CFAEdge edge = pArgs.getCfaEdge();
-      String functionNameFromEdge = edge.getSuccessor().getFunction().getOrigName();
 
       // check cases like direct function calls and main-entry.
-      if (functionNameFromEdge.equals(functionName)) {
+      if (edge.getSuccessor().getFunction().getOrigName().equals(functionName)) {
         if (edge instanceof FunctionCallEdge || AutomatonGraphmlCommon.isMainFunctionEntry(edge)) {
           return CONST_TRUE;
         }
