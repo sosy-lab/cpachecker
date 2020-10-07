@@ -311,9 +311,6 @@ public class FaultLocalizationWithTraceFormula
     } catch (IllegalStateException iE) {
       throw new CPAException(
           "The counterexample is spurious. Calculating interpolants is not possible.", iE);
-    } finally{
-      //context.getSolver().close();
-      //context.getProver().close();
     }
   }
 
