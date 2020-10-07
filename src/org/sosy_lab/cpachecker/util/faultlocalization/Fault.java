@@ -145,6 +145,19 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
         + " (Score: " + (int)(score*100) + ")";
   }
 
+  /**
+   * Set an intended index. Call sortIntended on FaultLocalizationInfo to sort ascending by intended
+   * index
+   * @param pIntendedIndex the intended place in the final list for this fault
+   */
+  public void setIntendedIndex(int pIntendedIndex) {
+    intendedIndex = pIntendedIndex;
+  }
+
+  public int getIntendedIndex() {
+    return intendedIndex;
+  }
+
   @Override
   public boolean equals(Object q){
     if(q instanceof Fault){
@@ -160,19 +173,6 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
       }
     }
     return false;
-  }
-
-  /**
-   * Set an intended index. Call sortIntended on FaultLocalizationInfo to sort ascending by intended
-   * index
-   * @param pIntendedIndex the intended place in the final list for this fault
-   */
-  public void setIntendedIndex(int pIntendedIndex) {
-    intendedIndex = pIntendedIndex;
-  }
-
-  public int getIntendedIndex() {
-    return intendedIndex;
   }
 
   @Override
