@@ -77,7 +77,10 @@ public class IntervalReportWriter extends FaultReportWriter {
     // intervals)
     int index = interval.getIntendedIndex() / 2;
 
-    String header = "Interpolant " + index + ": <textarea class=\"interval-scrollbox\">" + extractRelevantInformation(interval) + "</textarea>";
+    String header = "Interpolant <strong>" + index + "</strong>:<br>"
+        + " <textarea readonly class=\"interval-scrollbox\">"
+        + extractRelevantInformation(interval)
+        + "</textarea><br>";
     StringBuilder html = new StringBuilder();
 
     if (!correspondingEdges.isEmpty()) {
@@ -158,6 +161,15 @@ public class IntervalReportWriter extends FaultReportWriter {
     }
     // return "<ul><li>"  + helpfulFormulas.stream().distinct().map(s -> s.replaceAll("@",
     // "")).collect(Collectors.joining(" </li><li> ")) + "</li></ul>";
+    if (helpfulFormulas.isEmpty()) {
+      if (bmgr.makeTrue().equals(interval.getInvariant())) {
+        return "true";
+      }
+      if (bmgr.makeFalse().equals(interval.getInvariant())) {
+        return "false";
+      }
+      return interval.getInvariant().toString();
+    }
     return helpfulFormulas.stream()
         .distinct()
         .map(s -> s.replaceAll("@", ""))

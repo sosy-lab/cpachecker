@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings;
+package org.sosy_lab.cpachecker.util.faultlocalization;
 
 import com.google.common.base.Splitter;
 import java.util.ArrayList;
@@ -22,8 +22,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
-import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
-import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print.BooleanFormulaParser;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -32,8 +30,8 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public class InformationProvider {
 
   /**
-   * First raw implementation of additional information search. Search for iteration variables and
-   * for calculations in array brackets.
+   * Search for iteration variables and for suspicious
+   * calculations within the array subscript.
    *
    * @param faults ranked faults
    * @param edges counterexample as list of edges
@@ -101,10 +99,13 @@ public class InformationProvider {
     }
   }
 
-  public static String prettyPrecondition(TraceFormula traceFormula, FormulaManagerView fmgr) {
+  public static String prettyPrecondition(TraceFormula traceFormula) {
+    FormulaManagerView fmgr = traceFormula.getContext().getSolver().getFormulaManager();
     Set<BooleanFormula> preconditions =
         fmgr.getBooleanFormulaManager().toConjunctionArgs(traceFormula.getPrecondition(), true);
-
+    if (preconditions.isEmpty()) {
+      return "true";
+    }
     Map<String, String> mapFormulaToValue = new HashMap<>();
     List<String> assignments = new ArrayList<>();
 

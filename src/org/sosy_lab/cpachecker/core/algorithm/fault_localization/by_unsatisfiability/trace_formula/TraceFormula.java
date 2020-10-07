@@ -158,6 +158,10 @@ public abstract class TraceFormula {
     return entries;
   }
 
+  public FormulaContext getContext() {
+    return context;
+  }
+
   public int getPostConditionOffset() {
     return traceSize() - postConditionOffset;
   }

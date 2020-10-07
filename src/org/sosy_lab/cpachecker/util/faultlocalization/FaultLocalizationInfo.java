@@ -19,13 +19,14 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class FaultLocalizationInfo extends CounterexampleInfo {
 
@@ -35,6 +36,8 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   /** Maps a CFA edge to the index of faults in {@link #rankedList} associated with that edge. **/
   private Multimap<CFAEdge, Integer> mapEdgeToRankedFaultIndex;
   private Map<CFAEdge, FaultContribution> mapEdgeToFaultContribution;
+
+  private Optional<TraceFormula> traceFormula;
 
   /**
    * Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to fix a bug.
@@ -62,6 +65,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         pParent.isPreciseCounterExample(),
         CFAPathWithAdditionalInfo.empty());
     rankedList = pFaults;
+    traceFormula = Optional.empty();
     htmlWriter = new FaultReportWriter();
   }
 
@@ -90,16 +94,8 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         pParent.getCFAPathWithAssignments(),
         pParent.isPreciseCounterExample(),
         CFAPathWithAdditionalInfo.empty());
-    pRanking.balancedScore(pFaults);
-    rankedList = new ArrayList<>();
-    for (Fault fault : pFaults) {
-      FaultRankingUtils.assignScoreTo(fault);
-      for (FaultContribution faultContribution : fault) {
-        FaultRankingUtils.assignScoreTo(faultContribution);
-      }
-      rankedList.add(fault);
-    }
-    Collections.sort(rankedList);
+    rankedList = FaultRankingUtils.rank(pRanking, pFaults);
+    traceFormula = Optional.empty();
     htmlWriter = new FaultReportWriter();
   }
 
@@ -118,27 +114,23 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    * or simply call apply() on an instance of this class.
    *
    * @param pFaults set of faults obtained by a fault localization algorithm
-   * @param pRanking the ranking for pFaults
-   * @param pPrecondition the precondition of a trace formula
+   * @param pScoring how to calculate the scores of each fault
+   * @param pTraceFormula the precondition of a trace formula
    * @param pParent the counterexample info of the target state
    */
-  public FaultLocalizationInfo(Set<Fault> pFaults, FaultScoring pRanking, BooleanFormula pPrecondition, CounterexampleInfo pParent){
+  public FaultLocalizationInfo(
+      Set<Fault> pFaults,
+      FaultScoring pScoring,
+      TraceFormula pTraceFormula,
+      CounterexampleInfo pParent) {
     super(
         pParent.isSpurious(),
         pParent.getTargetPath(),
         pParent.getCFAPathWithAssignments(),
         pParent.isPreciseCounterExample(),
         CFAPathWithAdditionalInfo.empty());
-    pRanking.balancedScore(pFaults);
-    rankedList = new ArrayList<>();
-    for (Fault fault : pFaults) {
-      FaultRankingUtils.assignScoreTo(fault);
-      for (FaultContribution faultContribution : fault) {
-        FaultRankingUtils.assignScoreTo(faultContribution);
-      }
-      rankedList.add(fault);
-    }
-    Collections.sort(rankedList);
+    rankedList = FaultRankingUtils.rank(pScoring, pFaults);
+    traceFormula = Optional.of(pTraceFormula);
     htmlWriter = new FaultReportWriter();
   }
 
@@ -159,11 +151,7 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    * The index has to be set manually in advance.
    */
   public void sortIntended() {
-    rankedList.sort(Comparator.comparingInt(fault ->  fault.getIntendedIndex()));
-  }
-
-  public int getRankOfSet(Fault set) {
-    return rankedList.indexOf(set);
+    rankedList.sort(Comparator.comparingInt(Fault::getIntendedIndex));
   }
 
   @Override
@@ -201,12 +189,13 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
       faultMap.put("reason", htmlWriter.toHtml(fault));
       faults.add(faultMap);
     }
+
     JSON.writeJSONString(faults ,pWriter);
   }
 
   /**
    * Append additional information to the CounterexampleInfo output
-   * @param elem maps a property of edge to an object
+   * @param elem maps a property of an edge to an object
    * @param edge the edge that is currently transformed into JSON format.
    */
   @Override
@@ -239,10 +228,17 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   }
 
   /**
-   * Replace default CounterexampleInfo with this extended version of a CounterexampleInfo.
-   * Call this method to activate the visual representation of fault localization.
+   * Replace default CounterexampleInfo with this extended version.
+   * Activates the visual representation of fault localization.
    */
   public void apply(){
     super.getTargetPath().getLastState().replaceCounterexampleInformation(this);
+  }
+
+  public void writePrecondition(Writer writer) throws IOException {
+    JSON.writeJSONString(Collections.singletonMap("fl-precondition",
+        traceFormula.isPresent() ?
+            InformationProvider.prettyPrecondition(traceFormula.orElseThrow()) :
+            ""), writer);
   }
 }

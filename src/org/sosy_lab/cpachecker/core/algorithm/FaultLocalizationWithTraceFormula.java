@@ -38,7 +38,7 @@ import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiabi
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants.IntervalReportWriter;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.CallHierarchyScoring;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.EdgeTypeScoring;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.rankings.InformationProvider;
+import org.sosy_lab.cpachecker.util.faultlocalization.InformationProvider;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
@@ -235,14 +235,14 @@ public class FaultLocalizationWithTraceFormula
         return;
       }
 
-      //Find correct ranking and correct trace formula for the specified algorithm
+      //Find correct scoring and correct trace formula for the specified algorithm
       TraceFormula tf;
-      FaultScoring ranking;
+      FaultScoring scoring;
       switch(algorithmType){
         case MAXORG:
         case MAXSAT: {
           tf = new TraceFormula.SelectorTrace(context, options, edgeList);
-          ranking =  FaultRankingUtils.concatHeuristics(
+          scoring =  FaultRankingUtils.concatHeuristics(
               new EdgeTypeScoring(),
               new SetSizeScoring(),
               new OverallOccurrenceScoring(),
@@ -252,14 +252,14 @@ public class FaultLocalizationWithTraceFormula
         }
         case ERRINV: {
           tf = disableFSTF ? new TraceFormula.FlowSensitiveTrace(context, options, edgeList) : new TraceFormula.DefaultTrace(context, options, edgeList);
-          ranking = FaultRankingUtils.concatHeuristics(
+          scoring = FaultRankingUtils.concatHeuristics(
               new EdgeTypeScoring(),
               new CallHierarchyScoring(edgeList, tf.getPostConditionOffset()));
           break;
         }
         case UNSAT: {
           tf = new TraceFormula.DefaultTrace(context, options, edgeList);
-          ranking = FaultRankingUtils.concatHeuristics(
+          scoring = FaultRankingUtils.concatHeuristics(
               new EdgeTypeScoring(),
               new CallHierarchyScoring(edgeList, tf.getPostConditionOffset()));
           break;
@@ -283,13 +283,13 @@ public class FaultLocalizationWithTraceFormula
 
       InformationProvider.searchForAdditionalInformation(errorIndicators, edgeList);
       InformationProvider.addDefaultPotentialFixesToFaults(errorIndicators, 3);
-      // InformationProvider.propagatePreCondition(errorIndicators, tf,
-      // context.getSolver().getFormulaManager());
-      FaultLocalizationInfo info = new FaultLocalizationInfo(errorIndicators, ranking, pInfo);
+
+      FaultLocalizationInfo info = new FaultLocalizationInfo(errorIndicators, scoring, tf, pInfo);
 
       if (algorithmType.equals(AlgorithmTypes.ERRINV)) {
         info.replaceHtmlWriter(new IntervalReportWriter(context.getSolver().getFormulaManager()));
         info.sortIntended();
+        info.getRankedList().remove(0);
       }
 
       info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
@@ -312,8 +312,8 @@ public class FaultLocalizationWithTraceFormula
       throw new CPAException(
           "The counterexample is spurious. Calculating interpolants is not possible.", iE);
     } finally{
-      context.getSolver().close();
-      context.getProver().close();
+      //context.getSolver().close();
+      //context.getProver().close();
     }
   }
 
