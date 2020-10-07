@@ -160,28 +160,17 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
 
   @Override
   public boolean equals(Object q){
-    if(q instanceof Fault){
-      Fault comp = (Fault)q;
-      if(comp.size() == size() && comp.infos.size() == infos.size()){
-        for (FaultContribution faultContribution : comp) {
-          if(!contains(faultContribution)){
-            return false;
-          }
-        }
-
-        return true;
-      }
+    if (!(q instanceof Fault)) {
+      return false;
     }
-    return false;
+
+    Fault comp = (Fault) q;
+    return errorSet.equals(comp.errorSet) && infos.equals(comp.infos);
   }
 
   @Override
   public int hashCode(){
-    int result = 4;
-    for(FaultContribution contribution: this){
-      result = Objects.hash(contribution, result);
-    }
-    return result;
+    return Objects.hash(errorSet, infos);
   }
 
   @Override
