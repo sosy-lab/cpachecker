@@ -326,6 +326,12 @@ input:checked+.slider:before {
 	list-style: none;
 }
 
+.interval-scrollbox {
+    height:4rem;
+    font-size: 100%;
+    overflow:scroll;
+}
+
 .value-table {
 	border-collapse: collapse;
 	width: 100%;

@@ -76,7 +76,8 @@ public class IntervalReportWriter extends FaultReportWriter {
     // every second entry symbolizes an interval (i.e. index/2 equals the current number of
     // intervals)
     int index = interval.getIntendedIndex() / 2;
-    String header = "Interpolant " + index + ": " + extractRelevantInformation(interval);
+
+    String header = "Interpolant " + index + ": <textarea class=\"interval-scrollbox\">" + extractRelevantInformation(interval) + "</textarea>";
     StringBuilder html = new StringBuilder();
 
     if (!correspondingEdges.isEmpty()) {
@@ -94,7 +95,7 @@ public class IntervalReportWriter extends FaultReportWriter {
                       .append("</li>"));
       html.append("</ul>\n");
     } else {
-      header = "Additional Information";
+      header = "Additional Information for:<br>" + header;
     }
 
     if (!faultReasons.isEmpty() && !hideTypes.contains(InfoType.REASON)) {
