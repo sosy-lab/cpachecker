@@ -237,7 +237,6 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
     List<Selector> allSelectors = errorTrace.getEntries().toSelectorList();
     Selector prev = allSelectors.get(0);
     Set<Fault> faults = new HashSet<>();
-    FormulaManagerView fmgr = formulaContext.getSolver().getFormulaManager();
     for (int i = 0; i < abstractTrace.size(); i++) {
       AbstractTraceElement errorInvariant = abstractTrace.get(i);
       if (errorInvariant instanceof Selector) {

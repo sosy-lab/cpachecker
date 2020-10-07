@@ -47,7 +47,7 @@ public class InformationProvider {
     // Find iteration variables
     Map<Object, Long> counts =
         edges.stream()
-            .map(e -> e.getDescription())
+            .map(CFAEdge::getDescription)
             .collect(Collectors.groupingBy(e -> e, Collectors.counting()));
     Set<String> iterationVariables = new HashSet<>();
     for (Entry<Object, Long> entry : counts.entrySet()) {
@@ -101,8 +101,7 @@ public class InformationProvider {
     }
   }
 
-  public static String prettyPrecondition(
-      Collection<Fault> rankedList, TraceFormula traceFormula, FormulaManagerView fmgr) {
+  public static String prettyPrecondition(TraceFormula traceFormula, FormulaManagerView fmgr) {
     Set<BooleanFormula> preconditions =
         fmgr.getBooleanFormulaManager().toConjunctionArgs(traceFormula.getPrecondition(), true);
 
