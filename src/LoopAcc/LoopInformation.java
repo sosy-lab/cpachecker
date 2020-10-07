@@ -31,6 +31,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
@@ -61,7 +62,7 @@ public class LoopInformation implements StatisticsProvider {
   private boolean loopInfo = false;
 
   private CFA cfa;
-  private ArrayList<LoopData> loopData;
+  private List<LoopData> loopData;
   private final LogManager logger;
 
   private final int FIRST_ELEMENT_OF_LIST = 0;
@@ -89,7 +90,7 @@ public class LoopInformation implements StatisticsProvider {
 
     for (Loop loop : allLoops) {
 
-      ArrayList<CFANode> loopNodes = new ArrayList<>();
+      List<CFANode> loopNodes = new ArrayList<>();
 
       Iterables.addAll(loopNodes, loop.getLoopNodes());
 
@@ -140,7 +141,7 @@ public class LoopInformation implements StatisticsProvider {
     Collections.sort(loopData);
   }
 
-  public ArrayList<LoopData> getLoopData() {
+  public List<LoopData> getLoopData() {
     return loopData;
   }
 

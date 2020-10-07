@@ -19,7 +19,7 @@
  */
 package LoopAcc;
 
-import java.util.ArrayList;
+import java.util.List;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -41,7 +41,7 @@ public class LoopAbstractionHeader {
     values = {"naiv", "advanced", "none"},
       description = "AbstractLoops to be able to process them"
       )
-  private String shouldAbstract = "none";
+  private String shouldAbstract = "naiv";
 
   @Option(
     secure = true,
@@ -56,9 +56,8 @@ public class LoopAbstractionHeader {
     description = "Change this option only if you want all of the loops to be abstracted.")
   private boolean accLoops = true;
 
-  ArrayList<LoopData> loops;
-  LoopAbstractionNaiv loopAbstractionN;
-  LoopAbstractionAdvanced loopAbstractionAdv;
+  List<LoopData> loops;
+  LoopAbstraction loopAbstraction;
 
   /**
    * Constructor that enables the CPAchecker to rewrite the loops in the programs, you can choose
@@ -80,38 +79,15 @@ public class LoopAbstractionHeader {
 
     pathForAbstractLoops = loopI.getCFA().getFileNames().get(0).toString();
 
-    if (shouldAbstract.equals("naiv")) {
-    getLoopsToBeAbstracted(loopI);
-    loopAbstractionN = new LoopAbstractionNaiv();
-    overwriteLoops(loopI, logger, pathForAbstractLoops, automate);
-  } else if (shouldAbstract.equals("advanced")) {
-    getLoopsToBeAbstracted(loopI);
-    loopAbstractionAdv = new LoopAbstractionAdvanced();
-    overwriteLoops(loopI, logger, pathForAbstractLoops, automate);
-  }
+    loopAbstraction = new LoopAbstraction();
+    loopAbstraction
+        .changeFileToAbstractFile(
+        loopI,
+        logger,
+        pathForAbstractLoops,
+        shouldAbstract,
+        automate,
+        accLoops);
 
   }
-
-  private void overwriteLoops(
-      LoopInformation loopI,
-      LogManager logger,
-      String pathForNewFile,
-      boolean automate) {
-    if (shouldAbstract.equals("naiv")) {
-      loopAbstractionN.changeFileToAbstractFile(loopI, logger, pathForNewFile);
-    } else if (shouldAbstract.equals("advanced")) {
-      loopAbstractionAdv
-          .changeFileToAbstractFile(loopI, logger, pathForNewFile, automate, accLoops);
-    }
-  }
-
-  private void getLoopsToBeAbstracted(LoopInformation loopI) {
-    loops = new ArrayList<>();
-    for (LoopData lD : loopI.getLoopData()) {
-      if (lD.getCanBeAccelerated()) {
-        loops.add(lD);
-      }
-    }
-  }
-
 }

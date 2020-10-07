@@ -21,6 +21,7 @@ package LoopAcc;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -31,20 +32,20 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
  */
 public class LoopStatistics implements Statistics {
 
-  ArrayList<LoopData> loopList;
+  List<LoopData> loopList;
   private final String NAME = "LoopStatistics ";
 
-  private ArrayList<String[]> loopStartAndEnd;
-  private ArrayList<String[]> loopType;
-  private ArrayList<String[]> loopCondition;
-  private ArrayList<String[]> failedState;
-  private ArrayList<String[]> pathsNumber;
-  private ArrayList<String[]> loopNodes;
-  private ArrayList<String[]> ioVariables;
-  private ArrayList<String[]> oVariables;
-  private ArrayList<String[]> accelerationPossible;
+  private List<String[]> loopStartAndEnd;
+  private List<String[]> loopType;
+  private List<String[]> loopCondition;
+  private List<String[]> failedState;
+  private List<String[]> pathsNumber;
+  private List<String[]> loopNodes;
+  private List<String[]> ioVariables;
+  private List<String[]> oVariables;
+  private List<String[]> accelerationPossible;
 
-  public LoopStatistics(ArrayList<LoopData> loopList) {
+  public LoopStatistics(List<LoopData> loopList) {
     this.loopList = loopList;
     usefulLoopStatistics();
   }
@@ -93,7 +94,7 @@ public class LoopStatistics implements Statistics {
     }
   }
 
-  private String ArrayToString(ArrayList<String[]> x) {
+  private String ArrayToString(List<String[]> x) {
     String ergebnis = "";
     for (String[] sa : x) {
       ergebnis += "[";

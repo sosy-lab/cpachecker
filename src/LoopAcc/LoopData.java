@@ -23,6 +23,7 @@ import com.google.common.collect.Iterables;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
@@ -41,12 +42,12 @@ public class LoopData implements Comparable<LoopData> {
   private CFANode failedState;
   private CFANode forStart = null;
 
-  private ArrayList<CFANode> conditionInFor;
-  private ArrayList<CFANode> nodesInLoop;
-  private ArrayList<CFANode> nodesInCondition;
-  private ArrayList<String> output;
-  private ArrayList<String> inputOutput;
-  private ArrayList<CFANode> endOfCondition;
+  private List<CFANode> conditionInFor;
+  private List<CFANode> nodesInLoop;
+  private List<CFANode> nodesInCondition;
+  private List<String> output;
+  private List<String> inputOutput;
+  private List<CFANode> endOfCondition;
 
   private String condition;
   private String loopType = "";
@@ -79,7 +80,7 @@ public class LoopData implements Comparable<LoopData> {
       CFANode nameStart,
       CFANode endCondition,
       CFA cfa,
-      ArrayList<CFANode> loopNodes,
+      List<CFANode> loopNodes,
       Loop loop,
       LogManager pLogger,
       boolean loopTrueFalse) {
@@ -178,8 +179,8 @@ public class LoopData implements Comparable<LoopData> {
    *
    * @return returns a list with all of the variable names that are outputs in a loop
    */
-  private ArrayList<String> getAllOutputs(CFA cfa) {
-    ArrayList<String> tempOutput = new ArrayList<>();
+  private List<String> getAllOutputs(CFA cfa) {
+    List<String> tempOutput = new ArrayList<>();
 
     for (CFANode node : nodesInLoop) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
@@ -266,7 +267,7 @@ public class LoopData implements Comparable<LoopData> {
       }
     }
 
-    ArrayList<String> overwrite = new ArrayList<>();
+    List<String> overwrite = new ArrayList<>();
     for (CFANode n : cfa.getAllNodes()) {
       for (int e = 0; e < n.getNumLeavingEdges(); e++) {
         if (n.getLeavingEdge(e).getEdgeType().equals(CFAEdgeType.DeclarationEdge)) {
@@ -340,7 +341,7 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
       }
     }
     tempOutput = overwrite;
-    ArrayList<String> removeDuplicates = new ArrayList<>();
+    List<String> removeDuplicates = new ArrayList<>();
     for(String duplicate:tempOutput) {
       if(!removeDuplicates.contains(duplicate)){
         removeDuplicates.add(duplicate);
@@ -350,9 +351,9 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
     return tempOutput;
   }
 
-  private int getAllNumberOutputs(ArrayList<String> o) {
+  private int getAllNumberOutputs(List<String> pOutput) {
     int tmpInt = 0;
-    for (String tmp : o) {
+    for (String tmp : pOutput) {
       if (tmp.contains("Array")) {
         tmpInt = tmpInt + Integer.parseInt(tmp.split("&")[1].split(":")[2]);
       } else {
@@ -368,10 +369,10 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
    *
    * @return returns a list of variables that are inputs and outputs at the same time
    */
-  private ArrayList<String> getAllIO() {
-    ArrayList<String> inputs = getAllInputs();
-    ArrayList<String> outputs = output;
-    ArrayList<String> temp = new ArrayList<>();
+  private List<String> getAllIO() {
+    List<String> inputs = getAllInputs();
+    List<String> outputs = output;
+    List<String> temp = new ArrayList<>();
 
     for (String o : outputs) {
       for (String i : inputs) {
@@ -402,8 +403,8 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
    *
    * @return returns a list with the names of all the input variables
    */
-  private ArrayList<String> getAllInputs() {
-    ArrayList<String> temp = new ArrayList<>();
+  private List<String> getAllInputs() {
+    List<String> temp = new ArrayList<>();
 
     for (CFANode node : nodesInLoop) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
@@ -436,9 +437,9 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
     return temp;
   }
 
-  private void getInputFromRightHandSide(ArrayList<String> temp, String stringSplit) {
+  private void getInputFromRightHandSide(List<String> temp, String stringSplit) {
     String[] tempStorage = stringSplit.split(",");
-    ArrayList<String> tempS = new ArrayList<>();
+    List<String> tempS = new ArrayList<>();
 
     for (int i = 0; i < tempStorage.length; i++) {
       if (tempStorage[i].contains("operand")) {
@@ -480,10 +481,10 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
    * @param cfa used to get a list of all nodes to see which variables are already initialized
    * @return returns a list with all the nodes that are part of the condition
    */
-  public ArrayList<CFANode> nodesInCondition(CFA cfa, LogManager pLogger, boolean loopTF) {
+  public List<CFANode> nodesInCondition(CFA cfa, LogManager pLogger, boolean loopTF) {
 
-    ArrayList<CFANode> nodes = new ArrayList<>();
-    ArrayList<CFANode> tempNodes = new ArrayList<>();
+    List<CFANode> nodes = new ArrayList<>();
+    List<CFANode> tempNodes = new ArrayList<>();
     CFANode tempNode = loopStart;
     boolean flag = true;
 
@@ -526,7 +527,7 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
         }
       }
 
-      ArrayList<CFANode> forNode = new ArrayList<>();
+      List<CFANode> forNode = new ArrayList<>();
       while (flag) {
       for(CFANode x:nodes) {
           for (int i = 0; i < x.getNumLeavingEdges(); i++) {
@@ -551,7 +552,7 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
     if (!nodes.isEmpty()) {
     LoopGetIfAfterLoopCondition l = new LoopGetIfAfterLoopCondition(nodes, pLogger);
     if (l.getSmallestIf() != NO_IF_CASE) {
-      ArrayList<CFANode> tempN = copyList(nodes);
+      List<CFANode> tempN = copyList(nodes);
 
 
       for (Iterator<CFANode> tempIterator = tempN.iterator(); tempIterator.hasNext();) {
@@ -578,7 +579,7 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
   public String nodesToCondition() {
 
     String cond = "";
-    ArrayList<CFANode> temp = copyList(nodesInCondition);
+    List<CFANode> temp = copyList(nodesInCondition);
     CFANode node;
 
     if (loopType.contentEquals("while")) {
@@ -615,7 +616,7 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
       CFANode start = temp.get(FIRST_POSITION_OF_LIST);
       temp.remove(FIRST_POSITION_OF_LIST);
 
-      ArrayList<CFANode> forCondition = new ArrayList<>();
+      List<CFANode> forCondition = new ArrayList<>();
       for (Iterator<CFANode> tempIterator = temp.iterator(); tempIterator.hasNext();) {
         CFANode temps = tempIterator.next();
         if (temps.getLeavingEdge(VALID_STATE).getCode().contains("<")
@@ -680,14 +681,14 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
    *         sense to accelerate it
    */
   private boolean canLoopBeAccelerated() {
-    ArrayList<CFANode> nodes = copyList(nodesInCondition);
+    List<CFANode> nodes = copyList(nodesInCondition);
 
     boolean canAccelerate = false;
 
-    ArrayList<Boolean> temp = new ArrayList<>();
+    List<Boolean> temp = new ArrayList<>();
 
     if (loopType.contentEquals("while")) {
-      ArrayList<String> rightSideVariable = new ArrayList<>();
+      List<String> rightSideVariable = new ArrayList<>();
       for (CFANode node : nodes) {
         rightSideVariable.add(
             node.getLeavingEdge(VALID_STATE)
@@ -739,7 +740,7 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
 
     } else if (loopType.contentEquals("for")) {
       if (!flagEndless) {
-      ArrayList<String> rightSideVariable = new ArrayList<>();
+        List<String> rightSideVariable = new ArrayList<>();
       for (CFANode node : conditionInFor) {
         rightSideVariable.add(
             node.getLeavingEdge(VALID_STATE).getRawAST().toString().split("operand2=\\[")[1]
@@ -797,9 +798,9 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
     return canAccelerate;
   }
 
-  private ArrayList<CFANode> copyList(ArrayList<CFANode> list) {
-    ArrayList<CFANode> temp = new ArrayList<>();
-    Iterables.addAll(temp, list);
+  private List<CFANode> copyList(List<CFANode> pNodesInCondition) {
+    List<CFANode> temp = new ArrayList<>();
+    Iterables.addAll(temp, pNodesInCondition);
     return temp;
   }
 
@@ -820,7 +821,7 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
     return loopEnd;
   }
 
-  public ArrayList<CFANode> getNodesInLoop() {
+  public List<CFANode> getNodesInLoop() {
     return nodesInLoop;
   }
 
@@ -828,7 +829,7 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
     return condition;
   }
 
-  public ArrayList<String> getOutputs() {
+  public List<String> getOutputs() {
     return output;
   }
 
@@ -844,7 +845,7 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
     return amountOfPaths;
   }
 
-  public ArrayList<String> getInputsOutputs() {
+  public List<String> getInputsOutputs() {
     return inputOutput;
   }
 
@@ -856,7 +857,7 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
     return failedState;
   }
 
-  public ArrayList<CFANode> getNodesInCondition() {
+  public List<CFANode> getNodesInCondition() {
     return nodesInCondition;
   }
 

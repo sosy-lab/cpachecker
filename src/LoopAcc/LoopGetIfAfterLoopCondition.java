@@ -22,6 +22,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
@@ -37,11 +38,11 @@ public class LoopGetIfAfterLoopCondition {
   private String content;
   private int smallestLineNumber;
   private int biggestLineNumber;
-  private ArrayList<Integer> linesWithIf;
+  private List<Integer> linesWithIf;
   private int smallestIf;
   private LogManager logger;
 
-  public LoopGetIfAfterLoopCondition(ArrayList<CFANode> nodes, LogManager pLogger) {
+  public LoopGetIfAfterLoopCondition(List<CFANode> nodes, LogManager pLogger) {
     logger = pLogger;
     for (int i = 0; i < nodes.size(); i++) {
       if (nodes.get(i).getNumLeavingEdges() > 0) {
@@ -101,7 +102,7 @@ public class LoopGetIfAfterLoopCondition {
     }
   }
 
-  private int getSmallestLineNumber(ArrayList<CFANode> nodes) {
+  private int getSmallestLineNumber(List<CFANode> nodes) {
     int small = -1;
     for (int i = 0; i < nodes.size(); i++) {
       if (nodes.get(i).getNumLeavingEdges() > 0) {
@@ -119,7 +120,7 @@ public class LoopGetIfAfterLoopCondition {
     return small;
   }
 
-  private int getBiggestLineNumber(ArrayList<CFANode> nodes) {
+  private int getBiggestLineNumber(List<CFANode> nodes) {
     int big = -1;
     for (int i = 0; i < nodes.size(); i++) {
       if (nodes.get(i).getNumLeavingEdges() > 0) {
