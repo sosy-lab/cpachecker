@@ -117,7 +117,7 @@ public class LoopInformation implements StatisticsProvider {
       flag = true;
     }
     if (!(tempNode == null) || flag) {
-      loopData.add(new LoopData(loopHead, tempNode, cfa, loopNodes, loop, logger, flag));
+      loopData.add(new LoopData(loopHead, tempNode, cfa, loopNodes, loop, logger));
       }
     }
 

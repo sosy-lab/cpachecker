@@ -20,6 +20,7 @@
 package org.sosy_lab.cpachecker.cpa.loopacceleration;
 
 import java.util.ArrayList;
+import java.util.List;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 
@@ -69,12 +70,12 @@ public class LoopIOState implements AbstractState, Graphable {
 
   int name;
   int end;
-  private ArrayList<String> input;
-  private ArrayList<String> output;
+  private List<String> input;
+  private List<String> output;
 
   public LoopIOState() {
-    input = new ArrayList<String>();
-    output = new ArrayList<String>();
+    input = new ArrayList<>();
+    output = new ArrayList<>();
   }
 
   public void addToInput(String newVariable) {
@@ -104,19 +105,19 @@ public class LoopIOState implements AbstractState, Graphable {
     }
   }
 
-  public ArrayList<String> getInput() {
+  public List<String> getInput() {
     return input;
   }
 
-  public ArrayList<String> getOutput() {
+  public List<String> getOutput() {
     return output;
   }
 
-  public void setInput(ArrayList<String> nInput) {
+  public void setInput(List<String> nInput) {
     input = nInput;
   }
 
-  public void setOutput(ArrayList<String> nOutput) {
+  public void setOutput(List<String> nOutput) {
     output = nOutput;
   }
 

@@ -21,6 +21,7 @@ package org.sosy_lab.cpachecker.cpa.loopacceleration;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -92,7 +93,7 @@ public class LoopIOTransferRelation extends SingleEdgeTransferRelation {
     if (allNodes == null) {
       throw new CPATransferException("CPA not properly initialized.");
     }
-    ArrayList<LoopIOState> coll = new ArrayList<>();
+    List<LoopIOState> coll = new ArrayList<>();
     coll.add(new LoopIOState());
     return coll;
   }

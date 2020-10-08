@@ -82,8 +82,7 @@ public class LoopData implements Comparable<LoopData> {
       CFA cfa,
       List<CFANode> loopNodes,
       Loop loop,
-      LogManager pLogger,
-      boolean loopTrueFalse) {
+      LogManager pLogger) {
     this.loopStart = nameStart;
     this.endOfCondition = new ArrayList<>();
     conditionInFor = new ArrayList<>();
@@ -95,7 +94,7 @@ public class LoopData implements Comparable<LoopData> {
     loopType = findLoopType();
     nodesInLoop = loopNodes;
     loopEnd = nodesInLoop.get(nodesInLoop.size() - LAST_POSITION_OF_LIST);
-    nodesInCondition = nodesInCondition(cfa, pLogger, loopTrueFalse);
+    nodesInCondition = nodesInCondition(cfa, pLogger);
     output = getAllOutputs(cfa);
     condition = nodesToCondition();
     getAllPaths();
@@ -390,11 +389,6 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
         }
 
       }
-      for (String z : temp) {
-        if (temp.contains("Array")) {
-
-        }
-      }
     return temp;
   }
 
@@ -481,7 +475,7 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
    * @param cfa used to get a list of all nodes to see which variables are already initialized
    * @return returns a list with all the nodes that are part of the condition
    */
-  public List<CFANode> nodesInCondition(CFA cfa, LogManager pLogger, boolean loopTF) {
+  public List<CFANode> nodesInCondition(CFA cfa, LogManager pLogger) {
 
     List<CFANode> nodes = new ArrayList<>();
     List<CFANode> tempNodes = new ArrayList<>();
@@ -732,7 +726,10 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
                 temp.add(true);
               }
                 try {
-                  new BigInteger(variable);
+                  BigInteger d = new BigInteger(variable);
+                  if (d.intValueExact() > amountOfPaths || d.intValueExact() > numberAllOutputs) {
+                    temp.add(true);
+                  }
                 } catch (NumberFormatException | NullPointerException nfe4) {
                   temp.add(true);
                 }
@@ -781,7 +778,10 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
                 temp.add(true);
               }
                 try {
-                  new BigInteger(variable);
+                  BigInteger d = new BigInteger(variable);
+                  if (d.intValueExact() > amountOfPaths || d.intValueExact() > numberAllOutputs) {
+                    temp.add(true);
+                  }
                 } catch (NumberFormatException | NullPointerException nfe4) {
                   temp.add(true);
                 }

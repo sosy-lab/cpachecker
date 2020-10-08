@@ -143,6 +143,7 @@ public class LoopAbstraction {
             content += "extern void __VERIFIER_assume(long cond);" + System.lineSeparator();
             flagLong = false;
           }
+          break;
         case "unsigned long":
           if (flaguLong) {
             content += "extern long __VERIFIER_nondet_ulong(void);" + System.lineSeparator();
@@ -512,6 +513,7 @@ public class LoopAbstraction {
           }
         }
       }
+      reader.close();
     } catch (IOException e) {
       logger.logUserException(
           Level.WARNING,

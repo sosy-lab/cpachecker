@@ -19,7 +19,6 @@
  */
 package LoopAcc;
 
-import java.util.List;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -56,8 +55,11 @@ public class LoopAbstractionHeader {
     description = "Change this option only if you want all of the loops to be abstracted.")
   private boolean accLoops = true;
 
-  List<LoopData> loops;
-  LoopAbstraction loopAbstraction;
+  private LoopAbstraction loopAbstraction;
+
+  private LoopInformation loopI;
+  private LogManager logger;
+  private boolean automate;
 
   /**
    * Constructor that enables the CPAchecker to rewrite the loops in the programs, you can choose
@@ -76,18 +78,23 @@ public class LoopAbstractionHeader {
       LogManager logger)
       throws InvalidConfigurationException {
     config.inject(this);
-
+    this.logger = logger;
+    this.loopI = loopI;
+    this.automate = automate;
     pathForAbstractLoops = loopI.getCFA().getFileNames().get(0).toString();
 
     loopAbstraction = new LoopAbstraction();
+
+  }
+
+  public void abstractLoop() {
     loopAbstraction
         .changeFileToAbstractFile(
-        loopI,
-        logger,
-        pathForAbstractLoops,
-        shouldAbstract,
-        automate,
-        accLoops);
-
+            loopI,
+            logger,
+            pathForAbstractLoops,
+            shouldAbstract,
+            automate,
+            accLoops);
   }
 }
