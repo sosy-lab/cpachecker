@@ -179,9 +179,8 @@ public class LoopAbstraction {
       }
     }
 
-    try {
-      FileReader freader = new FileReader(fileLocation);
-      BufferedReader reader = new BufferedReader(freader);
+    try (FileReader freader = new FileReader(fileLocation)) {
+      try (BufferedReader reader = new BufferedReader(freader)) {
 
       String line = "";
       boolean accFlag = true;
@@ -514,6 +513,7 @@ public class LoopAbstraction {
         }
       }
       reader.close();
+    }
     } catch (IOException e) {
       logger.logUserException(
           Level.WARNING,
