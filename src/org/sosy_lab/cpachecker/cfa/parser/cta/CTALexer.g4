@@ -136,8 +136,8 @@ RESET
 	: 'RESET'
 	;
 
-ERROR
-	: 'ERROR'
+TARGET
+	: 'TARGET'
 	;
 
 QUESTIONMARK

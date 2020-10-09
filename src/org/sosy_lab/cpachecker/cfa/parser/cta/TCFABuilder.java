@@ -189,7 +189,7 @@ class TCFABuilder {
             invariant,
             moduleDeclaration,
             specification.isInitialState,
-            specification.isErrorState);
+            specification.isTargetState);
     nodesByName.put(stateName, result);
   }
 
