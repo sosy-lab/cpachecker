@@ -76,7 +76,7 @@ public class TAShallowSync extends TAEncodingExtensionBase {
     var occurenceCountFormula =
         makeOccurenceCountEqualsFormula(pAutomaton, pLastReachedIndex + 1, action, occurenceCount);
 
-    var timeOfOccurence = makeOccurenceTimeStampFormula(occurenceCount, action, pAutomaton);
+    var timeOfOccurence = makeOccurenceTimeStampFormula(occurenceCount, action, pAutomaton, pLastReachedIndex + 1);
 
     var globalOrderVariable = makeGlobalActionOrderVariable(action, occurenceCount);
     var oldLocalOrderVariable = makeLocalOrderVariable(pAutomaton, pLastReachedIndex);
@@ -131,7 +131,7 @@ public class TAShallowSync extends TAEncodingExtensionBase {
           bFmgr.and(fmgr.makeEqual(globalOccurenceCount, localOccurenceCount), occurenceCounts);
     }
 
-    var finalTimeSyncFormula = makeFinalTimeVariableSyncFormula(pAutomaton);
+    var finalTimeSyncFormula = makeFinalTimeVariableSyncFormula(pAutomaton, pMaxUnrolling);
     return bFmgr.and(occurenceCounts, finalTimeSyncFormula);
   }
 
@@ -159,11 +159,11 @@ public class TAShallowSync extends TAEncodingExtensionBase {
   }
 
   private BooleanFormula makeOccurenceTimeStampFormula(
-      int pOccurenceCount, TaVariable pVariable, TaDeclaration pAutomaton) {
-    var variableName = "occurence_time#" + pVariable.getName();
+      int pOccurenceCount, TaVariable pVariable, TaDeclaration pAutomaton, int pTimedVariableIndex) {
+    var variableName = "occurence_time#"+ pOccurenceCount + "#" + pVariable.getName();
     var timeStampVariable = new TaVariable(variableName, "", false);
     return time.makeEqualsZeroFormula(
-        pAutomaton, pOccurenceCount, ImmutableSet.of(timeStampVariable));
+        pAutomaton, pTimedVariableIndex, ImmutableSet.of(timeStampVariable), false);
   }
 
   private BooleanFormula makeOccurenceCountUnchangedFormula(
@@ -178,9 +178,9 @@ public class TAShallowSync extends TAEncodingExtensionBase {
     return fmgr.makeVariable(countFormulaType, variableName);
   }
 
-  private BooleanFormula makeFinalTimeVariableSyncFormula(TaDeclaration pAutomaton) {
+  private BooleanFormula makeFinalTimeVariableSyncFormula(TaDeclaration pAutomaton, int pTimeVariableIndex) {
     var finalTimeVariableName = "#final_time";
     var finalTimeVariable = new TaVariable(finalTimeVariableName, "", false);
-    return time.makeEqualsZeroFormula(pAutomaton, 0, ImmutableSet.of(finalTimeVariable));
+    return time.makeEqualsZeroFormula(pAutomaton, pTimeVariableIndex, ImmutableSet.of(finalTimeVariable), false);
   }
 }

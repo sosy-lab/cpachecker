@@ -23,5 +23,5 @@ public interface TAVariables {
   BooleanFormula makeTimeElapseFormula(TaDeclaration pAutomaton, int pIndexBefore);
 
   BooleanFormula makeEqualsZeroFormula(
-      TaDeclaration pAutomaton, int pVariableIndex, Iterable<TaVariable> pClocks);
+      TaDeclaration pAutomaton, int pVariableIndex, Iterable<TaVariable> pClocks, boolean indexVariables);
 }

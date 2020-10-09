@@ -46,9 +46,14 @@ public class TAExplicitTime extends TAAbstractVariables {
 
   @Override
   protected BooleanFormula makeEqualsZeroFormula(
-      TaDeclaration pAutomaton, int pVariableIndex, TaVariable pVariable) {
+      TaDeclaration pAutomaton, int pVariableIndex, TaVariable pVariable, boolean indexVariable) {
     var timeVariableFormula = makeTimeVariableFormula(pAutomaton, pVariableIndex);
-    var variable = fmgr.makeVariable(CLOCK_VARIABLE_TYPE, pVariable.getName(), pVariableIndex);
+    Formula variable;
+    if(indexVariable) {
+      variable = fmgr.makeVariable(CLOCK_VARIABLE_TYPE, pVariable.getName(), pVariableIndex);
+    } else {
+      variable = fmgr.makeVariable(CLOCK_VARIABLE_TYPE, pVariable.getName());
+    }
     return fmgr.makeEqual(variable, timeVariableFormula);
   }
 
@@ -56,7 +61,7 @@ public class TAExplicitTime extends TAAbstractVariables {
   public BooleanFormula makeTimeElapseFormula(TaDeclaration pAutomaton, int pIndexBefore) {
     var timeVariableUpdate = makeTimeVariableUpdateFormula(pAutomaton, pIndexBefore);
     var clocksUnchanged =
-        makeVariablesDoNotChangeFormula(pAutomaton, pIndexBefore, pAutomaton.getClocks());
+        makeUnchangedFormulas(pIndexBefore, pAutomaton.getClocks());
 
     return bFmgr.and(timeVariableUpdate, clocksUnchanged);
   }

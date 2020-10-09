@@ -93,7 +93,7 @@ public abstract class TAEncodingBase implements TAFormulaEncoding {
 
     var clockResets =
         clocks.makeEqualsZeroFormula(
-            pAutomaton, pLastReachedIndex + 1, pEdge.getVariablesToReset());
+            pAutomaton, pLastReachedIndex + 1, pEdge.getVariablesToReset(), true);
     var unChangedVariables =
         Sets.difference(
             ImmutableSet.copyOf(automata.getClocksByAutomaton(pAutomaton)),
@@ -154,7 +154,7 @@ public abstract class TAEncodingBase implements TAFormulaEncoding {
     var initialLocationsFormula = bFmgr.or(initialLocationFormulas.toSet());
     var initialTime =
         clocks.makeEqualsZeroFormula(
-            pAutomaton, pInitialIndex, automata.getClocksByAutomaton(pAutomaton));
+            pAutomaton, pInitialIndex, automata.getClocksByAutomaton(pAutomaton),true);
     var extensionsFormula = extensions.makeInitialFormula(pAutomaton, pInitialIndex);
     return bFmgr.and(initialTime, initialLocationsFormula, extensionsFormula);
   }

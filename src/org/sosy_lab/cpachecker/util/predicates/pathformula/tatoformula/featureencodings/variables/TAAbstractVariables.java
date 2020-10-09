@@ -75,12 +75,15 @@ public abstract class TAAbstractVariables implements TAVariables {
   @Override
   public BooleanFormula makeVariablesDoNotChangeFormula(
       TaDeclaration pAutomaton, int pVariableIndexBefore, Iterable<TaVariable> pClocks) {
-    var noChange =
-        from(pClocks).transform(clock -> makeUnchangedFormula(clock, pVariableIndexBefore));
-    var noChangeFormula = bFmgr.and(noChange.toSet());
+    var noChangesFormula = makeUnchangedFormulas(pVariableIndexBefore, pClocks);
     var timeDoesNotAdvanceFormula = makeTimeDoesNotAdvanceFormula(pAutomaton, pVariableIndexBefore);
 
-    return bFmgr.and(noChangeFormula, timeDoesNotAdvanceFormula);
+    return bFmgr.and(noChangesFormula, timeDoesNotAdvanceFormula);
+  }
+
+  protected BooleanFormula makeUnchangedFormulas(int pVariableIndexBefore, Iterable<TaVariable> pClocks) {
+    var unchangedFormulas = from(pClocks).transform(clock -> makeUnchangedFormula(clock, pVariableIndexBefore));
+    return bFmgr.and(unchangedFormulas.toSet());
   }
 
   protected abstract BooleanFormula makeTimeDoesNotAdvanceFormula(
@@ -96,12 +99,12 @@ public abstract class TAAbstractVariables implements TAVariables {
 
   @Override
   public BooleanFormula makeEqualsZeroFormula(
-      TaDeclaration pAutomaton, int pVariableIndex, Iterable<TaVariable> pClocks) {
+      TaDeclaration pAutomaton, int pVariableIndex, Iterable<TaVariable> pClocks, boolean indexVariables) {
     var resets =
-        from(pClocks).transform(clock -> makeEqualsZeroFormula(pAutomaton, pVariableIndex, clock));
+        from(pClocks).transform(clock -> makeEqualsZeroFormula(pAutomaton, pVariableIndex, clock, indexVariables));
     return bFmgr.and(resets.toSet());
   }
 
   protected abstract BooleanFormula makeEqualsZeroFormula(
-      TaDeclaration pAutomaton, int pVariableIndex, TaVariable pVariable);
+      TaDeclaration pAutomaton, int pVariableIndex, TaVariable pVariable, boolean indexVariable);
 }

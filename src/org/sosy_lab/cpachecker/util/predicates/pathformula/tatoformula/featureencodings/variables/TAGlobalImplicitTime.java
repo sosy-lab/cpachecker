@@ -36,8 +36,13 @@ public class TAGlobalImplicitTime extends TAAbstractVariables {
 
   @Override
   protected BooleanFormula makeEqualsZeroFormula(
-      TaDeclaration pAutomaton, int pVariableIndex, TaVariable pVariable) {
-    var variable = fmgr.makeVariable(CLOCK_VARIABLE_TYPE, pVariable.getName(), pVariableIndex);
+      TaDeclaration pAutomaton, int pVariableIndex, TaVariable pVariable, boolean indexVariable) {
+    Formula variable;
+    if(indexVariable) {
+      variable = fmgr.makeVariable(CLOCK_VARIABLE_TYPE, pVariable.getName(), pVariableIndex);
+    } else {
+      variable = fmgr.makeVariable(CLOCK_VARIABLE_TYPE, pVariable.getName());
+    }
     var zero = fmgr.makeNumber(CLOCK_VARIABLE_TYPE, 0);
     return fmgr.makeEqual(variable, zero);
   }
