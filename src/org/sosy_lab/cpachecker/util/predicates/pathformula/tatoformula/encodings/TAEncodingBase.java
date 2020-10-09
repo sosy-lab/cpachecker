@@ -25,7 +25,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TimedAutomatonView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAEncodingExtension;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.locations.TALocations;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.time.TATime;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.variables.TAVariables;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -34,20 +34,20 @@ public abstract class TAEncodingBase implements TAFormulaEncoding {
   protected final FormulaManagerView fmgr;
   protected final BooleanFormulaManagerView bFmgr;
   protected final TALocations locations;
-  private final TATime time;
+  private final TAVariables clocks;
   protected final TimedAutomatonView automata;
   private TAEncodingExtension extensions;
 
   public TAEncodingBase(
       FormulaManagerView pFmgr,
       TimedAutomatonView pAutomata,
-      TATime pTime,
+      TAVariables pClocks,
       TALocations pLocations,
       TAEncodingExtension pExtension) {
     fmgr = pFmgr;
     bFmgr = fmgr.getBooleanFormulaManager();
     automata = pAutomata;
-    time = pTime;
+    clocks = pClocks;
     locations = pLocations;
     extensions = pExtension;
   }
@@ -88,18 +88,18 @@ public abstract class TAEncodingBase implements TAFormulaEncoding {
     var guardFormula =
         pEdge
             .getGuard()
-            .transform(guard -> time.makeConditionFormula(pAutomaton, pLastReachedIndex, guard))
+            .transform(guard -> clocks.makeConditionFormula(pAutomaton, pLastReachedIndex, guard))
             .or(bFmgr.makeTrue());
 
     var clockResets =
-        time.makeResetToZeroFormula(pAutomaton, pLastReachedIndex + 1, pEdge.getVariablesToReset());
+        clocks.makeEqualsZeroFormula(
+            pAutomaton, pLastReachedIndex + 1, pEdge.getVariablesToReset());
     var unChangedVariables =
         Sets.difference(
             ImmutableSet.copyOf(automata.getClocksByAutomaton(pAutomaton)),
             pEdge.getVariablesToReset());
     var clocksUnchanged =
-        time.makeClockVariablesDoNotChangeFormula(
-            pAutomaton, pLastReachedIndex, unChangedVariables);
+        clocks.makeVariablesDoNotChangeFormula(pAutomaton, pLastReachedIndex, unChangedVariables);
     var clockFormulas = bFmgr.and(clockResets, clocksUnchanged);
 
     var predecessor = (TCFANode) pEdge.getPredecessor();
@@ -109,8 +109,6 @@ public abstract class TAEncodingBase implements TAFormulaEncoding {
     var locationAfter =
         locations.makeLocationEqualsFormula(pAutomaton, pLastReachedIndex + 1, successor);
 
-    var timeDoesNotAdvance = time.makeTimeDoesNotAdvanceFormula(pAutomaton, pLastReachedIndex);
-
     var extensionsFormula = extensions.makeDiscreteStep(pAutomaton, pLastReachedIndex, pEdge);
 
     return bFmgr.and(
@@ -118,14 +116,13 @@ public abstract class TAEncodingBase implements TAFormulaEncoding {
         clockFormulas,
         locationBefore,
         locationAfter,
-        timeDoesNotAdvance,
         extensionsFormula);
   }
 
   protected final BooleanFormula makeDelayTransition(
       TaDeclaration pAutomaton, int pLastReachedIndex) {
     var locationDoesNotChange = locations.makeDoesNotChangeFormula(pAutomaton, pLastReachedIndex);
-    var timeUpdate = time.makeTimeUpdateFormula(pAutomaton, pLastReachedIndex);
+    var timeUpdate = clocks.makeTimeElapseFormula(pAutomaton, pLastReachedIndex);
     var extensionsFormula = extensions.makeDelayTransition(pAutomaton, pLastReachedIndex);
     return bFmgr.and(locationDoesNotChange, timeUpdate, extensionsFormula);
   }
@@ -133,13 +130,11 @@ public abstract class TAEncodingBase implements TAFormulaEncoding {
   protected final BooleanFormula makeIdleTransition(
       TaDeclaration pAutomaton, int pLastReachedIndex) {
     var locationDoesNotChange = locations.makeDoesNotChangeFormula(pAutomaton, pLastReachedIndex);
-    var timeDoesNotAdvance = time.makeTimeDoesNotAdvanceFormula(pAutomaton, pLastReachedIndex);
-    var clocks = automata.getClocksByAutomaton(pAutomaton);
+    var clockVariables = automata.getClocksByAutomaton(pAutomaton);
     var clocksDoNotChange =
-        time.makeClockVariablesDoNotChangeFormula(pAutomaton, pLastReachedIndex, clocks);
+        clocks.makeVariablesDoNotChangeFormula(pAutomaton, pLastReachedIndex, clockVariables);
     var extensionsFormula = extensions.makeIdleTransition(pAutomaton, pLastReachedIndex);
-    return bFmgr.and(
-        locationDoesNotChange, timeDoesNotAdvance, clocksDoNotChange, extensionsFormula);
+    return bFmgr.and(locationDoesNotChange, clocksDoNotChange, extensionsFormula);
   }
 
   @Override
@@ -157,7 +152,9 @@ public abstract class TAEncodingBase implements TAFormulaEncoding {
             .transform(
                 node -> locations.makeLocationEqualsFormula(pAutomaton, pInitialIndex, node));
     var initialLocationsFormula = bFmgr.or(initialLocationFormulas.toSet());
-    var initialTime = time.makeInitiallyZeroFormula(pAutomaton, pInitialIndex);
+    var initialTime =
+        clocks.makeEqualsZeroFormula(
+            pAutomaton, pInitialIndex, automata.getClocksByAutomaton(pAutomaton));
     var extensionsFormula = extensions.makeInitialFormula(pAutomaton, pInitialIndex);
     return bFmgr.and(initialTime, initialLocationsFormula, extensionsFormula);
   }

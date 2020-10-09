@@ -16,12 +16,12 @@ import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFANode;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TimedAutomatonView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.locations.TALocations;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.time.TATime;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.variables.TAVariables;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class TAInvariants extends TAEncodingExtensionBase {
-  private final TATime time;
+  private final TAVariables time;
   private final TALocations locations;
   private final TimedAutomatonView automata;
   private final boolean useLocalInvariant;
@@ -29,7 +29,7 @@ public class TAInvariants extends TAEncodingExtensionBase {
   public TAInvariants(
       FormulaManagerView pFmgr,
       TimedAutomatonView pAutomata,
-      TATime pTime,
+      TAVariables pTime,
       TALocations pLocations,
       boolean pUseLocalInvariant) {
     super(pFmgr);

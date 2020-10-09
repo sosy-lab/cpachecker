@@ -15,7 +15,7 @@ import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFANode;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TimedAutomatonView;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAEncodingExtension;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.locations.TALocations;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.time.TATime;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.variables.TAVariables;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -23,7 +23,7 @@ public class TALocationUnrolling extends TAEncodingBase {
   public TALocationUnrolling(
       FormulaManagerView pFmgr,
       TimedAutomatonView pAutomata,
-      TATime pTime,
+      TAVariables pTime,
       TALocations pLocations,
       TAEncodingExtension pExtensions) {
     super(pFmgr, pAutomata, pTime, pLocations, pExtensions);

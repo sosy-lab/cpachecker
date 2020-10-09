@@ -6,9 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.time;
-
-import static com.google.common.collect.FluentIterable.from;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.variables;
 
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariable;
@@ -17,7 +15,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 
-public class TAExplicitTime extends TAAbstractTime {
+public class TAExplicitTime extends TAAbstractVariables {
   private static final String TIME_VARIABLE_NAME = "#time";
   private final boolean localEncoding;
 
@@ -47,7 +45,7 @@ public class TAExplicitTime extends TAAbstractTime {
   }
 
   @Override
-  protected BooleanFormula makeResetFormula(
+  protected BooleanFormula makeEqualsZeroFormula(
       TaDeclaration pAutomaton, int pVariableIndex, TaVariable pVariable) {
     var timeVariableFormula = makeTimeVariableFormula(pAutomaton, pVariableIndex);
     var variable = fmgr.makeVariable(CLOCK_VARIABLE_TYPE, pVariable.getName(), pVariableIndex);
@@ -55,22 +53,10 @@ public class TAExplicitTime extends TAAbstractTime {
   }
 
   @Override
-  public BooleanFormula makeInitiallyZeroFormula(TaDeclaration pAutomaton, int pVariableIndex) {
-    var allClocksZero =
-        from(pAutomaton.getClocks())
-            .transform(clock -> makeResetFormula(pAutomaton, pVariableIndex, clock));
-    var timeVariableFormula = makeTimeVariableFormula(pAutomaton, pVariableIndex);
-    var zero = fmgr.makeNumber(CLOCK_VARIABLE_TYPE, 0);
-    var timeZero = fmgr.makeEqual(timeVariableFormula, zero);
-
-    return bFmgr.and(bFmgr.and(allClocksZero.toSet()), timeZero);
-  }
-
-  @Override
-  public BooleanFormula makeTimeUpdateFormula(TaDeclaration pAutomaton, int pIndexBefore) {
+  public BooleanFormula makeTimeElapseFormula(TaDeclaration pAutomaton, int pIndexBefore) {
     var timeVariableUpdate = makeTimeVariableUpdateFormula(pAutomaton, pIndexBefore);
     var clocksUnchanged =
-        makeClockVariablesDoNotChangeFormula(pAutomaton, pIndexBefore, pAutomaton.getClocks());
+        makeVariablesDoNotChangeFormula(pAutomaton, pIndexBefore, pAutomaton.getClocks());
 
     return bFmgr.and(timeVariableUpdate, clocksUnchanged);
   }
@@ -92,16 +78,11 @@ public class TAExplicitTime extends TAAbstractTime {
   }
 
   @Override
-  public BooleanFormula makeTimeDoesNotAdvanceFormula(TaDeclaration pAutomaton, int pIndexBefore) {
+  protected BooleanFormula makeTimeDoesNotAdvanceFormula(
+      TaDeclaration pAutomaton, int pIndexBefore) {
     var timeVariableBeforeFormula = makeTimeVariableFormula(pAutomaton, pIndexBefore);
     var timeVariableAfterFormula = makeTimeVariableFormula(pAutomaton, pIndexBefore + 1);
 
     return fmgr.makeEqual(timeVariableAfterFormula, timeVariableBeforeFormula);
-  }
-
-  public BooleanFormula makeTimeEqualsVariable(
-      TaDeclaration pAutomaton, int pVariableIndex, Formula variable) {
-    var timeVariableFormula = makeTimeVariableFormula(pAutomaton, pVariableIndex);
-    return fmgr.makeEqual(timeVariableFormula, variable);
   }
 }

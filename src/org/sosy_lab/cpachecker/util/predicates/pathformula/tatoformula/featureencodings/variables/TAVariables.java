@@ -6,29 +6,22 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.time;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.variables;
 
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariable;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariableCondition;
 import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.FormulaType;
 
-public interface TATime {
+public interface TAVariables {
   BooleanFormula makeConditionFormula(
       TaDeclaration pAutomaton, int pVariableIndex, TaVariableCondition pCondition);
 
-  BooleanFormula makeClockVariablesDoNotChangeFormula(
+  BooleanFormula makeVariablesDoNotChangeFormula(
       TaDeclaration pAutomaton, int pVariableIndexBefore, Iterable<TaVariable> pClocks);
 
-  BooleanFormula makeResetToZeroFormula(
+  BooleanFormula makeTimeElapseFormula(TaDeclaration pAutomaton, int pIndexBefore);
+
+  BooleanFormula makeEqualsZeroFormula(
       TaDeclaration pAutomaton, int pVariableIndex, Iterable<TaVariable> pClocks);
-
-  BooleanFormula makeInitiallyZeroFormula(TaDeclaration pAutomaton, int pVariableIndex);
-
-  BooleanFormula makeTimeUpdateFormula(TaDeclaration pAutomaton, int pIndexBefore);
-
-  BooleanFormula makeTimeDoesNotAdvanceFormula(TaDeclaration pAutomaton, int pIndexBefore);
-
-  FormulaType<?> getTimeFormulaType();
 }

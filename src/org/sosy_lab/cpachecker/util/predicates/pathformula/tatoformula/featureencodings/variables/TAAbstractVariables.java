@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.time;
+package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.variables;
 
 import static com.google.common.collect.FluentIterable.from;
 
@@ -23,14 +23,14 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
-public abstract class TAAbstractTime implements TATime {
+public abstract class TAAbstractVariables implements TAVariables {
   protected static final FormulaType<?> CLOCK_VARIABLE_TYPE =
       FormulaType.getSinglePrecisionFloatingPointType();
   protected final FormulaManagerView fmgr;
   protected final BooleanFormulaManagerView bFmgr;
   protected final boolean allowZeroDelay;
 
-  public TAAbstractTime(FormulaManagerView pFmgr, boolean pAllowZeroDelay) {
+  public TAAbstractVariables(FormulaManagerView pFmgr, boolean pAllowZeroDelay) {
     fmgr = pFmgr;
     bFmgr = pFmgr.getBooleanFormulaManager();
     allowZeroDelay = pAllowZeroDelay;
@@ -73,12 +73,18 @@ public abstract class TAAbstractTime implements TATime {
   }
 
   @Override
-  public BooleanFormula makeClockVariablesDoNotChangeFormula(
+  public BooleanFormula makeVariablesDoNotChangeFormula(
       TaDeclaration pAutomaton, int pVariableIndexBefore, Iterable<TaVariable> pClocks) {
     var noChange =
         from(pClocks).transform(clock -> makeUnchangedFormula(clock, pVariableIndexBefore));
-    return bFmgr.and(noChange.toSet());
+    var noChangeFormula = bFmgr.and(noChange.toSet());
+    var timeDoesNotAdvanceFormula = makeTimeDoesNotAdvanceFormula(pAutomaton, pVariableIndexBefore);
+
+    return bFmgr.and(noChangeFormula, timeDoesNotAdvanceFormula);
   }
+
+  protected abstract BooleanFormula makeTimeDoesNotAdvanceFormula(
+      TaDeclaration pAutomaton, int pIndexBefore);
 
   private BooleanFormula makeUnchangedFormula(TaVariable pVariable, int pVariableIndexBefore) {
     var newVariable =
@@ -89,18 +95,13 @@ public abstract class TAAbstractTime implements TATime {
   }
 
   @Override
-  public BooleanFormula makeResetToZeroFormula(
+  public BooleanFormula makeEqualsZeroFormula(
       TaDeclaration pAutomaton, int pVariableIndex, Iterable<TaVariable> pClocks) {
     var resets =
-        from(pClocks).transform(clock -> makeResetFormula(pAutomaton, pVariableIndex, clock));
+        from(pClocks).transform(clock -> makeEqualsZeroFormula(pAutomaton, pVariableIndex, clock));
     return bFmgr.and(resets.toSet());
   }
 
-  protected abstract BooleanFormula makeResetFormula(
+  protected abstract BooleanFormula makeEqualsZeroFormula(
       TaDeclaration pAutomaton, int pVariableIndex, TaVariable pVariable);
-
-  @Override
-  public FormulaType<?> getTimeFormulaType() {
-    return CLOCK_VARIABLE_TYPE;
-  }
 }

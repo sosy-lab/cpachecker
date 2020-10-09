@@ -22,7 +22,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extension
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.TABooleanVarFeatureEncoding;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.TADiscreteFeatureEncoding;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.locations.TALocations;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.time.TATime;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.variables.TAVariables;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
@@ -34,7 +34,7 @@ public class TATransitionUnrolling extends TAEncodingBase {
   public TATransitionUnrolling(
       FormulaManagerView pFmgr,
       TimedAutomatonView pAutomata,
-      TATime pTime,
+      TAVariables pTime,
       TALocations pLocations,
       TAEncodingExtension pExtensions) {
     super(pFmgr, pAutomata, pTime, pLocations, pExtensions);

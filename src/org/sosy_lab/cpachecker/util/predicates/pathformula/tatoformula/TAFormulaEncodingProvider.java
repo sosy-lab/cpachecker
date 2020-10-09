@@ -42,9 +42,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureen
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.locations.TABooleanVarLocations;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.locations.TALocalVarLocations;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.locations.TALocations;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.time.TAExplicitTime;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.time.TAGlobalImplicitTime;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.time.TATime;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.variables.TAExplicitTime;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.variables.TAGlobalImplicitTime;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.variables.TAVariables;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 
 public class TAFormulaEncodingProvider {
@@ -176,7 +176,7 @@ public class TAFormulaEncodingProvider {
     return new TABooleanVarActions(featureEncoding);
   }
 
-  private TATime createTimeEncoding(FormulaManagerView pFmgr) {
+  private TAVariables createTimeEncoding(FormulaManagerView pFmgr) {
     if (options.timeEncoding == TimeEncodingType.GLOBAL_EXPLICIT) {
       return new TAExplicitTime(pFmgr, false, options.allowZeroDelay);
     }
@@ -192,7 +192,7 @@ public class TAFormulaEncodingProvider {
   private Iterable<TAEncodingExtension> createExtensions(
       FormulaManagerView pFmgr,
       TimedAutomatonView pAutomata,
-      TATime pTime,
+      TAVariables pTime,
       TALocations pLocations,
       TAActions pActions) {
     var result = new ArrayList<TAEncodingExtension>(options.encodingExtensions.size());
@@ -224,7 +224,7 @@ public class TAFormulaEncodingProvider {
   private TAFormulaEncoding createEncoding(
       FormulaManagerView pFmgr,
       TimedAutomatonView pAutomata,
-      TATime pTime,
+      TAVariables pTime,
       TALocations pLocations,
       TAEncodingExtension pExtension) {
     if (options.automatonEncodingType == AutomatonEncodingType.TRANSITION_UNROLLING) {
