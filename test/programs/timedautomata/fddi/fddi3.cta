@@ -54,7 +54,7 @@ MODULE Station
         GOTO y_idle;
       }
     }
-    STATE y_idle(ERROR)
+    STATE y_idle(TARGET)
     {
       TRANS
       {

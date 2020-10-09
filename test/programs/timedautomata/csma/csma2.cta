@@ -87,7 +87,7 @@ MODULE Sender
         GOTO sent;
       }
     }
-    STATE sent(ERROR)
+    STATE sent(TARGET)
     {
       TRANS
       {

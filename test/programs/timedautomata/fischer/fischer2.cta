@@ -55,7 +55,7 @@ MODULE Process
         GOTO default;
       }
     }
-    STATE critical(ERROR)
+    STATE critical(TARGET)
     {
       TRANS
       {
@@ -121,7 +121,7 @@ MODULE ROOT System
     is_not_2:  SYNC;
     set_2:     SYNC;
     set_0_p2:  SYNC;
-    a = 100:   CONST;
+    a = 10:   CONST;
     b = 10:    CONST;
   INST variable FROM Variable WITH
   {

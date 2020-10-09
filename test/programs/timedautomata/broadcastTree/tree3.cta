@@ -28,7 +28,7 @@ MODULE ROOT Tree
     {
       TRANS { SYNC receive; GOTO done; }
     }
-    STATE done(ERROR)
+    STATE done(TARGET)
     {
     }
   }

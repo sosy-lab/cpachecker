@@ -55,7 +55,7 @@ MODULE Process
         GOTO default;
       }
     }
-    STATE critical(ERROR)
+    STATE critical(TARGET)
     {
       TRANS
       {
