@@ -145,23 +145,6 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
         + " (Score: " + (int)(score*100) + ")";
   }
 
-  @Override
-  public boolean equals(Object q){
-    if(q instanceof Fault){
-      Fault comp = (Fault)q;
-      if(comp.size() == size() && comp.infos.size() == infos.size()){
-        for (FaultContribution faultContribution : comp) {
-          if(!contains(faultContribution)){
-            return false;
-          }
-        }
-
-        return true;
-      }
-    }
-    return false;
-  }
-
   /**
    * Set an intended index. Call sortIntended on FaultLocalizationInfo to sort ascending by intended
    * index
@@ -176,12 +159,18 @@ public class Fault extends ForwardingSet<FaultContribution> implements Comparabl
   }
 
   @Override
-  public int hashCode(){
-    int result = 4;
-    for(FaultContribution contribution: this){
-      result = Objects.hash(contribution, result);
+  public boolean equals(Object q){
+    if (!(q instanceof Fault)) {
+      return false;
     }
-    return result;
+
+    Fault comp = (Fault) q;
+    return errorSet.equals(comp.errorSet) && infos.equals(comp.infos);
+  }
+
+  @Override
+  public int hashCode(){
+    return Objects.hash(errorSet, infos);
   }
 
   @Override

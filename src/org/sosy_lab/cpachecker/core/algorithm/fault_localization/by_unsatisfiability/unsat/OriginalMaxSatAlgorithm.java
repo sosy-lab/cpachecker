@@ -9,38 +9,30 @@
 package org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.unsat;
 
 import com.google.common.base.VerifyException;
-import java.io.PrintStream;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
-import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.FaultLocalizerWithTraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.FormulaContext;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
-import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.faultlocalization.Fault;
 import org.sosy_lab.cpachecker.util.faultlocalization.FaultContribution;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.cpachecker.util.statistics.StatCounter;
-import org.sosy_lab.cpachecker.util.statistics.StatKind;
-import org.sosy_lab.cpachecker.util.statistics.StatTimer;
-import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.SolverException;
 
-public class OriginalMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, Statistics {
+public class OriginalMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, StatisticsProvider {
 
   private Solver solver;
   private BooleanFormulaManager bmgr;
 
   // Statistics
-  private StatTimer totalTime = new StatTimer(StatKind.SUM, "Total time to find all subsets");
-  private StatCounter unsatCalls = new StatCounter("Total calls to sat solver");
-  private StatCounter savedCalls = new StatCounter("Total calls prevented by subset check");
+  private final MaxSatStatistics stats = new MaxSatStatistics();
 
   @Override
   public Set<Fault> run(FormulaContext pContext, TraceFormula tf)
@@ -61,7 +53,7 @@ public class OriginalMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
                 || bmgr.isFalse(((Selector) fc).getFormula()));
 
     Fault complement;
-    totalTime.start();
+    stats.totalTime.start();
     // loop as long as new maxsat cores are found.
     while (true) {
       complement = coMSS(soft, tf, hard);
@@ -71,7 +63,7 @@ public class OriginalMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
       hard.add(complement);
       soft.removeAll(complement);
     }
-    totalTime.stop();
+    stats.totalTime.stop();
     return hard;
   }
 
@@ -98,7 +90,7 @@ public class OriginalMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
         Selector s = (Selector) fc;
         Fault copy = new Fault(new HashSet<>(result));
         copy.add(s);
-        unsatCalls.inc();
+        stats.unsatCalls.inc();
         if (!solver.isUnsat(bmgr.and(composedFormula, softSetFormula(copy)))) {
           changed = true;
           result.add(s);
@@ -133,15 +125,7 @@ public class OriginalMaxSatAlgorithm implements FaultLocalizerWithTraceFormula, 
   }
 
   @Override
-  public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    StatisticsWriter w0 = StatisticsWriter.writingStatisticsTo(out);
-    w0.put("Total time", totalTime)
-        .put("Total calls to solver", unsatCalls)
-        .put("Total calls saved", savedCalls);
-  }
-
-  @Override
-  public @Nullable String getName() {
-    return "MAX-SAT algorithm";
+  public void collectStatistics(Collection<Statistics> statsCollection) {
+    statsCollection.add(stats);
   }
 }

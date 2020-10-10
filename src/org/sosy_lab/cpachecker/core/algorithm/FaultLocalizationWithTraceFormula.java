@@ -182,11 +182,9 @@ public class FaultLocalizationWithTraceFormula
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
 
+    AlgorithmStatus status = algorithm.run(reachedSet);
     totalTime.start();
-    AlgorithmStatus status;
     try {
-      // Find error labels
-      status = algorithm.run(reachedSet);
       FluentIterable<CounterexampleInfo> counterExamples =
           Optionals.presentInstances(
               from(reachedSet)
@@ -253,7 +251,7 @@ public class FaultLocalizationWithTraceFormula
           break;
         }
         case ERRINV: {
-          tf = disableFSTF ? new TraceFormula.FlowSensitiveTrace(context, options, edgeList) : new TraceFormula.DefaultTrace(context, options, edgeList);
+          tf = disableFSTF ? new TraceFormula.DefaultTrace(context, options, edgeList) : new TraceFormula.FlowSensitiveTrace(context, options, edgeList);
           ranking = FaultRankingUtils.concatHeuristics(
               new EdgeTypeScoring(),
               new CallHierarchyScoring(edgeList, tf.getPostConditionOffset()));
@@ -348,24 +346,29 @@ public class FaultLocalizationWithTraceFormula
   @Override
   public void collectStatistics(Collection<Statistics> statsCollection) {
     statsCollection.add(this);
-    if(algorithm instanceof Statistics){
-      statsCollection.add((Statistics)algorithm);
+    if (algorithm instanceof Statistics) {
+      statsCollection.add((Statistics) algorithm);
     }
-    if(faultAlgorithm instanceof Statistics){
-      statsCollection.add((Statistics)faultAlgorithm);
+    if (algorithm instanceof StatisticsProvider) {
+      ((StatisticsProvider) algorithm).collectStatistics(statsCollection);
+    }
+    if (faultAlgorithm instanceof Statistics) {
+      statsCollection.add((Statistics) faultAlgorithm);
+    }
+    if (faultAlgorithm instanceof StatisticsProvider) {
+      ((StatisticsProvider) faultAlgorithm).collectStatistics(statsCollection);
     }
   }
 
   @Override
   public void printStatistics(
       PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    StatisticsWriter w0  = StatisticsWriter.writingStatisticsTo(out);
-    w0.put(totalTime);
+    StatisticsWriter.writingStatisticsTo(out).put(totalTime);
   }
 
   @Override
   public @Nullable String getName() {
-    return getClass().getCanonicalName();
+    return getClass().getSimpleName();
   }
 
 }

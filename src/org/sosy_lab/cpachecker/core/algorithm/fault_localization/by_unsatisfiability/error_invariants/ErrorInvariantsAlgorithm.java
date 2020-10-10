@@ -73,9 +73,10 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
   private Multimap<BooleanFormula, Integer> memorize;
 
   private StatTimer totalTime = new StatTimer(StatKind.SUM, "Total time for ErrInv");
-  private StatCounter searchCalls = new StatCounter("Search calls");
-  private StatCounter solverCalls = new StatCounter("Solver calls");
-  private StatCounter memoizationCalls = new StatCounter("Saved calls through memoization");
+  private StatCounter searchCalls = new StatCounter("Number of search calls");
+  private StatCounter solverCalls = new StatCounter("Numer of solver calls");
+  private StatCounter memoizationCalls =
+      new StatCounter("Number of interpolant-interval cache hits");
 
   /**
    * Calculate an alternating sequence of edges and summarizing interpolants of the program to make
@@ -347,16 +348,16 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
 
   @Override
   public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
-    StatisticsWriter w0 = StatisticsWriter.writingStatisticsTo(out);
-    w0.put("Total time", totalTime)
-        .put("Search calls", searchCalls)
-        .put("Solver calls", solverCalls)
-        .put("Memoization calls", memoizationCalls);
+    StatisticsWriter.writingStatisticsTo(out)
+        .put(totalTime)
+        .put(searchCalls)
+        .put(solverCalls)
+        .put(memoizationCalls);
   }
 
   @Override
   public @Nullable String getName() {
-    return "Error invariants algorithm";
+    return getClass().getSimpleName();
   }
 
   /** Stores the interpolant for a selector and its boundaries */
