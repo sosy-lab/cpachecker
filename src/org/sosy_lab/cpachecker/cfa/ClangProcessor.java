@@ -66,7 +66,7 @@ public class ClangProcessor {
       description = "Directory where to dump the results of the processor.")
 
   /*
-   * Die Klasse schreibt ihre Output Files in die processed directory.
+   * The class writes its output files in the processed directory.
    */
   @FileOption(Type.OUTPUT_DIRECTORY)
   private Path dumpDirectory = Paths.get("processed");
