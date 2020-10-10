@@ -30,8 +30,10 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.encodings
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAEncodingExtension;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAEncodingExtensionWrapper;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAInvariants;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TALocalMutexActions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAShallowSync;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TATransitionActions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAUnsyncMutexActions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.TABooleanVarFeatureEncoding;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.TAGlobalVarDiscreteFeatureEncoding;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.TALocalVarDiscreteFeatureEncoding;
@@ -210,12 +212,13 @@ public class TAFormulaEncodingProvider {
     if (options.encodingExtensions.contains(TAEncodingExtensionType.TRANSITION_ACTIONS)) {
       result.add(
           new TATransitionActions(
-              pFmgr,
-              pAutomata,
-              pActions,
-              options.actionDetachedDelay,
-              options.actionDetachedIdle,
-              options.noTwoActions));
+              pFmgr, pAutomata, pActions, options.actionDetachedDelay, options.actionDetachedIdle));
+    }
+    if (options.encodingExtensions.contains(TAEncodingExtensionType.UNSYNC_MUTEX_ACTIONS)) {
+      result.add(new TAUnsyncMutexActions(pFmgr, pAutomata, pActions));
+    }
+    if (options.encodingExtensions.contains(TAEncodingExtensionType.LOCAL_MUTEX_ACTIONS)) {
+      result.add(new TALocalMutexActions(pFmgr, pAutomata, pActions));
     }
 
     return result;

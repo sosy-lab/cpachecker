@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensio
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.Sets;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariable;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFAEdge;
@@ -23,7 +22,6 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 public class TATransitionActions extends TAEncodingExtensionBase {
   private final boolean actionDetachedDelay;
   private final boolean actionDetachedIdle;
-  private final boolean noTwoActions;
 
   private final TAActions actions;
   private final TimedAutomatonView automata;
@@ -33,14 +31,12 @@ public class TATransitionActions extends TAEncodingExtensionBase {
       TimedAutomatonView pAutomata,
       TAActions pActions,
       boolean pActionDetachedDelay,
-      boolean pActionDetachedIdle,
-      boolean pNoTwoActions) {
+      boolean pActionDetachedIdle) {
     super(pFmgr);
     actions = pActions;
     automata = pAutomata;
     actionDetachedDelay = pActionDetachedDelay;
     actionDetachedIdle = pActionDetachedIdle;
-    noTwoActions = pNoTwoActions;
   }
 
   @Override
@@ -91,26 +87,5 @@ public class TATransitionActions extends TAEncodingExtensionBase {
             .transform(bFmgr::not);
     var actionsDoNotOccurFormula = bFmgr.and(actionDoesNotOccurFormulas.toSet());
     return actionsDoNotOccurFormula;
-  }
-
-  @Override
-  public BooleanFormula makeStepFormula(int pLastReachedIndex) {
-    if (!noTwoActions) {
-      return bFmgr.makeTrue();
-    }
-
-    var actionDoesNotOccurFormulas =
-        from(automata.getAllActions())
-            .transform(action -> actions.makeActionOccursInStepFormula(pLastReachedIndex, action))
-            .transform(bFmgr::not)
-            .toSet();
-
-    var actionDoesNotOccurFormulaPairs =
-        Sets.cartesianProduct(actionDoesNotOccurFormulas, actionDoesNotOccurFormulas);
-    var atLeastOneInPairDoesNotOccurFormulas =
-        from(actionDoesNotOccurFormulaPairs)
-            .filter(pair -> !pair.get(0).equals(pair.get(1)))
-            .transform(bFmgr::or);
-    return bFmgr.and(atLeastOneInPairDoesNotOccurFormulas.toSet());
   }
 }
