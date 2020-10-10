@@ -24,16 +24,17 @@ import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
 public abstract class TAAbstractVariables implements TAVariables {
-  protected static final FormulaType<?> CLOCK_VARIABLE_TYPE =
-      FormulaType.getSinglePrecisionFloatingPointType();
+  protected final FormulaType<?> clockVariableType;
   protected final FormulaManagerView fmgr;
   protected final BooleanFormulaManagerView bFmgr;
   protected final boolean allowZeroDelay;
 
-  public TAAbstractVariables(FormulaManagerView pFmgr, boolean pAllowZeroDelay) {
+  public TAAbstractVariables(
+      FormulaManagerView pFmgr, boolean pAllowZeroDelay, FormulaType<?> pClockVariableType) {
     fmgr = pFmgr;
     bFmgr = pFmgr.getBooleanFormulaManager();
     allowZeroDelay = pAllowZeroDelay;
+    clockVariableType = pClockVariableType;
   }
 
   @Override
@@ -69,7 +70,7 @@ public abstract class TAAbstractVariables implements TAVariables {
   protected Formula makeRealNumber(Number pNumber) {
     assert (pNumber instanceof BigDecimal);
     return fmgr.getFloatingPointFormulaManager()
-        .makeNumber((BigDecimal) pNumber, (FloatingPointType) CLOCK_VARIABLE_TYPE);
+        .makeNumber((BigDecimal) pNumber, (FloatingPointType) clockVariableType);
   }
 
   @Override
@@ -89,11 +90,11 @@ public abstract class TAAbstractVariables implements TAVariables {
   protected abstract BooleanFormula makeTimeDoesNotAdvanceFormula(
       TaDeclaration pAutomaton, int pIndexBefore);
 
-  private BooleanFormula makeUnchangedFormula(TaVariable pVariable, int pVariableIndexBefore) {
+  protected BooleanFormula makeUnchangedFormula(TaVariable pVariable, int pVariableIndexBefore) {
     var newVariable =
-        fmgr.makeVariable(CLOCK_VARIABLE_TYPE, pVariable.getName(), pVariableIndexBefore + 1);
+        fmgr.makeVariable(clockVariableType, pVariable.getName(), pVariableIndexBefore + 1);
     var oldVariable =
-        fmgr.makeVariable(CLOCK_VARIABLE_TYPE, pVariable.getName(), pVariableIndexBefore);
+        fmgr.makeVariable(clockVariableType, pVariable.getName(), pVariableIndexBefore);
     return fmgr.makeEqual(newVariable, oldVariable);
   }
 

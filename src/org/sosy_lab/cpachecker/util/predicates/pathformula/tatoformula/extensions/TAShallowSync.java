@@ -26,19 +26,23 @@ import org.sosy_lab.java_smt.api.FormulaType;
 public class TAShallowSync extends TAEncodingExtensionBase {
   private final TAExplicitTime time;
   private final TAActions actions;
-  private static final FormulaType<?> countFormulaType = FormulaType.IntegerType;
-  private static final FormulaType<?> occurenceStepFormulaType = FormulaType.IntegerType;
+  private final FormulaType<?> countFormulaType;
+  private final FormulaType<?> occurenceStepFormulaType;
   private final TimedAutomatonView automata;
 
   public TAShallowSync(
       FormulaManagerView pFmgr,
       TimedAutomatonView pAutomata,
       TAExplicitTime pTime,
-      TAActions pActions) {
+      TAActions pActions,
+      int pUnrollingBound) {
     super(pFmgr);
     time = pTime;
     actions = pActions;
     automata = pAutomata;
+    var bitVectorSize = (int) (Math.log(pUnrollingBound) / Math.log(2) + 1);
+    countFormulaType = FormulaType.getBitvectorTypeWithSize(bitVectorSize + 1);
+    occurenceStepFormulaType = FormulaType.getBitvectorTypeWithSize(bitVectorSize + 1);
   }
 
   @Override

@@ -2807,6 +2807,12 @@ cpa.timedautomata.allowZeroDelay = true
 cpa.timedautomata.automatonEncodingType = CONSTRAINT_UNROLLING
   enum:     [TRANSITION_UNROLLING, LOCATION_UNROLLING, CONSTRAINT_UNROLLING]
 
+# The exponent size of clock variables
+cpa.timedautomata.clockTypeExponentSize = 2
+
+# The mantissa size of clock variables
+cpa.timedautomata.clockTypeMantissaSize = 2
+
 # Representation of a special delay action. Options are: LOCAL, GLOBAL, NONE
 cpa.timedautomata.delayActionType = NONE
   enum:     [LOCAL, GLOBAL, NONE]
@@ -2841,7 +2847,8 @@ cpa.timedautomata.stepCountUpperBound = 50
 # Formula representation of time. Options are: GLOBAL_IMPLICIT,
 # GLOBAL_EXPLICIT, LOCAL_EXPLICIT
 cpa.timedautomata.timeEncoding = GLOBAL_IMPLICIT
-  enum:     [GLOBAL_IMPLICIT, GLOBAL_EXPLICIT, LOCAL_EXPLICIT]
+  enum:     [GLOBAL_IMPLICIT, GLOBAL_EXPLICIT, GLOBAL_EXPLICIT_DIFFERENCE,
+             LOCAL_EXPLICIT, LOCAL_EXPLICIT_DIFFERENCE]
 
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"

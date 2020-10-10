@@ -16,19 +16,21 @@ import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariableExpression;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 public class TAGlobalImplicitTime extends TAAbstractVariables {
   private static final String DELAY_VARIABLE_NAME = "#delay";
 
-  public TAGlobalImplicitTime(FormulaManagerView pFmgr, boolean pAllowZeroDelay) {
-    super(pFmgr, pAllowZeroDelay);
+  public TAGlobalImplicitTime(
+      FormulaManagerView pFmgr, boolean pAllowZeroDelay, FormulaType<?> pClockVariableType) {
+    super(pFmgr, pAllowZeroDelay, pClockVariableType);
   }
 
   @Override
   protected BooleanFormula makeVariableExpression(
       TaDeclaration pAutomaton, int pVariableIndex, TaVariableExpression expression) {
     var variableFormula =
-        fmgr.makeVariable(CLOCK_VARIABLE_TYPE, expression.getVariable().getName(), pVariableIndex);
+        fmgr.makeVariable(clockVariableType, expression.getVariable().getName(), pVariableIndex);
     var constantFormula = makeRealNumber(expression.getConstant());
 
     return makeVariableExpression(variableFormula, constantFormula, expression.getOperator());
@@ -39,18 +41,17 @@ public class TAGlobalImplicitTime extends TAAbstractVariables {
       TaDeclaration pAutomaton, int pVariableIndex, TaVariable pVariable, boolean indexVariable) {
     Formula variable;
     if(indexVariable) {
-      variable = fmgr.makeVariable(CLOCK_VARIABLE_TYPE, pVariable.getName(), pVariableIndex);
+      variable = fmgr.makeVariable(clockVariableType, pVariable.getName(), pVariableIndex);
     } else {
-      variable = fmgr.makeVariable(CLOCK_VARIABLE_TYPE, pVariable.getName());
+      variable = fmgr.makeVariable(clockVariableType, pVariable.getName());
     }
-    var zero = fmgr.makeNumber(CLOCK_VARIABLE_TYPE, 0);
+    var zero = fmgr.makeNumber(clockVariableType, 0);
     return fmgr.makeEqual(variable, zero);
   }
 
   @Override
   public BooleanFormula makeTimeElapseFormula(TaDeclaration pAutomaton, int pIndexBefore) {
-    var delayVariable =
-        fmgr.makeVariable(CLOCK_VARIABLE_TYPE, DELAY_VARIABLE_NAME, pIndexBefore + 1);
+    var delayVariable = fmgr.makeVariable(clockVariableType, DELAY_VARIABLE_NAME, pIndexBefore + 1);
     var clockUpdateFormulas =
         from(pAutomaton.getClocks())
             .transform(clock -> makeTimeUpdateFormula(clock, delayVariable, pIndexBefore));
@@ -60,7 +61,7 @@ public class TAGlobalImplicitTime extends TAAbstractVariables {
   }
 
   private BooleanFormula makeDelayLowerBound(Formula delayVariable) {
-    var zero = fmgr.makeNumber(CLOCK_VARIABLE_TYPE, 0);
+    var zero = fmgr.makeNumber(clockVariableType, 0);
     if (allowZeroDelay) {
       return fmgr.makeGreaterOrEqual(delayVariable, zero, false);
     } else {
@@ -70,8 +71,8 @@ public class TAGlobalImplicitTime extends TAAbstractVariables {
 
   private BooleanFormula makeTimeUpdateFormula(
       TaVariable clock, Formula delayVariable, int pIndexBefore) {
-    var newVariable = fmgr.makeVariable(CLOCK_VARIABLE_TYPE, clock.getName(), pIndexBefore + 1);
-    var oldVariable = fmgr.makeVariable(CLOCK_VARIABLE_TYPE, clock.getName(), pIndexBefore);
+    var newVariable = fmgr.makeVariable(clockVariableType, clock.getName(), pIndexBefore + 1);
+    var oldVariable = fmgr.makeVariable(clockVariableType, clock.getName(), pIndexBefore);
     var updatedVariable = fmgr.makePlus(oldVariable, delayVariable);
     return fmgr.makeEqual(newVariable, updatedVariable);
   }

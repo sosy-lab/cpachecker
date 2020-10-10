@@ -45,36 +45,51 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureen
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.locations.TABooleanVarLocations;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.locations.TALocalVarLocations;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.locations.TALocations;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.variables.TAExplicitDifferenceTime;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.variables.TAExplicitTime;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.variables.TAGlobalImplicitTime;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.variables.TAVariables;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 public class TAFormulaEncodingProvider {
   private final TAEncodingOptions options;
   private final CFA cfa;
   private final FormulaManagerView fmgr;
   private final TAFormulaEncoding encoding;
+  private final int stepCountUpperBound;
 
   private static TAFormulaEncodingProvider instance;
 
   public static TAFormulaEncoding getEncoding(
-      Configuration config, CFA pCfa, FormulaManagerView pFmgr)
+      Configuration config, CFA pCfa, FormulaManagerView pFmgr, int pStepCountUpperBound)
       throws InvalidConfigurationException {
     if (instance == null) {
-      instance = new TAFormulaEncodingProvider(config, pCfa, pFmgr);
+      instance = new TAFormulaEncodingProvider(config, pCfa, pFmgr, pStepCountUpperBound);
     }
 
     return instance.encoding;
   }
 
-  private TAFormulaEncodingProvider(Configuration config, CFA pCfa, FormulaManagerView pFmgr)
+  public static TAFormulaEncoding getEncoding(
+      Configuration config, CFA pCfa, FormulaManagerView pFmgr)
+      throws InvalidConfigurationException {
+    if (instance == null) {
+      instance = new TAFormulaEncodingProvider(config, pCfa, pFmgr, Integer.MAX_VALUE);
+    }
+
+    return instance.encoding;
+  }
+
+  private TAFormulaEncodingProvider(
+      Configuration config, CFA pCfa, FormulaManagerView pFmgr, int pStepCountUpperBound)
       throws InvalidConfigurationException {
     options = new TAEncodingOptions();
     config.inject(options, TAEncodingOptions.class);
     cfa = pCfa;
     fmgr = pFmgr;
 
+    stepCountUpperBound = pStepCountUpperBound;
     encoding = createConfiguredEncoding();
   }
 
@@ -180,14 +195,23 @@ public class TAFormulaEncodingProvider {
   }
 
   private TAVariables createTimeEncoding(FormulaManagerView pFmgr) {
+    var clockFormulaType =
+        FormulaType.getFloatingPointType(
+            options.clockTypeExponentSize, options.clockTypeMantissaSize);
     if (options.timeEncoding == TimeEncodingType.GLOBAL_EXPLICIT) {
-      return new TAExplicitTime(pFmgr, false, options.allowZeroDelay);
+      return new TAExplicitTime(pFmgr, false, options.allowZeroDelay, clockFormulaType);
+    }
+    if (options.timeEncoding == TimeEncodingType.GLOBAL_EXPLICIT_DIFFERENCE) {
+      return new TAExplicitDifferenceTime(pFmgr, false, options.allowZeroDelay, clockFormulaType);
     }
     if (options.timeEncoding == TimeEncodingType.GLOBAL_IMPLICIT) {
-      return new TAGlobalImplicitTime(pFmgr, options.allowZeroDelay);
+      return new TAGlobalImplicitTime(pFmgr, options.allowZeroDelay, clockFormulaType);
     }
     if (options.timeEncoding == TimeEncodingType.LOCAL_EXPLICIT) {
-      return new TAExplicitTime(pFmgr, true, options.allowZeroDelay);
+      return new TAExplicitTime(pFmgr, true, options.allowZeroDelay, clockFormulaType);
+    }
+    if (options.timeEncoding == TimeEncodingType.LOCAL_EXPLICIT_DIFFERENCE) {
+      return new TAExplicitDifferenceTime(pFmgr, true, options.allowZeroDelay, clockFormulaType);
     }
     throw new AssertionError("Unknown encoding type");
   }
@@ -203,7 +227,9 @@ public class TAFormulaEncodingProvider {
       if (!(pTime instanceof TAExplicitTime)) {
         throw new AssertionError("Shallow sync is only possible with explicit time encoding");
       }
-      result.add(new TAShallowSync(pFmgr, pAutomata, (TAExplicitTime) pTime, pActions));
+      result.add(
+          new TAShallowSync(
+              pFmgr, pAutomata, (TAExplicitTime) pTime, pActions, stepCountUpperBound));
     }
     if (options.encodingExtensions.contains(TAEncodingExtensionType.INVARIANTS)) {
       result.add(

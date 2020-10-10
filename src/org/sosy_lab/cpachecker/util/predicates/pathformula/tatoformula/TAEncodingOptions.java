@@ -53,7 +53,9 @@ public class TAEncodingOptions {
   public static enum TimeEncodingType {
     GLOBAL_IMPLICIT,
     GLOBAL_EXPLICIT,
+    GLOBAL_EXPLICIT_DIFFERENCE,
     LOCAL_EXPLICIT,
+    LOCAL_EXPLICIT_DIFFERENCE
   }
 
   @Option(
@@ -115,4 +117,10 @@ public class TAEncodingOptions {
 
   @Option(secure = true, description = "Delays of zero are allowed if true")
   public Boolean allowZeroDelay = true;
+
+  @Option(secure = true, description = "The exponent size of clock variables")
+  public int clockTypeExponentSize = 2;
+
+  @Option(secure = true, description = "The mantissa size of clock variables")
+  public int clockTypeMantissaSize = 2;
 }
