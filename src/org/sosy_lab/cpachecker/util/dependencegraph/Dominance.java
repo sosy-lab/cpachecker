@@ -450,13 +450,14 @@ public final class Dominance {
     /**
      * Returns the ID for the specified node.
      *
-     * <p>A valid ID for a node is {@code >= 0}, {@code < getNodeCount()}, and unique for every node
-     * in this tree. All valid IDs are used (there is a node for every valid ID).
+     * <p>A valid ID for a node fulfills {@code 0 <= ID < getNodeCount()} and is unique for every
+     * node in this tree. All valid IDs are used (there is a node for every valid ID).
      *
      * @param pNode the node to get the ID for.
-     * @return the ID of the node, if the node is contained in this tree; otherwise, {@link
-     *     Dominance#UNDEFINED} is returned.
+     * @return the ID for the specified node.
      * @throws NullPointerException if {@code pNode} is {@code null}.
+     * @throws IllegalArgumentException if {@code pNode} was not part of the original graph during
+     *     graph traversal in {@link #createDomTree}.
      */
     public int getId(T pNode) {
 
@@ -464,7 +465,11 @@ public final class Dominance {
 
       Integer id = ids.get(pNode);
 
-      return id != null ? id : UNDEFINED;
+      if (id == null) {
+        throw new IllegalArgumentException("unknown node: " + pNode);
+      }
+
+      return id;
     }
 
     /**
@@ -747,10 +752,10 @@ public final class Dominance {
      * Returns the dominance frontier for the specified node.
      *
      * @param pNode the node to get the dominance frontier for.
-     * @return if there is a dominance frontier for the specified node, the dominance frontier is
-     *     returned; otherwise, {@code null} is returned (this only happens when the node was not
-     *     discovered during the traversal of the original graph).
+     * @return the dominance frontier for the specified node.
      * @throws NullPointerException if {@code pNode} is {@code null}.
+     * @throws IllegalArgumentException if {@code pNode} was not part of the original graph during
+     *     graph traversal in {@link #createDomTree}.
      */
     public Set<T> getFrontier(T pNode) {
 
@@ -758,7 +763,11 @@ public final class Dominance {
 
       Integer id = ids.get(pNode);
 
-      return id != null ? getFrontier(id) : null;
+      if (id == null) {
+        throw new IllegalArgumentException("unknown node: " + pNode);
+      }
+
+      return getFrontier(id);
     }
 
     /**
