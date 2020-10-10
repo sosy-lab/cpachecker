@@ -2832,9 +2832,6 @@ cpa.timedautomata.invariantType = LOCAL
 cpa.timedautomata.locationEncoding = LOCAL_ID
   enum:     [LOCAL_ID, GLOBAL_ID, BOOLEAN_VAR]
 
-# Forbid distinct actions to appear in the same step
-cpa.timedautomata.noTwoActions = true
-
 # Amount by which to increase the maximum unrolling step bound.
 cpa.timedautomata.stepCountAdujstmentStep = 0
 

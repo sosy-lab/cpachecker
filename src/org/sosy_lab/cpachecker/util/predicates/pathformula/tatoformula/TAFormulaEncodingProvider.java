@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extension
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAEncodingExtensionWrapper;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAInvariants;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TALocalMutexActions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAShallowStrictSync;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAShallowSync;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TATransitionActions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAUnsyncMutexActions;
@@ -219,6 +220,12 @@ public class TAFormulaEncodingProvider {
     }
     if (options.encodingExtensions.contains(TAEncodingExtensionType.LOCAL_MUTEX_ACTIONS)) {
       result.add(new TALocalMutexActions(pFmgr, pAutomata, pActions));
+    }
+    if (options.encodingExtensions.contains(TAEncodingExtensionType.SHALLOW_STRICT)) {
+      result.add(new TAShallowStrictSync(pFmgr, pAutomata, pActions, false));
+    }
+    if (options.encodingExtensions.contains(TAEncodingExtensionType.SHALLOW_MULTISTEP)) {
+      result.add(new TAShallowStrictSync(pFmgr, pAutomata, pActions, true));
     }
 
     return result;

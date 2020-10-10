@@ -21,7 +21,9 @@ public class TAEncodingOptions {
     TRANSITION_TYPES,
     TRANSITION_ACTIONS,
     UNSYNC_MUTEX_ACTIONS,
-    LOCAL_MUTEX_ACTIONS
+    LOCAL_MUTEX_ACTIONS,
+    SHALLOW_STRICT,
+    SHALLOW_MULTISTEP
   }
 
   @Option(
@@ -99,9 +101,6 @@ public class TAEncodingOptions {
       description =
           "Use actions to prevent idle transitions from being active in the same step as any other transition")
   public boolean actionDetachedIdle = true;
-
-  @Option(secure = true, description = "Forbid distinct actions to appear in the same step")
-  public boolean noTwoActions = true;
 
   public static enum InvariantType {
     LOCAL,
