@@ -53,7 +53,7 @@ public final class Finally extends UnaryFormula {
     if (pOperand instanceof Disjunction) {
       return new Disjunction(
           Collections3.transformedImmutableListCopy(
-              ((Conjunction) pOperand).getChildren(), Finally::of));
+              ((Disjunction) pOperand).getChildren(), Finally::of));
     }
 
     return new Finally(pOperand);
