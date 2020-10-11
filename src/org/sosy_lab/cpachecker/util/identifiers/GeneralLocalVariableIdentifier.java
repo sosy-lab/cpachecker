@@ -26,7 +26,7 @@ package org.sosy_lab.cpachecker.util.identifiers;
 import java.util.Objects;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
-public class GeneralLocalVariableIdentifier extends LocalVariableIdentifier
+public final class GeneralLocalVariableIdentifier extends LocalVariableIdentifier
     implements GeneralIdentifier {
 
   public GeneralLocalVariableIdentifier(String pNm, int pDereference) {

@@ -25,7 +25,7 @@ package org.sosy_lab.cpachecker.cpa.thread;
 
 import java.util.Objects;
 
-public class ThreadLabel implements Comparable<ThreadLabel> {
+public final class ThreadLabel implements Comparable<ThreadLabel> {
 
   public enum LabelStatus {
     PARENT_THREAD,

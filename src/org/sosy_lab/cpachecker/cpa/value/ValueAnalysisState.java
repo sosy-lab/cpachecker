@@ -74,7 +74,7 @@ import org.sosy_lab.java_smt.api.FloatingPointFormula;
 import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
-public class ValueAnalysisState
+public final class ValueAnalysisState
     implements AbstractQueryableState, FormulaReportingState,
         ForgetfulState<ValueAnalysisInformation>, Serializable, Graphable,
         LatticeAbstractState<ValueAnalysisState>, PseudoPartitionable {

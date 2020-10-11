@@ -35,7 +35,8 @@ import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
-public class ModificationsState implements AvoidanceReportingState, AbstractQueryableState,
+public final class ModificationsState
+    implements AvoidanceReportingState, AbstractQueryableState,
                                            Graphable {
 
   private boolean hasModification;
