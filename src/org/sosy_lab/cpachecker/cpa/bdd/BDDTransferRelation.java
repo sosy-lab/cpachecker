@@ -32,11 +32,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.ALeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.ARightHandSide;
-import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
-import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
-import org.sosy_lab.cpachecker.cfa.ast.c.CComplexCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
@@ -55,7 +51,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -79,7 +74,6 @@ import org.sosy_lab.cpachecker.cpa.pointer2.PointerTransferRelation;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.ExplicitLocationSet;
 import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
-import org.sosy_lab.cpachecker.exceptions.NoException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.exceptions.UnsupportedCodeException;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
@@ -582,69 +576,6 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       } else {
         return null;
       }
-    }
-  }
-
-  /** This Visitor evaluates the visited expression and
-   * returns iff the given variable is used in it. */
-  private static class VarCExpressionVisitor extends DefaultCExpressionVisitor<Boolean, NoException> {
-
-    private String varName;
-
-    VarCExpressionVisitor(String var) {
-      this.varName = var;
-    }
-
-    private Boolean handle(CExpression exp) {
-      String name = getCanonicalName(exp);
-      return varName.equals(name == null ? exp.toASTString() : name);
-    }
-
-    @Override
-    public Boolean visit(CArraySubscriptExpression exp) {
-      return handle(exp);
-    }
-
-    @Override
-    public Boolean visit(CBinaryExpression exp) {
-      return exp.getOperand1().accept(this) || exp.getOperand2().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CCastExpression exp) {
-      return exp.getOperand().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CComplexCastExpression exp) {
-      // TODO check if only the part of the operand should be evaluated which the
-      // expression casts to
-      return exp.getOperand().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CFieldReference exp) {
-      return handle(exp);
-    }
-
-    @Override
-    public Boolean visit(CIdExpression exp) {
-      return varName.equals(exp.getDeclaration().getQualifiedName());
-    }
-
-    @Override
-    public Boolean visit(CUnaryExpression exp) {
-      return exp.getOperand().accept(this);
-    }
-
-    @Override
-    public Boolean visit(CPointerExpression exp) {
-      return exp.getOperand().accept(this);
-    }
-
-    @Override
-    protected Boolean visitDefault(CExpression pExp) {
-      return false;
     }
   }
 
