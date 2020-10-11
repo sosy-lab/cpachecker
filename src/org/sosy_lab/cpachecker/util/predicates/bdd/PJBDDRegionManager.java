@@ -56,7 +56,6 @@ import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.QuantifiedFormulaManager.Quantifier;
 import org.sosy_lab.java_smt.api.visitors.BooleanFormulaVisitor;
 import org.sosy_lab.pjbdd.Builders;
-import org.sosy_lab.pjbdd.creator.Builder;
 import org.sosy_lab.pjbdd.creator.bdd.BDDBuilder;
 import org.sosy_lab.pjbdd.creator.bdd.Creator;
 import org.sosy_lab.pjbdd.node.BDD;
@@ -99,7 +98,7 @@ public class PJBDDRegionManager implements RegionManager {
   @Override
   public Triple<Region, Region, Region> getIfThenElse(Region f) {
     BDD bdd = unwrap(f);
-    return Triple.of(f, wrap(bdd.getHigh()), wrap(bdd.getLow()));
+    return Triple.of(wrap(bddCreator.makeIthVar(bdd.getVariable())), wrap(bdd.getHigh()), wrap(bdd.getLow()));
   }
 
   @Override
@@ -414,12 +413,7 @@ public class PJBDDRegionManager implements RegionManager {
     }
 
     private Creator makeCreator() {
-      if (threads <= 1){
-       return Builders.newIntBuilder().setCacheSize(cacheSize).setThreads(1).setIncreaseFactor(increaseFactor)
-       .setParallelism(tableParallelism).setTableSize(tableSize).setVarCount(varCount).build();
-      }
       resolveProperties(builder);
-
       return builder.build();
     }
 

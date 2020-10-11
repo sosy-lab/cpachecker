@@ -43,7 +43,7 @@
         <dependency org="org.sosy_lab" name="llvm-j" rev="0.3.1-15-gdb8139f" conf="runtime->runtime; contrib->sources"/>
         <!-- ParallelJBDD
             Parallel java BDD library for predicate abstraction. -->
-        <dependency org="org.sosy_lab" name="pjbdd" rev="1.0.2" conf="runtime->runtime; contrib->sources"/>
+        <dependency org="org.sosy_lab" name="pjbdd" rev="1.0.2-2-g5934b86" conf="runtime->runtime; contrib->sources"/>
         <!-- JavaBDD
              Java BDD library for predicate abstraction (uses CUDD). -->
         <dependency org="net.sf.javabdd" name="javabdd" rev="1.0b2-sosy0" conf="runtime->runtime; contrib->sources"/>
