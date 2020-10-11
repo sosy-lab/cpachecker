@@ -402,10 +402,15 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
     final Algorithm algorithm = algorithmFactory.newInstance();
     algorithm.run(reached);
 
+    return extractExitStates(reached, innerSubtree, searchTargetStatesOnExit);
+  }
+
+  public static Set<AbstractState> extractExitStates(
+      final ReachedSet reached, final Block innerSubtree, boolean pSearchTargetStatesOnExit) {
     // if the element is an error element
     final Set<AbstractState> returnStates;
     final AbstractState lastState = reached.getLastState();
-    if (!searchTargetStatesOnExit && isTargetState(lastState)) {
+    if (!pSearchTargetStatesOnExit && isTargetState(lastState)) {
       // found a target state inside a recursive subgraph call
       // this needs to be propagated to outer subgraph (till main is reached)
       returnStates = Collections.singleton(lastState);
@@ -422,14 +427,13 @@ public class BAMTransferRelation extends AbstractBAMTransferRelation<CPAExceptio
           returnStates.add(returnState);
         }
       }
-      if (searchTargetStatesOnExit) {
+      if (pSearchTargetStatesOnExit) {
         for (AbstractState targetState : Iterables.filter(reached, AbstractStates::isTargetState)) {
           assert ((ARGState) targetState).getChildren().isEmpty();
           returnStates.add(targetState);
         }
       }
     }
-
     return returnStates;
   }
 

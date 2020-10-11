@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.bam.BAMCPAWithBreakOnMissingBlock;
+import org.sosy_lab.cpachecker.cpa.bam.BAMTransferRelation;
 import org.sosy_lab.cpachecker.cpa.bam.MissingBlockAbstractionState;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMCache.BAMCacheEntry;
 import org.sosy_lab.cpachecker.cpa.bam.cache.BAMDataManager;
@@ -332,7 +333,7 @@ class ReachedSetExecutor {
     boolean isFinished = dependsOn.isEmpty();
     if (isFinished) {
       if (rs.getWaitlist().isEmpty() || targetStateFound) {
-        updateCache(targetStateFound);
+        updateCache();
       } else {
         // otherwise we have an unfinished reached-set and do not cache the incomplete result.
       }
@@ -354,7 +355,7 @@ class ReachedSetExecutor {
         level, "%s :: finished=%s, targetStateFound=%s", this, isFinished, targetStateFound);
   }
 
-  private void updateCache(boolean pEndsWithTargetState) {
+  private void updateCache() {
     if (isMainReachedSet) {
       // we do not cache main reached set, because it should not be used internally
       return;
@@ -364,7 +365,7 @@ class ReachedSetExecutor {
     Precision reducedInitialPrecision = rs.getPrecision(reducedInitialState);
     Block innerBlock = getBlockForState(reducedInitialState);
     final Set<AbstractState> exitStates =
-        extractExitStates(pEndsWithTargetState, innerBlock);
+        BAMTransferRelation.extractExitStates(rs, innerBlock, bamcpa.searchTargetStatesOnExit());
     BAMCacheEntry entry =
         bamcpa.getCache().get(reducedInitialState, reducedInitialPrecision, innerBlock);
     assert entry.getReachedSet() == rs
@@ -380,17 +381,6 @@ class ReachedSetExecutor {
               Collections2.transform(entry.getExitStates(), s -> id(s)));
       entry.setExitStates(exitStates);
       entry.setRootOfBlock(null);
-    }
-  }
-
-  private Set<AbstractState> extractExitStates(boolean pEndsWithTargetState, Block pBlock) {
-    if (pEndsWithTargetState) {
-      assert AbstractStates.isTargetState(rs.getLastState());
-      return Collections.singleton(rs.getLastState());
-    } else {
-      return AbstractStates.filterLocations(rs, pBlock.getReturnNodes())
-          .filter(s -> ((ARGState) s).getChildren().isEmpty())
-          .toSet();
     }
   }
 
