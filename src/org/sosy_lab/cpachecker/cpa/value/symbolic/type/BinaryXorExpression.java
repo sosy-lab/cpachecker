@@ -26,10 +26,8 @@ package org.sosy_lab.cpachecker.cpa.value.symbolic.type;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
-/**
- * {@link BinarySymbolicExpression} representing the 'binary xor' operation.
- */
-public class BinaryXorExpression extends BinarySymbolicExpression {
+/** {@link BinarySymbolicExpression} representing the 'binary xor' operation. */
+public final class BinaryXorExpression extends BinarySymbolicExpression {
 
   private static final long serialVersionUID = 4554823889664793659L;
 
