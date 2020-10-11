@@ -3791,7 +3791,7 @@ slicing.preserveTargetPaths = false
 
 # what kind of slicing to use
 slicing.type = STATIC
-  enum:     [STATIC]
+  enum:     [STATIC, IDENTITY]
 
 # Extract and cache unsat cores for satisfiability checking
 solver.cacheUnsatCores = true
