@@ -92,6 +92,7 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.EdgeCollectingCFAVisitor;
 import org.sosy_lab.cpachecker.util.CFAUtils;
+import org.sosy_lab.cpachecker.util.dependencegraph.DGNode.EdgeNode;
 import org.sosy_lab.cpachecker.util.dependencegraph.DGNode.UnknownPointerNode;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.DependenceType;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.NodeMap;
@@ -222,7 +223,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
     for (CFAEdge e : allEdges) {
       if (!nodes.containsANodeForEdge(e)) {
-        nodes.getNodesForEdges().put(e, Optional.empty(), new DGNode(e));
+        nodes.getNodesForEdges().put(e, Optional.empty(), new EdgeNode(e));
         isolatedNodes.inc();
       }
     }
@@ -406,9 +407,9 @@ public class DependenceGraphBuilder implements StatisticsProvider {
    */
   private DGNode createNode(final CFAEdge pCfaEdge, final Optional<MemoryLocation> pCause) {
     if (pCause.isPresent()) {
-      return new DGNode(pCfaEdge, pCause.orElseThrow());
+      return new EdgeNode(pCfaEdge, pCause.orElseThrow());
     } else {
-      return new DGNode(pCfaEdge);
+      return new EdgeNode(pCfaEdge);
     }
   }
 
