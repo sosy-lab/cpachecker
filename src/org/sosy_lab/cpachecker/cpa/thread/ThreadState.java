@@ -86,12 +86,14 @@ public class ThreadState implements LatticeAbstractState<ThreadState>, Compatibl
   }
 
   @Override
-  public int hashCode() {
+  public final int hashCode() {
     return Objects.hash(removedSet, threadSet);
   }
 
   @Override
-  public boolean equals(Object obj) {
+  // refactoring would be better, but currently safe for the existing subclass
+  @SuppressWarnings("EqualsGetClass")
+  public final boolean equals(Object obj) {
     if (this == obj) {
       return true;
     }

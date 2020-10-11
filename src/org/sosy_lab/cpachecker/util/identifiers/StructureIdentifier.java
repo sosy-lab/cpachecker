@@ -29,6 +29,7 @@ import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
+@SuppressWarnings("EqualsGetClass") // should be refactored
 public class StructureIdentifier extends SingleIdentifier {
   protected AbstractIdentifier owner;
 

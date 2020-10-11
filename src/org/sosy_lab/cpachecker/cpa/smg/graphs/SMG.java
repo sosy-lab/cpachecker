@@ -118,12 +118,14 @@ public class SMG implements UnmodifiableSMG {
   }
 
   @Override
-  public int hashCode() {
+  public final int hashCode() {
     return Objects.hash(machine_model, hv_edges, neq, validObjects, objects, pt_edges, values);
   }
 
   @Override
-  public boolean equals(Object obj) {
+  // refactoring would be better, but currently safe for the existing subclass
+  @SuppressWarnings("EqualsGetClass")
+  public final boolean equals(Object obj) {
     if (this == obj) {
       return true;
     }
