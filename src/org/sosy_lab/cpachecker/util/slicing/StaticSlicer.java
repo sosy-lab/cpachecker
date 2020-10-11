@@ -68,11 +68,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
           + "the target location, but also on the paths to that target location.")
   private boolean preserveTargetPaths = false;
 
-  private final LogManager logger;
-
   private DependenceGraph depGraph;
-
-  private final SliceExporter sliceExporter;
 
   private StatInt candidateSliceCount =
       new StatInt(StatKind.SUM, "Number of proposed slicing " + "procedures");
@@ -86,22 +82,19 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
       Configuration pConfig,
       CFA pCfa)
       throws InvalidConfigurationException {
-    super(pExtractor, pLogger, pShutdownNotifier);
+    super(pExtractor, pLogger, pShutdownNotifier, pConfig);
 
     pConfig.inject(this);
-
-    logger = pLogger;
 
     depGraph =
         pCfa.getDependenceGraph()
             .orElseThrow(
                 () -> new InvalidConfigurationException("Dependence graph required, but missing"));
 
-    sliceExporter = new SliceExporter(pConfig);
   }
 
   @Override
-  public Slice getSlice(CFA pCfa, Collection<CFAEdge> pSlicingCriteria)
+  public Slice getSlice0(CFA pCfa, Collection<CFAEdge> pSlicingCriteria)
       throws InterruptedException {
     candidateSliceCount.setNextValue(pSlicingCriteria.size());
     int realSlices = 0;
@@ -147,7 +140,6 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
       final Slice slice = new Slice(pCfa, relevantEdges, pSlicingCriteria);
       slicingTime.stop();
-      sliceExporter.execute(slice, sliceCount.getUpdateCount(), logger);
       return slice;
 
     } finally {

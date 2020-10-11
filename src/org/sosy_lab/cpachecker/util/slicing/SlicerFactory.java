@@ -115,7 +115,7 @@ public class SlicerFactory {
       case STATIC:
         return new StaticSlicer(extractor, pLogger, pShutdownNotifier, pConfig, pCfa);
       case IDENTITY:
-        return new IdentitySlicer(extractor, pLogger, pShutdownNotifier);
+        return new IdentitySlicer(extractor, pLogger, pShutdownNotifier, pConfig);
       default:
         throw new AssertionError("Unhandled slicing type " + slicingType);
     }
