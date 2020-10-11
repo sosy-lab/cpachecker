@@ -2,7 +2,7 @@
  *  CPAchecker is a tool for configurable software verification.
  *  This file is part of CPAchecker.
  *
- *  Copyright (C) 2007-2018  Dirk Beyer
+ *  Copyright (C) 2007-2020  Dirk Beyer
  *  All rights reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,23 +23,34 @@
  */
 package org.sosy_lab.cpachecker.util.slicing;
 
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.Specification;
 
-/**
- * Interface for program slicers.
- *
- * <p>Classes implementing this interface provide means to get the {@link CFAEdge CFA edges} of a
- * {@link CFA} that are relevant regarding a {@link Specification} or a set of slicing criteria.
- * Slicing criteria are given as CFA edges.
- */
-public interface Slicer {
+public class Slice {
 
-  /** Returns the {@link Slice} of the given CFA that is relevant for the given specification. */
-  Slice getSlice(CFA pCfa, Specification pSpecification) throws InterruptedException;
+  private final CFA cfa;
+  private final ImmutableSet<CFAEdge> relevantEdges;
+  private final ImmutableCollection<CFAEdge> criteria;
 
-  /** Returns the {@link Slice} in the given CFA that is relevant for the given specification. */
-  Slice getSlice(CFA pCfa, Collection<CFAEdge> pSlicingCriteria) throws InterruptedException;
+  Slice(final CFA pCfa, final Collection<CFAEdge> pRelevantEdges, Collection<CFAEdge> pCriteria) {
+    cfa = pCfa;
+    relevantEdges = ImmutableSet.copyOf(pRelevantEdges);
+    criteria = ImmutableList.copyOf(pCriteria);
+  }
+
+  public ImmutableSet<CFAEdge> getRelevantEdges() {
+    return relevantEdges;
+  }
+
+  public ImmutableCollection<CFAEdge> getUsedCriteria() {
+    return criteria;
+  }
+
+  public CFA getOriginalCfa() {
+    return cfa;
+  }
 }

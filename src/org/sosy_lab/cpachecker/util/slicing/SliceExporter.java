@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.slicing;
 
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
@@ -400,26 +401,27 @@ public class SliceExporter {
     return newEntryNode;
   }
 
-  /**
-   * Creates a new CFA that resembles the program slice (as specified by pRelevantEdges) as closely
-   * as possible.
-   */
-  private CFA createRelevantCfa(CFA pCfa, Set<CFAEdge> pRelevantEdges) {
+  /** Creates a new CFA that resembles the program slice as closely as possible. */
+  private CFA createRelevantCfa(final Slice pSlice) {
+
+    final CFA originalCfa = pSlice.getOriginalCfa();
+    final ImmutableSet<CFAEdge> relevantEdges = pSlice.getRelevantEdges();
 
     NavigableMap<String, FunctionEntryNode> newFunctions = new TreeMap<>();
     SortedSetMultimap<String, CFANode> newNodes = TreeMultimap.create();
     FunctionEntryNode newMainEntryNode = null;
 
-    for (String functionName : pCfa.getAllFunctionNames()) {
-      final boolean isMainFunction = functionName.equals(pCfa.getMainFunction().getFunctionName());
+    for (String functionName : originalCfa.getAllFunctionNames()) {
+      final boolean isMainFunction =
+          functionName.equals(originalCfa.getMainFunction().getFunctionName());
 
-      FunctionEntryNode entryNode = pCfa.getFunctionHead(functionName);
+      FunctionEntryNode entryNode = originalCfa.getFunctionHead(functionName);
 
       Collection<CFANode> functionNodes = CFATraversal.dfs().collectNodesReachableFrom(entryNode);
 
-      if (isMainFunction || containsRelevantEdge(functionNodes, pRelevantEdges)) {
+      if (isMainFunction || containsRelevantEdge(functionNodes, relevantEdges)) {
         final FunctionEntryNode newEntryNode =
-            createRelevantFunction((CFunctionEntryNode) entryNode, pRelevantEdges, newNodes);
+            createRelevantFunction((CFunctionEntryNode) entryNode, relevantEdges, newNodes);
         newFunctions.put(functionName, newEntryNode);
 
         if (isMainFunction) {
@@ -431,31 +433,28 @@ public class SliceExporter {
     assert newMainEntryNode != null;
 
     return new MutableCFA(
-        pCfa.getMachineModel(),
+        originalCfa.getMachineModel(),
         newFunctions,
         newNodes,
         newMainEntryNode,
-        pCfa.getFileNames(),
-        pCfa.getLanguage());
+        originalCfa.getFileNames(),
+        originalCfa.getLanguage());
   }
 
   /**
    * Executes the slice-exporter, which (depending on the configuration) exports program slices to C
    * program files.
    *
-   * @param pCfa the CFA used for slice creation.
-   * @param pRelevantEdges the set containing all relevant edges for the slice.
+   * @param pSlice program slice to export
    * @param pSliceCounter the value of the slice counter; used for numbering the slice files.
    * @param pLogger the logger for this export procedure.
    */
-  public void execute(
-      CFA pCfa, Set<CFAEdge> pRelevantEdges, int pSliceCounter, LogManager pLogger) {
-
+  public void execute(Slice pSlice, int pSliceCounter, LogManager pLogger) {
     if (exportToC) {
       Concurrency.newThread(
               "Slice-Exporter",
               () -> {
-                CFA sliceCfa = createRelevantCfa(pCfa, pRelevantEdges);
+                CFA sliceCfa = createRelevantCfa(pSlice);
 
                 Path path = exportToCFile.getPath(pSliceCounter);
 

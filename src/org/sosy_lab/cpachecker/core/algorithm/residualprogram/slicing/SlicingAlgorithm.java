@@ -64,7 +64,7 @@ public class SlicingAlgorithm implements Algorithm {
   public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
     // at the moment, we don't do anything with the computed slice here,
     // but expect the slicer itself to output it in some file.
-    slicer.getRelevantEdges(cfa, spec);
+    slicer.getSlice(cfa, spec);
     return AlgorithmStatus.NO_PROPERTY_CHECKED;
   }
 }

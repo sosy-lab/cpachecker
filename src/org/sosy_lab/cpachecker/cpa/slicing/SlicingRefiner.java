@@ -375,7 +375,7 @@ public class SlicingRefiner implements Refiner, StatisticsProvider {
         CFAUtils.enteringEdges(finalNode).filter(innerEdges::contains).toList();
     criteriaEdges.addAll(edgesToTarget);
 
-    Set<CFAEdge> relevantEdges = slicer.getRelevantEdges(cfa, criteriaEdges);
+    Set<CFAEdge> relevantEdges = slicer.getSlice(cfa, criteriaEdges).getRelevantEdges();
 
     if (addCexConstraintsToSlice) {
       // this must always be added _after_ adding the slices, otherwise

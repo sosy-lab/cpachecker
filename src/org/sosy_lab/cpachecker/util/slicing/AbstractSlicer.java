@@ -23,7 +23,6 @@
  */
 package org.sosy_lab.cpachecker.util.slicing;
 
-import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -40,9 +39,8 @@ import org.sosy_lab.cpachecker.core.Specification;
  * Abstract implementation of {@link Slicer} that takes care of mapping the specification to slicing
  * criteria.
  *
- * <p>Implements {@link #getRelevantEdges(CFA, Specification)} by mapping the specification to a set
- * of target edges that are handed to {@link #getRelevantEdges(CFA, Collection)} as slicing
- * criteria.
+ * <p>Implements {@link #getSlice(CFA, Specification)} by mapping the specification to a set of
+ * target edges that are handed to {@link #getSlice(CFA, Collection)} as slicing criteria.
  */
 @Options(prefix = "slicing")
 public abstract class AbstractSlicer implements Slicer {
@@ -81,12 +79,11 @@ public abstract class AbstractSlicer implements Slicer {
   }
 
   @Override
-  public ImmutableSet<CFAEdge> getRelevantEdges(CFA pCfa, Specification pSpecification)
-      throws InterruptedException {
+  public Slice getSlice(CFA pCfa, Specification pSpecification) throws InterruptedException {
 
     Set<CFAEdge> slicingCriteria =
         extractor.getSlicingCriteria(pCfa, pSpecification, shutdownNotifier, logger);
 
-    return getRelevantEdges(pCfa, slicingCriteria);
+    return getSlice(pCfa, slicingCriteria);
   }
 }
