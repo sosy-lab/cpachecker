@@ -69,7 +69,7 @@ public interface DGNode extends Serializable {
       if (this == pO) {
         return true;
       }
-      if (pO == null || !(pO instanceof EdgeNode)) {
+      if (!(pO instanceof EdgeNode)) {
         return false;
       }
       EdgeNode other = (EdgeNode) pO;
