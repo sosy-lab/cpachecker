@@ -3769,6 +3769,12 @@ slicing.conditionFiles = [
           Paths.get("output/AssumptionAutomaton.txt"),
           Paths.get("config/specification/AssumptionGuidingAutomaton.spc")]
 
+# Export the used slicing criteria to file
+slicing.exportCriteria.enable = false
+
+# File template for export of used slicing criteria
+slicing.exportCriteria.file = "programSlice.%d.criteria.txt"
+
 # Whether to export slices as C program files
 slicing.exportToC.enable = false
 

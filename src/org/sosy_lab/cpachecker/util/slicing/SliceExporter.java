@@ -76,18 +76,35 @@ import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
 
-@Options(prefix = "slicing.exportToC")
+@Options(prefix = "slicing")
 public class SliceExporter {
 
   @Option(
       secure = true,
-      name = "enable",
+      name = "exportToC.enable",
       description = "Whether to export slices as C program files")
   private boolean exportToC = false;
 
-  @Option(secure = true, name = "file", description = "File template for exported C program slices")
+  @Option(
+      secure = true,
+      name = "exportToC.file",
+      description = "File template for exported C program slices")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private PathTemplate exportToCFile = PathTemplate.ofFormatString("programSlice.%d.c");
+
+  @Option(
+      secure = true,
+      name = "exportCriteria.enable",
+      description = "Export the used slicing criteria to file")
+  private boolean exportCriteria = false;
+
+  @Option(
+      secure = true,
+      name = "exportCriteria.file",
+      description = "File template for export of used slicing criteria")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate exportCriteriaFile =
+      PathTemplate.ofFormatString("programSlice.%d.criteria.txt");
 
   public SliceExporter(Configuration pConfig) throws InvalidConfigurationException {
     pConfig.inject(this);
@@ -450,6 +467,27 @@ public class SliceExporter {
    * @param pLogger the logger for this export procedure.
    */
   public void execute(Slice pSlice, int pSliceCounter, LogManager pLogger) {
+    if (exportCriteria) {
+      Concurrency.newThread(
+          "Slice-criteria-Exporter",
+          () -> {
+            Path path = exportCriteriaFile.getPath(pSliceCounter);
+
+            try (Writer writer = IO.openOutputFile(path, Charset.defaultCharset())) {
+              StringBuilder output = new StringBuilder();
+              for (CFAEdge e : pSlice.getUsedCriteria()) {
+                FileLocation loc = e.getFileLocation();
+                output.append(loc.getFileName()).append(":").append(loc.getStartingLineNumber()).append(":").append(e.getCode()).append("\n");
+              }
+              writer.write(output.toString());
+
+            } catch (IOException e) {
+              pLogger.logUserException(Level.WARNING, e, "Could not write slicing criteria to file " + path);
+            }
+          })
+          .start();
+    }
+
     if (exportToC) {
       Concurrency.newThread(
               "Slice-Exporter",
