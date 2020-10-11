@@ -29,7 +29,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CType;
 
 class DefaultRegionManager extends AbstractMemoryRegionManager implements MemoryRegionManager {
 
-  private static class DefaultMemoryRegion implements MemoryRegion {
+  private static final class DefaultMemoryRegion implements MemoryRegion {
 
     private final CType type;
 

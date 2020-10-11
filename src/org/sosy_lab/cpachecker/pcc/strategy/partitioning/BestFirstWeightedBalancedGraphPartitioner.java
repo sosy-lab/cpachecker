@@ -94,11 +94,8 @@ public class BestFirstWeightedBalancedGraphPartitioner implements WeightedBalanc
         BestFirstEvaluationFunctionFactory.createEvaluationFunction(function);
   }
 
-  /**
-   * Store the node together with its exploration priority
-   * Use this type within PriorityQueue
-   */
-  private static class NodePriority implements Comparable<NodePriority> {
+  /** Store the node together with its exploration priority Use this type within PriorityQueue */
+  private static final class NodePriority implements Comparable<NodePriority> {
 
     private final WeightedNode node;
     private final int priority;
