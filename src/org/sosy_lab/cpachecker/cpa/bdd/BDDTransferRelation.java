@@ -62,7 +62,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
@@ -87,12 +86,10 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
 public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BDDState, VariableTrackingPrecision> {
 
   private final int bitsize;
-  private final boolean compressIntEqual;
   private final VariableClassification varClass;
   private final BitvectorManager bvmgr;
   private final NamedRegionManager rmgr;
   private final PredicateManager predmgr;
-  private final MachineModel machineModel;
   private final BitvectorComputer bvComputer;
 
   /**
@@ -105,17 +102,14 @@ public class BDDTransferRelation extends ForwardingTransferRelation<BDDState, BD
       PredicateManager pPredmgr,
       CFA cfa,
       int pBitsize,
-      boolean pCompressIntEqual) {
-    this.machineModel = cfa.getMachineModel();
+      BitvectorComputer pBvComputer) {
     this.rmgr = manager;
     this.bvmgr = bvmgr;
     this.predmgr = pPredmgr;
     bitsize = pBitsize;
-    compressIntEqual = pCompressIntEqual;
     assert cfa.getVarClassification().isPresent();
     this.varClass = cfa.getVarClassification().orElseThrow();
-    bvComputer =
-        new BitvectorComputer(pCompressIntEqual, varClass, bvmgr, manager, pPredmgr, machineModel);
+    bvComputer = pBvComputer;
   }
 
   @Override
