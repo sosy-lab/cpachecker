@@ -177,9 +177,11 @@ public class BDDCPA implements ConfigurableProgramAnalysisWithBAM, StatisticsPro
         bvmgr,
         predmgr,
         cfa.getMachineModel(),
+        cfa.getVarClassification().get(),
         shutdownNotifier,
         logger,
-        useBlockAbstraction);
+        useBlockAbstraction,
+        bvComputer);
   }
 
   public Configuration getConfiguration() {
