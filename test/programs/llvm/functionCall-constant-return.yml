@@ -3,5 +3,5 @@ format_version: '1.0'
 input_files: 'functionCall-constant-return.ll'
 
 properties:
-  - property_file: ../../../config/properties/unreach-call.prp
+  - property_file: ../../config/properties/unreach-call.prp
     expected_verdict: true
