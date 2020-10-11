@@ -3782,7 +3782,7 @@ slicing.conditionFile = "output/AssumptionAutomaton.txt"
 # condition itself is in propriertary format and not in witness format
 slicing.conditionFiles = [
           Paths.get("output/AssumptionAutomaton.txt"),
-          Paths.get("config/specification/AssumptionGuiding.spc")]
+          Paths.get("config/specification/AssumptionGuidingAutomaton.spc")]
 
 # Whether to export slices as C program files
 slicing.exportToC.enable = false
