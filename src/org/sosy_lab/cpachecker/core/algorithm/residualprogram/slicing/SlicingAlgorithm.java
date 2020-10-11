@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
 import org.sosy_lab.cpachecker.util.slicing.AbstractSlicer;
 import org.sosy_lab.cpachecker.util.slicing.StaticSlicer;
 
@@ -56,12 +55,7 @@ public class SlicingAlgorithm implements Algorithm {
       Specification pSpecification)
       throws InvalidConfigurationException {
 
-    final DependenceGraph depGraph =
-        pCfa.getDependenceGraph()
-            .orElseThrow(
-                () -> new InvalidConfigurationException("Dependence graph required, but missing"));
-
-    slicer = new StaticSlicer(pLogger, pShutdownNotifier, pConfig, depGraph, pCfa);
+    slicer = new StaticSlicer(pLogger, pShutdownNotifier, pConfig, pCfa);
     cfa = pCfa;
     spec = pSpecification;
   }

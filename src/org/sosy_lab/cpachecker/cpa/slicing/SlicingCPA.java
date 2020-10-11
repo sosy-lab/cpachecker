@@ -48,7 +48,6 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
-import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
 import org.sosy_lab.cpachecker.util.slicing.Slicer;
 import org.sosy_lab.cpachecker.util.slicing.StaticSlicer;
 
@@ -114,11 +113,7 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
     stopOperator = new PrecisionDelegatingStop(pCpa.getStopOperator());
     precisionAdjustment = new PrecisionDelegatingPrecisionAdjustment(pCpa.getPrecisionAdjustment());
 
-    final DependenceGraph dependenceGraph =
-        pCfa.getDependenceGraph()
-            .orElseThrow(
-                () -> new InvalidConfigurationException("SlicingCPA requires dependence graph"));
-    slicer = new StaticSlicer(logger, shutdownNotifier, config, dependenceGraph, pCfa);
+    slicer = new StaticSlicer(logger, shutdownNotifier, config, pCfa);
   }
 
   @Override
