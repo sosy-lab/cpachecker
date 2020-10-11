@@ -58,7 +58,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 
-public class FormulaInvariantsSupplier implements InvariantSupplier {
+public final class FormulaInvariantsSupplier implements InvariantSupplier {
 
   private final AggregatedReachedSets aggregatedReached;
 
@@ -250,7 +250,7 @@ public class FormulaInvariantsSupplier implements InvariantSupplier {
       if (this == pO) {
         return true;
       }
-      if (pO == null || getClass() != pO.getClass()) {
+      if (!(pO instanceof InvariantsCacheKey)) {
         return false;
       }
       InvariantsCacheKey that = (InvariantsCacheKey) pO;
