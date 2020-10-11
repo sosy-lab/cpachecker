@@ -57,10 +57,11 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
  *
  * <p>For a given slicing criterion CFA edge g and a dependence graph, the slice consists of all CFA
  * edges reachable in the dependence graph through backwards-traversal from g.
+ *
+ * @see SlicerFactory
  */
 @Options(prefix = "slicing")
 public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
-
 
   @Option(secure = true, name = "preserveTargetPaths",
       description = "Whether to create slices that are behaviorally equivalent not only to "
@@ -78,13 +79,14 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
   private StatInt sliceCount = new StatInt(StatKind.SUM, "Number of slicing procedures");
   private StatTimer slicingTime = new StatTimer(StatKind.SUM, "Time needed for slicing");
 
-  public StaticSlicer(
+  StaticSlicer(
+      SlicingCriteriaExtractor pExtractor,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
       Configuration pConfig,
       CFA pCfa)
       throws InvalidConfigurationException {
-    super(pLogger, pShutdownNotifier, pConfig, pCfa);
+    super(pExtractor, pLogger, pShutdownNotifier);
 
     pConfig.inject(this);
 

@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StopOperator;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.util.slicing.Slice;
 import org.sosy_lab.cpachecker.util.slicing.Slicer;
-import org.sosy_lab.cpachecker.util.slicing.StaticSlicer;
+import org.sosy_lab.cpachecker.util.slicing.SlicerFactory;
 
 /**
  * CPA that performs program slicing during analysis. The Slicing CPA wraps another CPA. If a CFA
@@ -114,7 +114,7 @@ public class SlicingCPA extends AbstractSingleWrapperCPA implements StatisticsPr
     stopOperator = new PrecisionDelegatingStop(pCpa.getStopOperator());
     precisionAdjustment = new PrecisionDelegatingPrecisionAdjustment(pCpa.getPrecisionAdjustment());
 
-    slicer = new StaticSlicer(logger, shutdownNotifier, config, pCfa);
+    slicer = new SlicerFactory().create(logger, shutdownNotifier, config, pCfa);
   }
 
   @Override

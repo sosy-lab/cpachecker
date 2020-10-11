@@ -33,6 +33,8 @@ import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.slicing.AbstractSlicer;
+import org.sosy_lab.cpachecker.util.slicing.Slicer;
+import org.sosy_lab.cpachecker.util.slicing.SlicerFactory;
 import org.sosy_lab.cpachecker.util.slicing.StaticSlicer;
 
 /**
@@ -43,7 +45,7 @@ import org.sosy_lab.cpachecker.util.slicing.StaticSlicer;
  */
 public class SlicingAlgorithm implements Algorithm {
 
-  private final AbstractSlicer slicer;
+  private final Slicer slicer;
   private final Specification spec;
   private final CFA cfa;
 
@@ -55,7 +57,7 @@ public class SlicingAlgorithm implements Algorithm {
       Specification pSpecification)
       throws InvalidConfigurationException {
 
-    slicer = new StaticSlicer(pLogger, pShutdownNotifier, pConfig, pCfa);
+    slicer = new SlicerFactory().create(pLogger, pShutdownNotifier, pConfig, pCfa);
     cfa = pCfa;
     spec = pSpecification;
   }

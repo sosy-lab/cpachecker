@@ -3789,6 +3789,10 @@ slicing.extractor = ALL
 # target location, but also on the paths to that target location.
 slicing.preserveTargetPaths = false
 
+# what kind of slicing to use
+slicing.type = STATIC
+  enum:     [STATIC]
+
 # Extract and cache unsat cores for satisfiability checking
 solver.cacheUnsatCores = true
 

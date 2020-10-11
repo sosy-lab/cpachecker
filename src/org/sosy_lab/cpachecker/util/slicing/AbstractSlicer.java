@@ -26,10 +26,6 @@ package org.sosy_lab.cpachecker.util.slicing;
 import java.util.Collection;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -42,40 +38,17 @@ import org.sosy_lab.cpachecker.core.Specification;
  * <p>Implements {@link #getSlice(CFA, Specification)} by mapping the specification to a set of
  * target edges that are handed to {@link #getSlice(CFA, Collection)} as slicing criteria.
  */
-@Options(prefix = "slicing")
 public abstract class AbstractSlicer implements Slicer {
-
-  private enum ExtractorType {
-    ALL, REDUCER, SYNTAX;
-  }
-
-  @Option(name="extractor", secure=true, description="which type of extractor for slicing criteria to use")
-  private ExtractorType extractorType = ExtractorType.ALL;
 
   private final LogManager logger;
   private final ShutdownNotifier shutdownNotifier;
   private final SlicingCriteriaExtractor extractor;
 
-  public AbstractSlicer(
-      LogManager pLogger, ShutdownNotifier pShutdownNotifier, Configuration pConfig, CFA pCfa)
-      throws InvalidConfigurationException {
+  protected AbstractSlicer(
+      SlicingCriteriaExtractor pExtractor, LogManager pLogger, ShutdownNotifier pShutdownNotifier) {
+    extractor = pExtractor;
     logger = pLogger;
     shutdownNotifier = pShutdownNotifier;
-    pConfig.inject(this, AbstractSlicer.class);
-
-    switch (extractorType) {
-      case ALL:
-        extractor = new AllTargetsExtractor();
-        break;
-      case REDUCER:
-        extractor = new ReducerExtractor(pConfig);
-        break;
-      case SYNTAX:
-        extractor = new SyntaxExtractor(pConfig, pCfa, logger, pShutdownNotifier);
-        break;
-      default:
-        throw new AssertionError("Unknown criterion extractor type");
-    }
   }
 
   @Override
