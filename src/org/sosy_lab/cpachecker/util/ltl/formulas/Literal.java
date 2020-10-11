@@ -25,6 +25,7 @@ package org.sosy_lab.cpachecker.util.ltl.formulas;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Objects;
 import org.sosy_lab.cpachecker.util.ltl.LtlFormulaVisitor;
 
 public final class Literal implements LtlFormula {
@@ -58,11 +59,7 @@ public final class Literal implements LtlFormula {
 
   @Override
   public int hashCode() {
-    final int prime = 31;
-    int result = 1;
-    result = prime * result + ((atom == null) ? 0 : atom.hashCode());
-    result = prime * result + (negated ? 1231 : 1237);
-    return result;
+    return Objects.hash(atom, negated);
   }
 
   @Override
@@ -73,21 +70,11 @@ public final class Literal implements LtlFormula {
     if (obj == null) {
       return false;
     }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof Literal)) {
       return false;
     }
     Literal other = (Literal) obj;
-    if (atom == null) {
-      if (other.atom != null) {
-        return false;
-      }
-    } else if (!atom.equals(other.atom)) {
-      return false;
-    }
-    if (negated != other.negated) {
-      return false;
-    }
-    return true;
+    return atom.equals(other.atom) && negated == other.negated;
   }
 
   public String getAtom() {

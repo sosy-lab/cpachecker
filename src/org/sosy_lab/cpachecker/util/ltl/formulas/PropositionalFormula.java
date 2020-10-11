@@ -43,31 +43,24 @@ public abstract class PropositionalFormula implements LtlFormula {
   }
 
   @Override
-  public int hashCode() {
+  public final int hashCode() {
     final int prime = 31;
     return prime + children.hashCode();
   }
 
   @Override
-  public boolean equals(Object obj) {
+  public final boolean equals(Object obj) {
     if (this == obj) {
       return true;
     }
     if (obj == null) {
       return false;
     }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof PropositionalFormula)) {
       return false;
     }
     PropositionalFormula other = (PropositionalFormula) obj;
-    if (children == null) {
-      if (other.children != null) {
-        return false;
-      }
-    } else if (!children.equals(other.children)) {
-      return false;
-    }
-    return true;
+    return getSymbol().equals(other.getSymbol()) && children.equals(other.children);
   }
 
   public abstract String getSymbol();
