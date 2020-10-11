@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import javax.annotation.Nonnull;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -151,7 +151,7 @@ public class SLARGState extends ARGState
   }
 
   @Override
-  public @Nonnull Set<Property> getViolatedProperties() throws IllegalStateException {
+  public @NonNull Set<Property> getViolatedProperties() throws IllegalStateException {
     return NamedProperty.singleton("Error state reached");
   }
 

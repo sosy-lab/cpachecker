@@ -36,7 +36,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.graph.Traverser;
 import java.util.Optional;
 import java.util.Set;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;

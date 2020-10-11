@@ -21,7 +21,7 @@ package org.sosy_lab.cpachecker.core.defaults;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import javax.annotation.Nullable;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.core.interfaces.TransferRelation;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperTransferRelation;
 
