@@ -85,7 +85,7 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
    */
   @Override
   public void handle(MemoryLocation pVarLocation, Type pVarType,
-      ValueAnalysisState pState, ExpressionValueVisitor pValueVisitor)
+      ValueAnalysisState pPreviousState, ValueAnalysisState pState, ExpressionValueVisitor pValueVisitor)
       throws UnrecognizedCodeException {
 
     if (isEligibleForSymbolicValue(pVarType)) {
@@ -216,6 +216,7 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
       final CArrayType pArrayType,
       final ExpressionValueVisitor pValueVisitor
   ) throws UnrecognizedCodeException {
+    // TODO: this is how to generate a carray
 
     if (!handleArrays) {
       pState.forget(pArrayLocation);
@@ -244,7 +245,7 @@ public class SymbolicValueAssigner implements MemoryLocationValueHandler {
       MemoryLocation arraySlotMemLoc =
           pValueVisitor.evaluateMemLocForArraySlot(pArrayLocation, i, pArrayType);
 
-      handle(arraySlotMemLoc, pArrayType.getType(), pState, pValueVisitor);
+      handle(arraySlotMemLoc, pArrayType.getType(), null, pState, pValueVisitor);
     }
   }
 

@@ -90,6 +90,8 @@ public final class ValueAnalysisState
 
   private static final Set<MemoryLocation> blacklist = new HashSet<>();
 
+  public boolean nonDeterministicMark = false;
+
   static void addToBlacklist(MemoryLocation var) {
     blacklist.add(checkNotNull(var));
   }
@@ -133,6 +135,7 @@ public final class ValueAnalysisState
     machineModel = state.machineModel;
     constantsMap = checkNotNull(state.constantsMap);
     hashCode = state.hashCode;
+    nonDeterministicMark = state.nonDeterministicMark;
     assert hashCode == constantsMap.hashCode();
   }
 

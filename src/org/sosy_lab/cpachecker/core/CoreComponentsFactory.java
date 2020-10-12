@@ -48,6 +48,7 @@ import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.composition.CompositionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.legion.LegionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.mpv.MPVReachedSet;
 import org.sosy_lab.cpachecker.core.algorithm.parallel_bam.ParallelBAMAlgorithm;
@@ -159,8 +160,12 @@ public class CoreComponentsFactory {
   private boolean useCompositionAlgorithm = false;
 
   @Option(secure = true, name = "useTestCaseGeneratorAlgorithm",
-      description = "generate test cases for covered test targets")
-    private boolean useTestCaseGeneratorAlgorithm = false;
+          description = "generate test cases for covered test targets")
+  private boolean useTestCaseGeneratorAlgorithm = false;
+
+  @Option(secure = true, name = "useLegion",
+          description = "generate test cases using the Legion algorithm")
+  private boolean useLegion = false;
 
   @Option(secure=true, name="restartAfterUnknown",
       description="restart the analysis using a different configuration after unknown result")
@@ -543,8 +548,13 @@ public class CoreComponentsFactory {
 
       if (useTestCaseGeneratorAlgorithm) {
         algorithm =
-            new TestCaseGeneratorAlgorithm(
-                algorithm, cfa, config, cpa, logger, shutdownNotifier, specification);
+                new TestCaseGeneratorAlgorithm(
+                        algorithm, cfa, config, cpa, logger, shutdownNotifier, specification);
+      }
+
+      if (useLegion) {
+        logger.log(Level.INFO, "Creating Legion algorithm");
+        algorithm = new LegionAlgorithm(algorithm, logger, config, cpa);
       }
 
       if (collectAssumptions) {

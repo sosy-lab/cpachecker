@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.logging.Level;
+
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -225,6 +227,8 @@ public class ValueAnalysisTransferRelation
   private final Collection<String> addressedVariables;
   private final Collection<String> booleanVariables;
 
+  private List<Value> knownValues;
+
   public ValueAnalysisTransferRelation(
       LogManager pLogger,
       CFA pCfa,
@@ -247,6 +251,16 @@ public class ValueAnalysisTransferRelation
 
     unknownValueHandler = pUnknownValueHandler;
     constraintsStrengthenOperator = pConstraintsStrengthenOperator;
+  }
+
+  public void setKnownValues(List<Value> pKnownValues){
+    knownValues = new ArrayList<Value>(pKnownValues);
+  }
+
+  public void clearKnownValues() {
+    if (knownValues != null) {
+      knownValues.clear();
+    }
   }
 
   @Override
@@ -311,8 +325,10 @@ public class ValueAnalysisTransferRelation
         if (isMissingCExpressionInformation(visitor, exp)) {
           addMissingInformation(formalParamName, exp);
         }
-
-        unknownValueHandler.handle(formalParamName, paramType, newElement, visitor);
+        unknownValueHandler.handle(formalParamName, paramType, state, newElement, visitor);
+        // Previous state has mark, this should suffice
+        // TODO check if ok
+        // state.nonDeterministicMark = newElement.nonDeterministicMark;
 
       } else {
         newElement.assignConstant(formalParamName, value, paramType);
@@ -461,7 +477,7 @@ public class ValueAnalysisTransferRelation
         if (memLoc.isPresent()) {
           if (!valueExists) {
             unknownValueHandler.handle(
-                memLoc.orElseThrow(), op1.getExpressionType(), newElement, v);
+                memLoc.orElseThrow(), op1.getExpressionType(), state, newElement, v);
 
           } else {
             newElement.assignConstant(
@@ -648,6 +664,7 @@ public class ValueAnalysisTransferRelation
   protected ValueAnalysisState handleDeclarationEdge(
       ADeclarationEdge declarationEdge, ADeclaration declaration) throws UnrecognizedCodeException {
 
+    logger.log(Level.FINE, "Declaration edge");
     if (!(declaration instanceof AVariableDeclaration) || !isTrackedType(declaration.getType())) {
       // nothing interesting to see here, please move along
       return state;
@@ -709,7 +726,12 @@ public class ValueAnalysisTransferRelation
     }
 
     if (initialValue.isUnknown()) {
-      unknownValueHandler.handle(memoryLocation, declarationType, newElement, getVisitor());
+      unknownValueHandler.handle(memoryLocation, declarationType, state, newElement, getVisitor());
+      // If a nonDeterministic mark is set, remove it.
+      // If an element is initialized, it nonDet behaviour is expected.
+      // TODO check ok
+      state.nonDeterministicMark = false;
+      newElement.nonDeterministicMark = false;
     } else {
       newElement.assignConstant(memoryLocation, initialValue, declarationType);
     }
@@ -808,6 +830,7 @@ public class ValueAnalysisTransferRelation
   private ValueAnalysisState handleFunctionAssignment(
       CFunctionCallAssignmentStatement pFunctionCallAssignment) throws UnrecognizedCodeException {
 
+    logger.log(Level.FINE, "Function assignment");
     final CFunctionCallExpression functionCallExp = pFunctionCallAssignment.getFunctionCallExpression();
     final CLeftHandSide leftSide = pFunctionCallAssignment.getLeftHandSide();
     final CType leftSideType = leftSide.getExpressionType();
@@ -824,7 +847,7 @@ public class ValueAnalysisTransferRelation
         newElement.assignConstant(memLoc.orElseThrow(), newValue, leftSideType);
 
       } else {
-        unknownValueHandler.handle(memLoc.orElseThrow(), leftSideType, newElement, evv);
+        unknownValueHandler.handle(memLoc.orElseThrow(), leftSideType, state, newElement, evv);
       }
     }
 
@@ -1020,7 +1043,7 @@ public class ValueAnalysisTransferRelation
       // if there is no information left to evaluate but the value is unknown, we assign a symbolic
       // identifier to keep track of the variable.
       if (value.isUnknown()) {
-        unknownValueHandler.handle(assignedVar, lType, newElement, visitor);
+        unknownValueHandler.handle(assignedVar, lType, state, newElement, visitor);
 
       } else {
         newElement.assignConstant(assignedVar, value, lType);
@@ -1637,7 +1660,7 @@ public class ValueAnalysisTransferRelation
   /** returns an initialized, empty visitor */
   private ExpressionValueVisitor getVisitor(ValueAnalysisState pState, String pFunctionName) {
     if (options.isIgnoreFunctionValue()) {
-      return new ExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
+      return new ExpressionValueVisitor(pState, pFunctionName, machineModel, logger, knownValues); // <- neues attribut: preloadedValues: sortierte Liste pro nondet_x function
     } else {
       return new FunctionPointerExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
     }

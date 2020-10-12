@@ -36,6 +36,7 @@ import org.sosy_lab.cpachecker.core.defaults.AbstractCPA;
 import org.sosy_lab.cpachecker.core.defaults.AutomaticCPAFactory;
 import org.sosy_lab.cpachecker.core.defaults.DelegateAbstractDomain;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractDomain;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.CPAFactory;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysisWithBAM;
@@ -59,6 +60,8 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAnalysisPrecision
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAnalysisPrecisionAdjustment.SymbolicStatistics;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
@@ -79,9 +82,14 @@ public class ValueAnalysisCPA extends AbstractCPA
      * will be created, but not evaluated.
      */
     INTRODUCE_SYMBOLIC,
+    /**
+     * This strategy fills each unknown value with a random one.
+     */
+    RANDOM_VALUE,
   }
 
-  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN"},
+  // TODO: add a new value: CONCOLIC
+  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN", "CONCOLIC"},
       description="which merge operator to use for ValueAnalysisCPA")
   private String mergeType = "SEP";
 
@@ -127,9 +135,13 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   private SymbolicStatistics symbolicStats;
 
+  // private List<Value> knownValues;
+  private ValueAnalysisTransferRelation transferRelation;
+
   private ValueAnalysisCPA(Configuration config, LogManager logger,
       ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
     super(DelegateAbstractDomain.<ValueAnalysisState>getInstance(), null);
+
     this.config           = config;
     this.logger           = logger;
     this.shutdownNotifier = pShutdownNotifier;
@@ -149,7 +161,26 @@ public class ValueAnalysisCPA extends AbstractCPA
     transferOptions = new ValueTransferOptions(config);
     precisionAdjustmentOptions = new PrecAdjustmentOptions(config, cfa);
     precisionAdjustmentStatistics = new PrecAdjustmentStatistics();
+
+    transferRelation = new ValueAnalysisTransferRelation(
+        logger,
+        cfa,
+        transferOptions,
+        unknownValueHandler,
+        constraintsStrengthenOperator,
+        statistics);
+    
   }
+
+  // public void setKnownValues(List<Value> pKnownValues){
+  //   knownValues = pKnownValues;
+  // }
+
+  // public void clearKnownValues() {
+  //   if (knownValues != null) {
+  //     knownValues.clear();
+  //   }
+  // }
 
   private MemoryLocationValueHandler createUnknownValueHandler()
       throws InvalidConfigurationException {
@@ -158,9 +189,15 @@ public class ValueAnalysisCPA extends AbstractCPA
         return new UnknownValueAssigner();
       case INTRODUCE_SYMBOLIC:
         return new SymbolicValueAssigner(config);
+      case RANDOM_VALUE:
+        return new RandomValueAssigner(this.logger, config);
       default:
         throw new AssertionError("Unhandled strategy: " + unknownValueStrategy);
     }
+  }
+
+  public MemoryLocationValueHandler getUnknownValueHandler() {
+    return unknownValueHandler;
   }
 
   private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa) throws InvalidConfigurationException {
@@ -247,13 +284,7 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   @Override
   public ValueAnalysisTransferRelation getTransferRelation() {
-    return new ValueAnalysisTransferRelation(
-        logger,
-        cfa,
-        transferOptions,
-        unknownValueHandler,
-        constraintsStrengthenOperator,
-        statistics);
+    return transferRelation;
   }
 
   @Override

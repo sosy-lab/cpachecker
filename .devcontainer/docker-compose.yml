@@ -1,0 +1,15 @@
+#-------------------------------------------------------------------------------------------------------------
+# Copyright (c) Microsoft Corporation. All rights reserved.
+# Licensed under the MIT License. See https://go.microsoft.com/fwlink/?linkid=2090316 for license information.
+#-------------------------------------------------------------------------------------------------------------
+
+version: '3.7'
+services:
+  # Update this to the name of the service you want to work with in your docker-compose.yml file
+  cpachecker:
+    command: /bin/sh -c "while sleep 1000; do :; done"
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 20000
+        hard: 40000

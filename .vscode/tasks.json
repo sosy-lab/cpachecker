@@ -1,0 +1,28 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run Legion basic",
+            "type": "shell",
+            "command": "scripts/cpa.sh -spec config/specification/sv-comp-reachability.spc -config config/legion.properties doc/examples/legion/example.c",
+            "problemMatcher": []
+        },{
+            "label": "Run Legion bAnd1",
+            "type": "shell",
+            "command": "scripts/cpa.sh -spec config/specification/sv-comp-reachability.spc -config config/legion.properties /mnt/sv-benchmarks/c/array-crafted/bAnd1.i",
+            "problemMatcher": []
+        },
+        {
+            "label": "Build",
+            "type": "shell",
+            "command": "ant -lib lib/java/build build -Dcompile.warn=true -Derrorprone.disable=true",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        }
+    ]
+}

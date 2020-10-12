@@ -124,6 +124,15 @@ public class CompositeState
     return states;
   }
 
+  public AbstractState getContainedState(Class<?> cls){
+    for (AbstractState s : states) {
+      if (s.getClass() == cls){
+        return s;
+      }
+    }
+    return null;
+  }
+
 
   @Override
   public Object getPartitionKey() {

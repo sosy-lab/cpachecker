@@ -69,6 +69,9 @@ public abstract class AbstractCPA implements ConfigurableProgramAnalysis {
       case "JOIN":
         return new MergeJoinOperator(getAbstractDomain());
 
+      case "CONCOLIC":
+        return ConcolicMergeOperator.getInstance();
+
       default:
         throw new AssertionError("unknown merge operator");
     }
