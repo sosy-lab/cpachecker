@@ -9,22 +9,25 @@
 public class Main {
   public static void main(String[] args) {
 
-    int[] intArray = new int[] {1, 2, 3};
+    int[] intArray = new int[3];
 
     try {
-      System.out.println(intArray[3]);
+      final int i = intArray[3];
+      System.out.println(i);
       System.out.println("No Exception thrown");
     } catch (ArrayIndexOutOfBoundsException e) {
       System.out.println("Error message: " + e);
       System.out.println("caught exception");
+      assert false;
     } catch (RuntimeException e) {
       System.out.println("Runtime Exception: " + e);
       throw new RuntimeException();
     }
     finally{
+      assert true;
       System.out.println("Finally Statement");
     }
-
+    assert true;
     System.out.println("End");
   }
 }

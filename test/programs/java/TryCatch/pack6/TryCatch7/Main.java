@@ -25,7 +25,7 @@ public class Main {
       }
 
     } catch (B exc) {
-      assert fail;
+      assert false;
     }
   }
 }
