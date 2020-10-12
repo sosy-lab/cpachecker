@@ -458,7 +458,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
       Set<CFAEdge> noDomEdges = new HashSet<>();
       if (CFAUtils.existsPath(
-          entryNode.getExitNode(), entryNode, CFAUtils::allEnteringEdges, shutdownNotifier)) {
+          entryNode, entryNode.getExitNode(), CFAUtils::allLeavingEdges, shutdownNotifier)) {
         for (CFANode node : cfa.getFunctionNodes(entryNode.getFunction().getQualifiedName())) {
           int nodeId = domTree.getId(node);
           if (!domTree.hasParent(nodeId)) {
