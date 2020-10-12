@@ -743,7 +743,7 @@ class CFAMethodBuilder extends ASTVisitor {
 
         unsuccessfulNode = handleSideassignments(unsuccessfulNode, rawSignature, fileloc);
       }
-      if (nodeIsInTryClause(assertStatement)) {
+      if (nodeIsInTryStatement(assertStatement)) {
         blankEdge =
             new BlankEdge(
                 rawSignature, fileloc, unsuccessfulNode, getPreCatchNode().orElseThrow(),
@@ -2031,7 +2031,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     return false;
   }
 
-  private boolean nodeIsInTryClause(ASTNode pASTNode) {
+  private boolean nodeIsInTryStatement(ASTNode pASTNode) {
     ASTNode current = pASTNode.getParent();
     while (current != null
         && !(current instanceof MethodDeclaration)) { // null when root node is reached
@@ -2040,7 +2040,11 @@ private void handleTernaryExpression(ConditionalExpression condExp,
       } else if (current instanceof CatchClause) {
         return false;
       }
-      current = current.getParent();
+      final ASTNode parent = current.getParent();
+      if(parent instanceof TryStatement && ((TryStatement) parent).getFinally() == current){
+        return false;
+      }
+      current = parent;
     }
     return false;
   }
@@ -2723,7 +2727,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     }
 
     CFAEdge edge;
-    if (nodeIsInTryClause(returnStatement)) {
+    if (nodeIsInTryStatement(returnStatement)) {
       edge =
           new BlankEdge(
               returnStatement.toString(),
