@@ -50,11 +50,6 @@ public class PendingExceptionTransferRelation
   protected @Nullable PendingExceptionState handleAssumption(
       JAssumeEdge cfaEdge, JExpression expression, boolean truthAssumption) {
 
-    // If we have no exception thrown, just continue
-    if (state.getPendingExceptions().isEmpty()) {
-      return state;
-    }
-
     if (expression instanceof JRunTimeTypeEqualsType
         && ((JRunTimeTypeEqualsType) expression).getRunTimeTypeExpression()
         instanceof PendingExceptionOfJRunTimeType) {
