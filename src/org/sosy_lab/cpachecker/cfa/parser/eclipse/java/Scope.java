@@ -14,6 +14,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMap.Builder;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -466,12 +467,13 @@ class Scope {
     return result;
   }
 
-  public Map<String, JFieldDeclaration> getNonStaticFieldDeclarationOfClass(JClassOrInterfaceType pType) {
+  public Map<String, JFieldDeclaration> getNonStaticFieldDeclarationOfClass(
+      JClassOrInterfaceType pType) {
 
-    Map<String, JFieldDeclaration> result = new HashMap<>();
+    Builder<String, JFieldDeclaration> result = new Builder<>();
 
     if (typeHierarchy.isExternType(pType)) {
-      return result;
+      return result.build();
     }
 
     Set<JFieldDeclaration> fieldDecls = getFieldDeclarations(pType);
@@ -481,7 +483,7 @@ class Scope {
         result.put(declaration.getName(), declaration);
       }
     }
-    return result;
+    return result.build();
   }
 
   public String getFileOfCurrentType() {
