@@ -1794,15 +1794,13 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
       FileLocation fileloc = astCreator.getFileLocation(pTryStatement);
 
-      BlankEdge blankEdge =
-          new BlankEdge(
-              pTryStatement.toString(),
-              fileloc,
-              prevNode,
-              postFinallyNode,
-              "End of finally");
-      addToCFA(blankEdge);
-
+      // Unreachable node can happen when assert false is in finally block
+      if (prevNode != null && prevNode.getNumEnteringEdges() != 0) {
+        BlankEdge blankEdge =
+            new BlankEdge(
+                pTryStatement.toString(), fileloc, prevNode, postFinallyNode, "End of finally");
+        addToCFA(blankEdge);
+      }
       locStack.push(postFinallyNode);
     }
     tryStack.pop();
