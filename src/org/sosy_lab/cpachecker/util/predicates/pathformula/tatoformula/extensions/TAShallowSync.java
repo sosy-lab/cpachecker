@@ -80,7 +80,8 @@ public class TAShallowSync extends TAEncodingExtensionBase {
     var occurenceCountFormula =
         makeOccurenceCountEqualsFormula(pAutomaton, pLastReachedIndex + 1, action, occurenceCount);
 
-    var timeOfOccurence = makeOccurenceTimeStampFormula(occurenceCount, action, pAutomaton, pLastReachedIndex + 1);
+    var timeOfOccurence =
+        makeOccurenceTimeStampFormula(occurenceCount, action, pAutomaton, pLastReachedIndex);
 
     var globalOrderVariable = makeGlobalActionOrderVariable(action, occurenceCount);
     var oldLocalOrderVariable = makeLocalOrderVariable(pAutomaton, pLastReachedIndex);

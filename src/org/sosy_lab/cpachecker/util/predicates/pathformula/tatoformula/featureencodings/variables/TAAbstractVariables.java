@@ -10,7 +10,7 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featuree
 
 import static com.google.common.collect.FluentIterable.from;
 
-import java.math.BigDecimal;
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariable;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariableCondition;
@@ -21,7 +21,7 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
-import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
+import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
 
 public abstract class TAAbstractVariables implements TAVariables {
   protected final FormulaType<?> clockVariableType;
@@ -67,10 +67,23 @@ public abstract class TAAbstractVariables implements TAVariables {
     }
   }
 
-  protected Formula makeRealNumber(Number pNumber) {
-    assert (pNumber instanceof BigDecimal);
-    return fmgr.getFloatingPointFormulaManager()
-        .makeNumber((BigDecimal) pNumber, (FloatingPointType) clockVariableType);
+  protected Formula makeClockTypeNumber(Number pNumber) {
+    assert (pNumber instanceof BigInteger);
+    var number = (BigInteger) pNumber;
+    if (clockVariableType.isBitvectorType()) {
+      return fmgr.getBitvectorFormulaManager()
+          .makeBitvector((BitvectorType) clockVariableType, number);
+    }
+
+    if (clockVariableType.isIntegerType()) {
+      return fmgr.getIntegerFormulaManager().makeNumber(number);
+    }
+
+    if (clockVariableType.isRationalType()) {
+      return fmgr.getRationalFormulaManager().makeNumber(number);
+    }
+
+    throw new AssertionError("Unsupported clock data type");
   }
 
   @Override

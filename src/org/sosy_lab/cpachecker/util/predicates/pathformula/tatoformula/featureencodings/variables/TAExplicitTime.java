@@ -44,7 +44,7 @@ public class TAExplicitTime extends TAAbstractVariables {
         fmgr.makeVariable(clockVariableType, expression.getVariable().getName(), pVariableIndex);
     var timeVariableFormula = makeTimeVariableFormula(pAutomaton, pVariableIndex);
     var differenceFormula = fmgr.makeMinus(timeVariableFormula, variableFormula);
-    var constantFormula = makeRealNumber(expression.getConstant());
+    var constantFormula = makeClockTypeNumber(expression.getConstant());
 
     return makeVariableExpression(differenceFormula, constantFormula, expression.getOperator());
   }

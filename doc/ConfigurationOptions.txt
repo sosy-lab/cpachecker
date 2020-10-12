@@ -2807,11 +2807,12 @@ cpa.timedautomata.allowZeroDelay = true
 cpa.timedautomata.automatonEncodingType = CONSTRAINT_UNROLLING
   enum:     [TRANSITION_UNROLLING, LOCATION_UNROLLING, CONSTRAINT_UNROLLING]
 
-# The exponent size of clock variables
-cpa.timedautomata.clockTypeExponentSize = 2
+# The size of the bit vectors, if clockVariableType is BitVector
+cpa.timedautomata.bitVectorClockVariableSize = 10
 
-# The mantissa size of clock variables
-cpa.timedautomata.clockTypeMantissaSize = 2
+# The formula type for timed automaton clock variables
+cpa.timedautomata.clockVariableType = RATIONAL
+  enum:     [BITVECTOR, RATIONAL, INTEGER]
 
 # Representation of a special delay action. Options are: LOCAL, GLOBAL, NONE
 cpa.timedautomata.delayActionType = NONE

@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.variables;
 
-import java.math.BigDecimal;
+import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariable;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariableExpression;
@@ -35,8 +35,9 @@ public class TAExplicitDifferenceTime extends TAExplicitTime {
     var timeVariableFormula = makeTimeVariableFormula(pAutomaton, pVariableIndex);
     var differenceFormula = fmgr.makeMinus(timeVariableFormula, variableFormula);
     var inverseDifferenceFormula = fmgr.makeMinus(variableFormula, timeVariableFormula);
-    var constantFormula = makeRealNumber(expression.getConstant());
-    var negativeConstantFormula = makeRealNumber(((BigDecimal) expression.getConstant()).negate());
+    var constantFormula = makeClockTypeNumber(expression.getConstant());
+    var negativeConstantFormula =
+        makeClockTypeNumber(((BigInteger) expression.getConstant()).negate());
 
     switch (expression.getOperator()) {
       case GREATER:

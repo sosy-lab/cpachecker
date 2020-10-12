@@ -31,7 +31,7 @@ public class TAGlobalImplicitTime extends TAAbstractVariables {
       TaDeclaration pAutomaton, int pVariableIndex, TaVariableExpression expression) {
     var variableFormula =
         fmgr.makeVariable(clockVariableType, expression.getVariable().getName(), pVariableIndex);
-    var constantFormula = makeRealNumber(expression.getConstant());
+    var constantFormula = makeClockTypeNumber(expression.getConstant());
 
     return makeVariableExpression(variableFormula, constantFormula, expression.getOperator());
   }

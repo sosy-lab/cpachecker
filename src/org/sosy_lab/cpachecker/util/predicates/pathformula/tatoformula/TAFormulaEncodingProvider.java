@@ -195,25 +195,48 @@ public class TAFormulaEncodingProvider {
   }
 
   private TAVariables createTimeEncoding(FormulaManagerView pFmgr) {
-    var clockFormulaType =
-        FormulaType.getFloatingPointType(
-            options.clockTypeExponentSize, options.clockTypeMantissaSize);
+    // TODO DATA TYPE EXPERIMENT
+    var clockClockVariableType = getClockVariableType();
+
     if (options.timeEncoding == TimeEncodingType.GLOBAL_EXPLICIT) {
-      return new TAExplicitTime(pFmgr, false, options.allowZeroDelay, clockFormulaType);
+      return new TAExplicitTime(pFmgr, false, options.allowZeroDelay, clockClockVariableType);
     }
     if (options.timeEncoding == TimeEncodingType.GLOBAL_EXPLICIT_DIFFERENCE) {
-      return new TAExplicitDifferenceTime(pFmgr, false, options.allowZeroDelay, clockFormulaType);
+      return new TAExplicitDifferenceTime(
+          pFmgr, false, options.allowZeroDelay, clockClockVariableType);
     }
     if (options.timeEncoding == TimeEncodingType.GLOBAL_IMPLICIT) {
-      return new TAGlobalImplicitTime(pFmgr, options.allowZeroDelay, clockFormulaType);
+      return new TAGlobalImplicitTime(pFmgr, options.allowZeroDelay, clockClockVariableType);
     }
     if (options.timeEncoding == TimeEncodingType.LOCAL_EXPLICIT) {
-      return new TAExplicitTime(pFmgr, true, options.allowZeroDelay, clockFormulaType);
+      return new TAExplicitTime(pFmgr, true, options.allowZeroDelay, clockClockVariableType);
     }
     if (options.timeEncoding == TimeEncodingType.LOCAL_EXPLICIT_DIFFERENCE) {
-      return new TAExplicitDifferenceTime(pFmgr, true, options.allowZeroDelay, clockFormulaType);
+      return new TAExplicitDifferenceTime(
+          pFmgr, true, options.allowZeroDelay, clockClockVariableType);
     }
     throw new AssertionError("Unknown encoding type");
+  }
+
+  private FormulaType<?> getClockVariableType() {
+    switch (options.clockVariableType) {
+      case BITVECTOR:
+        {
+          return FormulaType.getBitvectorTypeWithSize(options.bitVectorClockVariableSize);
+        }
+      case INTEGER:
+        {
+          return FormulaType.IntegerType;
+        }
+      case RATIONAL:
+        {
+          return FormulaType.RationalType;
+        }
+      default:
+        {
+          throw new AssertionError("Unknown clock variable type");
+        }
+    }
   }
 
   private Iterable<TAEncodingExtension> createExtensions(

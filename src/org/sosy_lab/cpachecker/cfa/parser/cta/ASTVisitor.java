@@ -13,7 +13,7 @@ import static com.google.common.base.Verify.verify;
 import com.google.common.base.Optional;
 import com.google.common.base.VerifyException;
 import com.google.common.collect.ImmutableSet;
-import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -180,7 +180,7 @@ class ASTVisitor extends CTAGrammarParserBaseVisitor<SystemSpecification> {
     private void handleExpression(NumericVariableExpressionContext pCtx) {
       var variable = pCtx.var.getText();
       var operator = getOperator(pCtx.op);
-      var constant = new BigDecimal(pCtx.constant.getText());
+      var constant = new BigInteger(pCtx.constant.getText());
       builder.expression(variable, operator, constant);
     }
 
@@ -337,7 +337,7 @@ class ASTVisitor extends CTAGrammarParserBaseVisitor<SystemSpecification> {
       var type = getVariableType(pCtx.type);
       var initialization =
           Optional.fromNullable(pCtx.initialization)
-              .transform(initToken -> new BigDecimal(initToken.getText()));
+              .transform(initToken -> new BigInteger(initToken.getText()));
       verify(
           !initialization.isPresent() || type.equals(VariableType.CONST),
           "Initalizations are only allowed for constant variables.");

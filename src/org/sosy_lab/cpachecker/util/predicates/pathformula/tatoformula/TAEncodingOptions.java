@@ -118,9 +118,17 @@ public class TAEncodingOptions {
   @Option(secure = true, description = "Delays of zero are allowed if true")
   public Boolean allowZeroDelay = true;
 
-  @Option(secure = true, description = "The exponent size of clock variables")
-  public int clockTypeExponentSize = 2;
+  public static enum ClockVariableType {
+    BITVECTOR,
+    RATIONAL,
+    INTEGER
+  }
 
-  @Option(secure = true, description = "The mantissa size of clock variables")
-  public int clockTypeMantissaSize = 2;
+  @Option(secure = true, description = "The formula type for timed automaton clock variables")
+  public ClockVariableType clockVariableType = ClockVariableType.RATIONAL;
+
+  @Option(
+      secure = true,
+      description = "The size of the bit vectors, if clockVariableType is BitVector")
+  public int bitVectorClockVariableSize = 10;
 }
