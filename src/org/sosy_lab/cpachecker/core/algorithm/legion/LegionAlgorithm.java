@@ -19,6 +19,8 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.legion;
 
+import static org.sosy_lab.java_smt.test.ProverEnvironmentSubject.assertThat;
+
 import java.util.Collection;
 import java.util.NavigableSet;
 import java.util.logging.Level;
@@ -44,6 +46,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 
 @Options(prefix="cpa.value.legion")
@@ -105,7 +108,15 @@ public class LegionAlgorithm implements Algorithm {
                             PredicateAbstractState ps = AbstractStates.extractStateByType(state, PredicateAbstractState.class);
                             BooleanFormula f = ps.getPathFormula().getFormula();
                             prover.push(f);
-                            this.logger.log(Level.INFO, "Pushed boolean formula: " + f.toString());
+                            try {
+                                logger.log(Level.INFO, "Pushed boolean formula: " + f.toString());
+                                assertThat(prover).isSatisfiable();
+                                // boolean isUnsat = prover.isUnsat();
+                                // this.logger.log(Level.INFO, "Was unsat: " + isUnsat);
+                                this.logger.log(Level.INFO, "Was Satisfiable");
+                            } catch (SolverException ex){
+                                this.logger.log(Level.WARNING, "Solver exception");
+                            }
                         }
                         this.logger
                                 .log(Level.INFO, "Added state to waitlist: " + previous.toString());

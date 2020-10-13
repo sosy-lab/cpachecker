@@ -123,11 +123,9 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
 
     switch (basicType) {
       case UNSPECIFIED:
-        // If value is inspecified, just assign a 0 value
-        // TODO: Check if ok
-        value = new NumericValue(0);
-        this.logger.log(Level.INFO, "Assigned 0 value to memory location " + pMemLocation);
-        break;
+        // If value is inspecified, forget it.
+        pState.forget(pMemLocation);
+        return;
       case BOOL:
         value = BooleanValue.valueOf(this.rnd.nextBoolean());
         pPreviousState.nonDeterministicMark = true;

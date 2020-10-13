@@ -2,19 +2,19 @@ extern void __VERIFIER_error() __attribute__ ((__noreturn__));
 
 int main() {
   
-    // int a = __VERIFIER_nondet_int();
-    // int b = 0;
-    int b;
-    b = 0;
-    b = __VERIFIER_nondet_int();
+    int a = __VERIFIER_nondet_int();
+    int b = 0;
 
-    // int c;
-    // if (a < -1610612736){
-    //   b = __VERIFIER_nondet_int();
-    // } else {
-    //   b = 2;
-    // }
+    int c;
+    if (a < -1610612736){
+      b = __VERIFIER_nondet_int();
+    } else {
+      b = 2;
+    }
 
+    // int b;
+    // b = 0;
+    // b = __VERIFIER_nondet_int();
     // int x[10];
     // x = {1,2,3,4,5,6,7,8,9,10};
     // for (int i = 0; i < 10; i++) {
