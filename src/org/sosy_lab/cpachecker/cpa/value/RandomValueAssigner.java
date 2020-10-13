@@ -28,6 +28,7 @@ import java.util.logging.Level;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -44,6 +45,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
  * Memory location value handler that assigns randomly chosen values to the given
  * memory locations.
  */
+@Options(prefix="cpa.value.concolic")
 public final class RandomValueAssigner implements MemoryLocationValueHandler {
 
   private Random rnd;
@@ -125,7 +127,6 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
       final CArrayType pArrayType,
       final ExpressionValueVisitor pValueVisitor
   ) throws UnrecognizedCodeException {
-    // TODO: this is how to generate a carray
 
     if (!handleArrays) {
       pState.forget(pArrayLocation);

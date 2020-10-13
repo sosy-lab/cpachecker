@@ -11,7 +11,7 @@
         },{
             "label": "Run Legion bAnd1",
             "type": "shell",
-            "command": "scripts/cpa.sh -spec config/specification/sv-comp-reachability.spc -config config/legion.properties doc/examples/legion/sv-benchmarks/c/array-crafted/bAnd1.i",
+            "command": "scripts/cpa.sh -spec config/specification/sv-comp-reachability.spc -config config/legion.properties /mnt/sv-benchmarks/c/array-crafted/bAnd1.i",
             "problemMatcher": []
         },
         {
