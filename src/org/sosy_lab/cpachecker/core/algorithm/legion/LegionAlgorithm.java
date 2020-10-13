@@ -137,11 +137,4 @@ public class LegionAlgorithm implements Algorithm {
         // if (f.getSsa().containsVariable("main::i@2")){
         // }
     }
-
-    boolean nonDeterministicStateContained(AbstractState as) {
-        CompositeState cs = (CompositeState) as;
-        ValueAnalysisState vls =
-                (ValueAnalysisState) cs.getContainedState(ValueAnalysisState.class);
-        return vls.nonDeterministicMark;
-    }
 }
