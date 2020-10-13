@@ -10,3 +10,5 @@ services:
       - "./config:/usr/app/config"
       - "./.vscode:/usr/app/.vscode"
       - "./.devcontainer:/usr/app/.devcontainer"
+      - "./.idea:/usr/app/.idea"
+      - "./.git:/usr/app/.git"

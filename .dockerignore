@@ -3,5 +3,4 @@
 .cache
 .idea
 .docker-compose.yml
-Dockerfile
 bin
