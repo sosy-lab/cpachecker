@@ -39,6 +39,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
+import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.cpa.value.type.Value.UnknownValue;
@@ -511,8 +512,34 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
    * @param expr The expression the value should be assigned with.
    */
   Boolean isAssignable (Value value, CFunctionCallExpression expr){
-    // Boolean valueIsNumeric = knownValues.get(0).isNumericValue();
-    // CType expressionType = pIastFunctionCallExpression.getExpressionType();
-    return true;
+    CType expressionType = expr.getExpressionType();
+
+    // Check basic types
+    if (expressionType instanceof CSimpleType){
+      CBasicType type = ((CSimpleType)expressionType).getType();
+
+      if (type == CBasicType.BOOL && value instanceof BooleanValue){
+        return true;
+      }
+      if (type == CBasicType.CHAR && value instanceof NumericValue){
+        return true;
+      }
+      if (type == CBasicType.INT && value instanceof NumericValue){
+        return true;
+      }
+      if (type == CBasicType.FLOAT && value instanceof NumericValue){
+        return true;
+      }
+      if (type == CBasicType.DOUBLE && value instanceof NumericValue){
+        return true;
+      }
+    }
+
+    // Ignore complex types for now
+    if (!(expressionType instanceof CSimpleType)){
+      return true;
+    }
+
+    return false;
   }
 }
