@@ -187,16 +187,15 @@ public class LegionAlgorithm implements Algorithm {
         File outpath = new File("./output/testcases");
         outpath.mkdirs();
 
-        FileWriter metadata = new FileWriter("./output/testcases/metadata.xml");
-
-        XMLTestCaseExport.writeXMLMetadata(
-            metadata,
-            this.predCpa.getCfa(),
-            null,
-            "legion"
-        );
-
-        metadata.flush();
+        try (FileWriter metadata = new FileWriter("./output/testcases/metadata.xml")){
+            XMLTestCaseExport.writeXMLMetadata(
+                metadata,
+                this.predCpa.getCfa(),
+                null,
+                "legion"
+                );
+            metadata.flush();
+        }
     }
 
     /**
