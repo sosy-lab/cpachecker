@@ -8,3 +8,5 @@ services:
       - "./build:/usr/app/build"
       - "./doc:/usr/app/doc"
       - "./config:/usr/app/config"
+      - "./.vscode:/usr/app/.vscode"
+      - "./.devcontainer:/usr/app/.devcontainer"
