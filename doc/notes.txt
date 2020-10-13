@@ -337,4 +337,15 @@ Nächster Schritt: Pfadformeln lösen
   - Infos müssen an den durch die ValueAnalysisCPA und ValueAnalysisTransferRelation
     durchgeschleift werden
 
+23.7.
+  - Ziel: If finden, bei dem nur eine Seite schon abearbeitet wurde
+  - Wie Score-Function umsetzen?`
+  #- Value Analysis könnte sich merken, wenn 'abgebogen' wird + das anderen Richtung vorhanden
+  #- CFA weiß outgoing edges, LocationCPA / LocationState.java:73
+  - PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge)
+    Siehe PredicateTransferRelation:129
+    PathFormulaManager aus PredicateCPA
+
+  - ReachedSet von oben durchlaufen und state suchen -> Welche Kanten(CFA) von welchem
+    State aus dem ARG wurde noch nicht besucht
   

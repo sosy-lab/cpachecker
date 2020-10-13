@@ -29,10 +29,10 @@ import java.util.List;
 import java.util.Random;
 import java.util.logging.Level;
 
-
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
@@ -74,6 +74,11 @@ public class LegionAlgorithm implements Algorithm {
     @SuppressWarnings("unused")
     private ShutdownNotifier shutdownNotifier;
     private ValueAnalysisCPA valCpa;
+
+
+    @Option(secure=true, name="merge", toUppercase=true, values={"RAND"},
+      description="which selection strategy to use to get target states.")
+    private String selectionStrategy = "RAND";
 
     public LegionAlgorithm(
             final Algorithm algorithm,
@@ -125,7 +130,7 @@ public class LegionAlgorithm implements Algorithm {
             // Phase Selection: Select non_det for path solving
             AbstractState target;
             try {
-                target = selectTarget(reachedSet, SelectionStrategy.RANDOM);
+                target = selectTarget(reachedSet, Selector.RANDOM);
             } catch (IllegalArgumentException e) {
                 logger.log(Level.WARNING, "No target state found");
                 return status;
@@ -152,47 +157,6 @@ public class LegionAlgorithm implements Algorithm {
             valCpa.getTransferRelation().clearKnownValues();
         }
         return status;
-    }
-
-    /**
-     * Select a state to target based on the targetting strategy.
-     * 
-     * @param pReachedSet A set of states to choose targets from.
-     * @param pStrategy   How to select a target.
-     */
-    private AbstractState selectTarget(ReachedSet pReachedSet, SelectionStrategy pStrategy) {
-
-        if (pStrategy == SelectionStrategy.RANDOM) {
-            LinkedList<AbstractState> nonDetStates = new LinkedList<>();
-            for (AbstractState state : pReachedSet.asCollection()) {
-                ValueAnalysisState vs =
-                        AbstractStates.extractStateByType(state, ValueAnalysisState.class);
-                if (vs.nonDeterministicMark) {
-                    nonDetStates.add(state);
-                }
-            }
-            int rnd = new Random().nextInt(nonDetStates.size());
-            AbstractState target = nonDetStates.get(rnd);
-            logger.log(
-                    Level.INFO,
-                    "Target: ",
-                    AbstractStates.extractStateByType(target, LocationState.class));
-            return nonDetStates.get(rnd);
-        }
-        return null;
-    }
-
-    LinkedList<AbstractState> getNondetStates(ReachedSet pReachedSet) {
-        LinkedList<AbstractState> nonDetStates = new LinkedList<>();
-        for (AbstractState state : pReachedSet.asCollection()) {
-            ValueAnalysisState vs =
-                    AbstractStates.extractStateByType(state, ValueAnalysisState.class);
-            if (vs.nonDeterministicMark) {
-                logger.log(Level.INFO, "Nondet state", vs.getConstants().toString());
-                nonDetStates.add(state);
-            }
-        }
-        return nonDetStates;
     }
 
     /**

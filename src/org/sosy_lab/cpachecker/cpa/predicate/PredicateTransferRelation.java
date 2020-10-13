@@ -110,6 +110,7 @@ public final class PredicateTransferRelation extends SingleEdgeTransferRelation 
       }
 
       // calculate strongest post
+      // TODO Christoph aufrufen für neuen nachfolger-Zustand
       PathFormula pathFormula = convertEdgeToPathFormula(element.getPathFormula(), edge);
       logger.log(Level.ALL, "New path formula is", pathFormula);
 
