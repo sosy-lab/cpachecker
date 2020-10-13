@@ -19,8 +19,6 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.legion;
 
-import static org.sosy_lab.java_smt.test.ProverEnvironmentSubject.assertThat;
-
 import java.util.ArrayList;
 import java.util.logging.Level;
 
@@ -43,15 +41,8 @@ import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationExc
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
-import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
-import org.sosy_lab.java_smt.api.ProverEnvironment;
-import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
-import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "legion")
 public class LegionAlgorithm implements Algorithm {
@@ -93,6 +84,7 @@ public class LegionAlgorithm implements Algorithm {
     private int maxSolverAsks = 5;
     private OutputWriter outputWriter;
     private Fuzzer fuzzer;
+    private TargetSolver targetSolver;
 
     public LegionAlgorithm(
             final Algorithm algorithm,
@@ -123,6 +115,9 @@ public class LegionAlgorithm implements Algorithm {
 
         // Set fuzzer
         this.fuzzer = new Fuzzer(logger, valCpa, this.outputWriter);
+
+        // Set targetting mechanism
+        this.targetSolver = new TargetSolver(logger, solver, maxSolverAsks);
     }
 
     @Override
@@ -162,7 +157,7 @@ public class LegionAlgorithm implements Algorithm {
             }
 
             // Phase Targetting: Solve and plug results to RVA as preload
-            preloadedValues = target(solver, this.maxSolverAsks, target);
+            preloadedValues = this.targetSolver.target(target);
             int fuzzingPasses = (int) Math.ceil(fuzzingMultiplier * preloadedValues.size());
 
             // Phase Fuzzing: Run iterations to resource limit (m)
@@ -176,113 +171,6 @@ public class LegionAlgorithm implements Algorithm {
         }
 
         return status;
-    }
-
-    /**
-     * Phase targetting Solve for the given targets and return matching values.
-     * 
-     * @param pSolver        The solver to use.
-     * @param pMaxSolverAsks The maximum amount of times to bother the SMT-Solver.
-     * @param pTarget        The target formula to solve for.
-     */
-    ArrayList<ArrayList<ValueAssignment>>
-            target(Solver pSolver, int pMaxSolverAsks, PathFormula pTarget)
-                    throws InterruptedException {
-        // Phase Targetting: Solve and plug results to RVA as preload
-        ArrayList<ArrayList<ValueAssignment>> preloadedValues = new ArrayList<>();
-
-        try (ProverEnvironment prover =
-                pSolver.newProverEnvironment(
-                        ProverOptions.GENERATE_MODELS,
-                        ProverOptions.GENERATE_UNSAT_CORE)) {
-
-            FormulaManagerView fmgr = pSolver.getFormulaManager();
-            BooleanFormulaManager bmgr = fmgr.getBooleanFormulaManager();
-
-            // Ask solver for the first set of Values
-            try (Model constraints = solvePathConstrains(pTarget.getFormula(), prover)) {
-                preloadedValues.add(computePreloadValues(constraints));
-            } catch (SolverException ex) {
-                this.logger.log(Level.WARNING, "Could not solve formula.");
-            }
-
-            // Repeats the solving at most pMaxSolverAsks amount of times
-            // or the size of preloadedValues
-            for (int i = 0; i < Math.min(pMaxSolverAsks - 1, preloadedValues.get(0).size()); i++) {
-
-                ValueAssignment assignment = preloadedValues.get(0).get(i);
-
-                // Create negated assignment formula
-                BooleanFormula f = assignment.getAssignmentAsFormula();
-                BooleanFormula not_f = bmgr.not(f);
-
-                try {
-                    prover.push(not_f);
-                    if (prover.isUnsat()) {
-                        this.logger.log(Level.WARNING, "Is unsat.", i);
-                        continue;
-                    }
-                    Model constraints = prover.getModel();
-                    preloadedValues.add(computePreloadValues(constraints));
-                } catch (SolverException ex) {
-                    this.logger.log(Level.WARNING, "Could not solve formula.");
-                } finally {
-                    prover.pop();
-                }
-            }
-        }
-
-        return preloadedValues;
-    }
-
-    /**
-     * Ask the SAT-solver to compute path constraints for the pTarget.
-     * 
-     * @param target  The formula leading to the selected state.
-     * @param pProver The prover to use.
-     * @throws InterruptedException, SolverException
-     */
-    private Model solvePathConstrains(BooleanFormula target, ProverEnvironment pProver)
-            throws InterruptedException, SolverException {
-
-        logger.log(Level.INFO, "Solve path constraints. ", target.toString());
-        pProver.push(target);
-        assertThat(pProver).isSatisfiable();
-        return pProver.getModel();
-    }
-
-    /**
-     * Pushes the values from the model into the value assigner. TODO may be moved to RVA
-     * 
-     * @param pConstraints The source of values to assign.
-     */
-    private ArrayList<ValueAssignment> computePreloadValues(Model pConstraints) {
-        ArrayList<ValueAssignment> values = new ArrayList<>();
-        for (ValueAssignment assignment : pConstraints.asList()) {
-            String name = assignment.getName();
-
-            if (!name.startsWith("__VERIFIER_nondet_")) {
-                continue;
-            }
-
-            Value value = utils.toValue(assignment.getValue());
-            logger.log(Level.INFO, "Loaded Value", name, value);
-            values.add(assignment);
-        }
-        // valCpa.getTransferRelation().setKnownValues(values);
-        return values;
-    }
-
-    ArrayList<Value>
-            preloadValues(ValueAnalysisCPA valueCpa, ArrayList<ValueAssignment> assignments) {
-        ArrayList<Value> values = new ArrayList<>();
-        for (ValueAssignment a : assignments) {
-            values.add(utils.toValue(a.getValue()));
-        }
-
-        valueCpa.getTransferRelation().setKnownValues(values);
-
-        return values;
     }
 
     Selector buildSelectionStrategy() {
