@@ -3,10 +3,16 @@
     "configurations": [        
         {
             "type": "java",
-            "name": "Debug (Launch)",
+            "name": "Example Debug (Launch)",
             "request": "launch",
             "mainClass": "org.sosy_lab.cpachecker.cmdline.CPAMain",
             "args": "-config config/legion.properties -spec sv-comp-reachability doc/examples/legion/example.c",
+        },{
+            "type": "java",
+            "name": "SVComp Debug (Launch)",
+            "request": "launch",
+            "mainClass": "org.sosy_lab.cpachecker.cmdline.CPAMain",
+            "args": "-config config/legion.properties -spec sv-comp-reachability /mnt/sv-benchmarks/c/array-crafted/bAnd1.i",
         }
     ]
-  }
+  } 
