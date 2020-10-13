@@ -27,6 +27,7 @@ import java.util.Random;
 import java.util.logging.Level;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.types.Type;
@@ -73,22 +74,40 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
       ValueAnalysisState pState,
       @Nullable ExpressionValueVisitor pValueVisitor) {
 
-    if (!(pType instanceof CSimpleType)){
-        throw new IllegalArgumentException("Unknown value was not of simple c type.");
+    if (pType instanceof CSimpleType) {
+      createSimpleType(pMemLocation, pType, pPreviousState, pState);
+      return;
     }
 
+    if (pType instanceof CArrayType) {
+      createArrayType();
+      return;
+    }
+  
+    throw new IllegalArgumentException("Unknown value was not of simple c type, was " + pType.toString() + " " + pType.getClass().toString());        
+  }
+
+  private void createSimpleType(
+      MemoryLocation pMemLocation,
+      Type pType,
+      ValueAnalysisState pPreviousState,
+      ValueAnalysisState pState) {
+    
     CBasicType basicType = (( CSimpleType ) pType).getType();
 
     switch (basicType) {
         case INT:
             NumericValue value = new NumericValue(this.rnd.nextInt());
-            this.logger.log(Level.INFO, "Assigned random value " + value.toString());
+            this.logger.log(Level.INFO, "Assigned random value " + value + " to memory location " + pMemLocation);
             pState.assignConstant(pMemLocation, value, pType);
             pPreviousState.nonDeterministicMark = true;
             break;
         default:
             throw new IllegalArgumentException("Unknown values of c type " + basicType.toASTString());
     }
-    
+  }
+
+  private void createArrayType() {
+    throw new IllegalArgumentException("Array type");
   }
 }
