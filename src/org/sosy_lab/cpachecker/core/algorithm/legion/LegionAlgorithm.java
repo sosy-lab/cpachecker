@@ -19,37 +19,52 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.legion;
 
+import java.util.Collection;
+import java.util.NavigableSet;
 import java.util.logging.Level;
 
-import com.google.common.collect.ImmutableList;
-
+import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.defaults.AbstractSingleWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
+import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.ProverEnvironment;
+import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 
-import java.util.Collection;
-import java.util.NavigableSet;
-
+@Options(prefix="cpa.value.legion")
 public class LegionAlgorithm implements Algorithm {
     private final Algorithm algorithm;
     private final LogManager logger;
     private final int maxIterations;
+    Solver solver;
 
-    public LegionAlgorithm(final Algorithm algorithm, final LogManager pLogger) {
+    public LegionAlgorithm(
+            final Algorithm algorithm,
+            final LogManager pLogger,
+            Configuration pConfig,
+            ShutdownNotifier shutdownNotifier)
+            throws InvalidConfigurationException {
         this.algorithm = algorithm;
         this.logger = pLogger;
         this.maxIterations = 1;
+        // this.config
+        pConfig.inject(this);
+        this.solver = Solver.create(pConfig, logger, shutdownNotifier);
     }
 
     @Override
@@ -69,7 +84,9 @@ public class LegionAlgorithm implements Algorithm {
             Collection<Property> violatedProperties = reachedSet.getViolatedProperties();
             // TODO: pull out of status if already found error
             if (!violatedProperties.isEmpty()) {
-                this.logger.log(Level.WARNING, "Found violated property in input after " + (i + 1) + " iterations.");
+                this.logger.log(
+                        Level.WARNING,
+                        "Found violated property in input after " + (i + 1) + " iterations.");
                 break;
             }
 
@@ -77,17 +94,21 @@ public class LegionAlgorithm implements Algorithm {
             // decisions where made. States with non-deterministic followers can be retried to make
             // different decisions.
             for (AbstractState state : reachedSet.asCollection()) {
-                ImmutableList<AbstractState> wrappedStates =
-                        ((AbstractSingleWrapperState) state).getWrappedStates();
-                for (AbstractState as : wrappedStates) {
-                    this.predicateInfo(as);
-                    if (this.nonDeterministicStateContained(as)) {
-                        for (ARGState previous : ((ARGState) state).getParents()) {
-                            reachedSet.reAddToWaitlist(previous);
-                            this.logger.log(
-                                    Level.INFO,
-                                    "Added state to waitlist: " + previous.toString());
+                ValueAnalysisState vs =
+                        AbstractStates.extractStateByType(state, ValueAnalysisState.class);
+
+                if (vs.nonDeterministicMark) {
+                    for (ARGState previous : ((ARGState) state).getParents()) {
+                        reachedSet.reAddToWaitlist(previous);
+                        try (ProverEnvironment prover =
+                                solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+                            PredicateAbstractState ps = AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+                            BooleanFormula f = ps.getPathFormula().getFormula();
+                            prover.push(f);
+                            this.logger.log(Level.INFO, "Pushed boolean formula: " + f.toString());
                         }
+                        this.logger
+                                .log(Level.INFO, "Added state to waitlist: " + previous.toString());
                     }
                 }
             }
@@ -95,17 +116,17 @@ public class LegionAlgorithm implements Algorithm {
         return status;
     }
 
-    void predicateInfo(AbstractState as){
+    void predicateInfo(AbstractState as) {
         CompositeState cs = (CompositeState) as;
         PredicateAbstractState ps = (PredicateAbstractState) cs.getWrappedStates().asList().get(4);
-        if (ps == null){
+        if (ps == null) {
             this.logger.log(Level.SEVERE, "No ps");
             return;
         }
         PathFormula f = ps.getPathFormula();
         this.logger.log(Level.SEVERE, "Formula: " + f);
         NavigableSet<String> vars = f.getSsa().allVariables();
-        if (!vars.isEmpty()){
+        if (!vars.isEmpty()) {
             SSAMap map = f.getSsa();
             int index = map.getIndex("main::i");
             // m
