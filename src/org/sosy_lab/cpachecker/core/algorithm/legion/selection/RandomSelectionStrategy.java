@@ -1,4 +1,4 @@
-package org.sosy_lab.cpachecker.core.algorithm.legion;
+package org.sosy_lab.cpachecker.core.algorithm.legion.selection;
 
 import java.util.LinkedList;
 import java.util.Random;
