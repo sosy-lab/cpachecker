@@ -274,36 +274,7 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   @Override
   public MergeOperator getMergeOperator() {
-    // TODO: add new merge operator
-    String upper = mergeType.toUpperCase();
-    if (upper.equals("CONCOLIC")){
-      class ConcolicMergeOperator implements MergeOperator {
-        private final AbstractDomain domain;
-
-        /**
-         * Creates a merge-join operator, based on the given join
-         * operator
-         */
-        public ConcolicMergeOperator(AbstractDomain d) {
-          this.domain = d;
-        }
-
-        @Override
-        public AbstractState  merge(AbstractState el1, AbstractState el2, Precision p)
-        throws CPAException, InterruptedException {
-          logger.log(Level.FINE, "CONCOLIC Join happening");
-
-          return el1;
-        }
-      }
-
-      ConcolicMergeOperator a = new ConcolicMergeOperator(getAbstractDomain());
-      
-      // throw new UnsupportedOperationException("Still to implement");
-      return a;
-    } else {
-      return buildMergeOperator(mergeType);
-    }
+    return buildMergeOperator(mergeType);
   }
 
   @Override
