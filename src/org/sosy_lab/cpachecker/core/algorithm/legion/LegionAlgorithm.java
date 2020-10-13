@@ -160,17 +160,27 @@ public class LegionAlgorithm implements Algorithm {
         return status;
     }
 
+    /**
+     * Phase targetting Solve for the given targets and return matching values.
+     * 
+     * @param pSolver        The solver to use.
+     * @param pMaxSolverAsks The maximum amount of times to bother the SMT-Solver.
+     * @param pTarget        The target formula to solve for.
+     */
     ArrayList<ArrayList<Value>> target(Solver pSolver, int pMaxSolverAsks, BooleanFormula pTarget)
             throws InterruptedException {
         // Phase Targetting: Solve and plug results to RVA as preload
         ArrayList<ArrayList<Value>> preloadedValues = new ArrayList<ArrayList<Value>>();
+
         try (ProverEnvironment prover =
                 pSolver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-            try (Model constraints = solvePathConstrains(pTarget, prover, pMaxSolverAsks)) {
-                preloadedValues.add(computePreloadValues(constraints));
+            for (int i = 0; i < pMaxSolverAsks; i++) {
+                try (Model constraints = solvePathConstrains(pTarget, prover)) {
+                    preloadedValues.add(computePreloadValues(constraints));
+                } catch (SolverException ex) {
+                    this.logger.log(Level.WARNING, "Could not solve formula.");
+                }
             }
-        } catch (SolverException ex) {
-            this.logger.log(Level.WARNING, "Could not solve formula.");
         }
 
         return preloadedValues;
@@ -181,18 +191,13 @@ public class LegionAlgorithm implements Algorithm {
      * 
      * @param target The formula leading to the selected state.
      * @param pProver The prover to use.
-     * @param maxSolverAsks The maximum number of times to ask the solver for a solution.
      * @throws InterruptedException, SolverException
      */
-    private Model solvePathConstrains(BooleanFormula target, ProverEnvironment pProver, int maxSolverAsks)
+    private Model solvePathConstrains(BooleanFormula target, ProverEnvironment pProver)
             throws InterruptedException, SolverException {
 
-        // int asks = min()
-        // target.
         logger.log(Level.INFO, "Solve path constraints.");
         pProver.push(target);
-        // pProver.push("")
-        // logger.log(Level.INFO, "Constraint ", pProver.pop());
         assertThat(pProver).isSatisfiable();
         return pProver.getModel();
     }
