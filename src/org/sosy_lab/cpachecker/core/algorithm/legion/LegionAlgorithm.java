@@ -27,6 +27,8 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+
+import java.util.Iterator;
 import java.util.Set;
 
 public class LegionAlgorithm implements Algorithm {
@@ -41,10 +43,29 @@ public class LegionAlgorithm implements Algorithm {
     @Override
     public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
         logger.log(Level.INFO, "Running legion algorithm");
+        // logger.log(Level.INFO, this.algorithm.getClass());
+
+
+        Set<AbstractState> collection_empty = reachedSet.asCollection();
+        // ------------------(collection_empty.size());
 
         algorithm.run(reachedSet);
-        Set<AbstractState> collection = reachedSet.asCollection();
-        AbstractState state = collection.iterator().next();
+        // Set<AbstractState> collection = reachedSet.asCollection();
+        // ------------------(collection.size());
+        // Iterator<AbstractState> i = collection.iterator();
+        // AbstractState state = i.next();
+        // ------------------(state.toString());
+        // AbstractState state2 = i.next();
+        // ------------------(state2.toString());
+        
+        // algorithm.run(reachedSet);
+        // Set<AbstractState> collection2 = reachedSet.asCollection();
+        // ------------------(collection2.size());
+        // Iterator<AbstractState> i2 = collection2.iterator();
+        // AbstractState state3 = i2.next();
+        // ------------------(state3.toString());
+        // AbstractState state4 = i2.next();
+        // ------------------(state4.toString());
 
         return AlgorithmStatus.NO_PROPERTY_CHECKED;
     }
