@@ -3271,6 +3271,19 @@ language = no default value
 language = C
   enum:     [C, JAVA, LLVM]
 
+# How often to run the fuzzer within each iteration.
+legion.fuzzingPasses = 5
+
+# How many passes to fuzz before asking the solver for the first time.
+legion.initialPasses = 3
+
+# How many total iterations of [select, target, fuzz] to perform.
+legion.maxIterations = 5
+
+# which selection strategy to use to get target states.
+legion.selectionStrategy = "RAND"
+  allowed values: [RAND, UNVISITED]
+
 # Limit for cpu time used by CPAchecker (use seconds or specify a unit; -1
 # for infinite)
 limits.time.cpu = -1ns
