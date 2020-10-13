@@ -32,15 +32,18 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -54,20 +57,26 @@ public class LegionAlgorithm implements Algorithm {
     private final Algorithm algorithm;
     private final LogManager logger;
     private final int maxIterations;
+    private final ConfigurableProgramAnalysis cpa;
     Solver solver;
 
     public LegionAlgorithm(
             final Algorithm algorithm,
             final LogManager pLogger,
             Configuration pConfig,
-            ShutdownNotifier shutdownNotifier)
+            ShutdownNotifier shutdownNotifier,
+            ConfigurableProgramAnalysis cpa)
             throws InvalidConfigurationException {
         this.algorithm = algorithm;
         this.logger = pLogger;
         this.maxIterations = 1;
-        // this.config
+        this.cpa = cpa;
+
         pConfig.inject(this);
-        this.solver = Solver.create(pConfig, logger, shutdownNotifier);
+
+        PredicateCPA predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, LegionAlgorithm.class);
+        this.solver=predCpa.getSolver();
+        // this.solver = Solver.create(pConfig, logger, shutdownNotifier);
     }
 
     @Override
