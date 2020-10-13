@@ -53,7 +53,7 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
 
   private Random rnd;
   private final LogManager logger;
-  private HashMap<String,Value> loadedValues = new HashMap<String,Value>();
+  private HashMap<String,Value> loadedValues = new HashMap<>();
 
   @Option(
     description = "If this option is set to true, an own symbolic identifier is assigned to"
