@@ -45,12 +45,8 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 @Options(prefix = "legion")
 public class LegionAlgorithm implements Algorithm {
-    private final Algorithm algorithm;
-    private final LogManager logger;
-    private Solver solver;
-    private ValueAnalysisCPA valueCpa;
-    final PredicateCPA predCpa;
-
+    
+    // Configuration Options
     @Option(
         secure = true,
         name = "selectionStrategy",
@@ -58,7 +54,6 @@ public class LegionAlgorithm implements Algorithm {
         values = {"RAND", "UNVISITED"},
         description = "which selection strategy to use to get target states.")
     private String selectionStrategyOption = "RAND";
-    private Selector selectionStrategy;
 
     @Option(
         secure = true,
@@ -77,9 +72,21 @@ public class LegionAlgorithm implements Algorithm {
         secure = true,
         description = "The maximum number of times to ask the solver for a solution per iteration.")
     private int maxSolverAsks = 5;
+
+    // General fields
+    private final Algorithm algorithm;
+    private final LogManager logger;
+
+    // CPAs + components
+    private ValueAnalysisCPA valueCpa;
+    private Solver solver;
+    final PredicateCPA predCpa;
+    
+    // Legion Specific
     private OutputWriter outputWriter;
-    private Fuzzer fuzzer;
+    private Selector selectionStrategy;
     private TargetSolver targetSolver;
+    private Fuzzer fuzzer;
 
     public LegionAlgorithm(
             final Algorithm algorithm,
