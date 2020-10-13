@@ -14,5 +14,5 @@ public class StatisticsTransferRelation extends ForwardingTransferRelation {
     @Override
     public Collection getAbstractSuccessorsForEdge(AbstractState abstractState, Precision abstractPrecision, CFAEdge cfaEdge) throws CPATransferException, InterruptedException {
         return ImmutableSet.of(new StatisticsState());
-    }
+     }
 }

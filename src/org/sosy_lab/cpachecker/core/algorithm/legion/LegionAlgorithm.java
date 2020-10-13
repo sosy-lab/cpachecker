@@ -19,22 +19,32 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.legion;
 
+import java.util.logging.Level;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
+import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import java.util.Set;
 
 public class LegionAlgorithm implements Algorithm {
     private final Algorithm algorithm;
+    private final LogManager logger;
 
-    public LegionAlgorithm(Algorithm algorithm) {
+    public LegionAlgorithm(final Algorithm algorithm, final LogManager pLogger) {
         this.algorithm = algorithm;
+        this.logger = pLogger;
     }
 
     @Override
     public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException, CPAEnabledAnalysisPropertyViolationException {
+        logger.log(Level.INFO, "Running legion algorithm");
+
         algorithm.run(reachedSet);
-        return null;
+        Set<AbstractState> collection = reachedSet.asCollection();
+
+        return AlgorithmStatus.NO_PROPERTY_CHECKED;
     }
 }

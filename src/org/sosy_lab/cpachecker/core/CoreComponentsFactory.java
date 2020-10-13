@@ -553,7 +553,8 @@ public class CoreComponentsFactory {
       }
 
       if (useLegion) {
-        algorithm = new LegionAlgorithm(algorithm);
+        logger.log(Level.INFO, "Creating Legion algorithm");
+        algorithm = new LegionAlgorithm(algorithm, logger);
       }
 
       if (collectAssumptions) {

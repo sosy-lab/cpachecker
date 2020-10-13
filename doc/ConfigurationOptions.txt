@@ -482,6 +482,12 @@ analysis.useCompositionAnalysis = false
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
 
+# start different analyses interleaved and continue after unknown result
+analysis.useInterleavedAnalyses = false
+
+# generate test cases using the Legion algorithm
+analysis.useLegion = false
+
 # add loop-structure information to CFA.
 analysis.useLoopStructure = true
 
