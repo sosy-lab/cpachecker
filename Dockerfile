@@ -1,4 +1,4 @@
-FROM openjdk:11-jdk-slim
+FROM openjdk:11-jdk-slim AS baseimage
 
 WORKDIR /usr/app
 ENV PATH="/etc/ant/bin:${PATH}"
@@ -10,11 +10,12 @@ RUN apt-get update && apt-get install -y \
   libgomp1=8.3.0-6 \
   python3=3.7.3-1 \
   wget=1.20.1-1.1 \
-  git=1:2.20.1-2+deb10u1
+  git \
+  procps
 
 # RUN apt-get update && (apt-get install -y ant || true)
 RUN cd /tmp; \
-    wget http://apache.mirror.digionline.de/ant/binaries/apache-ant-${ANT_VERSION}-bin.tar.gz && \
+    wget http://mirror.23media.de/apache/ant/binaries/apache-ant-${ANT_VERSION}-bin.tar.gz && \
     tar -C /etc/ -xzvf apache-ant-${ANT_VERSION}-bin.tar.gz apache-ant-${ANT_VERSION} && \
     mv /etc/apache-ant-${ANT_VERSION} /etc/ant && \
     cd ${ANT_HOME} && \
@@ -28,4 +29,4 @@ RUN ant -lib lib/java/build resolve-dependencies
 
 COPY . /usr/app
 
-# RUN ant build
+# RUN ant -lib lib/java/build build -Dcompile.warn=true -Derrorprone.disable=true

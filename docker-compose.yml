@@ -12,3 +12,4 @@ services:
       - "./.devcontainer:/usr/app/.devcontainer"
       - "./.idea:/usr/app/.idea"
       - "./.git:/usr/app/.git"
+      - "../sv-benchmarks:/mnt/sv-benchmarks"

@@ -4,15 +4,20 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Run Legion",
+            "label": "Run Legion basic",
             "type": "shell",
             "command": "scripts/cpa.sh -spec config/specification/sv-comp-reachability.spc -config config/legion.properties doc/examples/legion/example.c",
+            "problemMatcher": []
+        },{
+            "label": "Run Legion bAnd1",
+            "type": "shell",
+            "command": "scripts/cpa.sh -spec config/specification/sv-comp-reachability.spc -config config/legion.properties doc/examples/legion/sv-benchmarks/c/array-crafted/bAnd1.i",
             "problemMatcher": []
         },
         {
             "label": "Build",
             "type": "shell",
-            "command": "ant build -Dcompile.warn=true -Derrorprone.disable=true",
+            "command": "ant -lib lib/java/build build -Dcompile.warn=true -Derrorprone.disable=true",
             "group": {
                 "kind": "build",
                 "isDefault": true

@@ -4,3 +4,7 @@
 .idea
 .docker-compose.yml
 bin
+doc\examples\legion\sv-benchmarks
+output
+lib/java
+.devcontainer
