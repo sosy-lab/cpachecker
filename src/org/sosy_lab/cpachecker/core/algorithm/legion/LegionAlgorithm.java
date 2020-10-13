@@ -78,7 +78,8 @@ public class LegionAlgorithm implements Algorithm {
 
     @Option(secure=true, name="merge", toUppercase=true, values={"RAND"},
       description="which selection strategy to use to get target states.")
-    private String selectionStrategy = "RAND";
+    private String selectionStrategyOption = "RAND";
+    private Selector selectionStrategy;
 
     public LegionAlgorithm(
             final Algorithm algorithm,
@@ -104,6 +105,8 @@ public class LegionAlgorithm implements Algorithm {
 
         // Get UVA from Value Analysis
         valCpa = CPAs.retrieveCPAOrFail(cpa, ValueAnalysisCPA.class, LegionAlgorithm.class);
+
+        selectionStrategy = buildSelectionStrategy();
     }
 
     @Override
@@ -128,9 +131,9 @@ public class LegionAlgorithm implements Algorithm {
         for (int i = 0; i < maxIterations; i++) {
             logger.log(Level.INFO, "Iteration", i + 1);
             // Phase Selection: Select non_det for path solving
-            AbstractState target;
+            BooleanFormula target;
             try {
-                target = selectTarget(reachedSet, Selector.RANDOM);
+                target = selectionStrategy.select(reachedSet);
             } catch (IllegalArgumentException e) {
                 logger.log(Level.WARNING, "No target state found");
                 return status;
@@ -166,13 +169,10 @@ public class LegionAlgorithm implements Algorithm {
      * @param pProver The prover to use.
      * @throws InterruptedException, SolverException
      */
-    private Model solvePathConstrains(AbstractState pTarget, ProverEnvironment pProver)
+    private Model solvePathConstrains(BooleanFormula target, ProverEnvironment pProver)
             throws InterruptedException, SolverException {
         logger.log(Level.INFO, "Solve path constraints.");
-        PredicateAbstractState ps =
-                AbstractStates.extractStateByType(pTarget, PredicateAbstractState.class);
-        BooleanFormula f = ps.getPathFormula().getFormula();
-        pProver.push(f);
+        pProver.push(target);
         assertThat(pProver).isSatisfiable();
         return pProver.getModel();
     }
@@ -241,5 +241,14 @@ public class LegionAlgorithm implements Algorithm {
         }
 
         return pReachedSet;
+    }
+
+    Selector buildSelectionStrategy(){
+        if (selectionStrategyOption == "RAND"){
+            return new RandomSelectionStrategy(logger);
+        }
+        throw new IllegalArgumentException(
+            "Selection strategy " + selectionStrategyOption + " unknown"
+            );
     }
 }
