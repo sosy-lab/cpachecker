@@ -1,39 +1,20 @@
-/*
- * CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2016  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.overflow;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.AExpression;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
-import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractStateWithAssumptions;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
@@ -41,45 +22,47 @@ import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 /**
  * Abstract state for tracking overflows.
  */
-class OverflowState implements AbstractStateWithAssumptions,
+public final class OverflowState
+    implements AbstractStateWithAssumptions,
     Graphable,
     AbstractQueryableState {
 
   private final ImmutableSet<? extends AExpression> assumptions;
-  private final boolean hasOverflow;
+  private final OverflowState parent;
+  private final boolean nextHasOverflow;
   private static final String PROPERTY_OVERFLOW = "overflow";
-  private ImmutableSet<AbstractState> previousStates;
-  private ImmutableSet<AbstractState> currentStates;
-  private boolean alreadyStrengthened;
 
-  public OverflowState(Set<? extends AExpression> pAssumptions, boolean pHasOverflow) {
-    this(pAssumptions, pHasOverflow, null);
+  public OverflowState(Set<? extends AExpression> pAssumptions, boolean pNextHasOverflow) {
+    this(pAssumptions, pNextHasOverflow, null);
   }
 
   public OverflowState(
-      Set<? extends AExpression> pAssumptions, boolean pHasOverflow, OverflowState parent) {
+      Set<? extends AExpression> pAssumptions, boolean pNextHasOverflow, OverflowState pParent) {
     assumptions = ImmutableSet.copyOf(pAssumptions);
-    hasOverflow = pHasOverflow;
-    previousStates = null;
-    if (parent != null) {
-      currentStates = parent.currentStates;
-    } else {
-      currentStates = ImmutableSet.of();
-    }
+    parent = pParent;
+    nextHasOverflow = pNextHasOverflow;
   }
 
   public boolean hasOverflow() {
-    return hasOverflow;
+    return parent != null && parent.nextHasOverflow;
+  }
+
+  public boolean nextHasOverflow() {
+    return nextHasOverflow;
+  }
+
+  public AbstractStateWithAssumptions getParent() {
+    return parent;
   }
 
   @Override
   public List<? extends AExpression> getAssumptions() {
-    return ImmutableList.of();
+    return assumptions.asList();
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(assumptions, hasOverflow);
+    return Objects.hash(assumptions, nextHasOverflow);
   }
 
   @Override
@@ -91,19 +74,23 @@ class OverflowState implements AbstractStateWithAssumptions,
       return false;
     }
     OverflowState that = (OverflowState) pO;
-    return hasOverflow == that.hasOverflow && Objects.equals(assumptions, that.assumptions);
+    return nextHasOverflow == that.nextHasOverflow
+        && assumptions.equals(that.assumptions);
   }
 
   @Override
   public String toString() {
-    return "OverflowState{" + ", assumeEdges=" + getReadableAssumptions() + ", hasOverflow="
-        + hasOverflow + '}';
+    return "OverflowState{assumeEdges=["
+        + getReadableAssumptions()
+        + "], nextHasOverflow="
+        + nextHasOverflow
+        + '}';
   }
 
   @Override
   public String toDOTLabel() {
-    if (hasOverflow) {
-      return Joiner.on('\n').join(getReadableAssumptions());
+    if (hasOverflow()) {
+      return "Assumptions:\n" + getReadableAssumptions(this).replaceAll(", ", "\n");
     }
     return "";
   }
@@ -113,8 +100,14 @@ class OverflowState implements AbstractStateWithAssumptions,
     return false;
   }
 
-  private List<String> getReadableAssumptions() {
-    return assumptions.stream().map(x -> x.toASTString()).collect(Collectors.toList());
+  private String getReadableAssumptions() {
+    return getReadableAssumptions(this);
+  }
+
+  private static String getReadableAssumptions(OverflowState s) {
+    StringBuilder sb = new StringBuilder();
+    Joiner.on(", ").appendTo(sb, s.assumptions.stream().map(x -> x.toASTString()).iterator());
+    return sb.toString();
   }
 
   @Override
@@ -125,35 +118,8 @@ class OverflowState implements AbstractStateWithAssumptions,
   @Override
   public boolean checkProperty(String pProperty) throws InvalidQueryException {
     if (pProperty.equals(PROPERTY_OVERFLOW)) {
-      return hasOverflow;
+      return hasOverflow();
     }
     throw new InvalidQueryException("Query '" + pProperty + "' is invalid.");
-  }
-
-  @Override
-  public Set<AbstractState> getStatesForPreconditions() {
-    if (alreadyStrengthened) {
-      assert (previousStates != null)
-          : "Expected state information to be not null after strengthening!";
-      return previousStates;
-    } else {
-      return currentStates;
-    }
-  }
-
-  @Override
-  public Set<? extends AExpression> getPreconditionAssumptions() {
-    return assumptions;
-  }
-
-  protected void updateStatesForPreconditions(Iterable<AbstractState> pCurrentStates) {
-    if (!alreadyStrengthened) {
-      previousStates = currentStates;
-      // update current states while deliberately removing "this".
-      // Other states may get hold of this set via getStatesForPreconditions().
-      // We want to prevent infinite recursion and accelerate garbage collection.
-      currentStates = FluentIterable.from(pCurrentStates).filter(x -> !x.equals(this)).toSet();
-      alreadyStrengthened = true;
-    }
   }
 }

@@ -1,41 +1,25 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2015  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm.bmc;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.assertAt;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.createFormulaFor;
-import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterEndStates;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterIteration;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.filterIterationsUpTo;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.BMCHelper.unroll;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
@@ -426,8 +410,9 @@ class KInductionProver implements AutoCloseable {
     shutdownNotifier.shutdownIfNecessary();
 
     // Assert that *some* successor is reached
+    Iterable<AbstractState> endStates = FluentIterable.from(reached).filter(BMCHelper::isEndState);
     BooleanFormula successorExistsAssertion =
-        createFormulaFor(filterEndStates(reached), bfmgr, Optional.of(shutdownNotifier));
+        createFormulaFor(endStates, bfmgr, Optional.of(shutdownNotifier));
 
     // Obtain the predecessor assertion created earlier
     final BooleanFormula predecessorAssertion =
@@ -635,10 +620,7 @@ class KInductionProver implements AutoCloseable {
       throws InterruptedException, CPAException {
     if (pReached.size() <= 1 && cfa.getLoopStructure().isPresent()) {
       Stream<CFANode> relevantLoopHeads =
-          cfa.getLoopStructure()
-              .get()
-              .getAllLoops()
-              .stream()
+          cfa.getLoopStructure().orElseThrow().getAllLoops().stream()
               .filter(loop -> !BMCHelper.isTrivialSelfLoop(loop))
               .map(Loop::getLoopHeads)
               .flatMap(Collection::stream)
@@ -708,7 +690,7 @@ class KInductionProver implements AutoCloseable {
     FluentIterable<AbstractState> inputStates =
         filterIteration(pCandidateInvariant.filterApplicable(pReached), pK, loopHeads);
     if (pCandidateInvariant == TargetLocationCandidateInvariant.INSTANCE) {
-      inputStates = inputStates.filter(AbstractStates.IS_TARGET_STATE);
+      inputStates = inputStates.filter(AbstractStates::isTargetState);
     }
     Multimap<String, Integer> inputs = extractInputs(inputStates, types);
 
@@ -750,8 +732,8 @@ class KInductionProver implements AutoCloseable {
             Object value = valueAssignment.getValue();
             if (index.isPresent()
                 && (ssaMap.containsVariable(actualName)
-                    ? ssaMap.getIndex(actualName) == index.getAsInt()
-                    : index.getAsInt() == 1)
+                    ? ssaMap.getIndex(actualName) == index.orElseThrow()
+                    : index.orElseThrow() == 1)
                 && value instanceof Number
                 && !inputs.containsKey(actualName)) {
               BooleanFormula assignment =
@@ -780,12 +762,12 @@ class KInductionProver implements AutoCloseable {
             boolean isUnconnected = false;
             if (index.isPresent()
                 && ssaMap.containsVariable(actualName)
-                && index.getAsInt() < ssaMap.getIndex(actualName)) {
+                && index.orElseThrow() < ssaMap.getIndex(actualName)) {
               isUnconnected = !variableFormulas.get().containsKey(fullName);
             }
             if ((!index.isPresent()
                 || (index.isPresent()
-                    && (isUnconnected || inputs.get(actualName).contains(index.getAsInt()))))) {
+                    && (isUnconnected || inputs.get(actualName).contains(index.orElseThrow()))))) {
               input.add(valueAssignment.getAssignmentAsFormula());
             }
           }
@@ -802,8 +784,8 @@ class KInductionProver implements AutoCloseable {
       throws CPATransferException, InterruptedException {
     ReachedSet reached = reachedSet.getReachedSet();
 
-    ImmutableMultimap.Builder<BooleanFormula, BooleanFormula> stateViolationAssertionsBuilder =
-        ImmutableMultimap.builder();
+    ImmutableListMultimap.Builder<BooleanFormula, BooleanFormula> stateViolationAssertionsBuilder =
+        ImmutableListMultimap.builder();
     Iterable<AbstractState> assertionStates =
         filterIteration(pCandidateInvariant.filterApplicable(reached), pK, loopHeads);
 

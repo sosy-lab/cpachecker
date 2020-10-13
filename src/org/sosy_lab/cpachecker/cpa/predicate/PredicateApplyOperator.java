@@ -34,6 +34,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.time.Timer;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -97,25 +98,25 @@ import org.sosy_lab.java_smt.api.SolverException;
 @Options(prefix = "cpa.predicate")
 public class PredicateApplyOperator implements ApplyOperator {
 
-  private final Function<String, String> rename = s -> s + "__ENV";
+  private final String rename(String name) { return name + "__ENV"; };
 
-  private final Function<String, String> localRename = s -> {
-    if (s.contains("::")) {
+  private final String localRename(String name) {
+    if (name.contains("::")) {
       // local var, rename
-      if (s.contains("@")) {
+      if (name.contains("@")) {
         // instantiated
-        List<String> parts = Splitter.on('@').splitToList(s);
-        String newName = rename.apply(parts.get(0)) + "@";
+        List<String> parts = Splitter.on('@').splitToList(name);
+        String newName = rename(parts.get(0)) + "@";
         if (parts.size() > 1) {
           // @ may be last symbol
           newName += parts.get(1);
         }
         return newName;
       } else {
-        return rename.apply(s);
+        return rename(name);
       }
     } else {
-      return s;
+      return name;
     }
   };
 
@@ -172,9 +173,9 @@ public class PredicateApplyOperator implements ApplyOperator {
         } else if (decl instanceof CVariableDeclaration) {
           FileLocation loc = pIastIdExpression.getFileLocation();
           CType type = ((CVariableDeclaration) decl).getType();
-          String name = rename.apply(((CVariableDeclaration) decl).getName());
-          String origName = rename.apply(((CVariableDeclaration) decl).getOrigName());
-          String qualifName = rename.apply(((CVariableDeclaration) decl).getQualifiedName());
+          String name = rename(((CVariableDeclaration) decl).getName());
+          String origName = rename(((CVariableDeclaration) decl).getOrigName());
+          String qualifName = rename(((CVariableDeclaration) decl).getQualifiedName());
 
           CDeclaration newDecl =
               new CVariableDeclaration(
@@ -193,9 +194,9 @@ public class PredicateApplyOperator implements ApplyOperator {
         FileLocation loc = pIastIdExpression.getFileLocation();
         CParameterDeclaration pDecl = ((CParameterDeclaration) decl);
         CType type = pDecl.getType();
-        String name = rename.apply(pDecl.getName());
-        String origName = rename.apply(pDecl.getOrigName());
-        String qualName = rename.apply(pDecl.getQualifiedName());
+        String name = rename(pDecl.getName());
+        String origName = rename(pDecl.getOrigName());
+        String qualName = rename(pDecl.getQualifiedName());
 
         CVariableDeclaration newDecl =
             new CVariableDeclaration(
@@ -509,13 +510,14 @@ public class PredicateApplyOperator implements ApplyOperator {
         creationTimer.stop();
 
         convertingTimer.start();
+        AFunctionDeclaration func = edge.getSuccessor().getFunction();
         CFAEdge fakeEdge =
             new CStatementEdge(
                 "environment",
                 newAssignement,
                 newAssignement.getFileLocation(),
-                new CFANode("dummy"),
-                new CFANode("dummy"));
+                new CFANode(func),
+                new CFANode(func));
 
         PathFormula pFormula = pmngr.makeEmptyPathFormula();
 
@@ -577,7 +579,7 @@ public class PredicateApplyOperator implements ApplyOperator {
     if (emptyAbstraction) {
       return mngr.makeTrue();
     }
-    BooleanFormula result = fmngr.renameFreeVariablesAndUFs(formula, localRename);
+    BooleanFormula result = fmngr.renameFreeVariablesAndUFs(formula, this::localRename);
     return result;
   }
 

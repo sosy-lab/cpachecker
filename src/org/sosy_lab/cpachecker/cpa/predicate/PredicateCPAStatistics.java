@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -117,7 +102,7 @@ class PredicateCPAStatistics implements Statistics {
   private final BlockOperator blk;
   private final RegionManager rmgr;
   private final AbstractionManager absmgr;
-  private final PredicateAbstractionManager amgr;
+  private final PredicateAbstractionStatistics abstractionStats;
 
   private final PredicateStatistics statistics;
   private final PredicateMapWriter precisionWriter;
@@ -133,7 +118,7 @@ class PredicateCPAStatistics implements Statistics {
       BlockOperator pBlk,
       RegionManager pRmgr,
       AbstractionManager pAbsmgr,
-      PredicateAbstractionManager pPredAbsMgr,
+      PredicateAbstractionStatistics pAbstractionStats,
       PredicateStatistics pStatistics)
       throws InvalidConfigurationException {
     pConfig.inject(this, PredicateCPAStatistics.class);
@@ -144,7 +129,7 @@ class PredicateCPAStatistics implements Statistics {
     blk = pBlk;
     rmgr = pRmgr;
     absmgr = pAbsmgr;
-    amgr = pPredAbsMgr;
+    abstractionStats = pAbstractionStats;
     statistics = pStatistics;
 
     FormulaManagerView fmgr = pSolver.getFormulaManager();
@@ -255,7 +240,7 @@ class PredicateCPAStatistics implements Statistics {
       loopInvariantsWriter.exportLoopInvariantsAsPrecision(invariantPrecisionsFile, reached);
     }
 
-    PredicateAbstractionManager.Stats as = amgr.stats;
+    PredicateAbstractionStatistics as = abstractionStats;
 
     int numAbstractions = statistics.numAbstractions.getUpdateCount();
     out.println("Number of abstractions:            " + numAbstractions + " (" + toPercent(numAbstractions, statistics.postTimer.getNumberOfIntervals()) + " of all post computations)");
@@ -304,11 +289,11 @@ class PredicateCPAStatistics implements Statistics {
       out.println("Max number of predicates per location:    " + maxPredsPerLocation);
       out.println("Avg number of predicates per location:    " + avgPredsPerLocation);
     }
-    if (as.numCallsAbstraction - as.numSymbolicAbstractions > 0) {
-      int numRealAbstractions = as.numCallsAbstraction - as.numSymbolicAbstractions - as.numCallsAbstractionCached;
+    if (as.numCallsAbstraction.get() > as.numSymbolicAbstractions.get()) {
+      int numRealAbstractions = as.numCallsAbstraction.get() - as.numSymbolicAbstractions.get() - as.numCallsAbstractionCached.get();
       out.println("Total predicates per abstraction:         " + as.numTotalPredicates);
       out.println("Max number of predicates per abstraction: " + as.maxPredicates);
-      out.println("Avg number of predicates per abstraction: " + div(as.numTotalPredicates, numRealAbstractions));
+      out.println("Avg number of predicates per abstraction: " + div(as.numTotalPredicates.get(), numRealAbstractions));
       out.println("Number of irrelevant predicates:          " + valueWithPercentage(as.numIrrelevantPredicates, as.numTotalPredicates));
       if (as.trivialPredicatesTime.getNumberOfIntervals() > 0) {
         out.println("Number of trivially used predicates:      " + valueWithPercentage(as.numTrivialPredicates, as.numTotalPredicates));
@@ -360,8 +345,15 @@ class PredicateCPAStatistics implements Statistics {
         out.println("    Abstraction reuse implication:  " + as.abstractionReuseImplicationTime);
       }
       out.println("    Solving time:                    " + as.abstractionSolveTime + " (Max: " + as.abstractionSolveTime.getMaxTime().formatAs(SECONDS) + ")");
-      out.println("    Model enumeration time:          " + as.abstractionEnumTime.getOuterSumTime().formatAs(SECONDS));
-      out.println("    Time for BDD construction:       " + as.abstractionEnumTime.getInnerSumTime().formatAs(SECONDS)   + " (Max: " + as.abstractionEnumTime.getInnerMaxTime().formatAs(SECONDS) + ")");
+      out.println(
+          "    Model enumeration time:          "
+              + as.abstractionModelEnumTime.getSumTime().formatAs(SECONDS));
+      out.println(
+          "    Time for BDD construction:       "
+              + as.abstractionBddConstructionTime.getSumTime().formatAs(SECONDS)
+              + " (Max: "
+              + as.abstractionBddConstructionTime.getMaxTime().formatAs(SECONDS)
+              + ")");
     }
 
     if (statistics.totalMergeTime.getNumberOfIntervals() != 0) { // at least used once
@@ -375,7 +367,14 @@ class PredicateCPAStatistics implements Statistics {
     if (statistics.symbolicCoverageCheckTimer.getNumberOfIntervals() > 0) {
       put(out, 1, statistics.symbolicCoverageCheckTimer);
     }
-    out.println("Total time for SMT solver (w/o itp): " + TimeSpan.sum(solver.solverTime.getSumTime(), as.abstractionSolveTime.getSumTime(), as.abstractionEnumTime.getOuterSumTime()).formatAs(SECONDS));
+    out.println(
+        "Total time for SMT solver (w/o itp): "
+            + TimeSpan
+                .sum(
+                    solver.solverTime.getSumTime(),
+                    as.abstractionSolveTime.getSumTime(),
+                    as.abstractionModelEnumTime.getSumTime())
+                .formatAs(SECONDS));
 
     if (statistics.abstractionCheckTimer.getNumberOfIntervals() > 0) {
       put(out, 0, statistics.abstractionCheckTimer);
@@ -388,5 +387,6 @@ class PredicateCPAStatistics implements Statistics {
     pfmgr.printStatistics(out);
     out.println();
     rmgr.printStatistics(out);
+    solver.printStatistics(out);
   }
 }

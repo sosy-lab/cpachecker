@@ -1,32 +1,16 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm.residualprogram;
 
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -40,7 +24,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Deque;
-import java.util.List;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
@@ -57,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
@@ -69,6 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.assumptions.storage.AssumptionStorageState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
@@ -92,15 +75,10 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
 
   private final Collection<Statistics> stats = new ArrayList<>();
 
-  private final Predicate<? super AbstractState> IS_STOP =
-      (AbstractState e) -> {
-        AssumptionStorageState ass =
-            AbstractStates.extractStateByType(e, AssumptionStorageState.class);
-        if (ass == null) {
-          return false;
-        }
-        return ass.isStop();
-      };
+  private static final boolean isStop(AbstractState e) {
+    AssumptionStorageState ass = AbstractStates.extractStateByType(e, AssumptionStorageState.class);
+    return ass != null && ass.isStop();
+  }
 
   public ResidualProgramConstructionAfterAnalysisAlgorithm(final CFA pCfa, final Algorithm pAlgorithm,
       final Configuration pConfig, final LogManager pLogger, final ShutdownNotifier pShutdown,
@@ -129,9 +107,11 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       logger.log(Level.INFO, "Start analysis");
       status = status.update(innerAlgorithm.run(pReachedSet));
     } catch (InfeasibleCounterexampleException | RefinementFailedException e) {
+      // ignore
     }
 
-    if (!pReachedSet.hasWaitingState() && !from(pReachedSet).anyMatch(IS_STOP)) {
+    if (!pReachedSet.hasWaitingState()
+        && !from(pReachedSet).anyMatch(ResidualProgramConstructionAfterAnalysisAlgorithm::isStop)) {
       logger.log(Level.INFO, "Analysis complete");
       // analysis alone succeeded
       return status;
@@ -206,7 +186,8 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       toAdd.push((ARGState) unexplored);
     }
 
-    for (AbstractState stop : from(pReachedSet).filter(IS_STOP)) {
+    for (AbstractState stop :
+        from(pReachedSet).filter(ResidualProgramConstructionAfterAnalysisAlgorithm::isStop)) {
       toAdd.push((ARGState) stop);
     }
 
@@ -345,12 +326,13 @@ public class ResidualProgramConstructionAfterAnalysisAlgorithm
       Specification spec = getSpecification();
       if (usesParallelCompositionOfProgramAndCondition()) {
         assert (assumptionAutomaton != null);
-        List<Path> specList = new ArrayList<>(spec.getSpecFiles());
-        specList.add(getAssumptionGuider());
-        specList.add(assumptionAutomaton);
         spec =
-            Specification.fromFiles(
-                getSpecification().getProperties(), specList, cfa, config, logger, shutdown);
+            spec.withAdditionalSpecificationFile(
+                ImmutableSet.of(getAssumptionGuider(), assumptionAutomaton),
+                cfa,
+                config,
+                logger,
+                shutdown);
       }
       ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, spec);
 

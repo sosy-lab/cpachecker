@@ -117,7 +117,7 @@ public class LockStateRCU {
     if (this == pO) {
       return true;
     }
-    if (pO == null || getClass() != pO.getClass()) {
+    if (!(pO instanceof LockStateRCU)) {
       return false;
     }
 

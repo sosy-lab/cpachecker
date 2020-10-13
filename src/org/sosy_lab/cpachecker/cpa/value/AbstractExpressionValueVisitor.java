@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -160,13 +145,15 @@ public abstract class AbstractExpressionValueVisitor
 
   private boolean missingFieldAccessInformation = false;
 
-  /** This Visitor returns the numeral value for an expression.
+  /**
+   * This Visitor returns the numeral value for an expression.
+   *
    * @param pFunctionName current scope, used only for variable-names
    * @param pMachineModel where to get info about types, for casting and overflows
    * @param pLogger logging
    */
-  public AbstractExpressionValueVisitor(String pFunctionName,
-      MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
+  protected AbstractExpressionValueVisitor(
+      String pFunctionName, MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
 
     //this.state = pState;
     functionName = pFunctionName;
@@ -219,7 +206,8 @@ public abstract class AbstractExpressionValueVisitor
     final CType calculationType = binaryExpr.getCalculationType();
 
     lVal = castCValue(lVal, calculationType, machineModel, logger, binaryExpr.getFileLocation());
-    if (binaryOperator != BinaryOperator.SHIFT_LEFT && binaryOperator != BinaryOperator.SHIFT_RIGHT) {
+    if (binaryOperator != BinaryOperator.SHIFT_LEFT
+        && binaryOperator != BinaryOperator.SHIFT_RIGHT) {
       /* For SHIFT-operations we do not cast the second operator.
        * We even do not need integer-promotion,
        * because the maximum SHIFT of 64 is lower than MAX_CHAR.
@@ -273,8 +261,12 @@ public abstract class AbstractExpressionValueVisitor
     case GREATER_EQUAL:
     case LESS_THAN:
     case LESS_EQUAL: {
-      result = booleanOperation((NumericValue) lVal,
-          (NumericValue) rVal, binaryOperator, calculationType, machineModel, logger);
+        result = booleanOperation((NumericValue) lVal,
+                (NumericValue) rVal,
+                binaryOperator,
+                calculationType,
+                machineModel,
+                logger);
       // we do not cast here, because 0 and 1 should be small enough for every type.
 
       break;
@@ -511,6 +503,68 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   /**
+   * Calculate an arithmetic operation on two int128 types.
+   *
+   * @param l left hand side value
+   * @param r right hand side value
+   * @param op the binary operator
+   * @param logger logging
+   * @return the resulting value
+   */
+  private static BigInteger arithmeticOperation(
+      final BigInteger l,
+      final BigInteger r,
+      final BinaryOperator op,
+      final LogManager logger) {
+
+    switch (op) {
+      case PLUS:
+        return l.add(r);
+      case MINUS:
+        return l.subtract(r);
+      case DIVIDE:
+        if (r.equals(BigInteger.ZERO)) {
+          // this matches the behavior of long
+          logger.logf(Level.SEVERE, "Division by Zero (%s / %s)", l.toString(), r.toString());
+          return BigInteger.ZERO;
+        }
+        return l.divide(r);
+      case MODULO:
+        return l.mod(r);
+      case MULTIPLY:
+        return l.multiply(r);
+      case SHIFT_LEFT:
+        // (C11, 6.5.7p3) "If the value of the right operand is negative
+        // or is greater than or equal to the width of the promoted left operand,
+        // the behavior is undefined"
+        if (r.compareTo(BigInteger.valueOf(128)) <= 0 && r.signum() != -1) {
+          return l.shiftLeft(r.intValue());
+        } else {
+          logger.logf(
+              Level.SEVERE,
+              "Right-hand side (%s) of the bitshift is larger than 128 or negative.",
+              r.toString());
+          return BigInteger.ZERO;
+        }
+      case SHIFT_RIGHT:
+        if (r.compareTo(BigInteger.valueOf(128)) <= 0 && r.signum() != -1) {
+          return l.shiftRight(r.intValue());
+        } else {
+          return BigInteger.ZERO;
+        }
+      case BINARY_AND:
+        return l.and(r);
+      case BINARY_OR:
+        return l.or(r);
+      case BINARY_XOR:
+        return l.xor(r);
+      default:
+        throw new AssertionError("unknown binary operation: " + op);
+    }
+
+  }
+
+  /**
    * Calculate an arithmetic operation on two float types.
    *
    * @param l left hand side value
@@ -573,6 +627,13 @@ public abstract class AbstractExpressionValueVisitor
         long result = arithmeticOperation(lVal, rVal, op, calculationType, machineModel, logger);
         return new NumericValue(result);
       }
+        case INT128: {
+          BigInteger lVal = lNum.bigInteger();
+          BigInteger rVal = rNum.bigInteger();
+          BigInteger result =
+              arithmeticOperation(lVal, rVal, op, logger);
+          return new NumericValue(result);
+        }
       case DOUBLE: {
         if (type.isLong()) {
           return arithmeticOperationForLongDouble(lNum, rNum, op, calculationType, machineModel,
@@ -631,6 +692,8 @@ public abstract class AbstractExpressionValueVisitor
 
     final int cmp;
     switch (type.getType()) {
+      case INT128:
+      case CHAR:
       case INT: {
         CSimpleType canonicalType = type.getCanonicalType();
         int sizeInBits = machineModel.getSizeof(canonicalType) * machineModel.getSizeofCharInBits();
@@ -991,7 +1054,7 @@ public abstract class AbstractExpressionValueVisitor
               Number number = parameter.asNumericValue().getNumber();
               Optional<Boolean> isNegative = isNegative(number);
               if (isNegative.isPresent()) {
-                return new NumericValue(isNegative.get() ? 1 : 0);
+                return new NumericValue(isNegative.orElseThrow() ? 1 : 0);
               }
             }
           }
@@ -1007,7 +1070,7 @@ public abstract class AbstractExpressionValueVisitor
               Optional<Boolean> sourceNegative = isNegative(sourceNumber);
               Optional<Boolean> targetNegative = isNegative(targetNumber);
               if (sourceNegative.isPresent() && targetNegative.isPresent()) {
-                if (sourceNegative.get() == targetNegative.get()) {
+                if (sourceNegative.orElseThrow().equals(targetNegative.orElseThrow())) {
                   return new NumericValue(targetNumber);
                 }
                 return target.asNumericValue().negate();
@@ -1728,7 +1791,8 @@ public abstract class AbstractExpressionValueVisitor
       }
 
       if (pLeftType != JBasicType.LONG && pRightType != JBasicType.LONG) {
-        numResult = (int) numResult;
+        int intNumResult = (int) numResult;
+        numResult = intNumResult;
       }
 
       return new NumericValue(numResult);
@@ -2018,7 +2082,7 @@ public abstract class AbstractExpressionValueVisitor
 
   @Override
   public Value visit(JBooleanLiteralExpression pE) {
-    return BooleanValue.valueOf(pE.getValue());
+    return BooleanValue.valueOf(pE.getBoolean());
   }
 
   @Override
@@ -2309,7 +2373,7 @@ public abstract class AbstractExpressionValueVisitor
     switch (st.getType()) {
       case BOOL:
         return convertToBool(numericValue);
-
+      case INT128:
       case INT:
       case CHAR:
         {
@@ -2325,7 +2389,14 @@ public abstract class AbstractExpressionValueVisitor
             return UnknownValue.getInstance();
         }
 
-          final BigInteger valueToCastAsInt = BigInteger.valueOf(numericValue.longValue());
+        final BigInteger valueToCastAsInt;
+        if (numericValue.getNumber() instanceof BigInteger) {
+          valueToCastAsInt = numericValue.bigInteger();
+        } else if (numericValue.getNumber() instanceof BigDecimal) {
+          valueToCastAsInt = numericValue.bigDecimalValue().toBigInteger();
+        } else {
+          valueToCastAsInt = BigInteger.valueOf(numericValue.longValue());
+        }
           final boolean targetIsSigned = machineModel.isSigned(st);
 
           final BigInteger maxValue = BigInteger.ONE.shiftLeft(size); // 2^size
@@ -2356,12 +2427,13 @@ public abstract class AbstractExpressionValueVisitor
             return new NumericValue(result.longValueExact());
 
           } else {
-            return new NumericValue(result);
+          return new NumericValue(result);
         }
         }
 
       case FLOAT:
       case DOUBLE:
+      case FLOAT128:
         {
           // TODO: look more closely at the INT/CHAR cases, especially at the loggedEdges stuff
           // TODO: check for overflow(source larger than the highest number we can store in target
@@ -2382,7 +2454,9 @@ public abstract class AbstractExpressionValueVisitor
             // 64 bit means Java double
             result = new NumericValue(numericValue.doubleValue());
 
-          } else if (size == machineModel.getSizeofLongDouble() * bitPerByte) {
+        } else if (size == machineModel.getSizeofFloat128() * 8) {
+          result = new NumericValue(numericValue.bigDecimalValue());
+        } else if (size == machineModel.getSizeofLongDouble() * bitPerByte) {
 
             if (numericValue.bigDecimalValue().doubleValue() == numericValue.doubleValue()) {
               result = new NumericValue(numericValue.doubleValue());
@@ -2563,13 +2637,12 @@ public abstract class AbstractExpressionValueVisitor
   }
 
   /**
+   * Returns a numeric type that can be used to perform arithmetics on an instance of the type
+   * directly, or null if none.
+   *
+   * <p>Most notably, CPointerType will be converted to the unsigned integer type of correct size.
    *
    * @param type the input type
-   * @return A numeric type that can be used to perform arithmetics on an instance
-   *         of the type directly, or null if none.
-   *
-   *         Most notably, CPointerType will be converted to the unsigned integer type
-   *         of correct size.
    */
   public static CSimpleType getArithmeticType(CType type) {
     type = type.getCanonicalType();

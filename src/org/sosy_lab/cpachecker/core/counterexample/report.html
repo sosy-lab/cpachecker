@@ -1,3 +1,14 @@
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+SPDX-FileCopyrightText: 2018 Lokesh Nandanwar
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 <!-- Refer to the doc/ReportTemplateStyleGuide.md for Coding and Style Guide. They will let you write better code
 with considerably less effort -->
 
@@ -106,22 +117,63 @@ with considerably less effort -->
             <strong>Find only exact matches</strong>
           </label>
         </div>
+        <!--shown iff property analysis.algorithm.FaultLocalization=true-->
+        <div id="fault-localization-info" ng-hide="hideFaults" class="horizontal-div">
+          <button id="fault-button" class="btn btn-success" ng-click="faultClicked()" data-toggle="tooltip" data-placement="bottom" title="Click here to get more detailed information about the error">Change view</button>
+        </div>
         <div id="matches">
           <p class="markedValues">Matches in value-assignements (V): {{numOfValueMatches}}</p>
           <p class="markedDescriptions">Matches in edge-description: {{numOfDescriptionMatches}}</p>
         </div>
       </header>
       <div class="fileContent" ng-controller="ValueAssignmentsController" id="value-assignment">
-        <table id="err-table">
+        <table id="err-table" ng-hide="hideErrorTable">
+          <tr id="errpath-header" ng-hide="hideFaults"> <td><pre></pre></td> <td><pre>Rank</pre></td> <td><pre>Scope</pre></td> </tr>
           <tr id="errpath-{{$index}}" ng-repeat="line in errorPath">
             <td ng-click="showValues($event)" data-toggle="popover" data-placement="right" data-trigger="click" data-content="{{line.valString}}">
               <pre>-V-</pre>
+            </td>
+	          <td ng-hide="hideFaults" class="rank" tabindex="0" data-trigger="focus" data-toggle="popover" data-placement="right" data-content="{{line.bestreason}}">
+              <pre>{{line.bestrank}}</pre>
             </td>
             <td class="disabled" ng-click="clickedErrpathElement($event)">
               <pre class="make-pretty">{{line.desc}}</pre>
             </td>
           </tr>
         </table>
+          <table ng-show="hideErrorTable" ng-click="clickedFaultLocElement($event)" class="fault-table" ng-repeat="fault in faults" id="fault-{{$index}}">
+            <tr>
+              <td class="fault-rank" data-toggle="tooltip" data-placement="bottom" title="Rank">
+                {{fault.rank}}.
+              </td>
+              <td class="fault-score" data-toggle="tooltip" data-placement="bottom" title="Score">
+                {{fault.score}}
+              </td>
+              <td class="fault-details-header">
+                Details:
+              </td>
+            </tr>
+            <tr class="fault-details">
+              <td colspan="3" html=true>
+                
+                <div ng-bind-html="htmlTrusted(fault.reason)"></div>
+
+                <details>
+                  <summary>
+                    <strong>Current values:</strong>
+                  </summary>
+                  <table id="fault-values" class="value-table">
+                    <th><td>Name</td><td>Value</td></th>
+                    <tr ng-repeat="(variable,value) in fault.valDict">
+                      <td ng-bind-html="htmlTrusted(variable)"></td>
+                      <td ng-bind-html="htmlTrusted(value)"></td>
+                    </tr>
+                  </table>
+                </details>
+
+              </td>
+            </tr>
+          </table>
       </div>
     </section>
 
@@ -168,7 +220,7 @@ with considerably less effort -->
       </ul>
 
       <div id="cfa-toolbar" ng-controller="CFAToolbarController">
-        <nav class="navbar navbar-light bg-light">
+        <nav class="navbar navbar-light bg-light">slid
           <div class="nav-item">
             <label>
               <strong>Displayed CFA</strong>
@@ -208,7 +260,6 @@ with considerably less effort -->
             </label>
             <select class="btn btn-outline-secondary selectpicker" ng-options="s as s for s in argSelections" ng-model="$root.displayedARG"
               ng-change="displayARG()"></select>
-            <label>
           </div>
           <div class="nav-item">
             <strong>Mouse Wheel Zoom</strong>
@@ -250,7 +301,7 @@ with considerably less effort -->
                 <a ng-click="setSourceFile($index)">{{file}}</a>
               </li>
             </ul>
-          </div>
+          </div>slid
           <label>
             <strong>{{sourceFiles[selectedSourceFile]}}</strong>
           </label>

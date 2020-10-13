@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula;
 
 import static org.sosy_lab.cpachecker.util.BuiltinFloatFunctions.getTypeOfBuiltinFloatFunction;
@@ -568,6 +553,12 @@ public class ExpressionToFormulaVisitor
     final String functionName;
     if (functionNameExpression instanceof CIdExpression) {
       functionName = ((CIdExpression)functionNameExpression).getName();
+
+      final String isUnsupported = conv.isUnsupportedFunction(functionName);
+      if (isUnsupported != null) {
+        throw new UnsupportedCodeException(isUnsupported, edge, e);
+      }
+
       if (conv.options.isNondetFunction(functionName)
           || conv.options.isMemoryAllocationFunction(functionName)
           || conv.options.isMemoryAllocationFunctionWithZeroing(functionName)) {
@@ -581,10 +572,6 @@ public class ExpressionToFormulaVisitor
         BooleanFormula result = loader.handleExternModelFunction(parameters, ssa);
         FormulaType<?> returnFormulaType = conv.getFormulaTypeFromCType(e.getExpressionType());
         return conv.ifTrueThenOneElseZero(returnFormulaType, result);
-
-      } else if (CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.containsKey(functionName)) {
-        throw new UnsupportedCodeException(
-            CtoFormulaConverter.UNSUPPORTED_FUNCTIONS.get(functionName), edge, e);
 
       } else if (BuiltinFloatFunctions.matchesInfinity(functionName)) {
 

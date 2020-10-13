@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cmdline;
 
 import static com.google.common.collect.FluentIterable.from;
@@ -32,7 +17,6 @@ import com.google.common.collect.ImmutableSortedSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -44,6 +28,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.Classes;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.configuration.OptionCollector;
 import org.sosy_lab.common.io.IO;
 import org.sosy_lab.cpachecker.cmdline.CmdLineArgument.CmdLineArgument1;
@@ -143,7 +129,7 @@ class CmdLineArguments {
             @Override
             void handleArg(Map<String, String> properties, String arg) {
               if (SPECIFICATION_FILES_PATTERN.matcher(arg).matches()) {
-                arg = resolveSpecificationFileOrExit(arg);
+                arg = resolveSpecificationFileOrExit(arg).toString();
               }
               appendOptionValue(properties, getOption(), arg);
             }
@@ -198,6 +184,7 @@ class CmdLineArguments {
           new CmdLineArgument("-printOptions") {
 
             @SuppressFBWarnings("DM_EXIT")
+            @SuppressForbidden("System.out is correct here")
             @Override
             void apply0(
                 Map<String, String> properties, String pCurrentArg, Iterator<String> argsIt) {
@@ -219,6 +206,7 @@ class CmdLineArguments {
           new CmdLineArgument("-version") {
 
             @SuppressFBWarnings("DM_EXIT")
+            @SuppressForbidden("System.out is correct here")
             @Override
             void apply0(
                 Map<String, String> pProperties, String pCurrentArg, Iterator<String> pArgsIt) {
@@ -229,6 +217,7 @@ class CmdLineArguments {
           new CmdLineArgument("-h", "-help") {
 
             @SuppressFBWarnings("DM_EXIT")
+            @SuppressForbidden("System.out is correct here")
             @Override
             void apply0(
                 Map<String, String> pProperties, String pCurrentArg, Iterator<String> pArgsIt) {
@@ -344,7 +333,7 @@ class CmdLineArguments {
     }
     out.println();
     out.println("You can also specify any of the configuration files in the directory config/");
-    out.println("with -CONFIG_FILE, e.g., -predicateAnalysis for config/predicateAnalysis.properties.");
+    out.println("with -CONFIG_FILE, e.g., -default for config/default.properties.");
     out.println();
     out.println("More information on how to configure CPAchecker can be found in 'doc/Configuration.md'.");
   }
@@ -376,10 +365,10 @@ class CmdLineArguments {
     }
   }
 
-  static String resolveSpecificationFileOrExit(String pSpecification) {
+  static Path resolveSpecificationFileOrExit(String pSpecification) {
     Path specFile = findFile(SPECIFICATION_FILES_TEMPLATE, pSpecification);
     if (specFile != null) {
-      return specFile.toString();
+      return specFile;
     }
     throw Output.fatalError(
         "Checking for property %s is currently not supported by CPAchecker.", pSpecification);
@@ -424,17 +413,7 @@ class CmdLineArguments {
     }
 
     // look relative to code location second
-    Path codeLocation;
-    try {
-      codeLocation =
-          Paths.get(
-              CmdLineArguments.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-    } catch (SecurityException | URISyntaxException e) {
-      Output.warning(
-          "Cannot resolve paths relative to project directory of CPAchecker: %s", e.getMessage());
-      return null;
-    }
-    file = codeLocation.resolveSibling(fileName);
+    file = Classes.getCodeLocation(CmdLineArguments.class).resolveSibling(fileName);
     if (Files.exists(file)) {
       return file;
     }

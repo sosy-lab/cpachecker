@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa;
 
 import com.google.common.base.Preconditions;
@@ -563,13 +548,14 @@ public class CFACreator {
             "Variable Classification not present. Consider turning this on "
                 + "to improve dependence graph construction.");
       }
+      final DependenceGraphBuilder depGraphBuilder =
+          DependenceGraph.builder(cfa, varClassification, config, logger, shutdownNotifier);
       try {
-        DependenceGraphBuilder depGraphBuilder =
-            DependenceGraph.builder(cfa, varClassification, config, logger, shutdownNotifier);
         depGraph = Optional.of(depGraphBuilder.build());
-        depGraphBuilder.collectStatistics(stats.statisticsCollection);
       } catch (CPAException pE) {
         throw new CParserException(pE);
+      } finally {
+        depGraphBuilder.collectStatistics(stats.statisticsCollection);
       }
     } else {
       depGraph = Optional.empty();
@@ -889,7 +875,7 @@ public class CFACreator {
     // we can add new edges between them and then reconnect the nodes
 
     // insert one node to start the series of declarations
-    CFANode cur = new CFANode(firstNode.getFunctionName());
+    CFANode cur = new CFANode(firstNode.getFunction());
     cfa.addNode(cur);
     final CFAEdge newFirstEdge = new BlankEdge("", FileLocation.DUMMY, firstNode, cur, "INIT GLOBAL VARS");
     CFACreationUtils.addEdgeUnconditionallyToCFA(newFirstEdge);
@@ -900,7 +886,7 @@ public class CFACreator {
       String rawSignature = p.getSecond();
       assert d.isGlobal();
 
-      CFANode n = new CFANode(cur.getFunctionName());
+      CFANode n = new CFANode(cur.getFunction());
       cfa.addNode(n);
 
       final CFAEdge newEdge;
@@ -1018,7 +1004,7 @@ v.addInitializer(initializer);
     // write the CFA to files (one file per function)
     if (exportCfaPerFunction && exportCfaFile != null) {
       try {
-        Path outdir = exportCfaFile.getParent();
+        Path outdir = exportCfaFile.getParent().resolve("cfa");
         new DOTBuilder2(cfa).writeGraphs(outdir);
       } catch (IOException e) {
         logger.logUserException(Level.WARNING, e,
@@ -1070,7 +1056,7 @@ v.addInitializer(initializer);
 
     if (exportCfaToC && exportCfaToCFile != null) {
       try {
-        String code = new CFAToCTranslator().translateCfa(cfa);
+        String code = new CFAToCTranslator(config).translateCfa(cfa);
         try (Writer writer = IO.openOutputFile(exportCfaToCFile, Charset.defaultCharset())) {
           writer.write(code);
         }

@@ -19,10 +19,14 @@
  */
 package org.sosy_lab.cpachecker.cpa.location;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Objects;
+import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.core.defaults.AnyCFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.EmptyEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractEdge;
@@ -33,7 +37,13 @@ public class LocationStateWithEdge extends LocationState implements AbstractStat
   private static final long serialVersionUID = 2798558767388783223L;
 
   private AbstractEdge edge;
-  private final static CFANode dummy = new CFANode("Projection");
+  private final static CFANode dummy =
+      new CFANode(
+          new CFunctionDeclaration(
+              FileLocation.DUMMY,
+              CFunctionType.NO_ARGS_VOID_FUNCTION,
+              "Projection",
+              ImmutableList.of()));
 
   public LocationStateWithEdge(
       CFANode pLocationNode,
@@ -109,7 +119,7 @@ public class LocationStateWithEdge extends LocationState implements AbstractStat
     if (obj == null) {
       return false;
     }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof LocationStateWithEdge)) {
       return false;
     }
     LocationStateWithEdge other = (LocationStateWithEdge) obj;

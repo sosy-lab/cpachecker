@@ -1,39 +1,23 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Predicates.equalTo;
 import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.collect.Lists.newArrayList;
+import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 import static org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.SingleLocationFormulaInvariant.makeLocationInvariant;
 import static org.sosy_lab.cpachecker.cpa.arg.ARGUtils.getAllStatesOnPathsTo;
-import static org.sosy_lab.cpachecker.util.AbstractStates.EXTRACT_LOCATION;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractOptionalCallstackWraper;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -53,6 +37,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -80,7 +65,6 @@ import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.CandidateGenerator;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.StaticCandidateProvider;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants.CandidateInvariant;
@@ -92,6 +76,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -102,6 +87,7 @@ import org.sosy_lab.cpachecker.cpa.formulaslicing.LoopTransitionFinder;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.RCNFManager;
@@ -114,6 +100,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
+import org.sosy_lab.cpachecker.util.predicates.weakening.WeakeningOptions;
 import org.sosy_lab.cpachecker.util.refinement.InfeasiblePrefix;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 import org.sosy_lab.cpachecker.util.resources.WalltimeLimit;
@@ -353,13 +340,15 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     List<BooleanFormula> foundInvariants = new ArrayList<>();
     try {
       ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
-      ResourceLimitChecker limits = null;
+      final ResourceLimitChecker limits;
       if (!timeForInvariantGeneration.isEmpty()) {
         WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
         limits =
             new ResourceLimitChecker(
                 invariantShutdown, Collections.singletonList(l));
         limits.start();
+      } else {
+        limits = null;
       }
 
       logger.log(Level.INFO, "Starting path invariant generation");
@@ -379,7 +368,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
         logger.log(Level.INFO, "All invariants were TRUE, ignoring result.");
       }
 
-      if (!timeForInvariantGeneration.isEmpty()) {
+      if (limits != null) {
         limits.cancel();
       }
 
@@ -428,7 +417,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     for (ARGState state : abstractionStatesTrace) {
       CFANode node = extractLocation(state);
       // TODO what if loop structure does not exist?
-      if (cfa.getLoopStructure().get().getAllLoopHeads().contains(node)) {
+      if (cfa.getLoopStructure().orElseThrow().getAllLoopHeads().contains(node)) {
         PredicateAbstractState predState = PredicateAbstractState.getPredicateState(state);
         argForPathFormulaBasedGeneration.add(
             Pair.of(predState.getAbstractionFormula().getBlockFormula(), node));
@@ -449,13 +438,15 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
 
     try {
       ShutdownManager invariantShutdown = ShutdownManager.createWithParent(shutdownNotifier);
-      ResourceLimitChecker limits = null;
+      final ResourceLimitChecker limits;
       if (!timeForInvariantGeneration.isEmpty()) {
         WalltimeLimit l = WalltimeLimit.fromNowOn(timeForInvariantGeneration);
         limits =
             new ResourceLimitChecker(
                 invariantShutdown, Collections.singletonList(l));
         limits.start();
+      } else {
+        limits = null;
       }
 
       for (InvariantGenerationStrategy generation : generationStrategy) {
@@ -521,7 +512,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
         }
       }
 
-      if (!timeForInvariantGeneration.isEmpty()) {
+      if (limits != null) {
         limits.cancel();
       }
 
@@ -595,7 +586,12 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       SSAMap ssa = pBlockFormula.getSsa();
       PathFormula loopFormula =
           new LoopTransitionFinder(
-                  config, cfa.getLoopStructure().get(), pfmgr, fmgr, logger, pInvariantShutdown)
+                  config,
+                  cfa.getLoopStructure().orElseThrow(),
+                  pfmgr,
+                  fmgr,
+                  logger,
+                  pInvariantShutdown)
               .generateLoopTransition(ssa, pts, pLocation);
 
       Set<BooleanFormula> lemmas =
@@ -603,7 +599,8 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
               semiCNFConverter.toLemmasInstantiated(pBlockFormula, fmgr), fmgr::uninstantiate);
 
       Set<BooleanFormula> inductiveLemmas =
-          new InductiveWeakeningManager(config, solver, logger, shutdownNotifier)
+          new InductiveWeakeningManager(
+                  new WeakeningOptions(config), solver, logger, shutdownNotifier)
               .findInductiveWeakeningForRCNF(ssa, loopFormula, lemmas);
 
       if (lemmas.isEmpty()) {
@@ -746,7 +743,7 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
       List<Pair<BooleanFormula, CFANode>> invariants = new ArrayList<>();
       for (ARGState s : abstractionStatesTrace) {
         // the last one will always be false, we don't need it here
-        if (s != abstractionStatesTrace.get(abstractionStatesTrace.size() - 1)) {
+        if (!Objects.equals(s, abstractionStatesTrace.get(abstractionStatesTrace.size() - 1))) {
           CFANode location = extractLocation(s);
           Optional<CallstackStateEqualsWrapper> callstack = extractOptionalCallstackWraper(s);
           PredicateAbstractState pas = PredicateAbstractState.getPredicateState(s);
@@ -846,7 +843,8 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
     private InvCandidateGenerator(ARGPath pPath, List<ARGState> pAbstractionStatesTrace)
         throws CPAException, InterruptedException, InvalidConfigurationException {
       argPath = pPath;
-      abstractionNodes = from(pAbstractionStatesTrace).transform(EXTRACT_LOCATION).toList();
+      abstractionNodes =
+          transformedImmutableListCopy(pAbstractionStatesTrace, AbstractStates::extractLocation);
       elementsOnPath = getAllStatesOnPathsTo(argPath.getLastState());
       abstractionStatesTrace = pAbstractionStatesTrace;
       imgr =
@@ -877,52 +875,45 @@ class PredicateCPAInvariantsManager implements StatisticsProvider, InvariantSupp
 
       candidates =
           newArrayList(
-              from(infeasiblePrefixes).transformAndConcat(TO_LOCATION_CANDIDATE_INVARIANT));
+              from(infeasiblePrefixes).transformAndConcat(this::getLocationCandidateInvariant));
       trieNum++;
 
       return true;
     }
 
-    private final Function<InfeasiblePrefix, List<CandidateInvariant>>
-        TO_LOCATION_CANDIDATE_INVARIANT =
-            new Function<InfeasiblePrefix, List<CandidateInvariant>>() {
-              @Override
-              public List<CandidateInvariant> apply(InfeasiblePrefix pInput) {
-                List<BooleanFormula> interpolants;
-                try {
-                  List<BooleanFormula> pathFormula = pInput.getPathFormulae();
-                  BlockFormulas formulas =
-                      new BlockFormulas(pathFormula, pfmgr.buildBranchingFormula(elementsOnPath));
-                  // the prefix is not filled up with trues if it is shorter than
-                  // the path so we need to do it ourselves
-                  while (pathFormula.size() < abstractionStatesTrace.size()) {
-                    pathFormula.add(bfmgr.makeTrue());
-                  }
-                  interpolants =
-                      imgr.buildCounterexampleTrace(
-                              formulas, ImmutableList.copyOf(abstractionStatesTrace))
-                          .getInterpolants();
+    private final List<CandidateInvariant> getLocationCandidateInvariant(InfeasiblePrefix pInput) {
+      List<BooleanFormula> interpolants;
+      try {
+        List<BooleanFormula> pathFormula = pInput.getPathFormulae();
+        BlockFormulas formulas =
+            new BlockFormulas(pathFormula, pfmgr.buildBranchingFormula(elementsOnPath));
+        // the prefix is not filled up with trues if it is shorter than
+        // the path so we need to do it ourselves
+        while (pathFormula.size() < abstractionStatesTrace.size()) {
+          pathFormula.add(bfmgr.makeTrue());
+        }
+        interpolants =
+            imgr.buildCounterexampleTrace(formulas, ImmutableList.copyOf(abstractionStatesTrace))
+                .getInterpolants();
 
-                } catch (CPAException | InterruptedException e) {
-                  logger.logUserException(
-                      Level.WARNING, e, "Could not compute interpolants for k-induction inv-gen");
-                  return ImmutableList.of();
-                }
+      } catch (CPAException | InterruptedException e) {
+        logger.logUserException(
+            Level.WARNING, e, "Could not compute interpolants for k-induction inv-gen");
+        return ImmutableList.of();
+      }
 
-                // add false as last interpolant for the error location
-                interpolants = new ArrayList<>(interpolants);
-                interpolants.add(bfmgr.makeFalse());
+      // add false as last interpolant for the error location
+      interpolants = new ArrayList<>(interpolants);
+      interpolants.add(bfmgr.makeFalse());
 
-                return Streams.zip(
-                        abstractionNodes.stream(),
-                        interpolants.stream(),
-                        (abstractionNode, itp) ->
-                            makeLocationInvariant(
-                                abstractionNode,
-                                fmgr.dumpFormula(fmgr.uninstantiate(itp)).toString()))
-                    .collect(ImmutableList.toImmutableList());
-              }
-            };
+      return Streams.zip(
+              abstractionNodes.stream(),
+              interpolants.stream(),
+              (abstractionNode, itp) ->
+                  makeLocationInvariant(
+                      abstractionNode, fmgr.dumpFormula(fmgr.uninstantiate(itp)).toString()))
+          .collect(ImmutableList.toImmutableList());
+    }
 
     @Override
     public boolean hasCandidatesAvailable() {

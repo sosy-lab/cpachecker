@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.predicate;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -32,7 +17,6 @@ import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSetMultimap;
@@ -115,20 +99,22 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     ;
   }
 
-  @Option(secure=true, name="refinement.predicateBasisStrategy",
-      description="Which predicates should be used as basis for a new precision."
-          + "ALL: During refinement, collect predicates from the complete ARG."
-          + "SUBGRAPH: During refinement, keep predicates from all removed parts (subgraph) of the ARG."
-          + "CUTPOINT: Only predicates from the cut-point's precision are kept."
-          + "TARGET: Only predicates from the target state's precision are kept.")
-  /* There are usually more predicates at the target location that at the cut-point.
-   * An evaluation on 4000 source files for ALL, TARGET, and CUTPOINT showed:
-   * - (nearly) no difference for predicate analysis L.
-   * - predicate analysis LF is much slower with CUTPOINT than with TARGET or ALL
-   *   (especially on the source files product-lines/minepump_spec*).
-   * 05/2017: evaluation confirmed on sv-benchmarks.
-   */
-  private PredicateBasisStrategy predicateBasisStrategy = PredicateBasisStrategy.TARGET;
+  @Option(
+      secure = true,
+      name = "refinement.predicateBasisStrategy",
+      description =
+          "Which predicates should be used as basis for the new precision that will be attached to"
+              + " the refined part of the ARG:\n"
+              + "ALL: Collect predicates from the complete ARG.\n"
+              + "SUBGRAPH: Collect predicates from the removed subgraph of the ARG.\n"
+              + "CUTPOINT: Only predicates from the cut-point's (pivot state) precision are"
+              + " kept.\n"
+              + "TARGET: Only predicates from the target state's precision are kept.")
+  // Evaluations on sv-benchmarks in 2015, 2017, 2019, and 2020 showed that CUTPOINT can be much
+  // slower because it needs too many refinements, the rest is better, with SUBGRAPH having slight
+  // advantages. We do not want to use ALL by default because this would disable lazy abstraction.
+  private PredicateBasisStrategy predicateBasisStrategy = PredicateBasisStrategy.SUBGRAPH;
+
   private static enum PredicateBasisStrategy {ALL, SUBGRAPH, TARGET, CUTPOINT}
 
   @Option(secure=true, name="refinement.restartAfterRefinements",
@@ -245,8 +231,8 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
   private ListMultimap<LocationInstance, AbstractionPredicate> newPredicates;
 
 
-  final void setUseAtomicPredicates(boolean atomicPredicates) {
-    this.atomicPredicates = atomicPredicates;
+  final void setUseAtomicPredicates(boolean pAtomicPredicates) {
+    this.atomicPredicates = pAtomicPredicates;
   }
 
   @Override
@@ -611,8 +597,7 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
   public static PredicatePrecision findAllPredicatesFromSubgraph(
       ARGState refinementRoot, UnmodifiableReachedSet reached) {
     return PredicatePrecision.unionOf(
-        Collections2.transform(
-            ARGUtils.getNonCoveredStatesInSubgraph(refinementRoot), reached::getPrecision));
+        ARGUtils.getNonCoveredStatesInSubgraph(refinementRoot).transform(reached::getPrecision));
   }
 
   private void dumpNewPredicates() {
@@ -620,9 +605,9 @@ public class PredicateAbstractionRefinementStrategy extends RefinementStrategy
     try (Writer w = IO.openOutputFile(precFile, Charset.defaultCharset())) {
       precisionWriter.writePredicateMap(
           ImmutableSetMultimap.copyOf(newPredicates),
-          ImmutableSetMultimap.<CFANode, AbstractionPredicate>of(),
-          ImmutableSetMultimap.<String, AbstractionPredicate>of(),
-          ImmutableSet.<AbstractionPredicate>of(),
+          ImmutableSetMultimap.of(),
+          ImmutableSetMultimap.of(),
+          ImmutableSet.of(),
           newPredicates.values(),
           w);
     } catch (IOException e) {

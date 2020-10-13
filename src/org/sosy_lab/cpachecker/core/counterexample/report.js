@@ -1,3 +1,12 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+// SPDX-FileCopyrightText: 2018 Lokesh Nandanwar
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /* Refer to the doc/ReportTemplateStyleGuide.md for Coding and Style Guide. They will let you write better code
 with considerably less effort */
 
@@ -12,9 +21,14 @@ with considerably less effort */
 		$(document).on('hover', '[data-toggle=tooltip]', function () {
 			$(this).tooltip('show');
 		});
+
 		// hide tooltip after 5 seconds
+		var timeout;
 		$(document).on('shown.bs.tooltip', function (e) {
-			setTimeout(function () {
+			if (timeout) {
+				clearTimeout(timeout)
+			}
+			timeout = setTimeout(function () {
 				$(e.target).tooltip('hide');
 			}, 5000);
 		});
@@ -29,21 +43,21 @@ with considerably less effort */
 				],
 				iDisplayLength: -1, //Default display all entries
 				"columnDefs": [{
-						"orderable": false, //No ordering 
+						"orderable": false, //No ordering
 						"targets": 0,
 					}, {
 						"orderable": false, //No Ordering
 						"targets": 1,
 					},
 					{
-						"orderable": false, //No ordering 
+						"orderable": false, //No ordering
 						"targets": 2,
 					},
 				]
 			});
 		});
 
-		// Initialize Google pretiffy code 
+		// Initialize Google pretiffy code
 		$(document).ready(function () {
 			PR.prettyPrint();
 		});
@@ -275,6 +289,19 @@ with considerably less effort */
 	var errorpathController = app.controller("ErrorpathController", ['$rootScope', '$scope', function ($rootScope, $scope) {
 		$rootScope.errorPath = [];
 
+		//Fault Localization
+		function getLinesOfFault(fault) {
+			var lines = {};
+			for (var i = 0; i < fault["errPathIds"].length; i++) {
+				var errorPathIdx = fault["errPathIds"][i];
+				var errorPathElem = $rootScope.errorPath[errorPathIdx];
+				var line = {"line": errorPathElem["line"], "desc": errorPathElem["desc"]};
+				var line_key = line["line"] + line["desc"];
+				lines[line_key] = line;
+			}
+			return Object.values(lines);
+		};
+
 		function getValues(val, prevValDict) {
 			var values = {};
 			if (val != "") {
@@ -293,8 +320,9 @@ with considerably less effort */
 		};
 
 		// initialize array that stores the important edges. Index counts only, when edges appear in the report.
-                var importantEdges = [];
-                var importantIndex = -1;
+		var importantEdges = [];
+		var importantIndex = -1;
+		var faultEdges = [];
 		if (errorPath !== undefined) {
 			var indentationlevel = 0;
 			for (var i = 0; i < errorPath.length; i++) {
@@ -329,11 +357,30 @@ with considerably less effort */
 					indentationlevel += 1;
 				}
 
+				if (errPathElem.faults !== undefined && errPathElem.faults.length > 0) {
+					errPathElem["importantindex"] = importantIndex;
+					errPathElem["bestrank"] = cfaJson.faults[errPathElem.faults[0]].rank;
+					errPathElem["bestreason"] = cfaJson.faults[errPathElem.faults[0]].reason;
+					if (errPathElem["additional"] !== undefined && errPathElem["additional"] !== "") {
+						errPathElem["bestreason"] = errPathElem["bestreason"] + errPathElem["additional"];
+					}
+					faultEdges.push(errPathElem);
+				}
+
 				// store the important edges
                                 if(errPathElem.importance == 1){
                                       importantEdges.push(importantIndex);
                                    }
 			}
+
+			function addFaultLocalizationInfo(){
+				if (faultEdges !== undefined && faultEdges.length > 0) {
+					for (var j = 0; j < faultEdges.length; j++) {
+						d3.selectAll("#errpath-" + faultEdges[j].importantindex + " td pre").classed("fault", true);
+					}
+					d3.selectAll("#errpath-header td pre").classed("tableheader", true);
+				}
+			};
 
                         // this function puts the important edges into a CSS class that highlights them
 			function highlightEdges(impEdges){
@@ -343,11 +390,51 @@ with considerably less effort */
                         };
 
                         angular.element(document).ready(function(){
-                            highlightEdges(importantEdges);
+				highlightEdges(importantEdges);
+				addFaultLocalizationInfo();
                         });
 
 
 		}
+
+		// make faults visible to angular
+		$rootScope.faults = [];
+		if (cfaJson.faults !== undefined) {
+			for (var i = 0; i < cfaJson.faults.length; i++) {
+				var fault = cfaJson.faults[i];
+				var fInfo = Object.assign({}, fault);
+				// store all error-path elements related to this fault.
+				// we can't do  this in the Java backend because
+				// we can't be sure to have the full error-path elements in the FaultLocalizationInfo
+				// when the faults-code is generated.
+				fInfo["errPathIds"] = [];
+				for (var j = 0; j < $rootScope.errorPath.length; j++) {
+					var element = $rootScope.errorPath[j];
+					if (element.faults.includes(i)) {
+						fInfo["errPathIds"].push(j);
+						fInfo["valDict"] = element.valDict;
+					}
+					fInfo["lines"] = getLinesOfFault(fInfo);
+				}
+				$rootScope.faults.push(fInfo);
+			}
+		}
+
+
+		$scope.hideFaults = ($rootScope.faults == undefined || $rootScope.faults.length == 0);
+
+		$scope.faultClicked = function(){
+			$scope.hideErrorTable = !$scope.hideErrorTable;
+		};
+
+		$scope.clickedFaultLocElement = function ($event) {
+			d3.selectAll(".clickedFaultLocElement").classed("clickedFaultLocElement", false);
+			var clickedElement = d3.select($event.currentTarget);
+			clickedElement.classed("clickedFaultLocElement", true);
+			var faultElementIdx = clickedElement.attr("id").substring("fault-".length);
+			var faultElement = $rootScope.faults[faultElementIdx];
+			markErrorPathElementInTab(faultElement.errPathIds);
+		};
 
 		$scope.errPathPrevClicked = function ($event) {
 			var selection = d3.select("tr.clickedErrPathElement");
@@ -356,7 +443,7 @@ with considerably less effort */
 				selection.classed("clickedErrPathElement", false);
 				d3.select("#errpath-" + prevId).classed("clickedErrPathElement", true);
 				$("#value-assignment").scrollTop($("#value-assignment").scrollTop() - 18);
-				markErrorPathElementInTab("Prev", prevId);
+				markErrorPathElementInTab(prevId);
 			}
 		};
 
@@ -364,7 +451,7 @@ with considerably less effort */
 			d3.select("tr.clickedErrPathElement").classed("clickedErrPathElement", false);
 			d3.select("#errpath-0").classed("clickedErrPathElement", true);
 			$("#value-assignment").scrollTop(0);
-			markErrorPathElementInTab("Start", 0);
+			markErrorPathElementInTab(0);
 		};
 
 		$scope.errPathNextClicked = function ($event) {
@@ -374,7 +461,7 @@ with considerably less effort */
 				selection.classed("clickedErrPathElement", false);
 				d3.select("#errpath-" + nextId).classed("clickedErrPathElement", true);
 				$("#value-assignment").scrollTop($("#value-assignment").scrollTop() + 18);
-				markErrorPathElementInTab("Next", nextId);
+				markErrorPathElementInTab(nextId);
 			}
 		};
 
@@ -382,77 +469,43 @@ with considerably less effort */
 			d3.select("tr.clickedErrPathElement").classed("clickedErrPathElement", false);
 			var clickedElement = d3.select($event.currentTarget.parentNode);
 			clickedElement.classed("clickedErrPathElement", true);
-			markErrorPathElementInTab("", clickedElement.attr("id").substring("errpath-".length));
+			markErrorPathElementInTab(clickedElement.attr("id").substring("errpath-".length));
 		};
 
-		function markErrorPathElementInTab(buttonId, selectedErrPathElemId) {
-			if ($rootScope.errorPath[selectedErrPathElemId] === undefined) {
-				return;
-			}
+		function markErrorPathElementInTab(selectedErrPathElemId) {
 			var currentTab = $("#report-controller").scope().getTabSet();
-			// when the current tab is not one of CFA, ARG, source, set the tab to ARG
-			if (buttonId === "") {
-				handleErrorPathElemClick(currentTab, selectedErrPathElemId);
-			} else if (buttonId === "Start") {
-				handleStartButtonClick(currentTab);
-			} else if (buttonId === "Prev") {
-				handlePrevButtonClick(currentTab, selectedErrPathElemId);
-			} else { // "Next"
-				handleNextButtonClick(currentTab, selectedErrPathElemId);
+			if (!Array.isArray(selectedErrPathElemId)) {
+				selectedErrPathElemId = [selectedErrPathElemId];
+			}
+			unmarkEverything();
+			for (var i = 0; i < selectedErrPathElemId.length; i++) {
+				var id = selectedErrPathElemId[i];
+				if ($rootScope.errorPath[id] === undefined) {
+					return;
+				}
+				handleErrorPathElemClick(currentTab, id);
 			}
 		}
 
 		function handleErrorPathElemClick(currentTab, errPathElemIndex) {
-			if (currentTab === 1) {
-				markCfaEdge($rootScope.errorPath[errPathElemIndex]);
-			} else if (currentTab === 2) {
-				markArgNode($rootScope.errorPath[errPathElemIndex]);
-			} else if (currentTab === 3) {
-				markSourceLine($rootScope.errorPath[errPathElemIndex]);
-			} else {
+			markCfaEdge($rootScope.errorPath[errPathElemIndex]);
+			markArgNode($rootScope.errorPath[errPathElemIndex]);
+			markSourceLine($rootScope.errorPath[errPathElemIndex]);
+			if (![1, 2, 3].includes(currentTab)) {
 				$("#report-controller").scope().setTab(2);
-				markArgNode($rootScope.errorPath[errPathElemIndex]);
 			}
 		}
 
-		function handleStartButtonClick(currentTab) {
-			if (currentTab === 1) {
-				markCfaEdge($rootScope.errorPath[0]);
-			} else if (currentTab === 2) {
-				markArgNode($rootScope.errorPath[0]);
-			} else if (currentTab === 3) {
-				markSourceLine($rootScope.errorPath[0]);
-			} else {
-				$("#report-controller").scope().setTab(2);
-				markArgNode($rootScope.errorPath[0]);
-			}
+		function unmarkEverything() {
+			[
+				"marked-cfa-edge",
+				"marked-cfa-node",
+				"marked-cfa-node-label",
+				"marked-arg-node",
+				"marked-source-line",
+			].forEach(function (c) { d3.selectAll("." + c).classed(c, false) });
 		}
 
-		function handlePrevButtonClick(currentTab, elementId) {
-			if (currentTab === 1) {
-				markCfaEdge($rootScope.errorPath[elementId]);
-			} else if (currentTab === 2) {
-				markArgNode($rootScope.errorPath[elementId]);
-			} else if (currentTab === 3) {
-				markSourceLine($rootScope.errorPath[elementId]);
-			} else {
-				$("#report-controller").scope().setTab(2);
-				markArgNode($rootScope.errorPath[elementId]);
-			}
-		}
-
-		function handleNextButtonClick(currentTab, elementId) {
-			if (currentTab === 1) {
-				markCfaEdge($rootScope.errorPath[elementId]);
-			} else if (currentTab === 2) {
-				markArgNode($rootScope.errorPath[elementId]);
-			} else if (currentTab === 3) {
-				markSourceLine($rootScope.errorPath[elementId]);
-			} else {
-				$("#report-controller").scope().setTab(2);
-				markArgNode($rootScope.errorPath[elementId]);
-			}
-		}
 
 		function markCfaEdge(errPathEntry) {
 			var actualSourceAndTarget = getActualSourceAndTarget(errPathEntry);
@@ -463,7 +516,6 @@ with considerably less effort */
 				var boundingRect = selection.node().getBoundingClientRect();
 				$("#cfa-container").scrollTop(boundingRect.top + $("#cfa-container").scrollTop() - 300).scrollLeft(boundingRect.left - d3.select("#cfa-container").style("width").split("px")[0] - $("#cfa-container"));
 				if (actualSourceAndTarget.source in cfaJson.combinedNodes) {
-					d3.selectAll(".marked-cfa-node-label").classed("marked-cfa-node-label", false);
 					selection.selectAll("tspan").each(function (d, i) {
 						if (d3.select(this).html().includes(errPathEntry.source)) {
 							d3.select(this).classed("marked-cfa-node-label", true);
@@ -472,11 +524,6 @@ with considerably less effort */
 				}
 				return;
 			}
-			if (!d3.select(".marked-cfa-edge").empty()) {
-				d3.select(".marked-cfa-edge").classed("marked-cfa-edge", false);
-			}
-			d3.selectAll(".marked-cfa-node").classed("marked-cfa-node", false);
-			d3.selectAll(".marked-cfa-node-label").classed("marked-cfa-node-label", false);
 			var selection = d3.select("#cfa-edge_" + actualSourceAndTarget.source + "-" + actualSourceAndTarget.target);
 			selection.classed("marked-cfa-edge", true);
 			var boundingRect = selection.node().getBoundingClientRect();
@@ -530,9 +577,6 @@ with considerably less effort */
 			if (errPathEntry.argelem === undefined) {
 				return;
 			}
-			if (!d3.select(".marked-arg-node").empty()) {
-				d3.select(".marked-arg-node").classed("marked-arg-node", false);
-			}
 			var idToSelect;
 			if (d3.select("#arg-graph0").style("display") !== "none")
 				idToSelect = "#arg-node";
@@ -545,9 +589,6 @@ with considerably less effort */
 		}
 
 		function markSourceLine(errPathEntry) {
-			if (!d3.select(".marked-source-line").empty()) {
-				d3.select(".marked-source-line").classed("marked-source-line", false);
-			}
 			if (errPathEntry.line === 0) {
 				errPathEntry.line = 1;
 			}
@@ -642,7 +683,7 @@ with considerably less effort */
 		}
 	}]);
 
-	var valueAssignmentsController = app.controller("ValueAssignmentsController", ['$rootScope', '$scope', function ($rootScope, $scope) {
+	var valueAssignmentsController = app.controller("ValueAssignmentsController", ['$rootScope', '$sce', '$scope', function ($rootScope, $sce, $scope) {
 		$scope.showValues = function ($event) {
 			var element = $event.currentTarget;
 			if (element.classList.contains("markedTableElement")) {
@@ -650,6 +691,10 @@ with considerably less effort */
 			} else {
 				element.classList.add("markedTableElement");
 			}
+		};
+
+		$scope.htmlTrusted = function(html) {
+			return $sce.trustAsHtml(html);
 		};
 	}]);
 
@@ -978,7 +1023,7 @@ function init() {
 	// Display modal window containing current rendering state
 	$("#renderStateModal").modal("show");
 
-	// Setup section widths accordingly 
+	// Setup section widths accordingly
 	if (errorPath === undefined) {
 		d3.select("#errorpath_section").style("display", "none");
 		$("#toggle_button_error_path").hide();
@@ -1508,7 +1553,7 @@ function init() {
 						        simplifiedGraphMap.shift();
 						        simplifiedGraphCounter++;
 						}
-						if (reducedGraphMap.length > 0) {
+						if (typeof reducedGraphMap !== 'undefined' && reducedGraphMap.length > 0) {
 					        self.postMessage({
 					              "graph": JSON.stringify(reducedGraphMap[0]),
 					              "id": reducedGraphCounter,
@@ -1550,7 +1595,7 @@ function init() {
 				}
 			}
 
-			// After the initial ARG graph has been send to the master script, prepare ARG containing only error path		
+			// After the initial ARG graph has been send to the master script, prepare ARG containing only error path
 			function prepareErrorGraph() {
 				var errorNodes = [],
 					errorEdges = [];
@@ -1821,7 +1866,7 @@ function init() {
 					return "arg-error-node" + node.index;
 			}
 
-			// Set the graph edges 
+			// Set the graph edges
 			function setGraphEdges(graph, edgesToSet, multigraph) {
 				edgesToSet.forEach(function (e) {
 					if (!multigraph || (graph.nodes().includes("" + e.source) && graph.nodes().includes("" + e.target))) {
@@ -1856,7 +1901,7 @@ function init() {
 
 	// ======================= Create CFA and ARG Worker Listeners =======================
 	/**
-	 * Create workers using blobs due to Chrome's default security policy and 
+	 * Create workers using blobs due to Chrome's default security policy and
 	 * the need of having a single file at the end that can be send i.e. via e-mail
 	 */
 	cfaWorker = new Worker(URL.createObjectURL(new Blob(["(" + cfaWorker_function + ")()"], {
@@ -2008,10 +2053,10 @@ function init() {
 		});
 	}
 
-	// Function to get transfromation thorugh translate as in new version of D3.js d3.transfrom is removed 
+	// Function to get transfromation thorugh translate as in new version of D3.js d3.transfrom is removed
 	function getTransformation(transform) {
 		// Create a dummy g for calculation purposes only. This will never
-		// be appended to the DOM and will be discarded once this function 
+		// be appended to the DOM and will be discarded once this function
 		// returns.
 		var g = document.createElementNS("http://www.w3.org/2000/svg", "g");
 
@@ -2020,7 +2065,7 @@ function init() {
 
 		// consolidate the SVGTransformList containing all transformations
 		// to a single SVGTransform of type SVG_TRANSFORM_MATRIX and get
-		// its SVGMatrix. 
+		// its SVGMatrix.
 		var matrix = g.transform.baseVal.consolidate().matrix;
 
 		// Below calculations are taken and adapted from the private function

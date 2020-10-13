@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.value;
 
 import com.google.common.collect.ImmutableList;
@@ -257,8 +242,8 @@ public class ValueAnalysisTransferRelation
     stats = pStats;
 
     if (pCfa.getVarClassification().isPresent()) {
-      addressedVariables = pCfa.getVarClassification().get().getAddressedVariables();
-      booleanVariables   = pCfa.getVarClassification().get().getIntBoolVars();
+      addressedVariables = pCfa.getVarClassification().orElseThrow().getAddressedVariables();
+      booleanVariables = pCfa.getVarClassification().orElseThrow().getIntBoolVars();
     } else {
       addressedVariables = ImmutableSet.of();
       booleanVariables   = ImmutableSet.of();
@@ -438,7 +423,7 @@ public class ValueAnalysisTransferRelation
         OptionalInt maybeIndex = getIndex(arraySubscriptExpression);
 
         if (maybeIndex.isPresent() && assignedArray != null && valueExists) {
-          assignedArray.setValue(newValue, maybeIndex.getAsInt());
+          assignedArray.setValue(newValue, maybeIndex.orElseThrow());
 
         } else {
           assignUnknownValueToEnclosingInstanceOfArray(arraySubscriptExpression);
@@ -468,10 +453,9 @@ public class ValueAnalysisTransferRelation
             String op1QualifiedName = ((AIdExpression)op1).getDeclaration().getQualifiedName();
             memLoc = Optional.of(MemoryLocation.valueOf(op1QualifiedName));
           }
-        }
 
-        // a* = b(); TODO: for now, nothing is done here, but cloning the current element
-        else if (op1 instanceof APointerExpression) {
+        } else if (op1 instanceof APointerExpression) {
+          // a* = b(); TODO: for now, nothing is done here, but cloning the current element
 
         } else {
           throw new UnrecognizedCodeException("on function return", summaryEdge, op1);
@@ -480,12 +464,12 @@ public class ValueAnalysisTransferRelation
         // assign the value if a memory location was successfully computed
         if (memLoc.isPresent()) {
           if (!valueExists) {
-            unknownValueHandler.handle(memLoc.get(), op1.getExpressionType(), newElement, v);
+            unknownValueHandler.handle(
+                memLoc.orElseThrow(), op1.getExpressionType(), newElement, v);
 
           } else {
-            newElement.assignConstant(memLoc.get(),
-                                      newValue,
-                                      state.getTypeForMemoryLocation(functionReturnVar));
+            newElement.assignConstant(
+                memLoc.orElseThrow(), newValue, state.getTypeForMemoryLocation(functionReturnVar));
           }
         }
       }
@@ -657,7 +641,7 @@ public class ValueAnalysisTransferRelation
       return ((BooleanValue) value).isTrue() == bool;
 
     } else if (value.isNumericValue()) {
-      return ((NumericValue) value).equals(new NumericValue(bool ? 1L : 0L));
+      return value.equals(new NumericValue(bool ? 1L : 0L));
 
     } else {
       return false;
@@ -812,11 +796,11 @@ public class ValueAnalysisTransferRelation
     if (expression instanceof AAssignment) {
       return handleAssignment((AAssignment)expression, cfaEdge);
 
-    // external function call - do nothing
     } else if (expression instanceof AFunctionCallStatement) {
+      // external function call - do nothing
 
-    // there is such a case
     } else if (expression instanceof AExpressionStatement) {
+      // there is such a case
 
     } else {
       throw new UnrecognizedCodeException("Unknown statement", cfaEdge, expression);
@@ -841,10 +825,10 @@ public class ValueAnalysisTransferRelation
 
     if (memLoc.isPresent()) {
       if (!newValue.isUnknown()) {
-        newElement.assignConstant(memLoc.get(), newValue, leftSideType);
+        newElement.assignConstant(memLoc.orElseThrow(), newValue, leftSideType);
 
       } else {
-        unknownValueHandler.handle(memLoc.get(), leftSideType, newElement, evv);
+        unknownValueHandler.handle(memLoc.orElseThrow(), leftSideType, newElement, evv);
       }
     }
 
@@ -1135,7 +1119,7 @@ public class ValueAnalysisTransferRelation
 
       if (maybeIndex.isPresent() && enclosingArray != null) {
 
-        index = maybeIndex.getAsInt();
+        index = maybeIndex.orElseThrow();
 
       } else {
         return null;
@@ -1172,7 +1156,7 @@ public class ValueAnalysisTransferRelation
       OptionalInt maybeIndex = getIndex(enclosingSubscriptExpression);
 
       if (maybeIndex.isPresent() && enclosingArray != null) {
-        enclosingArray.setValue(UnknownValue.getInstance(), maybeIndex.getAsInt());
+        enclosingArray.setValue(UnknownValue.getInstance(), maybeIndex.orElseThrow());
 
       }
       // if the index of unknown array in the enclosing array is also unknown, we assign unknown at this array's

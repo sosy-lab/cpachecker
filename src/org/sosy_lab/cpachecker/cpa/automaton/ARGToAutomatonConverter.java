@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import static com.google.common.collect.FluentIterable.from;
@@ -189,9 +174,9 @@ public class ARGToAutomatonConverter {
       case GLOBAL_CONDITIONS:
         return getGlobalConditionSplitAutomata(root, selectionStrategy);
       case LEAVES:
-        return from(getLeaves(root, false)).transform(l -> getAutomatonForLeaf(root, l));
+        return getLeaves(root, false).transform(l -> getAutomatonForLeaf(root, l));
       case TARGETS:
-        return from(getLeaves(root, true)).transform(l -> getAutomatonForLeaf(root, l));
+        return getLeaves(root, true).transform(l -> getAutomatonForLeaf(root, l));
       default:
         throw new AssertionError("unexpected strategy");
     }
@@ -513,7 +498,7 @@ public class ARGToAutomatonConverter {
    */
   private boolean shouldExportAutomatonFor(
       ARGState root, ARGState s, Map<ARGState, BranchingInfo> pDependencies) {
-    if (s == root) { // if no other automaton is exported, then export the whole ARG via root
+    if (s.equals(root)) { // if no other automaton is exported, then export the whole ARG via root
       return true;
     }
     int rootSize = sizeOfBranch(root);
@@ -577,7 +562,7 @@ public class ARGToAutomatonConverter {
       }
 
       BranchingInfo branch = dependencies.get(branchingPoint);
-      Preconditions.checkArgument(branch.current == branchingPoint);
+      Preconditions.checkArgument(branch.current.equals(branchingPoint));
 
       for (Entry<ARGState, ARGState> viaChild : branch.children.entries()) {
         ARGState nextState = viaChild.getValue();
@@ -589,7 +574,7 @@ public class ARGToAutomatonConverter {
             // for loop-states, we cannot split the automaton -> ignore this case
             // for non-loop-states, we split the automaton
             for (ARGState sibling :
-                from(branchingPoint.getChildren()).filter(s -> s != viaChild.getKey())) {
+                from(branchingPoint.getChildren()).filter(s -> !s.equals(viaChild.getKey()))) {
               newIgnoreBranch = newIgnoreBranch.addAndCopy(uncover(sibling));
             }
           }
@@ -725,7 +710,7 @@ public class ARGToAutomatonConverter {
       if (!finished.add(s)) {
         continue;
       }
-      if (s == pRoot) {
+      if (s.equals(pRoot)) {
         return true;
       }
       waitlist.addAll(pDependencies.get(s).getNextStates());
@@ -757,16 +742,16 @@ public class ARGToAutomatonConverter {
     return next;
   }
 
-  private static Iterable<ARGState> getLeaves(ARGState pRoot, boolean targetsOnly) {
+  private static FluentIterable<ARGState> getLeaves(ARGState pRoot, boolean targetsOnly) {
     FluentIterable<ARGState> leaves =
-        from(pRoot.getSubgraph()).filter(s -> s.getChildren().isEmpty() && !s.isCovered());
+        ARGUtils.getNonCoveredStatesInSubgraph(pRoot).filter(s -> s.getChildren().isEmpty());
     return targetsOnly ? leaves.filter(ARGState::isTarget) : leaves;
   }
 
   /** generate an automaton that leads to the leaf state. */
   private Automaton getAutomatonForLeaf(ARGState pRoot, ARGState pLeaf) {
 
-    Preconditions.checkArgument(pRoot != pLeaf);
+    Preconditions.checkArgument(!pRoot.equals(pLeaf));
     Preconditions.checkArgument(!pLeaf.isCovered());
 
     switch (dataStrategy) {
@@ -799,7 +784,8 @@ public class ARGToAutomatonConverter {
     final Multimap<CallstackState, CallstackState> callstacks = LinkedHashMultimap.create();
     final Map<CallstackState, CallstackState> inverseCallstacks = new LinkedHashMap<>();
     final Multimap<CallstackState, ARGState> callstackToLeaves = LinkedHashMultimap.create();
-    final Multimap<CallstackState, ARGState> callstackToLeafWithPreAssumptions = LinkedHashMultimap.create();
+    final Multimap<CallstackState, ARGState> callstackToLeafWithParentAssumptions =
+        LinkedHashMultimap.create();
     for (ARGState leaf : pLeaves) {
       CallstackState callstack = AbstractStates.extractStateByType(leaf, CallstackState.class);
       Preconditions.checkNotNull(callstack);
@@ -811,10 +797,12 @@ public class ARGToAutomatonConverter {
         callstack = callstack.getPreviousState();
       }
       callstackToLeaves.put(callstack, leaf);
-      if (AbstractStates.projectToType(
-              AbstractStates.asIterable(leaf), AbstractStateWithAssumptions.class)
-          .anyMatch(x -> !x.getPreconditionAssumptions().isEmpty())) {
-        callstackToLeafWithPreAssumptions.put(callstack, leaf);
+      for (ARGState parent : leaf.getParents()) {
+        if (AbstractStates.asIterable(parent)
+            .filter(AbstractStateWithAssumptions.class)
+            .anyMatch(x -> !x.getAssumptions().isEmpty())) {
+          callstackToLeafWithParentAssumptions.put(callstack, leaf);
+        }
       }
       CallstackState prev = callstack.getPreviousState();
       while (prev != null) {
@@ -840,15 +828,16 @@ public class ARGToAutomatonConverter {
     while (!waitlist.isEmpty()) {
       final CallstackState elem = waitlist.removeFirst();
       boolean useAll = false;
-      Set<AExpression> assumptions = new HashSet<>();
-      for (ARGState leaf : callstackToLeafWithPreAssumptions.get(elem)) {
-        AbstractStates.projectToType(
-                AbstractStates.asIterable(leaf), AbstractStateWithAssumptions.class)
-            .stream()
-            .map(x -> x.getPreconditionAssumptions())
-            .flatMap(Collection::stream)
-            .forEach(assumptions::add);
+      ImmutableSet.Builder<AExpression> assumptionsBuilder = ImmutableSet.builder();
+      for (ARGState leaf : callstackToLeafWithParentAssumptions.get(elem)) {
+        for (ARGState parent : leaf.getParents()) {
+          for (AbstractStateWithAssumptions state :
+              AbstractStates.asIterable(parent).filter(AbstractStateWithAssumptions.class)) {
+            assumptionsBuilder.addAll(state.getAssumptions());
+          }
+        }
       }
+      Set<AExpression> assumptions = assumptionsBuilder.build();
       final List<AutomatonTransition> transitions = new ArrayList<>();
       for (ARGState leaf : callstackToLeaves.get(elem)) {
         if (assumptions.isEmpty()) {
@@ -915,7 +904,7 @@ public class ARGToAutomatonConverter {
         if (parents.add(parent)) {
           CFANode leafNode = AbstractStates.extractLocation(leaf);
           if (parentsToLeafNode.containsKey(parent)) {
-            assert parentsToLeafNode.get(parent) == leafNode
+            assert parentsToLeafNode.get(parent).equals(leafNode)
                 : "Expected to have only one CFANode for the children"
                     + "(this holds at least when considering overflows with OverflowCPA)";
           }

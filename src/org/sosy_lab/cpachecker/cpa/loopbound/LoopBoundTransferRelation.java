@@ -1,37 +1,30 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.loopbound;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Predicates.instanceOf;
 import static com.google.common.base.Predicates.not;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Iterators;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.stream.Stream;
+import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -42,25 +35,42 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
+@Options(prefix = "cpa.loopbound")
 public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
 
   private final ImmutableMap<CFAEdge, Loop> loopEntryEdges;
   private final ImmutableMap<CFAEdge, Loop> loopExitEdges;
-  private final ImmutableMultimap<CFANode, Loop> loopHeads;
+  private final ImmutableListMultimap<CFANode, Loop> loopHeads;
 
-  LoopBoundTransferRelation(CFA pCFA) throws CPAException {
+  @Option(
+      secure = true,
+      description =
+          "Only checks for error after loops were unrolled at least this amount of times.")
+  private int startAtBound = 0;
+
+  @Option(
+      secure = true,
+      description =
+          "Only checks for targets after loops were unrolled exactly a number of times that is contained in this list."
+              + " The default is an empty list, which means targets are checked in every iteration")
+  private List<Integer> checkOnlyAtBounds = ImmutableList.of();
+
+  LoopBoundTransferRelation(Configuration pConfig, CFA pCFA)
+      throws CPAException, InvalidConfigurationException {
     checkNotNull(pCFA, "CFA instance needed to create LoopBoundCPA");
+    pConfig.inject(this);
     if (!pCFA.getLoopStructure().isPresent()) {
       throw new CPAException("LoopBoundCPA cannot work without loop-structure information in CFA.");
     }
 
     ImmutableMap.Builder<CFAEdge, Loop> entryEdges = ImmutableMap.builder();
     ImmutableMap.Builder<CFAEdge, Loop> exitEdges  = ImmutableMap.builder();
-    ImmutableMultimap.Builder<CFANode, Loop> heads = ImmutableMultimap.builder();
+    ImmutableListMultimap.Builder<CFANode, Loop> heads = ImmutableListMultimap.builder();
 
-    for (Loop l : pCFA.getLoopStructure().get().getAllLoops()) {
+    for (Loop l : pCFA.getLoopStructure().orElseThrow().getAllLoops()) {
       // function edges do not count as incoming/outgoing edges
       Stream<CFAEdge> incomingEdges = l.getIncomingEdges()
           .stream()
@@ -112,7 +122,7 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
       // Push a new loop onto the stack if we enter it
       newLoop = loopEntryEdges.get(pCfaEdge);
       if (newLoop != null) {
-        state = state.enter(new LoopEntry(loc, newLoop));
+        state = state.enter(newLoop);
       }
     }
 
@@ -120,7 +130,7 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
     Collection<Loop> visitedLoops = loopHeads.get(loc);
     assert newLoop == null || visitedLoops.contains(newLoop);
     for (Loop loop : visitedLoops) {
-      state = state.visitLoopHead(new LoopEntry(loc, loop));
+      state = state.visitLoopHead(loop);
       // Check if the bound for unrolling has been reached;
       // this check is also performed by the precision adjustment,
       // but we need to do it here, too,
@@ -135,4 +145,19 @@ public class LoopBoundTransferRelation extends SingleEdgeTransferRelation {
     return Collections.singleton(state);
   }
 
+  @Override
+  public Collection<? extends AbstractState> strengthen(
+      AbstractState state,
+      Iterable<AbstractState> otherStates,
+      @Nullable CFAEdge cfaEdge,
+      Precision precision)
+      throws CPATransferException, InterruptedException {
+    int k = ((LoopBoundState) state).getDeepestIteration();
+    if ((k < startAtBound || (!checkOnlyAtBounds.isEmpty() && !checkOnlyAtBounds.contains(k)))
+        && Iterators.any(otherStates.iterator(), AbstractStates::isTargetState)) {
+      return ImmutableList.of();
+    } else {
+      return Collections.singleton(state);
+    }
+  }
 }

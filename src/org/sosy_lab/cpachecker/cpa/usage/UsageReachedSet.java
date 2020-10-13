@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.usage;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -32,7 +17,6 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -41,10 +25,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -60,6 +40,7 @@ import org.sosy_lab.cpachecker.cpa.lock.LockState;
 import org.sosy_lab.cpachecker.cpa.lock.LockState.LockStateBuilder;
 import org.sosy_lab.cpachecker.cpa.lock.effects.LockEffect;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
+import org.sosy_lab.cpachecker.cpa.usage.storage.UsageConfiguration;
 import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -69,7 +50,6 @@ import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-@Options(prefix = "usage")
 @SuppressFBWarnings(justification = "No support for serialization", value = "SE_BAD_FIELD")
 public class UsageReachedSet extends PartitionedReachedSet {
 
@@ -84,47 +64,35 @@ public class UsageReachedSet extends PartitionedReachedSet {
       new StatCounter("Number of different reached sets with lock effects");
 
   private boolean usagesExtracted = false;
-
+  
   public static class RaceProperty implements Property {
     @Override
     public String toString() {
       return "Race condition";
     }
   }
-
-  @Option(
-    name = "processCoveredUsages",
-    description = "Should we process the same blocks with covered sets of locks",
-    secure = true)
-  private boolean processCoveredUsages = true;
-
-  private static final RaceProperty propertyInstance = new RaceProperty();
+  
+  private static final ImmutableSet<Property> RACE_PROPERTY = ImmutableSet.of(new RaceProperty());
 
   private final LogManager logger;
+  private final boolean processCoveredUsages;
 
-  private UsageContainer container = null;
+  private final UsageContainer container;
   private List<Pair<UsageInfo, UsageInfo>> stableUnsafes = ImmutableList.of();
 
   public UsageReachedSet(
-      WaitlistFactory waitlistFactory, Configuration pConfig, LogManager pLogger) {
+      WaitlistFactory waitlistFactory, UsageConfiguration pConfig, LogManager pLogger) {
     super(waitlistFactory);
     logger = pLogger;
-    try {
-      pConfig.inject(this);
-      container = new UsageContainer(pConfig, logger);
-    } catch (InvalidConfigurationException e) {
-      logger.log(Level.WARNING, "Can not create container due to wrong config");
-      container = null;
-    }
+    container = new UsageContainer(pConfig, logger);
+    processCoveredUsages = pConfig.getProcessCoveredUsages();
   }
 
   @Override
   public void remove(AbstractState pState) {
     super.remove(pState);
     UsageState ustate = UsageState.get(pState);
-    if (container != null) {
-      container.removeState(ustate);
-    }
+    container.removeState(ustate);
   }
 
   @Override
@@ -137,9 +105,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
 
   @Override
   public void clear() {
-    if (container != null) {
-      container.resetUnrefinedUnsafes();
-    }
+    container.resetUnrefinedUnsafes();
     usagesExtracted = false;
     super.clear();
   }
@@ -147,13 +113,13 @@ public class UsageReachedSet extends PartitionedReachedSet {
   @Override
   public boolean hasViolatedProperties() {
     extractUsagesIfNeccessary();
-    return container == null ? false : container.getTotalUnsafeSize() > 0;
+    return container.getTotalUnsafeSize() > 0;
   }
 
   @Override
   public Set<Property> getViolatedProperties() {
     if (hasViolatedProperties()) {
-      return Collections.singleton(propertyInstance);
+      return RACE_PROPERTY;
     } else {
       return ImmutableSet.of();
     }
@@ -168,7 +134,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
   }
 
   private void writeObject(@SuppressWarnings("unused") ObjectOutputStream stream) {
-    throw new UnsupportedOperationException("cannot serialize Loger and Configuration.");
+    throw new UnsupportedOperationException("cannot serialize Logger");
   }
 
   @Override
@@ -182,7 +148,7 @@ public class UsageReachedSet extends PartitionedReachedSet {
   }
 
   private void extractUsagesIfNeccessary() {
-    if (!usagesExtracted && container != null) {
+    if (!usagesExtracted) {
       totalTimer.start();
       logger.log(Level.INFO, "Analysis is finished, start usage extraction");
       usagesExtracted = true;

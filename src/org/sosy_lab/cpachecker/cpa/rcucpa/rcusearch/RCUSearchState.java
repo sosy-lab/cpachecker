@@ -61,7 +61,7 @@ public class RCUSearchState extends AbstractSingleWrapperState
       if (this == pO) {
         return true;
       }
-      if (pO == null || getClass() != pO.getClass()) {
+      if (!(pO instanceof RCUSearchState)) {
         return false;
       }
 

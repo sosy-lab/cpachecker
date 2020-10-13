@@ -1,32 +1,18 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2016  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.variableclassification;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -194,10 +180,10 @@ final class VariableAndFieldRelevancyComputer {
         final VarFieldDependencies singleDependency =
             new VarFieldDependencies(
                 ImmutableSet.of(),
-                ImmutableMultimap.of(),
-                ImmutableMultimap.of(),
+                ImmutableListMultimap.of(),
+                ImmutableListMultimap.of(),
                 ImmutableSet.of(),
-                ImmutableMultimap.of(lhs, rhs),
+                ImmutableListMultimap.of(lhs, rhs),
                 PersistentLinkedList.of(),
                 1,
                 0);
@@ -215,10 +201,10 @@ final class VariableAndFieldRelevancyComputer {
           final VarFieldDependencies singleVariable =
               new VarFieldDependencies(
                   ImmutableSet.of(rhs.asVariable().getScopedName()),
-                  ImmutableMultimap.of(),
-                  ImmutableMultimap.of(),
+                  ImmutableListMultimap.of(),
+                  ImmutableListMultimap.of(),
                   ImmutableSet.of(),
-                  ImmutableMultimap.of(),
+                  ImmutableListMultimap.of(),
                   PersistentLinkedList.of(),
                   1,
                   0);
@@ -236,10 +222,10 @@ final class VariableAndFieldRelevancyComputer {
           final VarFieldDependencies singleField =
               new VarFieldDependencies(
                   ImmutableSet.of(),
-                  ImmutableMultimap.of(field.getCompositeType(), field.getName()),
-                  ImmutableMultimap.of(),
+                  ImmutableListMultimap.of(field.getCompositeType(), field.getName()),
+                  ImmutableListMultimap.of(),
                   ImmutableSet.of(),
-                  ImmutableMultimap.of(),
+                  ImmutableListMultimap.of(),
                   PersistentLinkedList.of(),
                   1,
                   0);
@@ -264,10 +250,10 @@ final class VariableAndFieldRelevancyComputer {
       final VarFieldDependencies singleVariable =
           new VarFieldDependencies(
               ImmutableSet.of(),
-              ImmutableMultimap.of(),
-              ImmutableMultimap.of(),
+              ImmutableListMultimap.of(),
+              ImmutableListMultimap.of(),
               ImmutableSet.of(variable.getScopedName()),
-              ImmutableMultimap.of(),
+              ImmutableListMultimap.of(),
               PersistentLinkedList.of(),
               1,
               0);
@@ -286,10 +272,10 @@ final class VariableAndFieldRelevancyComputer {
       final VarFieldDependencies singleField =
           new VarFieldDependencies(
               ImmutableSet.of(),
-              ImmutableMultimap.of(),
-              ImmutableMultimap.of(field.getCompositeType(), field.getName()),
+              ImmutableListMultimap.of(),
+              ImmutableListMultimap.of(field.getCompositeType(), field.getName()),
               ImmutableSet.of(),
-              ImmutableMultimap.of(),
+              ImmutableListMultimap.of(),
               PersistentLinkedList.of(),
               1,
               0);
@@ -360,7 +346,7 @@ final class VariableAndFieldRelevancyComputer {
 
     public ImmutableMultimap<CCompositeType, String> computeAddressedFields() {
       ensureSquashed();
-      return ImmutableMultimap.copyOf(squashed.addressedFields);
+      return ImmutableListMultimap.copyOf(squashed.addressedFields);
     }
 
     /**
@@ -405,7 +391,7 @@ final class VariableAndFieldRelevancyComputer {
 
       return Pair.of(
           ImmutableSet.copyOf(currentRelevantVariables),
-          ImmutableMultimap.copyOf(currentRelevantFields));
+          ImmutableListMultimap.copyOf(currentRelevantFields));
     }
 
     private final Set<String> relevantVariables;
@@ -421,10 +407,10 @@ final class VariableAndFieldRelevancyComputer {
     private static final VarFieldDependencies EMPTY_DEPENDENCIES =
         new VarFieldDependencies(
             ImmutableSet.of(),
-            ImmutableMultimap.of(),
-            ImmutableMultimap.of(),
+            ImmutableListMultimap.of(),
+            ImmutableListMultimap.of(),
             ImmutableSet.of(),
-            ImmutableMultimap.of(),
+            ImmutableListMultimap.of(),
             PersistentLinkedList.of(),
             0,
             0);

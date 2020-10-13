@@ -1,29 +1,15 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.interpolation;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static com.google.common.base.Verify.verify;
 import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.div;
 
@@ -31,8 +17,10 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultiset;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
+import com.google.common.primitives.ImmutableIntArray;
+import com.google.common.primitives.Ints;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -49,6 +37,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
+import java.util.stream.IntStream;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -65,12 +54,11 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException;
 import org.sosy_lab.cpachecker.exceptions.RefinementFailedException.Reason;
 import org.sosy_lab.cpachecker.util.LoopStructure;
+import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.Triple;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.DomainSpecificAbstraction;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.ITPStrategy;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.NestedInterpolation;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.SequentialInterpolation;
-import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.SequentialInterpolation.SeqInterpolationStrategy;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.SequentialInterpolationWithSolver;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.TreeInterpolation;
 import org.sosy_lab.cpachecker.util.predicates.interpolation.strategy.TreeInterpolationWithSolver;
@@ -97,71 +85,13 @@ public final class InterpolationManager {
   private final Timer getInterpolantTimer = new Timer();
   private final Timer cexAnalysisGetUsefulBlocksTimer = new Timer();
   private final Timer interpolantVerificationTimer = new Timer();
-  private final Timer dsaAnalysisTimer = new Timer();
-  private final Timer feasiblityCheckTimer = new Timer();
-  private final Timer maximisationTimer = new Timer();
   private int reusedFormulasOnSolverStack = 0;
-  protected final Timer findingCommonVariablesTimer = new Timer();
-  protected final Timer buildingLatticeNamesAndLatticeTypesTimer = new Timer();
-  protected final Timer renamingTimer = new Timer();
-  protected final Timer buildingAbstractionsTimer = new Timer();
-  protected final Timer initialVariableExtractionTimer = new Timer();
-  final Timer interpolationTimer = new Timer();
 
   public void printStatistics(StatisticsWriter w0) {
     w0.put("Counterexample analysis", cexAnalysisTimer + " (Max: " + cexAnalysisTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ", Calls: " + cexAnalysisTimer.getNumberOfIntervals() + ")");
     StatisticsWriter w1 = w0.beginLevel();
     if (cexAnalysisGetUsefulBlocksTimer.getNumberOfIntervals() > 0) {
       w1.put("Cex.focusing", cexAnalysisGetUsefulBlocksTimer + " (Max: " + cexAnalysisGetUsefulBlocksTimer.getMaxTime().formatAs(TimeUnit.SECONDS) + ")");
-    }
-    if (dsaAnalysisTimer.getNumberOfIntervals() > 0) {
-      w1.put("Domain Specific Abstractions Part: ", dsaAnalysisTimer + " (Max: " +
-          dsaAnalysisTimer
-          .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + dsaAnalysisTimer
-          .getAvgTime() + ")" + "Number of Intervals: " + dsaAnalysisTimer.getNumberOfIntervals());
-    }
-    if (initialVariableExtractionTimer.getNumberOfIntervals() > 0){
-      w1.put("Extracting Initial Variables: ", initialVariableExtractionTimer + " (Max: " +
-          initialVariableExtractionTimer
-              .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + initialVariableExtractionTimer
-          .getAvgTime() + ")" + "Number of Intervals: " + initialVariableExtractionTimer.getNumberOfIntervals());
-    }
-    if (findingCommonVariablesTimer.getNumberOfIntervals() > 0){
-      w1.put("Finding Common Variables: ", findingCommonVariablesTimer + " (Max: " +
-          findingCommonVariablesTimer
-              .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + findingCommonVariablesTimer
-          .getAvgTime() + ")" + "Number of Intervals: " + findingCommonVariablesTimer.getNumberOfIntervals());
-    }
-    if (buildingLatticeNamesAndLatticeTypesTimer.getNumberOfIntervals() > 0){
-      w1.put("Building Lattice Names and Lattice Types: ",
-          buildingLatticeNamesAndLatticeTypesTimer + " (Max: " +
-          buildingLatticeNamesAndLatticeTypesTimer
-              .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + buildingLatticeNamesAndLatticeTypesTimer
-          .getAvgTime() + ")" + "Number of Intervals: " + buildingLatticeNamesAndLatticeTypesTimer.getNumberOfIntervals());
-    }
-    if (renamingTimer.getNumberOfIntervals() > 0){
-      w1.put("Renaming: ", renamingTimer + " (Max: " +
-          renamingTimer
-              .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + renamingTimer
-          .getAvgTime() + ")" + "Number of Intervals: " + renamingTimer.getNumberOfIntervals());
-    }
-    if (feasiblityCheckTimer.getNumberOfIntervals() > 0){
-      w1.put("Feasibility Check: ", feasiblityCheckTimer + " (Max: " +
-          feasiblityCheckTimer
-              .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + feasiblityCheckTimer
-          .getAvgTime() + ")" + "Number of Intervals: " + feasiblityCheckTimer.getNumberOfIntervals());
-    }
-    if (maximisationTimer.getNumberOfIntervals() > 0){
-      w1.put("Maximisation: ", maximisationTimer + " (Max: " +
-          maximisationTimer
-              .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + maximisationTimer
-          .getAvgTime() + ")" + "Number of Intervals: " + maximisationTimer.getNumberOfIntervals());
-    }
-    if (interpolationTimer.getNumberOfIntervals() > 0){
-      w1.put("Interpolation: ", interpolationTimer + " (Max: " +
-          interpolationTimer
-              .getMaxTime().formatAs(TimeUnit.SECONDS) + ")" + " (Avg: " + interpolationTimer
-          .getAvgTime() + ")" + "Number of Intervals: " + interpolationTimer.getNumberOfIntervals());
     }
     w1.put("Refinement sat check", satCheckTimer);
     if (reuseInterpolationEnvironment && satCheckTimer.getNumberOfIntervals() > 0) {
@@ -180,7 +110,6 @@ public final class InterpolationManager {
   private final BooleanFormulaManagerView bfmgr;
   private final PathFormulaManager pmgr;
   private final Solver solver;
-  private Configuration myConfig;
 
   private final Interpolator<?> interpolator;
 
@@ -188,36 +117,45 @@ public final class InterpolationManager {
     + "a minimal set of blocks, before applying interpolation-based refinement")
   private boolean getUsefulBlocks = false;
 
-  @Option(secure=true, name="incrementalCexTraceCheck",
-      description="use incremental search in counterexample analysis, "
-        + "to find the minimal infeasible prefix")
-  private boolean incrementalCheck = false;
+  @Option(
+      secure = true,
+      name = "incrementalCexTraceCheck",
+      description =
+          "Use incremental search in counterexample analysis to find a minimal infeasible part of"
+              + " the trace. This will typically lead to interpolants that refer to this part"
+              + " only. The option cexTraceCheckDirection defines in which order the blocks of the"
+              + " trace are looked at.")
+  private boolean incrementalCheck = true;
 
-  @Option(secure=true, name="domainSpecificAbstractions",
-      description="use variant described in the Guiding Craig Interpolation Paper "
-          + "leading to a different routine")
-  private boolean domainSpecificAbstractions = false;
+  @Option(
+      secure = true,
+      name = "cexTraceCheckDirection",
+      description =
+          "Direction for doing counterexample analysis: from start of trace, from end of trace, or"
+              + " in more complex patterns. In combination with incrementalCexTraceCheck=true the"
+              + " generated interpolants will refer to the minimal infeasible part of the trace"
+              + " according to this strategy (e.g., with FORWARDS a minimal infeasible prefix is"
+              + " found).")
+  private CexTraceAnalysisDirection direction = CexTraceAnalysisDirection.ZIGZAG;
 
-  @Option(secure=true, name="inequalityInterpolationAbstractions",
-      description="additional variation to domainSpecificAbstractions "
-          + "using inequalities instead of equalities")
-  private boolean inequalityInterpolationAbstractions = false;
-
-  @Option(secure=true, name="cexTraceCheckDirection",
-      description="Direction for doing counterexample analysis: from start of trace, from end of trace, or alternatingly from start and end of the trace towards the middle")
-  private CexTraceAnalysisDirection direction = CexTraceAnalysisDirection.FORWARDS;
-
-  @Option(secure=true, description="Strategy how to interact with the intepolating prover. " +
-          "The analysis must support the strategy, otherwise the result will be useless!" +
-          "\n- SEQ_CPACHECKER: We simply return each interpolant for i={0..n-1} for the partitions A=[0 .. i] and B=[i+1 .. n]. " +
-          "The result is similar to INDUCTIVE_SEQ, but we do not guarantee the 'inductiveness', " +
-          "i.e. the solver has to generate nice interpolants itself. Supported by all solvers!" +
-          "\n- INDUCTIVE_SEQ: Generate an inductive sequence of interpolants the partitions [1,...n]. " +
-          "\n- TREE: use the tree-interpolation-feature of a solver to get interpolants" +
-          "\n- TREE_WELLSCOPED: We return each interpolant for i={0..n-1} for the partitions " +
-          "A=[lastFunctionEntryIndex .. i] and B=[0 .. lastFunctionEntryIndex-1 , i+1 .. n]. Based on a tree-like scheme." +
-          "\n- TREE_NESTED: use callstack and previous interpolants for next interpolants (see 'Nested Interpolants')," +
-          "\n- TREE_CPACHECKER: similar to TREE_NESTED, but the algorithm is taken from 'Tree Interpolation in Vampire'.")
+  @Option(
+      secure = true,
+      description =
+          "Strategy how to interact with the intepolating prover. The analysis must support the"
+              + " strategy, otherwise the result will be useless!\n"
+              + "- SEQ_CPACHECKER: Generate an inductive sequence of interpolants by asking the"
+              + " solver individually for each of them. This allows us to fine-tune the queries"
+              + " with the option sequentialStrategy and is supported by all solvers.\n"
+              + "- SEQ: Generate an inductive sequence of interpolants by asking the solver for"
+              + " the whole sequence at once.\n"
+              + "- TREE: Use the tree-interpolation feature of the solver to get interpolants.\n"
+              + "- TREE_WELLSCOPED: Return each interpolant for i={0..n-1} for the partitions"
+              + " A=[lastFunctionEntryIndex..i] and B=[0..lastFunctionEntryIndex-1]+[i+1..n]."
+              + " Based on a tree-like scheme.\n"
+              + "- TREE_NESTED: Use callstack and previous interpolants for next interpolants (cf."
+              + " 'Nested Interpolants').\n"
+              + "- TREE_CPACHECKER: similar to TREE_NESTED, but the algorithm is taken from 'Tree"
+              + " Interpolation in Vampire'")
   private InterpolationStrategy strategy = InterpolationStrategy.SEQ_CPACHECKER;
 
   private enum InterpolationStrategy {
@@ -227,12 +165,6 @@ public final class InterpolationManager {
     TREE_NESTED,
     TREE_CPACHECKER,
   }
-
-  @Option(secure = true, description = "In case we apply sequential interpolation, "
-      + "forward and backward directions return valid interpolants. "
-      + "We can either choose one of the directions, fallback to the other "
-      + "if one does not succeed, or even combine the interpolants.")
-  private SeqInterpolationStrategy sequentialStrategy = SeqInterpolationStrategy.FWD;
 
   @Option(secure=true, description="dump all interpolation problems")
   private boolean dumpInterpolationProblems = false;
@@ -251,8 +183,22 @@ public final class InterpolationManager {
     + "this amount of bytes (ignored if 0)")
   private int maxRefinementSize = 0;
 
-  @Option(secure=true, description="Use a single SMT solver environment for several interpolation queries")
+  @Option(
+      secure = true,
+      description =
+          "Use a single SMT solver environment for all interpolation queries and keep formulas"
+              + " pushed on solver stack between interpolation queries.")
+  // Evaluation showed that it is not useful together with cexTraceCheckDirection=ZIGZAG.
   private boolean reuseInterpolationEnvironment = false;
+
+  @Option(
+      secure = true,
+      description =
+          "After a failed interpolation query, try to solve the formulas again with different"
+              + " options instead of giving up immediately.")
+  private boolean tryAgainOnInterpolationError = true;
+
+  private final ITPStrategy itpStrategy;
 
   private final ExecutorService executor;
   private final LoopStructure loopStructure;
@@ -276,7 +222,6 @@ public final class InterpolationManager {
     solver = pSolver;
     loopStructure = pLoopStructure.orElse(null);
     variableClassification = pVarClassification.orElse(null);
-    myConfig = config;
 
     if (itpTimeLimit.isEmpty()) {
       executor = null;
@@ -290,6 +235,29 @@ public final class InterpolationManager {
       interpolator = new Interpolator<>();
     } else {
       interpolator = null;
+    }
+
+    switch (strategy) {
+      case SEQ_CPACHECKER:
+        itpStrategy = new SequentialInterpolation(pLogger, pShutdownNotifier, fmgr, config);
+        break;
+      case SEQ:
+        itpStrategy = new SequentialInterpolationWithSolver(pLogger, pShutdownNotifier, fmgr);
+        break;
+      case TREE_WELLSCOPED:
+        itpStrategy = new WellScopedInterpolation(pLogger, pShutdownNotifier, fmgr);
+        break;
+      case TREE_NESTED:
+        itpStrategy = new NestedInterpolation(pLogger, pShutdownNotifier, fmgr);
+        break;
+      case TREE_CPACHECKER:
+        itpStrategy = new TreeInterpolation(pLogger, pShutdownNotifier, fmgr);
+        break;
+      case TREE:
+        itpStrategy = new TreeInterpolationWithSolver(pLogger, pShutdownNotifier, fmgr);
+        break;
+      default:
+        throw new AssertionError("unknown interpolation strategy");
     }
   }
 
@@ -352,9 +320,8 @@ public final class InterpolationManager {
   }
 
   private CounterexampleTraceInfo buildCounterexampleTrace0(
-      final BlockFormulas pFormulas,
-      final List<AbstractState> pAbstractionStates)
-      throws CPAException, InterruptedException, InvalidConfigurationException {
+      final BlockFormulas pFormulas, final List<AbstractState> pAbstractionStates)
+      throws CPAException, InterruptedException {
 
     cexAnalysisTimer.start();
     try {
@@ -647,88 +614,63 @@ public final class InterpolationManager {
   }
 
   /**
-   * Put the list of formulas into the order in which they should be given to
-   * the solver, as defined by the {@link #direction} configuration option.
+   * Put the list of formulas into the order in which they should be given to the solver, as defined
+   * by the {@link #direction} configuration option.
+   *
    * @param traceFormulas The list of formulas to check.
-   * @return The same list of formulas in different order,
-   *         and each formula has its position in the original list as third element of the pair.
+   * @return The same list of formulas in different order, and each formula has its position in the
+   *     original list as third element of the pair.
    */
-  private List<Triple<BooleanFormula, AbstractState, Integer>> orderFormulas(
-          final List<BooleanFormula> traceFormulas, final List<AbstractState> pAbstractionStates) {
+  private ImmutableIntArray orderFormulas(
+      final List<BooleanFormula> traceFormulas, final List<AbstractState> pAbstractionStates) {
 
     // In this list are all formulas together with their position in the original list
-    ImmutableList<Triple<BooleanFormula, AbstractState, Integer>> result = direction.orderFormulas(traceFormulas,
-                                                                                                   pAbstractionStates,
-                                                                                                   variableClassification,
-                                                                                                   loopStructure,
-                                                                                                   fmgr);
-    assert traceFormulas.size() == result.size();
-    assert ImmutableMultiset.copyOf(from(result).transform(Triple::getFirst))
-            .equals(ImmutableMultiset.copyOf(traceFormulas))
-        : "Ordered list does not contain the same formulas with the same count";
+    ImmutableIntArray result =
+        direction.orderFormulas(
+            traceFormulas, pAbstractionStates, variableClassification, loopStructure, fmgr);
+    assert Iterators.elementsEqual(
+            result.stream().sorted().boxed().iterator(),
+            IntStream.range(0, traceFormulas.size()).boxed().iterator())
+        : "Not a valid permutation: " + result;
     return result;
   }
 
   /**
-   * Get the interpolants from the solver after the formulas have been proved
-   * to be unsatisfiable.
+   * Get the interpolants from the solver after the formulas have been proved to be unsatisfiable.
    *
-   * @param pInterpolator The references to the interpolation groups, sorting depends on the solver-stack.
-   * @param formulasWithStatesAndGroupdIds list of (F,A,T) of path formulae F
-   *        with their interpolation group I and the abstract state A,
-   *        where a path formula F is the path before/until the abstract state A.
-   *        The list is sorted in the "correct" order along the counterexample.
+   * @param pInterpolator The references to the interpolation groups, sorting depends on the
+   *     solver-stack.
+   * @param formulasWithStatesAndGroupdIds list of (F,A,T) of path formulae F with their
+   *     interpolation group I and the abstract state A, where a path formula F is the path
+   *     before/until the abstract state A. The list is sorted in the "correct" order along the
+   *     counterexample.
    * @return A list of (N-1) interpolants for N formulae.
    */
-  private <T> List<BooleanFormula> getInterpolants(Interpolator<T> pInterpolator,
+  private <T> List<BooleanFormula> getInterpolants(
+      Interpolator<T> pInterpolator,
       List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
-      throws SolverException, InterruptedException, InvalidConfigurationException {
+      throws SolverException, InterruptedException {
 
-    // TODO replace with Config-Class-Constructor-Injection?
-
-
-    if (domainSpecificAbstractions) {
-      List <BooleanFormula> interpolants = createDSAInterpolants(formulasWithStatesAndGroupdIds);
-      return interpolants;
-
-    } else {
-      final ITPStrategy<T> itpStrategy;
-      switch (strategy) {
-        case SEQ_CPACHECKER:
-          itpStrategy = new SequentialInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr,
-              sequentialStrategy);
-          break;
-        case SEQ:
-          itpStrategy =
-              new SequentialInterpolationWithSolver<>(logger, shutdownNotifier, fmgr, bfmgr);
-          break;
-        case TREE_WELLSCOPED:
-          itpStrategy = new WellScopedInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
-          break;
-        case TREE_NESTED:
-          itpStrategy = new NestedInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
-          break;
-        case TREE_CPACHECKER:
-          itpStrategy = new TreeInterpolation<>(logger, shutdownNotifier, fmgr, bfmgr);
-          break;
-        case TREE:
-          itpStrategy = new TreeInterpolationWithSolver<>(logger, shutdownNotifier, fmgr, bfmgr);
-          break;
-        default:
-          throw new AssertionError("unknown interpolation strategy");
-      }
-
-      final List<BooleanFormula> interpolants =
-          itpStrategy.getInterpolants(pInterpolator, formulasWithStatesAndGroupdIds);
-
-      assert formulasWithStatesAndGroupdIds.size() - 1 == interpolants.size()
-          : "we should return N-1 interpolants for N formulas.";
-
-      if (verifyInterpolants) {
-        itpStrategy.checkInterpolants(solver, formulasWithStatesAndGroupdIds, interpolants);
-      }
-      return interpolants;
+    final List<BooleanFormula> interpolants;
+    try {
+      getInterpolantTimer.start();
+      interpolants = itpStrategy.getInterpolants(pInterpolator, formulasWithStatesAndGroupdIds);
+    } finally {
+      getInterpolantTimer.stop();
     }
+
+    assert formulasWithStatesAndGroupdIds.size() - 1 == interpolants.size()
+        : "we should return N-1 interpolants for N formulas.";
+
+    if (verifyInterpolants) {
+      try {
+        interpolantVerificationTimer.start();
+        itpStrategy.checkInterpolants(solver, formulasWithStatesAndGroupdIds, interpolants);
+      } finally {
+        interpolantVerificationTimer.stop();
+      }
+    }
+    return interpolants;
   }
 
   /**
@@ -812,7 +754,7 @@ public final class InterpolationManager {
   public class Interpolator<T> {
 
     public InterpolatingProverEnvironment<T> itpProver;
-    private final List<Triple<BooleanFormula, AbstractState, T>> currentlyAssertedFormulas = new ArrayList<>();
+    private final List<Pair<BooleanFormula, T>> currentlyAssertedFormulas = new ArrayList<>();
 
     Interpolator() {
       itpProver = newEnvironment();
@@ -833,9 +775,8 @@ public final class InterpolationManager {
      * @return counterexample info with predicated information
      */
     private CounterexampleTraceInfo buildCounterexampleTrace(
-        BlockFormulas formulas,
-        List<AbstractState> pAbstractionStates)
-        throws SolverException, InterruptedException, InvalidConfigurationException {
+        BlockFormulas formulas, List<AbstractState> pAbstractionStates)
+        throws SolverException, InterruptedException {
 
       // Check feasibility of counterexample
       shutdownNotifier.shutdownIfNecessary();
@@ -851,25 +792,17 @@ public final class InterpolationManager {
         //should be constructed in PredicateCPA refiner or in BAM predicate refiner strategy
         //impact algorithm, predicate forced covering pass empty pAbstractionStates
       }
-      assert pAbstractionStates.size() == formulas.getSize() : "each pathFormula must end with an abstract State";
+      assert pAbstractionStates.size() == formulas.getSize()
+          : "each pathFormula must end with an abstract State";
 
-      /* we use two lists, that contain identical formulas
-       * with different additional information and (maybe) in different order:
-       * 1) formulasWithStatesAndGroupdIds contains elements (F,A,T)
-       *      with a path formula F that represents the path until the abstract state A and has the ITP-group T.
-       *      It is sorted 'forwards' along the counterexample and is the basis for getting interpolants.
-       * 2) orderedFormulas contains elements (F,A,I)
-       *      with a path formula F that represents the path until the abstract state A.
-       *      It is sorted depending on the {@link CexTraceAnalysisDirection} and
-       *      is only used to check the counterexample for satisfiability.
-       *      Depending on different directions, different interpolants
-       *      might be computed from the solver's proof for unsatisfiability.
-       */
-
-      // initialize all interpolation group ids with "null"
+      // This list will contain tuples (formula, abstraction state, interpolation-group id)
+      // for every block of the counterexample (in correct order).
+      // It is initialized with {@code null} and filled while the formulas are pushed on the solver
+      // stack.
       final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds =
           new ArrayList<>(Collections.nCopies(formulas.getSize(), null));
 
+      ImmutableIntArray formulaPermutation;
       try {
 
         if (getUsefulBlocks) {
@@ -882,15 +815,19 @@ public final class InterpolationManager {
           dumpInterpolationProblem(formulas.getFormulas());
         }
 
-        // re-order formulas if needed
-        final List<Triple<BooleanFormula, AbstractState, Integer>> orderedFormulas =
-            orderFormulas(formulas.getFormulas(), pAbstractionStates);
-        assert orderedFormulas.size() == formulas.getSize();
+        // compute permutation in which formulas should be added
+        formulaPermutation = orderFormulas(formulas.getFormulas(), pAbstractionStates);
+        logger.log(Level.ALL, "Permutation of blocks for interpolation query:", formulaPermutation);
 
         // ask solver for satisfiability
-        spurious = checkInfeasabilityOfTrace(orderedFormulas, formulasWithStatesAndGroupdIds);
-        assert formulasWithStatesAndGroupdIds.size() == formulas.getSize();
-        assert !formulasWithStatesAndGroupdIds.contains(null); // has to be filled completely
+        spurious =
+            checkInfeasabilityOfTrace(
+                formulas.getFormulas(),
+                pAbstractionStates,
+                formulaPermutation,
+                formulasWithStatesAndGroupdIds);
+        assert Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst)
+            .equals(formulas.getFormulas());
 
       } finally {
         satCheckTimer.stop();
@@ -903,11 +840,52 @@ public final class InterpolationManager {
       CounterexampleTraceInfo info;
       if (spurious) {
 
-        interpolationTimer.start();
-        final List<BooleanFormula> interpolants =
-            getInterpolants(this, formulasWithStatesAndGroupdIds);
-        interpolationTimer.stop();
+        List<BooleanFormula> interpolants;
+        try {
+          interpolants = getInterpolants(this, formulasWithStatesAndGroupdIds);
+        } catch (SolverException e) {
+          if (!tryAgainOnInterpolationError) {
+            throw e;
+          }
+          // Interpolation failed. There are at least some tasks where MathSAT succeeds if we try
+          // again with different options. We invert incrementalCheck and we reverse the formula
+          // order. Note that a new solver environment will be created automatically, because due to
+          // the reversed order there will be no change of reusing something on the solver stack,
+          // and cleanupSolverStack creates a new environment in this case.
+          logger.logfDebugException(
+              e,
+              "Interpolation failed, trying again in reverse order and with%s incremental check.",
+              incrementalCheck ? "out" : "");
+          Collections.fill(formulasWithStatesAndGroupdIds, null); // reset state
 
+          int[] permutation = formulaPermutation.toArray();
+          Ints.reverse(permutation);
+          formulaPermutation = ImmutableIntArray.copyOf(permutation); // reverse permutation
+
+          final boolean originalIncrementalCheck = incrementalCheck;
+          try {
+            // A little bit ugly to invert the field, but we reset in finally and this at least
+            // makes sure that it will definitely be used in all relevant places.
+            incrementalCheck = !incrementalCheck; // invert incrementalCheck
+
+            satCheckTimer.start();
+            spurious = // solve again
+                checkInfeasabilityOfTrace(
+                    formulas.getFormulas(),
+                    pAbstractionStates,
+                    formulaPermutation,
+                    formulasWithStatesAndGroupdIds);
+            assert Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst)
+                .equals(formulas.getFormulas());
+            verify(spurious, "Counterexample formulas became satisfiable on second try");
+
+          } finally {
+            incrementalCheck = originalIncrementalCheck;
+            satCheckTimer.stop();
+          }
+
+          interpolants = getInterpolants(this, formulasWithStatesAndGroupdIds);
+        }
         if (logger.wouldBeLogged(Level.ALL)) {
           int i = 1;
           for (BooleanFormula itp : interpolants) {
@@ -928,36 +906,41 @@ public final class InterpolationManager {
     }
 
     /**
-     * Check the satisfiability of a list of formulas, using them in the given order.
-     * This method honors the {@link #incrementalCheck} configuration option.
-     * It also updates the SMT solver stack and the {@link #currentlyAssertedFormulas}
-     * list that is used if {@link #reuseInterpolationEnvironment} is enabled.
+     * Check the satisfiability of a list of formulas, using them in the given order. This method
+     * honors the {@link #incrementalCheck} configuration option. It also updates the SMT solver
+     * stack and the {@link #currentlyAssertedFormulas} list that is used if {@link
+     * #reuseInterpolationEnvironment} is enabled.
      *
-     * @param traceFormulas The list of formulas to check, each formula with its index of where it should be added in the list of interpolation groups.
-     * @param formulasWithStatesAndGroupdIds The list where to store the references to the interpolation groups. This is just a list of 'identifiers' for the formulas.
+     * @param formulaPermutation The order (by indices) in which the formulas should be checked.
+     * @param formulasWithStatesAndGroupdIds The list where to store the references (in original
+     *     order) to the interpolation groups. This is just a list of 'identifiers' for the
+     *     formulas.
      * @return True if the formulas are unsatisfiable.
      */
     private boolean checkInfeasabilityOfTrace(
-        final List<Triple<BooleanFormula, AbstractState, Integer>> traceFormulas,
+        final List<BooleanFormula> traceFormulas,
+        final List<AbstractState> traceStates,
+        final ImmutableIntArray formulaPermutation,
         final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
-            throws InterruptedException, SolverException {
+        throws InterruptedException, SolverException {
 
       // first identify which formulas are already on the solver stack,
       // which formulas need to be removed from the solver stack,
       // and which formulas need to be added to the solver stack
-      ListIterator<Triple<BooleanFormula, AbstractState, Integer>> todoIterator = traceFormulas.listIterator();
+      ListIterator<Integer> todoIterator = formulaPermutation.asList().listIterator();
       int firstBadIndex =
-          getIndexOfFirstNonReusableFormula(formulasWithStatesAndGroupdIds, todoIterator);
+          getIndexOfFirstNonReusableFormula(
+              traceFormulas, traceStates, todoIterator, formulasWithStatesAndGroupdIds);
 
       // now remove the formulas from the solver stack where necessary
       cleanupSolverStack(firstBadIndex);
 
       // push new formulas onto the solver stack
-      addNewFormulasToStack(formulasWithStatesAndGroupdIds, todoIterator);
+      addNewFormulasToStack(
+          traceFormulas, traceStates, todoIterator, formulasWithStatesAndGroupdIds);
 
-      assert Iterables.elementsEqual(
-          from(traceFormulas).transform(Triple::getFirst),
-          from(currentlyAssertedFormulas).transform(Triple::getFirst));
+      assert ImmutableMultiset.copyOf(traceFormulas)
+          .equals(from(currentlyAssertedFormulas).transform(Pair::getFirst).toMultiset());
 
       // we have to do the sat check every time, as it could be that also
       // with incremental checking it was missing (when the path is infeasible
@@ -971,29 +954,36 @@ public final class InterpolationManager {
      * from the solver stack.
      *
      * @param formulasWithStatesAndGroupdIds the new sorted collection of formulas, with indizes
-     * @param todoIterator iterator from the new collection of formulas, is the new starting point
+     * @param todoIterator iterator producing the indices of formulas to be used, afterwards it is
+     *     positioned at the new starting point
      */
     private int getIndexOfFirstNonReusableFormula(
-        final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds,
-        ListIterator<Triple<BooleanFormula, AbstractState, Integer>> todoIterator) {
+        final List<BooleanFormula> traceFormulas,
+        final List<AbstractState> traceStates,
+        final ListIterator<Integer> todoIterator,
+        final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds) {
 
-      ListIterator<Triple<BooleanFormula, AbstractState, T>> assertedIterator =
+      ListIterator<Pair<BooleanFormula, T>> assertedIterator =
           currentlyAssertedFormulas.listIterator();
       int firstBadIndex = -1; // index of first mis-matching formula in both lists
 
       while (assertedIterator.hasNext()) {
-        Triple<BooleanFormula, AbstractState, T> assertedFormula = assertedIterator.next();
+        Pair<BooleanFormula, T> assertedFormula = assertedIterator.next();
 
         if (!todoIterator.hasNext()) {
           firstBadIndex = assertedIterator.previousIndex();
           break;
         }
 
-        Triple<BooleanFormula, AbstractState, Integer> todoFormula = todoIterator.next();
+        int index = todoIterator.next();
+        BooleanFormula todoFormula = traceFormulas.get(index);
 
-        if (todoFormula.getFirst().equals(assertedFormula.getFirst())) {
+        if (todoFormula.equals(assertedFormula.getFirst())) {
           // formula is already in solver stack in correct location
-          formulasWithStatesAndGroupdIds.set(todoFormula.getThird(), assertedFormula);
+          final Triple<BooleanFormula, AbstractState, T> assertedFormulaWithState =
+              Triple.of(
+                  assertedFormula.getFirst(), traceStates.get(index), assertedFormula.getSecond());
+          formulasWithStatesAndGroupdIds.set(index, assertedFormulaWithState);
 
         } else {
           firstBadIndex = assertedIterator.previousIndex();
@@ -1025,7 +1015,7 @@ public final class InterpolationManager {
         assert firstBadIndex > 0;
         // list with all formulas on solver stack that we need to remove
         // (= remaining formulas in currentlyAssertedFormulas list)
-        List<Triple<BooleanFormula, AbstractState, T>> toDeleteFormulas =
+        List<Pair<BooleanFormula, T>> toDeleteFormulas =
             currentlyAssertedFormulas.subList(firstBadIndex, currentlyAssertedFormulas.size());
 
         // remove formulas from solver stack
@@ -1043,11 +1033,13 @@ public final class InterpolationManager {
      * ignore them.
      *
      * @param formulasWithStatesAndGroupdIds the new sorted collection of formulas, with indizes
-     * @param todoIterator iterator from the new collection of formulas, is the new starting point
+     * @param todoIterator iterator producing the indices of formulas to be used
      */
     private void addNewFormulasToStack(
-        final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds,
-        ListIterator<Triple<BooleanFormula, AbstractState, Integer>> todoIterator)
+        final List<BooleanFormula> traceFormulas,
+        final List<AbstractState> traceStates,
+        final ListIterator<Integer> todoIterator,
+        final List<Triple<BooleanFormula, AbstractState, T>> formulasWithStatesAndGroupdIds)
         throws SolverException, InterruptedException {
       boolean isStillFeasible = true;
 
@@ -1059,17 +1051,15 @@ public final class InterpolationManager {
 
       // add remaining formulas to the solver stack
       while (todoIterator.hasNext()) {
-        Triple<BooleanFormula, AbstractState, Integer> p = todoIterator.next();
-        BooleanFormula f = p.getFirst();
-        AbstractState state = p.getSecond();
-        int index = p.getThird();
+        int index = todoIterator.next();
+        BooleanFormula f = traceFormulas.get(index);
+        AbstractState state = traceStates.get(index);
 
         assert formulasWithStatesAndGroupdIds.get(index) == null;
+        logger.logf(Level.ALL, "Pushing formula for block %s:\n  %s", index, f);
         T itpGroupId = itpProver.push(f);
-        final Triple<BooleanFormula, AbstractState, T> assertedFormula =
-            Triple.of(f, state, itpGroupId);
-        formulasWithStatesAndGroupdIds.set(index, assertedFormula);
-        currentlyAssertedFormulas.add(assertedFormula);
+        formulasWithStatesAndGroupdIds.set(index, Triple.of(f, state, itpGroupId));
+        currentlyAssertedFormulas.add(Pair.of(f, itpGroupId));
 
         // We need to iterate through the full loop
         // to add all formulas, but this prevents us from doing further sat checks.
@@ -1083,72 +1073,6 @@ public final class InterpolationManager {
       itpProver.close();
       itpProver = null;
       currentlyAssertedFormulas.clear();
-    }
-  }
-
-  private <T> List<BooleanFormula> createDSAInterpolants(List<Triple<BooleanFormula, AbstractState,
-      T>> formulasWithStatesAndGroupdIds)
-      throws InvalidConfigurationException, SolverException, InterruptedException {
-    List<BooleanFormula> myInterpolants;
-    dsaAnalysisTimer.start();
-    try {
-
-      //Solver mySolver = null;
-        /*try {
-          mySolver = Solver.create(
-              myConfig, logger,
-              shutdownNotifier);
-        } catch (InvalidConfigurationException pE) {
-          logger.log(Level.WARNING, "Invalid Configuration!");
-        } */
-      try (Solver mySolver =Solver.create(
-          myConfig,logger,
-          shutdownNotifier)){
-        FormulaManagerView newFmgr = mySolver.getFormulaManager();
-        DomainSpecificAbstraction<T> dsa =
-            new DomainSpecificAbstraction<>(
-                newFmgr,
-                fmgr,
-                logger,
-                findingCommonVariablesTimer,
-                buildingLatticeNamesAndLatticeTypesTimer,
-                renamingTimer,
-                buildingAbstractionsTimer,
-                interpolationTimer,
-                initialVariableExtractionTimer,
-                feasiblityCheckTimer,
-                maximisationTimer,
-                inequalityInterpolationAbstractions);
-        List<BooleanFormula> tocheck =
-            Lists.transform(formulasWithStatesAndGroupdIds, Triple::getFirst);
-        if (tocheck != null) {
-          myInterpolants = dsa.domainSpecificAbstractionsCheck(mySolver, tocheck);
-        } else {
-          myInterpolants = null;
-        }
-        if (myInterpolants != null && !myInterpolants.isEmpty()) {
-          List<BooleanFormula> interpolantList = new ArrayList<>(myInterpolants.size());
-          for (BooleanFormula f : myInterpolants) {
-            BooleanFormula interpolant = fmgr.translateFrom(f, newFmgr);
-            interpolantList.add(interpolant);
-          }
-
-          // mySolver.close();
-          if (!interpolantList.isEmpty()) {
-            return interpolantList;
-          } else {
-            // mySolver.close();
-            logger.log(Level.WARNING, "Returning empty list");
-
-            return ImmutableList.of();
-          }
-        } else {
-          // mySolver.close();
-          return ImmutableList.of();
-        }
-      }
-    } finally {
-      dsaAnalysisTimer.stop();
     }
   }
 }

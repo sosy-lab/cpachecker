@@ -1,28 +1,14 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import java.io.BufferedReader;
@@ -37,8 +23,10 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.sosy_lab.cpachecker.cfa.CFACreator;
-import org.sosy_lab.cpachecker.util.Property.CommonCoverageType;
-import org.sosy_lab.cpachecker.util.Property.CommonPropertyType;
+import org.sosy_lab.cpachecker.core.specification.Property;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageType;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
+import org.sosy_lab.cpachecker.cpa.testtargets.CoverFunction;
 import org.sosy_lab.cpachecker.util.ltl.LtlParseException;
 import org.sosy_lab.cpachecker.util.ltl.LtlParser;
 
@@ -75,10 +63,10 @@ public class PropertyFileParser {
               + CFACreator.VALID_C_FUNCTION_NAME_PATTERN
               + ")\\(\\)\\), FQL\\((.+)\\) \\)");
 
-  private static Map<String, ? extends Property> AVAILABLE_VERIFICATION_PROPERTIES =
+  private static final ImmutableMap<String, ? extends Property> AVAILABLE_VERIFICATION_PROPERTIES =
       Maps.uniqueIndex(EnumSet.allOf(CommonPropertyType.class), Property::toString);
 
-  private static Map<String, ? extends Property> AVAILABLE_COVERAGE_PROPERTIES =
+  private static final ImmutableMap<String, ? extends Property> AVAILABLE_COVERAGE_PROPERTIES =
       Maps.uniqueIndex(EnumSet.allOf(CommonCoverageType.class), Property::toString);
 
   public PropertyFileParser(final Path pPropertyFile) {
@@ -103,7 +91,7 @@ public class PropertyFileParser {
     Matcher matcher = PROPERTY_PATTERN.matcher(rawProperty);
 
     if (rawProperty == null) {
-      throw new InvalidPropertyFileException(String.format("The property is not well-formed!"));
+      throw new InvalidPropertyFileException("The property is not well-formed!");
     }
 
     Map<String, ? extends Property> propStringToProperty = AVAILABLE_VERIFICATION_PROPERTIES;
@@ -134,6 +122,9 @@ public class PropertyFileParser {
             String.format("Could not parse property '%s' (%s)", matcher.group(2), e.getMessage()),
             e);
       }
+    }
+    if (property == null && propStringToProperty == AVAILABLE_COVERAGE_PROPERTIES) {
+      property = CoverFunction.getProperty(rawProperty);
     }
     return property;
   }

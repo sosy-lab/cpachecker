@@ -1,31 +1,19 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.statistics;
 
 import com.google.common.base.Joiner;
+import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
@@ -36,10 +24,27 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class StatisticsSeries<T> {
 
   private final long startTime = System.currentTimeMillis();
+
+  /**
+   * The fastest minimal working solution.
+   *
+   * <p>Note that we do not guarantee a strict temporal ordering of the entries. It is possible to
+   * get an unsorted list.
+   */
   private final Collection<DataObject<T>> series = new ConcurrentLinkedQueue<>();
 
   public void add(T pData) {
     series.add(new DataObject<>(pData));
+  }
+
+  Collection<DataObject<T>> getSeries() {
+    List<DataObject<T>> result = new ArrayList<>(series);
+    result.sort(null);
+    return result;
+  }
+
+  long getStartTime() {
+    return startTime;
   }
 
   @Override
@@ -82,6 +87,41 @@ public class StatisticsSeries<T> {
     @Override
     public void add(T pData) {
       // ignore
+    }
+  }
+
+  /** Sub-class with additional methods for statistics. */
+  public static class StatisticsSeriesWithNumbers extends StatisticsSeries<Integer> {
+
+    /**
+     * Get plain numerical statistics without any hint on behavior over time.
+     *
+     * <p>Example: For a time series <code>[10:1,11:2,15:3,40:4]</code> we return <code>
+     * StatInt([1,2,3,4])</code>.
+     */
+    public StatInt getStatsWithoutTime() {
+      StatInt stats = new StatInt(StatKind.AVG, null);
+      for (StatisticsSeries<Integer>.DataObject<Integer> data : getSeries()) {
+        stats.setNextValue(data.data);
+      }
+      return stats;
+    }
+
+    /**
+     * Get statistics over all time steps.
+     *
+     * <p>Example: For a time series <code>[10:1,11:2,15:3,40:4]</code> we return <code>
+     * StatHist([10x1,1x2,4x3,25x4])</code>.
+     */
+    public StatHist getStatsOverTime() {
+      StatHist stats = new StatHist(null);
+      long currentTime = getStartTime();
+      for (StatisticsSeries<Integer>.DataObject<Integer> data : getSeries()) {
+        long occurences = data.time - currentTime;
+        stats.insertValue(data.data, Ints.checkedCast(occurences));
+        currentTime = data.time;
+      }
+      return stats;
     }
   }
 }

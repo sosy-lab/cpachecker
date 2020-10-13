@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.collect.FluentIterable.from;
@@ -34,7 +19,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Range;
 import java.math.BigInteger;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.Iterator;
@@ -185,7 +169,8 @@ public final class CInitializers {
       }
     }
 
-    List<CExpressionAssignmentStatement> result = new ArrayList<>(initializerList.getInitializers().size());
+    ImmutableList.Builder<CExpressionAssignmentStatement> result =
+        ImmutableList.builderWithExpectedSize(initializerList.getInitializers().size());
     for (CInitializer init : initializerList.getInitializers()) {
 
       if (init instanceof CDesignatedInitializer) {
@@ -250,7 +235,7 @@ public final class CInitializers {
       }
     }
 
-    return result;
+    return result.build();
   }
 
 
@@ -447,7 +432,10 @@ public final class CInitializers {
           throws UnrecognizedCodeException {
 
     Iterator<CFieldReference> fields =
-        from(structType.getMembers()).filter(field -> !(field.getName().contains("__anon_type_member") && !isAggregateType(field.getType())))
+        from(structType.getMembers()).filter(
+            field -> !(field.getName().contains("__anon_type_member") && (!isAggregateType(field.getType())
+                && (field.getType() instanceof CElaboratedType)
+                && !((CElaboratedType) field.getType()).getKind().equals(ComplexTypeKind.UNION))))
             .transform(
                 field  ->
                     new CFieldReference(
@@ -465,14 +453,19 @@ public final class CInitializers {
       // find the designated field and advance the iterator up to this point
       while (fields.hasNext()) {
         CFieldReference f = fields.next();
-        if (f.getFieldName().equals(startingFieldName.get())) {
+        if (f.getFieldName().equals(startingFieldName.orElseThrow())) {
           designatedField = f;
           break;
         }
       }
       if (designatedField == null) {
-        throw new UnrecognizedCodeException("Initializer for field " + startingFieldName.get()
-            + " but no field with this name exists in " + structType, edge, designator);
+        throw new UnrecognizedCodeException(
+            "Initializer for field "
+                + startingFieldName.orElseThrow()
+                + " but no field with this name exists in "
+                + structType,
+            edge,
+            designator);
       }
 
     } else {

@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.bam;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
@@ -56,7 +41,7 @@ public abstract class ARGSubtreeRemover {
   protected final TimerWrapper removeCachedSubtreeTimer;
   protected final boolean doPrecisionRefinementForAllStates;
 
-  public ARGSubtreeRemover(AbstractBAMCPA bamCpa, TimerWrapper pRemoveCachedSubtreeTimer) {
+  protected ARGSubtreeRemover(AbstractBAMCPA bamCpa, TimerWrapper pRemoveCachedSubtreeTimer) {
     partitioning = bamCpa.getBlockPartitioning();
     data = bamCpa.getData();
     wrappedReducer = bamCpa.getReducer();
@@ -130,7 +115,7 @@ public abstract class ARGSubtreeRemover {
 
       // we use a loop here, because a return-node can be the exit of several blocks at once.
       ARGState tmp = state;
-      while (data.hasExpandedState(tmp) && bamCutState != bamState) {
+      while (data.hasExpandedState(tmp) && !bamCutState.equals(bamState)) {
         assert partitioning.isReturnNode(extractLocation(tmp))
             : "the mapping of expanded to reduced state should only exist for block-return-locations";
         // we are leaving a block, remove the start-state from the stack.
@@ -142,7 +127,7 @@ public abstract class ARGSubtreeRemover {
         // We ignore this here, because we just need the 'number' of block-exits.
       }
 
-      if (bamCutState == bamState) {
+      if (bamCutState.equals(bamState)) {
         // do not enter or leave a block, when we found the cutState.
         break;
       }

@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.value.type;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -28,6 +13,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
+
 import org.sosy_lab.common.rationals.Rational;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -94,6 +81,9 @@ public class NumericValue implements Value, Serializable {
       //
       // cf. https://docs.oracle.com/javase/8/docs/api/java/lang/Double.html#toString-double-
       return BigDecimal.valueOf(number.doubleValue());
+    } else if (number instanceof Rational) {
+      Rational rat = (Rational) number;
+      return new BigDecimal(rat.getNum()).divide(new BigDecimal(rat.getDen()), 100, RoundingMode.HALF_UP);
     } else {
       return new BigDecimal(number.toString());
     }
@@ -104,12 +94,19 @@ public class NumericValue implements Value, Serializable {
     if (number instanceof BigInteger) {
       return (BigInteger) number;
     }
+    if (number instanceof Double || number instanceof Float) {
+      long x = (long)number.doubleValue();
+      return BigInteger.valueOf(x);
+    }
+    if (number instanceof BigDecimal) {
+      return ((BigDecimal)number).toBigInteger();
+    }
+    if (number instanceof Rational) {
+      return new NumericValue(number).bigDecimalValue().toBigInteger();
+    }
     return new BigInteger(number.toString());
   }
 
-  /* (non-Javadoc)
-   * @see java.lang.Object#toString()
-   */
   @Override
   public String toString() {
     return "NumericValue [number=" + number + "]";

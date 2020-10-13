@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.slab;
 
 import com.google.common.collect.ImmutableList;
@@ -28,12 +13,11 @@ import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
-import javax.annotation.Nonnull;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -94,7 +78,7 @@ public class SLARGState extends ARGState
       EdgeSet edgeToCopy = pState2.parentsToEdgeSets.get(argParent);
       assert edgeToCopy != null;
       EdgeSet newEdge = new EdgeSet(edgeToCopy);
-      if (argParent != pState2) {
+      if (!Objects.equals(argParent, pState2)) {
         this.addParent((SLARGState) argParent, newEdge);
       } else {
         this.addParent(this, newEdge);
@@ -104,7 +88,7 @@ public class SLARGState extends ARGState
       EdgeSet edgeToCopy = pState2.getEdgeSetToChild(argChild);
       assert edgeToCopy != null;
       EdgeSet newEdge = new EdgeSet(edgeToCopy);
-      if (argChild != pState2) {
+      if (!Objects.equals(argChild, pState2)) {
         /* replaced this line by the line below. should be fine. TODO: remove this note if it is fine
         this.addChild((SLARGState) argChild, newEdge);*/
         ((SLARGState) argChild).addParent(this, newEdge);
@@ -151,7 +135,7 @@ public class SLARGState extends ARGState
   }
 
   @Override
-  public @Nonnull Set<Property> getViolatedProperties() throws IllegalStateException {
+  public @NonNull Set<Property> getViolatedProperties() throws IllegalStateException {
     return NamedProperty.singleton("Error state reached");
   }
 
@@ -204,13 +188,13 @@ public class SLARGState extends ARGState
   public void removeFromARG() {
     assert !this.isDestroyed() : "Don't use destroyed ARGState " + this;
     for (ARGState argParent : new ArrayList<>(getParents())) { // prevent concurrent modification
-      if (argParent != this) {
+      if (!Objects.equals(argParent, this)) {
         SLARGState parent = (SLARGState) argParent;
         removeParent(parent);
       }
     }
     for (ARGState argChild : new ArrayList<>(getChildren())) { // prevent concurrent modification
-      if (argChild != this) {
+      if (!Objects.equals(argChild, this)) {
         SLARGState child = (SLARGState) argChild;
         child.removeParent(this);
       }
@@ -248,7 +232,7 @@ public class SLARGState extends ARGState
     assert !replacement.isDestroyed() : "Don't use destroyed ARGState " + replacement;
     assert !isCovered() : "Not implemented: Replacement of covered element " + this;
     assert !replacement.isCovered() : "Cannot replace with covered element " + replacement;
-    assert !(this == replacement) : "Don't replace ARGState " + this + " with itself";
+    assert !this.equals(replacement) : "Don't replace ARGState " + this + " with itself";
 
     // copy children
     for (ARGState child : new ArrayList<>(getChildren())) {
@@ -275,14 +259,14 @@ public class SLARGState extends ARGState
     // counterexample check will not work correctly (the advance()-method in DefaultFullPathIterator
     // expects there to be some location information for determining the right CFAEdge)
     ImmutableSet.Builder<CFANode> locations = ImmutableSet.builder();
-    for (Entry<SLARGState, EdgeSet> entry : parentsToEdgeSets.entrySet()) {
-      for (Iterator<CFAEdge> it = entry.getValue().iterator(); it.hasNext(); ) {
-        locations.add(it.next().getSuccessor());
+    for (EdgeSet value : parentsToEdgeSets.values()) {
+      for (CFAEdge edge : value) {
+        locations.add(edge.getSuccessor());
       }
     }
-    for (Entry<SLARGState, EdgeSet> entry : childrenToEdgeSets.entrySet()) {
-      for (Iterator<CFAEdge> it = entry.getValue().iterator(); it.hasNext(); ) {
-        locations.add(it.next().getPredecessor());
+    for (EdgeSet value : childrenToEdgeSets.values()) {
+      for (CFAEdge edge : value) {
+        locations.add(edge.getPredecessor());
       }
     }
     return locations.build();

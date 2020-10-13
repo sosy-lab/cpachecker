@@ -1,36 +1,23 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cmdline;
 
 import com.google.common.base.Joiner;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.log.LogManager;
 
 /**
@@ -44,6 +31,8 @@ class ForceTerminationOnShutdown implements Runnable {
   // (which is fully sufficient given that all instance would just kill the JVM)
   // We need this instance to be able to cancel the forced termination.
   private static final AtomicReference<Thread> forceTerminationOnShutdownThread = new AtomicReference<>();
+
+  private static final AtomicBoolean canceled = new AtomicBoolean();
 
   // Time that a shutdown may last before we kill the program.
   private static final int SHUTDOWN_GRACE_PERIOD = 10; // seconds
@@ -80,6 +69,9 @@ class ForceTerminationOnShutdown implements Runnable {
               "but there is already a thread waiting to terminate the JVM.");
           return;
         }
+        if (canceled.get()) {
+          return;
+        }
 
         logger.log(
             Level.WARNING, "Shutdown requested", "(" + pReason + "),", "waiting for termination.");
@@ -104,6 +96,7 @@ class ForceTerminationOnShutdown implements Runnable {
    * so that no action will be done.
    */
   static void cancelPendingTermination() {
+    canceled.set(true);
     Thread t = forceTerminationOnShutdownThread.getAndSet(null);
     if (t != null) {
       t.interrupt();
@@ -111,6 +104,7 @@ class ForceTerminationOnShutdown implements Runnable {
   }
 
   @SuppressWarnings({"deprecation", "DeprecatedThreadMethods"})
+  @SuppressForbidden("need to call Thread.stop")
   @SuppressFBWarnings("DM_EXIT")
   @Override
   public void run() {
@@ -121,6 +115,9 @@ class ForceTerminationOnShutdown implements Runnable {
       TimeUnit.SECONDS.sleep(SHUTDOWN_GRACE_PERIOD);
     } catch (InterruptedException e) {
       return; // Cancel termination
+    }
+    if (canceled.get()) {
+      return;
     }
     logger.log(Level.WARNING, "Shutdown was requested but CPAchecker is still running after",
         SHUTDOWN_GRACE_PERIOD + "s, forcing immediate termination now.");
@@ -143,6 +140,9 @@ class ForceTerminationOnShutdown implements Runnable {
     try {
       TimeUnit.SECONDS.sleep(SHUTDOWN_GRACE_PERIOD_2);
     } catch (InterruptedException e) {
+      return;
+    }
+    if (canceled.get()) {
       return;
     }
 

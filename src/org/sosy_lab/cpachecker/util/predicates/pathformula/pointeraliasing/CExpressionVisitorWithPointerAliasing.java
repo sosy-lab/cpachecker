@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -64,6 +49,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.BuiltinFloatFunctions;
 import org.sosy_lab.cpachecker.util.BuiltinFunctions;
+import org.sosy_lab.cpachecker.util.BuiltinOverflowFunctions;
+import org.sosy_lab.cpachecker.util.OverflowAssumptionManager;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ErrorConditions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
@@ -174,6 +161,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
     this.conv = cToFormulaConverter;
     this.typeHandler = cToFormulaConverter.typeHandler;
+    this.ofmgr = new OverflowAssumptionManager(conv.machineModel, conv.logger);
     this.edge = cfaEdge;
     this.ssa = ssa;
     this.constraints = constraints;
@@ -256,18 +244,19 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
   }
 
   /**
-   * Should be used whenever a location corresponding to a pointer dereference is required.
-   * This function properly handles the ambiguity arising from arrays vs. pointers.
-   * Consider {@code int *pa, a[]; int **ppa = &pa; *pa = 5; *a = 5;}.
-   * Here {@code *pa} should be encoded as <i>int (int*(ADDRESS_OF_pa))</i>, but
-   * {@code *a} should be encoded as <i>int (ADDRESS_OF_a)</i> while both {@code pa} and {@code a}
-   * will result in AliasedLocation with <i>ADDRESS_OF_pa</i> and <i>ADDRESS_OF_a</i> respectively.
-   * So this function will add the additional dereference if necessary.
+   * Should be used whenever a location corresponding to a pointer dereference is required. This
+   * function properly handles the ambiguity arising from arrays vs. pointers. Consider {@code int
+   * *pa, a[]; int **ppa = & pa; *pa = 5; *a = 5;}. Here {@code *pa} should be encoded as <i>int
+   * (int*(ADDRESS_OF_pa))</i>, but {@code *a} should be encoded as <i>int (ADDRESS_OF_a)</i> while
+   * both {@code pa} and {@code a} will result in AliasedLocation with <i>ADDRESS_OF_pa</i> and
+   * <i>ADDRESS_OF_a</i> respectively. So this function will add the additional dereference if
+   * necessary.
+   *
    * @param pE the source C expression form which the resulting {@code Expression} was obtained
    * @param pResult the {@code Expression} resulting from visiting the C expression {@code pE},
-   *        should normally be a Location, but in case of a value the corresponding location is
-   *        returned nontheless (e.g. *((int *)0) -- explicit access violation, may be used for
-   *        debugging in some cases)
+   *     should normally be a Location, but in case of a value the corresponding location is
+   *     returned nontheless (e.g. *((int *)0) -- explicit access violation, may be used for
+   *     debugging in some cases)
    * @return the result AliasedLocation of the pointed value
    */
   private AliasedLocation dereference(final CExpression pE, final Expression pResult) {
@@ -355,7 +344,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
           return Value.nondetValue();
         }
         final Formula offset =
-            conv.fmgr.makeNumber(conv.voidPointerFormulaType, fieldOffset.getAsLong());
+            conv.fmgr.makeNumber(conv.voidPointerFormulaType, fieldOffset.orElseThrow());
         final Formula address = conv.fmgr.makePlus(base.getAddress(), offset);
         addEqualBaseAddressConstraint(base.getAddress(), address);
         final CType fieldType = typeHandler.simplifyType(e.getExpressionType());
@@ -545,9 +534,6 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
             ssa,
             constraints,
             null);
-        if (conv.hasIndex(base.getName(), base.getType(), ssa)) {
-          ssa.deleteVariable(base.getName());
-        }
         if (pts.isPreparedBase(base.getName())) {
           pts.shareBase(base.getName(), base.getType());
         } else {
@@ -726,6 +712,35 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
         }
         return Value.ofValue(f);
       }
+      if (BuiltinOverflowFunctions.isBuiltinOverflowFunction(functionName)) {
+        List<CExpression> parameters = e.getParameterExpressions();
+        assert parameters.size() == 3;
+        CExpression var1 = parameters.get(0);
+        CExpression var2 = parameters.get(1);
+        Expression overflows =
+            BuiltinOverflowFunctions.handleOverflow(ofmgr, var1, var2, functionName).accept(this);
+        Formula f = asValueFormula(overflows, CNumericTypes.BOOL);
+        CLeftHandSide lhs =
+            new CPointerExpression(
+                FileLocation.DUMMY,
+                BuiltinOverflowFunctions.getType(functionName),
+                parameters.get(2));
+        CRightHandSide rhs =
+            BuiltinOverflowFunctions.handleOverflowSideeffects(ofmgr, var1, var2, functionName);
+
+        BooleanFormula form = null;
+        try {
+          form =
+              conv.makeAssignment(
+                  lhs, lhs, rhs, edge, function, ssa, pts, constraints, errorConditions);
+        } catch (InterruptedException e1) {
+          CtoFormulaConverter.propagateInterruptedException(e1);
+        }
+
+        constraints.addConstraint(checkNotNull(form));
+
+        return Value.ofValue(f);
+      }
     }
 
     // Pure functions returning composites are unsupported, return a nondet value
@@ -809,6 +824,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
 
   private final CToFormulaConverterWithPointerAliasing conv;
   private final TypeHandlerWithPointerAliasing typeHandler;
+  private final OverflowAssumptionManager ofmgr;
   private final CFAEdge edge;
   private final SSAMapBuilder ssa;
   private final Constraints constraints;

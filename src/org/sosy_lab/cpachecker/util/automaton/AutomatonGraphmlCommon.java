@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.automaton;
 
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
@@ -107,11 +92,11 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAdditionalInfo;
+import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
 import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFATraversal.CFAVisitor;
 import org.sosy_lab.cpachecker.util.CFATraversal.TraversalProcess;
 import org.sosy_lab.cpachecker.util.CFAUtils;
-import org.sosy_lab.cpachecker.util.SpecificationProperty;
 import org.w3c.dom.DOMException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -283,19 +268,16 @@ public class AutomatonGraphmlCommon {
           return Optional.of(element);
         }
       }
-      if (pTextualRepresentation.equals("FALSE")) {
-        return Optional.of(VIOLATION_WITNESS);
+      switch (pTextualRepresentation) {
+        case "FALSE":
+        case "false_witness":
+          return Optional.of(VIOLATION_WITNESS);
+        case "TRUE":
+        case "true_witness":
+          return Optional.of(CORRECTNESS_WITNESS);
+        default:
+          return Optional.empty();
       }
-      if (pTextualRepresentation.equals("TRUE")) {
-        return Optional.of(CORRECTNESS_WITNESS);
-      }
-      if (pTextualRepresentation.equals("false_witness")) {
-        return Optional.of(VIOLATION_WITNESS);
-      }
-      if (pTextualRepresentation.equals("true_witness")) {
-        return Optional.of(CORRECTNESS_WITNESS);
-      }
-      return Optional.empty();
     }
   }
 
@@ -560,14 +542,15 @@ public class AutomatonGraphmlCommon {
     return handleAsEpsilonEdge(pEdge);
   }
 
+  /**
+   * This method checks whether an edge qualifies as epsilon edge.
+   * Epsilon edges are irrelevant edges that are not required in the witness.
+   * <li>global declarations (there is no other path possible in the CFA),
+   * <li>CPAchecker-internal temporary variable declarations (irrelevant for the witness),
+   * <li>blank edges and function summary edges (not required for a path in the witness).
+   */
   public static boolean handleAsEpsilonEdge(CFAEdge edge) {
-    if (handleAsEpsilonEdge0(edge)) {
-      if (edge.getSuccessor().getNumLeavingEdges() <= 0) {
-        return false;
-      }
-      return true;
-    }
-    return false;
+    return handleAsEpsilonEdge0(edge) && edge.getSuccessor().getNumLeavingEdges() > 0;
   }
 
   private static boolean handleAsEpsilonEdge0(CFAEdge edge) {

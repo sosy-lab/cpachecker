@@ -1,32 +1,18 @@
-/*
- * CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2016  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableTable;
 import com.google.common.collect.Table;
@@ -58,7 +44,7 @@ import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificatio
  * <p>A dependence graph G = (V, E) is a directed graph. His nodes V are CFA edges of the program.
  * Given two nodes i and j, if j is a dependence of i, a directed edge (j, i) from j to i is in E.
  */
-public class DependenceGraph implements Serializable {
+public final class DependenceGraph implements Serializable {
 
   private static final long serialVersionUID = -6721168496945584302L;
 
@@ -131,9 +117,7 @@ public class DependenceGraph implements Serializable {
     nodes.getNodesForEdge(pStart).forEach(waitlist::offer);
 
     while (!waitlist.isEmpty()) {
-      if (shutdownNotifier.shouldShutdown()) {
-        throw new InterruptedException();
-      }
+      shutdownNotifier.shutdownIfNecessary();
       DGNode current = waitlist.poll();
 
       if (!visited.contains(current)) {
@@ -208,16 +192,16 @@ public class DependenceGraph implements Serializable {
     return Objects.hash(nodes, adjacencyMatrix);
   }
 
-  private static class ImmutableNodeMap implements Serializable {
+  private static final class ImmutableNodeMap implements Serializable {
 
     private static final long serialVersionUID = 4311993821719514171L;
 
-    private ImmutableMultimap<CFAEdge, DGNode> nodesForEdges;
-    private ImmutableSet<DGNode> specialNodes;
+    private final ImmutableListMultimap<CFAEdge, DGNode> nodesForEdges;
+    private final ImmutableSet<DGNode> specialNodes;
 
     public ImmutableNodeMap(NodeMap pNodeMap) {
       // FIXME avoid iteration in O(n) here, there may be lots of nodes
-      ImmutableMultimap.Builder<CFAEdge, DGNode> mapBuilder = ImmutableMultimap.builder();
+      ImmutableListMultimap.Builder<CFAEdge, DGNode> mapBuilder = ImmutableListMultimap.builder();
       for (Cell<CFAEdge, Optional<MemoryLocation>, DGNode> c :
           pNodeMap.getNodesForEdges().cellSet()) {
         mapBuilder.put(checkNotNull(c.getRowKey()), checkNotNull(c.getValue()));
@@ -226,7 +210,7 @@ public class DependenceGraph implements Serializable {
       specialNodes = ImmutableSet.copyOf(pNodeMap.getSpecialNodes());
     }
 
-    public Collection<DGNode> getNodesForEdge(CFAEdge pEdge) {
+    public ImmutableList<DGNode> getNodesForEdge(CFAEdge pEdge) {
       return nodesForEdges.get(pEdge);
     }
 
@@ -267,7 +251,7 @@ public class DependenceGraph implements Serializable {
     }
   }
 
-  static class NodeMap {
+  static final class NodeMap {
     private Table<CFAEdge, Optional<MemoryLocation>, DGNode> nodesForEdges =
         HashBasedTable.create();
     private Set<DGNode> specialNodes = new HashSet<>();

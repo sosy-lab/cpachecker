@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2016  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.counterexample;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -28,7 +13,6 @@ import static com.google.common.collect.FluentIterable.from;
 import static com.google.common.html.HtmlEscapers.htmlEscaper;
 import static java.nio.file.Files.isReadable;
 import static java.util.logging.Level.WARNING;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
@@ -65,6 +49,7 @@ import java.util.regex.Pattern;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.common.Optionals;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -82,9 +67,9 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
@@ -92,6 +77,7 @@ import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.BiPredicates;
+import org.sosy_lab.cpachecker.util.faultlocalization.FaultLocalizationInfo;
 
 @Options
 public class ReportGenerator {
@@ -135,7 +121,7 @@ public class ReportGenerator {
   private final Map<String, Object> argRelevantEdges;
   private final Map<Integer, Object> argRelevantNodes;
   private final Map<String, Object> argReducedEdges;
-  private final Map<String, Object> argReducedNodes;
+  private final Map<String, Map<String, Object>> argReducedNodes;
   private Optional<Witness> witnessOptional;
 
   private final String producer; // HTML-escaped producer string
@@ -161,6 +147,7 @@ public class ReportGenerator {
     producer = htmlEscaper().escape(CPAchecker.getVersion(pConfig));
   }
 
+  @SuppressForbidden("System.out is correct here")
   public void generate(
       Result pResult, CFA pCfa, UnmodifiableReachedSet pReached, String pStatistics) {
     checkNotNull(pResult);
@@ -174,7 +161,8 @@ public class ReportGenerator {
 
     FluentIterable<CounterexampleInfo> counterExamples =
         Optionals.presentInstances(
-            from(pReached).filter(IS_TARGET_STATE)
+            from(pReached)
+                .filter(AbstractStates::isTargetState)
                 .filter(ARGState.class)
                 .transform(ARGState::getCounterexampleInformation));
 
@@ -238,7 +226,10 @@ public class ReportGenerator {
         witnessOptional =
             Optional.of(
                 argWitnessExporter.generateProofWitness(
-                    rootState, Predicates.alwaysTrue(), BiPredicates.alwaysTrue()));
+                    rootState,
+                    Predicates.alwaysTrue(),
+                    BiPredicates.alwaysTrue(),
+                    argWitnessExporter.getProofInvariantProvider()));
       } catch (InvalidConfigurationException e) {
         logger.logUserException(Level.WARNING, e, "Could not generate witness for witness view");
       }
@@ -343,8 +334,17 @@ public class ReportGenerator {
     dotBuilder.writeMergedNodesList(writer);
 
     if (counterExample != null) {
-      writer.write(",\n\"errorPath\":");
-      counterExample.toJSON(writer);
+      if (counterExample instanceof FaultLocalizationInfo) {
+        FaultLocalizationInfo flInfo = (FaultLocalizationInfo)counterExample;
+        flInfo.prepare();
+        writer.write(",\n\"errorPath\":");
+        counterExample.toJSON(writer);
+        writer.write(",\n\"faults\":");
+        flInfo.faultsToJSON(writer);
+      } else {
+        writer.write(",\n\"errorPath\":");
+        counterExample.toJSON(writer);
+      }
     }
 
     writer.write(",\n");
@@ -480,7 +480,7 @@ public class ReportGenerator {
                   new FileInputStream(sourcePath.toFile()),
                   Charset.defaultCharset()))) {
         writer.write(
-            "<div class=\"sourceContent\" ng-show = \"sourceFileIsSet("
+            "<div id=\"source-file\" class=\"sourceContent\" ng-show = \"sourceFileIsSet("
                 + sourceFileNumber
                 + ")\">\n<table>\n");
         String line;
@@ -656,7 +656,7 @@ public class ReportGenerator {
     if (!witnessOptional.isPresent()) {
       return;
     }
-    Witness witness = witnessOptional.get();
+    Witness witness = witnessOptional.orElseThrow();
     WitnessToOutputFormatsUtils.witnessToMapsForHTMLReport(witness, argReducedNodes, argReducedEdges);
   }
 
@@ -746,7 +746,6 @@ public class ReportGenerator {
       } else {
         edgeLabel.append("Line ");
         edgeLabel.append(edges.get(0).getFileLocation().getStartingLineInOrigin());
-        edgeLabel.append("");
         argEdge.put("line", edgeLabel.substring(5));
       }
       for (CFAEdge edge : edges) {

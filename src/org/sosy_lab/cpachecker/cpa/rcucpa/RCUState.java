@@ -271,7 +271,7 @@ public class RCUState implements LatticeAbstractState<RCUState>,
     if (this == pO) {
       return true;
     }
-    if (pO == null || getClass() != pO.getClass()) {
+    if (!(pO instanceof RCUState)) {
       return false;
     }
 

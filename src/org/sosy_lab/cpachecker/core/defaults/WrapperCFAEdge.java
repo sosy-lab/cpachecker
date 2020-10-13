@@ -49,7 +49,7 @@ public class WrapperCFAEdge implements AbstractEdge {
     if (obj == null) {
       return false;
     }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof WrapperCFAEdge)) {
       return false;
     }
     WrapperCFAEdge other = (WrapperCFAEdge) obj;

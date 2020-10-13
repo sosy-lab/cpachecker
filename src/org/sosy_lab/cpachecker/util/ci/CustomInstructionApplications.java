@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.ci;
 
 import com.google.common.base.Preconditions;
@@ -36,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -51,12 +37,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
@@ -74,9 +62,11 @@ public class CustomInstructionApplications {
 
   /**
    * Constructor of CustomInstructionApplications
+   *
    * @param pCis ImmutableMap
    */
-  public CustomInstructionApplications(final Map<CFANode, AppliedCustomInstruction> pCis, final CustomInstruction pCi) {
+  protected CustomInstructionApplications(
+      final Map<CFANode, AppliedCustomInstruction> pCis, final CustomInstruction pCi) {
     cis = pCis;
     ci = pCi;
   }
@@ -148,6 +138,11 @@ public class CustomInstructionApplications {
     return result.build();
   }
 
+  public int getNumApplications() {
+    return cis.size();
+
+  }
+
   @Options(prefix = "custominstructions")
   public static abstract class CustomInstructionApplicationBuilder {
 
@@ -168,8 +163,12 @@ public class CustomInstructionApplications {
     protected final ShutdownNotifier shutdownNotifier;
     protected final CFA cfa;
 
-    public CustomInstructionApplicationBuilder(final Configuration config, final LogManager pLogger,
-        final ShutdownNotifier sdNotifier, final CFA pCfa) throws InvalidConfigurationException {
+    protected CustomInstructionApplicationBuilder(
+        final Configuration config,
+        final LogManager pLogger,
+        final ShutdownNotifier sdNotifier,
+        final CFA pCfa)
+        throws InvalidConfigurationException {
       config.inject(this, CustomInstructionApplicationBuilder.class);
       logger = pLogger;
       shutdownNotifier = sdNotifier;
@@ -275,7 +274,7 @@ public class CustomInstructionApplications {
       try (Writer out =
           IO.openOutputFile(appliedCustomInstructionsDefinition, Charset.defaultCharset())) {
         for(CFANode node: cfa.getAllNodes()) {
-          if (node != ci.getStartNode() && pParser.isAppliedCI(ci, node)) {
+          if (!Objects.equals(node, ci.getStartNode()) && pParser.isAppliedCI(ci, node)) {
             shutdownNotifier.shutdownIfNecessary();
             out.append(node.getNodeNumber() + "\n");
           }
@@ -323,9 +322,11 @@ public class CustomInstructionApplications {
           new CExpressionAssignmentStatement(FileLocation.DUMMY, r, new CBinaryExpressionBuilder(MachineModel.LINUX64,
               logger).buildBinaryExpression(x, y, binaryOperatorForSimpleCustomInstruction));
       // create edge
-      CFANode start, end;
-      start = new CFANode("ci");
-      end = new CFANode("ci");
+      CFunctionDeclaration ciDef =
+          new CFunctionDeclaration(
+              FileLocation.DUMMY, CFunctionType.NO_ARGS_VOID_FUNCTION, "ci", ImmutableList.of());
+      CFANode start = new CFANode(ciDef);
+      CFANode end = new CFANode(ciDef);
       CFAEdge ciEdge = new CStatementEdge("r=x" + binaryOperatorForSimpleCustomInstruction + "y;", stmt, FileLocation.DUMMY, start, end);
       start.addLeavingEdge(ciEdge);
       end.addEnteringEdge(ciEdge);

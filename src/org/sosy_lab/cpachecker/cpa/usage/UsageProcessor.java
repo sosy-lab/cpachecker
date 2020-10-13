@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.usage;
 
+import com.google.common.collect.ImmutableList;
 import de.uni_freiburg.informatik.ultimate.smtinterpol.util.IdentityHashSet;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -233,7 +234,7 @@ public class UsageProcessor {
       List<Pair<AbstractIdentifier, Access>> internalIds = new ArrayList<>();
       internalIds.addAll(handleFunctionCallExpression(pChild, right));
       internalIds.addAll(visitStatement(pChild, variable, Access.WRITE));
-      return internalIds;
+      return ImmutableList.copyOf(internalIds);
 
     } else if (statement instanceof CFunctionCallStatement) {
       return handleFunctionCallExpression(
@@ -320,7 +321,7 @@ public class UsageProcessor {
         internalIds.addAll(handleFunctionCallExpression(pChild, (CFunctionCallExpression) right));
       }
       internalIds.addAll(visitStatement(pChild, left, Access.WRITE));
-      return internalIds;
+      return ImmutableList.copyOf(internalIds);
 
     } else if (pStatement instanceof CFunctionCallStatement) {
       return handleFunctionCallExpression(

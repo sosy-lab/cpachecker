@@ -1,28 +1,12 @@
 #!/usr/bin/env python3
 
-"""
-CPAchecker is a tool for configurable software verification.
-This file is part of CPAchecker.
-
-Copyright (C) 2007-2018  Dirk Beyer
-All rights reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-
-CPAchecker web page:
-  http://cpachecker.sosy-lab.org
-"""
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
 
 import sys
 import os
@@ -30,6 +14,9 @@ import glob
 import subprocess
 import shutil
 import argparse
+import tempfile
+
+from typing import Optional, NamedTuple
 
 import logging
 import re
@@ -66,27 +53,48 @@ RESULT_REJECT = "TRUE"
 RESULT_UNK = "UNKNOWN"
 
 # Regular expressions used to match given specification properties
-REGEX_REACH = re.compile("G\s*!\s*call\(\s*__VERIFIER_error\(\)\s*\)")
-REGEX_OVERFLOW = re.compile("G\s*!\s*overflow")
-_REGEX_MEM_TEMPLATE = "G\s*valid-%s"
+REGEX_REACH = re.compile(r"G\s*!\s*call\(\s*([a-zA-Z0-9_]+)\s*\(\)\s*\)")
+REGEX_OVERFLOW = re.compile(r"G\s*!\s*overflow")
+_REGEX_MEM_TEMPLATE = r"G\s*valid-%s"
 REGEX_MEM_FREE = re.compile(_REGEX_MEM_TEMPLATE % "free")
 REGEX_MEM_DEREF = re.compile(_REGEX_MEM_TEMPLATE % "deref")
 REGEX_MEM_MEMTRACK = re.compile(_REGEX_MEM_TEMPLATE % "memtrack")
 
-# Names of supported specifications
 SPEC_REACH = "unreach-call"
 SPEC_OVERFLOW = "no-overflow"
 SPEC_MEM_FREE = "valid-free"
 SPEC_MEM_DEREF = "valid-deref"
 SPEC_MEM_MEMTRACK = "valid-memtrack"
-# specifications -> regular expressions
-SPECIFICATIONS = {
-    SPEC_REACH: REGEX_REACH,
-    SPEC_OVERFLOW: REGEX_OVERFLOW,
-    SPEC_MEM_FREE: REGEX_MEM_FREE,
-    SPEC_MEM_DEREF: REGEX_MEM_DEREF,
-    SPEC_MEM_MEMTRACK: REGEX_MEM_MEMTRACK,
-}
+
+
+class ValidationResult(NamedTuple):
+    verdict: str
+    violated_property: Optional[str] = None
+    successful_harness: Optional[str] = None
+
+
+class Specification(NamedTuple):
+    no_overflow: bool
+    mem_free: bool
+    mem_deref: bool
+    mem_memtrack: bool
+    reach_method_call: Optional[str]
+
+    def is_reach_call(self):
+        return self.reach_method_call is not None
+
+    @property
+    def mem(self):
+        return any((self.mem_free, self.mem_deref, self.mem_memtrack))
+
+    def invalid(self):
+        return not (
+            self.no_overflow
+            or self.mem_free
+            or self.mem_deref
+            or self.mem_memtrack
+            or self.reach_method_call
+        )
 
 
 class ValidationError(Exception):
@@ -238,13 +246,15 @@ def _create_compiler_cmd_tail(harness, file, target):
     return ["-o", target, "-include", file, harness]
 
 
-def create_compile_cmd(harness, target, args, specification, c_version="gnu11"):
+def create_compile_cmd(
+    harness, program, target, args, specification, c_version="gnu11"
+):
     """Create the compile command.
 
     :param str harness: path to harness file
     :param str target: path to program under test
     :param args: arguments as parsed by argparse
-    :param list specification: list of properties to check against
+    :param Specification specification: specification to compile for
     :param str c_version: C standard to use for compilation
     :return: list of command-line keywords that can be given to method `execute`
     """
@@ -258,27 +268,24 @@ def create_compile_cmd(harness, target, args, specification, c_version="gnu11"):
     compile_cmd.append("-std={}".format(c_version))
 
     sanitizer_in_use = False
-    if SPEC_OVERFLOW in specification:
+    if specification.no_overflow:
         sanitizer_in_use = True
         compile_cmd += [
             "-fsanitize=signed-integer-overflow",
             "-fsanitize=float-cast-overflow",
         ]
-    if any(
-        spec in specification
-        for spec in (SPEC_MEM_FREE, SPEC_MEM_DEREF, SPEC_MEM_MEMTRACK)
-    ):
+    if specification.mem:
         sanitizer_in_use = True
         compile_cmd += ["-fsanitize=address", "-fsanitize=leak"]
 
     if sanitizer_in_use:
         # Do not continue execution after a sanitize error
         compile_cmd.append("-fno-sanitize-recover")
-    compile_cmd += _create_compiler_cmd_tail(harness, args.file, target)
+    compile_cmd += _create_compiler_cmd_tail(harness, program, target)
     return compile_cmd
 
 
-def _create_cpachecker_args(args):
+def _create_cpachecker_args(args, harness_output_dir):
     cpachecker_args = sys.argv[1:]
 
     for compile_arg in ["-gcc-args"] + args.compile_args:
@@ -286,6 +293,7 @@ def _create_cpachecker_args(args):
             cpachecker_args.remove(compile_arg)
 
     cpachecker_args.append("-witness2test")
+    cpachecker_args += ["-outputpath", harness_output_dir]
 
     return cpachecker_args
 
@@ -322,9 +330,9 @@ def get_cpachecker_executable():
     raise ValidationError("CPAchecker executable not found or not executable!")
 
 
-def create_harness_gen_cmd(args):
+def create_harness_gen_cmd(args, harness_output_dir):
     cpa_executable = get_cpachecker_executable()
-    harness_gen_args = _create_cpachecker_args(args)
+    harness_gen_args = _create_cpachecker_args(args, harness_output_dir)
     return [cpa_executable] + harness_gen_args
 
 
@@ -363,12 +371,12 @@ def analyze_result(test_result, harness, specification):
 
     :param ExecutionResult test_result: result of test execution
     :param str harness: path to harness file
-    :param list specification: list of properties that are part of the specification
+    :param Specification specification: specification to check result against
     :return: tuple of the verdict of the test execution and the violated property, if any.
         The verdict is one of RESULT_ACCEPT, RESULT_REJECT and RESULT_UNK.
         The violated property is one element of the given specification.
     """
-    results_and_violated_props = list()
+    results_and_violated_props = []
 
     def check(code, err_msg, spec_property):
         results_and_violated_props.append(
@@ -378,15 +386,15 @@ def analyze_result(test_result, harness, specification):
     # For each specification property, check whether an error message
     # showing its violation was printed
     # TODO: Turn into dict() with loop to be more flexible and remove magic numbers
-    if SPEC_REACH in specification:
+    if specification.reach_method_call:
         check(107, EXPECTED_ERRMSG_REACH, SPEC_REACH)
-    if SPEC_OVERFLOW in specification:
+    if specification.no_overflow:
         check(1, EXPECTED_ERRMSG_OVERFLOW, SPEC_OVERFLOW)
-    if SPEC_MEM_FREE in specification:
+    if specification.mem_free:
         check(1, EXPECTED_ERRMSG_MEM_FREE, SPEC_MEM_FREE)
-    if SPEC_MEM_DEREF in specification:
+    if specification.mem_deref:
         check(1, EXPECTED_ERRMSG_MEM_DEREF, SPEC_MEM_DEREF)
-    if SPEC_MEM_MEMTRACK in specification:
+    if specification.mem_memtrack:
         check(1, EXPECTED_ERRMSG_MEM_MEMTRACK, SPEC_MEM_MEMTRACK)
 
     results = [r[0] for r in results_and_violated_props]
@@ -431,12 +439,11 @@ def _log_multiline(msg, level=logging.INFO):
 
 
 def get_spec(specification_file):
-    """Return the list of specification properties defined by the given
-    specification file.
+    """Return the specification defined by the given specification file.
 
     :param str specification_file: specification file to read.
-    :return List[str]: list of specification properties
-    :raise ValidationError: if no specification file given or it doesn't exist
+    :return Specification: specification described by file
+    :raise ValidationError: if no specification file given, invalid or doesn't exist
     """
 
     if not specification_file:
@@ -449,35 +456,54 @@ def get_spec(specification_file):
     with open(specification_file, "r") as inp:
         content = inp.read().strip()
 
-    specification = list()
-    spec_matches = re.match(
-        "CHECK\(\s*init\(.*\),\s*LTL\(\s*(.+)\s*\)\\r*\\n*", content
-    )
+    spec_matches = re.match(r"CHECK\(\s*init\(.*\),\s*LTL\(\s*(.+)\s*\)", content)
+    spec = None
     if spec_matches:
-        for spec, regex in SPECIFICATIONS.items():
-            if regex.search(content):
-                specification.append(spec)
+        no_overflow = REGEX_OVERFLOW.search(content)
+        mem_free = REGEX_MEM_FREE.search(content)
+        mem_deref = REGEX_MEM_DEREF.search(content)
+        mem_memtrack = REGEX_MEM_MEMTRACK.search(content)
+        try:
+            method_call = REGEX_REACH.search(content).group(1)
+        except AttributeError:
+            # search returned None
+            method_call = None
 
-    if not specification:
+        spec = Specification(
+            no_overflow=no_overflow,
+            mem_free=mem_free,
+            mem_deref=mem_deref,
+            mem_memtrack=mem_memtrack,
+            reach_method_call=method_call,
+        )
+
+    if spec is None or spec.invalid():
         raise ValidationError("No SV-COMP specification found in " + specification_file)
-    return specification
+    return spec
 
 
-def run():
-    statistics = []
-    args = _parse_args()
-    output_dir = args.output_path
+def _preprocess(program: str, spec: Specification, target: str):
+    with open(program, "r") as inp:
+        content = inp.read()
 
-    specification = get_spec(args.specification_file)
+    # IMPORTANT: This assumes that any target function is not defined or defined on a single line of code
+    if spec.reach_method_call:
+        method_def_to_rename = spec.reach_method_call
+        new_content = re.sub(
+            method_def_to_rename + r"(\s*\(.*\) ){.*}",
+            method_def_to_rename + r"\1;",
+            content,
+        )
+    else:
+        new_content = content
 
-    harness_gen_cmd = create_harness_gen_cmd(args)
-    harness_gen_result = execute(harness_gen_cmd)
-    print(harness_gen_result.stderr)
-    _log_multiline(harness_gen_result.stdout, level=logging.DEBUG)
+    with open(target, "w") as outp:
+        outp.write(new_content)
 
-    created_harnesses = find_harnesses(output_dir)
-    statistics.append(("Harnesses produced", len(created_harnesses)))
 
+def _execute_harnesses(
+    created_harnesses, program_file, specification, output_dir, args
+):
     final_result = None
     violated_property = None
     successful_harness = None
@@ -489,7 +515,9 @@ def run():
         iter_count += 1
         logging.info("Looking at {}".format(harness))
         exe_target = output_dir + os.sep + get_target_name(harness)
-        compile_cmd = create_compile_cmd(harness, exe_target, args, specification)
+        compile_cmd = create_compile_cmd(
+            harness, program_file, exe_target, args, specification
+        )
         compile_result = execute(compile_cmd)
 
         _log_multiline(compile_result.stderr, level=logging.INFO)
@@ -497,7 +525,7 @@ def run():
 
         if compile_result.returncode != 0:
             compile_cmd = create_compile_cmd(
-                harness, exe_target, args, specification, "gnu90"
+                harness, program_file, exe_target, args, specification, "gnu90"
             )
             compile_result = execute(compile_cmd)
             _log_multiline(compile_result.stderr, level=logging.INFO)
@@ -551,20 +579,66 @@ def run():
     statistics.append(("C11 compatible", c11_success_count))
     statistics.append(("Harnesses rejected", reject_count))
 
+    return ValidationResult(
+        verdict=final_result,
+        violated_property=violated_property,
+        successful_harness=successful_harness,
+    )
+
+
+statistics = []
+
+
+def run():
+    args = _parse_args()
+    output_dir = args.output_path
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
+
+    specification = get_spec(args.specification_file)
+
+    with tempfile.TemporaryDirectory(suffix="cpa_witness2test_") as harness_output_dir:
+        try:
+            harness_gen_cmd = create_harness_gen_cmd(args, harness_output_dir)
+            harness_gen_result = execute(harness_gen_cmd)
+            print(harness_gen_result.stderr)
+            _log_multiline(harness_gen_result.stdout, level=logging.DEBUG)
+
+            created_harnesses = find_harnesses(harness_output_dir)
+            statistics.append(("Harnesses produced", len(created_harnesses)))
+
+            if created_harnesses:
+                with tempfile.NamedTemporaryFile(suffix=".c") as preprocessed_program:
+                    _preprocess(args.file, specification, preprocessed_program.name)
+                    result = _execute_harnesses(
+                        created_harnesses,
+                        preprocessed_program.name,
+                        specification,
+                        harness_output_dir,
+                        args,
+                    )
+            else:
+                result = ValidationResult(RESULT_UNK)
+        finally:
+            for i in os.listdir(harness_output_dir):
+                shutil.move(
+                    os.path.join(harness_output_dir, i), os.path.join(output_dir, i)
+                )
+
     if args.stats:
         print(os.linesep + "Statistics:")
         for prop, value in statistics:
             print("\t" + str(prop) + ": " + str(value))
         print()
 
-    if successful_harness:
-        print("Harness %s was successful." % successful_harness)
+    if result.successful_harness:
+        print("Harness %s was successful." % result.successful_harness)
 
-    result_str = "Verification result: %s" % final_result
-    if violated_property:
+    result_str = "Verification result: %s" % result.verdict
+    if result.violated_property:
         result_str += (
             ". Property violation (%s) found by chosen configuration."
-            % violated_property
+            % result.violated_property
         )
     print(result_str)
 

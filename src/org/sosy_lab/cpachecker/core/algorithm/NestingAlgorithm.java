@@ -1,25 +1,15 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm;
 
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.base.Splitter;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -39,7 +29,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
@@ -48,6 +37,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
@@ -62,7 +52,7 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
   protected final Configuration globalConfig;
   protected final Specification specification;
 
-  public NestingAlgorithm(
+  protected NestingAlgorithm(
       Configuration pConfig,
       LogManager pLogger,
       ShutdownNotifier pShutdownNotifier,
@@ -189,7 +179,7 @@ public abstract class NestingAlgorithm implements Algorithm, StatisticsProvider 
     Map<String, String> mp = new LinkedHashMap<>();
     for (String option : Splitter.on("\n").omitEmptyStrings().split(config.asPropertiesString())) {
       List<String> split = Splitter.on(" = ").splitToList(option);
-      Preconditions.checkArgument(split.size() == 2, option);
+      checkArgument(split.size() == 2, "unexpected option format: %s", option);
       mp.put(split.get(0), split.get(1));
     }
     return mp;

@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -32,10 +17,8 @@ import static org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasin
 
 import com.google.common.base.Equivalence;
 import com.google.common.base.Joiner;
-import com.google.common.base.Verify;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import com.google.errorprone.annotations.CheckReturnValue;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -65,7 +48,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap.SSAMapBuilder;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMapMerger.MergeResult;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.ctoformula.Constraints;
@@ -253,6 +235,10 @@ class PointerTargetSetManager {
   /**
    * Merges two {@link PointerTargetSet}s into one.
    *
+   * <p>This can modify the given SSAMap in one case: if one of the PointerTargetSets contains a
+   * base for a variable, and the other does not, there will of course be a base for this variable
+   * in the result, and this variable will be deleted from the SSAMap.
+   *
    * @param pts1 The first {@code PointerTargetSet}.
    * @param pts2 The second {@code PointerTargetSet}.
    * @param ssa The map of SSA indices.
@@ -260,7 +246,7 @@ class PointerTargetSetManager {
    * @throws InterruptedException If the algorithms gets interrupted by an external shutdown.
    */
   MergeResult<PointerTargetSet> mergePointerTargetSets(
-      final PointerTargetSet pts1, final PointerTargetSet pts2, final SSAMap ssa)
+      final PointerTargetSet pts1, final PointerTargetSet pts2, final SSAMapBuilder ssa)
       throws InterruptedException {
 
     if (pts1.isEmpty() && pts2.isEmpty()) {
@@ -326,7 +312,8 @@ class PointerTargetSetManager {
     shutdownNotifier.shutdownIfNecessary();
 
     PersistentSortedMap<String, PersistentList<PointerTarget>> mergedTargets =
-      merge(pts1.getTargets(), pts2.getTargets(), mergeOnConflict());
+        merge(
+            pts1.getTargets(), pts2.getTargets(), (key, list1, list2) -> mergeLists(list1, list2));
     shutdownNotifier.shutdownIfNecessary();
 
     // Targets is always the cross product of bases and fields.
@@ -491,29 +478,17 @@ class PointerTargetSetManager {
   }
 
   /**
-   * Gives a handler for merge conflicts.
-   *
-   * @param <K> The type of the keys in the merge conflict handler.
-   * @param <T> The type of the list entries in the merge conflict handler.
-   * @return A handler for merge conflicts.
-   */
-  private static <K, T> MergeConflictHandler<K, PersistentList<T>> mergeOnConflict() {
-    return (key, list1, list2) -> mergeLists(list1, list2);
-  }
-
-  /**
    * Create constraint that imports the old value of a variable into the memory handled with UFs.
    *
    * @param newBases A map of new bases.
    * @param sharedFields A list of shared fields.
-   * @param ssa The SSA map.
+   * @param ssaBuilder The SSA map.
    * @return A boolean formula for the import constraint.
    */
   private BooleanFormula makeValueImportConstraints(
       final PersistentSortedMap<String, CType> newBases,
       final List<CompositeField> sharedFields,
-      final SSAMap ssa) {
-    SSAMapBuilder ssaBuilder = ssa.builder();
+      final SSAMapBuilder ssaBuilder) {
     Constraints constraints = new Constraints(bfmgr);
     for (final Map.Entry<String, CType> base : newBases.entrySet()) {
       if (!options.isDynamicAllocVariableName(base.getKey())
@@ -523,11 +498,6 @@ class PointerTargetSetManager {
             baseVar, base.getKey(), base.getValue(), sharedFields, ssaBuilder, constraints, null);
       }
     }
-
-    Verify.verify(
-        ssaBuilder.build().equals(ssa),
-        "Unexpected SSMap changes for value-import constraints: %s",
-        Sets.difference(ssaBuilder.allVariables(), ssa.allVariables()));
 
     return constraints.get();
   }
@@ -589,7 +559,7 @@ class PointerTargetSetManager {
                   newRegion,
                   memberDeclaration.getType(),
                   compositeType,
-                  offset.getAsLong(),
+                  offset.orElseThrow(),
                   containerOffset + properOffset,
                   targets,
                   fields);

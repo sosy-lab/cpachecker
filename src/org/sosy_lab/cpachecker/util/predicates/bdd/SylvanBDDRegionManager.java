@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.bdd;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -30,9 +15,11 @@ import static jsylvan.JSylvan.makeUnionPar;
 import static jsylvan.JSylvan.ref;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsWriter.writingStatisticsTo;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.primitives.ImmutableIntArray;
 import com.google.common.primitives.Longs;
+import com.google.errorprone.annotations.concurrent.GuardedBy;
 import java.io.PrintStream;
 import java.lang.ref.PhantomReference;
 import java.lang.ref.Reference;
@@ -44,7 +31,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.logging.Level;
-import javax.annotation.concurrent.GuardedBy;
 import jsylvan.JSylvan;
 import org.sosy_lab.common.Concurrency;
 import org.sosy_lab.common.NativeLibraries;
@@ -313,6 +299,18 @@ class SylvanBDDRegionManager implements RegionManager {
   }
 
   @Override
+  public Region replace(Region pRegion, Region[] pOldPredicates, Region[] pNewPredicates) {
+    Preconditions.checkArgument(pOldPredicates.length == pNewPredicates.length);
+    long bdd = unwrap(pRegion);
+    for (int i = 0; i < pOldPredicates.length; i++) {
+      long oldVar = JSylvan.getVar(unwrap(pOldPredicates[i]));
+      long newVar = JSylvan.getVar(unwrap(pNewPredicates[i]));
+      bdd = JSylvan.makeExists(JSylvan.makeAnd(bdd, JSylvan.makeEquals(oldVar, newVar)), oldVar);
+    }
+    return wrap(bdd);
+  }
+
+  @Override
   public Region fromFormula(BooleanFormula pF, FormulaManagerView fmgr,
       Function<BooleanFormula, Region> atomToRegion) {
     BooleanFormulaManagerView bfmgr = fmgr.getBooleanFormulaManager();
@@ -529,7 +527,7 @@ class SylvanBDDRegionManager implements RegionManager {
 
     @Override
     public Long visitXor(BooleanFormula operand1, BooleanFormula operand2) {
-      throw new UnsupportedOperationException();
+      return JSylvan.makeNotEquals(convert(operand1), convert(operand2));
     }
 
     @Override

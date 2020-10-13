@@ -1,31 +1,15 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2019  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.dca;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verify;
-import static com.google.common.collect.FluentIterable.from;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableListCopy;
 
 import com.google.common.collect.FluentIterable;
@@ -34,26 +18,32 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Streams;
+import de.uni_freiburg.informatik.ultimate.icfgtransformer.transformulatransformers.TermException;
 import de.uni_freiburg.informatik.ultimate.lassoranker.Lasso;
-import de.uni_freiburg.informatik.ultimate.lassoranker.exceptions.TermException;
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgument;
 import de.uni_freiburg.informatik.ultimate.logic.SMTLIBException;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.MoreStrings;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
+import org.sosy_lab.common.io.IO;
+import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
@@ -91,8 +81,12 @@ import org.sosy_lab.cpachecker.cpa.automaton.InvalidAutomatonException;
 import org.sosy_lab.cpachecker.cpa.predicate.BlockFormulaStrategy.BlockFormulas;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManager;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionManagerOptions;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractionStatistics;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils;
+import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils.AbstractionPosition;
+import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicateAbstractionsStorage;
 import org.sosy_lab.cpachecker.cpa.predicate.persistence.PredicatePersistenceUtils.PredicateParsingFailedException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -112,6 +106,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.regions.SymbolicRegionManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.predicates.weakening.WeakeningOptions;
 import org.sosy_lab.java_smt.SolverContextFactory;
 import org.sosy_lab.java_smt.SolverContextFactory.Solvers;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -142,32 +137,42 @@ public class DCARefiner implements Refiner, StatisticsProvider {
   private final InterpolationAutomatonBuilder itpAutomatonBuilder;
   private final AbstractionManager abstractionManager;
   private final PredicateAbstractionManager predicateAbstractionManager;
-
+  private final PredicateAbstractionStatistics abstractionStats =
+      new PredicateAbstractionStatistics();
   private final PathChecker pathChecker;
 
   private int curRefinementIteration = 0;
+  private ReachedSet reached;
 
   @Option(
-      secure = false,
+    secure = true,
       description = "Allows to abort the analysis early in order to only produce the ARG")
   private boolean skipAnalysis = false;
 
   @Option(
-      secure = false,
+    secure = true,
       description = "Abort the refinement of finite prefixes for the purpose of better debugging")
   private boolean skipRefinement = false;
 
   @Option(
-      secure = false,
+    secure = true,
       description = "Keep infeasible dummy states that allow for better debugging")
   private boolean keepInfeasibleStates = false;
 
   @Option(
-      secure = false,
+    secure = true,
       description = "Set number of refinements for the trace abstraction algorithm")
   private int maxRefinementIterations = 0;
 
-  private ReachedSet reached;
+  @Option(secure = true, name = "dotExport", description = "export automaton to file")
+  private boolean export = false;
+
+  @Option(
+    secure = true,
+    name = "dotExportFile",
+    description = "file for saving the automaton in DOT format (%s will be replaced with automaton name)")
+  @FileOption(FileOption.Type.OUTPUT_FILE)
+  private PathTemplate dotExportFile = PathTemplate.ofFormatString("%s.dot");
 
   @SuppressWarnings({"resource", "unchecked"})
   private DCARefiner(
@@ -177,8 +182,9 @@ public class DCARefiner implements Refiner, StatisticsProvider {
       final CFA pCfa,
       final LogManager pLogger,
       final ShutdownNotifier pNotifier,
-      final Configuration pConfig)
+      Configuration pConfig)
       throws InvalidConfigurationException {
+    pConfig = Solver.adjustConfigForSolver(pConfig);
     pConfig.inject(this);
 
     argCPA = checkNotNull(pArgCpa);
@@ -242,19 +248,31 @@ public class DCARefiner implements Refiner, StatisticsProvider {
 
     SymbolicRegionManager regionManager = new SymbolicRegionManager(solver);
     abstractionManager = new AbstractionManager(regionManager, pConfig, pLogger, solver);
+    PredicateAbstractionManagerOptions abstractionOptions =
+        new PredicateAbstractionManagerOptions(pConfig);
+    PredicateAbstractionsStorage abstractionStorage;
     try {
-      predicateAbstractionManager =
-          new PredicateAbstractionManager(
-              abstractionManager,
-              pathFormulaManager,
-              solver,
-              pConfig,
-              pLogger,
-              pNotifier,
-              TrivialInvariantSupplier.INSTANCE);
+      abstractionStorage =
+          new PredicateAbstractionsStorage(
+              abstractionOptions.getReuseAbstractionsFrom(),
+              logger,
+              solver.getFormulaManager(),
+              null);
     } catch (PredicateParsingFailedException e) {
       throw new InvalidConfigurationException(e.getMessage(), e);
     }
+    predicateAbstractionManager =
+        new PredicateAbstractionManager(
+            abstractionManager,
+            pathFormulaManager,
+            solver,
+            abstractionOptions,
+            new WeakeningOptions(pConfig),
+            abstractionStorage,
+            pLogger,
+            pNotifier,
+            abstractionStats,
+            TrivialInvariantSupplier.INSTANCE);
 
     itpAutomatonBuilder =
         new InterpolationAutomatonBuilder(
@@ -319,13 +337,12 @@ public class DCARefiner implements Refiner, StatisticsProvider {
     // Hence, they can be safely removed from the ARG, including all parents states that are are both
     // a target state and do not have more than one child-element
     ImmutableList<ARGState> dummyStatesToRemove =
-        pReached
-            .asCollection()
+        pReached.asCollection()
             .stream()
             .filter(
-                x ->
-                    AbstractStates.extractStateByType(x, PredicateAbstractState.class)
-                        instanceof PredicateAbstractState.InfeasibleDummyState)
+                x -> AbstractStates.extractStateByType(
+                    x,
+                    PredicateAbstractState.class) instanceof PredicateAbstractState.InfeasibleDummyState)
             .map(x -> (ARGState) x)
             .collect(ImmutableList.toImmutableList());
 
@@ -382,21 +399,8 @@ public class DCARefiner implements Refiner, StatisticsProvider {
                   solver,
                   (ARGState) reached.getFirstState(),
                   stemPath.asStatesList(),
-                  false);
+                  AbstractionPosition.NONE);
           PathFormula stemPathFormula = createSinglePathFormula(stemPathFormulaList);
-
-          // create loop
-          List<PathFormula> loopPathFormulaList =
-              SlicingAbstractionsUtils.getFormulasForPath(
-                  pathFormulaManager,
-                  solver,
-                  firstNodeInCycle,
-                  loopPath.asStatesList(),
-                  stemPathFormula.getSsa(),
-                  Iterables.getLast(stemPathFormulaList).getPointerTargetSet(),
-                  false);
-          PathFormula loopPathFormula =
-              createSinglePathFormula(loopPathFormulaList, stemPathFormula);
 
           // check stem prefixes for infeasibility
           ImmutableList<BooleanFormula> stemBFList =
@@ -410,6 +414,19 @@ public class DCARefiner implements Refiner, StatisticsProvider {
               continue;
             }
           }
+
+          // create loop
+          List<PathFormula> loopPathFormulaList =
+              SlicingAbstractionsUtils.getFormulasForPath(
+                  pathFormulaManager,
+                  solver,
+                  firstNodeInCycle,
+                  loopPath.asStatesList(),
+                  stemPathFormula.getSsa(),
+                  Iterables.getLast(stemPathFormulaList).getPointerTargetSet(),
+                  AbstractionPosition.NONE);
+          PathFormula loopPathFormula =
+              createSinglePathFormula(loopPathFormulaList, stemPathFormula);
 
           // check loop prefixes for infeasibility
           ImmutableList<BooleanFormula> loopBFList =
@@ -459,21 +476,19 @@ public class DCARefiner implements Refiner, StatisticsProvider {
           Dnf stemDnf = lassoBuilder.toDnf(stemAndLoop.getStem());
           Dnf loopDnf = lassoBuilder.toDnf(stemAndLoop.getLoop(), stemDnf.getUfEliminationResult());
 
-          LoopStructure loopStructure = cfa.getLoopStructure().get();
+          LoopStructure loopStructure = cfa.getLoopStructure().orElseThrow();
           // TODO: Rewrite the code below so that always the correct loop is selected
           // The current logic below will most likely not work for programs with several / complex
           // loops
-          ImmutableList<CFANode> collect =
+          ImmutableList<CFANode> cfaNodesOfCurrentCycle =
               cycle
                   .stream()
                   .map(AbstractStates::extractLocation)
                   .collect(ImmutableList.toImmutableList());
           ImmutableList<Loop> loops =
-              loopStructure
-                  .getAllLoops()
-                  .stream()
-                  .filter(x -> collect.containsAll(x.getLoopNodes()))
-                  .collect(ImmutableList.toImmutableList());
+              FluentIterable.from(loopStructure.getAllLoops())
+                  .filter(x -> x.getLoopNodes().containsAll(cfaNodesOfCurrentCycle))
+                  .toList();
           Loop loop = loops.iterator().next();
 
           Set<CVariableDeclaration> varDeclarations = variables.getDeclarations(loop);
@@ -518,7 +533,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
     // explicitly proven as safe, or there were no cycles available in the first place
     logger.log(
         Level.INFO,
-        "No cycles left to check, continuing with simple paths now (i.e., paths with loose ends).");
+        "No cycles left to check, continuing with simple paths (paths with loose ends).");
 
     ImmutableList<ARGState> targetStatesWithoutChildren =
         reached
@@ -541,7 +556,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
               solver,
               (ARGState) reached.getFirstState(),
               path.asStatesList(),
-              false);
+              AbstractionPosition.NONE);
 
       // check path for infeasibility
       ImmutableList<BooleanFormula> bfList =
@@ -552,15 +567,17 @@ public class DCARefiner implements Refiner, StatisticsProvider {
 
           if (!keepInfeasibleStates) {
             logger.log(
-                Level.INFO, "Found unsat predicates in finite path. Removing it from the ARG.");
+                Level.INFO,
+                "Found unsat predicates in a finite path. Removing them from the ARG.");
             removeInfeasibleStatesFromARG(stateWithoutChildren);
           } else {
             logger.logf(
-                Level.INFO, "Flag received to skip removing any infeasible predicate dummy state.");
+                Level.INFO,
+                "Flag received to skip the removal of infeasible predicate dummy states.");
           }
 
         } else {
-          logger.log(Level.INFO, "Found feasible errorpath with target states.");
+          logger.log(Level.INFO, "Feasible errorpath with target states found.");
 
           CounterexampleTraceInfo cexTraceInfo =
               interpolationManager.buildCounterexampleTrace(new BlockFormulas(bfList));
@@ -574,7 +591,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
       }
     }
 
-    logger.log(Level.INFO, "Finished checking the simple paths.");
+    logger.log(Level.INFO, "Finished checking the simple paths for targetstates.");
 
     return false;
   }
@@ -585,9 +602,9 @@ public class DCARefiner implements Refiner, StatisticsProvider {
     collectStatesToRemove(pState, statesToRemove);
     logger.logf(
         Level.INFO,
-        "Removing %d states that are attached to the given state",
+        "Removing %d state(s) that are attached to the given state",
         statesToRemove.size());
-    statesToRemove.stream().forEach(ARGState::removeFromARG);
+    statesToRemove.forEach(ARGState::removeFromARG);
     reached.removeAll(statesToRemove);
   }
 
@@ -614,7 +631,10 @@ public class DCARefiner implements Refiner, StatisticsProvider {
         interpolationManager.buildCounterexampleTrace(new BlockFormulas(booleanFormulas));
 
     List<BooleanFormula> interpolants = cexTraceInfo.getInterpolants();
-    logger.logf(Level.WARNING, "Interpolants:\n%s", interpolants);
+    logger.logf(
+        Level.INFO,
+        "Mapping of interpolants to arg-states:\n%s",
+        lazyPrintItpToTransitionMapping(pPath, interpolants));
 
     // TODO: eventually change this to an assertion
     verify(
@@ -629,8 +649,19 @@ public class DCARefiner implements Refiner, StatisticsProvider {
       itpAutomatonBuilder.addAdditionalTransitions(itpAutomaton, pPath, interpolants);
       Automaton automaton = itpAutomaton.createAutomaton();
 
-      // TODO: dump automaton to file (optionally) instead of printing it to stdout
-      logger.log(Level.INFO, automaton);
+      if (export) {
+        logger.log(Level.INFO, automaton);
+        if (dotExportFile != null) {
+          try (Writer w =
+              IO.openOutputFile(
+                  dotExportFile.getPath(automaton.getName()),
+                  Charset.defaultCharset())) {
+            automaton.writeDotFile(w);
+          } catch (IOException e) {
+            logger.logUserException(Level.WARNING, e, "Could not write the automaton to DOT file");
+          }
+        }
+      }
 
       if (skipRefinement || curRefinementIteration >= maxRefinementIterations) {
         logger.log(Level.SEVERE, "Skipping the refinement");
@@ -647,6 +678,22 @@ public class DCARefiner implements Refiner, StatisticsProvider {
     }
 
     return true;
+  }
+
+  private Object
+      lazyPrintItpToTransitionMapping(ARGPath pPath, List<BooleanFormula> pInterpolants) {
+    return MoreStrings.lazyString(
+        () -> Streams.zip(
+            pPath.getStatePairs().stream(),
+            pInterpolants.stream(),
+            (statePair, itp) -> String.format(
+                "%d:%s -> %d:%s : %s",
+                statePair.getFirstNotNull().getStateId(),
+                AbstractStates.extractLocation(statePair.getFirstNotNull()),
+                statePair.getSecondNotNull().getStateId(),
+                AbstractStates.extractLocation(statePair.getSecondNotNull()),
+                itp))
+            .collect(Collectors.joining("\n")));
   }
 
   private void reinitializeReachedSet() throws InterruptedException {
@@ -666,14 +713,14 @@ public class DCARefiner implements Refiner, StatisticsProvider {
     return ImmutableList.of(abstractionManager.makePredicate(pInterpolant));
   }
 
-  public boolean isUnsat(BooleanFormula... formulas) throws InterruptedException, SolverException {
-    return isUnsat(ImmutableList.copyOf(formulas));
+  public boolean isUnsat(BooleanFormula... pFormulas) throws InterruptedException, SolverException {
+    return isUnsat(ImmutableList.copyOf(pFormulas));
   }
 
-  private boolean isUnsat(Collection<BooleanFormula> formulas)
+  private boolean isUnsat(Collection<BooleanFormula> pFormulas)
       throws InterruptedException, SolverException {
     try (ProverEnvironment proverEnvironment = solver.newProverEnvironment()) {
-      for (BooleanFormula formula : formulas) {
+      for (BooleanFormula formula : pFormulas) {
         proverEnvironment.push(formula);
       }
       return proverEnvironment.isUnsat();
@@ -683,8 +730,7 @@ public class DCARefiner implements Refiner, StatisticsProvider {
   private PathFormula createSinglePathFormula(
       List<PathFormula> pPathFormulas, PathFormula pStartFormula) {
     PathFormula result = pathFormulaManager.makeEmptyPathFormula(pStartFormula);
-    for (Iterator<PathFormula> iterator = pPathFormulas.iterator(); iterator.hasNext(); ) {
-      PathFormula next = iterator.next();
+    for (PathFormula next : pPathFormulas) {
       BooleanFormula resultFormula =
           formulaManagerView.getBooleanFormulaManager().and(result.getFormula(), next.getFormula());
       result =
@@ -718,10 +764,9 @@ public class DCARefiner implements Refiner, StatisticsProvider {
 
   private Object lazyPrintNodes(Collection<ARGState> pArgStates) {
     return MoreStrings.lazyString(
-        () ->
-            from(pArgStates)
-                .transform(x -> (x.getStateId() + ":" + AbstractStates.extractLocation(x)))
-                .toString());
+        () -> FluentIterable.from(pArgStates)
+            .transform(x -> (x.getStateId() + ":" + AbstractStates.extractLocation(x)))
+            .toString());
   }
 
   @Override

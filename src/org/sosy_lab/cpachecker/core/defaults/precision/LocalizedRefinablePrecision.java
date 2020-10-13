@@ -1,34 +1,18 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2016  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.defaults.precision;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.SetMultimap;
-import com.google.common.collect.TreeMultimap;
+import com.google.common.collect.Ordering;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Map.Entry;
@@ -46,16 +30,16 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
    * the immutable collection that determines which variables are tracked at a specific location -
    * if it is null, all variables are tracked
    */
-  private transient ImmutableMultimap<CFANode, MemoryLocation> rawPrecision;
+  private transient ImmutableSetMultimap<CFANode, MemoryLocation> rawPrecision;
 
   LocalizedRefinablePrecision(VariableTrackingPrecision pBaseline) {
     super(pBaseline);
-    rawPrecision = ImmutableMultimap.of();
+    rawPrecision = ImmutableSetMultimap.of();
   }
 
   private LocalizedRefinablePrecision(
       VariableTrackingPrecision pBaseline,
-      ImmutableMultimap<CFANode, MemoryLocation> pRawPrecision) {
+      ImmutableSetMultimap<CFANode, MemoryLocation> pRawPrecision) {
     super(pBaseline);
     rawPrecision = pRawPrecision;
   }
@@ -65,12 +49,17 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
     if (this.rawPrecision.entries().containsAll(increment.entries())) {
       return this;
     } else {
-      // sorted multimap so that we have deterministic output
-      SetMultimap<CFANode, MemoryLocation> refinedPrec = TreeMultimap.create(rawPrecision);
-      refinedPrec.putAll(increment);
-
-      return new LocalizedRefinablePrecision(super.getBaseline(), ImmutableMultimap.copyOf(refinedPrec));
+      ImmutableSetMultimap<CFANode, MemoryLocation> refinedPrec =
+          createBuilder().putAll(rawPrecision).putAll(increment).build();
+      return new LocalizedRefinablePrecision(super.getBaseline(), refinedPrec);
     }
+  }
+
+  private static ImmutableSetMultimap.Builder<CFANode, MemoryLocation> createBuilder() {
+    // sorted multimap so that we have deterministic output
+    return ImmutableSetMultimap.<CFANode, MemoryLocation>builder()
+        .orderKeysBy(Ordering.natural())
+        .orderValuesBy(Ordering.natural());
   }
 
   @Override
@@ -85,14 +74,16 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
   }
 
   @Override
-  public VariableTrackingPrecision join(VariableTrackingPrecision consolidatedPrecision) {
-    checkArgument(getClass().equals(consolidatedPrecision.getClass()));
-    checkArgument(
-        super.getBaseline().equals(((LocalizedRefinablePrecision) consolidatedPrecision).getBaseline()));
+  public VariableTrackingPrecision join(VariableTrackingPrecision pConsolidatedPrecision) {
+    checkArgument(getClass().equals(pConsolidatedPrecision.getClass()));
+    LocalizedRefinablePrecision consolidatedPrecision =
+        (LocalizedRefinablePrecision) pConsolidatedPrecision;
+    checkArgument(super.getBaseline().equals(consolidatedPrecision.getBaseline()));
 
-    SetMultimap<CFANode, MemoryLocation> joinedPrec = TreeMultimap.create(rawPrecision);
-    joinedPrec.putAll(((LocalizedRefinablePrecision) consolidatedPrecision).rawPrecision);
-    return new LocalizedRefinablePrecision(super.getBaseline(), ImmutableMultimap.copyOf(joinedPrec));
+    ImmutableSetMultimap<CFANode, MemoryLocation> joinedPrec =
+        createBuilder().putAll(rawPrecision).putAll(consolidatedPrecision.rawPrecision).build();
+    return new LocalizedRefinablePrecision(
+        super.getBaseline(), ImmutableSetMultimap.copyOf(joinedPrec));
   }
 
   @Override
@@ -151,10 +142,10 @@ class LocalizedRefinablePrecision extends RefinablePrecision {
   @SuppressWarnings("UnusedVariable") // parameter is required by API
   private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
-    CFAInfo cfa = GlobalInfo.getInstance().getCFAInfo().get();
-    ImmutableMultimap.Builder<CFANode, MemoryLocation> precisionBuilder =
-        ImmutableMultimap.builder();
-    for (int i = 0; i < in.readInt(); i++) {
+    CFAInfo cfa = GlobalInfo.getInstance().getCFAInfo().orElseThrow();
+    ImmutableSetMultimap.Builder<CFANode, MemoryLocation> precisionBuilder = createBuilder();
+    final int entryCount = in.readInt();
+    for (int i = 0; i < entryCount; i++) {
       precisionBuilder.put(cfa.getNodeByNodeNumber(in.readInt()), (MemoryLocation) in.readObject());
     }
     rawPrecision = precisionBuilder.build();

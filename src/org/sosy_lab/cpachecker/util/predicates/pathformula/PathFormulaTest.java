@@ -1,37 +1,22 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.pathformula;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 
 import com.google.common.testing.ClassSanityTester;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.Constructor;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentLinkedList;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
@@ -46,6 +31,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.pointeraliasing.Point
 @SuppressFBWarnings("NP_NONNULL_FIELD_NOT_INITIALIZED_IN_CONSTRUCTOR")
 public class PathFormulaTest {
 
+  @SuppressForbidden("reflection only in test")
   private ClassSanityTester classSanityTester() throws Exception {
     // hacky way to get a non-empty PointerTargetSet
     // until that class gets mockable
@@ -68,9 +54,6 @@ public class PathFormulaTest {
             PointerTargetSet.emptyPointerTargetSet(),
             dummyPTS);
   }
-
-  @Rule
-  public final ExpectedException thrown = ExpectedException.none();
 
   private SSAMapBuilder builder;
 
@@ -156,21 +139,19 @@ public class PathFormulaTest {
   public void testSSAExceptionMonotone() {
     builder.setIndex("a", CNumericTypes.INT, 2);
 
-    thrown.expect(IllegalArgumentException.class);
-    builder.setIndex("a", CNumericTypes.INT, 1);
+    assertThrows(IllegalArgumentException.class, () -> builder.setIndex("a", CNumericTypes.INT, 1));
   }
 
   @Test
   public void testSSAExceptionNegative() {
-    thrown.expect(IllegalArgumentException.class);
-    builder.setIndex("a", CNumericTypes.INT, -5);
+    assertThrows(
+        IllegalArgumentException.class, () -> builder.setIndex("a", CNumericTypes.INT, -5));
   }
 
   @Test
   public void testSSAExceptionMonotone2() {
     builder.setIndex("a", CNumericTypes.INT, 2);
 
-    thrown.expect(IllegalArgumentException.class);
-    builder.setIndex("a", CNumericTypes.INT, 1);
+    assertThrows(IllegalArgumentException.class, () -> builder.setIndex("a", CNumericTypes.INT, 1));
   }
 }

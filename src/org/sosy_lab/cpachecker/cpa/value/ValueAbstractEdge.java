@@ -47,7 +47,7 @@ public class ValueAbstractEdge implements AbstractEdge {
     if (obj == null) {
       return false;
     }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof ValueAbstractEdge)) {
       return false;
     }
     ValueAbstractEdge other = (ValueAbstractEdge) obj;

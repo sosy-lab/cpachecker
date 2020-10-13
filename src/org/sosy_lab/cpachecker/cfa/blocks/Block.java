@@ -1,35 +1,24 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa.blocks;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import java.util.Collections;
+import com.google.common.collect.Iterables;
+import java.util.LinkedHashSet;
 import java.util.Set;
+import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 /**
  * Represents a block as described in the BAM paper.
@@ -38,6 +27,7 @@ public class Block {
 
   private final ImmutableSet<ReferencedVariable> referencedVariables;
   private ImmutableSet<String> variables; // lazy initialization
+  private ImmutableSet<String> outOfScopeVariables; // lazy initialization
   private ImmutableSet<String> functions; // lazy initialization
   private final ImmutableSet<CFANode> callNodes;
   private final ImmutableSet<CFANode> returnNodes;
@@ -94,6 +84,27 @@ public class Block {
       variables = builder.build();
     }
     return variables;
+  }
+
+  /**
+   * returns a collection of variables used in the block. For soundness this must be a superset of
+   * the actually used variables.
+   */
+  public Set<String> getOutOfScopeVariables() {
+    if (outOfScopeVariables == null) {
+      Set<ASimpleDeclaration> declarations = new LinkedHashSet<>();
+      for (CFANode node : nodes) {
+        declarations.addAll(node.getOutOfScopeVariables());
+        if (node instanceof FunctionExitNode) {
+          declarations.addAll(((FunctionExitNode) node).getEntryNode().getFunctionParameters());
+        }
+        // TODO should we also handle a function return variable?
+      }
+      outOfScopeVariables =
+          ImmutableSet
+              .copyOf(Iterables.transform(declarations, ASimpleDeclaration::getQualifiedName));
+    }
+    return outOfScopeVariables;
   }
 
   /** returns a collection of function names used in the block. */

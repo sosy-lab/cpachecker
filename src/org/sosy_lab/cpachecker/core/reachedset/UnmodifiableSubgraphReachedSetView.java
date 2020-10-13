@@ -1,22 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2019  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.reachedset;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -25,7 +14,6 @@ import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.function.BiConsumer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -46,7 +34,7 @@ public class UnmodifiableSubgraphReachedSetView implements UnmodifiableReachedSe
   protected final Function<AbstractState, Precision> precisionGetter;
 
   /** the full set of states in this reached-set. all states are reachable from the first state. */
-  private Collection<AbstractState> subgraph; // lazy
+  private ImmutableSet<AbstractState> subgraph; // lazy
 
   public UnmodifiableSubgraphReachedSetView(
       ARGPath pPath, Function<AbstractState, Precision> pPrecisionGetter) {
@@ -57,7 +45,7 @@ public class UnmodifiableSubgraphReachedSetView implements UnmodifiableReachedSe
   @Override
   public Collection<AbstractState> asCollection() {
     if (subgraph == null) {
-      subgraph = Collections.unmodifiableCollection(path.getFirstState().getSubgraph());
+      subgraph = ImmutableSet.copyOf(path.getFirstState().getSubgraph());
       assert subgraph.containsAll(path.asStatesList());
     }
     return subgraph;

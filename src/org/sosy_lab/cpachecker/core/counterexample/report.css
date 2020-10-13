@@ -1,3 +1,14 @@
+/*
+ * This file is part of CPAchecker,
+ * a tool for configurable software verification:
+ * https://cpachecker.sosy-lab.org
+ *
+ * SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+ * SPDX-FileCopyrightText: 2018 Lokesh Nandanwar
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 /* Refer to the doc/ReportTemplateStyleGuide.md for Coding and Style Guide. They will let you write better code
 with considerably less effort */
 
@@ -187,8 +198,11 @@ input:checked+.slider:before {
 	margin-bottom: 5px;
 }
 
+/* -185px for buttons and controllers
+   -2px for the border of the change view button
+   -2.25rem for the font size and the radius of the change view button */
 #errorpath_section .fileContent {
-	height: calc(100% - 185px);
+	height: calc(100% - 187px - 2.25rem);
 	margin: 5px;
 	overflow: auto;
 }
@@ -267,9 +281,137 @@ input:checked+.slider:before {
 	outline: #df80ff solid 2px;
 }
 
+.rank {
+	text-align: center;
+}
+
+.fault-table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.fault-table td {
+	cursor: pointer;
+	padding: 7px;
+	border: #000000 2px solid;
+}
+
+.fault-table .fault-rank {
+	background-color: #28a745;
+	text-align: center;
+	font-weight: 700;
+	width: 10%;
+}
+
+.fault-table .fault-score {
+	background-color: #ffc107;
+	text-align: center;
+	width: 10%;
+}
+
+.fault-table .fault-details-header {
+	background-color: #ff3907aa;
+	font-weight: 700;
+}
+
+.fault-table .fault-lines {
+	max-height: 8em;
+	overflow: auto;
+	border: 1px solid gray;
+	border-radius: 3px;
+}
+
+.fault-lines {
+	padding: 3px;
+	list-style: none;
+}
+
+.value-table {
+	border-collapse: collapse;
+	width: 100%;
+}
+  
+.value-table th, .value-table td {
+	text-align: left;
+	padding: 8px;
+}
+
+.value-table tr:nth-child(even){background-color: #f2f2f2}
+  
+.value-table th {
+	background-color: #4CAF50;
+	color: white;
+}
+
+ul.fault-lines li {
+	display: grid;
+	grid-template-columns: minmax(2em, min-content) auto;
+	grid-column-gap: 5px;
+}
+
+.fault-lines .line-number {
+	text-align: right;
+}
+
+.fault-lines .line-number::after {
+	content: ':';
+}
+
+.horizontal-div {
+    display: inline;
+    margin-left: auto;
+	margin-right: auto 
+}
+
+#hint-list {
+	list-style-type: none;
+	counter-reset: elementcounter;
+  }
+  
+#hint-list>li::before {
+	position: relative;
+	content: "Hint " counter(elementcounter) ": ";
+	counter-increment: elementcounter;
+	font-weight: 700;
+}
+
+#fix-list {
+	list-style-type: none;
+	counter-reset: elementcounter;
+  }
+
+#fix-list>li::before {
+	position: relative;
+	content: "Potential Fix " counter(elementcounter) ": ";
+	counter-increment: elementcounter;
+	font-weight: 700;
+}
+
 .important {
         background-color: #ffc107;
         outline: #ffc107 solid 2px;
+}
+
+.highlight-line {
+	font-weight: 700;
+	outline: #57301d solid 3px;
+}
+
+.highlight-selected-line {
+	font-weight: 700;
+	outline: #ff0000 solid 3px;
+}
+
+.fault {
+        background-color: #ff3333;
+        outline: #aa3333 solid 2px;
+		font-weight: 900;
+}
+
+.tableheader{
+	font-weight: 700;
+	background-color: #bbbbbb;
+	text-align: center;
 }
 
 .marked-source-line {

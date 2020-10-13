@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 <!-- vim: set tabstop=8 shiftwidth=4 expandtab : -->
 <project name="CPAchecker" basedir="." default="build"
          xmlns:unless="ant:unless"
@@ -9,7 +20,7 @@
     <property file="build.properties"/>
     <property environment="env"/>
 
-    <property name="version.base" value="1.8-svn"/> <!-- change here for a release -->
+    <property name="version.base" value="1.9.2-svn"/> <!-- change here for a release -->
 
     <!-- Customization of build process. -->
     <property name="jar.file" value="cpachecker.jar"/>
@@ -23,19 +34,13 @@
 
     <!-- The following error-prone checks are disabled:
          BadImport: we often import FluentIterable.from and we have a Checkstyle check instead
-         ReferenceEquality: TODO enable this and fix alarms
-         EqualsGetClass: TODO enable this and fix alarms?
-         GuardedBy: crashes current error-prone
-         Finally: crashes current error-prone
-         MixedMutabilityReturnType: too many warnings, need to fix them first
+         ReferenceEquality: TODO enable this and fix alarms (but there are many cases where reference equality is desired)
+         MissingSummary: currently buggy (fails build without specifying class)
          -->
     <property name="errorprone.options" value="
         -Xep:BadImport:OFF
         -Xep:ReferenceEquality:OFF
-        -Xep:EqualsGetClass:OFF
-        -Xep:GuardedBy:OFF
-        -Xep:Finally:OFF
-        -Xep:MixedMutabilityReturnType:OFF
+        -Xep:MissingSummary:OFF
         "/>
 
     <import file="build/build-ivy.xml"/>
@@ -80,6 +85,24 @@
 
     <target name="build" depends="-warn-factorypath, build-project, build-documentation" description="Build"/>
 
+    <target name="forbiddenapis" depends="build-project" description="Check for usage of unwanted APIs">
+        <taskdef name="forbiddenapis"
+                classname="de.thetaphi.forbiddenapis.ant.AntTask"
+                classpath="${ivy.lib.dir}/build/forbiddenapis.jar"/>
+        <forbiddenapis
+                classpathref="classpath" dir="${class.dir}"
+                targetVersion="11"
+                suppressAnnotation="org.sosy_lab.common.annotations.SuppressForbidden">
+            <!-- explanation of bundled signatures:
+                 https://github.com/policeman-tools/forbidden-apis/wiki/BundledSignatures -->
+            <bundledsignatures name="jdk-deprecated"/>
+            <bundledsignatures name="jdk-non-portable"/>
+            <bundledsignatures name="jdk-reflection"/>
+            <bundledsignatures name="jdk-system-out"/>
+            <signaturesFileset file="build/forbiddenapis.txt"/>
+        </forbiddenapis>
+    </target>
+
     <target name="resolve-benchmark-dependencies" depends="load-ivy" description="Retrieve dependencies for benchmark configuration" unless="ivy.disable">
         <condition property="ivy.useCacheOnly" value="true" else="false"><not><istrue value="${verifiercloud.refresh}"/></not></condition>
         <ivy:resolve conf="benchmark" log="download-only" resolveMode="dynamic" useCacheOnly="${ivy.useCacheOnly}" refresh="${verifiercloud.refresh}"/>
@@ -113,32 +136,13 @@
 
     <target name="build-dependencies" depends="init, resolve-dependencies, build-subprojects"/>
 
-    <target name="build-project-ecj" depends="build-dependencies" description="Build project with the Eclipse JDT compiler">
-        <condition property="java8">
-            <equals arg1="${ant.java.version}" arg2="1.8"/>
-        </condition>
-        <replace
-            dir="${source.dir}" includes="**/*Scanner.java **/*Parser.java"
-            preserveLastModified="true"
-            token="@javax.annotation.Generated"
-            value="@javax.annotation.processing.Generated"
-            unless:set="java8"/>
-        <antcall target="compile.build-project-ecj"/>
-        <replace
-            dir="${source.dir}" includes="**/*Scanner.java **/*Parser.java"
-            preserveLastModified="true"
-            token="@javax.annotation.processing.Generated"
-            value="@javax.annotation.Generated"
-            unless:set="java8"/>
-    </target>
-
     <available file=".factorypath" property="factorypath.present"/>
     <target name="-warn-factorypath" unless="factorypath.present">
         <echo level="warning">If you use Eclipse, please create a copy of .factorypath.template and name it .factorypath, (if necessary) adjust the path to your CPAchecker directory in it.</echo>
         <echo level="warning">This will help you get additional helpful compiler warnings.</echo>
     </target>
 
-    <target name="standard-checks" depends="tests, spotbugs, checkstyle"/>
+    <target name="standard-checks" depends="tests, spotbugs, checkstyle, forbiddenapis"/>
 
     <target name="python-unit-tests" depends="build" description="Run unit tests of python scripts">
         <!-- Tests are only executed if python is available, ignored otherwise. -->

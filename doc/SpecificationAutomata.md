@@ -1,3 +1,13 @@
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # CPAchecker specification automata
 
 The specification automata language used here is similar to the [BLAST Query Language](http://www.sosy-lab.org/~dbeyer/Publications/2004-SAS.The\_Blast\_Query\_Language\_for\_Software\_Verification.pdf).
@@ -108,6 +118,7 @@ _Bool_ ::=<br>
 &nbsp;&nbsp;| **MATCH** **ASSERT**<br>
 &nbsp;&nbsp;| **MATCH** **EXIT**<br>
 &nbsp;&nbsp;| **MATCH** **ENTRY**<br>
+&nbsp;&nbsp;| **MATCH** **FUNCTIONCALL** STRING\_LITERAL<br>
 &nbsp;&nbsp;| **CHECK** **(** IDENTIFIER **,** STRING\_LITERAL **)**<br>
 &nbsp;&nbsp;| **CHECK** **(** STRING\_LITERAL **)**<br>
 &nbsp;&nbsp;| **CHECK** **(** **IS_TARGET_STATE** **)**<br>
@@ -245,6 +256,7 @@ For example:
 * `MATCH ASSERT` matches special edge "assert fail" added by CPAchecker.
 * `MATCH EXIT` matches if successor state has no leaving edges.
 * `MATCH ENTRY` matches if predecessor state has no entering edges.
+* `MATCH FUNCTIONCALL functionname` matches if the CFA edge contains a functioncall with the given `functionname`.
 * `CHECK (cpa_name, query)` matches if `CompositeCPA` contains CPA with name `cpa_name`, which implements method `checkProperty`, which returns true for string `query`.
 For example, `CHECK(location, "functionName==f")` returns true, if `LocationCPA` is inside function `f`.
 * `CHECK (query)` matches if at least one CPA from `CompositeCPA` implements method `checkProperty`, which returns true for string `query`.

@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.base.Verify;
@@ -108,19 +93,35 @@ public class ControlAutomatonCPA
     return AutomaticCPAFactory.forType(ControlAutomatonCPA.class);
   }
 
-  @Option(secure=true, required=false,
-      description="file with automaton specification for ObserverAutomatonCPA and ControlAutomatonCPA")
+  @Option(
+      secure = true,
+      required = false,
+      description =
+          "file with automaton specification for ObserverAutomatonCPA and ControlAutomatonCPA")
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path inputFile = null;
 
-  @Option(secure=true, description="signal the analysis to break in case the given number of error state is reached ")
+  @Option(
+      secure = true,
+      description =
+          "signal the analysis to break in case the given number of "
+              + "error state is reached. Use -1 to disable this limit.")
   private int breakOnTargetState = 1;
 
-  @Option(secure=true, description="the maximum number of iterations performed after the initial error is found, despite the limit"
-      + "given as cpa.automaton.breakOnTargetState is not yet reached")
+  @Option(
+      secure = true,
+      description =
+          "the maximum number of iterations performed after the "
+              + "initial error is found, despite the limit given as "
+              + "cpa.automaton.breakOnTargetState is not yet reached. "
+              + "Use -1 to disable this limit.")
   private int extraIterationsLimit = -1;
 
-  @Option(secure=true, description="Whether to treat automaton states with an internal error state as targets. This should be the standard use case.")
+  @Option(
+      secure = true,
+      description =
+          "Whether to treat automaton states with an internal error "
+              + "state as targets. This should be the standard use case.")
   private boolean treatErrorsAsTargets = true;
 
   @Option(secure=true, description="Merge two automata states if one of them is TOP.")
@@ -254,7 +255,8 @@ public class ControlAutomatonCPA
                   .collect(MoreCollectors.toOptional());
           safetyProp =
               assumptionOpt.isPresent()
-                  ? new AutomatonSafetyProperty(pAutomaton, t, assumptionOpt.get().toASTString())
+                  ? new AutomatonSafetyProperty(
+                      pAutomaton, t, assumptionOpt.orElseThrow().toASTString())
                   : new AutomatonSafetyProperty(pAutomaton, t);
           break;
         }

@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.predicates.pseudoQE;
 
 import com.google.common.base.Predicates;
@@ -89,6 +74,48 @@ public class PseudoExistQeManager implements StatisticsProvider {
 
   @Option(secure = true, description = "Use Unconnected Parameter Drop as simplification method")
   private boolean useUPD = true;
+
+  /**
+   * This class visits one level of a formula and returns the pair of bound variable and its equal
+   * part if found, and NULL otherwise.
+   */
+  private static final class EqualityExtractor
+      extends DefaultFormulaVisitor<Map<Formula, Formula>> {
+
+    private final Set<Formula> boundVars;
+
+    private EqualityExtractor(Set<Formula> pBoundVars) {
+      boundVars = pBoundVars;
+    }
+
+    @Override
+    protected Map<Formula, Formula> visitDefault(Formula pF) {
+      return null;
+    }
+
+    @Override
+    public Map<Formula, Formula> visitFunction(
+        Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
+      switch (pFunctionDeclaration.getKind()) {
+
+        // TODO this code assumes that equality has exactly two arguments.
+        // We might have more than two.
+
+        case EQ: // check those functions that represent equality
+        case BV_EQ:
+        case FP_EQ:
+          if (boundVars.contains(pArgs.get(0))) {
+            return ImmutableMap.of(pArgs.get(0), pArgs.get(1));
+          } else if (boundVars.contains(pArgs.get(1))) {
+            return ImmutableMap.of(pArgs.get(1), pArgs.get(0));
+          } else {
+            return null;
+          }
+        default:
+          return null;
+      }
+    }
+  }
 
   enum SolverQeTactic {
     /** Don't use Solver Quantifier Elimination */
@@ -185,17 +212,18 @@ public class PseudoExistQeManager implements StatisticsProvider {
         existFormula = applyRealQuantifierElimination(existFormula);
       }
 
-      stats.qeSuccessCounter += (pQuantifiedVars.size() - existFormula.getNumberOfQuantifiers());
+      int numberOfEliminatedVariables =
+          pQuantifiedVars.size() - existFormula.getNumberOfQuantifiers();
+      stats.qeSuccessCounter += numberOfEliminatedVariables;
       // How to handle remaining Quantifiers based on Options and result of previous operations
-      if (pQuantifiedVars.size() - existFormula.getNumberOfQuantifiers() < 1) {
+      if (numberOfEliminatedVariables < 1) {
         if (overapprox) {
-          logger.log(
+          logger.logf(
               Level.FINE,
-              "Successfully eliminated "
-                  + (pQuantifiedVars.size() - existFormula.getNumberOfQuantifiers())
-                  + "quantified variable(s), overapproximated formulas containing remaining "
-                  + existFormula.getNumberOfQuantifiers()
-                  + "quantified variable(s).");
+              "Successfully eliminated %d quantified variable(s), "
+                  + "overapproximated formulas containing remaining %d quantified variable(s).",
+              numberOfEliminatedVariables,
+              existFormula.getNumberOfQuantifiers());
           return Optional.of(overapproximateFormula(existFormula));
         } else {
           return Optional.empty();
@@ -221,38 +249,14 @@ public class PseudoExistQeManager implements StatisticsProvider {
     try {
       Set<Formula> boundVars = ImmutableSet.copyOf(pExistFormula.getQuantifiedVarFormulas());
 
-      FormulaVisitor<Map<Formula, Formula>> visitor =
-          new DefaultFormulaVisitor<Map<Formula, Formula>>() {
-            @Override
-            protected Map<Formula, Formula> visitDefault(Formula pF) {
-              return null;
-            }
-
-            @Override
-            public Map<Formula, Formula> visitFunction(
-                Formula pF, List<Formula> pArgs, FunctionDeclaration<?> pFunctionDeclaration) {
-              switch (pFunctionDeclaration.getKind()) {
-                case EQ: // check those functions that represent equality
-                case BV_EQ:
-                case FP_EQ:
-                  if (boundVars.contains(pArgs.get(0))) {
-                    return ImmutableMap.of(pArgs.get(0), pArgs.get(1));
-                  } else if (boundVars.contains(pArgs.get(1))) {
-                    return ImmutableMap.of(pArgs.get(1), pArgs.get(0));
-                  } else {
-                    return null;
-                  }
-                default:
-                  return null;
-              }
-            }
-          };
+      FormulaVisitor<Map<Formula, Formula>> visitor = new EqualityExtractor(boundVars);
 
       Map<Formula, Formula> potentialReplacement = null;
 
       // Loop through Conjuncts with quantified Vars
       for (BooleanFormula conjunct : pExistFormula.getConjunctsWithQuantifiedVars()) {
         potentialReplacement = fmgr.visit(conjunct, visitor);
+        // abort after the first available replacement
         if (potentialReplacement != null) {
           break;
         }
@@ -377,7 +381,7 @@ public class PseudoExistQeManager implements StatisticsProvider {
       // Create the real quantified formula
       BooleanFormula quantifiedFormula =
           qFmgr
-              .get()
+              .orElseThrow()
               .exists(
                   new ArrayList<>(pExistFormula.getQuantifiedVarFormulas()),
                   pExistFormula.getInnerFormula());
@@ -389,7 +393,7 @@ public class PseudoExistQeManager implements StatisticsProvider {
       }
       if (solverQeTactic == SolverQeTactic.FULL) {
         try {
-          afterQE = qFmgr.get().eliminateQuantifiers(quantifiedFormula);
+          afterQE = qFmgr.orElseThrow().eliminateQuantifiers(quantifiedFormula);
         } catch (SolverException e) {
           logger.log(
               Level.FINER, "Solver based Quantifier Elimination failed with SolverException!", e);

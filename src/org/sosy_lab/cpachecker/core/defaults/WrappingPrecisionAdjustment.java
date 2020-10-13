@@ -1,28 +1,16 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.defaults;
 
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.Precision;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustment;
@@ -30,10 +18,6 @@ import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult;
 import org.sosy_lab.cpachecker.core.interfaces.PrecisionAdjustmentResult.Action;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-
-import com.google.common.base.Function;
-import java.util.Optional;
-import com.google.common.base.Preconditions;
 
 /**
  * Base implementation for precision adjustment implementations wrap other
@@ -43,7 +27,7 @@ public abstract class WrappingPrecisionAdjustment implements PrecisionAdjustment
 
   private final PrecisionAdjustment wrappedPrecOp;
 
-  public WrappingPrecisionAdjustment(PrecisionAdjustment pWrappedPrecOp) {
+  protected WrappingPrecisionAdjustment(PrecisionAdjustment pWrappedPrecOp) {
     this.wrappedPrecOp = Preconditions.checkNotNull(pWrappedPrecOp);
   }
 
@@ -63,10 +47,11 @@ public abstract class WrappingPrecisionAdjustment implements PrecisionAdjustment
     Optional<PrecisionAdjustmentResult> result = wrappedPrecOp.prec(pState, pPrecision, pStates, pProjection, pFullState);
 
     if (result.isPresent()) {
-      if (result.get().action() == Action.BREAK) {
+      if (result.orElseThrow().action() == Action.BREAK) {
         return result;
       } else {
-        return wrappingPrec(result.get().abstractState(), pPrecision, pStates, pProjection, pFullState);
+        return wrappingPrec(
+            result.orElseThrow().abstractState(), pPrecision, pStates, pProjection, pFullState);
       }
     } else {
       return wrappingPrec(pState, pPrecision, pStates, pProjection, pFullState);

@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2016  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm.termination;
 
 import static com.google.common.base.Charsets.UTF_8;
@@ -31,7 +16,6 @@ import static java.util.logging.Level.FINER;
 import static java.util.logging.Level.WARNING;
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.valueWithPercentage;
 
-import apache.harmony.math.BigInteger;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -39,6 +23,7 @@ import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.collect.ConcurrentHashMultiset;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
@@ -46,17 +31,17 @@ import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.GeometricN
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.InfiniteFixpointRepetition;
 import de.uni_freiburg.informatik.ultimate.lassoranker.nontermination.NonTerminationArgument;
 import de.uni_freiburg.informatik.ultimate.lassoranker.termination.TerminationArgument;
+import de.uni_freiburg.informatik.ultimate.lib.modelcheckerutils.cfg.variables.IProgramVar;
 import de.uni_freiburg.informatik.ultimate.logic.ApplicationTerm;
 import de.uni_freiburg.informatik.ultimate.logic.ConstantTerm;
 import de.uni_freiburg.informatik.ultimate.logic.Rational;
 import de.uni_freiburg.informatik.ultimate.logic.Term;
 import de.uni_freiburg.informatik.ultimate.logic.TermVariable;
-import de.uni_freiburg.informatik.ultimate.modelcheckerutils.cfg.variables.IProgramVar;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Writer;
 import java.math.BigDecimal;
-import java.nio.charset.Charset;
+import java.math.BigInteger;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayDeque;
@@ -69,10 +54,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.sosy_lab.common.Appender;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.FileOption.Type;
@@ -101,14 +87,18 @@ import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.AnalysisDirection;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.LassoAnalysisStatistics;
 import org.sosy_lab.cpachecker.core.algorithm.termination.lasso_analysis.RankVar;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
+import org.sosy_lab.cpachecker.core.specification.Specification;
+import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Witness;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessExporter;
+import org.sosy_lab.cpachecker.cpa.arg.witnessexport.WitnessToOutputFormatsUtils;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.location.LocationStateFactory;
@@ -144,6 +134,13 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   private Path violationWitness = Paths.get("nontermination_witness.graphml");
 
   @Option(
+      secure = true,
+      name = "violation.witness.dot",
+      description = "Export termination counterexample to file as dot/graphviz automaton ")
+  @FileOption(Type.OUTPUT_FILE)
+  private Path violationWitnessDot = Paths.get("nontermination_witness.dot");
+
+  @Option(
     secure = true,
     name = "compressWitness",
     description = "compress the produced violation-witness automata using GZIP compression."
@@ -174,14 +171,24 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
       Configuration pConfig,
       LogManager pLogger,
       int pTotalNumberOfLoops,
-      Specification pOrigSpec,
       CFA pCFA)
       throws InvalidConfigurationException {
     pConfig.inject(this);
     logger = checkNotNull(pLogger);
     totalLoops = pTotalNumberOfLoops;
 
-    witnessExporter = new WitnessExporter(pConfig, pLogger, pOrigSpec, pCFA);
+    witnessExporter =
+        new WitnessExporter(
+            pConfig,
+            pLogger,
+            Specification.alwaysSatisfied()
+                .withAdditionalProperties(
+                    ImmutableSet.of(
+                        new SpecificationProperty(
+                            pCFA.getMainFunction().getFunctionName(),
+                            CommonPropertyType.TERMINATION,
+                            Optional.empty()))),
+            pCFA);
     locFac = new LocationStateFactory(pCFA, AnalysisDirection.FORWARD, pConfig);
   }
 
@@ -417,7 +424,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
     exportSynthesizedArguments();
 
-    if (pResult == Result.FALSE && violationWitness != null) {
+    if (pResult == Result.FALSE && (violationWitness != null || violationWitnessDot != null)) {
       Iterator<ARGState> violations =
           pReached
               .asCollection()
@@ -465,7 +472,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
   }
 
   private void exportViolationWitness(final ARGState root, final ARGState loopStart) {
-    CounterexampleInfo cexInfo = loopStart.getCounterexampleInformation().get();
+    CounterexampleInfo cexInfo = loopStart.getCounterexampleInformation().orElseThrow();
 
     ARGState loopStartInCEX =
         new ARGState(AbstractStates.extractStateByType(loopStart, LocationState.class), null);
@@ -479,7 +486,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
     Function<? super ARGState, ExpressionTree<Object>> provideQuasiInvariant =
         (ARGState argState) -> {
-          if (argState == loopStartInCEX) {
+          if (Objects.equals(argState, loopStartInCEX)) {
             return quasiInvariant;
           }
           return ExpressionTrees.getTrue();
@@ -489,35 +496,28 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
     Predicate<? super ARGState> relevantStates = Predicates.in(cexStates);
 
-    try {
-      if (!compressWitness) {
-        try (Writer writer = IO.openOutputFile(violationWitness, Charset.defaultCharset())) {
-          witnessExporter.writeTerminationErrorWitness(
-              writer,
-              newRoot,
-              relevantStates,
-              BiPredicates.bothSatisfy(relevantStates),
-              state -> state == loopStartInCEX,
-              provideQuasiInvariant);
-        }
-      } else {
-        Path file = violationWitness;
-        file = file.resolveSibling(file.getFileName() + ".gz");
-        IO.writeGZIPFile(
-            file,
-            Charset.defaultCharset(),
-            (Appender)
-                pAppendable ->
-                    witnessExporter.writeTerminationErrorWitness(
-                        pAppendable,
-                        newRoot,
-                        relevantStates,
-                        BiPredicates.bothSatisfy(relevantStates),
-                        state -> state == loopStartInCEX,
-                        provideQuasiInvariant));
-      }
-    } catch (IOException e) {
-      logger.logException(WARNING, e, "Violation witness export failed.");
+    final Witness witness =
+        witnessExporter.generateTerminationErrorWitness(
+            newRoot,
+            relevantStates,
+            BiPredicates.bothSatisfy(relevantStates),
+            state -> Objects.equals(state, loopStartInCEX),
+            provideQuasiInvariant);
+
+    if (violationWitness != null) {
+      WitnessToOutputFormatsUtils.writeWitness(
+          violationWitness,
+          compressWitness,
+          pAppendable -> WitnessToOutputFormatsUtils.writeToGraphMl(witness, pAppendable),
+          logger);
+    }
+
+    if (violationWitnessDot != null) {
+      WitnessToOutputFormatsUtils.writeWitness(
+          violationWitnessDot,
+          compressWitness,
+          pAppendable -> WitnessToOutputFormatsUtils.writeToDot(witness, pAppendable),
+          logger);
     }
   }
 
@@ -537,7 +537,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
         continue;
       }
 
-      if (state == loopStart) {
+      if (Objects.equals(state, loopStart)) {
         newLoopStart.addParent(parent);
         newStates.add(newLoopStart);
         break;
@@ -615,8 +615,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
               newContext = Pair.of(leaveFun.getSuccessor(), context.getSecond());
 
               if (leaveFun instanceof FunctionReturnEdge) {
-                if (context.getSecond().getCallNode()
-                    != ((FunctionReturnEdge) leaveFun).getSummaryEdge().getPredecessor()) {
+                if (!context.getSecond().getCallNode()
+                    .equals(((FunctionReturnEdge) leaveFun).getSummaryEdge().getPredecessor())) {
                   continue; // false context
                 }
                 newContext =
@@ -633,7 +633,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
                             leaveFun.getPredecessor()));
               }
 
-              if (leaveFun.getSuccessor() != locContinueLoop) {
+              if (!Objects.equals(leaveFun.getSuccessor(), locContinueLoop)) {
                 succFun = contextToARGState.get(newContext);
               } else {
                 succFun = nodeToARGState.get(locContinueLoop);
@@ -644,7 +644,7 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
                     new ARGState(
                         Iterables.getOnlyElement(locFac.getState(leaveFun.getSuccessor())),
                         null);
-                if (leaveFun.getSuccessor() != locContinueLoop) {
+                if (!Objects.equals(leaveFun.getSuccessor(), locContinueLoop)) {
                   contextToARGState.put(newContext, succFun);
                   waitlistFun.push(newContext);
                 } else {
@@ -685,8 +685,8 @@ public class TerminationStatistics extends LassoAnalysisStatistics {
 
       for (Entry<IProgramVar, Rational> entry : arg.getStateHonda().entrySet()) {
         RankVar rankVar = (RankVar) entry.getKey();
-        if (rankVar.getDefinition() instanceof ApplicationTerm
-            && ((ApplicationTerm) rankVar.getDefinition()).getParameters().length != 0) {
+        if (rankVar.getTerm() instanceof ApplicationTerm
+            && ((ApplicationTerm) rankVar.getTerm()).getParameters().length != 0) {
           // ignore UFs
           continue;
         }

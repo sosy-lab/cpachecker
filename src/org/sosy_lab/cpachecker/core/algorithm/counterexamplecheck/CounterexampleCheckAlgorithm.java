@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck;
 
 import static com.google.common.collect.FluentIterable.from;
@@ -28,7 +13,6 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 import static org.sosy_lab.cpachecker.util.statistics.StatisticsUtils.toPercent;
 
 import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableList;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -46,7 +30,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdateListener;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm.ReachedSetUpdater;
@@ -56,6 +39,7 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -145,22 +129,12 @@ public class CounterexampleCheckAlgorithm
       status = status.update(algorithm.run(reached));
       assert ARGUtils.checkARG(reached);
 
-      ARGState lastState = (ARGState)reached.getLastState();
-
-      final List<ARGState> errorStates;
-      if (lastState != null && lastState.isTarget()) {
-        errorStates =
-            checkedTargetStates.contains(lastState)
-                ? ImmutableList.of()
-                : ImmutableList.of(lastState);
-      } else {
-        errorStates =
-            from(reached)
-                .transform(AbstractStates.toState(ARGState.class))
-                .filter(AbstractStates.IS_TARGET_STATE)
-                .filter(Predicates.not(Predicates.in(checkedTargetStates)))
-                .toList();
-      }
+      final List<ARGState> errorStates =
+          from(reached)
+              .transform(AbstractStates.toState(ARGState.class))
+              .filter(AbstractStates::isTargetState)
+              .filter(Predicates.not(Predicates.in(checkedTargetStates)))
+              .toList();
 
       if (errorStates.isEmpty()) {
         // no errors, so no analysis necessary

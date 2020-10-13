@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.defaults;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -42,6 +27,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Classes;
 import org.sosy_lab.common.Classes.UnexpectedCheckedException;
 import org.sosy_lab.common.ShutdownNotifier;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Options;
@@ -117,6 +103,7 @@ public class AutomaticCPAFactory implements CPAFactory {
   }
 
   @Override
+  @SuppressForbidden("reflection necessary")
   public ConfigurableProgramAnalysis createInstance()
       throws InvalidConfigurationException, CPAException {
 
@@ -132,10 +119,10 @@ public class AutomaticCPAFactory implements CPAFactory {
     Constructor<?> cons = allConstructors[0];
     cons.setAccessible(true);
 
-    Class<?> formalParameters[] = cons.getParameterTypes();
-    Annotation parameterAnnotations[][] = cons.getParameterAnnotations();
+    Class<?>[] formalParameters = cons.getParameterTypes();
+    Annotation[][] parameterAnnotations = cons.getParameterAnnotations();
 
-    Object actualParameters[] = new Object[formalParameters.length];
+    Object[] actualParameters = new Object[formalParameters.length];
     boolean childCpaInjected = false;
     for (int i = 0; i < formalParameters.length; i++) {
       Class<?> formalParam = formalParameters[i];
@@ -285,9 +272,10 @@ public class AutomaticCPAFactory implements CPAFactory {
 
     // verify types of declared exceptions
     String exception = Classes.verifyDeclaredExceptions(constructor, InvalidConfigurationException.class, CPAException.class);
-    if (exception != null) {
-      throw new IllegalArgumentException("Constructor of options holder class declares illegal checked exception: " + exception);
-    }
+    checkArgument(
+        exception == null,
+        "Constructor of options holder class declares illegal checked exception: %s",
+        exception);
 
     return new AutomaticCPAFactoryWithOptions<>(type, injects, optionsClass, constructor);
   }

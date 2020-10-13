@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.predicate.persistence;
 
 import static com.google.common.collect.FluentIterable.from;
@@ -79,7 +64,7 @@ public class LoopInvariantsWriter {
 
     for (AbstractState state : reached) {
       CFANode loc = extractLocation(state);
-      if (cfa.getAllLoopHeads().get().contains(loc)) {
+      if (cfa.getAllLoopHeads().orElseThrow().contains(loc)) {
         PredicateAbstractState predicateState = getPredicateState(state);
         if (!predicateState.isAbstractionState()) {
           logger.log(Level.WARNING, "Cannot dump loop invariants because a non-abstraction state was found for a loop-head location.");
@@ -103,7 +88,7 @@ public class LoopInvariantsWriter {
 
     try (Writer writer = IO.openOutputFile(invariantsFile, Charset.defaultCharset())) {
       for (CFANode loc :
-          from(cfa.getAllLoopHeads().get())
+          from(cfa.getAllLoopHeads().orElseThrow())
               .toSortedSet(Comparator.comparingInt(CFANode::getNodeNumber))) {
 
         Region region = regions.getOrDefault(loc, rmgr.makeFalse());
@@ -133,7 +118,7 @@ public class LoopInvariantsWriter {
 
     try (Writer writer = IO.openOutputFile(invariantPrecisionsFile, Charset.defaultCharset())) {
       for (CFANode loc :
-          from(cfa.getAllLoopHeads().get())
+          from(cfa.getAllLoopHeads().orElseThrow())
               .toSortedSet(Comparator.comparingInt(CFANode::getNodeNumber))) {
         Region region = regions.getOrDefault(loc, rmgr.makeFalse());
         BooleanFormula formula = absmgr.convertRegionToFormula(region);

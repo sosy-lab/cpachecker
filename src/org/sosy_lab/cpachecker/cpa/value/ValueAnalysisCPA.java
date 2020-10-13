@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.value;
 
 import com.google.common.base.Preconditions;
@@ -75,6 +60,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAnalysisPrecisionAdjustment;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAnalysisPrecisionAdjustment.SymbolicStatistics;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
+import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
@@ -86,11 +72,18 @@ public class ValueAnalysisCPA extends AbstractCPA
         ProofCheckerCPA,
     ConfigurableProgramAnalysisWithConcreteCex, ConfigurableProgramAnalysisTM {
 
-  @Option(
-    secure = true,
-    name = "merge",
-    toUppercase = true,
-    values = {"SEP", "JOIN", "TRANSITIONSJOIN", "TRANSITIONSSEP"},
+  private enum UnknownValueStrategy {
+    /** This strategy discards all unknown values from the value analysis state */
+    DISCARD,
+    /**
+     * This strategy introduces a new {@link SymbolicValue} for each unknown value. Symbolic values
+     * should probably be used in conjunction with the ConstraintsCPA. Otherwise, symbolic values
+     * will be created, but not evaluated.
+     */
+    INTRODUCE_SYMBOLIC,
+  }
+
+  @Option(secure=true, name="merge", toUppercase=true, values={"SEP", "JOIN", "TRANSITIONSJOIN", "TRANSITIONSSEP"},
       description="which merge operator to use for ValueAnalysisCPA")
   private String mergeType = "SEP";
 
@@ -106,12 +99,11 @@ public class ValueAnalysisCPA extends AbstractCPA
   @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
   private Path initialPrecisionFile = null;
 
-  @Option(secure=true,
-      name="symbolic.useSymbolicValues",
-      description="Use symbolic values. This allows tracking of non-deterministic values."
-          + " Symbolic values should always be used in conjunction with ConstraintsCPA."
-          + " Otherwise, symbolic values will be created, but not evaluated.")
-  private boolean useSymbolicValues = false;
+  @Option(
+      secure = true,
+      name = "unknownValueHandling",
+      description = "Tells the value analysis how to handle unknown values.")
+  private UnknownValueStrategy unknownValueStrategy = UnknownValueStrategy.DISCARD;
 
   public static CPAFactory factory() {
     return AutomaticCPAFactory.forType(ValueAnalysisCPA.class);
@@ -134,7 +126,8 @@ public class ValueAnalysisCPA extends AbstractCPA
   private final ValueTransferOptions transferOptions;
   private final PrecAdjustmentOptions precisionAdjustmentOptions;
   private final PrecAdjustmentStatistics precisionAdjustmentStatistics;
-  private final SymbolicStatistics symbolicStats;
+
+  private SymbolicStatistics symbolicStats;
 
   private ValueAnalysisCPA(Configuration config, LogManager logger,
       ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
@@ -151,19 +144,25 @@ public class ValueAnalysisCPA extends AbstractCPA
     writer = new StateToFormulaWriter(config, logger, shutdownNotifier, cfa);
     errorPathAllocator = new ValueAnalysisConcreteErrorPathAllocator(config, logger, cfa.getMachineModel());
 
-    if (useSymbolicValues) {
-      unknownValueHandler = new SymbolicValueAssigner(config);
-      symbolicStats = new SymbolicStatistics();
-    } else {
-      unknownValueHandler = new UnknownValueAssigner();
-      symbolicStats = null;
-    }
+    unknownValueHandler = createUnknownValueHandler();
 
     constraintsStrengthenOperator =
         new ConstraintsStrengthenOperator(config, logger);
     transferOptions = new ValueTransferOptions(config);
     precisionAdjustmentOptions = new PrecAdjustmentOptions(config, cfa);
     precisionAdjustmentStatistics = new PrecAdjustmentStatistics();
+  }
+
+  private MemoryLocationValueHandler createUnknownValueHandler()
+      throws InvalidConfigurationException {
+    switch (unknownValueStrategy) {
+      case DISCARD:
+        return new UnknownValueAssigner();
+      case INTRODUCE_SYMBOLIC:
+        return new SymbolicValueAssigner(config);
+      default:
+        throw new AssertionError("Unhandled strategy: " + unknownValueStrategy);
+    }
   }
 
   private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa) throws InvalidConfigurationException {
@@ -277,7 +276,8 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   @Override
   public PrecisionAdjustment getPrecisionAdjustment() {
-    if (useSymbolicValues) {
+    if (unknownValueStrategy.equals(UnknownValueStrategy.INTRODUCE_SYMBOLIC)) {
+      symbolicStats = new SymbolicStatistics();
       return new SymbolicValueAnalysisPrecisionAdjustment(
           statistics,
           cfa,

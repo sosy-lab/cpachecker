@@ -50,7 +50,7 @@ public class ThreadAbstractEdge implements AbstractEdge {
     if (this == obj) {
       return true;
     }
-    if (obj == null || getClass() != obj.getClass()) {
+    if (!(obj instanceof ThreadAbstractEdge)) {
       return false;
     }
     ThreadAbstractEdge other = (ThreadAbstractEdge) obj;

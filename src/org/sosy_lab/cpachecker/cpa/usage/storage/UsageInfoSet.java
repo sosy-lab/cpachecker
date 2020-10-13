@@ -1,8 +1,16 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.usage.storage;
 
 import com.google.common.collect.Iterables;
 import java.util.Iterator;
-import java.util.SortedSet;
+import java.util.NavigableSet;
 import java.util.TreeSet;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.cpa.usage.UsageInfo;
@@ -14,10 +22,9 @@ public class UsageInfoSet extends TreeSet<UsageInfo> {
   private static final long serialVersionUID = -5057827815596702715L;
 
   public UsageInfoSet() {
-    super();
   }
 
-  private UsageInfoSet(SortedSet<UsageInfo> pSet) {
+  private UsageInfoSet(NavigableSet<UsageInfo> pSet) {
     super(pSet);
   }
 

@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import com.google.common.base.Functions;
@@ -93,6 +78,44 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     private int   countBreak        = 0;
 
     private Map<String, AbstractStatValue> reachedSetStatistics = new HashMap<>();
+
+    private void stopAllTimers() {
+      totalTimer.stopIfRunning();
+      chooseTimer.stopIfRunning();
+      precisionTimer.stopIfRunning();
+      transferTimer.stopIfRunning();
+      mergeTimer.stopIfRunning();
+      stopTimer.stopIfRunning();
+      addTimer.stopIfRunning();
+      forcedCoveringTimer.stopIfRunning();
+    }
+
+    private void updateReachedSetStatistics(Map<String, AbstractStatValue> newStatistics) {
+      for (Entry<String, AbstractStatValue> e : newStatistics.entrySet()) {
+        String key = e.getKey();
+        AbstractStatValue val = e.getValue();
+        if (!reachedSetStatistics.containsKey(key)) {
+          reachedSetStatistics.put(key, val);
+        } else {
+          AbstractStatValue newVal = reachedSetStatistics.get(key);
+
+          if (val == newVal) {
+            // ignore, otherwise counters would double
+          } else if (newVal instanceof StatCounter) {
+            assert val instanceof StatCounter;
+            ((StatCounter) newVal).mergeWith((StatCounter) val);
+          } else if (newVal instanceof StatInt) {
+            assert val instanceof StatInt;
+            ((StatInt) newVal).add((StatInt) val);
+          } else if (newVal instanceof StatHist) {
+            assert val instanceof StatHist;
+            ((StatHist) newVal).mergeWith((StatHist) val);
+          } else {
+            throw new AssertionError("Can't handle " + val.getClass().getSimpleName());
+          }
+        }
+      }
+    }
 
     @Override
     public String getName() {
@@ -225,40 +248,9 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
     try {
       return run0(reachedSet);
     } finally {
-      stats.totalTimer.stopIfRunning();
-      stats.chooseTimer.stopIfRunning();
-      stats.precisionTimer.stopIfRunning();
-      stats.transferTimer.stopIfRunning();
-      stats.mergeTimer.stopIfRunning();
-      stats.stopTimer.stopIfRunning();
-      stats.addTimer.stopIfRunning();
-      stats.forcedCoveringTimer.stopIfRunning();
+      stats.stopAllTimers();
       reachedSet.finalize(cpa);
-
-      for (Entry<String, ? extends AbstractStatValue> e : reachedSet.getStatistics().entrySet()) {
-          String key = e.getKey();
-          AbstractStatValue val = e.getValue();
-          if (!stats.reachedSetStatistics.containsKey(key)) {
-            stats.reachedSetStatistics.put(key, val);
-          } else {
-            AbstractStatValue newVal = stats.reachedSetStatistics.get(key);
-
-            if (val == newVal) {
-              // ignore, otherwise counters would double
-            } else if (newVal instanceof StatCounter) {
-              assert val instanceof StatCounter;
-              ((StatCounter) newVal).mergeWith((StatCounter) val);
-            } else if (newVal instanceof StatInt) {
-              assert val instanceof StatInt;
-              ((StatInt) newVal).add((StatInt) val);
-            } else if (newVal instanceof StatHist) {
-              assert val instanceof StatHist;
-              ((StatHist) newVal).mergeWith((StatHist) val);
-            } else {
-              throw new AssertionError("Can't handle " + val.getClass().getSimpleName());
-            }
-        }
-      }
+      stats.updateReachedSetStatistics(reachedSet.getStatistics());
     }
   }
 
@@ -357,7 +349,7 @@ public class CPAAlgorithm implements Algorithm, StatisticsProvider {
         if (!precAdjustmentOptional.isPresent()) {
           continue;
         }
-        precAdjustmentResult = precAdjustmentOptional.get();
+        precAdjustmentResult = precAdjustmentOptional.orElseThrow();
       } finally {
         stats.precisionTimer.stop();
       }

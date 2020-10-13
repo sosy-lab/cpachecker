@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2019  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cfa.postprocessing.global;
 
 import com.google.common.collect.ImmutableSet;
@@ -34,6 +19,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -159,8 +145,9 @@ public class LabelAdder {
     final CFANode start = pEdge.getPredecessor();
     final CFANode end = pEdge.getSuccessor();
     final String functionName = start.getFunctionName();
+    final AFunctionDeclaration function = start.getFunction();
     final FunctionCloner fc = new FunctionCloner(functionName, functionName, false);
-    final CFANode labelNode = new CLabelNode(functionName, pLabelName);
+    final CFANode labelNode = new CLabelNode(function, pLabelName);
     pCfa.addNode(labelNode);
 
     final CFAEdge redirectedEdge = fc.cloneEdge(pEdge, labelNode, end);
@@ -178,9 +165,10 @@ public class LabelAdder {
     final CFANode start = pEdge.getPredecessor();
     final CFANode end = pEdge.getSuccessor();
     final String functionName = start.getFunctionName();
+    final AFunctionDeclaration function = start.getFunction();
     final FunctionCloner fc = new FunctionCloner(functionName, functionName, false);
-    final CFANode labelConnector = new CFANode(functionName);
-    final CFANode labelNode = new CLabelNode(functionName, pLabelName);
+    final CFANode labelConnector = new CFANode(function);
+    final CFANode labelNode = new CLabelNode(function, pLabelName);
     pCfa.addNode(labelNode);
     pCfa.addNode(labelConnector);
 

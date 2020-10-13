@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.reachedset;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -51,6 +36,7 @@ import org.sosy_lab.cpachecker.core.waitlist.Waitlist.WaitlistFactory;
 import org.sosy_lab.cpachecker.core.waitlist.WeightedRandomWaitlist;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariableWaitlist;
 import org.sosy_lab.cpachecker.cpa.usage.UsageReachedSet;
+import org.sosy_lab.cpachecker.cpa.usage.storage.UsageConfiguration;
 
 @Options(prefix="analysis")
 public class ReachedSetFactory {
@@ -216,21 +202,25 @@ public class ReachedSetFactory {
       description = "track more statistics about the reachedset")
   private boolean withStatistics = false;
 
-  private final Configuration config;
   private @Nullable BlockConfiguration blockConfig;
+  private @Nullable UsageConfiguration usageConfig;
   private WeightedRandomWaitlist.@Nullable WaitlistOptions weightedWaitlistOptions;
   private final LogManager logger;
 
   public ReachedSetFactory(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     pConfig.inject(this);
-    this.config = pConfig;
     this.logger = checkNotNull(pLogger);
 
     if (useBlocks) {
       blockConfig = new BlockConfiguration(pConfig);
     } else {
       blockConfig = null;
+    }
+    if (reachedSet == ReachedSetType.USAGE) {
+      usageConfig = new UsageConfiguration(pConfig);
+    } else {
+      usageConfig = null;
     }
     if (useWeightedDepthOrder || useWeightedBranchOrder) {
       weightedWaitlistOptions = new WeightedRandomWaitlist.WaitlistOptions(pConfig);
@@ -308,7 +298,7 @@ public class ReachedSetFactory {
         reached = new LocationMappedReachedSet(waitlistFactory);
         break;
     case USAGE:
-        reached = new UsageReachedSet(waitlistFactory, config, logger);
+        reached = new UsageReachedSet(waitlistFactory, usageConfig, logger);
         break;
     case NORMAL:
     default:
