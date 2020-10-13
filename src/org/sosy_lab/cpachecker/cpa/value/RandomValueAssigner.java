@@ -27,6 +27,8 @@ import java.util.Random;
 import java.util.logging.Level;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
@@ -60,14 +62,16 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
   @Option(description = "Default size of arrays whose length can't be determined.")
   private int defaultArraySize = 20;
 
-  public RandomValueAssigner(LogManager logger, long seed) {
+  public RandomValueAssigner(LogManager logger, long seed, Configuration pConfig) throws InvalidConfigurationException {
     this.logger = logger;
     this.rnd = new Random(seed);
+    pConfig.inject(this);
   }
 
-  public RandomValueAssigner(LogManager logger) {
+  public RandomValueAssigner(LogManager logger, Configuration pConfig) throws InvalidConfigurationException {
     this.logger = logger;
     this.rnd = new Random();
+    pConfig.inject(this);
   }
 
   /**
