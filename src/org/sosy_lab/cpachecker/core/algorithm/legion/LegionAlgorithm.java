@@ -215,8 +215,16 @@ public class LegionAlgorithm implements Algorithm {
                 for (ValueAssignment va : lst) {
                     logger.log(Level.WARNING, "Appending va");
                     String name = va.getName();
-                    String value = String.valueOf(va.getValue());
-                    String type = "int";
+
+                    String type = "";
+
+                    Object v = va.getValue();
+                    String value = "";
+                    if (v instanceof BigInteger) {
+                        value = String.valueOf(((BigInteger) v).intValue());
+                        type = "int";
+                    }
+
                     testcase.write(
                             String.format(
                                     "\t<input variable=\"%s\" type=\"%s\">%s</input>\n",
