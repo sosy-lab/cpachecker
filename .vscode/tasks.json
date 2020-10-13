@@ -6,16 +6,18 @@
         {
             "label": "Run Legion",
             "type": "shell",
-            "command": "scripts/cpa.sh -config config/legion.properties doc/examples/legion/example.c",
+            "command": "scripts/cpa.sh -spec config/specification/sv-comp-reachability.spc -config config/legion.properties doc/examples/legion/example.c",
+            "problemMatcher": []
         },
         {
             "label": "Build",
             "type": "shell",
-            "command": "ant build",
+            "command": "ant build -Dcompile.warn=true -Derrorprone.disable=true",
             "group": {
                 "kind": "build",
                 "isDefault": true
-              }
+            },
+            "problemMatcher": []
         }
     ]
 }

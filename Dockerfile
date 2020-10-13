@@ -1,4 +1,4 @@
-FROM openjdk:13-jdk-slim
+FROM openjdk:11-jdk-slim
 
 WORKDIR /usr/app
 ENV PATH="/etc/ant/bin:${PATH}"
@@ -6,11 +6,11 @@ ENV ANT_HOME="/etc/ant"
 ENV ANT_VERSION="1.10.7"
 
 RUN apt-get update && apt-get install -y \
-  graphviz \
-  libgomp1 \
-  python3 \
-  wget \
-  git
+  graphviz=2.40.1-6 \
+  libgomp1=8.3.0-6 \
+  python3=3.7.3-1 \
+  wget=1.20.1-1.1 \
+  git=1:2.20.1-2+deb10u1
 
 # RUN apt-get update && (apt-get install -y ant || true)
 RUN cd /tmp; \
@@ -24,7 +24,7 @@ RUN cd /tmp; \
 COPY build /usr/app/build
 COPY lib /usr/app/lib
 COPY build*.xml /usr/app/
-RUN ant resolve-dependencies
+RUN ant -lib lib/java/build resolve-dependencies
 
 COPY . /usr/app
 
