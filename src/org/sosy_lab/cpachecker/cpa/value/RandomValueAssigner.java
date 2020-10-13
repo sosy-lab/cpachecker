@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -108,16 +109,45 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
       ValueAnalysisState pState) {
     
     CBasicType basicType = (( CSimpleType ) pType).getType();
+    Value value;
 
     switch (basicType) {
-        case INT:
-            NumericValue value = new NumericValue(this.rnd.nextInt());
-            this.logger.log(Level.INFO, "Assigned random value " + value + " to memory location " + pMemLocation);
+        case UNSPECIFIED:
+            value = new NumericValue(0);
+            pState.assignConstant(pMemLocation, value, pType);
+            this.logger.log(Level.INFO, "Assigned 0 value to memory location " + pMemLocation);
+            break;
+        case BOOL:
+            value = BooleanValue.valueOf(this.rnd.nextBoolean());
             pState.assignConstant(pMemLocation, value, pType);
             pPreviousState.nonDeterministicMark = true;
             break;
+        case CHAR:
+            // Generate randInt with char value range
+            value = new NumericValue(this.rnd.nextInt(65536));
+            pState.assignConstant(pMemLocation, value, pType);
+            pPreviousState.nonDeterministicMark = true;
+            break;
+        case INT:
+            value = new NumericValue(this.rnd.nextInt());
+            pState.assignConstant(pMemLocation, value, pType);
+            pPreviousState.nonDeterministicMark = true;
+            this.logger.log(Level.INFO, "Assigned random value " + value + " to memory location " + pMemLocation);
+            break;
+        case FLOAT:
+            value = new NumericValue(this.rnd.nextFloat());
+            pState.assignConstant(pMemLocation, value, pType);
+            pPreviousState.nonDeterministicMark = true;
+            break;
+        case DOUBLE:
+            value = new NumericValue(this.rnd.nextDouble());
+            pState.assignConstant(pMemLocation, value, pType);
+            pPreviousState.nonDeterministicMark = true;
+            break;
+        
         default:
-            throw new IllegalArgumentException("Unknown values of c type " + basicType.toASTString());
+            throw new IllegalArgumentException("Unknown values of c type " + basicType.name());
+
     }
   }
 
