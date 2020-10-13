@@ -267,9 +267,9 @@ public class ValueAnalysisCPA extends AbstractCPA
         @Override
         public AbstractState  merge(AbstractState el1, AbstractState el2, Precision p)
         throws CPAException, InterruptedException {
-          // return domain.join(el1, el2);
           logger.log(Level.FINE, "CONCOLIC Join happening");
-          return el2;
+
+          return el1;
         }
       }
 

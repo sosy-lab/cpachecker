@@ -26,6 +26,8 @@ import java.util.LinkedList;
 import java.util.Random;
 import java.util.logging.Level;
 
+import com.google.common.collect.ImmutableList;
+
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -51,6 +53,7 @@ import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 @Options(prefix = "cpa.value.legion")
 public class LegionAlgorithm implements Algorithm {
@@ -119,8 +122,13 @@ public class LegionAlgorithm implements Algorithm {
             AbstractState target = selectTarget(reachedSet, SelectionStrategy.RANDOM);
 
             // Phase Targetting: Solve and plug results to RVA as preload
-            try (Model constraints = solvePathConstrains(target, solver)) {
-                preloadValueAssigner(constraints, unknownValueHandler);
+            try (ProverEnvironment prover =
+                solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+                try (Model constraints = solvePathConstrains(target, prover)) {
+                    preloadValueAssigner(constraints, unknownValueHandler);
+                }
+            } catch (SolverException ex) {
+                this.logger.log(Level.WARNING, "Could not solve formula.");
             }
 
             // Phase Fuzzing: Run iterations to resource limit (m)
@@ -163,6 +171,7 @@ public class LegionAlgorithm implements Algorithm {
             ValueAnalysisState vs =
                     AbstractStates.extractStateByType(state, ValueAnalysisState.class);
             if (vs.nonDeterministicMark) {
+                logger.log(Level.INFO, "Nondet state", vs.getConstants().toString());
                 nonDetStates.add(state);
             }
         }
@@ -173,23 +182,18 @@ public class LegionAlgorithm implements Algorithm {
      * Ask the SAT-solver to compute path constraints for the pTarget.
      * 
      * @param pTarget State to solve path constraints for.
-     * @param pSolver The solver to use.
+     * @param pProver The prover to use.
+     * @throws InterruptedException, SolverException
      */
-    private Model solvePathConstrains(AbstractState pTarget, Solver pSolver)
-            throws InterruptedException {
+    private Model solvePathConstrains(AbstractState pTarget, ProverEnvironment pProver)
+            throws InterruptedException, SolverException {
         logger.log(Level.INFO, "Solve path constraints.");
-        try (ProverEnvironment prover =
-                solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
             PredicateAbstractState ps =
                     AbstractStates.extractStateByType(pTarget, PredicateAbstractState.class);
             BooleanFormula f = ps.getPathFormula().getFormula();
-            prover.push(f);
-            assertThat(prover).isSatisfiable();
-            return prover.getModel();
-        } catch (SolverException ex) {
-            this.logger.log(Level.WARNING, "Could not solve formula.");
-        }
-        return null;
+            pProver.push(f);
+            assertThat(pProver).isSatisfiable();
+            return pProver.getModel();
     }
 
     /**
@@ -198,8 +202,12 @@ public class LegionAlgorithm implements Algorithm {
      * @param pConstraints The source of values to assign.
      */
     private void preloadValueAssigner(Model pConstraints, RandomValueAssigner pValueAssigner) {
-        logger.log(Level.INFO, "Preloading value assigner !not implemented.");
-        // todo
+        for (ValueAssignment assignment : pConstraints.asList()){
+            String name = assignment.getName();
+            if (!name.contains("__VERIFIER_nondet")){
+                logger.log(Level.INFO, "Found assignment to {}:{}", name, assignment.getValue());
+            }
+        }
     }
 
     /**
@@ -220,10 +228,8 @@ public class LegionAlgorithm implements Algorithm {
                 throw new PropertyViolationException(violatedProperties);
             }
 
-            // Otherwise, start with nondet States again
-            for (AbstractState state : getNondetStates(pReachedSet)) {
-                pReachedSet.reAddToWaitlist(state);
-            }
+            // Otherwise, start from the beginning again
+            pReachedSet.reAddToWaitlist(pReachedSet.getFirstState());
         }
 
         return pReachedSet;

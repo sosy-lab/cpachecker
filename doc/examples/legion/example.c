@@ -3,12 +3,14 @@ extern void __VERIFIER_error() __attribute__ ((__noreturn__));
 int main() {
   
     int a = __VERIFIER_nondet_int();
-    int b = 0;
-
     if (a < -1610612736){
-      __VERIFIER_error();
+      int b = __VERIFIER_nondet_int();
+      if (b < -1610612736){
+        a = 3;
+      }
+      // __VERIFIER_error();
     } else {
-      b = 2;
+      a = 2;
     }
 
     // int c;
