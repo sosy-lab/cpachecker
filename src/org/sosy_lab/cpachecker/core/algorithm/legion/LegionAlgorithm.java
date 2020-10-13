@@ -44,6 +44,7 @@ public class LegionAlgorithm implements Algorithm {
 
         algorithm.run(reachedSet);
         Set<AbstractState> collection = reachedSet.asCollection();
+        AbstractState state = collection.iterator().next();
 
         return AlgorithmStatus.NO_PROPERTY_CHECKED;
     }
