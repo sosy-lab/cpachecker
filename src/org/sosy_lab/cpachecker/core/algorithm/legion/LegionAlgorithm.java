@@ -180,7 +180,6 @@ public class LegionAlgorithm implements Algorithm {
             }
             if (target == null) {
                 logger.log(Level.WARNING, "No target states left");
-                writeTestCases(reachedSet);
                 break;
             }
 
