@@ -6,6 +6,8 @@ int main() {
     // int b = 0;
     int b;
     b = 0;
+    b = __VERIFIER_nondet_int();
+
     // int c;
     // if (a < -1610612736){
     //   b = __VERIFIER_nondet_int();
