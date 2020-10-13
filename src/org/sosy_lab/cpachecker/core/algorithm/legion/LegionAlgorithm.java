@@ -52,25 +52,31 @@ import org.sosy_lab.java_smt.api.ProverEnvironment;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
 import org.sosy_lab.java_smt.api.SolverException;
 
-@Options(prefix = "cpa.value.legion")
+@Options(prefix = "legion")
 public class LegionAlgorithm implements Algorithm {
     private final Algorithm algorithm;
     private final LogManager logger;
-    private final int maxIterations;
     @SuppressWarnings("unused")
     private final ConfigurableProgramAnalysis cpa;
     private Solver solver;
-    private int initialPasses;
-    private int fuzzingPasses;
     @SuppressWarnings("unused")
     private ShutdownNotifier shutdownNotifier;
     private ValueAnalysisCPA valCpa;
 
 
-    @Option(secure=true, name="merge", toUppercase=true, values={"RAND"},
+    @Option(secure=true, name="selectionStrategy", toUppercase=true, values={"RAND"},
       description="which selection strategy to use to get target states.")
     private String selectionStrategyOption = "RAND";
     private Selector selectionStrategy;
+
+    @Option(secure=true, description="How many passes to fuzz before asking the solver for the first time.")
+    private int initialPasses = 3;
+
+    @Option(secure=true, description="How often to run the fuzzer within each iteration.")
+    private int fuzzingPasses = 5;
+
+    @Option(secure=true, description="How many total iterations of [select, target, fuzz] to perform.")
+    private int maxIterations = 5;
 
     public LegionAlgorithm(
             final Algorithm algorithm,
@@ -82,21 +88,19 @@ public class LegionAlgorithm implements Algorithm {
         this.algorithm = algorithm;
         this.logger = pLogger;
         this.shutdownNotifier = shutdownNotifier;
-        this.initialPasses = 3;
-        this.fuzzingPasses = 5;
-        this.maxIterations = 5;
         this.cpa = cpa;
 
-        pConfig.inject(this);
+        pConfig.inject(this, LegionAlgorithm.class);
 
-        // Fetch sovler from predicate CPA
+        // Fetch solver from predicate CPA
         PredicateCPA predCpa =
                 CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, LegionAlgorithm.class);
         this.solver = predCpa.getSolver();
 
-        // Get UVA from Value Analysis
+        // Get value cpa
         valCpa = CPAs.retrieveCPAOrFail(cpa, ValueAnalysisCPA.class, LegionAlgorithm.class);
 
+        // Set selection Strategy
         selectionStrategy = buildSelectionStrategy();
     }
 
@@ -235,7 +239,7 @@ public class LegionAlgorithm implements Algorithm {
     }
 
     Selector buildSelectionStrategy(){
-        if (selectionStrategyOption == "RAND"){
+        if (selectionStrategyOption.equals("RAND")){
             return new RandomSelectionStrategy(logger);
         }
         throw new IllegalArgumentException(
