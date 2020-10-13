@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        
+        {
+            "type": "java",
+            "name": "Debug (Launch)",
+            "request": "launch",
+            "mainClass": "org.sosy_lab.cpachecker.cmdline.CPAMain",
+            "args": "-config config/legion.properties doc/examples/legion/example.c",
+        }
+    ]
+  }
