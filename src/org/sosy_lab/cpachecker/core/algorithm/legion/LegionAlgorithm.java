@@ -19,9 +19,11 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.legion;
 
-import static org.junit.Assert.assertThat;
 import static org.sosy_lab.java_smt.test.ProverEnvironmentSubject.assertThat;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -51,6 +53,7 @@ import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.cpachecker.util.testcase.XMLTestCaseExport;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.BooleanFormulaManager;
 import org.sosy_lab.java_smt.api.Model;
@@ -159,7 +162,7 @@ public class LegionAlgorithm implements Algorithm {
 
             // Phase Targetting: Solve and plug results to RVA as preload
             preloadedValues = target(solver, this.maxSolverAsks, target);
-            int fuzzingPasses = (int)Math.ceil(fuzzingMultiplier * preloadedValues.size());
+            int fuzzingPasses = (int) Math.ceil(fuzzingMultiplier * preloadedValues.size());
 
             // Phase Fuzzing: Run iterations to resource limit (m)
             try {
@@ -169,8 +172,31 @@ public class LegionAlgorithm implements Algorithm {
                 return AlgorithmStatus.SOUND_AND_PRECISE;
             }
             valCpa.getTransferRelation().clearKnownValues();
+            try {
+                writeTestCases();
+            } catch (IOException exc){
+                logger.log(Level.WARNING, "Could not write test output", exc);
+
+            }
         }
+
         return status;
+    }
+
+    private void writeTestCases() throws IOException {
+        File outpath = new File("./output/testcases");
+        outpath.mkdirs();
+
+        FileWriter metadata = new FileWriter("./output/testcases/metadata.xml");
+
+        XMLTestCaseExport.writeXMLMetadata(
+            metadata,
+            this.predCpa.getCfa(),
+            null,
+            "legion"
+        );
+
+        metadata.flush();
     }
 
     /**
