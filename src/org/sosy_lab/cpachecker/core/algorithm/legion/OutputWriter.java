@@ -39,8 +39,8 @@ public class OutputWriter {
     private int testCaseNumber;
 
     /**
-     * The output writer can take a pReachedSet on .writeTestCases and
-     * traverse it, rendering out a testcase for it.
+     * The output writer can take a pReachedSet on .writeTestCases and traverse it, rendering out a
+     * testcase for it.
      * 
      * @param pPath The output path to write files to.
      */
@@ -54,7 +54,7 @@ public class OutputWriter {
         writeTestMetadata();
     }
 
-    private void initOutDir(String pPath){
+    private void initOutDir(String pPath) {
         File outpath = new File(pPath);
         outpath.mkdirs();
     }
@@ -62,8 +62,7 @@ public class OutputWriter {
     /**
      * Write the metadata file necessary for testcomp to the output path.
      * 
-     * This only needs to be done once and does not contain testcase specific
-     * information.
+     * This only needs to be done once and does not contain testcase specific information.
      */
     private void writeTestMetadata() {
         try (FileWriter metadata = new FileWriter(this.path + "/metadata.xml")) {
@@ -92,42 +91,38 @@ public class OutputWriter {
     }
 
     /**
-     * Search through connected states starting from the state given and return
-     * their MemoryLocation and ValueType.
+     * Search through connected states starting from the state given and return their MemoryLocation
+     * and ValueType.
      * 
-     * This performs walk along the children of state. The child to walk down to
-     * is selected by the highest state id (meaning the newest).
-     * This results in a list of values starting at the given state and walking 
-     * the newest path through it's children.
+     * This performs walk along the children of state. The child to walk down to is selected by the
+     * highest state id (meaning the newest). This results in a list of values starting at the given
+     * state and walking the newest path through it's children.
      * 
-     * @param state The starting state.
+     * @param state  The starting state.
      * @param values The list of values to append to.
      */
     private void
             searchTestCase(ARGState state, ArrayList<Entry<MemoryLocation, ValueAndType>> values) {
         // check if is nondet assignment
         LocationState ls = AbstractStates.extractStateByType(state, LocationState.class);
-        Iterable<CFAEdge> incoming = ls.getIngoingEdges();
-        for (CFAEdge edge : incoming) {
-            if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
-                CStatement statement = ((CStatementEdge) edge).getStatement();
-                if (statement instanceof CFunctionCallAssignmentStatement) {
-                    CFunctionCallAssignmentStatement assignment =
-                            ((CFunctionCallAssignmentStatement) statement);
-                    CFunctionCallExpression right_hand = assignment.getRightHandSide();
-                    if (right_hand.toString().startsWith("__VERIFIER_nondet_")) {
-                        // CHECK!
-                        String function_name = ls.getLocationNode().getFunctionName();
-                        String identifier =
-                                ((CIdExpression) assignment.getLeftHandSide()).getName();
-                        @Nullable
-                        ValueAnalysisState vs =
-                                AbstractStates.extractStateByType(state, ValueAnalysisState.class);
-                        Entry<MemoryLocation, ValueAndType> vt =
-                                getValueTypeFromState(function_name, identifier, vs);
-                        values.add(vt);
-                    }
-                }
+
+        for (CFAEdge edge : ls.getIngoingEdges()) {
+            // Extract assignment
+            CFunctionCallAssignmentStatement assignment = extractAssignment(edge);
+            if (assignment == null) {
+                continue;
+            }
+
+            // Check if assignment is for a nondeterministic variable
+            if (assignment.getRightHandSide().toString().startsWith("__VERIFIER_nondet_")) {
+                String function_name = ls.getLocationNode().getFunctionName();
+                String identifier = ((CIdExpression) assignment.getLeftHandSide()).getName();
+                @Nullable
+                ValueAnalysisState vs =
+                        AbstractStates.extractStateByType(state, ValueAnalysisState.class);
+                Entry<MemoryLocation, ValueAndType> vt =
+                        getValueTypeFromState(function_name, identifier, vs);
+                values.add(vt);
             }
         }
 
@@ -146,6 +141,19 @@ public class OutputWriter {
 
         // If not, search in largest_child
         searchTestCase(largest_child, values);
+    }
+
+    /**
+     * Retrieve an assignment statement from a CFAEdge, if this is possible.
+     */
+    private CFunctionCallAssignmentStatement extractAssignment(CFAEdge edge) {
+        if (edge.getEdgeType() == CFAEdgeType.StatementEdge) {
+            CStatement statement = ((CStatementEdge) edge).getStatement();
+            if (statement instanceof CFunctionCallAssignmentStatement) {
+                return ((CFunctionCallAssignmentStatement) statement);
+            }
+        }
+        return null;
     }
 
     /**
@@ -184,11 +192,11 @@ public class OutputWriter {
     }
 
     /**
-     * Retrieve variables a MemoryLocation and ValueAndType from a
-     * ValueAnalysisState by its function name and identifier (=name).
+     * Retrieve variables a MemoryLocation and ValueAndType from a ValueAnalysisState by its
+     * function name and identifier (=name).
      * 
      * @param function_name Name of the function the variable is contained in.
-     * @param identifier The name of the function.
+     * @param identifier    The name of the function.
      * @return The constants entry for this value or null.
      */
     private static Entry<MemoryLocation, ValueAndType> getValueTypeFromState(
