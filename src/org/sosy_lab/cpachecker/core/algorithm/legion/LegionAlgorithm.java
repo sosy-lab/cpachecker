@@ -140,6 +140,7 @@ public class LegionAlgorithm implements Algorithm {
                 logger.log(Level.WARNING, "Found violated property in iteration", i + 1);
                 return AlgorithmStatus.SOUND_AND_PRECISE;
             }
+            unknownValueHandler.clearPreLoaded();
         }
         return status;
     }

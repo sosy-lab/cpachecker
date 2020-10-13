@@ -148,6 +148,10 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
     }
   }
 
+  public void clearPreLoaded(){
+    loadedValues.clear();
+  }
+
   private String sanitize(String name){
     while (Character.isDigit(name.charAt(name.length()-1))) {
       name = name.substring(0, name.length()-1);
