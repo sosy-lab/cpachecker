@@ -482,6 +482,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   /**
    * This will check, if the function call in question is a nondeterministic
    * one (and would return an unknown Value) and if values were were preloaded.
+   * 
    * If this is the case, the preloaded Value will be short-curcuited.
    * Else, the regular visit-logic is run.
    */
@@ -494,11 +495,24 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
     if (functionNameExp instanceof CIdExpression) {
       String calledFunctionName = ((CIdExpression) functionNameExp).getName();
       if (calledFunctionName.startsWith("__VERIFIER_nondet_") && knownValues != null && knownValues.size() > 0){
-        Value v = knownValues.remove(0);
-        logger.log(Level.INFO, "Used preloaded value", v);
-        return v;
+        if (isAssignable(knownValues.get(0), pIastFunctionCallExpression)){
+          logger.log(Level.INFO, "Used preloaded value");
+          return knownValues.remove(0);
+        }
       }
     }
     return super.visit(pIastFunctionCallExpression);
+  }
+
+  /**
+   * Check if value is assignable via the expr (aka. has the correct type)
+   * 
+   * @param value The value to assign.
+   * @param expr The expression the value should be assigned with.
+   */
+  Boolean isAssignable (Value value, CFunctionCallExpression expr){
+    // Boolean valueIsNumeric = knownValues.get(0).isNumericValue();
+    // CType expressionType = pIastFunctionCallExpression.getExpressionType();
+    return true;
   }
 }
