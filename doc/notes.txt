@@ -364,3 +364,47 @@ Nächster Schritt: Pfadformeln lösen
   - Algorithmus für mehrfache verschiedene Constraints vom solver bekommen bauen
     immer eine push -> lösen, dann push-pop (* anzahl nondet variablen)
     (ähnliche strategie https://github.com/gernst/bvsampler)
+
+5.8.
+  - Vorstellung aktueller Stand
+    - Interessante Punkte:
+      1. Selection Score: wie werden Edges ausgewählt? Im moment first unvisited
+         edge in tiefensuch-ähnlichem Verfahren
+      2. Targetting: Generieren von diversen Lösungen für die Selected Edge
+      3. Fuzzing: 
+            Random values through the random value assigner
+            Preloaded values through ExpressionValueVisitor
+  - konkrete Fragen:
+    - schreiben von Testfile-XML -> util/testcase/testcaseexport
+    - Coverage von gcov extern
+    - Multithreading (Testcomp by CPU-Time?) -> CPU Time
+  - allgemeine Fragen:
+    - Struktur
+    - Phasen
+    - nice to know
+
+Coverage info: Set merken mit Locations welche schon covered sind,
+sobald eine Iteration einen Test liefert, welcher coverage hat die noch nicht im
+Set enthalten -> neues TestCaseFile
+
+ExpressionValueVisitor setzt Werte -> unsauber
+Aber: größere Änderung: violation Witness schreiben und wieder lesen
+
+Martin Spießl
+
+Violation Witness -> WitnessExporter: export aufwändiger, würde 
+aber beim Import sauberen Automaten für Zuweisungen generieren
+
+generateErrorWitness -> Verwendungen (zb. CounterexampleCPAchecker.java)
+wichtige Infos im
+
+---
+Concolic merge führt immer zum hinzufügen in der Waitlist -> auch wenn exakt
+der selbe Zustand.
+
+---
+Möglichkeit: ARG abschneiden und Set nutzen um in jedem Run die besuchten
+CFA Nodes zu markieren.
+
+Reason: Merge braucht es dann nicht -> sauberer mit immer neuem ReachedSet
+Termination Check wird dann nicht ausgehebelt (wird aktuell übergangen).
