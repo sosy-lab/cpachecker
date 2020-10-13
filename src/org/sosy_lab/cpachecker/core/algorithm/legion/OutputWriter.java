@@ -32,15 +32,22 @@ import org.sosy_lab.cpachecker.util.testcase.XMLTestCaseExport;
 
 public class OutputWriter {
 
-    private int testCaseNumber;
     private LogManager logger;
-    private PredicateCPA PredicateCPA;
+    private PredicateCPA predicateCPA;
     private String path;
 
+    private int testCaseNumber;
+
+    /**
+     * The output writer can take a pReachedSet on .writeTestCases and
+     * traverse it, rendering out a testcase for it.
+     * 
+     * @param pPath The output path to write files to.
+     */
     public OutputWriter(LogManager pLogger, PredicateCPA pPredicateCPA, String pPath) {
         testCaseNumber = 0;
         logger = pLogger;
-        PredicateCPA = pPredicateCPA;
+        predicateCPA = pPredicateCPA;
         path = pPath;
 
         initOutDir(path);
@@ -60,7 +67,7 @@ public class OutputWriter {
      */
     private void writeTestMetadata() {
         try (FileWriter metadata = new FileWriter(this.path + "/metadata.xml")) {
-            XMLTestCaseExport.writeXMLMetadata(metadata, PredicateCPA.getCfa(), null, "legion");
+            XMLTestCaseExport.writeXMLMetadata(metadata, predicateCPA.getCfa(), null, "legion");
             metadata.flush();
         } catch (IOException exc) {
             logger.log(Level.SEVERE, "Could not write metadata file", exc);
