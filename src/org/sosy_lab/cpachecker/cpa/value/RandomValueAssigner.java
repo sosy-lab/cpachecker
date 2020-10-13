@@ -43,29 +43,29 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
 /**
- * Memory location value handler that assigns randomly chosen values to the given
- * memory locations.
+ * Memory location value handler that assigns randomly chosen values to the given memory locations.
  */
-@Options(prefix="cpa.value.concolic")
+@Options(prefix = "cpa.value.concolic")
 public final class RandomValueAssigner implements MemoryLocationValueHandler {
 
   private Random rnd;
   private final LogManager logger;
 
-  @Option(description="If this option is set to true, an own symbolic identifier is assigned to"
-      + " each array slot when handling non-deterministic arrays of fixed length."
-      + " If the length of the array can't be determined, it won't be handled in either cases.")
+  @Option(
+    description = "If this option is set to true, an own symbolic identifier is assigned to"
+        + " each array slot when handling non-deterministic arrays of fixed length."
+        + " If the length of the array can't be determined, it won't be handled in either cases.")
   private boolean handleArrays = false;
 
-  @Option(description="Default size of arrays whose length can't be determined.")
+  @Option(description = "Default size of arrays whose length can't be determined.")
   private int defaultArraySize = 20;
 
-  public RandomValueAssigner(LogManager logger, long seed){
+  public RandomValueAssigner(LogManager logger, long seed) {
     this.logger = logger;
     this.rnd = new Random(seed);
   }
 
-  public RandomValueAssigner(LogManager logger){
+  public RandomValueAssigner(LogManager logger) {
     this.logger = logger;
     this.rnd = new Random();
   }
@@ -73,13 +73,14 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
   /**
    * Assign a random value to the {@link MemoryLocation} from the given {@link ValueAnalysisState}.
    *
-   * @param pMemLocation the memory location to remove
-   * @param pType the type of the memory location that should be removed
-   * @param pPreviousState the {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState} which preceedes
-   *    pState. This state will be marked when a random value is assigned in pState.
-   * @param pState the {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState} to use.
-   *    Value assignments will happen in this state
-   * @param pValueVisitor unused, may be null
+   * @param pMemLocation   the memory location to remove
+   * @param pType          the type of the memory location that should be removed
+   * @param pPreviousState the {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState} which
+   *                       preceedes pState. This state will be marked when a random value is
+   *                       assigned in pState.
+   * @param pState         the {@link org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState} to use.
+   *                       Value assignments will happen in this state
+   * @param pValueVisitor  unused, may be null
    */
   @Override
   public void handle(
@@ -87,7 +88,8 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
       Type pType,
       ValueAnalysisState pPreviousState,
       ValueAnalysisState pState,
-      @Nullable ExpressionValueVisitor pValueVisitor) throws UnrecognizedCodeException {
+      @Nullable ExpressionValueVisitor pValueVisitor)
+      throws UnrecognizedCodeException {
 
     if (pType instanceof CSimpleType) {
       createSimpleType(pMemLocation, pType, pPreviousState, pState);
@@ -95,11 +97,15 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
     }
 
     if (pType instanceof CArrayType) {
-      fillArrayWithSymbolicIdentifiers(pState, pMemLocation, (( CArrayType ) pType), pValueVisitor);
+      fillArrayWithSymbolicIdentifiers(pState, pMemLocation, ((CArrayType) pType), pValueVisitor);
       return;
     }
-  
-    throw new IllegalArgumentException("Unknown value was not of simple c type, was " + pType.toString() + " " + pType.getClass().toString());        
+
+    throw new IllegalArgumentException(
+        "Unknown value was not of simple c type, was "
+            + pType.toString()
+            + " "
+            + pType.getClass().toString());
   }
 
   private void createSimpleType(
@@ -107,56 +113,54 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
       Type pType,
       ValueAnalysisState pPreviousState,
       ValueAnalysisState pState) {
-    
-    CBasicType basicType = (( CSimpleType ) pType).getType();
+
+    CBasicType basicType = ((CSimpleType) pType).getType();
     Value value;
 
     switch (basicType) {
-        case UNSPECIFIED:
-            value = new NumericValue(0);
-            pState.assignConstant(pMemLocation, value, pType);
-            this.logger.log(Level.INFO, "Assigned 0 value to memory location " + pMemLocation);
-            break;
-        case BOOL:
-            value = BooleanValue.valueOf(this.rnd.nextBoolean());
-            pState.assignConstant(pMemLocation, value, pType);
-            pPreviousState.nonDeterministicMark = true;
-            break;
-        case CHAR:
-            // Generate randInt with char value range
-            value = new NumericValue(this.rnd.nextInt(65536));
-            pState.assignConstant(pMemLocation, value, pType);
-            pPreviousState.nonDeterministicMark = true;
-            break;
-        case INT:
-            value = new NumericValue(this.rnd.nextInt());
-            pState.assignConstant(pMemLocation, value, pType);
-            pPreviousState.nonDeterministicMark = true;
-            this.logger.log(Level.INFO, "Assigned random value " + value + " to memory location " + pMemLocation);
-            break;
-        case FLOAT:
-            value = new NumericValue(this.rnd.nextFloat());
-            pState.assignConstant(pMemLocation, value, pType);
-            pPreviousState.nonDeterministicMark = true;
-            break;
-        case DOUBLE:
-            value = new NumericValue(this.rnd.nextDouble());
-            pState.assignConstant(pMemLocation, value, pType);
-            pPreviousState.nonDeterministicMark = true;
-            break;
-        
-        default:
-            throw new IllegalArgumentException("Unknown values of c type " + basicType.name());
+      case UNSPECIFIED:
+        // If value is inspecified, just assign a 0 value
+        // TODO: Check if ok
+        value = new NumericValue(0);
+        this.logger.log(Level.INFO, "Assigned 0 value to memory location " + pMemLocation);
+        break;
+      case BOOL:
+        value = BooleanValue.valueOf(this.rnd.nextBoolean());
+        pPreviousState.nonDeterministicMark = true;
+        break;
+      case CHAR:
+        // Generate randInt with char value range
+        value = new NumericValue(this.rnd.nextInt(65536));
+        pPreviousState.nonDeterministicMark = true;
+        break;
+      case INT:
+        value = new NumericValue(this.rnd.nextInt());
+        pPreviousState.nonDeterministicMark = true;
+        this.logger.log(
+            Level.INFO,
+            "Assigned random value " + value + " to memory location " + pMemLocation);
+        break;
+      case FLOAT:
+        value = new NumericValue(this.rnd.nextFloat());
+        pPreviousState.nonDeterministicMark = true;
+        break;
+      case DOUBLE:
+        value = new NumericValue(this.rnd.nextDouble());
+        pPreviousState.nonDeterministicMark = true;
+        break;
 
+      default:
+        throw new IllegalArgumentException("Unknown values of c type " + basicType.name());
     }
+    pState.assignConstant(pMemLocation, value, pType);
   }
 
   private void fillArrayWithSymbolicIdentifiers(
       final ValueAnalysisState pState,
       final MemoryLocation pArrayLocation,
       final CArrayType pArrayType,
-      final ExpressionValueVisitor pValueVisitor
-  ) throws UnrecognizedCodeException {
+      final ExpressionValueVisitor pValueVisitor)
+      throws UnrecognizedCodeException {
 
     if (!handleArrays) {
       pState.forget(pArrayLocation);
