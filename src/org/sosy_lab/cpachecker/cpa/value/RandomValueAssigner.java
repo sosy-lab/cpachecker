@@ -29,6 +29,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
@@ -65,13 +66,13 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
     switch (basicType) {
         case INT:
             int randInt = this.rnd.nextInt();
-            
+            NumericValue value = new NumericValue(randInt);
+            pState.assignConstant(pMemLocation, value, pType);
+            pState.nonDeterministicMark = true;
             break;
         default:
             throw new IllegalArgumentException("Unknown values of c type " + basicType.toASTString());
     }
 
-    // ------------------(simpleType);
-    pState.forget(pMemLocation);
   }
 }

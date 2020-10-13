@@ -3212,7 +3212,7 @@ cpa.value.trackJavaArrayValues = true
 
 # Tells the value analysis how to handle unknown values.
 cpa.value.unknownValueHandling = DISCARD
-  enum:     [DISCARD, INTRODUCE_SYMBOLIC]
+  enum:     [DISCARD, INTRODUCE_SYMBOLIC, RANDOM_VALUE]
 
 # Specify simple custom instruction by specifying the binary operator op. All
 # simple cis are of the form r = x op y. Leave empty (default) if you specify
