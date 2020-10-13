@@ -146,15 +146,7 @@ public class LegionAlgorithm implements Algorithm {
             }
 
             // Phase Targetting: Solve and plug results to RVA as preload
-            preloadedValues = new ArrayList<ArrayList<Value>>();
-            try (ProverEnvironment prover =
-                    solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-                try (Model constraints = solvePathConstrains(target, prover, this.maxSolverAsks)) {
-                    preloadedValues.add(computePreloadValues(constraints));
-                }
-            } catch (SolverException ex) {
-                this.logger.log(Level.WARNING, "Could not solve formula.");
-            }
+            preloadedValues = target(solver, this.maxSolverAsks, target);
 
             // Phase Fuzzing: Run iterations to resource limit (m)
             try {
@@ -166,6 +158,22 @@ public class LegionAlgorithm implements Algorithm {
             valCpa.getTransferRelation().clearKnownValues();
         }
         return status;
+    }
+
+    ArrayList<ArrayList<Value>> target(Solver pSolver, int pMaxSolverAsks, BooleanFormula pTarget)
+            throws InterruptedException {
+        // Phase Targetting: Solve and plug results to RVA as preload
+        ArrayList<ArrayList<Value>> preloadedValues = new ArrayList<ArrayList<Value>>();
+        try (ProverEnvironment prover =
+                pSolver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+            try (Model constraints = solvePathConstrains(pTarget, prover, pMaxSolverAsks)) {
+                preloadedValues.add(computePreloadValues(constraints));
+            }
+        } catch (SolverException ex) {
+            this.logger.log(Level.WARNING, "Could not solve formula.");
+        }
+
+        return preloadedValues;
     }
 
     /**
