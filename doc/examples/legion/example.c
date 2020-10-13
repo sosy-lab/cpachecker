@@ -1,53 +1,35 @@
 extern void __VERIFIER_error() __attribute__ ((__noreturn__));
 
 int main() {
-  
-    int a = __VERIFIER_nondet_int();
-    int b = 0;
-    if (a < 0){
-            // -1913767021
-            // -1342231855
-      int b = __VERIFIER_nondet_int();
-      if (b < -1610612736){
-        a = 3;
-      }
-      // __VERIFIER_error();
-      // b = 1;
+  int a = __VERIFIER_nondet_int();
+  if (a < -1610612736){
+    int b = __VERIFIER_nondet_int();
+    if (b < -1610612736){
+      return;
     }
-    // if (a < -2415919104){
-    //   b = 2;
-    // }
+  }
 
-    // if (a < -2516019105) {
-    //   b = 3;
-    // }
 
-    // else {
-    //   a = 2;
-    // }
-
-    // int c;
-    // int b;
-    // b = 0;
-    // b = __VERIFIER_nondet_int();
-    // int x[10];
-    // x = {1,2,3,4,5,6,7,8,9,10};
-    // for (int i = 0; i < 10; i++) {
-    //   x[i] = 3;
-    // }
-    // a = a + b;
-    // int x = a;
-
-    // for (int i=0; i < 8; i=i+2){
-    //   x = x + 2;
-    //   a = a + 1;
-    // }
-
-  // a = __VERIFIER_nondet_int();
-  // if (a < x){  
+  // for (int i = 0; i < 4; i++){
   //   int b = __VERIFIER_nondet_int();
-  //   if (b < -1610612736){
-  //     __VERIFIER_error();
+  //   if (b < 0){
+  //     a = 2;
   //   }
   // }
 }
+      // int b = __VERIFIER_nondet_int();
+      // if (b < 0){
+      //   int c = __VERIFIER_nondet_int();
+      //   if (c < 0){
+      //     a = 3;
+      //   }
+      // }
+        // }
+      //     int d = __VERIFIER_nondet_int();
+      //     if (d < -1610612736){
+      // }
+      // b = __VERIFIER_nondet_int();
+      // a = 2;
+//     }
+//   }
+// }

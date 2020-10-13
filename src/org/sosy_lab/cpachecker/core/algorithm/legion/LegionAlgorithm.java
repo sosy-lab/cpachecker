@@ -22,12 +22,13 @@ package org.sosy_lab.cpachecker.core.algorithm.legion;
 import static org.sosy_lab.java_smt.test.ProverEnvironmentSubject.assertThat;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Random;
 import java.util.logging.Level;
 
-import com.google.common.collect.ImmutableList;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -45,6 +46,9 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.value.RandomValueAssigner;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
@@ -64,12 +68,12 @@ public class LegionAlgorithm implements Algorithm {
     private final int maxIterations;
     @SuppressWarnings("unused")
     private final ConfigurableProgramAnalysis cpa;
-    private RandomValueAssigner unknownValueHandler;
     private Solver solver;
     private int initialPasses;
     private int fuzzingPasses;
     @SuppressWarnings("unused")
     private ShutdownNotifier shutdownNotifier;
+    private ValueAnalysisCPA valCpa;
 
     public LegionAlgorithm(
             final Algorithm algorithm,
@@ -81,9 +85,9 @@ public class LegionAlgorithm implements Algorithm {
         this.algorithm = algorithm;
         this.logger = pLogger;
         this.shutdownNotifier = shutdownNotifier;
-        this.initialPasses = 1;
-        this.fuzzingPasses = 2;
-        this.maxIterations = 10;
+        this.initialPasses = 3;
+        this.fuzzingPasses = 5;
+        this.maxIterations = 5;
         this.cpa = cpa;
 
         pConfig.inject(this);
@@ -94,10 +98,7 @@ public class LegionAlgorithm implements Algorithm {
         this.solver = predCpa.getSolver();
 
         // Get UVA from Value Analysis
-        ValueAnalysisCPA valCpa =
-                CPAs.retrieveCPAOrFail(cpa, ValueAnalysisCPA.class, LegionAlgorithm.class);
-        this.unknownValueHandler = (RandomValueAssigner) valCpa.getUnknownValueHandler();
-
+        valCpa = CPAs.retrieveCPAOrFail(cpa, ValueAnalysisCPA.class, LegionAlgorithm.class);
     }
 
     @Override
@@ -110,8 +111,9 @@ public class LegionAlgorithm implements Algorithm {
         // Before asking a solver for path constraints, one initial pass through the program
         // has to be done to provide an initial set of states. This initial discovery
         // is meant to be cheap in resources and tries to establish easy to reach states.
+        ArrayList<Value> preloadedValues = new ArrayList<Value>();
         try {
-            reachedSet = fuzz(reachedSet, initialPasses, algorithm);
+            reachedSet = fuzz(reachedSet, initialPasses, algorithm, preloadedValues);
         } catch (PropertyViolationException ex) {
             logger.log(Level.WARNING, "Found violated property at preload.");
             return AlgorithmStatus.SOUND_AND_PRECISE;
@@ -121,13 +123,20 @@ public class LegionAlgorithm implements Algorithm {
         for (int i = 0; i < maxIterations; i++) {
             logger.log(Level.INFO, "Iteration", i + 1);
             // Phase Selection: Select non_det for path solving
-            AbstractState target = selectTarget(reachedSet, SelectionStrategy.RANDOM);
+            AbstractState target;
+            try {
+                target = selectTarget(reachedSet, SelectionStrategy.RANDOM);
+            } catch (IllegalArgumentException e) {
+                logger.log(Level.WARNING, "No target state found");
+                return status;
+            }
 
             // Phase Targetting: Solve and plug results to RVA as preload
+            preloadedValues = new ArrayList<Value>();
             try (ProverEnvironment prover =
-                solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
+                    solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
                 try (Model constraints = solvePathConstrains(target, prover)) {
-                    preloadValueAssigner(constraints, unknownValueHandler);
+                    preloadedValues = computePreloadValues(constraints);
                 }
             } catch (SolverException ex) {
                 this.logger.log(Level.WARNING, "Could not solve formula.");
@@ -135,12 +144,12 @@ public class LegionAlgorithm implements Algorithm {
 
             // Phase Fuzzing: Run iterations to resource limit (m)
             try {
-                reachedSet = fuzz(reachedSet, fuzzingPasses, algorithm);
+                reachedSet = fuzz(reachedSet, fuzzingPasses, algorithm, preloadedValues);
             } catch (PropertyViolationException ex) {
                 logger.log(Level.WARNING, "Found violated property in iteration", i + 1);
                 return AlgorithmStatus.SOUND_AND_PRECISE;
             }
-            unknownValueHandler.clearPreLoaded();
+            valCpa.getTransferRelation().clearKnownValues();
         }
         return status;
     }
@@ -164,7 +173,10 @@ public class LegionAlgorithm implements Algorithm {
             }
             int rnd = new Random().nextInt(nonDetStates.size());
             AbstractState target = nonDetStates.get(rnd);
-            logger.log(Level.INFO, "Target: ", AbstractStates.extractStateByType(target, LocationState.class));
+            logger.log(
+                    Level.INFO,
+                    "Target: ",
+                    AbstractStates.extractStateByType(target, LocationState.class));
             return nonDetStates.get(rnd);
         }
         return null;
@@ -193,12 +205,12 @@ public class LegionAlgorithm implements Algorithm {
     private Model solvePathConstrains(AbstractState pTarget, ProverEnvironment pProver)
             throws InterruptedException, SolverException {
         logger.log(Level.INFO, "Solve path constraints.");
-            PredicateAbstractState ps =
-                    AbstractStates.extractStateByType(pTarget, PredicateAbstractState.class);
-            BooleanFormula f = ps.getPathFormula().getFormula();
-            pProver.push(f);
-            assertThat(pProver).isSatisfiable();
-            return pProver.getModel();
+        PredicateAbstractState ps =
+                AbstractStates.extractStateByType(pTarget, PredicateAbstractState.class);
+        BooleanFormula f = ps.getPathFormula().getFormula();
+        pProver.push(f);
+        assertThat(pProver).isSatisfiable();
+        return pProver.getModel();
     }
 
     /**
@@ -206,24 +218,51 @@ public class LegionAlgorithm implements Algorithm {
      * 
      * @param pConstraints The source of values to assign.
      */
-    private void preloadValueAssigner(Model pConstraints, RandomValueAssigner pValueAssigner) {
-        for (ValueAssignment assignment : pConstraints.asList()){
+    private ArrayList<Value> computePreloadValues(Model pConstraints) {
+        ArrayList<Value> values = new ArrayList<Value>();
+        for (ValueAssignment assignment : pConstraints.asList()) {
             String name = assignment.getName();
-            if (!name.contains("__VERIFIER_nondet")){
-                pValueAssigner.loadValue(name, assignment.getValue());
-            }
+            Value value = toValue(assignment.getValue());
+            logger.log(Level.INFO, "Loaded Value", name, value);
+            values.add(value);
         }
+        // valCpa.getTransferRelation().setKnownValues(values);
+        return values;
     }
+
+    private Value toValue(Object value){
+        if (value instanceof Boolean){
+          return BooleanValue.valueOf((Boolean)value);
+        } else if (value instanceof Integer){
+          return new NumericValue((Integer)value);
+        } else if (value instanceof Character){
+          return new NumericValue((Integer)value);
+        } else if (value instanceof Float) {
+          return new NumericValue((Float)value);
+        } else if (value instanceof Double) {
+          return new NumericValue((Double)value);
+        } else if (value instanceof BigInteger) {
+          BigInteger v = (BigInteger)value;
+          return new NumericValue(v);
+        } else {
+          throw new IllegalArgumentException(String.format("Did not recognize value for loadedValues Map: %s.", value.getClass()));
+        }
+      }
 
     /**
      * Run the fuzzing phase using pAlgorithm pPasses times on the states in pReachedSet.
+     * 
+     * To be discussed: Design decision --------------------------------
+     * 
      */
-    private ReachedSet fuzz(ReachedSet pReachedSet, int pPasses, Algorithm pAlgorithm)
+    private ReachedSet fuzz(ReachedSet pReachedSet, int pPasses, Algorithm pAlgorithm, ArrayList<Value> pPreLoadedValues)
             throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException,
             PropertyViolationException {
 
         logger.log(Level.INFO, "Fuzzing target.");
         for (int i = 0; i < pPasses; i++) {
+            logger.log(Level.INFO, "Fuzzing pass", i + 1);
+            valCpa.getTransferRelation().setKnownValues(pPreLoadedValues);
             // Run algorithm and collect result
             pAlgorithm.run(pReachedSet);
 

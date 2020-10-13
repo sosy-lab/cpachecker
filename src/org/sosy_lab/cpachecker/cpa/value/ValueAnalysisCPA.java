@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAnalysisPrecision
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAnalysisPrecisionAdjustment.SymbolicStatistics;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.SymbolicValueAssigner;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.StateToFormulaWriter;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -134,9 +135,13 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   private SymbolicStatistics symbolicStats;
 
+  // private List<Value> knownValues;
+  private ValueAnalysisTransferRelation transferRelation;
+
   private ValueAnalysisCPA(Configuration config, LogManager logger,
       ShutdownNotifier pShutdownNotifier, CFA cfa) throws InvalidConfigurationException {
     super(DelegateAbstractDomain.<ValueAnalysisState>getInstance(), null);
+
     this.config           = config;
     this.logger           = logger;
     this.shutdownNotifier = pShutdownNotifier;
@@ -156,7 +161,26 @@ public class ValueAnalysisCPA extends AbstractCPA
     transferOptions = new ValueTransferOptions(config);
     precisionAdjustmentOptions = new PrecAdjustmentOptions(config, cfa);
     precisionAdjustmentStatistics = new PrecAdjustmentStatistics();
+
+    transferRelation = new ValueAnalysisTransferRelation(
+        logger,
+        cfa,
+        transferOptions,
+        unknownValueHandler,
+        constraintsStrengthenOperator,
+        statistics);
+    
   }
+
+  // public void setKnownValues(List<Value> pKnownValues){
+  //   knownValues = pKnownValues;
+  // }
+
+  // public void clearKnownValues() {
+  //   if (knownValues != null) {
+  //     knownValues.clear();
+  //   }
+  // }
 
   private MemoryLocationValueHandler createUnknownValueHandler()
       throws InvalidConfigurationException {
@@ -289,13 +313,7 @@ public class ValueAnalysisCPA extends AbstractCPA
 
   @Override
   public ValueAnalysisTransferRelation getTransferRelation() {
-    return new ValueAnalysisTransferRelation(
-        logger,
-        cfa,
-        transferOptions,
-        unknownValueHandler,
-        constraintsStrengthenOperator,
-        statistics);
+    return transferRelation;
   }
 
   @Override

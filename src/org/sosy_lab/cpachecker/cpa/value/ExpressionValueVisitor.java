@@ -9,8 +9,12 @@
 package org.sosy_lab.cpachecker.cpa.value;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.OptionalLong;
+import java.util.logging.Level;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManagerWithoutDuplicates;
 import org.sosy_lab.cpachecker.cfa.ast.AIdExpression;
@@ -18,6 +22,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFieldReference;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CPointerExpression;
@@ -51,6 +56,25 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
   // This state is read-only! No writing or modification allowed!
   protected final ValueAnalysisState readableState;
 
+  // This can be used to assign a value statically.
+  private List<Value> knownValues;
+  private LogManagerWithoutDuplicates logger;
+
+  /** This Visitor returns the numeral value for an expression.
+   *
+   * @param pState where to get the values for variables (identifiers)
+   * @param pFunctionName current scope, used only for variable-names
+   * @param pMachineModel where to get info about types, for casting and overflows
+   * @param pLogger logging
+   */
+  public ExpressionValueVisitor(ValueAnalysisState pState, String pFunctionName,
+      MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger, List<Value> pKnownValues) {
+    super(pFunctionName, pMachineModel, pLogger);
+    readableState = pState;
+    knownValues = pKnownValues;
+    logger = pLogger;
+  }
+
   /** This Visitor returns the numeral value for an expression.
    *
    * @param pState where to get the values for variables (identifiers)
@@ -60,8 +84,7 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
    */
   public ExpressionValueVisitor(ValueAnalysisState pState, String pFunctionName,
       MachineModel pMachineModel, LogManagerWithoutDuplicates pLogger) {
-    super(pFunctionName, pMachineModel, pLogger);
-    readableState = pState;
+    this(pState, pFunctionName, pMachineModel, pLogger, new ArrayList<Value>());
   }
 
   /* additional methods */
@@ -454,5 +477,28 @@ public class ExpressionValueVisitor extends AbstractExpressionValueVisitor {
 
   public ValueAnalysisState getState() {
     return readableState;
+  }
+
+  /**
+   * This will check, if the function call in question is a nondeterministic
+   * one (and would return an unknown Value) and if values were were preloaded.
+   * If this is the case, the preloaded Value will be short-curcuited.
+   * Else, the regular visit-logic is run.
+   */
+  @Override
+  public Value visit(CFunctionCallExpression pIastFunctionCallExpression)
+      throws UnrecognizedCodeException {
+    
+    CExpression functionNameExp = pIastFunctionCallExpression.getFunctionNameExpression();
+
+    if (functionNameExp instanceof CIdExpression) {
+      String calledFunctionName = ((CIdExpression) functionNameExp).getName();
+      if (calledFunctionName.startsWith("__VERIFIER_nondet_") && knownValues != null && knownValues.size() > 0){
+        Value v = knownValues.remove(0);
+        logger.log(Level.INFO, "Used preloaded value", v);
+        return v;
+      }
+    }
+    return super.visit(pIastFunctionCallExpression);
   }
 }

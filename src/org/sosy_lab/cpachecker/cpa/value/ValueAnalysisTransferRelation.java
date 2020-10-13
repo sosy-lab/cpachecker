@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.logging.Level;
+
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -225,6 +227,8 @@ public class ValueAnalysisTransferRelation
   private final Collection<String> addressedVariables;
   private final Collection<String> booleanVariables;
 
+  private List<Value> knownValues;
+
   public ValueAnalysisTransferRelation(
       LogManager pLogger,
       CFA pCfa,
@@ -247,6 +251,16 @@ public class ValueAnalysisTransferRelation
 
     unknownValueHandler = pUnknownValueHandler;
     constraintsStrengthenOperator = pConstraintsStrengthenOperator;
+  }
+
+  public void setKnownValues(List<Value> pKnownValues){
+    knownValues = new ArrayList<Value>(pKnownValues);
+  }
+
+  public void clearKnownValues() {
+    if (knownValues != null) {
+      knownValues.clear();
+    }
   }
 
   @Override
@@ -650,6 +664,7 @@ public class ValueAnalysisTransferRelation
   protected ValueAnalysisState handleDeclarationEdge(
       ADeclarationEdge declarationEdge, ADeclaration declaration) throws UnrecognizedCodeException {
 
+    logger.log(Level.INFO, "Declaration edge");
     if (!(declaration instanceof AVariableDeclaration) || !isTrackedType(declaration.getType())) {
       // nothing interesting to see here, please move along
       return state;
@@ -815,6 +830,7 @@ public class ValueAnalysisTransferRelation
   private ValueAnalysisState handleFunctionAssignment(
       CFunctionCallAssignmentStatement pFunctionCallAssignment) throws UnrecognizedCodeException {
 
+    logger.log(Level.INFO, "Function assignment");
     final CFunctionCallExpression functionCallExp = pFunctionCallAssignment.getFunctionCallExpression();
     final CLeftHandSide leftSide = pFunctionCallAssignment.getLeftHandSide();
     final CType leftSideType = leftSide.getExpressionType();
@@ -1641,10 +1657,15 @@ public class ValueAnalysisTransferRelation
 
   }
 
+  // TODO christoph 
+  // AbstractValueExpressionVisitor -> ExpressionValueVisitor -> in die eingreifen
+  // Visit-Methode überschreiben von der Basisklasse
+  // Wenn value bekannt, dann kann der in dieser Visit-Methode 
+  // ValueAnalysisCPA die liste nondet_x als attribut rein packen
   /** returns an initialized, empty visitor */
   private ExpressionValueVisitor getVisitor(ValueAnalysisState pState, String pFunctionName) {
     if (options.isIgnoreFunctionValue()) {
-      return new ExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
+      return new ExpressionValueVisitor(pState, pFunctionName, machineModel, logger, knownValues); // <- neues attribut: preloadedValues: sortierte Liste pro nondet_x function
     } else {
       return new FunctionPointerExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
     }

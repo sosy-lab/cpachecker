@@ -28,6 +28,8 @@ import java.util.HashMap;
 import java.util.Random;
 import java.util.logging.Level;
 
+import com.google.common.collect.ImmutableList;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -45,6 +47,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
+import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 /**
  * Memory location value handler that assigns randomly chosen values to the given memory locations.
@@ -124,45 +127,58 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
             + pType.getClass().toString());
   }
 
-  /**
-   * Add a value as preloaded to this value assigner.
-   */
-  public void loadValue(String name, Object value){
-    if (value instanceof Boolean){
-      loadedValues.put(name, BooleanValue.valueOf((Boolean)value));
-    } else if (value instanceof Integer){
-      loadedValues.put(name, new NumericValue((Integer)value));
-    } else if (value instanceof Character){
-      loadedValues.put(name, new NumericValue((Integer)value));
-    } else if (value instanceof Float) {
-      loadedValues.put(name, new NumericValue((Float)value));
-    } else if (value instanceof Double) {
-      loadedValues.put(name, new NumericValue((Double)value));
-    } else if (value instanceof BigInteger) {
-      BigInteger v = (BigInteger)value;
-      String n = sanitize(name);
-      loadedValues.put(n, new NumericValue(v));
-      logger.log(Level.INFO, "Preloaded to ", n, v);
-    } else {
-      throw new IllegalArgumentException(String.format("Did not recognize value for loadedValues Map: %s.", value.getClass()));
-    }
-  }
+  // public void loadValues(ImmutableList<ValueAssignment> values){
+  //   for (ValueAssignment assignment : values){
+  //     String name = assignment.getName();
+  //     if (name.contains("__VERIFIER_nondet_int")){
+  //       continue;
+  //     }
+  //     String[] split_name = name.split("@");
+  //     Integer i = Integer.parseInt(split_name[1]);
+  //     name = split_name[0];
+  //     logger.log(Level.INFO, "To assign", i, name, assignment.getValue());
+  //   }
+  // }
 
-  public void clearPreLoaded(){
-    loadedValues.clear();
-  }
+  // /**
+  //  * Add a value as preloaded to this value assigner.
+  //  */
+  // public void loadValue(String name, Object value){
+  //   if (value instanceof Boolean){
+  //     loadedValues.put(name, BooleanValue.valueOf((Boolean)value));
+  //   } else if (value instanceof Integer){
+  //     loadedValues.put(name, new NumericValue((Integer)value));
+  //   } else if (value instanceof Character){
+  //     loadedValues.put(name, new NumericValue((Integer)value));
+  //   } else if (value instanceof Float) {
+  //     loadedValues.put(name, new NumericValue((Float)value));
+  //   } else if (value instanceof Double) {
+  //     loadedValues.put(name, new NumericValue((Double)value));
+  //   } else if (value instanceof BigInteger) {
+  //     BigInteger v = (BigInteger)value;
+  //     String n = sanitize(name);
+  //     loadedValues.put(n, new NumericValue(v));
+  //     logger.log(Level.INFO, "Preloaded to ", n, v, name);
+  //   } else {
+  //     throw new IllegalArgumentException(String.format("Did not recognize value for loadedValues Map: %s.", value.getClass()));
+  //   }
+  // }
 
-  private String sanitize(String name){
-    while (Character.isDigit(name.charAt(name.length()-1))) {
-      name = name.substring(0, name.length()-1);
-    }
+  // public void clearPreLoaded(){
+  //   loadedValues.clear();
+  // }
 
-    if (name.charAt(name.length()-1) == '@') {
-      name = name.substring(0, name.length()-1);
-    }
+  // private String sanitize(String name){
+  //   while (Character.isDigit(name.charAt(name.length()-1))) {
+  //     name = name.substring(0, name.length()-1);
+  //   }
 
-    return name;
-  }
+  //   if (name.charAt(name.length()-1) == '@') {
+  //     name = name.substring(0, name.length()-1);
+  //   }
+
+  //   return name;
+  // }
 
   /**
    * Create a simple Type and assign it to the pMemLocation.
