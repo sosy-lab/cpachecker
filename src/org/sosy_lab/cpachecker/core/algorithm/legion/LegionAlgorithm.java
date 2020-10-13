@@ -19,6 +19,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.legion;
 
+import static org.junit.Assert.assertThat;
 import static org.sosy_lab.java_smt.test.ProverEnvironmentSubject.assertThat;
 
 import java.io.File;
@@ -181,6 +182,7 @@ public class LegionAlgorithm implements Algorithm {
 
         try {
             writeTestCases(preloadedValues, "last");
+            writeTestMetadata();
         } catch (IOException exc){
             logger.log(Level.WARNING, "Could not write test output", exc);
         }
@@ -188,7 +190,7 @@ public class LegionAlgorithm implements Algorithm {
         return status;
     }
 
-    private void writeTestCases(ArrayList<ArrayList<ValueAssignment>> preloadedValues, String iteration) throws IOException {
+    private void writeTestMetadata() throws IOException {
         File outpath = new File("./output/testcases");
         outpath.mkdirs();
 
@@ -201,7 +203,11 @@ public class LegionAlgorithm implements Algorithm {
                 );
             metadata.flush();
         }
+    }
 
+    private void writeTestCases(ArrayList<ArrayList<ValueAssignment>> preloadedValues, String iteration) throws IOException {
+        File outpath = new File("./output/testcases");
+        outpath.mkdirs();
 
         int i = 0;
         for (ArrayList<ValueAssignment> lst : preloadedValues) {
