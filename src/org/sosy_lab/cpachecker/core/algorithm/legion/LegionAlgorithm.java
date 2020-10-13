@@ -114,14 +114,16 @@ public class LegionAlgorithm implements Algorithm {
             return AlgorithmStatus.SOUND_AND_PRECISE;
         }
 
+        // Now iterate until maxIterations is reached
         for (int i = 0; i < maxIterations; i++) {
             logger.log(Level.INFO, "Iteration", i + 1);
             // Phase Selection: Select non_det for path solving
             AbstractState target = selectTarget(reachedSet, SelectionStrategy.RANDOM);
 
             // Phase Targetting: Solve and plug results to RVA as preload
-            Model constraints = solvePathConstrains(target, solver);
-            preloadValueAssigner(constraints, unknownValueHandler);
+            try (Model constraints = solvePathConstrains(target, solver)) {
+                preloadValueAssigner(constraints, unknownValueHandler);
+            }
 
             // Phase Fuzzing: Run iterations to resource limit (m)
             try {
@@ -205,10 +207,9 @@ public class LegionAlgorithm implements Algorithm {
     /**
      * Run the fuzzing phase using pAlgorithm pPasses times on the states in pReachedSet.
      */
-    private ReachedSet
-            fuzz(ReachedSet pReachedSet, int pPasses, Algorithm pAlgorithm)
-                    throws CPAEnabledAnalysisPropertyViolationException, CPAException,
-                    InterruptedException, PropertyViolationException {
+    private ReachedSet fuzz(ReachedSet pReachedSet, int pPasses, Algorithm pAlgorithm)
+            throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException,
+            PropertyViolationException {
 
         logger.log(Level.INFO, "Fuzzing target.");
         for (int i = 0; i < pPasses; i++) {
@@ -222,7 +223,7 @@ public class LegionAlgorithm implements Algorithm {
             }
 
             // Otherwise, start with nondet States again
-            for (AbstractState state: getNondetStates(pReachedSet)){
+            for (AbstractState state : getNondetStates(pReachedSet)) {
                 pReachedSet.reAddToWaitlist(state);
             }
         }
