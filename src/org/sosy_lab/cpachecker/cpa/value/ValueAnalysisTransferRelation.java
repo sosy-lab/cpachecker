@@ -1657,11 +1657,6 @@ public class ValueAnalysisTransferRelation
 
   }
 
-  // TODO christoph 
-  // AbstractValueExpressionVisitor -> ExpressionValueVisitor -> in die eingreifen
-  // Visit-Methode überschreiben von der Basisklasse
-  // Wenn value bekannt, dann kann der in dieser Visit-Methode 
-  // ValueAnalysisCPA die liste nondet_x als attribut rein packen
   /** returns an initialized, empty visitor */
   private ExpressionValueVisitor getVisitor(ValueAnalysisState pState, String pFunctionName) {
     if (options.isIgnoreFunctionValue()) {

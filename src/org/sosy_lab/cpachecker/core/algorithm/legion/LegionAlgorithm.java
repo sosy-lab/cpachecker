@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
-import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -48,12 +47,8 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 public class LegionAlgorithm implements Algorithm {
     private final Algorithm algorithm;
     private final LogManager logger;
-    @SuppressWarnings("unused")
-    private final ConfigurableProgramAnalysis cpa;
     private Solver solver;
-    @SuppressWarnings("unused")
-    private ShutdownNotifier shutdownNotifier;
-    private ValueAnalysisCPA valCpa;
+    private ValueAnalysisCPA valueCpa;
     final PredicateCPA predCpa;
 
     @Option(
@@ -90,34 +85,25 @@ public class LegionAlgorithm implements Algorithm {
             final Algorithm algorithm,
             final LogManager pLogger,
             Configuration pConfig,
-            ShutdownNotifier shutdownNotifier,
             ConfigurableProgramAnalysis cpa)
             throws InvalidConfigurationException {
         this.algorithm = algorithm;
         this.logger = pLogger;
-        this.shutdownNotifier = shutdownNotifier;
-        this.cpa = cpa;
 
         pConfig.inject(this, LegionAlgorithm.class);
 
-        // Fetch solver from predicate CPA
+        // Fetch solver from predicate CPA and valueCpa (used in fuzzer)
         this.predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, LegionAlgorithm.class);
         this.solver = predCpa.getSolver();
-
-        // Get value cpa
-        this.valCpa = CPAs.retrieveCPAOrFail(cpa, ValueAnalysisCPA.class, LegionAlgorithm.class);
-
-        // Set selection Strategy
-        this.selectionStrategy = buildSelectionStrategy();
+        this.valueCpa = CPAs.retrieveCPAOrFail(cpa, ValueAnalysisCPA.class, LegionAlgorithm.class);
 
         // Configure Output
         this.outputWriter = new OutputWriter(logger, predCpa, "./output/testcases");
-
-        // Set fuzzer
-        this.fuzzer = new Fuzzer(logger, valCpa, this.outputWriter);
-
-        // Set targetting mechanism
+        
+        // Set selection Strategy, targetSolver and fuzzer
+        this.selectionStrategy = buildSelectionStrategy();
         this.targetSolver = new TargetSolver(logger, solver, maxSolverAsks);
+        this.fuzzer = new Fuzzer(logger, valueCpa, this.outputWriter);
     }
 
     @Override
@@ -139,10 +125,13 @@ public class LegionAlgorithm implements Algorithm {
             return AlgorithmStatus.SOUND_AND_PRECISE;
         }
 
-        // Now iterate until maxIterations is reached
+        // In it's main iterations, ask the solver for new solutions every time.
+        // This is done until a resource limit is reached or no new target states
+        // are available.
         for (int i = 0; i < maxIterations; i++) {
             logger.log(Level.INFO, "Iteration", i + 1);
-            // Phase Selection: Select non_det for path solving
+
+            // Phase Selection: Select non-deterministic variables for path solving
             PathFormula target;
             try {
                 target = selectionStrategy.select(reachedSet);
@@ -156,18 +145,21 @@ public class LegionAlgorithm implements Algorithm {
                 break;
             }
 
-            // Phase Targetting: Solve and plug results to RVA as preload
+            // Phase Targetting: Solve for the target and produce a number of values
+            // needed as input to reach this target.
             preloadedValues = this.targetSolver.target(target);
+            
+            // Phase Fuzzing: Run the configured number of fuzzingPasses to detect
+            // new paths through the program.
             int fuzzingPasses = (int) Math.ceil(fuzzingMultiplier * preloadedValues.size());
-
-            // Phase Fuzzing: Run iterations to resource limit (m)
             try {
                 reachedSet = fuzzer.fuzz(reachedSet, fuzzingPasses, algorithm, preloadedValues);
             } catch (PropertyViolationException ex) {
                 logger.log(Level.WARNING, "Found violated property in iteration", i + 1);
                 return AlgorithmStatus.SOUND_AND_PRECISE;
+            } finally {
+                valueCpa.getTransferRelation().clearKnownValues();
             }
-            valCpa.getTransferRelation().clearKnownValues();
         }
 
         return status;
