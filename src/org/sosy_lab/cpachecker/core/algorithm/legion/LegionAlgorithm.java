@@ -82,6 +82,9 @@ public class LegionAlgorithm implements Algorithm {
     @Option(secure=true, description="How many total iterations of [select, target, fuzz] to perform.")
     private int maxIterations = 5;
 
+    @Option(secure=true, description="The maximum number of times to ask the solver for a solution per iteration.")
+    private int maxSolverAsks = 5;
+
     public LegionAlgorithm(
             final Algorithm algorithm,
             final LogManager pLogger,
