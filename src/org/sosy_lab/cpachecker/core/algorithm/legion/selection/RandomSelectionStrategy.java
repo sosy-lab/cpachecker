@@ -11,7 +11,7 @@ import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 
 /**
  * Selects a random state from the reached set which has a nondet-mark.
@@ -28,7 +28,7 @@ public class RandomSelectionStrategy implements Selector {
     }
 
     @Override
-    public BooleanFormula select(ReachedSet reachedSet) {
+    public PathFormula select(ReachedSet reachedSet) {
         LinkedList<AbstractState> nonDetStates = getNondetStates(reachedSet);
         int rnd = random.nextInt(nonDetStates.size());
         AbstractState target = nonDetStates.get(rnd);
@@ -38,7 +38,7 @@ public class RandomSelectionStrategy implements Selector {
                 AbstractStates.extractStateByType(target, LocationState.class));
         PredicateAbstractState ps =
                 AbstractStates.extractStateByType(target, PredicateAbstractState.class);
-        return ps.getPathFormula().getFormula();
+        return ps.getPathFormula();
     }
 
     /**

@@ -408,3 +408,11 @@ CFA Nodes zu markieren.
 
 Reason: Merge braucht es dann nicht -> sauberer mit immer neuem ReachedSet
 Termination Check wird dann nicht ausgehebelt (wird aktuell übergangen).
+
+# 13.8.
+  - examples basteln (if, for, ... randfällle)
+  - ExpressionValueVisitor#500 -> Type check, if mismatch: no assignment
+  - ValueAnalysisCPA#277 Factor out inline class
+
+
+  - 

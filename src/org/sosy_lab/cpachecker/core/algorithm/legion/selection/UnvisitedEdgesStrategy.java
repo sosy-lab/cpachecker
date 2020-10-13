@@ -18,7 +18,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class UnvisitedEdgesStrategy implements Selector {
 
@@ -31,7 +30,7 @@ public class UnvisitedEdgesStrategy implements Selector {
     }
 
     @Override
-    public BooleanFormula select(ReachedSet pReachedSet) {
+    public PathFormula select(ReachedSet pReachedSet) {
         // Perform search
         ARGState first = (ARGState) pReachedSet.getFirstState();
         Pair<ARGState, CFAEdge> selected = depthSearch(first);
@@ -52,7 +51,7 @@ public class UnvisitedEdgesStrategy implements Selector {
         } catch (InterruptedException ex) {
         } catch (CPATransferException ex) {
         }
-        return f.getFormula();
+        return f;
     }
 
     /**
