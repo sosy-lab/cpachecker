@@ -5,3 +5,6 @@ services:
     volumes:
       - "./src:/usr/app/src"
       - "./output:/usr/app/output"
+      - "./build:/usr/app/build"
+      - "./doc:/usr/app/doc"
+      - "./config:/usr/app/config"
