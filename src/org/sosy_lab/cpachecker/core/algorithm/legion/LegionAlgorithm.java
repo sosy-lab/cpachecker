@@ -121,7 +121,7 @@ public class LegionAlgorithm implements Algorithm {
         // Before asking a solver for path constraints, one initial pass through the program
         // has to be done to provide an initial set of states. This initial discovery
         // is meant to be cheap in resources and tries to establish easy to reach states.
-        ArrayList<Value> preloadedValues = new ArrayList<Value>();
+        ArrayList<ArrayList<Value>> preloadedValues = new ArrayList<ArrayList<Value>>();
         try {
             reachedSet = fuzz(reachedSet, initialPasses, algorithm, preloadedValues);
         } catch (PropertyViolationException ex) {
@@ -146,11 +146,11 @@ public class LegionAlgorithm implements Algorithm {
             }
 
             // Phase Targetting: Solve and plug results to RVA as preload
-            preloadedValues = new ArrayList<Value>();
+            preloadedValues = new ArrayList<ArrayList<Value>>();
             try (ProverEnvironment prover =
                     solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-                try (Model constraints = solvePathConstrains(target, prover)) {
-                    preloadedValues = computePreloadValues(constraints);
+                try (Model constraints = solvePathConstrains(target, prover, this.maxSolverAsks)) {
+                    preloadedValues.add(computePreloadValues(constraints));
                 }
             } catch (SolverException ex) {
                 this.logger.log(Level.WARNING, "Could not solve formula.");
@@ -173,12 +173,18 @@ public class LegionAlgorithm implements Algorithm {
      * 
      * @param target The formula leading to the selected state.
      * @param pProver The prover to use.
+     * @param maxSolverAsks The maximum number of times to ask the solver for a solution.
      * @throws InterruptedException, SolverException
      */
-    private Model solvePathConstrains(BooleanFormula target, ProverEnvironment pProver)
+    private Model solvePathConstrains(BooleanFormula target, ProverEnvironment pProver, int maxSolverAsks)
             throws InterruptedException, SolverException {
+
+        // int asks = min()
+        // target.
         logger.log(Level.INFO, "Solve path constraints.");
         pProver.push(target);
+        // pProver.push("")
+        // logger.log(Level.INFO, "Constraint ", pProver.pop());
         assertThat(pProver).isSatisfiable();
         return pProver.getModel();
     }
@@ -189,7 +195,7 @@ public class LegionAlgorithm implements Algorithm {
      * @param pConstraints The source of values to assign.
      */
     private ArrayList<Value> computePreloadValues(Model pConstraints) {
-        ArrayList<Value> values = new ArrayList<Value>();
+        ArrayList<Value> values = new ArrayList<>();
         for (ValueAssignment assignment : pConstraints.asList()) {
             String name = assignment.getName();
 
@@ -230,14 +236,21 @@ public class LegionAlgorithm implements Algorithm {
      * To be discussed: Design decision --------------------------------
      * 
      */
-    private ReachedSet fuzz(ReachedSet pReachedSet, int pPasses, Algorithm pAlgorithm, ArrayList<Value> pPreLoadedValues)
+    private ReachedSet fuzz(ReachedSet pReachedSet, int pPasses, Algorithm pAlgorithm, ArrayList<ArrayList<Value>> pPreLoadedValues)
             throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException,
             PropertyViolationException {
 
         logger.log(Level.INFO, "Fuzzing target.");
         for (int i = 0; i < pPasses; i++) {
             logger.log(Level.INFO, "Fuzzing pass", i + 1);
-            valCpa.getTransferRelation().setKnownValues(pPreLoadedValues);
+
+            // Preload values if they exist
+            int size = pPreLoadedValues.size();
+            if (size > 0){
+                int j = i % size;
+                logger.log(Level.FINE, "pPreLoadedValues at", j, "/", size);
+                valCpa.getTransferRelation().setKnownValues(pPreLoadedValues.get(j));
+            }
             // Run algorithm and collect result
             pAlgorithm.run(pReachedSet);
 
