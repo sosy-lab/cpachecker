@@ -36,6 +36,10 @@ public class UnvisitedEdgesStrategy implements Selector {
         ARGState first = (ARGState) pReachedSet.getFirstState();
         Pair<ARGState, CFAEdge> selected = depthSearch(first);
 
+        if (selected.getSecond() == null){
+            return null;
+        }
+
         // Extract needed formula
         PredicateAbstractState ps =
                 AbstractStates

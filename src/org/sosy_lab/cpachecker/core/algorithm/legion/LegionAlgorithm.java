@@ -137,6 +137,10 @@ public class LegionAlgorithm implements Algorithm {
                 logger.log(Level.WARNING, "No target state found");
                 return status;
             }
+            if (target == null){
+                logger.log(Level.WARNING, "No target states left");
+                return status;
+            }
 
             // Phase Targetting: Solve and plug results to RVA as preload
             preloadedValues = new ArrayList<Value>();
@@ -185,6 +189,11 @@ public class LegionAlgorithm implements Algorithm {
         ArrayList<Value> values = new ArrayList<Value>();
         for (ValueAssignment assignment : pConstraints.asList()) {
             String name = assignment.getName();
+
+            if (name.startsWith("__VERIFIER_nondet_")){
+                continue;
+            }
+
             Value value = toValue(assignment.getValue());
             logger.log(Level.INFO, "Loaded Value", name, value);
             values.add(value);
