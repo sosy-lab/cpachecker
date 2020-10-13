@@ -415,4 +415,15 @@ Termination Check wird dann nicht ausgehebelt (wird aktuell übergangen).
   - ValueAnalysisCPA#277 Factor out inline class
 
 
+
+# 20.8.
+
+(`=_<BitVec, 32, >` main::a@3 0_32)) 
+(`=_<BitVec, 32, >` main::a@4 2_32)) 
+(`bvslt_32` main::b@3 2684354560_32)) 
+(`bvslt_32` main::c@3 2684354560_32))
+(`=_<BitVec, 32, >` __VERIFIER_nondet_int!2@ main::a@3) 
+(`=_<BitVec, 32, >` __VERIFIER_nondet_int!3@ main::b@3))
+(`=_<BitVec, 32, >` __VERIFIER_nondet_int!4@ main::c@3)) 
+(`not` (`=_<BitVec, 32, >` __VERIFIER_nondet_int!4@ 2147483648_32))
   - 

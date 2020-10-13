@@ -206,21 +206,22 @@ public class LegionAlgorithm implements Algorithm {
 
                 ValueAssignment assignment = preloadedValues.get(0).get(i);
 
+                // Create negated assignment formula
                 BooleanFormula f = assignment.getAssignmentAsFormula();
                 BooleanFormula not_f = bmgr.not(f);
 
                 try {
-                    logger.log(Level.INFO, "Solve path constraints.");
                     prover.push(not_f);
                     if (prover.isUnsat()) {
                         this.logger.log(Level.WARNING, "Is unsat.", i);
                         continue;
                     }
                     Model constraints = prover.getModel();
-
                     preloadedValues.add(computePreloadValues(constraints));
                 } catch (SolverException ex) {
                     this.logger.log(Level.WARNING, "Could not solve formula.");
+                } finally {
+                    prover.pop();
                 }
             }
         }
@@ -238,7 +239,7 @@ public class LegionAlgorithm implements Algorithm {
     private Model solvePathConstrains(BooleanFormula target, ProverEnvironment pProver)
             throws InterruptedException, SolverException {
 
-        logger.log(Level.INFO, "Solve path constraints.");
+        logger.log(Level.INFO, "Solve path constraints. ", target.toString());
         pProver.push(target);
         assertThat(pProver).isSatisfiable();
         return pProver.getModel();
