@@ -427,3 +427,10 @@ Termination Check wird dann nicht ausgehebelt (wird aktuell übergangen).
 (`=_<BitVec, 32, >` __VERIFIER_nondet_int!4@ main::c@3)) 
 (`not` (`=_<BitVec, 32, >` __VERIFIER_nondet_int!4@ 2147483648_32))
   - 
+
+
+# 3.9.
+ - after every fuzzing run:
+  - run through arg from the top
+  - follow largest state ids
+  - record assignments by nondet_int on the way

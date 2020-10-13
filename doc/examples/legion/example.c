@@ -7,7 +7,7 @@ int main() {
     if (b < -1610612736){
       a = 2;
       int c = __VERIFIER_nondet_int();
-      if (c < -1610612736){
+      if (c < -1){
         a = 3;
         // __VERIFIER_error();
       }
