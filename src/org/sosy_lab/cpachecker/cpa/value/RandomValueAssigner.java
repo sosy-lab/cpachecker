@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
+import java.util.HashMap;
 import java.util.Random;
 import java.util.logging.Level;
 
@@ -52,6 +53,7 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
 
   private Random rnd;
   private final LogManager logger;
+  private HashMap<String,Value> loadedValues = new HashMap<String,Value>();
 
   @Option(
     description = "If this option is set to true, an own symbolic identifier is assigned to"
@@ -101,7 +103,7 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
     }
 
     if (pType instanceof CArrayType) {
-      fillArrayWithSymbolicIdentifiers(pState, pMemLocation, ((CArrayType) pType), pValueVisitor);
+      fillArray(pState, pMemLocation, ((CArrayType) pType), pValueVisitor);
       return;
     }
 
@@ -112,6 +114,28 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
             + pType.getClass().toString());
   }
 
+  /**
+   * Add a value as preloaded to this value assigner.
+   */
+  public void loadValue(String name, Object value){
+    if (value instanceof Boolean){
+      loadedValues.put(name, BooleanValue.valueOf((Boolean)value));
+    } else if (value instanceof Integer){
+      loadedValues.put(name, new NumericValue((Integer)value));
+    } else if (value instanceof Character){
+      loadedValues.put(name, new NumericValue((Integer)value));
+    } else if (value instanceof Float) {
+      loadedValues.put(name, new NumericValue((Float)value));
+    } else if (value instanceof Double) {
+      loadedValues.put(name, new NumericValue((Double)value));
+    } else {
+      throw new IllegalArgumentException("Did not recognize value for loadedValues Map.");
+    }
+  }
+
+  /**
+   * Create a simple Type and assign it to the pMemLocation.
+   */
   private void createSimpleType(
       MemoryLocation pMemLocation,
       Type pType,
@@ -157,7 +181,10 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
     pState.assignConstant(pMemLocation, value, pType);
   }
 
-  private void fillArrayWithSymbolicIdentifiers(
+  /**
+   * Fill an array with Values.
+   */
+  private void fillArray(
       final ValueAnalysisState pState,
       final MemoryLocation pArrayLocation,
       final CArrayType pArrayType,

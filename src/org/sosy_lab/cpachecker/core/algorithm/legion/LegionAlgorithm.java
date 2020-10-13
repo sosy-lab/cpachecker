@@ -75,7 +75,7 @@ public class LegionAlgorithm implements Algorithm {
             throws InvalidConfigurationException {
         this.algorithm = algorithm;
         this.logger = pLogger;
-        this.maxIterations = 1;
+        this.maxIterations = 5;
         this.cpa = cpa;
 
         pConfig.inject(this);
@@ -137,6 +137,7 @@ public class LegionAlgorithm implements Algorithm {
                                 logger.log(Level.INFO, "Pushed boolean formula: " + f.toString());
                                 assertThat(prover).isSatisfiable();
                                 Model m = prover.getModel();
+                                // TODO 
                                 this.logger.log(Level.INFO, m.toString());
                                 this.logger.log(Level.INFO, "Was Satisfiable");
                                 m.close();
