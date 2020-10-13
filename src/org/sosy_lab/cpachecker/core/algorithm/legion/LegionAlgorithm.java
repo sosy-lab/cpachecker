@@ -19,6 +19,7 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.legion;
 
+import static org.junit.Assert.assertThat;
 import static org.sosy_lab.java_smt.test.ProverEnvironmentSubject.assertThat;
 
 import java.util.Collection;
@@ -39,6 +40,8 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
+import org.sosy_lab.cpachecker.cpa.value.RandomValueAssigner;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -48,16 +51,19 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Model;
 import org.sosy_lab.java_smt.api.ProverEnvironment;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.SolverContext.ProverOptions;
+import org.sosy_lab.java_smt.api.SolverException;
 
-@Options(prefix="cpa.value.legion")
+@Options(prefix = "cpa.value.legion")
 public class LegionAlgorithm implements Algorithm {
     private final Algorithm algorithm;
     private final LogManager logger;
     private final int maxIterations;
     private final ConfigurableProgramAnalysis cpa;
+    private RandomValueAssigner unknownValueHandler;
+
     Solver solver;
 
     public LegionAlgorithm(
@@ -74,9 +80,16 @@ public class LegionAlgorithm implements Algorithm {
 
         pConfig.inject(this);
 
-        PredicateCPA predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, LegionAlgorithm.class);
-        this.solver=predCpa.getSolver();
-        // this.solver = Solver.create(pConfig, logger, shutdownNotifier);
+        // Fetch sovler from predicate CPA
+        PredicateCPA predCpa =
+                CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, LegionAlgorithm.class);
+        this.solver = predCpa.getSolver();
+
+        // Get UVA from Value Analysis
+        ValueAnalysisCPA valCpa =
+                CPAs.retrieveCPAOrFail(cpa, ValueAnalysisCPA.class, LegionAlgorithm.class);
+        this.unknownValueHandler = (RandomValueAssigner) valCpa.getUnknownValueHandler();
+
     }
 
     @Override
@@ -114,16 +127,20 @@ public class LegionAlgorithm implements Algorithm {
                         reachedSet.reAddToWaitlist(previous);
                         try (ProverEnvironment prover =
                                 solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
-                            PredicateAbstractState ps = AbstractStates.extractStateByType(state, PredicateAbstractState.class);
+                            PredicateAbstractState ps =
+                                    AbstractStates.extractStateByType(
+                                            state,
+                                            PredicateAbstractState.class);
                             BooleanFormula f = ps.getPathFormula().getFormula();
                             prover.push(f);
                             try {
                                 logger.log(Level.INFO, "Pushed boolean formula: " + f.toString());
                                 assertThat(prover).isSatisfiable();
-                                // boolean isUnsat = prover.isUnsat();
-                                // this.logger.log(Level.INFO, "Was unsat: " + isUnsat);
+                                Model m = prover.getModel();
+                                this.logger.log(Level.INFO, m.toString());
                                 this.logger.log(Level.INFO, "Was Satisfiable");
-                            } catch (SolverException ex){
+                                m.close();
+                            } catch (SolverException ex) {
                                 this.logger.log(Level.WARNING, "Solver exception");
                             }
                         }

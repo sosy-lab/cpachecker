@@ -172,6 +172,10 @@ public class ValueAnalysisCPA extends AbstractCPA
     }
   }
 
+  public MemoryLocationValueHandler getUnknownValueHandler() {
+    return unknownValueHandler;
+  }
+
   private VariableTrackingPrecision initializePrecision(Configuration pConfig, CFA pCfa) throws InvalidConfigurationException {
 
     if (initialPrecisionFile == null) {
