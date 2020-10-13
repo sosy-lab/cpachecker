@@ -2,6 +2,7 @@ package org.sosy_lab.cpachecker.core.algorithm.legion.selection;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.logging.Level;
 
 import com.google.common.collect.Lists;
 
@@ -128,6 +129,7 @@ public class UnvisitedEdgesStrategy implements Selector {
 
             // If the edge was not found in any of the currentChildren, it is an unvisited edge
             if (!found) {
+                logger.log(Level.INFO, "Found unvisited edge", edge);
                 return edge;
             }
 

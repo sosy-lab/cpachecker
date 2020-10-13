@@ -664,7 +664,7 @@ public class ValueAnalysisTransferRelation
   protected ValueAnalysisState handleDeclarationEdge(
       ADeclarationEdge declarationEdge, ADeclaration declaration) throws UnrecognizedCodeException {
 
-    logger.log(Level.INFO, "Declaration edge");
+    logger.log(Level.FINE, "Declaration edge");
     if (!(declaration instanceof AVariableDeclaration) || !isTrackedType(declaration.getType())) {
       // nothing interesting to see here, please move along
       return state;
@@ -830,7 +830,7 @@ public class ValueAnalysisTransferRelation
   private ValueAnalysisState handleFunctionAssignment(
       CFunctionCallAssignmentStatement pFunctionCallAssignment) throws UnrecognizedCodeException {
 
-    logger.log(Level.INFO, "Function assignment");
+    logger.log(Level.FINE, "Function assignment");
     final CFunctionCallExpression functionCallExp = pFunctionCallAssignment.getFunctionCallExpression();
     final CLeftHandSide leftSide = pFunctionCallAssignment.getLeftHandSide();
     final CType leftSideType = leftSide.getExpressionType();
