@@ -85,8 +85,8 @@ public class LegionAlgorithm implements Algorithm {
         description = "How many passes to fuzz before asking the solver for the first time.")
     private int initialPasses = 3;
 
-    @Option(secure = true, description = "How often to run the fuzzer within each iteration.")
-    private int fuzzingPasses = 5;
+    @Option(secure = true, description = "fuzzingPasses = ⌈ fuzzingMultiplier * fuzzingSolutions ⌉")
+    private double fuzzingMultiplier = 1;
 
     @Option(
         secure = true,
@@ -159,6 +159,7 @@ public class LegionAlgorithm implements Algorithm {
 
             // Phase Targetting: Solve and plug results to RVA as preload
             preloadedValues = target(solver, this.maxSolverAsks, target);
+            int fuzzingPasses = (int)Math.ceil(fuzzingMultiplier * preloadedValues.size());
 
             // Phase Fuzzing: Run iterations to resource limit (m)
             try {
@@ -303,7 +304,6 @@ public class LegionAlgorithm implements Algorithm {
             throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException,
             PropertyViolationException {
 
-        logger.log(Level.INFO, "Fuzzing target.");
         for (int i = 0; i < pPasses; i++) {
             logger.log(Level.INFO, "Fuzzing pass", i + 1);
 
