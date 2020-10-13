@@ -190,7 +190,7 @@ public class LegionAlgorithm implements Algorithm {
         for (ValueAssignment assignment : pConstraints.asList()) {
             String name = assignment.getName();
 
-            if (name.startsWith("__VERIFIER_nondet_")){
+            if (!name.startsWith("__VERIFIER_nondet_")){
                 continue;
             }
 

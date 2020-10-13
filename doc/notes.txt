@@ -348,4 +348,19 @@ Nächster Schritt: Pfadformeln lösen
 
   - ReachedSet von oben durchlaufen und state suchen -> Welche Kanten(CFA) von welchem
     State aus dem ARG wurde noch nicht besucht
-  
+
+30.7.
+  - name starts with NOT nondet_int
+  - liste der nondet_ints nach indices sortieren ('__VERIFIER_nondet_int!*3*@')
+  - Use list of ValueAassignments as data structure for preloadedValues
+  - check type of value assignment before using it from preload
+  - maybe use different list for different types of values
+
+  - metadaten-XML schreiben + eine pro testfile (siehe regeln Testcomp https://test-comp.sosy-lab.org/2020/)
+    https://gitlab.com/sosy-lab/software/test-format/-/tree/master/
+  - Coveritest kann das schon
+  - ReacheSet: immer wenn größer geworden, -> neues Testformat rausschreiben
+ 
+  - Algorithmus für mehrfache verschiedene Constraints vom solver bekommen bauen
+    immer eine push -> lösen, dann push-pop (* anzahl nondet variablen)
+    (ähnliche strategie https://github.com/gernst/bvsampler)
