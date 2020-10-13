@@ -1,0 +1,7 @@
+version: "3.7"
+services:
+  cpachecker:
+    build: .
+    volumes:
+      - "./src:/usr/app/src"
+      - "./output:/usr/app/output"
