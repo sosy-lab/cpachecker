@@ -8,7 +8,8 @@ RUN apt-get update && apt-get install -y \
   graphviz \
   libgomp1 \
   python3 \
-  wget
+  wget \
+  git
 
 # RUN apt-get update && (apt-get install -y ant || true)
 RUN cd /tmp; \
