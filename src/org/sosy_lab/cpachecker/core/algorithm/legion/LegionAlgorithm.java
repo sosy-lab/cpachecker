@@ -153,11 +153,11 @@ public class LegionAlgorithm implements Algorithm {
                 target = selectionStrategy.select(reachedSet);
             } catch (IllegalArgumentException e) {
                 logger.log(Level.WARNING, "No target state found");
-                return status;
+                break;
             }
             if (target == null) {
                 logger.log(Level.WARNING, "No target states left");
-                return status;
+                break;
             }
 
             // Phase Targetting: Solve and plug results to RVA as preload
@@ -173,17 +173,22 @@ public class LegionAlgorithm implements Algorithm {
             }
             valCpa.getTransferRelation().clearKnownValues();
             try {
-                writeTestCases();
+                writeTestCases(preloadedValues, String.valueOf(i));
             } catch (IOException exc){
                 logger.log(Level.WARNING, "Could not write test output", exc);
-
             }
+        }
+
+        try {
+            writeTestCases(preloadedValues, "last");
+        } catch (IOException exc){
+            logger.log(Level.WARNING, "Could not write test output", exc);
         }
 
         return status;
     }
 
-    private void writeTestCases() throws IOException {
+    private void writeTestCases(ArrayList<ArrayList<ValueAssignment>> preloadedValues, String iteration) throws IOException {
         File outpath = new File("./output/testcases");
         outpath.mkdirs();
 
@@ -195,6 +200,25 @@ public class LegionAlgorithm implements Algorithm {
                 "legion"
                 );
             metadata.flush();
+        }
+
+
+        int i = 0;
+        for (ArrayList<ValueAssignment> lst : preloadedValues) {
+            String filename = "testcase_it-" + iteration + "va-" + String.valueOf(i) + ".xml";
+            logger.log(Level.WARNING, "Writing testcase", filename);
+            try (FileWriter testcase = new FileWriter("./output/testcases/" + filename)){
+                testcase.append("<testcase>\n");
+                for (ValueAssignment va : lst){
+                    logger.log(Level.WARNING, "Appending va");
+                    String name = va.getName();
+                    String value = String.valueOf(va.getValue());
+                    String type = "int";
+                    testcase.append(String.format("\t<input variable=\"%s\" type=\"%s\">%s</input>\n", name, type, value));
+                }
+                testcase.append("</testcase>\n");
+                testcase.flush();
+            }
         }
     }
 
