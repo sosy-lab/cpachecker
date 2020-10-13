@@ -32,7 +32,11 @@ public interface MemoryLocationValueHandler {
    * @throws UnrecognizedCodeException thrown if the given parameters do not fit.
    *    Other causes for this exception may be implementation-dependent
    */
-  void handle(MemoryLocation pMemLocation, Type pType,
-      ValueAnalysisState pState, ExpressionValueVisitor pValueVisitor)
+  void handle(
+    MemoryLocation pMemLocation,
+    Type pType,
+    ValueAnalysisState pPreviousState,
+    ValueAnalysisState pState,
+    ExpressionValueVisitor pValueVisitor)
       throws UnrecognizedCodeException;
 }

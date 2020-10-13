@@ -32,6 +32,7 @@ public final class UnknownValueAssigner implements MemoryLocationValueHandler {
   public void handle(
       MemoryLocation pMemLocation,
       Type pType,
+      ValueAnalysisState pPreviousState,
       ValueAnalysisState pState,
       @Nullable ExpressionValueVisitor pValueVisitor) {
     pState.forget(pMemLocation);

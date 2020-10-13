@@ -163,9 +163,7 @@ public class ValueAnalysisCPA extends AbstractCPA
       case INTRODUCE_SYMBOLIC:
         return new SymbolicValueAssigner(config);
       case RANDOM_VALUE:
-        return new RandomValueAssigner();
-      // TODO build new Value Assigner
-      // Rechnet die Path constraintes aus -> gegeben ein INput, läuft den lang
+        return new RandomValueAssigner(this.logger);
       default:
         throw new AssertionError("Unhandled strategy: " + unknownValueStrategy);
     }

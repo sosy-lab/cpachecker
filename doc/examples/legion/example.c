@@ -1,30 +1,8 @@
+extern void __VERIFIER_error() __attribute__ ((__noreturn__));
+
 int main() {
-  int i = 0;
-  int x = __VERIFIER_nondet_int();
-  int a = 0;
-
-  while (1) {
-    if (i == 20) {
-       goto LOOPEND;
-    } else {
-       i++;
-       x++;
-       a++;
-    }
-
-    if (i != a) {
-      goto ERROR;
-    }
+  int a = __VERIFIER_nondet_int();
+  if (a > 10){
+    __VERIFIER_error();
   }
-
-  LOOPEND:
-
-  if (a != 20) {
-     goto ERROR;
-  }
-
-  return (0);
-  ERROR:
-  return (-1);
 }
-
