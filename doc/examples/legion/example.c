@@ -5,13 +5,13 @@ int main() {
     int a = __VERIFIER_nondet_int();
     int b = 0;
 
-    int c;
     if (a < -1610612736){
-      b = __VERIFIER_nondet_int();
+      __VERIFIER_error();
     } else {
       b = 2;
     }
 
+    // int c;
     // int b;
     // b = 0;
     // b = __VERIFIER_nondet_int();

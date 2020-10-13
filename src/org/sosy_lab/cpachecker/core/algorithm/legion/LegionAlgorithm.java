@@ -78,9 +78,9 @@ public class LegionAlgorithm implements Algorithm {
             throws InvalidConfigurationException {
         this.algorithm = algorithm;
         this.logger = pLogger;
-        this.initialPasses = 5;
-        this.fuzzingPasses = 10;
-        this.maxIterations = 5;
+        this.initialPasses = 1;
+        this.fuzzingPasses = 2;
+        this.maxIterations = 10;
         this.cpa = cpa;
 
         pConfig.inject(this);
@@ -110,7 +110,8 @@ public class LegionAlgorithm implements Algorithm {
         try {
             reachedSet = fuzz(reachedSet, initialPasses, algorithm);
         } catch (PropertyViolationException ex) {
-            logger.log(Level.WARNING, "Found violated property.");
+            logger.log(Level.WARNING, "Found violated property at preload.");
+            return AlgorithmStatus.SOUND_AND_PRECISE;
         }
 
         for (int i = 0; i < maxIterations; i++) {
@@ -126,8 +127,8 @@ public class LegionAlgorithm implements Algorithm {
             try {
                 reachedSet = fuzz(reachedSet, fuzzingPasses, algorithm);
             } catch (PropertyViolationException ex) {
-                logger.log(Level.WARNING, "Found violated property.");
-                break;
+                logger.log(Level.WARNING, "Found violated property in iteration", i + 1);
+                return AlgorithmStatus.SOUND_AND_PRECISE;
             }
         }
         return status;
@@ -156,6 +157,18 @@ public class LegionAlgorithm implements Algorithm {
         return null;
     }
 
+    LinkedList<AbstractState> getNondetStates(ReachedSet pReachedSet) {
+        LinkedList<AbstractState> nonDetStates = new LinkedList<>();
+        for (AbstractState state : pReachedSet.asCollection()) {
+            ValueAnalysisState vs =
+                    AbstractStates.extractStateByType(state, ValueAnalysisState.class);
+            if (vs.nonDeterministicMark) {
+                nonDetStates.add(state);
+            }
+        }
+        return nonDetStates;
+    }
+
     /**
      * Ask the SAT-solver to compute path constraints for the pTarget.
      * 
@@ -164,6 +177,7 @@ public class LegionAlgorithm implements Algorithm {
      */
     private Model solvePathConstrains(AbstractState pTarget, Solver pSolver)
             throws InterruptedException {
+        logger.log(Level.INFO, "Solve path constraints.");
         try (ProverEnvironment prover =
                 solver.newProverEnvironment(ProverOptions.GENERATE_MODELS)) {
             PredicateAbstractState ps =
@@ -184,16 +198,19 @@ public class LegionAlgorithm implements Algorithm {
      * @param pConstraints The source of values to assign.
      */
     private void preloadValueAssigner(Model pConstraints, RandomValueAssigner pValueAssigner) {
+        logger.log(Level.INFO, "Preloading value assigner !not implemented.");
         // todo
     }
 
     /**
      * Run the fuzzing phase using pAlgorithm pPasses times on the states in pReachedSet.
      */
-    private ReachedSet fuzz(ReachedSet pReachedSet, int pPasses, Algorithm pAlgorithm)
-            throws CPAEnabledAnalysisPropertyViolationException, CPAException, InterruptedException,
-            PropertyViolationException {
+    private ReachedSet
+            fuzz(ReachedSet pReachedSet, int pPasses, Algorithm pAlgorithm)
+                    throws CPAEnabledAnalysisPropertyViolationException, CPAException,
+                    InterruptedException, PropertyViolationException {
 
+        logger.log(Level.INFO, "Fuzzing target.");
         for (int i = 0; i < pPasses; i++) {
             // Run algorithm and collect result
             AlgorithmStatus status = pAlgorithm.run(pReachedSet);
@@ -204,8 +221,10 @@ public class LegionAlgorithm implements Algorithm {
                 throw new PropertyViolationException(violatedProperties);
             }
 
-            // Otherwise, start from the begining
-            pReachedSet.reAddToWaitlist(pReachedSet.getFirstState());
+            // Otherwise, start with nondet States again
+            for (AbstractState state: getNondetStates(pReachedSet)){
+                pReachedSet.reAddToWaitlist(state);
+            }
         }
 
         return pReachedSet;
