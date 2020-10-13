@@ -100,6 +100,26 @@ Develop CPAchecker from within Eclipse
    run `ant install-contrib` once in the CPAchecker directory.
 
 
+License and Copyright
+---------------------
+
+All files in the CPAchecker repository need to have a header with a declaration
+of copyright and license in the [REUSE format](https://reuse.software).
+
+After installing the [reuse tool](https://github.com/fsfe/reuse-tool),
+use the following command to add our standard header:
+
+    reuse addheader --template=header.jinja2 --license Apache-2.0 --copyright 'Dirk Beyer <https://www.sosy-lab.org>' <FILES>
+
+Of course, you can adjust license and copyright if necessary
+(e.g., when integrating third-party code).
+However, for all original contributions please consider transferring the copyright to us
+and use our standard license in order to make license handling easier for us
+and all users of CPAchecker.
+In accordance with the Apache license, all contributions to CPAchecker
+are by default under the Apache license as well unless explicitly marked otherwise.
+
+
 Code-Quality Checks and Continuous Integration
 ----------------------------------------------
 
