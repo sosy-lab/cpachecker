@@ -98,6 +98,15 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
       @Nullable ExpressionValueVisitor pValueVisitor)
       throws UnrecognizedCodeException {
 
+    // If the value is preloaded, do not generate a new one and assign
+    // the already existing one.
+    Value preload = loadedValues.get(pMemLocation.toString());
+    if (preload != null) {
+      pState.assignConstant(pMemLocation, preload, pType);
+      logger.log(Level.INFO, "Reused preloaded value", preload, pMemLocation);
+      return;
+    }
+
     if (pType instanceof CSimpleType) {
       createSimpleType(pMemLocation, pType, pPreviousState, pState);
       return;
@@ -147,7 +156,7 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
     if (name.charAt(name.length()-1) == '@') {
       name = name.substring(0, name.length()-1);
     }
-    
+
     return name;
   }
 

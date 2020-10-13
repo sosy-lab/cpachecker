@@ -209,12 +209,7 @@ public class LegionAlgorithm implements Algorithm {
         for (ValueAssignment assignment : pConstraints.asList()){
             String name = assignment.getName();
             if (!name.contains("__VERIFIER_nondet")){
-                Object value = assignment.getValue();
-                pValueAssigner.loadValue(name, value);
-                // if (value instanceof BigInteger){
-                //     logger.log(Level.INFO, "Int Value", ((BigInteger)value).intValue());
-                // }
-                // logger.log(Level.INFO, "Found assignment", name, value);
+                pValueAssigner.loadValue(name, assignment.getValue());
             }
         }
     }
