@@ -175,7 +175,7 @@ public class LegionAlgorithm implements Algorithm {
             valCpa.getTransferRelation().clearKnownValues();
             try {
                 writeTestCases(preloadedValues, String.valueOf(i));
-            } catch (IOException exc){
+            } catch (IOException exc) {
                 logger.log(Level.WARNING, "Could not write test output", exc);
             }
         }
@@ -183,7 +183,7 @@ public class LegionAlgorithm implements Algorithm {
         try {
             writeTestCases(preloadedValues, "last");
             writeTestMetadata();
-        } catch (IOException exc){
+        } catch (IOException exc) {
             logger.log(Level.WARNING, "Could not write test output", exc);
         }
 
@@ -194,18 +194,15 @@ public class LegionAlgorithm implements Algorithm {
         File outpath = new File("./output/testcases");
         outpath.mkdirs();
 
-        try (FileWriter metadata = new FileWriter("./output/testcases/metadata.xml")){
-            XMLTestCaseExport.writeXMLMetadata(
-                metadata,
-                this.predCpa.getCfa(),
-                null,
-                "legion"
-                );
+        try (FileWriter metadata = new FileWriter("./output/testcases/metadata.xml")) {
+            XMLTestCaseExport.writeXMLMetadata(metadata, this.predCpa.getCfa(), null, "legion");
             metadata.flush();
         }
     }
 
-    private void writeTestCases(ArrayList<ArrayList<ValueAssignment>> preloadedValues, String iteration) throws IOException {
+    private void
+            writeTestCases(ArrayList<ArrayList<ValueAssignment>> preloadedValues, String iteration)
+                    throws IOException {
         File outpath = new File("./output/testcases");
         outpath.mkdirs();
 
@@ -213,16 +210,21 @@ public class LegionAlgorithm implements Algorithm {
         for (ArrayList<ValueAssignment> lst : preloadedValues) {
             String filename = "testcase_it-" + iteration + "va-" + String.valueOf(i) + ".xml";
             logger.log(Level.WARNING, "Writing testcase", filename);
-            try (FileWriter testcase = new FileWriter("./output/testcases/" + filename)){
-                testcase.append("<testcase>\n");
-                for (ValueAssignment va : lst){
+            try (FileWriter testcase = new FileWriter("./output/testcases/" + filename)) {
+                testcase.write("<testcase>\n");
+                for (ValueAssignment va : lst) {
                     logger.log(Level.WARNING, "Appending va");
                     String name = va.getName();
                     String value = String.valueOf(va.getValue());
                     String type = "int";
-                    testcase.append(String.format("\t<input variable=\"%s\" type=\"%s\">%s</input>\n", name, type, value));
+                    testcase.write(
+                            String.format(
+                                    "\t<input variable=\"%s\" type=\"%s\">%s</input>\n",
+                                    name,
+                                    type,
+                                    value));
                 }
-                testcase.append("</testcase>\n");
+                testcase.write("</testcase>\n");
                 testcase.flush();
             }
         }
