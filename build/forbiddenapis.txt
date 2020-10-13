@@ -14,6 +14,7 @@
 # can be found in doc/StyleGuide.md
 
 com.google.common.base.Objects @ use java.util.Objects instead
+com.google.common.io.Files#createTempDir() @ Uses inappropriate permissions, cf. JavaDoc
 
 @defaultMessage CPAchecker should be deterministic, use Random with constant seed
 java.lang.Math#random()
