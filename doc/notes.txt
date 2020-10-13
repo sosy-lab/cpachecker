@@ -1,0 +1,436 @@
+# 26.3.2020:
+1. previous state = state -> function ✅
+2. use getState() von ForwardingTransferRelation -> check if not null ✅ (if there is copy of state -> there is state)
+3. Irgendwo ein Formula-Manager -> den nehmen um die FOrmel an zu kucken
+   -> Definition von formeln in separatem Java-SMT (im Sosylab Repo)
+4. Was passiert mit assert oder ERROR Label?
+Globale Bedingunen wann die Analyse wahr oder falsch ist raus finden (properties)
+Auf svcomp-Seite beschrieben (ua. error reachability ) -> Datei unreachclall
+
+Nächstes Ettapenziel:
+Mit Code errors zu finden. Unreach-call.prp muss erfüllt werden -> __VERIFIER_error in programm enthalten
+-> svcomp/benchmarks als extern ... declarieren
+1. Fehler sofort dran kommmen lassen -> sollte jetzt sofort erkannt werden
+2. Programm, wo fehler nur für bestimmte Werte dran kommt (range an Werten).
+    -> Range realistisch wählen: Wertebereich von i32 / 8 oder / 10 -> hohe chance
+       nicht zu treffen -> _testet wiedereinfügen von zuständen damit Fehlerfall getroffen wird_
+3. Wird zentral ein random seed kontrolliert -> verschiedenen Seeds probieren als test
+für den funktionierenden Algorithmus (unterschiedliche Seeds-> unterschiedliche durchläufe)
+4. Wie wird der Reachability-Graph angezeigt? Nur der letzte Zustand angezeigt?
+5. 10 Minuten Antrittsvortrag
+    -> Mittwochs um 12:30
+    -> Was: SymExec + Fuzzer (Unterbrechung)
+    -> Warum: Beide VOrteil nutzen (schnell und korrekt, gute Abdeeckung -> Dirller paper
+    -> Wie: CPAchecker -> Legion Algorithmus, Abgrenzung Legion-Algo vs Dirller
+        -> Whitebox-Integration (vs Driller: AFL, lauf mal, aber Blackbox)
+    -> Highlight: Legion: Programmstelle auswählen, die interessant ist (deep vs flat)
+        -> Wie werden INputs generiert, die dadurch laufen
+        -> Nur highlight, nicht zu tief
+    -> Zeitplan machen
+    -> Englisch
+    -> Folien egal
+    -> Wenn demo, dann demo!
+    -> Ziel: Thema verstanden und Arbeit wird geschafft.
+
+Idee:
+SMT Solver liefern probleme für https://github.com/gernst/bvsampler formeln.
+Nimmt zufallswert -> sucht lösung für geratener Input -> sucht dann nächste Lösung
+
+# 2.4.
+Präsentation abstrakter, legion -> eine anwendung, aber auch randomsampling
+coverage messen?
+
+# 23.04
+
+1. 3 Teile für Legion:
+    - Score die Zustände, Zuständig für die Auswahl welche Zustände gewählt werden.
+    - Random Sampling bzgl. gegebener Constraints
+    - Solution von Predicate CPA muss nach RandomValueAssigner / evtl. an transferRelation übergeben
+      u.U. handle() muss unterscheiden ob nonDetInt assignment
+
+TODO: 
+    Wie sind memory locations, wenn in Schleife? Wie heißen die, wie wird Variable gekennzeichnet
+    wenn mehrfach vorbei kommend?
+
+    E-Mail mit folgendem: Wie kann eine Memory-Location in der ValueAnalysis einer
+    Variable in der PredicateAnalysis zugeordnet werden?
+    Philip Wendler + THomas Lemberger
+
+    Paper lesen für CoVeriTest und HybridTiger -> https://test-comp.sosy-lab.org/2020/systems.php
+    - HybridTiger:
+      Generate test cases with reachability analysis until every reachable test goal ist covered.
+      Uses CPAchecker counterexample generation to extract a test case.
+
+    - CoVeriTest:
+      a
+
+    RandomValueAssigner braucht Map, welche Variable welchen Wert bekommt.
+    NichtRandomValueAssigner, der Variablenbelegungen vorgesetzt bekommt. Mit diesen befüllt er
+    Memory-Locations solange es welche gibt. Danach wieder Random.
+
+Zustand nach Fallunterscheidung wird nach Score-Function ausgewählt.
+
+Ablauf:
+#. 
+
+Fragen:
+  - Ist symbolic Execution der richtige Begriff? Nicht mehr 'statische Analyse'?
+    Bessere unterscheidung?
+  - 10 Minuten mit oder ohne Fragen?
+
+
+1.5.2020:
+ - Welcher edge-call wird aufgerufen? Hat man beim Aufruf, welche function den RVA aufgerufen hat? Wenn man das weis,
+  kann man das Namensschema benutzen.
+
+  Präsentation:
+    - keine Animationen
+    - Wie würde Symbolic Execution neue Pfade finden?
+    - Vorteile von symExec können daran gezeigt werden (*Evaluate complex Conditions*): gezielte Ausfürhung
+      eines Branches.
+    - Geziehlt ist gut, aber muss für jede Koordinate gemacht werden: und das kann der Fuzzer, Koordinaten finden.
+    - SymExec wählt einen Punkt, Fuzzing exploriert dann.
+    - Und wie: Quicksampler. 
+    - 2 Fragen zu lösen: wo gehen wir hin mit Symexec?
+                         Energieverschwendungn vom dummen Fuzzing in einem Branch.
+                         zu tief mit der SymExec -> zu teuer, Fuzzing keinen Platz mehr
+                         Von a nach b springen, interessante dinge Fuzzen weil billig
+    - Initial: wir haben naive Methode, um INput zu generieren. Punkt ist impmenentierung in CPAchecker (=Quicksampler in CPAchecker)
+      1. MCTS: Score function, welcher Knoten ausgesucht wird.
+      2. Quicksampler: generiert die Werte
+    - Focus auf CPAchecker
+    - ✅ Related WOrk: 1 FOlie, Driller am ähnlichsten. 2 UNterschiede: Driller -> kein MCTS und kein Quicksampler (naiv).
+                             für MCTS: wenn fuzzer nicht mehr weiter kommt, ists wohl interessant (reaktiv, != proaktiv).
+                              -> wir machen proaktives "haben pfade, gib mir mehr"
+                            für Quicksampler: Driller generiert nur eine Eingabe und keinen Einfluss auf ob der Fuzzer das kaputt 
+                             -> wir machen das gleiche aber mit angepasster mutationsstrategie
+    - Zeitplan gröber machen
+    - Wie wird Evaluiert? Einfach testcompbenchmarks hernehmen. Ziel ist coverage coverage coverage!    
+
+  in https://meet.lrz.de/sosy
+
+ - ✅ generate input to solve ... -> generate many solutions for path constraints cheaply
+ - ✅ Quickcheck -> Quicksampler
+ - ✅ Driller: Referenz einfügen
+ - Vergleich Fuzzing - Symexec: SymExec wählt einen Punkt, Fuzzing exploriert dann.
+ - ✅ Zeitplan vereinfachen
+ - ✅ Evaluation
+ - https://link.springer.com/chapter/10.1007%2F978-3-030-16722-6_23 -> Coveritest for sharing results
+ - Parallelizing: Karl-Heinz: BAM Concept
+
+# 07.05.2020
+ - Was wenn Variablennummerierung verwenden? -> die werden auf jeden Fall der Reihe nach nummeriert.
+   Coveritest: die machen das prob. so.
+ - Automaton zu Prädikatenanalyse (und alle anderen) zuschaltbar: kann via CFA steuern (ignorieren fürs erste; Thomas Lemberger fragen)
+
+Todo:
+ - Welcher edge-call wird aufgerufen? Hat man beim Aufruf, welche function den RVA aufgerufen hat? Wenn man das weis,
+   kann man das Namensschema benutzen. Kann man an Kanten entdecken ob NonDetInt
+ - Strengthen(ing) Mechanismus: kommunikation zwischen 2 CPAs? Geeignet für neue Infos an RVA?
+ - Quicksampler Paper lesen.
+ 
+# Meeting 13.05.
+ - external Tool => postponed
+ - extra Automata in CPAchecker
+ - HOw to integrate ValueAnalysis + PredicateAnalysis
+   -> Witness to counterexample could be a starting point
+ - Fuzzing Strategies => postponed
+
+ Coveritest: TestCaseGeneratorAlgorithm
+ Important Classes:
+  TestCaseExporter#writeTestCase`
+  final Path pFile,
+        final ARGPath pTargetPath,
+        final CounterexampleInfo pCexInfo,
+  ...
+  `HarnessExporter#extractTestVector`
+  `TestCaseGeneratorAlgorithm` -> 162: Loop tests if all have been covered, if not: builds more tests
+
+  Testtarget can be cfa-Edge or location
+  
+  To switch between Algorithms: use RestartAlgorithm with LImits (e.g. Time limit for both algorithms)
+  -> how to exchange Information between those?
+    -> conditional Verification
+
+  `AssumptionStorageCPA` is needed for `AssumptionCollectorAlgorithm'.
+  `AssumptionCollectorAlgorithm' creates Assumptions and writes them to a Condition based on the arg
+
+  ReachedSet == ARGs
+  Traversing it is intended (wihtout considering it is a loop):
+    *`ARGUtils' provides tools to work with ARGUtils*
+  You also have `PathIterator`
+  PathIterator is used with `ARGPath`, e.g., `ARGPath#fullPathIterator`
+
+  Construct top half of reachedSet with PredicateAnalysis
+    -> then run on fresh ReachedSet with Fuzzing step (maybe with `NestingAlgorithm` / `NestingAlgorithm#createAlgorithm`)
+
+  Adjustable Precision: Swtich between 2 CPAs?
+    -> throw away Precision
+    -> keep path forumals
+    -> 
+
+Do Statistics via global logging. Ugly, but works. Later -> nicer datastructure.
+Pred + ValueAnalysis:
+  Path Formulas from Pred - Values from Value
+
+Good Idea: 
+  Throw away old value if we are in the same place.
+
+Verify: 
+
+Chat Log:
+sounds good, see you there
+15:17
+Martin S.
+works for me
+15:17
+Gidon Ernst
+1) postponed: Legion as a conditional tester
+15:24
+Thomas
+`TestCaseExporter#writeTestCase`
+final Path pFile,
+      final ARGPath pTargetPath,
+      final CounterexampleInfo pCexInfo,
+...
+`HarnessExporter#extractTestVector`
+`TestCaseGeneratorAlgorithm`
+162
+`TestTargetCPA` generates the individual test targets and the TestCaseGeneratorAlgorithm takes the test goals from there
+15:37
+Martin S.
+I think I cannot contribute much and have lots of work to do => I will leave now and wish you a productive rest of the meeting!
+15:45
+Thomas
+`AssumptionStorageCPA`
+`AssumptionCollectorAlgorithm`
+`ARGUtils`
+You also have `PathIterator`
+PathIterator is used with `ARGPath`, e.g., `ARGPath#fullPathIterator`
+15:55
+Dirk Beyer
+Correct. Does not work.
+15:57
+Thomas
+`NestingAlgorithm`
+15:58
+Dirk Beyer
+Convert ARGs?
+15:58
+Thomas
+more specifically, `NestingAlgorithm#createAlgorithm`
+15:58
+Gidon Ernst
+__VERIFIER_nondet_int!59
+__VERIFIER_nondet_int!63
+
+
+# 14.05.:
+MergeOperator: definieren
+
+Concolic Execution -> symbolische werte aber konkrete Pfade
+
+Todo:
+  - Add new join type in ValueAnalysisCPA.java
+  - Add new merge operator in ValueAnalysisCPA.getMergeOperator()
+  - Neue Merge Operator Klasse (als inline Klasse)
+
+  Feststellen, ob MergeOperator Funktioniert: ARG anzeigen können
+  -> schauen, ob im Output zu sehen ist, ob neue States pro Ausführung hinzugefügt werden
+     Die neuen states sollen in Zukunft joined werden.
+
+  PathCPA: neue CPA, neues Package path/PathCPA. Kopieren von der LocationCPA
+  Testprogram: if(...) { a } else {b} ; c
+
+  Quicksampler: https://github.com/gernst/bvsampler
+
+  Einfach mal merge-sep für die Prädikatenanalyse setzen + merge-concolic für die ValueAnalysis
+  CFAPathCPA
+
+28.5.2020
+
+ - großes Program testen: svbenchmark z.B.? Iterationsmenge Testen -> eca rers / array-crafted
+ - nondet vll erweitern auf short / longs 
+
+Nächster Schritt: Pfadformeln lösen
+ Wie?
+ java-smt bibliothek weis das, siehe docs bzw github
+ -> Vll stellt PredicateAnalysis schon einen solver bereit, kucken ob der Solver an der Formel hängt
+ -> Formel hängt an Solver+Context (SolverContextFormulaFactory?) oder counterexample solver
+ -> Model (Formelbelegung das Formel wahr macht)
+ -> Proover-Env: get model siehe https://github.com/sosy-lab/java-smt/blob/093ac2589b21def3b38b7723e06bfc0505289a09/src/org/sosy_lab/java_smt/test/ModelTest.java#L374
+
+ -> bei ~ reAddToWaitlist -> lass 1 Formel ausgeben + ein Model
+ -> einfach initialen zurück auf die Waitlist damit komplett von vorne
+ -> auch Zusände mit mehr als einem Nachfolger testen mit reAddToWaitlist
+  -> davon einen Nachfolger in die Waitlist
+
+4.6.
+ - Array: MemoryLocation anschauen
+ - 
+
+12.6.
+  Verify-This tasks dürften kein uB haben -> auf null initialisieren
+    -> transition relation mit in den RVA -> call-edge für wann __VERIFIER_nondet_int
+  1. Neue memory location: p + 0, p + 1 ...
+
+18.6.
+  -> check todos
+  -> are INT128 and FLOAT128 important?
+  
+  Todo:
+    - RandomValueAssigner:128
+    - Get sovler from CPA, like BMCAltorithm:159 & CoreComponentsFactory:345
+    - How to get information from prover-model to RVA
+
+25.6.
+  -> prover is working
+  -> Connected RVA -> Legion Algorithm
+  -> Wann kommen infos vom Prover?
+
+  Todo:
+    ✅ Korrelation zwischen RVA und Legion: Woher weis der preloaded RVA wie die Variable heißt?
+      -> Memlocation ist in RVA bekannt
+      -> ValueAnalysisState vs hat constantsMap, zu der wurde NumericValue zugewiesen
+      -> der Proover muss lösungen für aktuelle Variablen zurück geben
+      -> tut er, model.modelAssignments.*.name ist der name
+    - Wann solved der Proover?:
+
+    - Refactor: n random durchläufe machen am Anfang, da immer initial Stage auf waitlist
+      ! damit arg teilweise ausgefaltet
+      ✅> dann zufällig einen non-det zustand auswählen
+      -> für diesen den Path-Constraint lösen (10x, iM eine Lösung, iM 1x)
+      ✅> platzhalter für auswahl welcher nondet state
+
+    RVA only called once at startup
+
+2.7.2020:
+  -> Die Entscheidung wann ein State nicht nochmal besucht wurde u.U. ändern?
+    -> Gleichheit auf VA States
+  -> Warum werden States nicht gemerged? Eine nondet_int, 3 ARG abzweiungen,
+     debuggen, warum nicht gemerged wird.
+     -> testen mit jedes mal 0 zurück geben
+  -> RVA preloading testen ob Reihenfolge korrekt
+
+  Done:
+    - ValueAnalysisState:434 compares VA states: but always true
+
+9.7.2020
+  Fragen:
+    - name sanitizing: remove numbers and '@'?
+    - clear loaded Values after each iteration?
+    - For ARG?
+
+  Todo:
+    - überprüfen, ob indices global monoton ansteigend
+      -> wenn ja, im RVA sortierte Liste
+    - 2 Modi:
+      - sobald fehler gefunden haben: abruch
+      - max 15min runtime -> hohe coverage
+    - wie kommt man an Coverage?
+    -> RVA bekommt liste von listen: jede liste ist ein durchlauf
+       eher legion-algorithmus merkt sich liste von listen für zuweisungen
+       RVA bekommt diese dann vor jeden fuzzing lauf
+
+10.7.2020
+  - ExpressionValueVisitor Liste übergeben, der soll die zuweisung machen
+  - Infos müssen an den durch die ValueAnalysisCPA und ValueAnalysisTransferRelation
+    durchgeschleift werden
+
+23.7.
+  - Ziel: If finden, bei dem nur eine Seite schon abearbeitet wurde
+  - Wie Score-Function umsetzen?`
+  #- Value Analysis könnte sich merken, wenn 'abgebogen' wird + das anderen Richtung vorhanden
+  #- CFA weiß outgoing edges, LocationCPA / LocationState.java:73
+  - PathFormula makeAnd(PathFormula oldFormula, CFAEdge edge)
+    Siehe PredicateTransferRelation:129
+    PathFormulaManager aus PredicateCPA
+
+  - ReachedSet von oben durchlaufen und state suchen -> Welche Kanten(CFA) von welchem
+    State aus dem ARG wurde noch nicht besucht
+
+30.7.
+  - name starts with NOT nondet_int
+  - liste der nondet_ints nach indices sortieren ('__VERIFIER_nondet_int!*3*@')
+  - Use list of ValueAassignments as data structure for preloadedValues
+  - check type of value assignment before using it from preload
+  - maybe use different list for different types of values
+
+  - metadaten-XML schreiben + eine pro testfile (siehe regeln Testcomp https://test-comp.sosy-lab.org/2020/)
+    https://gitlab.com/sosy-lab/software/test-format/-/tree/master/
+  - Coveritest kann das schon
+  - ReacheSet: immer wenn größer geworden, -> neues Testformat rausschreiben
+ 
+  - Algorithmus für mehrfache verschiedene Constraints vom solver bekommen bauen
+    immer eine push -> lösen, dann push-pop (* anzahl nondet variablen)
+    (ähnliche strategie https://github.com/gernst/bvsampler)
+
+5.8.
+  - Vorstellung aktueller Stand
+    - Interessante Punkte:
+      1. Selection Score: wie werden Edges ausgewählt? Im moment first unvisited
+         edge in tiefensuch-ähnlichem Verfahren
+      2. Targetting: Generieren von diversen Lösungen für die Selected Edge
+      3. Fuzzing: 
+            Random values through the random value assigner
+            Preloaded values through ExpressionValueVisitor
+  - konkrete Fragen:
+    - schreiben von Testfile-XML -> util/testcase/testcaseexport
+    - Coverage von gcov extern
+    - Multithreading (Testcomp by CPU-Time?) -> CPU Time
+  - allgemeine Fragen:
+    - Struktur
+    - Phasen
+    - nice to know
+
+Coverage info: Set merken mit Locations welche schon covered sind,
+sobald eine Iteration einen Test liefert, welcher coverage hat die noch nicht im
+Set enthalten -> neues TestCaseFile
+
+ExpressionValueVisitor setzt Werte -> unsauber
+Aber: größere Änderung: violation Witness schreiben und wieder lesen
+
+Martin Spießl
+
+Violation Witness -> WitnessExporter: export aufwändiger, würde 
+aber beim Import sauberen Automaten für Zuweisungen generieren
+
+generateErrorWitness -> Verwendungen (zb. CounterexampleCPAchecker.java)
+wichtige Infos im
+
+---
+Concolic merge führt immer zum hinzufügen in der Waitlist -> auch wenn exakt
+der selbe Zustand.
+
+---
+Möglichkeit: ARG abschneiden und Set nutzen um in jedem Run die besuchten
+CFA Nodes zu markieren.
+
+Reason: Merge braucht es dann nicht -> sauberer mit immer neuem ReachedSet
+Termination Check wird dann nicht ausgehebelt (wird aktuell übergangen).
+
+# 13.8.
+  - examples basteln (if, for, ... randfällle)
+  - ExpressionValueVisitor#500 -> Type check, if mismatch: no assignment
+  - ValueAnalysisCPA#277 Factor out inline class
+
+
+
+# 20.8.
+
+(`=_<BitVec, 32, >` main::a@3 0_32)) 
+(`=_<BitVec, 32, >` main::a@4 2_32)) 
+(`bvslt_32` main::b@3 2684354560_32)) 
+(`bvslt_32` main::c@3 2684354560_32))
+(`=_<BitVec, 32, >` __VERIFIER_nondet_int!2@ main::a@3) 
+(`=_<BitVec, 32, >` __VERIFIER_nondet_int!3@ main::b@3))
+(`=_<BitVec, 32, >` __VERIFIER_nondet_int!4@ main::c@3)) 
+(`not` (`=_<BitVec, 32, >` __VERIFIER_nondet_int!4@ 2147483648_32))
+  - 
+
+
+# 3.9.
+ - after every fuzzing run:
+  - run through arg from the top
+  - follow largest state ids
+  - record assignments by nondet_int on the way
