@@ -65,7 +65,7 @@ public class LegionAlgorithm implements Algorithm {
             Collection<Property> violatedProperties = reachedSet.getViolatedProperties();
             // TODO: pull out of status if already found error
             if (!violatedProperties.isEmpty()) {
-                this.logger.log(Level.WARNING, "Found violated property in input after " + i + " iterations.");
+                this.logger.log(Level.WARNING, "Found violated property in input after " + (i + 1) + " iterations.");
                 break;
             }
 
