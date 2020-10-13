@@ -196,9 +196,8 @@ flake8:
   stage: checks
   dependencies: []
   needs: []
-  image: python
+  image: python:3.8
   before_script:
-    - pip install 'isort<5' # workaround for https://github.com/gforcada/flake8-isort/issues/88
     - pip install flake8-awesome
   script:
     - flake8
