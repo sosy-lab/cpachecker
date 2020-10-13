@@ -53,32 +53,49 @@ public class OutputWriter {
     }
 
     /**
-     * Write the metadata file necessary for testcomp.
+     * Write the metadata file necessary for testcomp to the output path.
+     * 
+     * This only needs to be done once and does not contain testcase specific
+     * information.
      */
     private void writeTestMetadata() {
-
-        try (FileWriter metadata = new FileWriter("./output/testcases/metadata.xml")) {
+        try (FileWriter metadata = new FileWriter(this.path + "/metadata.xml")) {
             XMLTestCaseExport.writeXMLMetadata(metadata, PredicateCPA.getCfa(), null, "legion");
             metadata.flush();
         } catch (IOException exc) {
-            logger.log(Level.WARNING, "Could not write test output", exc);
+            logger.log(Level.SEVERE, "Could not write metadata file", exc);
         }
     }
 
-    public void writeTestCases(ReachedSet reachedSet) {
-        AbstractState first = reachedSet.getFirstState();
+    /**
+     * Handles writing of all testcases necessary for the given reachedSet.
+     */
+    public void writeTestCases(ReachedSet pReachedSet) {
+        AbstractState first = pReachedSet.getFirstState();
         ARGState args = AbstractStates.extractStateByType(first, ARGState.class);
 
         ArrayList<Entry<MemoryLocation, ValueAndType>> values = new ArrayList<>();
         searchTestCase(args, values);
         try {
-            writeTestCase(values);
+            writeVariablesToTestcase(values);
         } catch (IOException exc) {
-            logger.log(Level.WARNING, "Could not write test output", exc);
+            logger.log(Level.SEVERE, "Could not write test output", exc);
         }
 
     }
 
+    /**
+     * Search through connected states starting from the state given and return
+     * their MemoryLocation and ValueType.
+     * 
+     * This performs walk along the children of state. The child to walk down to
+     * is selected by the highest state id (meaning the newest).
+     * This results in a list of values starting at the given state and walking 
+     * the newest path through it's children.
+     * 
+     * @param state The starting state.
+     * @param values The list of values to append to.
+     */
     private void
             searchTestCase(ARGState state, ArrayList<Entry<MemoryLocation, ValueAndType>> values) {
         // check if is nondet assignment
@@ -117,7 +134,6 @@ public class OutputWriter {
 
         // If largest_child still null -> at the bottom of the graph
         if (largest_child == null) {
-            // writeTestCase
             return;
         }
 
@@ -126,18 +142,15 @@ public class OutputWriter {
     }
 
     /**
-     * Write the individual test files.
+     * Write variables from values to a testcase file.
      */
-    private void writeTestCase(ArrayList<Entry<MemoryLocation, ValueAndType>> values)
+    private void writeVariablesToTestcase(ArrayList<Entry<MemoryLocation, ValueAndType>> values)
             throws IOException {
-        // Setup directory
-        File outpath = new File("./output/testcases");
-        outpath.mkdirs();
 
-        // Setup file
-        String filename = String.format("testcase_%s.xml", this.testCaseNumber);
+        String filename = String.format("/testcase_%s.xml", this.testCaseNumber);
         logger.log(Level.WARNING, "Writing testcase ", filename);
-        try (FileWriter testcase = new FileWriter("./output/testcases/" + filename)) {
+
+        try (FileWriter testcase = new FileWriter(this.path + filename)) {
             testcase.write("<testcase>\n");
             for (Entry<MemoryLocation, ValueAndType> v : values) {
                 String name = v.getKey().toString();
@@ -163,7 +176,15 @@ public class OutputWriter {
         this.testCaseNumber += 1;
     }
 
-    private Entry<MemoryLocation, ValueAndType> getValueTypeFromState(
+    /**
+     * Retrieve variables a MemoryLocation and ValueAndType from a
+     * ValueAnalysisState by its function name and identifier (=name).
+     * 
+     * @param function_name Name of the function the variable is contained in.
+     * @param identifier The name of the function.
+     * @return The constants entry for this value or null.
+     */
+    private static Entry<MemoryLocation, ValueAndType> getValueTypeFromState(
             String function_name,
             String identifier,
             ValueAnalysisState state) {
