@@ -52,6 +52,8 @@ public class UsageContainer {
   private final StatTimer unsafeDetectionTimer = new StatTimer("Time for unsafe detection");
   private final StatTimer searchingInCachesTimer = new StatTimer("Time for searching in caches");
   private final StatTimer addingToSetTimer = new StatTimer("Time for adding ti usage point set");
+  private final StatCounter sharedVariables =
+      new StatCounter("Number of detected shared variables");
 
   private boolean usagesCalculated = false;
   private boolean oneTotalIteration = false;
@@ -106,6 +108,9 @@ public class UsageContainer {
             initialUsages += tmpList.size();
           }
         } else {
+          if (!oneTotalIteration) {
+            sharedVariables.inc();
+          }
           iterator.remove();
         }
       }
@@ -229,6 +234,7 @@ public class UsageContainer {
     }
 
     out.spacer()
+        .put(sharedVariables)
         .put("Total amount of unsafes", unsafeSize)
         .put("Initial amount of unsafes (before refinement)", unsafeSize + falseUnsafes.size())
         .put("Initial amount of usages (before refinement)", initialUsages)

@@ -10,15 +10,15 @@ package org.sosy_lab.cpachecker.cfa.blocks;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
-import java.util.Collections;
 import com.google.common.collect.Iterables;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.ASimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cpa.lock.LockIdentifier;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
-import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 
 /**
  * Represents a block as described in the BAM paper.
@@ -70,7 +70,7 @@ public class Block {
   }
 
   public Set<LockIdentifier> getCapturedLocks() {
-    return Collections.unmodifiableSet(capturedLocks);
+    return capturedLocks;
   }
 
   /** returns a collection of variables used in the block.

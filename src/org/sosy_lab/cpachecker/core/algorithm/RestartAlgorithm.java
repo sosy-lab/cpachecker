@@ -82,6 +82,7 @@ import org.sosy_lab.cpachecker.util.Triple;
 import org.sosy_lab.cpachecker.util.coverage.CoverageCollector;
 import org.sosy_lab.cpachecker.util.coverage.CoverageData;
 import org.sosy_lab.cpachecker.util.coverage.CoverageReportGcov;
+import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 
 @Options(prefix = "restartAlgorithm")
 public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpdater {
@@ -527,6 +528,9 @@ public class RestartAlgorithm extends NestingAlgorithm implements ReachedSetUpda
     } else {
       aggregateReached = new AggregatedReachedSets();
     }
+
+    // To perform gc and free a potentially large partitioning from previous BAM launch
+    GlobalInfo.getInstance().setUpInfoFromCPA(null);
 
     return super.createAlgorithm(
         singleConfigFileName,
