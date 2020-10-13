@@ -23,6 +23,7 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.logging.Level;
@@ -128,9 +129,26 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
       loadedValues.put(name, new NumericValue((Float)value));
     } else if (value instanceof Double) {
       loadedValues.put(name, new NumericValue((Double)value));
+    } else if (value instanceof BigInteger) {
+      BigInteger v = (BigInteger)value;
+      String n = sanitize(name);
+      loadedValues.put(n, new NumericValue(v));
+      logger.log(Level.INFO, "Preloaded to ", n, v);
     } else {
-      throw new IllegalArgumentException("Did not recognize value for loadedValues Map.");
+      throw new IllegalArgumentException(String.format("Did not recognize value for loadedValues Map: %s.", value.getClass()));
     }
+  }
+
+  private String sanitize(String name){
+    while (Character.isDigit(name.charAt(name.length()-1))) {
+      name = name.substring(0, name.length()-1);
+    }
+
+    if (name.charAt(name.length()-1) == '@') {
+      name = name.substring(0, name.length()-1);
+    }
+    
+    return name;
   }
 
   /**

@@ -21,6 +21,7 @@ package org.sosy_lab.cpachecker.core.algorithm.legion;
 
 import static org.sosy_lab.java_smt.test.ProverEnvironmentSubject.assertThat;
 
+import java.math.BigInteger;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.Random;
@@ -38,6 +39,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.value.RandomValueAssigner;
@@ -160,6 +162,8 @@ public class LegionAlgorithm implements Algorithm {
                 }
             }
             int rnd = new Random().nextInt(nonDetStates.size());
+            AbstractState target = nonDetStates.get(rnd);
+            logger.log(Level.INFO, "Target: ", AbstractStates.extractStateByType(target, LocationState.class));
             return nonDetStates.get(rnd);
         }
         return null;
@@ -205,7 +209,12 @@ public class LegionAlgorithm implements Algorithm {
         for (ValueAssignment assignment : pConstraints.asList()){
             String name = assignment.getName();
             if (!name.contains("__VERIFIER_nondet")){
-                logger.log(Level.INFO, "Found assignment to {}:{}", name, assignment.getValue());
+                Object value = assignment.getValue();
+                pValueAssigner.loadValue(name, value);
+                // if (value instanceof BigInteger){
+                //     logger.log(Level.INFO, "Int Value", ((BigInteger)value).intValue());
+                // }
+                // logger.log(Level.INFO, "Found assignment", name, value);
             }
         }
     }

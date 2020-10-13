@@ -3,15 +3,28 @@ extern void __VERIFIER_error() __attribute__ ((__noreturn__));
 int main() {
   
     int a = __VERIFIER_nondet_int();
-    if (a < -1610612736){
+    int b = 0;
+    if (a < 0){
+            // -1913767021
+            // -1342231855
       int b = __VERIFIER_nondet_int();
       if (b < -1610612736){
         a = 3;
       }
       // __VERIFIER_error();
-    } else {
-      a = 2;
+      // b = 1;
     }
+    // if (a < -2415919104){
+    //   b = 2;
+    // }
+
+    // if (a < -2516019105) {
+    //   b = 3;
+    // }
+
+    // else {
+    //   a = 2;
+    // }
 
     // int c;
     // int b;
