@@ -31,11 +31,15 @@ import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeState;
+import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.SSAMap;
 
 import java.util.Collection;
+import java.util.NavigableSet;
 
 public class LegionAlgorithm implements Algorithm {
     private final Algorithm algorithm;
@@ -45,7 +49,7 @@ public class LegionAlgorithm implements Algorithm {
     public LegionAlgorithm(final Algorithm algorithm, final LogManager pLogger) {
         this.algorithm = algorithm;
         this.logger = pLogger;
-        this.maxIterations = 10;
+        this.maxIterations = 1;
     }
 
     @Override
@@ -75,8 +79,8 @@ public class LegionAlgorithm implements Algorithm {
             for (AbstractState state : reachedSet.asCollection()) {
                 ImmutableList<AbstractState> wrappedStates =
                         ((AbstractSingleWrapperState) state).getWrappedStates();
-
                 for (AbstractState as : wrappedStates) {
+                    this.predicateInfo(as);
                     if (this.nonDeterministicStateContained(as)) {
                         for (ARGState previous : ((ARGState) state).getParents()) {
                             reachedSet.reAddToWaitlist(previous);
@@ -89,6 +93,28 @@ public class LegionAlgorithm implements Algorithm {
             }
         }
         return status;
+    }
+
+    void predicateInfo(AbstractState as){
+        CompositeState cs = (CompositeState) as;
+        PredicateAbstractState ps = (PredicateAbstractState) cs.getWrappedStates().asList().get(4);
+        if (ps == null){
+            this.logger.log(Level.SEVERE, "No ps");
+            return;
+        }
+        PathFormula f = ps.getPathFormula();
+        this.logger.log(Level.SEVERE, "Formula: " + f);
+        NavigableSet<String> vars = f.getSsa().allVariables();
+        if (!vars.isEmpty()){
+            SSAMap map = f.getSsa();
+            int index = map.getIndex("main::i");
+            // m
+
+            // this.logger.log(Level.SEVERE, f.getSsa().getIndex("main::i"));
+            // this.logger.log(Level.SEVERE, vars.toArray()[0]);
+        }
+        // if (f.getSsa().containsVariable("main::i@2")){
+        // }
     }
 
     boolean nonDeterministicStateContained(AbstractState as) {

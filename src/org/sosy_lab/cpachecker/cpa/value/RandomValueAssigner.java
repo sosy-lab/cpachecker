@@ -27,12 +27,16 @@ import java.util.Random;
 import java.util.logging.Level;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.configuration.Option;
+import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CBasicType;
-import org.sosy_lab.common.log.LogManager;
-import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
+import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
 
@@ -44,6 +48,14 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
 
   private Random rnd;
   private final LogManager logger;
+
+  @Option(description="If this option is set to true, an own symbolic identifier is assigned to"
+      + " each array slot when handling non-deterministic arrays of fixed length."
+      + " If the length of the array can't be determined, it won't be handled in either cases.")
+  private boolean handleArrays = false;
+
+  @Option(description="Default size of arrays whose length can't be determined.")
+  private int defaultArraySize = 20;
 
   public RandomValueAssigner(LogManager logger, long seed){
     this.logger = logger;
@@ -72,7 +84,7 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
       Type pType,
       ValueAnalysisState pPreviousState,
       ValueAnalysisState pState,
-      @Nullable ExpressionValueVisitor pValueVisitor) {
+      @Nullable ExpressionValueVisitor pValueVisitor) throws UnrecognizedCodeException {
 
     if (pType instanceof CSimpleType) {
       createSimpleType(pMemLocation, pType, pPreviousState, pState);
@@ -80,7 +92,7 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
     }
 
     if (pType instanceof CArrayType) {
-      createArrayType();
+      fillArrayWithSymbolicIdentifiers(pState, pMemLocation, (( CArrayType ) pType), pValueVisitor);
       return;
     }
   
@@ -107,7 +119,42 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
     }
   }
 
-  private void createArrayType() {
-    throw new IllegalArgumentException("Array type");
+  private void fillArrayWithSymbolicIdentifiers(
+      final ValueAnalysisState pState,
+      final MemoryLocation pArrayLocation,
+      final CArrayType pArrayType,
+      final ExpressionValueVisitor pValueVisitor
+  ) throws UnrecognizedCodeException {
+    // TODO: this is how to generate a carray
+
+    if (!handleArrays) {
+      pState.forget(pArrayLocation);
+      return;
+    }
+
+    CExpression arraySizeExpression = pArrayType.getLength();
+    Value arraySizeValue;
+    long arraySize;
+
+    if (arraySizeExpression == null) { // array of unknown length
+      arraySize = defaultArraySize;
+    } else {
+      arraySizeValue = arraySizeExpression.accept(pValueVisitor);
+      if (!arraySizeValue.isExplicitlyKnown()) {
+        arraySize = defaultArraySize;
+
+      } else {
+        assert arraySizeValue instanceof NumericValue;
+
+        arraySize = ((NumericValue) arraySizeValue).longValue();
+      }
+    }
+
+    for (int i = 0; i < arraySize; i++) {
+      MemoryLocation arraySlotMemLoc =
+          pValueVisitor.evaluateMemLocForArraySlot(pArrayLocation, i, pArrayType);
+
+      handle(arraySlotMemLoc, pArrayType.getType(), null, pState, pValueVisitor);
+    }
   }
 }
