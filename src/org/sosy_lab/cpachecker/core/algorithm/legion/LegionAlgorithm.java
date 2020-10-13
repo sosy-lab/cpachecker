@@ -35,6 +35,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.legion.selection.RandomSelectionStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.legion.selection.Selector;
+import org.sosy_lab.cpachecker.core.algorithm.legion.selection.UnvisitedEdgesStrategy;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
@@ -64,9 +65,10 @@ public class LegionAlgorithm implements Algorithm {
     @SuppressWarnings("unused")
     private ShutdownNotifier shutdownNotifier;
     private ValueAnalysisCPA valCpa;
+    final PredicateCPA predCpa;
 
 
-    @Option(secure=true, name="selectionStrategy", toUppercase=true, values={"RAND"},
+    @Option(secure=true, name="selectionStrategy", toUppercase=true, values={"RAND", "UNVISITED"},
       description="which selection strategy to use to get target states.")
     private String selectionStrategyOption = "RAND";
     private Selector selectionStrategy;
@@ -95,7 +97,7 @@ public class LegionAlgorithm implements Algorithm {
         pConfig.inject(this, LegionAlgorithm.class);
 
         // Fetch solver from predicate CPA
-        PredicateCPA predCpa =
+        this.predCpa =
                 CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, LegionAlgorithm.class);
         this.solver = predCpa.getSolver();
 
@@ -243,6 +245,9 @@ public class LegionAlgorithm implements Algorithm {
     Selector buildSelectionStrategy(){
         if (selectionStrategyOption.equals("RAND")){
             return new RandomSelectionStrategy(logger);
+        }
+        if (selectionStrategyOption.equals("UNVISITED")){
+            return new UnvisitedEdgesStrategy(logger, predCpa.getPathFormulaManager());
         }
         throw new IllegalArgumentException(
             "Selection strategy " + selectionStrategyOption + " unknown"

@@ -29,6 +29,7 @@
 		"mhutchie.git-graph",
 		"eamodio.gitlens",
 		"vscjava.vscode-java-pack",
+		"sohibe.java-generate-setters-getters",
 		"aaron-bond.better-comments",
 		"nickheap.vscode-ant"
 	]
