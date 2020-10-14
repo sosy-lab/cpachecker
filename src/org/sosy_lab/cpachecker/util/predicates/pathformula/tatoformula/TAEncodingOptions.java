@@ -17,6 +17,7 @@ import org.sosy_lab.common.configuration.Options;
 public class TAEncodingOptions {
   public static enum TAEncodingExtensionType {
     SHALLOW_SYNC,
+    SHALLOW_SYNC_DIFFERENCE,
     INVARIANTS,
     TRANSITION_TYPES,
     TRANSITION_ACTIONS,

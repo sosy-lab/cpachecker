@@ -33,6 +33,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extension
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TALocalMutexActions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAShallowStrictSync;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAShallowSync;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAShallowSyncDifference;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TATransitionActions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAUnsyncMutexActions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.TABooleanVarFeatureEncoding;
@@ -57,39 +58,26 @@ public class TAFormulaEncodingProvider {
   private final CFA cfa;
   private final FormulaManagerView fmgr;
   private final TAFormulaEncoding encoding;
-  private final int stepCountUpperBound;
 
   private static TAFormulaEncodingProvider instance;
-
-  public static TAFormulaEncoding getEncoding(
-      Configuration config, CFA pCfa, FormulaManagerView pFmgr, int pStepCountUpperBound)
-      throws InvalidConfigurationException {
-    if (instance == null) {
-      instance = new TAFormulaEncodingProvider(config, pCfa, pFmgr, pStepCountUpperBound);
-    }
-
-    return instance.encoding;
-  }
 
   public static TAFormulaEncoding getEncoding(
       Configuration config, CFA pCfa, FormulaManagerView pFmgr)
       throws InvalidConfigurationException {
     if (instance == null) {
-      instance = new TAFormulaEncodingProvider(config, pCfa, pFmgr, Integer.MAX_VALUE);
+      instance = new TAFormulaEncodingProvider(config, pCfa, pFmgr);
     }
 
     return instance.encoding;
   }
 
-  private TAFormulaEncodingProvider(
-      Configuration config, CFA pCfa, FormulaManagerView pFmgr, int pStepCountUpperBound)
+  private TAFormulaEncodingProvider(Configuration config, CFA pCfa, FormulaManagerView pFmgr)
       throws InvalidConfigurationException {
     options = new TAEncodingOptions();
     config.inject(options, TAEncodingOptions.class);
     cfa = pCfa;
     fmgr = pFmgr;
 
-    stepCountUpperBound = pStepCountUpperBound;
     encoding = createConfiguredEncoding();
   }
 
@@ -195,7 +183,6 @@ public class TAFormulaEncodingProvider {
   }
 
   private TAVariables createTimeEncoding(FormulaManagerView pFmgr) {
-    // TODO DATA TYPE EXPERIMENT
     var clockClockVariableType = getClockVariableType();
 
     if (options.timeEncoding == TimeEncodingType.GLOBAL_EXPLICIT) {
@@ -250,9 +237,10 @@ public class TAFormulaEncodingProvider {
       if (!(pTime instanceof TAExplicitTime)) {
         throw new AssertionError("Shallow sync is only possible with explicit time encoding");
       }
-      result.add(
-          new TAShallowSync(
-              pFmgr, pAutomata, (TAExplicitTime) pTime, pActions, stepCountUpperBound));
+      result.add(new TAShallowSync(pFmgr, pAutomata, (TAExplicitTime) pTime, pActions));
+    }
+    if (options.encodingExtensions.contains(TAEncodingExtensionType.SHALLOW_SYNC_DIFFERENCE)) {
+      result.add(new TAShallowSyncDifference(pFmgr, pAutomata, (TAExplicitTime) pTime, pActions));
     }
     if (options.encodingExtensions.contains(TAEncodingExtensionType.INVARIANTS)) {
       result.add(
