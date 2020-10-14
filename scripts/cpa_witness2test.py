@@ -646,9 +646,16 @@ def run(argv=None):
                 result = ValidationResult(RESULT_UNK)
         finally:
             for i in os.listdir(harness_output_dir):
-                shutil.move(
-                    os.path.join(harness_output_dir, i), os.path.join(output_dir, i)
-                )
+                source = os.path.join(harness_output_dir, i)
+                target = os.path.join(output_dir, i)
+                try:
+                    shutil.copytree(
+                        source,
+                        target,
+                        dirs_exist_ok=True,
+                    )
+                except NotADirectoryError:
+                    shutil.move(source, target)
 
     if args.stats:
         print(os.linesep + "Statistics:")
