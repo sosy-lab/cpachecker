@@ -12,6 +12,8 @@ import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariable;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariableCondition;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.Formula;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 public interface TAVariables {
   BooleanFormula makeConditionFormula(
@@ -24,4 +26,10 @@ public interface TAVariables {
 
   BooleanFormula makeEqualsZeroFormula(
       TaDeclaration pAutomaton, int pVariableIndex, Iterable<TaVariable> pClocks, boolean indexVariables);
+
+  Formula evaluateClock(TaDeclaration pAutomaton, int pVariableIndex, TaVariable clock);
+
+  BooleanFormula makeTimeEqualsZeroFormula(TaDeclaration pAutomaton, int pVariableIndex);
+
+  public FormulaType<?> getClockVariableType();
 }

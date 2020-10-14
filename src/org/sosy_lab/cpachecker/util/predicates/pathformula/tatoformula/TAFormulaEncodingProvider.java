@@ -34,7 +34,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extension
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAShallowStrictSync;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAShallowSync;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAShallowSyncDifference;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAShallowSyncTimeStamp;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TATransitionActions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TATransitionTypes;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAUnsyncMutexActions;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.TABooleanVarFeatureEncoding;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.TAGlobalVarDiscreteFeatureEncoding;
@@ -48,7 +50,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureen
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.locations.TALocations;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.variables.TAExplicitDifferenceTime;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.variables.TAExplicitTime;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.variables.TAGlobalImplicitTime;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.variables.TAImplicitTime;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.variables.TAVariables;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.FormulaType;
@@ -85,7 +87,7 @@ public class TAFormulaEncodingProvider {
     var automatonView = new TimedAutomatonView(cfa, options);
     var locations = createLocationEncoding(fmgr, automatonView);
     var actions = createActionEncoding(fmgr, automatonView);
-    var time = createTimeEncoding(fmgr);
+    var time = createTimeEncoding(fmgr, automatonView);
 
     var extensions = createExtensions(fmgr, automatonView, time, locations, actions);
     var extensionsWrapper = new TAEncodingExtensionWrapper(fmgr, extensions);
@@ -182,25 +184,32 @@ public class TAFormulaEncodingProvider {
     return new TABooleanVarActions(featureEncoding);
   }
 
-  private TAVariables createTimeEncoding(FormulaManagerView pFmgr) {
+  private TAVariables createTimeEncoding(FormulaManagerView pFmgr, TimedAutomatonView pAutomata) {
     var clockClockVariableType = getClockVariableType();
 
     if (options.timeEncoding == TimeEncodingType.GLOBAL_EXPLICIT) {
-      return new TAExplicitTime(pFmgr, false, options.allowZeroDelay, clockClockVariableType);
+      return new TAExplicitTime(
+          pFmgr, false, options.allowZeroDelay, clockClockVariableType, pAutomata);
     }
     if (options.timeEncoding == TimeEncodingType.GLOBAL_EXPLICIT_DIFFERENCE) {
       return new TAExplicitDifferenceTime(
-          pFmgr, false, options.allowZeroDelay, clockClockVariableType);
+          pFmgr, false, options.allowZeroDelay, clockClockVariableType, pAutomata);
     }
     if (options.timeEncoding == TimeEncodingType.GLOBAL_IMPLICIT) {
-      return new TAGlobalImplicitTime(pFmgr, options.allowZeroDelay, clockClockVariableType);
+      return new TAImplicitTime(
+          pFmgr, true, options.allowZeroDelay, clockClockVariableType, pAutomata);
+    }
+    if (options.timeEncoding == TimeEncodingType.LOCAL_IMPLICIT) {
+      return new TAImplicitTime(
+          pFmgr, false, options.allowZeroDelay, clockClockVariableType, pAutomata);
     }
     if (options.timeEncoding == TimeEncodingType.LOCAL_EXPLICIT) {
-      return new TAExplicitTime(pFmgr, true, options.allowZeroDelay, clockClockVariableType);
+      return new TAExplicitTime(
+          pFmgr, true, options.allowZeroDelay, clockClockVariableType, pAutomata);
     }
     if (options.timeEncoding == TimeEncodingType.LOCAL_EXPLICIT_DIFFERENCE) {
       return new TAExplicitDifferenceTime(
-          pFmgr, true, options.allowZeroDelay, clockClockVariableType);
+          pFmgr, true, options.allowZeroDelay, clockClockVariableType, pAutomata);
     }
     throw new AssertionError("Unknown encoding type");
   }
@@ -234,13 +243,13 @@ public class TAFormulaEncodingProvider {
       TAActions pActions) {
     var result = new ArrayList<TAEncodingExtension>(options.encodingExtensions.size());
     if (options.encodingExtensions.contains(TAEncodingExtensionType.SHALLOW_SYNC)) {
-      if (!(pTime instanceof TAExplicitTime)) {
-        throw new AssertionError("Shallow sync is only possible with explicit time encoding");
-      }
       result.add(new TAShallowSync(pFmgr, pAutomata, (TAExplicitTime) pTime, pActions));
     }
+    if (options.encodingExtensions.contains(TAEncodingExtensionType.SHALLOW_SYNC_TIMESTAMP)) {
+      result.add(new TAShallowSyncTimeStamp(pFmgr, pAutomata, pTime, pActions));
+    }
     if (options.encodingExtensions.contains(TAEncodingExtensionType.SHALLOW_SYNC_DIFFERENCE)) {
-      result.add(new TAShallowSyncDifference(pFmgr, pAutomata, (TAExplicitTime) pTime, pActions));
+      result.add(new TAShallowSyncDifference(pFmgr, pAutomata, pTime, pActions));
     }
     if (options.encodingExtensions.contains(TAEncodingExtensionType.INVARIANTS)) {
       result.add(
@@ -263,6 +272,9 @@ public class TAFormulaEncodingProvider {
     }
     if (options.encodingExtensions.contains(TAEncodingExtensionType.SHALLOW_MULTISTEP)) {
       result.add(new TAShallowStrictSync(pFmgr, pAutomata, pActions, true));
+    }
+    if (options.encodingExtensions.contains(TAEncodingExtensionType.TRANSITION_TYPES)) {
+      result.add(new TATransitionTypes(pFmgr));
     }
 
     return result;

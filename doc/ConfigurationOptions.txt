@@ -2848,8 +2848,8 @@ cpa.timedautomata.stepCountUpperBound = 50
 # Formula representation of time. Options are: GLOBAL_IMPLICIT,
 # GLOBAL_EXPLICIT, LOCAL_EXPLICIT
 cpa.timedautomata.timeEncoding = GLOBAL_IMPLICIT
-  enum:     [GLOBAL_IMPLICIT, GLOBAL_EXPLICIT, GLOBAL_EXPLICIT_DIFFERENCE,
-             LOCAL_EXPLICIT, LOCAL_EXPLICIT_DIFFERENCE]
+  enum:     [GLOBAL_IMPLICIT, LOCAL_IMPLICIT, GLOBAL_EXPLICIT,
+             GLOBAL_EXPLICIT_DIFFERENCE, LOCAL_EXPLICIT, LOCAL_EXPLICIT_DIFFERENCE]
 
 # which merge operator to use for UninitializedVariablesCPA?
 cpa.uninitvars.merge = "sep"

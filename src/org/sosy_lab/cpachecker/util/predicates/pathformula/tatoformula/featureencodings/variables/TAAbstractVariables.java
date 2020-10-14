@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariable;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariableCondition;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariableExpression;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariableExpression.Operator;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TimedAutomatonView;
 import org.sosy_lab.cpachecker.util.predicates.smt.BooleanFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -28,13 +29,18 @@ public abstract class TAAbstractVariables implements TAVariables {
   protected final FormulaManagerView fmgr;
   protected final BooleanFormulaManagerView bFmgr;
   protected final boolean allowZeroDelay;
+  protected final TimedAutomatonView automata;
 
   public TAAbstractVariables(
-      FormulaManagerView pFmgr, boolean pAllowZeroDelay, FormulaType<?> pClockVariableType) {
+      FormulaManagerView pFmgr,
+      boolean pAllowZeroDelay,
+      FormulaType<?> pClockVariableType,
+      TimedAutomatonView pAutomata) {
     fmgr = pFmgr;
     bFmgr = pFmgr.getBooleanFormulaManager();
     allowZeroDelay = pAllowZeroDelay;
     clockVariableType = pClockVariableType;
+    automata = pAutomata;
   }
 
   @Override
@@ -121,4 +127,14 @@ public abstract class TAAbstractVariables implements TAVariables {
 
   protected abstract BooleanFormula makeEqualsZeroFormula(
       TaDeclaration pAutomaton, int pVariableIndex, TaVariable pVariable, boolean indexVariable);
+
+  @Override
+  public FormulaType<?> getClockVariableType() {
+    return clockVariableType;
+  }
+
+  @Override
+  public BooleanFormula makeTimeEqualsZeroFormula(TaDeclaration pAutomaton, int pVariableIndex) {
+    return bFmgr.makeTrue();
+  }
 }

@@ -17,6 +17,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariable;
@@ -37,6 +38,7 @@ public class TimedAutomatonView {
   private final Map<TaDeclaration, Iterable<TCFANode>> nodesByAutomaton;
   private final Map<TaDeclaration, Iterable<TaVariable>> actionsByAutomaton;
   private final Map<TaDeclaration, Iterable<TCFANode>> initialNodesByAutomaton;
+  private final Map<TaDeclaration, Set<TaVariable>> clocksByAutomaton;
 
   private final TAEncodingOptions options;
 
@@ -49,6 +51,7 @@ public class TimedAutomatonView {
     edgesByAutomaton = new HashMap<>();
     nodesByAutomaton = new HashMap<>();
     actionsByAutomaton = new HashMap<>();
+    clocksByAutomaton = new HashMap<>();
     initialNodesByAutomaton = new HashMap<>();
 
     // Methods depend on each other, do not change the order
@@ -79,6 +82,7 @@ public class TimedAutomatonView {
     initializeNodesByAutomaton(pAutomaton);
     initializeEdgesByAutomaton(pAutomaton);
     initializeActions(pAutomaton);
+    initializeClocks(pAutomaton);
   }
 
   private void initializeNodesByAutomaton(TaDeclaration pAutomaton) {
@@ -106,6 +110,10 @@ public class TimedAutomatonView {
     makeIdleActionForAutomaton(pAutomaton);
 
     actionsByAutomaton.put(pAutomaton, initialActions.append(dummyActions).toSet());
+  }
+
+  private void initializeClocks(TaDeclaration pAutomaton) {
+    clocksByAutomaton.put(pAutomaton, ImmutableSet.copyOf(pAutomaton.getClocks()));
   }
 
   private void initializeEdgesByPredecessor() {
@@ -198,7 +206,7 @@ public class TimedAutomatonView {
   }
 
   public Iterable<TaVariable> getClocksByAutomaton(TaDeclaration pAutomaton) {
-    return pAutomaton.getClocks();
+    return clocksByAutomaton.get(pAutomaton);
   }
 
   public TaVariable getActionOrDummy(TCFAEdge pEdge) {
@@ -222,5 +230,14 @@ public class TimedAutomatonView {
 
   public Iterable<TCFAEdge> getEdgesByPredecessor(TCFANode pPredecessor) {
     return edgesByPredecessor.getOrDefault(pPredecessor, ImmutableSet.of());
+  }
+
+  public TaVariable addClockToAutomaton(TaDeclaration pAutomaton, String clockName) {
+    var variable = TaVariable.createDummyVariable(clockName, pAutomaton.getName(), true);
+    var clocks = clocksByAutomaton.get(pAutomaton);
+    var clocksUpdated = from(clocks).append(variable).toSet();
+    clocksByAutomaton.put(pAutomaton, clocksUpdated);
+
+    return variable;
   }
 }

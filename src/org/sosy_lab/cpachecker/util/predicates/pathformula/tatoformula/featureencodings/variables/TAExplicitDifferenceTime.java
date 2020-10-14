@@ -12,6 +12,7 @@ import java.math.BigInteger;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariable;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariableExpression;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TimedAutomatonView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
@@ -23,8 +24,9 @@ public class TAExplicitDifferenceTime extends TAExplicitTime {
       FormulaManagerView pFmgr,
       boolean pLocalEncoding,
       boolean pAllowZeroDelay,
-      FormulaType<?> pClockVariableType) {
-    super(pFmgr, pLocalEncoding, pAllowZeroDelay, pClockVariableType);
+      FormulaType<?> pClockVariableType,
+      TimedAutomatonView pAutomata) {
+    super(pFmgr, pLocalEncoding, pAllowZeroDelay, pClockVariableType, pAutomata);
   }
 
   @Override

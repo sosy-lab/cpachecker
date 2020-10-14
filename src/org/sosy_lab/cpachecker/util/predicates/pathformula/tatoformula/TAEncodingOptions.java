@@ -17,6 +17,7 @@ import org.sosy_lab.common.configuration.Options;
 public class TAEncodingOptions {
   public static enum TAEncodingExtensionType {
     SHALLOW_SYNC,
+    SHALLOW_SYNC_TIMESTAMP,
     SHALLOW_SYNC_DIFFERENCE,
     INVARIANTS,
     TRANSITION_TYPES,
@@ -53,6 +54,7 @@ public class TAEncodingOptions {
 
   public static enum TimeEncodingType {
     GLOBAL_IMPLICIT,
+    LOCAL_IMPLICIT,
     GLOBAL_EXPLICIT,
     GLOBAL_EXPLICIT_DIFFERENCE,
     LOCAL_EXPLICIT,

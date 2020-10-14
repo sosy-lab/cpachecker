@@ -152,11 +152,12 @@ public abstract class TAEncodingBase implements TAFormulaEncoding {
             .transform(
                 node -> locations.makeLocationEqualsFormula(pAutomaton, pInitialIndex, node));
     var initialLocationsFormula = bFmgr.or(initialLocationFormulas.toSet());
-    var initialTime =
+    var initialVariables =
         clocks.makeEqualsZeroFormula(
-            pAutomaton, pInitialIndex, automata.getClocksByAutomaton(pAutomaton),true);
+            pAutomaton, pInitialIndex, automata.getClocksByAutomaton(pAutomaton), true);
+    var initialTime = clocks.makeTimeEqualsZeroFormula(pAutomaton, pInitialIndex);
     var extensionsFormula = extensions.makeInitialFormula(pAutomaton, pInitialIndex);
-    return bFmgr.and(initialTime, initialLocationsFormula, extensionsFormula);
+    return bFmgr.and(initialTime, initialLocationsFormula, extensionsFormula, initialVariables);
   }
 
   @Override

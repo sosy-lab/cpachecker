@@ -13,17 +13,24 @@ import static com.google.common.collect.FluentIterable.from;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariable;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariableExpression;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TimedAutomatonView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
-public class TAGlobalImplicitTime extends TAAbstractVariables {
+public class TAImplicitTime extends TAAbstractVariables {
   private static final String DELAY_VARIABLE_NAME = "#delay";
+  private final boolean localEncoding;
 
-  public TAGlobalImplicitTime(
-      FormulaManagerView pFmgr, boolean pAllowZeroDelay, FormulaType<?> pClockVariableType) {
-    super(pFmgr, pAllowZeroDelay, pClockVariableType);
+  public TAImplicitTime(
+      FormulaManagerView pFmgr,
+      boolean pLocalEncoding,
+      boolean pAllowZeroDelay,
+      FormulaType<?> pClockVariableType,
+      TimedAutomatonView pAutomata) {
+    super(pFmgr, pAllowZeroDelay, pClockVariableType, pAutomata);
+    localEncoding = pLocalEncoding;
   }
 
   @Override
@@ -51,9 +58,11 @@ public class TAGlobalImplicitTime extends TAAbstractVariables {
 
   @Override
   public BooleanFormula makeTimeElapseFormula(TaDeclaration pAutomaton, int pIndexBefore) {
-    var delayVariable = fmgr.makeVariable(clockVariableType, DELAY_VARIABLE_NAME, pIndexBefore + 1);
+    var delayVariableName =
+        localEncoding ? DELAY_VARIABLE_NAME + "#" + pAutomaton.getName() : DELAY_VARIABLE_NAME;
+    var delayVariable = fmgr.makeVariable(clockVariableType, delayVariableName, pIndexBefore + 1);
     var clockUpdateFormulas =
-        from(pAutomaton.getClocks())
+        from(automata.getClocksByAutomaton(pAutomaton))
             .transform(clock -> makeTimeUpdateFormula(clock, delayVariable, pIndexBefore));
     var clockUpdatesFormula = bFmgr.and(clockUpdateFormulas.toSet());
     BooleanFormula delayLowerBound = makeDelayLowerBound(delayVariable);
@@ -80,5 +89,10 @@ public class TAGlobalImplicitTime extends TAAbstractVariables {
   @Override
   public BooleanFormula makeTimeDoesNotAdvanceFormula(TaDeclaration pAutomaton, int pIndexBefore) {
     return bFmgr.makeTrue();
+  }
+
+  @Override
+  public Formula evaluateClock(TaDeclaration pAutomaton, int pVariableIndex, TaVariable clock) {
+    return fmgr.makeVariable(clockVariableType, clock.getName(), pVariableIndex);
   }
 }
