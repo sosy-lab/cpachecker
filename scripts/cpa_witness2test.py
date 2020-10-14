@@ -207,25 +207,48 @@ def create_parser():
         dest="specification_file",
         type=str,
         action="store",
+        required=True,
         help="specification file",
     )
 
     parser.add_argument(
-        "-witness", dest="witness_file", type=str, action="store", help="witness file"
+        "-witness",
+        dest="witness_file",
+        required=True,
+        type=str,
+        action="store",
+        help="witness file",
     )
 
-    parser.add_argument(
-        "file", type=str, nargs="?", help="file to validate witness for"
-    )
+    parser.add_argument("file", help="file to validate witness for")
 
     return parser
 
 
+def _determine_file_args(argv):
+    parameter_prefix = "-"
+    files = []
+    logging.debug(f"Determining file args from {argv}")
+    for fst, snd in zip(argv[:-1], argv[1:]):
+        if not fst.startswith(parameter_prefix) and not snd.startswith(
+            parameter_prefix
+        ):
+            files.append(snd)
+    logging.debug(f"Determined file args: {files}")
+    return files
+
+
 def _parse_args(argv):
     parser = create_parser()
-    args = parser.parse_known_args(argv[:-1])[0]
-    args_file = parser.parse_args([argv[-1]])  # Parse the file name
-    args.file = args_file.file
+    args, remainder = parser.parse_known_args(argv)
+    args.file = _determine_file_args(argv)
+    if not args.file:
+        raise ValueError("The following argument is required: program file")
+    if len(args.file) > 1:
+        raise ValueError(
+            "Too many values for argument: Only one program file supported"
+        )
+    args.file = args.file[0]
 
     return args
 
