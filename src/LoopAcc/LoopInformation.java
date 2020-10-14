@@ -36,17 +36,18 @@ import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
-/**
- * This class initiates the information collection from all the loops in the specified program
- */
-@Options(prefix = "LoopAcc.LoopInformation")
+/** This class initiates the information collection from all the loops in the specified program */
+@Options(prefix = "LoopInfo")
 public class LoopInformation implements StatisticsProvider {
 
   @Option(secure = true, name = "logfile", description = "Dump LoopInformation to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path dumpfile = Paths.get("LoopInformation.log");
 
-  @Option(secure = true, name = "loopInfo", description = "Get information about all the loops")
+  @Option(
+      secure = true,
+      name = "generateLoopInformation",
+      description = "Get information about all the loops")
   private boolean loopInfo = false;
 
   private CFA cfa;
@@ -64,8 +65,8 @@ public class LoopInformation implements StatisticsProvider {
     this.cfa = cfa;
     loopData = new ArrayList<>();
     if (loopInfo) {
-    lookForLoops();
-  }
+      lookForLoops();
+    }
   }
 
   /**
@@ -88,24 +89,25 @@ public class LoopInformation implements StatisticsProvider {
       CFANode tempNode = null;
       boolean flag = false;
       if (tempEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
-      // suche erste nicht assume edge -> kann eig auch in loopdata ausgelagert werden
-      while (tempEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
-        for(int i = 0; i < tempEdge.getSuccessor().getNumLeavingEdges(); i++) {
-          if (!(tempEdge.getSuccessor()
-              .getLeavingEdge(i)
-              .getEdgeType()
-              .equals(CFAEdgeType.AssumeEdge))) {
-            tempNode = tempEdge.getSuccessor();
+        // suche erste nicht assume edge -> kann eig auch in loopdata ausgelagert werden
+        while (tempEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
+          for (int i = 0; i < tempEdge.getSuccessor().getNumLeavingEdges(); i++) {
+            if (!(tempEdge
+                .getSuccessor()
+                .getLeavingEdge(i)
+                .getEdgeType()
+                .equals(CFAEdgeType.AssumeEdge))) {
+              tempNode = tempEdge.getSuccessor();
+            }
           }
+          tempEdge = tempEdge.getSuccessor().getLeavingEdge(VALID_STATE);
         }
-        tempEdge = tempEdge.getSuccessor().getLeavingEdge(VALID_STATE);
+      } else {
+        tempNode = loopHead;
+        flag = true;
       }
-    } else {
-      tempNode = loopHead;
-      flag = true;
-    }
-    if (!(tempNode == null) || flag) {
-      loopData.add(new LoopData(loopHead, tempNode, cfa, loopNodes, loop, logger));
+      if (!(tempNode == null) || flag) {
+        loopData.add(new LoopData(loopHead, tempNode, cfa, loopNodes, loop, logger));
       }
     }
 
@@ -119,8 +121,8 @@ public class LoopInformation implements StatisticsProvider {
         }
 
       } catch (IOException e) {
-        logger
-            .logUserException(Level.WARNING, e, "Could not write variable classification to file");
+        logger.logUserException(
+            Level.WARNING, e, "Could not write variable classification to file");
       }
     }
   }
@@ -140,6 +142,5 @@ public class LoopInformation implements StatisticsProvider {
   @Override
   public void collectStatistics(Collection<Statistics> pStatsCollection) {
     pStatsCollection.add(new LoopStatistics(loopData));
-
   }
 }

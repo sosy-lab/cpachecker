@@ -23,54 +23,34 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  */
 public class LoopGetIfAfterLoopCondition {
 
-  private FileLocation fileLocation;
-  private String content;
-  private int smallestLineNumber;
-  private int biggestLineNumber;
-  private List<Integer> linesWithIf;
-  private int smallestIf;
-  private LogManager logger;
+  private static FileLocation fileLocation;
+  private static int smallestLineNumber;
+  private static int biggestLineNumber;
+  private static List<Integer> linesWithIf;
+  private static int smallestIf;
+  private static LogManager logger;
 
-  public LoopGetIfAfterLoopCondition(List<CFANode> nodes, LogManager pLogger) {
-    logger = pLogger;
-    for (int i = 0; i < nodes.size(); i++) {
-      if (nodes.get(i).getNumLeavingEdges() > 0) {
-    fileLocation = nodes.get(0).getLeavingEdge(0).getFileLocation();
-    break;
-  }
-}
-    content = "";
-    smallestLineNumber = getSmallestLineNumber(nodes);
-    biggestLineNumber = getBiggestLineNumber(nodes);
-    linesWithIf = new ArrayList<>();
-    readFile();
-    smallestIf = findSmallestIfLineNumber();
-  }
-
-  private String readFile() {
+  // diese Implementierung könnte ineffizienter sein
+  private static void readFile() {
     try (FileReader freader = new FileReader(fileLocation.getFileName())) {
       try (BufferedReader reader = new BufferedReader(freader)) {
-      String line = "";
-      int lineNumber = 1;
-      while (line != null) {
-        line = reader.readLine();
-        if (lineNumber >= smallestLineNumber && lineNumber <= biggestLineNumber && line != null) {
-          findIf(line, lineNumber);
-        content = content + line + System.lineSeparator();
+        String line = "";
+        int lineNumber = 1;
+        while (line != null) {
+          line = reader.readLine();
+          if (lineNumber >= smallestLineNumber && lineNumber <= biggestLineNumber && line != null) {
+            findIf(line, lineNumber);
+          }
+          lineNumber++;
         }
-        lineNumber++;
       }
-    }
     } catch (IOException e) {
       logger.logUserException(
-          Level.WARNING,
-          e,
-          "Something is not working with the file you try to import");
+          Level.WARNING, e, "Something is not working with the file you try to import");
     }
-    return content;
   }
 
-  private int findSmallestIfLineNumber() {
+  private static int findSmallestIfLineNumber() {
     if (!linesWithIf.isEmpty()) {
       int small = linesWithIf.get(0);
       for (Integer v : linesWithIf) {
@@ -84,14 +64,14 @@ public class LoopGetIfAfterLoopCondition {
     }
   }
 
-  private void findIf(String text, int lineNumber) {
+  private static void findIf(String text, int lineNumber) {
     String temp = text.split("\\(")[0];
     if (temp.contains("if")) {
       linesWithIf.add(lineNumber);
     }
   }
 
-  private int getSmallestLineNumber(List<CFANode> nodes) {
+  private static int getSmallestLineNumber(List<CFANode> nodes) {
     int small = -1;
     for (int i = 0; i < nodes.size(); i++) {
       if (nodes.get(i).getNumLeavingEdges() > 0) {
@@ -100,16 +80,16 @@ public class LoopGetIfAfterLoopCondition {
       }
     }
     if (small != -1) {
-    for (CFANode node : nodes) {
-      if (node.getLeavingEdge(0).getFileLocation().getStartingLineInOrigin() < small) {
-        small = node.getLeavingEdge(0).getFileLocation().getStartingLineInOrigin();
+      for (CFANode node : nodes) {
+        if (node.getLeavingEdge(0).getFileLocation().getStartingLineInOrigin() < small) {
+          small = node.getLeavingEdge(0).getFileLocation().getStartingLineInOrigin();
+        }
       }
     }
-  }
     return small;
   }
 
-  private int getBiggestLineNumber(List<CFANode> nodes) {
+  private static int getBiggestLineNumber(List<CFANode> nodes) {
     int big = -1;
     for (int i = 0; i < nodes.size(); i++) {
       if (nodes.get(i).getNumLeavingEdges() > 0) {
@@ -118,17 +98,28 @@ public class LoopGetIfAfterLoopCondition {
       }
     }
     if (big != -1) {
-    for (CFANode node : nodes) {
-      if (node.getLeavingEdge(0).getFileLocation().getStartingLineInOrigin() > big) {
-        big = node.getLeavingEdge(0).getFileLocation().getStartingLineInOrigin();
+      for (CFANode node : nodes) {
+        if (node.getLeavingEdge(0).getFileLocation().getStartingLineInOrigin() > big) {
+          big = node.getLeavingEdge(0).getFileLocation().getStartingLineInOrigin();
+        }
       }
     }
-  }
     return big;
   }
 
-  public int getSmallestIf() {
+  public static int getSmallestIf(List<CFANode> nodes, LogManager pLogger) {
+    logger = pLogger;
+    for (CFANode n : nodes) {
+      if (n.getNumLeavingEdges() > 0) {
+        fileLocation = n.getLeavingEdge(0).getFileLocation();
+        break;
+      }
+    }
+    smallestLineNumber = getSmallestLineNumber(nodes);
+    biggestLineNumber = getBiggestLineNumber(nodes);
+    linesWithIf = new ArrayList<>();
+    readFile();
+    smallestIf = findSmallestIfLineNumber();
     return smallestIf;
   }
-
 }

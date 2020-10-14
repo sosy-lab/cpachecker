@@ -25,24 +25,20 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 public class LoopAbstraction {
   private int lineNumber = 1;
 
-
-  public LoopAbstraction() {
-
-  }
+  public LoopAbstraction() {}
 
   /**
    * This method changes all the necessary lines of codes and saves it in a new file
    *
    * @param loopInfo Information about all the loops in the file
    */
-  public void
-      changeFileToAbstractFile(
-          LoopInformation loopInfo,
-          LogManager logger,
-          String pathForNewFile,
-          String abstractionLevel,
-          boolean automate,
-          boolean onlyAccL) {
+  public void changeFileToAbstractFile(
+      LoopInformation loopInfo,
+      LogManager logger,
+      String pathForNewFile,
+      String abstractionLevel,
+      boolean automate,
+      boolean onlyAccL) {
     List<LoopData> outerLoopTemp = new ArrayList<>();
     List<Integer> loopStarts = new ArrayList<>();
     List<String> preUsedVariables = new ArrayList<>();
@@ -53,8 +49,7 @@ public class LoopAbstraction {
             loopData.getLoopStart().getEnteringEdge(0).getFileLocation().getStartingLineInOrigin());
       } else if (loopData.getLoopType().equals("for")) {
         loopStarts.add(
-            loopData.getLoopStart().getEnteringEdge(0).getFileLocation().getStartingLineInOrigin()
-        );
+            loopData.getLoopStart().getEnteringEdge(0).getFileLocation().getStartingLineInOrigin());
       }
     }
 
@@ -87,18 +82,20 @@ public class LoopAbstraction {
             break;
           case "unsigned int":
             if (flaguInt) {
-            content += "extern unsigned int __VERIFIER_nondet_uint(void);" + System.lineSeparator();
-            content += "extern void __VERIFIER_assume(unsigned int cond);" + System.lineSeparator();
-            flagInt = false;
-          }
+              content +=
+                  "extern unsigned int __VERIFIER_nondet_uint(void);" + System.lineSeparator();
+              content +=
+                  "extern void __VERIFIER_assume(unsigned int cond);" + System.lineSeparator();
+              flagInt = false;
+            }
             break;
           case "char":
           case "signed char":
             if (flagChar) {
-            content += "extern char __VERIFIER_nondet_char(void);" + System.lineSeparator();
-            content += "extern void __VERIFIER_assume(char cond);" + System.lineSeparator();
-            flagChar = false;
-          }
+              content += "extern char __VERIFIER_nondet_char(void);" + System.lineSeparator();
+              content += "extern void __VERIFIER_assume(char cond);" + System.lineSeparator();
+              flagChar = false;
+            }
             break;
           case "unsigned char":
             if (flaguChar) {
@@ -111,10 +108,10 @@ public class LoopAbstraction {
           case "short":
           case "signed short":
             if (flagShort) {
-            content += "extern short __VERIFIER_nondet_short(void);" + System.lineSeparator();
-            content += "extern void __VERIFIER_assume(short cond);" + System.lineSeparator();
-            flagShort = false;
-          }
+              content += "extern short __VERIFIER_nondet_short(void);" + System.lineSeparator();
+              content += "extern void __VERIFIER_assume(short cond);" + System.lineSeparator();
+              flagShort = false;
+            }
             break;
           case "unsigned short":
             if (flaguShort) {
@@ -127,33 +124,35 @@ public class LoopAbstraction {
           case "long":
           case "signed long":
             if (flagLong) {
-            content += "extern long __VERIFIER_nondet_long(void);" + System.lineSeparator();
-            content += "extern void __VERIFIER_assume(long cond);" + System.lineSeparator();
-            flagLong = false;
-          }
-          break;
-        case "unsigned long":
-          if (flaguLong) {
-            content += "extern long __VERIFIER_nondet_ulong(void);" + System.lineSeparator();
-            content +=
-                "extern void __VERIFIER_assume(unsigned long cond);" + System.lineSeparator();
-            flagLong = false;
-          }
+              content += "extern long __VERIFIER_nondet_long(void);" + System.lineSeparator();
+              content += "extern void __VERIFIER_assume(long cond);" + System.lineSeparator();
+              flagLong = false;
+            }
+            break;
+          case "unsigned long":
+            if (flaguLong) {
+              content += "extern long __VERIFIER_nondet_ulong(void);" + System.lineSeparator();
+              content +=
+                  "extern void __VERIFIER_assume(unsigned long cond);" + System.lineSeparator();
+              flagLong = false;
+            }
             break;
           case "long double":
             if (flagLongLong) {
-            content +=
-                "extern long double __VERIFIER_nondet_long_double(void);" + System.lineSeparator();
-            content += "extern void __VERIFIER_assume(long double cond);" + System.lineSeparator();
-            flagLongLong = false;
-          }
+              content +=
+                  "extern long double __VERIFIER_nondet_long_double(void);"
+                      + System.lineSeparator();
+              content +=
+                  "extern void __VERIFIER_assume(long double cond);" + System.lineSeparator();
+              flagLongLong = false;
+            }
             break;
           case "double":
             if (flagDouble) {
-            content += "extern double __VERIFIER_nondet_double(void);" + System.lineSeparator();
-            content += "extern void __VERIFIER_assume(double cond);" + System.lineSeparator();
-            flagDouble = false;
-          }
+              content += "extern double __VERIFIER_nondet_double(void);" + System.lineSeparator();
+              content += "extern void __VERIFIER_assume(double cond);" + System.lineSeparator();
+              flagDouble = false;
+            }
             break;
           case "float":
             if (flagDouble) {
@@ -163,358 +162,361 @@ public class LoopAbstraction {
             }
             break;
         }
-
       }
     }
 
     try (FileReader freader = new FileReader(fileLocation)) {
       try (BufferedReader reader = new BufferedReader(freader)) {
 
-      String line = "";
-      boolean accFlag = true;
+        String line = "";
+        boolean accFlag = true;
 
-      while (line != null) {
-        if (loopStarts.contains(lineNumber) && accFlag) {
-          for (LoopData loopD : loopInfo.getLoopData()) {
+        while (line != null) {
+          if (loopStarts.contains(lineNumber) && accFlag) {
+            for (LoopData loopD : loopInfo.getLoopData()) {
 
-            if ((loopD
-                .getLoopStart()
-                    .getEnteringEdge(0)
-                    .getFileLocation()
-                .getStartingLineInOrigin() == lineNumber
-                && loopD.getCanBeAccelerated()
-                && onlyAccL)
-                || (loopD.getLoopStart()
-                    .getEnteringEdge(0)
-                    .getFileLocation()
-                    .getStartingLineInOrigin() == lineNumber
-                    && !onlyAccL)
-            ) {
+              if ((loopD
+                              .getLoopStart()
+                              .getEnteringEdge(0)
+                              .getFileLocation()
+                              .getStartingLineInOrigin()
+                          == lineNumber
+                      && loopD.getCanBeAccelerated()
+                      && onlyAccL)
+                  || (loopD
+                              .getLoopStart()
+                              .getEnteringEdge(0)
+                              .getFileLocation()
+                              .getStartingLineInOrigin()
+                          == lineNumber
+                      && !onlyAccL)) {
 
-              CFANode endNodeCondition = findLastNodeInCondition(loopD);
-              if (loopD.getLoopType().equals("while")) {
-                line = reader.readLine();
-                line = variablesAlreadyUsed(preUsedVariables, line);
-                content = content + whileCondition(loopD, abstractionLevel);
-                lineNumber++;
-              } else if (loopD.getLoopType().equals("for")) {
-                line = reader.readLine();
-                line = variablesAlreadyUsed(preUsedVariables, line);
-                content = content + forCondition(loopD, preUsedVariables, abstractionLevel);
-                lineNumber++;
-              }
-              content += undeterministicVariables(loopD, preUsedVariables, abstractionLevel);
-
-              if (!loopD.getIsOuterLoop()) {
+                CFANode endNodeCondition = findLastNodeInCondition(loopD);
                 if (loopD.getLoopType().equals("while")) {
-                content +=
-                    ("__VERIFIER_assume(" + loopD.getCondition() + ");") + System.lineSeparator();
-                while (lineNumber >= endNodeCondition.getEnteringEdge(
-                    0)
-                    .getFileLocation()
-                    .getEndingLineInOrigin()
-                    && line != null
-                    && lineNumber <= loopD.getLoopEnd()
-                        .getEnteringEdge(0)
-                        .getFileLocation()
-                        .getEndingLineInOrigin()) {
+                  line = reader.readLine();
+                  line = variablesAlreadyUsed(preUsedVariables, line);
+                  content = content + whileCondition(loopD, abstractionLevel);
+                  lineNumber++;
+                } else if (loopD.getLoopType().equals("for")) {
+                  line = reader.readLine();
+                  line = variablesAlreadyUsed(preUsedVariables, line);
+                  content = content + forCondition(loopD, preUsedVariables, abstractionLevel);
+                  lineNumber++;
+                }
+                content += undeterministicVariables(loopD, preUsedVariables, abstractionLevel);
 
-                  line = reader.readLine();
-                  line = variablesAlreadyUsed(preUsedVariables, line);
-                  closed = ifCaseClosed(line, closed);
-                  content += line + System.lineSeparator();
-                  lineNumber++;
-                }
-                boolean flagTopIf2 = false;
-                boolean flagKP2 = false;
-                line = reader.readLine();
-                line = variablesAlreadyUsed(preUsedVariables, line);
-                if (line != null && line.contains("if")) {
-                  flagTopIf2 = true;
-                  flagKP2 = true;
-                  closed = ifCaseClosed(line, closed);
-                  content += line + System.lineSeparator();
-                  lineNumber++;
-                }
-                while (!closed) {
-                  if (flagTopIf2) {
-                  line = reader.readLine();
-                  line = variablesAlreadyUsed(preUsedVariables, line);
-                }
-                flagTopIf2 = true;
-                  closed = ifCaseClosed(line, closed);
-                  content += line + System.lineSeparator();
-                  lineNumber++;
-                }
-                if (flagKP2 || flagTopIf2) {
-                line = reader.readLine();
-                line = variablesAlreadyUsed(preUsedVariables, line);
-              }
-                closed = ifCaseClosed(line, closed);
-                content += line + System.lineSeparator();
-                lineNumber++;
-                while (line != null && !line.contains("}")) {
-                  line = reader.readLine();
-                  line = variablesAlreadyUsed(preUsedVariables, line);
-                  closed = ifCaseClosed(line, closed);
-                  content += line + System.lineSeparator();
-                  lineNumber++;
-                }
-                content +=
-                    ("__VERIFIER_assume(!("
-                        + loopD.getCondition()
-                        + "));"
-                        + System.lineSeparator());
+                if (!loopD.getIsOuterLoop()) {
+                  if (loopD.getLoopType().equals("while")) {
+                    content +=
+                        ("__VERIFIER_assume(" + loopD.getCondition() + ");")
+                            + System.lineSeparator();
+                    while (lineNumber
+                            >= endNodeCondition
+                                .getEnteringEdge(0)
+                                .getFileLocation()
+                                .getEndingLineInOrigin()
+                        && line != null
+                        && lineNumber
+                            <= loopD
+                                .getLoopEnd()
+                                .getEnteringEdge(0)
+                                .getFileLocation()
+                                .getEndingLineInOrigin()) {
 
-                for (int i = outerLoopTemp.size() - 1; i >= 0; i--) {
-                  boolean flagIf = false;
-                  boolean flagKP = false;
-                  line = reader.readLine();
-                  line = variablesAlreadyUsed(preUsedVariables, line);
-                  if (line != null && line.contains("if")) {
-                    flagIf = true;
-                    flagKP = true;
-                  closed = ifCaseClosed(line, closed);
-                  content += line + System.lineSeparator();
-                  lineNumber++;
-                }
-                  while (!closed) {
-                    if (flagIf) {
+                      line = reader.readLine();
+                      line = variablesAlreadyUsed(preUsedVariables, line);
+                      closed = ifCaseClosed(line, closed);
+                      content += line + System.lineSeparator();
+                      lineNumber++;
+                    }
+                    boolean flagTopIf2 = false;
+                    boolean flagKP2 = false;
                     line = reader.readLine();
                     line = variablesAlreadyUsed(preUsedVariables, line);
-                  }
-                  flagIf = true;
+                    if (line != null && line.contains("if")) {
+                      flagTopIf2 = true;
+                      flagKP2 = true;
+                      closed = ifCaseClosed(line, closed);
+                      content += line + System.lineSeparator();
+                      lineNumber++;
+                    }
+                    while (!closed) {
+                      if (flagTopIf2) {
+                        line = reader.readLine();
+                        line = variablesAlreadyUsed(preUsedVariables, line);
+                      }
+                      flagTopIf2 = true;
+                      closed = ifCaseClosed(line, closed);
+                      content += line + System.lineSeparator();
+                      lineNumber++;
+                    }
+                    if (flagKP2 || flagTopIf2) {
+                      line = reader.readLine();
+                      line = variablesAlreadyUsed(preUsedVariables, line);
+                    }
                     closed = ifCaseClosed(line, closed);
                     content += line + System.lineSeparator();
                     lineNumber++;
-                  }
-                  if (flagKP || flagIf) {
-                  line = reader.readLine();
-                  line = variablesAlreadyUsed(preUsedVariables, line);
-                }
-                  closed = ifCaseClosed(line, closed);
-                  content += line + System.lineSeparator();
-                  lineNumber++;
-                  while (line != null && !line.contains("}")) {
+                    while (line != null && !line.contains("}")) {
+                      line = reader.readLine();
+                      line = variablesAlreadyUsed(preUsedVariables, line);
+                      closed = ifCaseClosed(line, closed);
+                      content += line + System.lineSeparator();
+                      lineNumber++;
+                    }
+                    content +=
+                        ("__VERIFIER_assume(!("
+                            + loopD.getCondition()
+                            + "));"
+                            + System.lineSeparator());
+
+                    for (int i = outerLoopTemp.size() - 1; i >= 0; i--) {
+                      boolean flagIf = false;
+                      boolean flagKP = false;
+                      line = reader.readLine();
+                      line = variablesAlreadyUsed(preUsedVariables, line);
+                      if (line != null && line.contains("if")) {
+                        flagIf = true;
+                        flagKP = true;
+                        closed = ifCaseClosed(line, closed);
+                        content += line + System.lineSeparator();
+                        lineNumber++;
+                      }
+                      while (!closed) {
+                        if (flagIf) {
+                          line = reader.readLine();
+                          line = variablesAlreadyUsed(preUsedVariables, line);
+                        }
+                        flagIf = true;
+                        closed = ifCaseClosed(line, closed);
+                        content += line + System.lineSeparator();
+                        lineNumber++;
+                      }
+                      if (flagKP || flagIf) {
+                        line = reader.readLine();
+                        line = variablesAlreadyUsed(preUsedVariables, line);
+                      }
+                      closed = ifCaseClosed(line, closed);
+                      content += line + System.lineSeparator();
+                      lineNumber++;
+                      while (line != null && !line.contains("}")) {
+                        line = reader.readLine();
+                        line = variablesAlreadyUsed(preUsedVariables, line);
+                        closed = ifCaseClosed(line, closed);
+                        content += line + System.lineSeparator();
+                        lineNumber++;
+                      }
+                      if (outerLoopTemp.get(i).getLoopType().equals("for")) {
+                        content +=
+                            ("__VERIFIER_assume(!("
+                                + outerLoopTemp.get(i).getCondition().split(";")[1]
+                                + "));"
+                                + System.lineSeparator());
+                      } else if (outerLoopTemp.get(i).getLoopType().equals("while")) {
+                        content +=
+                            ("__VERIFIER_assume(!("
+                                + outerLoopTemp.get(i).getCondition()
+                                + "));"
+                                + System.lineSeparator());
+                      }
+                    }
+                    outerLoopTemp.clear();
+                  } else if (loopD.getLoopType().equals("for")) {
+                    content +=
+                        ("__VERIFIER_assume(" + loopD.getCondition().split(";")[1] + ");")
+                            + System.lineSeparator();
+                    while (lineNumber
+                            >= endNodeCondition
+                                .getEnteringEdge(0)
+                                .getFileLocation()
+                                .getStartingLineInOrigin()
+                        && line != null
+                        && lineNumber
+                            <= loopD
+                                .getLoopEnd()
+                                .getEnteringEdge(0)
+                                .getFileLocation()
+                                .getEndingLineInOrigin()) {
+                      line = reader.readLine();
+                      line = variablesAlreadyUsed(preUsedVariables, line);
+                      closed = ifCaseClosed(line, closed);
+                      content += line + System.lineSeparator();
+                      lineNumber++;
+                    }
+                    boolean flagIfTop = false;
+                    boolean flagKP = false;
                     line = reader.readLine();
                     line = variablesAlreadyUsed(preUsedVariables, line);
+                    if (line != null && line.contains("if")) {
+                      flagIfTop = true;
+                      flagKP = true;
+                      closed = ifCaseClosed(line, closed);
+                      content += line + System.lineSeparator();
+                      lineNumber++;
+                    }
+                    while (!closed) {
+                      if (flagIfTop) {
+                        line = reader.readLine();
+                        line = variablesAlreadyUsed(preUsedVariables, line);
+                      }
+                      flagIfTop = true;
+                      closed = ifCaseClosed(line, closed);
+                      content += line + System.lineSeparator();
+                      lineNumber++;
+                    }
+                    if (flagKP || flagIfTop) {
+                      line = reader.readLine();
+                      line = variablesAlreadyUsed(preUsedVariables, line);
+                    }
                     closed = ifCaseClosed(line, closed);
                     content += line + System.lineSeparator();
                     lineNumber++;
-                  }
-                  if (outerLoopTemp.get(i).getLoopType().equals("for")) {
+
+                    while (line != null && !line.contains("}")) {
+                      line = reader.readLine();
+                      line = variablesAlreadyUsed(preUsedVariables, line);
+                      closed = ifCaseClosed(line, closed);
+                      content += line + System.lineSeparator();
+                      lineNumber++;
+                    }
                     content +=
                         ("__VERIFIER_assume(!("
-                            + outerLoopTemp.get(i).getCondition().split(";")[1]
+                            + loopD.getCondition().split(";")[1]
                             + "));"
                             + System.lineSeparator());
-                  } else if (outerLoopTemp.get(i).getLoopType().equals("while")) {
+
+                    for (int i = outerLoopTemp.size() - 1; i >= 0; i--) {
+                      boolean flagIf = false;
+                      boolean flagBotKP = false;
+                      line = reader.readLine();
+                      line = variablesAlreadyUsed(preUsedVariables, line);
+                      if (line != null && line.contains("if")) {
+                        flagIf = true;
+                        flagBotKP = true;
+                        closed = ifCaseClosed(line, closed);
+                        content += line + System.lineSeparator();
+                        lineNumber++;
+                      }
+                      while (!closed) {
+                        if (flagIf) {
+                          line = reader.readLine();
+                          line = variablesAlreadyUsed(preUsedVariables, line);
+                        }
+                        flagIf = true;
+                        closed = ifCaseClosed(line, closed);
+                        content += line + System.lineSeparator();
+                        lineNumber++;
+                      }
+                      if (flagBotKP || flagIf) {
+                        line = reader.readLine();
+                        line = variablesAlreadyUsed(preUsedVariables, line);
+                      }
+                      closed = ifCaseClosed(line, closed);
+                      content += line + System.lineSeparator();
+                      lineNumber++;
+                      while (line != null && !line.contains("}")) {
+                        line = reader.readLine();
+                        line = variablesAlreadyUsed(preUsedVariables, line);
+                        closed = ifCaseClosed(line, closed);
+                        content += line + System.lineSeparator();
+                        lineNumber++;
+                      }
+                      if (outerLoopTemp.get(i).getLoopType().equals("for")) {
+                        content +=
+                            ("__VERIFIER_assume(!("
+                                + outerLoopTemp.get(i).getCondition().split(";")[1]
+                                + "));"
+                                + System.lineSeparator());
+                      } else if (outerLoopTemp.get(i).getLoopType().equals("while")) {
+                        content +=
+                            ("__VERIFIER_assume(!("
+                                + outerLoopTemp.get(i).getCondition()
+                                + "));"
+                                + System.lineSeparator());
+                      }
+                    }
+                    outerLoopTemp.clear();
+                  }
+                } else if (loopD.getIsOuterLoop()) {
+                  if (loopD.getLoopType().equals("while")) {
                     content +=
-                        ("__VERIFIER_assume(!("
-                            + outerLoopTemp.get(i).getCondition()
-                            + "));"
-                            + System.lineSeparator());
+                        ("__VERIFIER_assume(" + loopD.getCondition() + ");")
+                            + System.lineSeparator();
+                  } else if (loopD.getLoopType().equals("for")) {
+                    content +=
+                        ("__VERIFIER_assume(" + loopD.getCondition().split(";")[1] + ");")
+                            + System.lineSeparator();
+                  }
+                  outerLoopTemp.add(loopD);
+                  if (loopD.getLoopType().equals("for")) {
+                    while (lineNumber
+                            >= endNodeCondition
+                                .getEnteringEdge(0)
+                                .getFileLocation()
+                                .getEndingLineInOrigin()
+                        && line != null
+                        && (lineNumber
+                            < (loopD
+                                .getInnerLoop()
+                                .getIncomingEdges()
+                                .asList()
+                                .get(0)
+                                .getFileLocation()
+                                .getStartingLineInOrigin()))) {
+                      line = reader.readLine();
+                      line = variablesAlreadyUsed(preUsedVariables, line);
+                      closed = ifCaseClosed(line, closed);
+                      content += line + System.lineSeparator();
+                      lineNumber++;
+                      // lineNumber++;
+                    }
+                  } else if (loopD.getLoopType().equals("while")) {
+                    while (lineNumber
+                            >= endNodeCondition
+                                .getEnteringEdge(0)
+                                .getFileLocation()
+                                .getEndingLineInOrigin()
+                        && line != null
+                        && (lineNumber
+                            < (loopD
+                                .getInnerLoop()
+                                .getIncomingEdges()
+                                .asList()
+                                .get(0)
+                                .getFileLocation()
+                                .getStartingLineInOrigin()))) {
+                      line = reader.readLine();
+                      line = variablesAlreadyUsed(preUsedVariables, line);
+                      closed = ifCaseClosed(line, closed);
+                      content += line + System.lineSeparator();
+                      lineNumber++;
+                    }
                   }
                 }
-                outerLoopTemp.clear();
-              } else if (loopD.getLoopType().equals("for")) {
-                content +=
-                    ("__VERIFIER_assume("
-                        + loopD.getCondition().split(";")[1]
-                        + ");")
-                        + System.lineSeparator();
-                while (lineNumber >= endNodeCondition.getEnteringEdge(0)
-                    .getFileLocation()
-                    .getStartingLineInOrigin()
-                    && line != null
-                    && lineNumber <= loopD
-                        .getLoopEnd()
-                        .getEnteringEdge(0)
-                        .getFileLocation()
-                        .getEndingLineInOrigin()
-                ) {
-                  line = reader.readLine();
-                  line = variablesAlreadyUsed(preUsedVariables, line);
-                  closed = ifCaseClosed(line, closed);
-                  content += line + System.lineSeparator();
-                  lineNumber++;
-                }
-                boolean flagIfTop = false;
-                boolean flagKP = false;
-                line = reader.readLine();
-                line = variablesAlreadyUsed(preUsedVariables, line);
-                if (line != null && line.contains("if")) {
-                  flagIfTop = true;
-                  flagKP = true;
-                  closed = ifCaseClosed(line, closed);
-                  content += line + System.lineSeparator();
-                  lineNumber++;
+              } else {
+                accFlag = false;
               }
-              while (!closed) {
-                if (flagIfTop) {
-                  line = reader.readLine();
-                  line = variablesAlreadyUsed(preUsedVariables, line);
-              }
-                flagIfTop = true;
-                closed = ifCaseClosed(line, closed);
-                content += line + System.lineSeparator();
-                lineNumber++;
-              }
-              if (flagKP || flagIfTop) {
-              line = reader.readLine();
-              line = variablesAlreadyUsed(preUsedVariables, line);
             }
-              closed = ifCaseClosed(line, closed);
+          } else if (!loopStarts.contains(lineNumber) || !accFlag) {
+            accFlag = true;
+            line = reader.readLine();
+            if (line != null) {
               content += line + System.lineSeparator();
               lineNumber++;
-
-              while (line != null && !line.contains("}")) {
-                line = reader.readLine();
-                line = variablesAlreadyUsed(preUsedVariables, line);
-                closed = ifCaseClosed(line, closed);
-                content += line + System.lineSeparator();
-                lineNumber++;
-              }
-                content +=
-                    ("__VERIFIER_assume(!("
-                        + loopD.getCondition().split(";")[1]
-                        + "));"
-                        + System.lineSeparator());
-
-                for (int i = outerLoopTemp.size() - 1; i >= 0; i--) {
-                  boolean flagIf = false;
-                  boolean flagBotKP = false;
-                  line = reader.readLine();
-                  line = variablesAlreadyUsed(preUsedVariables, line);
-                  if (line != null && line.contains("if")) {
-                    flagIf = true;
-                    flagBotKP = true;
-                    closed = ifCaseClosed(line, closed);
-                  content += line + System.lineSeparator();
-                  lineNumber++;
-                }
-                  while (!closed) {
-                    if (flagIf) {
-                    line = reader.readLine();
-                    line = variablesAlreadyUsed(preUsedVariables, line);
-                  }
-                  flagIf = true;
-                    closed = ifCaseClosed(line, closed);
-                    content += line + System.lineSeparator();
-                    lineNumber++;
-                  }
-                  if (flagBotKP || flagIf) {
-                  line = reader.readLine();
-                  line = variablesAlreadyUsed(preUsedVariables, line);
-                }
-                  closed = ifCaseClosed(line, closed);
-                  content += line + System.lineSeparator();
-                  lineNumber++;
-                  while (line != null && !line.contains("}")) {
-                    line = reader.readLine();
-                    line = variablesAlreadyUsed(preUsedVariables, line);
-                    closed = ifCaseClosed(line, closed);
-                    content += line + System.lineSeparator();
-                    lineNumber++;
-                  }
-                  if (outerLoopTemp.get(i).getLoopType().equals("for")) {
-                  content +=
-                      ("__VERIFIER_assume(!("
-                          + outerLoopTemp.get(i)
-                              .getCondition()
-                              .split(";")[1]
-                          + "));"
-                          + System.lineSeparator());
-                } else if (outerLoopTemp.get(i).getLoopType().equals("while")) {
-                  content +=
-                      ("__VERIFIER_assume(!("
-                          + outerLoopTemp.get(i).getCondition()
-                          + "));"
-                          + System.lineSeparator());
-                }
-                }
-                outerLoopTemp.clear();
-              }
-            } else if (loopD.getIsOuterLoop()) {
-              if (loopD.getLoopType().equals("while")) {
-                content +=
-                    ("__VERIFIER_assume(" + loopD.getCondition() + ");") + System.lineSeparator();
-              } else if (loopD.getLoopType().equals("for")) {
-                content +=
-                    ("__VERIFIER_assume(" + loopD.getCondition().split(";")[1] + ");")
-                        + System.lineSeparator();
-              }
-              outerLoopTemp.add(loopD);
-              if (loopD.getLoopType().equals("for")) {
-              while (lineNumber >= endNodeCondition.getEnteringEdge(0)
-                  .getFileLocation()
-                  .getEndingLineInOrigin()
-                  && line != null
-                  && (lineNumber < (loopD
-                          .getInnerLoop()
-                      .getIncomingEdges()
-                      .asList()
-                      .get(0)
-                      .getFileLocation()
-                      .getStartingLineInOrigin()
-                  )
-                  )
-              )
-              {
-                line = reader.readLine();
-                line = variablesAlreadyUsed(preUsedVariables, line);
-                closed = ifCaseClosed(line, closed);
-                content += line + System.lineSeparator();
-                lineNumber++;
-                // lineNumber++;
-              }
-            } else if (loopD.getLoopType().equals("while")) {
-              while (lineNumber >= endNodeCondition.getEnteringEdge(0)
-                  .getFileLocation()
-                  .getEndingLineInOrigin()
-                  && line != null
-                  && (lineNumber < (loopD.getInnerLoop()
-                      .getIncomingEdges()
-                      .asList()
-                      .get(0)
-                      .getFileLocation()
-                      .getStartingLineInOrigin()))) {
-                line = reader.readLine();
-                line = variablesAlreadyUsed(preUsedVariables, line);
-                closed = ifCaseClosed(line, closed);
-                content += line + System.lineSeparator();
-                lineNumber++;
-              }
             }
-            }
-          } else {
-            accFlag = false;
           }
         }
-      } else if (!loopStarts.contains(lineNumber) || !accFlag) {
-          accFlag = true;
-          line = reader.readLine();
-          if (line != null) {
-            content += line + System.lineSeparator();
-            lineNumber++;
-          }
-        }
+        reader.close();
       }
-      reader.close();
-    }
     } catch (IOException e) {
       logger.logUserException(
-          Level.WARNING,
-          e,
-          "Something is not working with the file you try to import");
+          Level.WARNING, e, "Something is not working with the file you try to import");
     }
     printFile(loopInfo, content, pathForNewFile, logger, automate);
   }
 
   private String undeterministicVariables(
-      LoopData loopD,
-      List<String> preUsedVariables,
-      String abstractionLevel) {
+      LoopData loopD, List<String> preUsedVariables, String abstractionLevel) {
     String tmp = "";
     List<String> variables = new ArrayList<>();
     if (abstractionLevel.equals("naiv")) {
@@ -905,21 +907,18 @@ public class LoopAbstraction {
     if (abstractionLevel.equals("naiv")) {
       return "if(" + loopD.getCondition() + "){" + System.lineSeparator();
     } else {
-    return "for(int cpachecker_i=0; cpachecker_i <"
-        + min(
-            loopD.getAmountOfPaths(),
-            loopD
-                .getNumberOutputs())
-        + "&&("
-        + loopD.getCondition()
-        + "); cpachecker_i++"
-        + "){"
-        + System.lineSeparator();
-  }
+      return "for(int cpachecker_i=0; cpachecker_i <"
+          + min(loopD.getAmountOfPaths(), loopD.getNumberOutputs())
+          + "&&("
+          + loopD.getCondition()
+          + "); cpachecker_i++"
+          + "){"
+          + System.lineSeparator();
+    }
   }
 
-  private String
-      forCondition(LoopData loopD, List<String> preUsedVariables, String abstractionLevel) {
+  private String forCondition(
+      LoopData loopD, List<String> preUsedVariables, String abstractionLevel) {
     boolean flag = true;
     String variable = "";
     for (String x : preUsedVariables) {
@@ -953,42 +952,36 @@ public class LoopAbstraction {
             + System.lineSeparator();
       }
     } else {
-    if (flag) {
-    return loopD.getCondition().split(";")[0]
-        + ";"
-        + System.lineSeparator()
-        + "for(int cpachecker_i=0; cpachecker_i <"
-        + min(
-            loopD.getAmountOfPaths(),
-            loopD
-                .getNumberOutputs())
-        + "&&("
-        + loopD.getCondition().split(";")[1]
-        + "); cpachecker_i++"
-        + "){"
-        + System.lineSeparator();
-  } else {
-    String cond = loopD.getCondition().split(";")[0];
+      if (flag) {
+        return loopD.getCondition().split(";")[0]
+            + ";"
+            + System.lineSeparator()
+            + "for(int cpachecker_i=0; cpachecker_i <"
+            + min(loopD.getAmountOfPaths(), loopD.getNumberOutputs())
+            + "&&("
+            + loopD.getCondition().split(";")[1]
+            + "); cpachecker_i++"
+            + "){"
+            + System.lineSeparator();
+      } else {
+        String cond = loopD.getCondition().split(";")[0];
 
-    if (cond.contains(variable)) {
-      cond = cond.split(variable)[1];
+        if (cond.contains(variable)) {
+          cond = cond.split(variable)[1];
+        }
+
+        return cond
+            + ";"
+            + System.lineSeparator()
+            + "for(int cpachecker_i=0; cpachecker_i <"
+            + min(loopD.getAmountOfPaths(), loopD.getNumberOutputs())
+            + "&&("
+            + loopD.getCondition().split(";")[1]
+            + "); cpachecker_i++"
+            + "){"
+            + System.lineSeparator();
+      }
     }
-
-    return cond
-        + ";"
-        + System.lineSeparator()
-        + "for(int cpachecker_i=0; cpachecker_i <"
-        + min(
-            loopD.getAmountOfPaths(),
-            loopD
-                .getNumberOutputs())
-        + "&&("
-        + loopD.getCondition().split(";")[1]
-        + "); cpachecker_i++"
-        + "){"
-        + System.lineSeparator();
-  }
-}
   }
 
   private boolean ifCaseClosed(String line, boolean closed) {
@@ -1001,20 +994,20 @@ public class LoopAbstraction {
         ifCaseC = true;
       }
       if (temp.contains("if") || line.contains("else")) {
-      ifCaseC = false;
-      if (temp.contains("if")) {
-        String temp2 = line.split("if")[1];
-        if (temp2.contains("}")) {
-          ifCaseC = true;
-        }
-      } else if (line.contains("else")) {
-        String temp2 = line.split("else")[1];
-        if (temp2.contains("}")) {
-          ifCaseC = true;
+        ifCaseC = false;
+        if (temp.contains("if")) {
+          String temp2 = line.split("if")[1];
+          if (temp2.contains("}")) {
+            ifCaseC = true;
+          }
+        } else if (line.contains("else")) {
+          String temp2 = line.split("else")[1];
+          if (temp2.contains("}")) {
+            ifCaseC = true;
+          }
         }
       }
     }
-  }
     return ifCaseC;
   }
 
@@ -1034,31 +1027,27 @@ public class LoopAbstraction {
           pathForNewFile + "abstract" + loopInfo.getCFA().getFileNames().get(0).getFileName();
     }
 
-    File file =
-        new File(fileName);
+    File file = new File(fileName);
 
     file.getParentFile().mkdirs();
-    try (FileWriter fileWriter =
-        new FileWriter(file)) {
+    try (FileWriter fileWriter = new FileWriter(file)) {
       String fileContent = content;
       fileWriter.write(fileContent);
     } catch (IOException e) {
       logger.logUserException(
-          Level.WARNING,
-          e,
-          "Something is not working with the file you try to import");
+          Level.WARNING, e, "Something is not working with the file you try to import");
     }
   }
 
   private CFANode findLastNodeInCondition(LoopData loopData) {
     CFANode temp = null;
-    if(!loopData.getNodesInCondition().isEmpty()) {
-    temp = loopData.getNodesInCondition().get(0);
-    for (CFANode node : loopData.getNodesInCondition()) {
-      if (temp.getNodeNumber() > node.getNodeNumber()) {
-        temp = node;
+    if (!loopData.getNodesInCondition().isEmpty()) {
+      temp = loopData.getNodesInCondition().get(0);
+      for (CFANode node : loopData.getNodesInCondition()) {
+        if (temp.getNodeNumber() > node.getNodeNumber()) {
+          temp = node;
+        }
       }
-    }
     } else {
       temp = loopData.getLoopStart();
     }

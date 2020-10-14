@@ -25,22 +25,21 @@ public class LoopAbstractionHeader {
   @Option(
       secure = true,
       name = "shouldAbstract",
-    values = {"naiv", "advanced", "none"},
-      description = "AbstractLoops to be able to process them"
-      )
+      values = {"naiv", "advanced", "none"},
+      description = "AbstractLoops to be able to process them")
   private String shouldAbstract = "naiv";
 
   @Option(
-    secure = true,
-    name = "pathForFile",
-    description = "Use this option to specify a place to save the new c file with the abstracted loops, default is in the cpachecker folder -> abstractLoops"
-  )
+      secure = true,
+      name = "pathForFile",
+      description =
+          "Use this option to specify a place to save the new c file with the abstracted loops, default is in the cpachecker folder -> abstractLoops")
   private String pathForAbstractLoops = "../abstractLoops/";
 
   @Option(
-    secure = true,
-    name = "onlyAccelerableLoops",
-    description = "Change this option only if you want all of the loops to be abstracted.")
+      secure = true,
+      name = "onlyAccelerableLoops",
+      description = "Change this option only if you want all of the loops to be abstracted.")
   private boolean accLoops = true;
 
   private LoopAbstraction loopAbstraction;
@@ -55,15 +54,12 @@ public class LoopAbstractionHeader {
    *
    * @param loopI LoopInformation object that includes all the info needed to abstract a loop
    * @param config config object that enables switching between the 3 modes, default is that none of
-   *        the data will be rewritten
+   *     the data will be rewritten
    * @throws InvalidConfigurationException throws an exception if the configuration doesn't match
-   *         the supported options
+   *     the supported options
    */
   public LoopAbstractionHeader(
-      LoopInformation loopI,
-      boolean automate,
-      Configuration config,
-      LogManager logger)
+      LoopInformation loopI, boolean automate, Configuration config, LogManager logger)
       throws InvalidConfigurationException {
     config.inject(this);
     this.logger = logger;
@@ -72,17 +68,10 @@ public class LoopAbstractionHeader {
     pathForAbstractLoops = loopI.getCFA().getFileNames().get(0).toString();
 
     loopAbstraction = new LoopAbstraction();
-
   }
 
   public void abstractLoop() {
-    loopAbstraction
-        .changeFileToAbstractFile(
-            loopI,
-            logger,
-            pathForAbstractLoops,
-            shouldAbstract,
-            automate,
-            accLoops);
+    loopAbstraction.changeFileToAbstractFile(
+        loopI, logger, pathForAbstractLoops, shouldAbstract, automate, accLoops);
   }
 }

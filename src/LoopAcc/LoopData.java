@@ -20,9 +20,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.util.CFAEdgeUtils;
 import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 
-/**
- * This class collects and saves all of the data in one loop
- */
+/** This class collects and saves all of the data in one loop */
 public class LoopData implements Comparable<LoopData> {
 
   private CFANode loopStart;
@@ -133,7 +131,7 @@ public class LoopData implements Comparable<LoopData> {
    *
    * @param loop This loop
    * @param cfa used to get a list of all loops to test if there is another loop that's an outer
-   *        loop of this one
+   *     loop of this one
    * @return true if this is a inner loop or false if this isn't a inner loop
    */
   private boolean isInnerLoop(Loop loop, CFA cfa) {
@@ -172,18 +170,16 @@ public class LoopData implements Comparable<LoopData> {
     for (CFANode node : nodesInLoop) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
         if ((node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.StatementEdge)
-            || node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.DeclarationEdge))
+                || node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.DeclarationEdge))
             && (CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i)) != null
                 || CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i)) != null)) {
           boolean flag = true;
 
           for (String s : output) {
-            if (
-            s.contentEquals(
+            if (s.contentEquals(
                 CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i))
                     .split(OUTPUT_NAME_SYMBOL_CUT)[OUTPUT_VARIABLE_ARRAY_POSITION])) {
               flag = false;
-
             }
           }
 
@@ -204,50 +200,43 @@ public class LoopData implements Comparable<LoopData> {
             String temp = "";
             if (CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i)) != null) {
               if (CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(i)).toString().contains("[")) {
-                String tmpType = CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(i)).toString().split("\\)")[0];
+                String tmpType =
+                    CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(i)).toString().split("\\)")[0];
                 tmpType = tmpType.split("\\(")[1];
                 temp =
-                    CFAEdgeUtils.getLeftHandVariable(
-                        node.getLeavingEdge(
-                            i))
-                      .split(OUTPUT_NAME_SYMBOL_CUT)[OUTPUT_VARIABLE_ARRAY_POSITION]
-                      + "&"
-                      + "Array:"
-                      + tmpType
-                      + ":"
+                    CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i))
+                            .split(OUTPUT_NAME_SYMBOL_CUT)[OUTPUT_VARIABLE_ARRAY_POSITION]
+                        + "&"
+                        + "Array:"
+                        + tmpType
+                        + ":"
                         + CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(i))
                             .toString()
-                            .split("\\[")[1].split("\\]")[0];
-              }else {
+                            .split("\\[")[1]
+                            .split("\\]")[0];
+              } else {
                 if (CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i)).contains(":")) {
-              temp =
-                  CFAEdgeUtils.getLeftHandVariable(
-                      node.getLeavingEdge(
-                          i))
-                    .split(OUTPUT_NAME_SYMBOL_CUT)[OUTPUT_VARIABLE_ARRAY_POSITION]
-                    + "&"
-                    + CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(i));
-            } else {
-              temp = CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i));
-            }
+                  temp =
+                      CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i))
+                              .split(OUTPUT_NAME_SYMBOL_CUT)[OUTPUT_VARIABLE_ARRAY_POSITION]
+                          + "&"
+                          + CFAEdgeUtils.getLeftHandType(node.getLeavingEdge(i));
+                } else {
+                  temp = CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i));
+                }
               }
             } else if (CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i)) != null) {
-              if (CFAEdgeUtils.getLeftHandSide(
-                  node.getLeavingEdge(
-                      i))
-                .getClass()
-                .getName()
-                .contains("Array")) {
-              temp =
-                  CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i))
-                      .toString()
-                      .split(
-                          "\\[")[0]
-                      + "&"
-                      + "Array:"
-                      + CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i)).getExpressionType();
+              if (CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i))
+                  .getClass()
+                  .getName()
+                  .contains("Array")) {
+                temp =
+                    CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i)).toString().split("\\[")[0]
+                        + "&"
+                        + "Array:"
+                        + CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i)).getExpressionType();
+              }
             }
-          }
             tempOutput.add(temp);
           }
         }
@@ -259,78 +248,75 @@ public class LoopData implements Comparable<LoopData> {
       for (int e = 0; e < n.getNumLeavingEdges(); e++) {
         if (n.getLeavingEdge(e).getEdgeType().equals(CFAEdgeType.DeclarationEdge)) {
           for (String s : tempOutput) {
-            if (CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)) != null){
-if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
-                 s.split(
-                    "&")[0]
-                    .equals(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).split(":")[2])) {
-              String tempNew = s;
+            if (CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)) != null) {
+              if (CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":")
+                  && s.split("&")[0].equals(
+                      CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).split(":")[2])) {
+                String tempNew = s;
 
-              if (tempNew.contains("Array") && tempNew.split(":").length != 3) {
-                String tmpNewStart = tempNew.split("&")[0];
-                String tmpNewEnd = tempNew.split("&")[1];
+                if (tempNew.contains("Array") && tempNew.split(":").length != 3) {
+                  String tmpNewStart = tempNew.split("&")[0];
+                  String tmpNewEnd = tempNew.split("&")[1];
+                  String arraySize =
+                      CFAEdgeUtils.getLeftHandType(n.getLeavingEdge(e))
+                          .toString()
+                          .split("\\[")[1]
+                          .split("\\]")[0];
 
-                String arraySize =
-                    CFAEdgeUtils.getLeftHandType(n.getLeavingEdge(e)).toString().split("\\[")[1]
-                        .split("\\]")[0];
+                  tmpNewEnd = tmpNewEnd + ":" + arraySize;
 
-                tmpNewEnd =
-                    tmpNewEnd
-                        +
-                    ":"
-                        + arraySize;
+                  tempNew = tmpNewStart + "&" + tmpNewEnd;
+                }
 
-                tempNew = tmpNewStart + "&" + tmpNewEnd;
+                tempNew =
+                    tempNew
+                        + "&"
+                        + ((ADeclarationEdge) n.getLeavingEdge(e))
+                            .getDeclaration()
+                            .getFileLocation()
+                            .getStartingLineInOrigin();
+
+                overwrite.add(tempNew);
+
+              } else if (!CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":")
+                  && s.split("&")[0].equals(
+                      CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)))) {
+                String tempNew = s;
+
+                if (tempNew.contains("Array") && tempNew.split(":").length != 3) {
+                  String tmpNewStart = tempNew.split("&")[0];
+                  String tmpNewEnd = tempNew.split("&")[1];
+
+                  String arraySize =
+                      CFAEdgeUtils.getLeftHandType(n.getLeavingEdge(e))
+                          .toString()
+                          .split("\\[")[1]
+                          .split("\\]")[0];
+
+                  tmpNewEnd = tmpNewEnd + ":" + arraySize;
+
+                  tempNew = tmpNewStart + "&" + tmpNewEnd;
+                }
+
+                tempNew =
+                    tempNew
+                        + "&"
+                        + ((ADeclarationEdge) n.getLeavingEdge(e))
+                            .getDeclaration()
+                            .getFileLocation()
+                            .getStartingLineInOrigin();
+
+                overwrite.add(tempNew);
               }
-
-              tempNew =
-                  tempNew
-                      + "&"
-                  + ((ADeclarationEdge) n.getLeavingEdge(e)).getDeclaration()
-                  .getFileLocation()
-                  .getStartingLineInOrigin();
-
-              overwrite.add(tempNew);
-
-            } else if (!CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":")
-                && s.split("&")[0].equals(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)))) {
-              String tempNew = s;
-
-              if (tempNew.contains("Array") && tempNew.split(":").length != 3) {
-                String tmpNewStart = tempNew.split("&")[0];
-                String tmpNewEnd = tempNew.split("&")[1];
-
-                String arraySize =
-                    CFAEdgeUtils.getLeftHandType(n.getLeavingEdge(e)).toString().split("\\[")[1]
-                        .split("\\]")[0];
-
-                tmpNewEnd =
-                    tmpNewEnd
-                        +
-                    ":"
-                        + arraySize;
-
-                tempNew = tmpNewStart + "&" + tmpNewEnd;
-              }
-
-              tempNew =
-                  tempNew
-                      + "&"
-                  + ((ADeclarationEdge) n.getLeavingEdge(e)).getDeclaration()
-                  .getFileLocation()
-                  .getStartingLineInOrigin();
-
-              overwrite.add(tempNew);
-}
-}
+            }
           }
         }
       }
     }
     tempOutput = overwrite;
     List<String> removeDuplicates = new ArrayList<>();
-    for(String duplicate:tempOutput) {
-      if(!removeDuplicates.contains(duplicate)){
+    for (String duplicate : tempOutput) {
+      if (!removeDuplicates.contains(duplicate)) {
         removeDuplicates.add(duplicate);
       }
     }
@@ -363,20 +349,19 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
 
     for (String o : outputs) {
       for (String i : inputs) {
-          if ((o.split("&")[0].contentEquals(i))) {
-            boolean flagNO = true;
-            for (String v : temp) {
-              if (v.split("&")[0].equals(o.split("&")[0])) {
-                flagNO = false;
-              }
+        if ((o.split("&")[0].contentEquals(i))) {
+          boolean flagNO = true;
+          for (String v : temp) {
+            if (v.split("&")[0].equals(o.split("&")[0])) {
+              flagNO = false;
             }
-              if (flagNO) {
-              temp.add(o);
-            }
+          }
+          if (flagNO) {
+            temp.add(o);
+          }
         }
-        }
-
       }
+    }
     return temp;
   }
 
@@ -391,25 +376,25 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
     for (CFANode node : nodesInLoop) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
         if ((node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.StatementEdge)
-            || node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.DeclarationEdge))
+                || node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.DeclarationEdge))
             && CFAEdgeUtils.getRightHandSide(node.getLeavingEdge(i)) != null) {
           if (CFAEdgeUtils.getRightHandSide(node.getLeavingEdge(i))
               .toString()
               .contains("operand")) {
             getInputFromRightHandSide(
-                temp,
-                CFAEdgeUtils.getRightHandSide(node.getLeavingEdge(i)).toString());
+                temp, CFAEdgeUtils.getRightHandSide(node.getLeavingEdge(i)).toString());
           } else {
             temp.add(CFAEdgeUtils.getRightHandSide(node.getLeavingEdge(i)).toString());
           }
-        }
-        else if (node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
+        } else if (node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
           String edgeCode = node.getLeavingEdge(VALID_STATE).getCode();
           temp.add(edgeCode.split(" ")[POSITION_OF_VARIABLE_IN_ARRAY_ZERO]);
           temp.add(edgeCode.split(" ")[POSITION_OF_VARIABLE_IN_ARRAY_TWO]);
         } else if (node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
           temp.add(
-              node.getLeavingEdge(i).getCode().split("\\(")[POSITION_OF_VARIABLE_IN_ARRAY_ONE]
+              node.getLeavingEdge(i)
+                  .getCode()
+                  .split("\\(")[POSITION_OF_VARIABLE_IN_ARRAY_ONE]
                   .split("\\)")[POSITION_OF_VARIABLE_IN_ARRAY_ZERO]);
         } else if (node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.ReturnStatementEdge)) {
           temp.add(node.getLeavingEdge(i).getCode().split(" ")[POSITION_OF_VARIABLE_IN_ARRAY_ONE]);
@@ -426,7 +411,8 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
     for (int i = 0; i < tempStorage.length; i++) {
       if (tempStorage[i].contains("operand")) {
         tempS.add(
-            tempStorage[i].split("\\[")[POSITION_OF_VARIABLE_IN_ARRAY_ONE]
+            tempStorage[i]
+                .split("\\[")[POSITION_OF_VARIABLE_IN_ARRAY_ONE]
                 .split("\\]")[POSITION_OF_VARIABLE_IN_ARRAY_ZERO]);
       }
     }
@@ -440,16 +426,24 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
    * @return number of possible paths in one iteration
    */
   private int getAllPaths() {
+    // there is always one path in a loop that can be travelled
     int paths = 1;
     for (CFANode node : nodesInLoop) {
       if ((!node.equals(loopEnd))
           && (!nodesInCondition.contains(node))
           && !node.equals(failedState)) {
+        // we subtract 1 from the amount of leaving edges to indicate that this is the one path we
+        // already
+        // account for, we only add numbers to the paths that if there are more possibilities like
+        // in the case of an if-construct, etc. that adds multiple paths
         paths += (node.getNumLeavingEdges() - LAST_POSITION_OF_LIST);
       }
     }
     for (String z : output) {
       if (z.contains("Array")) {
+        // we add the number of array-cells to the number of paths in case there is an array
+        // in the loop. this is an over-approximation that could be refined if you know the
+        // amount of array values that will be used later on
         paths += Integer.parseInt(z.split("&")[1].split(":")[2]);
       }
     }
@@ -470,37 +464,36 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
     CFANode tempNode = loopStart;
     boolean flag = true;
 
-
     if (loopType.contentEquals("while")) {
 
-    while (flag) {
+      while (flag) {
 
         if (tempNode.getLeavingEdge(VALID_STATE).getEdgeType().equals(CFAEdgeType.AssumeEdge)
             && nodesInLoop.contains(tempNode.getLeavingEdge(VALID_STATE).getSuccessor())
-          && !nodes.contains(tempNode)) {
-        nodes.add(tempNode);
-      }
-      for (int i = 1; i < tempNode.getNumLeavingEdges(); i++) {
-        if (tempNode.getLeavingEdge(i)
-            .getSuccessor()
-              .getLeavingEdge(VALID_STATE)
-            .getEdgeType()
-            .equals(CFAEdgeType.AssumeEdge)
-            && nodesInLoop.contains(tempNode.getLeavingEdge(i).getSuccessor())) {
-
-        tempNodes.add(tempNode.getLeavingEdge(i).getSuccessor());
+            && !nodes.contains(tempNode)) {
+          nodes.add(tempNode);
         }
+        for (int i = 1; i < tempNode.getNumLeavingEdges(); i++) {
+          if (tempNode
+                  .getLeavingEdge(i)
+                  .getSuccessor()
+                  .getLeavingEdge(VALID_STATE)
+                  .getEdgeType()
+                  .equals(CFAEdgeType.AssumeEdge)
+              && nodesInLoop.contains(tempNode.getLeavingEdge(i).getSuccessor())) {
+
+            tempNodes.add(tempNode.getLeavingEdge(i).getSuccessor());
+          }
         }
         if (!endOfCondition.contains(tempNode) && nodesInLoop.contains(tempNode)) {
           tempNode = tempNode.getLeavingEdge(VALID_STATE).getSuccessor();
-      }
-      else if (!tempNodes.isEmpty()) {
+        } else if (!tempNodes.isEmpty()) {
           tempNode = tempNodes.get(tempNodes.size() - LAST_POSITION_OF_LIST);
           tempNodes.remove(tempNodes.size() - LAST_POSITION_OF_LIST);
-      } else {
-        flag = false;
+        } else {
+          flag = false;
+        }
       }
-    }
     } else if (loopType.contentEquals("for")) {
       for (CFANode node : cfa.getAllNodes()) {
         if (node.getNodeNumber() >= forStart.getNodeNumber()
@@ -511,44 +504,42 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
 
       List<CFANode> forNode = new ArrayList<>();
       while (flag) {
-      for(CFANode x:nodes) {
+        for (CFANode x : nodes) {
           for (int i = 0; i < x.getNumLeavingEdges(); i++) {
-          if (x.getLeavingEdge(i)
-                .getSuccessor()
-                .getLeavingEdge(VALID_STATE)
-                .getEdgeType()
-                .equals(CFAEdgeType.AssumeEdge)
+            if (x.getLeavingEdge(i)
+                    .getSuccessor()
+                    .getLeavingEdge(VALID_STATE)
+                    .getEdgeType()
+                    .equals(CFAEdgeType.AssumeEdge)
                 && !nodes.contains(x.getLeavingEdge(i).getSuccessor())) {
               forNode.add(x.getLeavingEdge(i).getSuccessor());
+            }
           }
         }
-      }
         if (!forNode.isEmpty()) {
           nodes.addAll(forNode);
           forNode.clear();
         } else {
           flag = false;
         }
-    }
-    }
-    if (!nodes.isEmpty()) {
-    LoopGetIfAfterLoopCondition l = new LoopGetIfAfterLoopCondition(nodes, pLogger);
-    if (l.getSmallestIf() != NO_IF_CASE) {
-      List<CFANode> tempN = copyList(nodes);
-
-
-      for (Iterator<CFANode> tempIterator = tempN.iterator(); tempIterator.hasNext();) {
-        CFANode temps = tempIterator.next();
-        if (temps.getLeavingEdge(VALID_STATE).getFileLocation().getStartingLineInOrigin() >= l
-            .getSmallestIf()) {
-          endOfCondition.add(temps);
-          tempIterator.remove();
       }
     }
+    if (!nodes.isEmpty()) {
+      if (LoopGetIfAfterLoopCondition.getSmallestIf(nodes, pLogger) != NO_IF_CASE) {
+        List<CFANode> tempN = copyList(nodes);
 
-      nodes = tempN;
+        for (Iterator<CFANode> tempIterator = tempN.iterator(); tempIterator.hasNext(); ) {
+          CFANode temps = tempIterator.next();
+          if (temps.getLeavingEdge(VALID_STATE).getFileLocation().getStartingLineInOrigin()
+              >= LoopGetIfAfterLoopCondition.getSmallestIf(nodes, pLogger)) {
+            endOfCondition.add(temps);
+            tempIterator.remove();
+          }
+        }
+
+        nodes = tempN;
+      }
     }
-  }
     return nodes;
   }
 
@@ -569,37 +560,36 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
         cond = "1";
       }
 
-    while (!temp.isEmpty()) {
+      while (!temp.isEmpty()) {
         node = temp.get(FIRST_POSITION_OF_LIST);
         temp.remove(FIRST_POSITION_OF_LIST);
 
         if (temp.size() > EMPTY_LIST) {
-        boolean notNodeToEndCondition = true;
+          boolean notNodeToEndCondition = true;
 
-        for(int i = 0; i < node.getNumLeavingEdges(); i++) {
+          for (int i = 0; i < node.getNumLeavingEdges(); i++) {
             if (endOfCondition.contains(node.getLeavingEdge(i).getSuccessor())) {
-            notNodeToEndCondition = false;
+              notNodeToEndCondition = false;
+            }
           }
-        }
 
-        if(notNodeToEndCondition) {
+          if (notNodeToEndCondition) {
             cond = cond + node.getLeavingEdge(VALID_STATE).getCode() + " && ";
-        }
-        else {
+          } else {
             cond = cond + node.getLeavingEdge(VALID_STATE).getCode() + " || ";
-        }
-      } else {
+          }
+        } else {
           cond = cond + node.getLeavingEdge(VALID_STATE).getCode();
           failedState = node.getLeavingEdge(ERROR_STATE).getSuccessor();
+        }
       }
-    }
     } else if (loopType.contentEquals("for")) {
 
       CFANode start = temp.get(FIRST_POSITION_OF_LIST);
       temp.remove(FIRST_POSITION_OF_LIST);
 
       List<CFANode> forCondition = new ArrayList<>();
-      for (Iterator<CFANode> tempIterator = temp.iterator(); tempIterator.hasNext();) {
+      for (Iterator<CFANode> tempIterator = temp.iterator(); tempIterator.hasNext(); ) {
         CFANode temps = tempIterator.next();
         if (temps.getLeavingEdge(VALID_STATE).getCode().contains("<")
             || temps.getLeavingEdge(VALID_STATE).getCode().contains(">")
@@ -614,7 +604,6 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
       CFANode end = temp.get(FIRST_POSITION_OF_LIST);
       temp.remove(FIRST_POSITION_OF_LIST);
 
-
       conditionInFor = copyList(forCondition);
 
       cond += start.getLeavingEdge(VALID_STATE).getDescription();
@@ -626,16 +615,15 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
         if (forCondition.size() > EMPTY_LIST) {
           boolean notNodeToEndCondition = true;
 
-          for(int i = 0; i < node.getNumLeavingEdges(); i++) {
+          for (int i = 0; i < node.getNumLeavingEdges(); i++) {
             if (endOfCondition.contains(node.getLeavingEdge(i).getSuccessor())) {
               notNodeToEndCondition = false;
             }
           }
 
-          if(notNodeToEndCondition) {
+          if (notNodeToEndCondition) {
             cond = cond + node.getLeavingEdge(VALID_STATE).getCode() + " && ";
-          }
-          else {
+          } else {
             cond = cond + node.getLeavingEdge(VALID_STATE).getCode() + " || ";
           }
         } else {
@@ -643,9 +631,9 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
             cond = cond + "1";
             flagEndless = true;
           } else {
-          cond = cond + node.getLeavingEdge(VALID_STATE).getCode();
-          failedState = node.getLeavingEdge(ERROR_STATE).getSuccessor();
-        }
+            cond = cond + node.getLeavingEdge(VALID_STATE).getCode();
+            failedState = node.getLeavingEdge(ERROR_STATE).getSuccessor();
+          }
         }
       }
 
@@ -660,7 +648,7 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
    * Bounded-Model-Checker should be able to handle it
    *
    * @return returns true if the loop should be accelerated or false if it doesn't make that much
-   *         sense to accelerate it
+   *     sense to accelerate it
    */
   private boolean canLoopBeAccelerated() {
     List<CFANode> nodes = copyList(nodesInCondition);
@@ -677,58 +665,6 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
                 .getRawAST()
                 .toString()
                 .split("operand2=\\[")[POSITION_OF_VARIABLE_IN_ARRAY_ONE]
-                    .split("\\]")[POSITION_OF_VARIABLE_IN_ARRAY_ZERO]);
-      }
-
-      for (String variable : rightSideVariable) {
-        try {
-          double d = Double.parseDouble(variable);
-          if (d > amountOfPaths || d > numberAllOutputs) {
-            temp.add(true);
-          }
-        } catch (NumberFormatException | NullPointerException nfe) {
-          temp.add(true);
-        }
-          try {
-            int d = Integer.parseInt(variable);
-            if (d > amountOfPaths || d > numberAllOutputs) {
-              temp.add(true);
-            }
-          } catch (NumberFormatException | NullPointerException nfe1) {
-            temp.add(true);
-          }
-            try {
-              long d = Long.parseLong(variable);
-              if (d > amountOfPaths || d > numberAllOutputs) {
-                temp.add(true);
-              }
-            } catch (NumberFormatException | NullPointerException nfe2) {
-              temp.add(true);
-            }
-              try {
-                float d = Float.parseFloat(variable);
-                if (d > amountOfPaths || d > numberAllOutputs) {
-                  temp.add(true);
-                }
-              } catch (NumberFormatException | NullPointerException nfe3) {
-                temp.add(true);
-              }
-                try {
-                  BigInteger d = new BigInteger(variable);
-                  if (d.intValueExact() > amountOfPaths || d.intValueExact() > numberAllOutputs) {
-                    temp.add(true);
-                  }
-                } catch (NumberFormatException | NullPointerException nfe4) {
-                  temp.add(true);
-                }
-      }
-
-    } else if (loopType.contentEquals("for")) {
-      if (!flagEndless) {
-        List<String> rightSideVariable = new ArrayList<>();
-      for (CFANode node : conditionInFor) {
-        rightSideVariable.add(
-            node.getLeavingEdge(VALID_STATE).getRawAST().toString().split("operand2=\\[")[1]
                 .split("\\]")[POSITION_OF_VARIABLE_IN_ARRAY_ZERO]);
       }
 
@@ -741,6 +677,61 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
         } catch (NumberFormatException | NullPointerException nfe) {
           temp.add(true);
         }
+        try {
+          int d = Integer.parseInt(variable);
+          if (d > amountOfPaths || d > numberAllOutputs) {
+            temp.add(true);
+          }
+        } catch (NumberFormatException | NullPointerException nfe1) {
+          temp.add(true);
+        }
+        try {
+          long d = Long.parseLong(variable);
+          if (d > amountOfPaths || d > numberAllOutputs) {
+            temp.add(true);
+          }
+        } catch (NumberFormatException | NullPointerException nfe2) {
+          temp.add(true);
+        }
+        try {
+          float d = Float.parseFloat(variable);
+          if (d > amountOfPaths || d > numberAllOutputs) {
+            temp.add(true);
+          }
+        } catch (NumberFormatException | NullPointerException nfe3) {
+          temp.add(true);
+        }
+        try {
+          BigInteger d = new BigInteger(variable);
+          if (d.intValueExact() > amountOfPaths || d.intValueExact() > numberAllOutputs) {
+            temp.add(true);
+          }
+        } catch (NumberFormatException | NullPointerException nfe4) {
+          temp.add(true);
+        }
+      }
+
+    } else if (loopType.contentEquals("for")) {
+      if (!flagEndless) {
+        List<String> rightSideVariable = new ArrayList<>();
+        for (CFANode node : conditionInFor) {
+          rightSideVariable.add(
+              node.getLeavingEdge(VALID_STATE)
+                  .getRawAST()
+                  .toString()
+                  .split("operand2=\\[")[1]
+                  .split("\\]")[POSITION_OF_VARIABLE_IN_ARRAY_ZERO]);
+        }
+
+        for (String variable : rightSideVariable) {
+          try {
+            double d = Double.parseDouble(variable);
+            if (d > amountOfPaths || d > numberAllOutputs) {
+              temp.add(true);
+            }
+          } catch (NumberFormatException | NullPointerException nfe) {
+            temp.add(true);
+          }
           try {
             int d = Integer.parseInt(variable);
             if (d > amountOfPaths || d > numberAllOutputs) {
@@ -749,35 +740,35 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
           } catch (NumberFormatException | NullPointerException nfe1) {
             temp.add(true);
           }
-            try {
-              long d = Long.parseLong(variable);
-              if (d > amountOfPaths || d > numberAllOutputs) {
-                temp.add(true);
-              }
-            } catch (NumberFormatException | NullPointerException nfe2) {
+          try {
+            long d = Long.parseLong(variable);
+            if (d > amountOfPaths || d > numberAllOutputs) {
               temp.add(true);
             }
-              try {
-                float d = Float.parseFloat(variable);
-                if (d > amountOfPaths || d > numberAllOutputs) {
-                  temp.add(true);
-                }
-              } catch (NumberFormatException | NullPointerException nfe3) {
-                temp.add(true);
-              }
-                try {
-                  BigInteger d = new BigInteger(variable);
-                  if (d.intValueExact() > amountOfPaths || d.intValueExact() > numberAllOutputs) {
-                    temp.add(true);
-                  }
-                } catch (NumberFormatException | NullPointerException nfe4) {
-                  temp.add(true);
-                }
+          } catch (NumberFormatException | NullPointerException nfe2) {
+            temp.add(true);
+          }
+          try {
+            float d = Float.parseFloat(variable);
+            if (d > amountOfPaths || d > numberAllOutputs) {
+              temp.add(true);
+            }
+          } catch (NumberFormatException | NullPointerException nfe3) {
+            temp.add(true);
+          }
+          try {
+            BigInteger d = new BigInteger(variable);
+            if (d.intValueExact() > amountOfPaths || d.intValueExact() > numberAllOutputs) {
+              temp.add(true);
+            }
+          } catch (NumberFormatException | NullPointerException nfe4) {
+            temp.add(true);
+          }
+        }
+      } else {
+        temp.add(true);
       }
-    } else {
-      temp.add(true);
     }
-  }
     for (Boolean b : temp) {
       if (b) {
         canAccelerate = true;
@@ -858,18 +849,18 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
   }
 
   public String outputToString() {
-    String temp = EMPTY_STRING;
+    StringBuilder temp = new StringBuilder();
     Object[] tempArray = output.toArray();
     for (int i = 0; i < tempArray.length; i++) {
       if (i < tempArray.length - FLAG_FOR_LAST_STRING) {
-        temp += (String) tempArray[i];
-        temp += ",";
+        temp.append((String) tempArray[i]);
+        temp.append(",");
       } else {
-        temp += (String) tempArray[i];
+        temp.append((String) tempArray[i]);
       }
     }
 
-    return temp;
+    return temp.toString();
   }
 
   @Override
@@ -879,9 +870,9 @@ if(CFAEdgeUtils.getLeftHandVariable(n.getLeavingEdge(e)).contains(":") &&
         + "\n Ende "
         + loopEnd.toString()
         + "\n Nodes in Loop "
-          + nodesInLoop.toString()
+        + nodesInLoop.toString()
         + "\n Output"
-          + output.toString()
+        + output.toString()
         + "\n Condition "
         + condition
         + "\n Loop in Loop "

@@ -15,9 +15,7 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 
-/**
- * Class that returns important statistics for loops
- */
+/** Class that returns important statistics for loops */
 public class LoopStatistics implements Statistics {
 
   List<LoopData> loopList;
@@ -55,12 +53,15 @@ public class LoopStatistics implements Statistics {
 
     for (int i = 0; i < loopList.size(); i++) {
       if (!loopList.isEmpty()) {
-        String[] x =
-            {"L" + (i + 1), loopList.get(i).getLoopStart().toString(),
-                loopList.get(i).getLoopEnd().toString()};
+        String[] x = {
+          "L" + (i + 1),
+          loopList.get(i).getLoopStart().toString(),
+          loopList.get(i).getLoopEnd().toString()
+        };
         loopStartAndEnd.add(x);
-        String[] y =
-            {"L" + (i + 1), loopList.get(i).getLoopType(), "" + loopList.get(i).getLoopInLoop()};
+        String[] y = {
+          "L" + (i + 1), loopList.get(i).getLoopType(), "" + loopList.get(i).getLoopInLoop()
+        };
         loopType.add(y);
         String[] loopCond = {"L" + (i + 1), loopList.get(i).getCondition()};
         loopCondition.add(loopCond);
@@ -112,5 +113,4 @@ public class LoopStatistics implements Statistics {
     // TODO Auto-generated method stub
     return NAME;
   }
-
 }
