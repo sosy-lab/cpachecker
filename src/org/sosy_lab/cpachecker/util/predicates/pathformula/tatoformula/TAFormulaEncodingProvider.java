@@ -197,11 +197,11 @@ public class TAFormulaEncodingProvider {
     }
     if (options.timeEncoding == TimeEncodingType.GLOBAL_IMPLICIT) {
       return new TAImplicitTime(
-          pFmgr, true, options.allowZeroDelay, clockClockVariableType, pAutomata);
+          pFmgr, false, options.allowZeroDelay, clockClockVariableType, pAutomata);
     }
     if (options.timeEncoding == TimeEncodingType.LOCAL_IMPLICIT) {
       return new TAImplicitTime(
-          pFmgr, false, options.allowZeroDelay, clockClockVariableType, pAutomata);
+          pFmgr, true, options.allowZeroDelay, clockClockVariableType, pAutomata);
     }
     if (options.timeEncoding == TimeEncodingType.LOCAL_EXPLICIT) {
       return new TAExplicitTime(

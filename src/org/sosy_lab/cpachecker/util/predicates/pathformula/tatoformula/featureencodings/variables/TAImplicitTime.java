@@ -59,7 +59,7 @@ public class TAImplicitTime extends TAAbstractVariables {
   @Override
   public BooleanFormula makeTimeElapseFormula(TaDeclaration pAutomaton, int pIndexBefore) {
     var delayVariableName =
-        localEncoding ? DELAY_VARIABLE_NAME + "#" + pAutomaton.getName() : DELAY_VARIABLE_NAME;
+        localEncoding ? (DELAY_VARIABLE_NAME + "#" + pAutomaton.getName()) : DELAY_VARIABLE_NAME;
     var delayVariable = fmgr.makeVariable(clockVariableType, delayVariableName, pIndexBefore + 1);
     var clockUpdateFormulas =
         from(automata.getClocksByAutomaton(pAutomaton))
