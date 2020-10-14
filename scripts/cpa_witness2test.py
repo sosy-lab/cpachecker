@@ -221,7 +221,7 @@ def create_parser():
     return parser
 
 
-def _parse_args(argv=sys.argv[1:]):
+def _parse_args(argv):
     parser = create_parser()
     args = parser.parse_known_args(argv[:-1])[0]
     args_file = parser.parse_args([argv[-1]])  # Parse the file name
@@ -589,8 +589,10 @@ def _execute_harnesses(
 statistics = []
 
 
-def run():
-    args = _parse_args()
+def run(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+    args = _parse_args(argv)
     output_dir = args.output_path
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
@@ -647,7 +649,8 @@ logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 
 if __name__ == "__main__":
     try:
-        run()
+        sys.exit(run())
     except ValidationError as e:
         logging.error(e.msg)
         print("Verification result: ERROR.")
+        sys.exit(1)
