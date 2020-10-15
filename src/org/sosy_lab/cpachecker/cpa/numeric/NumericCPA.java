@@ -170,8 +170,10 @@ public class NumericCPA extends AbstractCPA implements StatisticsProvider, Proof
       case FULL:
         return baselinePrecison;
       case REFINABLE_EMPTY:
+        logger.log(Level.WARNING, "Refinement may not work correctly.");
         return refinablePrecision;
       case REFINABLE_FROM_FILE:
+        logger.log(Level.WARNING, "Refinement may not work correctly.");
         if (startingPrecisionFile == null) {
           throw new InvalidConfigurationException("No starting precision file was specified.");
         } else {
@@ -330,32 +332,6 @@ public class NumericCPA extends AbstractCPA implements StatisticsProvider, Proof
       throws InterruptedException {
     return new NumericState(Manager.createManager(managerSupplier), logger);
   }
-
-  /*@Override
-  public boolean areAbstractSuccessors(
-      AbstractState pState, CFAEdge pCfaEdge, Collection<? extends AbstractState> pSuccessors)
-      throws CPATransferException, InterruptedException {
-    try {
-      Collection<? extends AbstractState> computedSuccessors =
-          getTransferRelation().getAbstractSuccessorsForEdge(pState, precision, pCfaEdge);
-      boolean found;
-      for (AbstractState comp : computedSuccessors) {
-        found = false;
-        for (AbstractState e : pSuccessors) {
-          if (isCoveredBy(comp, e)) {
-            found = true;
-            break;
-          }
-        }
-        if (!found) {
-          return false;
-        }
-      }
-    } catch (CPAException e) {
-      throw new CPATransferException("Cannot compare abstract successors", e);
-    }
-    return true;
-  }*/
 
   @Override
   public Precision getInitialPrecision(CFANode node, StateSpacePartition partition) {
