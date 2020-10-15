@@ -10,12 +10,12 @@ package org.sosy_lab.cpachecker.cpa.numeric.visitor;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
-import java.math.BigInteger;
 import java.util.Collection;
 import org.sosy_lab.common.rationals.ExtendedRational;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.numericdomains.coefficients.DoubleScalar;
 import org.sosy_lab.numericdomains.coefficients.Interval;
 import org.sosy_lab.numericdomains.coefficients.MpqScalar;
 import org.sosy_lab.numericdomains.coefficients.Scalar;
@@ -38,11 +38,11 @@ import org.sosy_lab.numericdomains.environment.Environment;
  * <p>The intermediate states are represented by a partial constraint and the constraints it depends
  * on.
  *
- * <p>The expression {@code (y==x)+1} can be converted to the partial states:
+ * <p>The expression {@code (y==x)+2} can be converted to the partial states:
  *
  * <ul>
- *   <li>1+1 if x==y
- *   <li>0+1 if x!=y
+ *   <li>1+2 if x==y
+ *   <li>0+2 if x!=y
  * </ul>
  */
 public class PartialState {
@@ -51,12 +51,15 @@ public class PartialState {
 
   static final Interval UNCONSTRAINED_INTERVAL =
       new Interval(MpqScalar.of(ExtendedRational.NEG_INFTY), MpqScalar.of(ExtendedRational.INFTY));
+  static final Interval UNSIGNED_UNCONSTRAINED_INTERVAL =
+      new Interval(MpqScalar.of(ExtendedRational.ZERO), MpqScalar.of(ExtendedRational.INFTY));
 
   private static final TreeNode TRUE_COMPARISON_RESULT = new ConstantTreeNode(MpqScalar.of(1));
   private static final TreeNode FALSE_COMPARISON_RESULT = new ConstantTreeNode(MpqScalar.of(0));
 
   /** Epsilon used for comparison of floating point values. */
-  private static final Scalar EPSILON = MpqScalar.of(BigInteger.ONE, BigInteger.valueOf(1000000));
+  private static final Scalar EPSILON = DoubleScalar.of(0.00000001);
+
   /**
    * Epsilon Interval [-{@link PartialState#EPSILON}, {@link PartialState#EPSILON}]used for equality
    * comparison of floating point values.
@@ -195,10 +198,7 @@ public class PartialState {
     switch (pOperator) {
       case EQUALS:
         if (pAssumption == TruthAssumption.ASSUME_TRUE) {
-          epsilonType =
-              (useEpsilon == ApplyEpsilon.APPLY_EPSILON
-                  ? EpsilonType.INTERVAL_EPSILON
-                  : EpsilonType.EXACT);
+          epsilonType = EpsilonType.EXACT;
           return ImmutableSet.of(
               buildSimpleComparison(
                   ConstraintType.EQUALS, leftExpression, rightExpression, epsilonType));
@@ -217,10 +217,7 @@ public class PartialState {
                   : EpsilonType.EXACT);
           return buildAndSplitInequalityComparison(leftExpression, rightExpression, epsilonType);
         } else {
-          epsilonType =
-              (useEpsilon == ApplyEpsilon.APPLY_EPSILON
-                  ? EpsilonType.INTERVAL_EPSILON
-                  : EpsilonType.EXACT);
+          epsilonType = EpsilonType.EXACT;
           return ImmutableSet.of(
               buildSimpleComparison(
                   ConstraintType.EQUALS, leftExpression, rightExpression, epsilonType));
@@ -235,28 +232,19 @@ public class PartialState {
               buildSimpleComparison(
                   ConstraintType.BIGGER, leftExpression, rightExpression, epsilonType));
         } else {
-          epsilonType =
-              (useEpsilon == ApplyEpsilon.APPLY_EPSILON
-                  ? EpsilonType.ADD_EPSILON
-                  : EpsilonType.EXACT);
+          epsilonType = EpsilonType.EXACT;
           return ImmutableSet.of(
               buildSimpleComparison(
                   ConstraintType.BIGGER_EQUALS, rightExpression, leftExpression, epsilonType));
         }
       case GREATER_EQUAL:
         if (pAssumption == TruthAssumption.ASSUME_TRUE) {
-          epsilonType =
-              (useEpsilon == ApplyEpsilon.APPLY_EPSILON
-                  ? EpsilonType.ADD_EPSILON
-                  : EpsilonType.EXACT);
+          epsilonType = EpsilonType.EXACT;
           return ImmutableSet.of(
               buildSimpleComparison(
                   ConstraintType.BIGGER_EQUALS, leftExpression, rightExpression, epsilonType));
         } else {
-          epsilonType =
-              (useEpsilon == ApplyEpsilon.APPLY_EPSILON
-                  ? EpsilonType.SUBTRACT_EPSILON
-                  : EpsilonType.EXACT);
+          epsilonType = EpsilonType.EXACT;
           return ImmutableSet.of(
               buildSimpleComparison(
                   ConstraintType.BIGGER, rightExpression, leftExpression, epsilonType));
@@ -281,18 +269,12 @@ public class PartialState {
         }
       case LESS_EQUAL:
         if (pAssumption == TruthAssumption.ASSUME_TRUE) {
-          epsilonType =
-              (useEpsilon == ApplyEpsilon.APPLY_EPSILON
-                  ? EpsilonType.ADD_EPSILON
-                  : EpsilonType.EXACT);
+          epsilonType = EpsilonType.EXACT;
           return ImmutableSet.of(
               buildSimpleComparison(
                   ConstraintType.BIGGER_EQUALS, rightExpression, leftExpression, epsilonType));
         } else {
-          epsilonType =
-              (useEpsilon == ApplyEpsilon.APPLY_EPSILON
-                  ? EpsilonType.SUBTRACT_EPSILON
-                  : EpsilonType.EXACT);
+          epsilonType = EpsilonType.EXACT;
           return ImmutableSet.of(
               buildSimpleComparison(
                   ConstraintType.BIGGER, leftExpression, rightExpression, epsilonType));

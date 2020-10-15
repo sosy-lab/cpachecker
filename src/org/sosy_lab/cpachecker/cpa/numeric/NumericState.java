@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.cpa.numeric;
 import com.google.common.collect.ImmutableSet;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -18,25 +19,38 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.numericdomains.Manager;
-import org.sosy_lab.numericdomains.NumericalLibrary;
-import org.sosy_lab.numericdomains.NumericalLibraryLoader;
 import org.sosy_lab.numericdomains.Value;
 import org.sosy_lab.numericdomains.Value.NewVariableValue;
 import org.sosy_lab.numericdomains.Value.ValueType;
+import org.sosy_lab.numericdomains.coefficients.Interval;
 import org.sosy_lab.numericdomains.constraint.TreeConstraint;
 import org.sosy_lab.numericdomains.constraint.tree.TreeNode;
 import org.sosy_lab.numericdomains.environment.Environment;
+import org.sosy_lab.numericdomains.environment.Environment.Compatibility;
 import org.sosy_lab.numericdomains.environment.Variable;
 
+/**
+ * Defines a state which uses values abstracted by an numeric domain.
+ *
+ * <p>The type of the domain is specified by the {@link NumericState#manager}
+ */
 public class NumericState implements AbstractState, LatticeAbstractState<NumericState> {
   private final Manager manager;
   private final Value value;
   private final LogManager logger;
+  private final boolean isLoopHead;
 
-  NumericState(Manager pManager, Value pValue, LogManager logManager) {
+  /** Creates a NumericState with the given value. */
+  NumericState(Value pValue, LogManager pLogManager) {
+    this(pValue, pLogManager, false);
+  }
+
+  /** Creates a NumericState with the given value and sets the loop head flag. */
+  NumericState(Value pValue, LogManager pLogManager, boolean pIsLoopHead) {
     value = pValue;
-    manager = pManager;
-    logger = logManager;
+    manager = pValue.getManager();
+    logger = pLogManager;
+    isLoopHead = pIsLoopHead;
   }
 
   /**
@@ -46,11 +60,12 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
    *
    * @param numericManager manager of the chosen numeric domain
    */
-  NumericState(Manager numericManager, LogManager logManager) {
+  public NumericState(Manager numericManager, LogManager logManager) {
     manager = numericManager;
     Environment environment = new Environment(new Variable[] {}, new Variable[] {});
     logger = logManager;
     value = new Value(manager, environment, ValueType.TOP);
+    isLoopHead = false;
   }
 
   @Override
@@ -75,11 +90,90 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
 
   @Override
   public NumericState join(NumericState pState2) {
-    Optional<Value> val = this.value.join(pState2.value);
-    if (val.isPresent()) {
-      return new NumericState(manager, val.get(), logger);
+    Optional<Environment> leastCommonEnvironment =
+        Environment.createLeastCommonEnvironment(
+            value.getEnvironment(), pState2.getValue().getEnvironment());
+
+    if (leastCommonEnvironment.isEmpty()) {
+      throw new AssertionError(
+          "States do not have a least common environment: "
+              + value.getEnvironment()
+              + " and "
+              + pState2.getValue().getEnvironment());
+    }
+
+    // This is an approximation that is not perfect.
+    // All variables that are only in one of the states will be unconstrained after the join.
+    // There is no simple way of setting variables to unsatisfiable in a value.
+    Optional<Value> extendedA =
+        value.changeEnvironment(leastCommonEnvironment.get(), NewVariableValue.UNCONSTRAINED);
+    Optional<Value> extendedB =
+        pState2
+            .getValue()
+            .changeEnvironment(leastCommonEnvironment.get(), NewVariableValue.UNCONSTRAINED);
+
+    Optional<Value> join;
+
+    if (extendedA.isPresent() && extendedB.isPresent()) {
+      join = extendedA.get().join(extendedB.get());
     } else {
-      return null;
+      join = Optional.empty();
+    }
+
+    extendedA.ifPresent(Value::dispose);
+    extendedB.ifPresent(Value::dispose);
+
+    if (join.isPresent()) {
+      return new NumericState(join.get(), logger);
+    } else {
+      throw new IllegalStateException("Could not compute the widening of the two states.");
+    }
+  }
+
+  /**
+   * Computes the widening of the values in the two states.
+   *
+   * @param pState2 state with which the widening is computed
+   * @return State containing the result of the widening as value
+   */
+  public NumericState widening(NumericState pState2) {
+    Optional<Environment> leastCommonEnvironment =
+        Environment.createLeastCommonEnvironment(
+            value.getEnvironment(), pState2.getValue().getEnvironment());
+
+    if (leastCommonEnvironment.isEmpty()) {
+      throw new AssertionError(
+          "States do not have a least common environment: "
+              + value.getEnvironment()
+              + " and "
+              + pState2.getValue().getEnvironment());
+    }
+
+    // This is an approximation that is not perfect.
+    // All variables that are only in one of the states will be unconstrained after the join.
+    // There is no simple way of setting variables to unsatisfiable in a value.
+    Optional<Value> extendedA =
+        value.changeEnvironment(leastCommonEnvironment.get(), NewVariableValue.UNCONSTRAINED);
+    Optional<Value> extendedB =
+        pState2
+            .getValue()
+            .changeEnvironment(leastCommonEnvironment.get(), NewVariableValue.UNCONSTRAINED);
+
+    Optional<Value> newValue;
+
+    if (extendedA.isPresent() && extendedB.isPresent()) {
+      newValue = extendedA.get().widening(extendedB.get());
+    } else {
+      newValue = Optional.empty();
+    }
+
+    extendedA.ifPresent(Value::dispose);
+    extendedB.ifPresent(Value::dispose);
+
+    if (newValue.isPresent()) {
+      return new NumericState(newValue.get(), logger);
+    } else {
+      throw new IllegalStateException("Could not compute the widening of the two states.");
     }
   }
 
@@ -91,7 +185,7 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
    */
   public Optional<NumericState> meet(Value pMeetValue) {
     Optional<Value> val = value.meet(pMeetValue);
-    return val.map(pValue -> new NumericState(manager, pValue, logger));
+    return val.map(pValue -> new NumericState(pValue, logger));
   }
 
   /**
@@ -103,39 +197,53 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
   public Optional<NumericState> meet(Collection<TreeConstraint> pConstraints) {
     // Fix problem where elina does not compute meet with TreeConstraints correctly
     // Instead create a value from the constraints and compute the meet between the values
-    if (NumericalLibraryLoader.getLoadedLibrary() == NumericalLibrary.ELINA) {
+    if (manager instanceof org.sosy_lab.numericdomains.elina.ZonesManager
+        || manager instanceof org.sosy_lab.numericdomains.elina.OctagonManager) {
       Value temp =
           new Value(
               value.getManager(),
               value.getEnvironment(),
               pConstraints.toArray(TreeConstraint[]::new));
       Optional<NumericState> newState = meet(temp);
-      if (manager instanceof org.sosy_lab.numericdomains.elina.PolyhedraManager) {
-        // do nothing
-        // Temporary fix for a problem, where a value can not be disposed correctly by elina.
-      } else {
-        temp.dispose();
-      }
+      temp.dispose();
       return newState;
-    }
+    } else {
+      Optional<Value> newAbs = value.meet(pConstraints.toArray(TreeConstraint[]::new));
 
-    Optional<Value> newAbs = value.meet(pConstraints.toArray(TreeConstraint[]::new));
-
-    if (newAbs.isPresent()) {
-      if (!newAbs.get().isBottom()) {
-        return Optional.of(new NumericState(manager, newAbs.get(), logger));
-      } else {
-        // If the new Value is the bottom value it can be ignored
-        newAbs.get().dispose();
+      if (newAbs.isPresent()) {
+        if (!newAbs.get().isBottom()) {
+          return Optional.of(new NumericState(newAbs.get(), logger));
+        } else {
+          // If the new Value is the bottom value it can be ignored
+          newAbs.get().dispose();
+        }
       }
-    }
 
-    return Optional.empty();
+      return Optional.empty();
+    }
   }
 
   @Override
   public boolean isLessOrEqual(NumericState pState2) {
-    return value.isLessOrEqual(pState2.value);
+    if (value.getEnvironment().checkCompatibility(pState2.getValue().getEnvironment())
+        == Compatibility.INCOMPATIBLE) {
+      throw new AssertionError("Could not compare states with incompatible environments.");
+    } else {
+      ReducedValues reducedValues = ReducedValues.reduceValues(value, pState2.getValue());
+      if (reducedValues.reducedB.isPresent() && reducedValues.reducedA.isPresent()) {
+        boolean isLeq = reducedValues.reducedA.get().isLessOrEqual(reducedValues.reducedB.get());
+        reducedValues.reducedA.get().dispose();
+        reducedValues.reducedB.get().dispose();
+        return isLeq;
+      } else {
+        if (reducedValues.reducedB.isPresent()) {
+          reducedValues.reducedB.get().dispose();
+        } else {
+          reducedValues.reducedA.get().dispose();
+        }
+        return false;
+      }
+    }
   }
 
   /**
@@ -149,7 +257,7 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
     Optional<Value> expandedValue = value.expand(pVariable, Set.of(copy));
 
     if (expandedValue.isPresent()) {
-      return new NumericState(manager, expandedValue.get(), logger);
+      return new NumericState(expandedValue.get(), logger);
     } else {
       throw new IllegalStateException(
           "Could not add a copy of the variable " + pVariable + " to the value." + value);
@@ -171,7 +279,7 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
     Optional<Value> newValue = value.addVariables(intVariables, realVariables, initialValue);
 
     if (newValue.isPresent()) {
-      return new NumericState(manager, newValue.get(), logger);
+      return new NumericState(newValue.get(), logger);
     } else {
       throw new IllegalStateException(
           "Could not add the integer variables "
@@ -193,7 +301,7 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
     Optional<Value> newValue = value.removeVariables(pVariables);
 
     if (newValue.isPresent()) {
-      return new NumericState(manager, newValue.get(), logger);
+      return new NumericState(newValue.get(), logger);
     } else {
       throw new IllegalStateException(
           "Could not remove the variables "
@@ -213,7 +321,7 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
   public NumericState forget(ImmutableSet<Variable> variables, NewVariableValue newVariableValue) {
     Optional<Value> newAbstractValue = value.forgetAll(variables, newVariableValue);
     if (newAbstractValue.isPresent()) {
-      return new NumericState(manager, newAbstractValue.get(), logger);
+      return new NumericState(newAbstractValue.get(), logger);
     } else {
       throw new IllegalStateException(
           "Could not forget value of variables " + variables + " in value " + value);
@@ -224,7 +332,7 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
     Optional<Value> newValue = value.assign(variable, expression);
 
     if (newValue.isPresent()) {
-      return new NumericState(manager, newValue.get(), logger);
+      return new NumericState(newValue.get(), logger);
     } else {
       throw new IllegalStateException(
           "Could not assign expression to variable. variable"
@@ -240,7 +348,7 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
    * @return a copy of the state containing a copy of the value
    */
   public NumericState createCopy() {
-    return new NumericState(manager, getValue().copy(), logger);
+    return new NumericState(getValue().copy(), logger, isLoopHead);
   }
 
   /** Returns the value representing the state. */
@@ -251,5 +359,81 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
   /** Returns the manager used with the value. */
   public Manager getManager() {
     return manager;
+  }
+
+  /** Checks whether the state contains a bottom value. */
+  public boolean isBottom() {
+    if (manager instanceof org.sosy_lab.numericdomains.apron.BoxManager) {
+      Interval[] intervals = value.toBox();
+      for (Interval interval : intervals) {
+        if (interval.isEmpty()) {
+          return true;
+        }
+      }
+      return false;
+    } else {
+      return value.isBottom();
+    }
+  }
+
+  /**
+   * Returns a state equal to this state with loop head set to true.
+   *
+   * <p>This does not copy the value of the state. Disposing the value of the original state will
+   * dispose the value in the copy.
+   */
+  NumericState getAsLoopHead() {
+    return new NumericState(value, logger, true);
+  }
+
+  /** Checks whether this state is a loop head. */
+  public boolean isLoopHead() {
+    return isLoopHead;
+  }
+
+  private static class ReducedValues {
+    private final Optional<Value> reducedA;
+    private final Optional<Value> reducedB;
+
+    public ReducedValues(Optional<Value> pNewValueA, Optional<Value> pNewValueB) {
+      reducedA = pNewValueA;
+      reducedB = pNewValueB;
+    }
+
+    private static Set<Variable> getAllVariables(Environment pEnvironment) {
+      ImmutableSet.Builder<Variable> variables = new ImmutableSet.Builder<>();
+      variables.addAll(Arrays.asList(pEnvironment.getIntVariables()));
+      variables.addAll(Arrays.asList(pEnvironment.getRealVariables()));
+      return variables.build();
+    }
+
+    private static Set<Variable> difference(Set<Variable> pVariablesA, Set<Variable> pVariablesB) {
+      Set<Variable> difference = new HashSet<>(pVariablesA);
+      difference.removeIf(pVariablesB::contains);
+      return ImmutableSet.copyOf(difference);
+    }
+
+    private static ReducedValues reduceValues(Value pValueA, Value pValueB) {
+      Set<Variable> variablesA = getAllVariables(pValueA.getEnvironment());
+      Set<Variable> variablesB = getAllVariables(pValueB.getEnvironment());
+
+      Collection<Variable> removalsA = difference(variablesA, variablesB);
+      Collection<Variable> removalsB = difference(variablesB, variablesA);
+
+      Optional<Value> newValueA;
+      if (removalsA.isEmpty()) {
+        newValueA = Optional.of(pValueA.copy());
+      } else {
+        newValueA = pValueA.removeVariables(removalsA);
+      }
+      Optional<Value> newValueB;
+      if (removalsB.isEmpty()) {
+        newValueB = Optional.of(pValueB.copy());
+      } else {
+        newValueB = pValueB.removeVariables(removalsB);
+      }
+
+      return new ReducedValues(newValueA, newValueB);
+    }
   }
 }

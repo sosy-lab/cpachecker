@@ -1861,13 +1861,33 @@ cpa.nondeterminism.acceptConstrained = true
 cpa.numeric.NumericTransferRelation.handledVariableTypes = INTEGERS_AND_DOUBLES
   enum:     [ONLY_INTEGERS, ONLY_DOUBLES, INTEGERS_AND_DOUBLES]
 
-# Use this to switch between domains of a library.
+# MergeOperation that should be used by the domain.
+cpa.numeric.mergeOperator = SEP
+  enum:     [SEP, JOIN, WIDENING, SEP_WIDENING]
+
+# Use this to switch between domains of a library. Note that not all domains
+# are accessible from each library.
 cpa.numeric.numericDomain = "OCTAGON"
   allowed values: [POLYHEDRA, OCTAGON, ZONES, BOX]
 
 # Use this to switch the underlying numerical library.
-cpa.numeric.numericLibrary = APRON
+cpa.numeric.numericLibrary = ELINA
   enum:     [ELINA, APRON]
+
+# Use this to select the file to which the precision will be exported.
+cpa.numeric.precisionExportFile = no default value
+
+# Timelimit for the backup feasibility check with the numeric analysis.(use
+# seconds or specify a unit; 0 for infinite)
+cpa.numeric.refiner.timeForNumericFeasibilityCheck = 0ns
+
+# Use this to set the initial precision type of the CPA.
+cpa.numeric.startingPrecision = FULL
+  enum:     [FULL, REFINABLE_FROM_FILE, REFINABLE_EMPTY]
+
+# Use this to select the file containing the initial precision, if the
+# starting precision is set to be read from file.
+cpa.numeric.startingPrecisionFile = no default value
 
 # this option determines which initial precision should be used
 cpa.octagon.initialPrecisionType = "STATIC_FULL"

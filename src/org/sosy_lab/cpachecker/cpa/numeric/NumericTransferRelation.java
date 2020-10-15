@@ -32,6 +32,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
@@ -60,6 +61,7 @@ public class NumericTransferRelation
         Collection<NumericState>, NumericState, VariableTrackingPrecision> {
 
   private final LogManager logger;
+  private boolean useLoopInformation;
 
   @Option(
       secure = true,
@@ -68,11 +70,16 @@ public class NumericTransferRelation
       description = "Use this to set which type of variables should be handled.")
   private HandleNumericTypes handledVariableTypes = HandleNumericTypes.INTEGERS_AND_DOUBLES;
 
-  NumericTransferRelation(Configuration config, LogManager logManager)
+  NumericTransferRelation(Configuration config, LogManager pLogManager)
       throws InvalidConfigurationException {
     config.inject(this);
-    logger = logManager;
+    logger = pLogManager;
     logger.log(Level.CONFIG, handledVariableTypes);
+    useLoopInformation = false;
+  }
+
+  void setUseLoopInformation() {
+    useLoopInformation = true;
   }
 
   @Override
@@ -86,26 +93,28 @@ public class NumericTransferRelation
       CAssumeEdge cfaEdge, CExpression cExpression, boolean truthAssumption)
       throws UnrecognizedCodeException {
     return cExpression.accept(
-        new NumericAssumptionHandler(state, handledVariableTypes, truthAssumption, logger));
+        new NumericAssumptionHandler(
+            state, handledVariableTypes, truthAssumption, cfaEdge, precision, logger));
   }
 
   @Override
   protected Collection<NumericState> handleDeclarationEdge(
       CDeclarationEdge cfaEdge, CDeclaration declaration) throws UnrecognizedCodeException {
-    NumericState successor =
-        declaration.accept(new NumericDeclarationVisitor(state, logger, handledVariableTypes));
-
-    if (successor != null) {
-      return ImmutableSet.of(successor);
+    Collection<NumericState> successors =
+        declaration.accept(
+            new NumericDeclarationVisitor(state, handledVariableTypes, cfaEdge, precision, logger));
+    if (!successors.isEmpty()) {
+      return successors;
     } else {
-      return ImmutableSet.of(state);
+      return ImmutableSet.of(state.createCopy());
     }
   }
 
   @Override
   protected Collection<NumericState> handleStatementEdge(
       CStatementEdge cfaEdge, CStatement statement) throws UnrecognizedCodeException {
-    return statement.accept(new NumericStatementVisitor(state, logger, handledVariableTypes));
+    return statement.accept(
+        new NumericStatementVisitor(state, cfaEdge, handledVariableTypes, precision, logger));
   }
 
   @Override
@@ -124,15 +133,23 @@ public class NumericTransferRelation
         // Do nothing for types that aren't handled by the cpa
         continue;
       }
-      Variable variable = createVariableFromDeclaration(declaration);
+      Optional<NumericVariable> variable =
+          NumericVariable.valueOf(
+              declaration, cfaEdge.getSuccessor(), precision, state.getManager(), logger);
+
+      if (variable.isEmpty()) {
+        continue;
+      }
+
       CSimpleType declarationType = (CSimpleType) declaration.getType();
 
-      if (declarationType.getType().isFloatingPointType()) {
-        realVariables.add(variable);
-      } else {
-        integerVariables.add(variable);
+      if (declarationType.getType().isFloatingPointType() && handledVariableTypes.handleReals()) {
+        realVariables.add(variable.get());
+      } else if (declarationType.getType().isIntegerType()
+          && handledVariableTypes.handleIntegers()) {
+        integerVariables.add(variable.get());
       }
-      if (state.getValue().getEnvironment().containsVariable(variable)) {
+      if (state.getValue().getEnvironment().containsVariable(variable.get())) {
         throw new IllegalStateException("Variable is already contained in environment.");
       }
     }
@@ -148,8 +165,10 @@ public class NumericTransferRelation
     for (int i = 0; i < parameters.size(); i++) {
       Collection<NumericState> tempStates =
           assignParameterValue(
-              arguments.get(i), parameters.get(i), successors, extendedEnvironment);
-      disposeAll(successors);
+              arguments.get(i), parameters.get(i), successors, cfaEdge, extendedEnvironment);
+      if (successors != tempStates) {
+        disposeAll(successors);
+      }
       successors = tempStates;
     }
     return successors;
@@ -159,6 +178,7 @@ public class NumericTransferRelation
       CExpression expression,
       CParameterDeclaration declaration,
       Collection<NumericState> pStates,
+      CFAEdge pCfaEdge,
       Environment pEnvironment)
       throws UnrecognizedCodeException {
     if (expression == null || declaration == null || pStates == null) {
@@ -168,24 +188,36 @@ public class NumericTransferRelation
       throw new IllegalArgumentException("pStates can not be empty.");
     }
 
-    Variable variable = createVariableFromDeclaration(declaration);
-    logger.log(Level.FINEST, "ApplyAssignmentConstraints", variable, expression);
+    Optional<NumericVariable> variable =
+        NumericVariable.valueOf(
+            declaration, pCfaEdge.getSuccessor(), precision, state.getManager(), logger);
 
-    ImmutableSet.Builder<NumericState> statesBuilder = new ImmutableSet.Builder<>();
-    Collection<PartialState> partialAssignments =
-        expression.accept(
-            new NumericRightHandSideVisitor(pEnvironment, handledVariableTypes, logger));
-    for (PartialState partialAssignment : partialAssignments) {
-      ImmutableList.Builder<NumericState> successorCandidates = new ImmutableList.Builder<>();
-      for (NumericState current : pStates) {
-        successorCandidates.add(current.createCopy());
-      }
+    if (variable.isPresent()) {
+      logger.log(Level.FINEST, "ApplyAssignmentConstraints", variable, expression);
+      ImmutableSet.Builder<NumericState> statesBuilder = new ImmutableSet.Builder<>();
+      Collection<PartialState> partialAssignments =
+          expression.accept(
+              new NumericRightHandSideVisitor(
+                  pEnvironment,
+                  state.getManager(),
+                  handledVariableTypes,
+                  pCfaEdge,
+                  precision,
+                  logger));
+      for (PartialState partialAssignment : partialAssignments) {
+        ImmutableList.Builder<NumericState> successorCandidates = new ImmutableList.Builder<>();
+        for (NumericState current : pStates) {
+          successorCandidates.add(current.createCopy());
+        }
 
-      if (pEnvironment.containsVariable(variable)) {
-        AssignParameter(variable, statesBuilder, partialAssignment, successorCandidates);
+        if (pEnvironment.containsVariable(variable.get())) {
+          AssignParameter(variable.get(), statesBuilder, partialAssignment, successorCandidates);
+        }
       }
+      return statesBuilder.build();
+    } else {
+      return pStates;
     }
-    return statesBuilder.build();
   }
 
   private void AssignParameter(
@@ -195,6 +227,7 @@ public class NumericTransferRelation
       ImmutableList.Builder<NumericState> pSuccessorCandidates) {
     Collection<TreeConstraint> assignmentConstraints = partialAssignment.getConstraints();
     // Meet the constraints and then assign the value
+
     for (NumericState successorCandidate : pSuccessorCandidates.build()) {
       Optional<NumericState> tempState = successorCandidate.meet(assignmentConstraints);
       Optional<NumericState> out =
@@ -242,19 +275,31 @@ public class NumericTransferRelation
           cfaEdge.getSuccessor().getEntryNode().getReturnVariable().toJavaUtil();
 
       if (declaration.isPresent() && declaration.get() instanceof CVariableDeclaration) {
-        NumericState intermediateStates =
+        assert ((CVariableDeclaration) declaration.get()).getInitializer() == null;
+        Collection<NumericState> intermediateStates =
             ((CDeclaration) declaration.get())
-                .accept(new NumericDeclarationVisitor(state, logger, handledVariableTypes));
-        Collection<NumericState> statesAfterAssignment =
-            assignment
-                .get()
                 .accept(
-                    new NumericStatementVisitor(intermediateStates, logger, handledVariableTypes));
-        // Dispose of value in intermediate state
-        if (!statesAfterAssignment.contains(intermediateStates)) {
-          intermediateStates.getValue().dispose();
+                    new NumericDeclarationVisitor(
+                        state, handledVariableTypes, cfaEdge, precision, logger));
+        // The declaration of the return variable does not contain an initializer and therefore can
+        // only return exactly one state.
+        assert intermediateStates.size() == 1;
+
+        ImmutableSet.Builder<NumericState> statesAfterAssignment = new ImmutableSet.Builder<>();
+        for (NumericState intermediateState : intermediateStates) {
+          Collection<NumericState> assigned =
+              assignment
+                  .get()
+                  .accept(
+                      new NumericStatementVisitor(
+                          intermediateState, cfaEdge, handledVariableTypes, precision, logger));
+          // Dispose of value in intermediate state
+          if (!assigned.contains(intermediateState)) {
+            intermediateState.getValue().dispose();
+          }
+          statesAfterAssignment.addAll(assigned);
         }
-        return statesAfterAssignment;
+        return statesAfterAssignment.build();
       }
     }
 
@@ -277,27 +322,38 @@ public class NumericTransferRelation
         throw new IllegalStateException("Can not handle CAssignment without return value.");
       }
 
-      Variable returnVariable = createVariableFromDeclaration(returnVarDeclaration.get());
-      Collection<NumericState> tempStates =
-          assignment.accept(
-              new NumericStatementVisitor(state, handledVariableTypes, returnVariable, logger));
-      ImmutableSet.Builder<NumericState> successorsBuilder = new ImmutableSet.Builder<>();
-      for (NumericState tempState : tempStates) {
-        successorsBuilder.add(tempState.removeVariables(ImmutableSet.of(returnVariable)));
-        tempState.getValue().dispose();
+      Optional<NumericVariable> returnVariable =
+          NumericVariable.valueOf(
+              returnVarDeclaration.get(),
+              cfaEdge.getSuccessor(),
+              precision,
+              state.getManager(),
+              logger);
+      if (returnVariable.isPresent()) {
+        Collection<NumericState> tempStates =
+            assignment.accept(
+                new NumericStatementVisitor(
+                    state, handledVariableTypes, returnVariable.get(), cfaEdge, precision, logger));
+        ImmutableSet.Builder<NumericState> successorsBuilder = new ImmutableSet.Builder<>();
+        for (NumericState tempState : tempStates) {
+          successorsBuilder.add(tempState.removeVariables(ImmutableSet.of(returnVariable.get())));
+          tempState.getValue().dispose();
+        }
+        return successorsBuilder.build();
       }
-      return successorsBuilder.build();
-    } else {
-      // nothing to do
-      return ImmutableSet.of(state);
     }
+
+    // nothing to do if return Variable was not tracked
+    return ImmutableSet.of(state.createCopy());
   }
 
   private Collection<Variable> createOutOfScopeVariables(
-      Collection<CSimpleDeclaration> declarations) {
+      Collection<CSimpleDeclaration> declarations, CFANode pCfaNode) {
     ImmutableSet.Builder<Variable> outOfScopeBuilder = new ImmutableSet.Builder<>();
     for (CSimpleDeclaration declaration : declarations) {
-      outOfScopeBuilder.add(createVariableFromDeclaration(declaration));
+      Optional<NumericVariable> variable =
+          NumericVariable.valueOf(declaration, pCfaNode, precision, state.getManager(), logger);
+      variable.ifPresent(var -> outOfScopeBuilder.add(var));
     }
     return outOfScopeBuilder.build();
   }
@@ -320,8 +376,8 @@ public class NumericTransferRelation
 
     ImmutableSet.Builder<NumericState> successorsBuilder = new ImmutableSet.Builder<>();
 
-    for (NumericState newState : pStates) {
-      successorsBuilder.add(newState.removeVariables(pVariables));
+    for (NumericState pState : pStates) {
+      successorsBuilder.add(pState.removeVariables(pVariables));
     }
 
     return successorsBuilder.build();
@@ -332,9 +388,19 @@ public class NumericTransferRelation
     ImmutableSet.Builder<NumericState> stateBuilder = new ImmutableSet.Builder<>();
 
     for (NumericState tempState : pStates) {
-      if (!tempState.getValue().isBottom()) {
+      if (!tempState.isBottom()) {
         stateBuilder.add(tempState);
       }
+    }
+
+    return stateBuilder.build();
+  }
+
+  Collection<NumericState> setLoopHead(Collection<NumericState> pStates) {
+    ImmutableSet.Builder<NumericState> stateBuilder = new ImmutableSet.Builder<>();
+
+    for (NumericState tempState : pStates) {
+      stateBuilder.add(tempState.getAsLoopHead());
     }
 
     return stateBuilder.build();
@@ -346,29 +412,36 @@ public class NumericTransferRelation
     if (successors == null) {
       return ImmutableSet.of();
     } else {
+      // Set states as loop head if necessary
+      Collection<NumericState> setLoopHeadStates;
+      if (useLoopInformation && edge.getSuccessor().isLoopStart()) {
+        setLoopHeadStates = setLoopHead(successors);
+      } else {
+        setLoopHeadStates = successors;
+      }
+
       // Remove out of scope variables from each successor
       Collection<Variable> outOfScopeVariables =
-          createOutOfScopeVariables(edge.getSuccessor().getOutOfScopeVariables());
-      Collection<NumericState> newSuccessors =
-          removeVariablesFromEach(outOfScopeVariables, successors);
+          createOutOfScopeVariables(
+              edge.getSuccessor().getOutOfScopeVariables(), edge.getSuccessor());
+      Collection<NumericState> reducedSuccessors =
+          removeVariablesFromEach(outOfScopeVariables, setLoopHeadStates);
 
       if (logger.wouldBeLogged(Level.FINEST)) {
-        for (NumericState successor : newSuccessors) {
-          logger.log(Level.FINEST, edge.getEdgeType(), edge.getCode(), "successor:", successor);
+        for (NumericState successor : reducedSuccessors) {
+          logger.log(
+              Level.FINEST,
+              edge.getEdgeType(),
+              edge.getCode(),
+              "successor:",
+              successor,
+              "as Interval:",
+              successor.getValue().toIntervalString(false));
         }
       }
-      return ImmutableSet.copyOf(newSuccessors);
-    }
-  }
 
-  /**
-   * Creates the name of the variable by its declaration.
-   *
-   * @param pDeclaration declaration from which the variable should be created
-   * @return variable which is described by the declaration
-   */
-  public static Variable createVariableFromDeclaration(CSimpleDeclaration pDeclaration) {
-    return new Variable(pDeclaration.getQualifiedName());
+      return reducedSuccessors;
+    }
   }
 
   /** Sets which variable types should be considered. */

@@ -22,16 +22,14 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.numeric.NumericState;
-import org.sosy_lab.cpachecker.cpa.numeric.NumericTransferRelation;
 import org.sosy_lab.cpachecker.cpa.numeric.NumericTransferRelation.HandleNumericTypes;
+import org.sosy_lab.cpachecker.cpa.numeric.NumericVariable;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.numericdomains.Value.NewVariableValue;
-import org.sosy_lab.numericdomains.constraint.ConstraintType;
-import org.sosy_lab.numericdomains.constraint.TreeConstraint;
-import org.sosy_lab.numericdomains.constraint.tree.BinaryOperator;
-import org.sosy_lab.numericdomains.constraint.tree.BinaryTreeNode;
+import org.sosy_lab.numericdomains.coefficients.Interval;
 import org.sosy_lab.numericdomains.constraint.tree.ConstantTreeNode;
 import org.sosy_lab.numericdomains.constraint.tree.TreeNode;
 import org.sosy_lab.numericdomains.constraint.tree.VariableTreeNode;
@@ -50,14 +48,33 @@ public class NumericStatementVisitor
   private final Optional<Variable> returnVariable;
 
   private final LogManager logger;
+
   private final HandleNumericTypes handledTypes;
 
+  private final VariableTrackingPrecision precision;
+
+  private final CFAEdge edge;
+
+  /**
+   * Creates a NumericStatementVisitor.
+   *
+   * @param pState current state
+   * @param cfaEdge current edge
+   * @param pHandledTypes defines which types should be handled in the statement
+   * @param pPrecision precision of the CPA
+   */
   public NumericStatementVisitor(
-      NumericState pState, LogManager logManager, HandleNumericTypes pHandledTypes) {
+      NumericState pState,
+      CFAEdge cfaEdge,
+      HandleNumericTypes pHandledTypes,
+      VariableTrackingPrecision pPrecision,
+      LogManager logManager) {
     state = pState;
     returnVariable = Optional.empty();
     logger = logManager;
     handledTypes = pHandledTypes;
+    edge = cfaEdge;
+    precision = pPrecision;
   }
 
   /**
@@ -66,65 +83,58 @@ public class NumericStatementVisitor
    * <p>The return variable should only be set for {@link CFunctionCallAssignmentStatement}s. For
    * other statements, the value is ignored.
    *
-   * @param pState state for which the statement visitor is created
-   * @param pHandledTypes specifies which types should be handled
+   * @param pState current state
+   * @param pHandledTypes defines which types should be handled in the statement
    * @param pReturnVariable return variable used for a CFunctionCallAssignmentStatement
+   * @param cfaEdge current edge
+   * @param pPrecision precision of the CPA
    */
   public NumericStatementVisitor(
       NumericState pState,
       HandleNumericTypes pHandledTypes,
       @Nullable Variable pReturnVariable,
+      CFAEdge cfaEdge,
+      VariableTrackingPrecision pPrecision,
       LogManager logManager) {
     state = pState;
     returnVariable = Optional.ofNullable(pReturnVariable);
     logger = logManager;
     handledTypes = pHandledTypes;
+    edge = cfaEdge;
+    precision = pPrecision;
   }
 
   @Override
   public Collection<NumericState> visit(CExpressionStatement pIastExpressionStatement)
       throws UnrecognizedCodeException {
-    throw new UnsupportedOperationException();
+    return ImmutableSet.of(state.createCopy());
   }
 
   @Override
   public Collection<NumericState> visit(
       CExpressionAssignmentStatement pIastExpressionAssignmentStatement)
       throws UnrecognizedCodeException {
-
     if (!(pIastExpressionAssignmentStatement.getLeftHandSide() instanceof CIdExpression)) {
-      throw new UnrecognizedCodeException(
-          "Left hand side is not a Variable.", pIastExpressionAssignmentStatement);
+      return ImmutableSet.of(state.createCopy());
     }
 
     CSimpleDeclaration declaration =
         ((CIdExpression) pIastExpressionAssignmentStatement.getLeftHandSide()).getDeclaration();
 
-    boolean isIntegerVariable;
-
-    // Check if the type should be handled
-    if (declaration.getType() instanceof CSimpleType) {
-      CSimpleType type = (CSimpleType) declaration.getType();
-      isIntegerVariable = type.getType().isIntegerType();
-      if ((isIntegerVariable && handledTypes.handleIntegers())
-          || (!isIntegerVariable && handledTypes.handleReals())) {
-      } else {
-        return ImmutableSet.of(state.createCopy());
-      }
-    } else {
+    // Create variable to which the value is assigned
+    Optional<NumericVariable> variable =
+        NumericVariable.valueOf(
+            declaration, edge.getSuccessor(), precision, state.getManager(), logger);
+    if (variable.isEmpty()) {
       return ImmutableSet.of(state.createCopy());
     }
 
-    // Create variable to which the value is assigned
-    Variable variable = NumericTransferRelation.createVariableFromDeclaration(declaration);
-
     final NumericState extendedState;
-
-    if (state.getValue().getEnvironment().containsVariable(variable)) {
+    if (state.getValue().getEnvironment().containsVariable(variable.get())) {
       extendedState = state.createCopy();
     } else {
-      Collection<Variable> newVariable = ImmutableSet.of(variable);
-      if (isIntegerVariable) {
+      Collection<Variable> newVariable = ImmutableSet.of(variable.get());
+      if (variable.get().getSimpleType().getType().isIntegerType()) {
         extendedState = state.addVariables(newVariable, ImmutableSet.of(), NewVariableValue.ZERO);
       } else {
         extendedState =
@@ -137,13 +147,18 @@ public class NumericStatementVisitor
             .getRightHandSide()
             .accept(
                 new NumericRightHandSideVisitor(
-                    extendedState.getValue().getEnvironment(), handledTypes, logger));
+                    extendedState.getValue().getEnvironment(),
+                    state.getManager(),
+                    handledTypes,
+                    edge,
+                    precision,
+                    logger));
 
-    ImmutableList.Builder<NumericState> successors = new ImmutableList.Builder<>();
+    ImmutableList.Builder<NumericState> successorsBuilder = new ImmutableList.Builder<>();
 
     for (PartialState partialState : expressions) {
       NumericState newState =
-          extendedState.assignTreeExpression(variable, partialState.getPartialConstraint());
+          extendedState.assignTreeExpression(variable.get(), partialState.getPartialConstraint());
       if (logger.wouldBeLogged(Level.FINEST)) {
         logger.log(
             Level.FINEST,
@@ -158,13 +173,14 @@ public class NumericStatementVisitor
             newState.getValue().isBottom());
       }
       if (!newState.getValue().isBottom()) {
-        successors.add(newState);
+        successorsBuilder.add(newState);
+      } else {
+        // Dispose value that will not be used
+        newState.getValue().dispose();
       }
     }
-
     extendedState.getValue().dispose();
-
-    return successors.build();
+    return successorsBuilder.build();
   }
 
   @Override
@@ -172,18 +188,30 @@ public class NumericStatementVisitor
       CFunctionCallAssignmentStatement pIastFunctionCallAssignmentStatement)
       throws UnrecognizedCodeException {
     if (pIastFunctionCallAssignmentStatement.getLeftHandSide() instanceof CIdExpression) {
-      Variable variable =
-          NumericTransferRelation.createVariableFromDeclaration(
-              ((CIdExpression) pIastFunctionCallAssignmentStatement.getLeftHandSide())
-                  .getDeclaration());
-      if (state.getValue().getEnvironment().containsVariable(variable)) {
+      CIdExpression expression =
+          (CIdExpression) pIastFunctionCallAssignmentStatement.getLeftHandSide();
+      Optional<NumericVariable> variable =
+          NumericVariable.valueOf(
+              expression.getDeclaration(),
+              edge.getSuccessor(),
+              precision,
+              state.getManager(),
+              logger);
+
+      if (variable.isPresent()
+          && state.getValue().getEnvironment().containsVariable(variable.get())) {
         if (returnVariable.isPresent()) {
-          return handleReturnVariable(variable);
+          return handleReturnVariable(variable.get());
         } else {
           // Function is extern, so the value can not be constrained
+          Interval interval;
+          if (variable.get().getSimpleType().isUnsigned()) {
+            interval = PartialState.UNSIGNED_UNCONSTRAINED_INTERVAL;
+          } else {
+            interval = PartialState.UNCONSTRAINED_INTERVAL;
+          }
           NumericState newState =
-              state.assignTreeExpression(
-                  variable, new ConstantTreeNode(PartialState.UNCONSTRAINED_INTERVAL));
+              state.assignTreeExpression(variable.get(), new ConstantTreeNode(interval));
           return ImmutableSet.of(newState);
         }
       }
@@ -194,22 +222,9 @@ public class NumericStatementVisitor
   }
 
   private Collection<NumericState> handleReturnVariable(Variable variable) {
-    TreeNode left = new VariableTreeNode(variable);
     TreeNode right = new VariableTreeNode(returnVariable.get());
-    TreeNode root = new BinaryTreeNode(BinaryOperator.SUBTRACT, left, right);
-    TreeConstraint setEqual =
-        new TreeConstraint(state.getValue().getEnvironment(), ConstraintType.EQUALS, null, root);
-
-    // set variable to unconstrained before assignment
-    NumericState newState = state.forget(ImmutableSet.of(variable), NewVariableValue.UNCONSTRAINED);
-
-    Optional<NumericState> out = newState.meet(ImmutableSet.of(setEqual));
-    newState.getValue().dispose();
-    if (out.isPresent()) {
-      return ImmutableSet.of(out.get());
-    } else {
-      return ImmutableSet.of();
-    }
+    NumericState newState = state.assignTreeExpression(variable, right);
+    return ImmutableSet.of(newState);
   }
 
   @Override

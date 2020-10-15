@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableSet;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.EnumSet;
-import java.util.logging.Level;
+import java.util.Optional;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.common.rationals.ExtendedRational;
 import org.sosy_lab.common.rationals.Rational;
@@ -33,12 +33,15 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSideVisitor;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStringLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CTypeIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
-import org.sosy_lab.cpachecker.cpa.numeric.NumericTransferRelation;
+import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.numeric.NumericTransferRelation.HandleNumericTypes;
+import org.sosy_lab.cpachecker.cpa.numeric.NumericVariable;
 import org.sosy_lab.cpachecker.cpa.numeric.visitor.PartialState.ApplyEpsilon;
 import org.sosy_lab.cpachecker.cpa.numeric.visitor.PartialState.TruthAssumption;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.numericdomains.Manager;
 import org.sosy_lab.numericdomains.coefficients.Coefficient;
 import org.sosy_lab.numericdomains.coefficients.MpqScalar;
 import org.sosy_lab.numericdomains.constraint.tree.BinaryOperator;
@@ -48,7 +51,6 @@ import org.sosy_lab.numericdomains.constraint.tree.TreeNode;
 import org.sosy_lab.numericdomains.constraint.tree.UnaryOperator;
 import org.sosy_lab.numericdomains.constraint.tree.VariableTreeNode;
 import org.sosy_lab.numericdomains.environment.Environment;
-import org.sosy_lab.numericdomains.environment.Variable;
 
 /**
  * Creates a right hand side visitor for numeric domains.
@@ -64,20 +66,37 @@ public class NumericRightHandSideVisitor
    */
   private final Environment environment;
 
+  private final Manager manager;
+
   private final HandleNumericTypes handledTypes;
+
+  private final VariableTrackingPrecision precision;
+
+  private final CFAEdge edge;
 
   private final LogManager logger;
 
   /**
    * Creates a right hand side visitor for numeric domains.
    *
-   * @param pEnvironment environment of the right hand side encountered in the right hand side
+   * @param pEnvironment environment of the state for which this is called
+   * @param pManager manager used in the CPA
    * @param pHandledTypes specifies which numeric types should be handled
+   * @param cfaEdge current cfaEdge
+   * @param pPrecision precision of the current CPA
    */
   public NumericRightHandSideVisitor(
-      Environment pEnvironment, HandleNumericTypes pHandledTypes, LogManager pLogManager) {
+      Environment pEnvironment,
+      Manager pManager,
+      HandleNumericTypes pHandledTypes,
+      CFAEdge cfaEdge,
+      VariableTrackingPrecision pPrecision,
+      LogManager pLogManager) {
     environment = pEnvironment;
     handledTypes = pHandledTypes;
+    edge = cfaEdge;
+    precision = pPrecision;
+    manager = pManager;
     logger = pLogManager;
   }
 
@@ -98,7 +117,10 @@ public class NumericRightHandSideVisitor
       newExpressions =
           handleComparisonOperator(pIastBinaryExpression, leftExpression, rightExpression);
     } else {
-      newExpressions = ImmutableSet.of();
+      newExpressions =
+          ImmutableSet.of(
+              new PartialState(
+                  new ConstantTreeNode(PartialState.UNCONSTRAINED_INTERVAL), ImmutableSet.of()));
     }
 
     return newExpressions;
@@ -184,7 +206,10 @@ public class NumericRightHandSideVisitor
   @Override
   public Collection<PartialState> visit(CCharLiteralExpression pIastCharLiteralExpression)
       throws UnrecognizedCodeException {
-    throw new UnsupportedOperationException();
+    char value = pIastCharLiteralExpression.getValue();
+    Coefficient coeff = MpqScalar.of((int) value);
+    PartialState partialState = new PartialState(new ConstantTreeNode(coeff), ImmutableSet.of());
+    return ImmutableSet.of(partialState);
   }
 
   @Override
@@ -210,13 +235,13 @@ public class NumericRightHandSideVisitor
   @Override
   public Collection<PartialState> visit(CStringLiteralExpression pIastStringLiteralExpression)
       throws UnrecognizedCodeException {
-    throw new UnsupportedOperationException();
+    return ImmutableSet.of(createUnconstrainedPartialState(false));
   }
 
   @Override
   public Collection<PartialState> visit(CTypeIdExpression pIastTypeIdExpression)
       throws UnrecognizedCodeException {
-    throw new UnsupportedOperationException();
+    return ImmutableSet.of(createUnconstrainedPartialState(false));
   }
 
   @Override
@@ -232,33 +257,37 @@ public class NumericRightHandSideVisitor
         return PartialState.applyUnaryArithmeticOperator(
             UnaryOperator.NEGATE, states, roundingType, PartialState.DEFAULT_ROUNDING_MODE);
       default:
-        throw new UnrecognizedCodeException(
-            "Cant handle unary expression: " + operator, pIastUnaryExpression);
+        TreeNode unconstrained = new ConstantTreeNode(PartialState.UNCONSTRAINED_INTERVAL);
+        ImmutableSet.Builder<PartialState> unconstrainedStates = new ImmutableSet.Builder<>();
+        for (PartialState state : states) {
+          unconstrainedStates.add(new PartialState(unconstrained, state.getConstraints()));
+        }
+        return unconstrainedStates.build();
     }
   }
 
   @Override
   public Collection<PartialState> visit(CImaginaryLiteralExpression PIastLiteralExpression)
       throws UnrecognizedCodeException {
-    throw new UnsupportedOperationException();
+    return ImmutableSet.of(createUnconstrainedPartialState(true));
   }
 
   @Override
   public Collection<PartialState> visit(CAddressOfLabelExpression pAddressOfLabelExpression)
       throws UnrecognizedCodeException {
-    throw new UnsupportedOperationException();
+    return ImmutableSet.of(createUnconstrainedPartialState(true));
   }
 
   @Override
   public Collection<PartialState> visit(CArraySubscriptExpression pIastArraySubscriptExpression)
       throws UnrecognizedCodeException {
-    throw new UnsupportedOperationException();
+    return ImmutableSet.of(createUnconstrainedPartialState(true));
   }
 
   @Override
   public Collection<PartialState> visit(CFieldReference pIastFieldReference)
       throws UnrecognizedCodeException {
-    throw new UnsupportedOperationException();
+    return ImmutableSet.of(createUnconstrainedPartialState(true));
   }
 
   @Override
@@ -266,44 +295,49 @@ public class NumericRightHandSideVisitor
       throws UnrecognizedCodeException {
 
     if (pIastIdExpression.getDeclaration().getType() instanceof CSimpleType) {
-      CSimpleType type = (CSimpleType) pIastIdExpression.getDeclaration().getType();
-      if ((type.getType().isFloatingPointType() && handledTypes.handleReals())
-          || (type.getType().isIntegerType() && handledTypes.handleIntegers())) {
-        final Variable variable =
-            NumericTransferRelation.createVariableFromDeclaration(
-                pIastIdExpression.getDeclaration());
-        TreeNode node = new VariableTreeNode(variable);
+      Optional<NumericVariable> variable =
+          NumericVariable.valueOf(
+              pIastIdExpression.getDeclaration(), edge.getSuccessor(), precision, manager, logger);
+      if (variable.isPresent()
+          && ((variable.get().getSimpleType().getType().isFloatingPointType()
+                  && handledTypes.handleReals())
+              || (variable.get().getSimpleType().getType().isIntegerType()
+                  && handledTypes.handleIntegers()))) {
+        TreeNode node = new VariableTreeNode(variable.get());
         PartialState out = new PartialState(node, ImmutableSet.of());
         return ImmutableSet.of(out);
+      } else {
+        return ImmutableSet.of(
+            createUnconstrainedPartialState(variable.get().getSimpleType().isSigned()));
       }
     }
-
-    logger.log(
-        Level.FINEST,
-        "Unhandled variable",
-        pIastIdExpression,
-        "substituted with [-Infinity, Infinity].");
     // Type can not be handled therefore it is substituted with an unconstrained value:
-    return ImmutableSet.of(createUnconstrainedPartialState());
+    return ImmutableSet.of(createUnconstrainedPartialState(true));
   }
 
-  private PartialState createUnconstrainedPartialState() {
-    return new PartialState(
-        new ConstantTreeNode(PartialState.UNCONSTRAINED_INTERVAL), ImmutableSet.of());
+  private PartialState createUnconstrainedPartialState(boolean isSigned) {
+    if (isSigned) {
+      return new PartialState(
+          new ConstantTreeNode(PartialState.UNCONSTRAINED_INTERVAL), ImmutableSet.of());
+    } else {
+      return new PartialState(
+          new ConstantTreeNode(PartialState.UNSIGNED_UNCONSTRAINED_INTERVAL), ImmutableSet.of());
+    }
   }
 
   @Override
   public Collection<PartialState> visit(CPointerExpression pointerExpression)
       throws UnrecognizedCodeException {
-    throw new UnsupportedOperationException();
+    return ImmutableSet.of(createUnconstrainedPartialState(true));
   }
 
   @Override
   public Collection<PartialState> visit(CComplexCastExpression complexCastExpression)
       throws UnrecognizedCodeException {
-    throw new UnsupportedOperationException();
+    return ImmutableSet.of(createUnconstrainedPartialState(true));
   }
 
+  /** Defines arithmetic operators that can be interpreted in this visitor. */
   private static final EnumSet<CBinaryExpression.BinaryOperator> arithmeticOperators =
       EnumSet.of(
           CBinaryExpression.BinaryOperator.PLUS,
@@ -312,6 +346,7 @@ public class NumericRightHandSideVisitor
           CBinaryExpression.BinaryOperator.MULTIPLY,
           CBinaryExpression.BinaryOperator.MODULO);
 
+  /** Defines comparison operators that can be interpreted in this visitor. */
   private static final EnumSet<CBinaryExpression.BinaryOperator> comparisonOperators =
       EnumSet.of(
           CBinaryExpression.BinaryOperator.EQUALS,
@@ -322,12 +357,17 @@ public class NumericRightHandSideVisitor
           CBinaryExpression.BinaryOperator.LESS_EQUAL,
           CBinaryExpression.BinaryOperator.LESS_THAN);
 
-  private static boolean checkIsFloatComparison(CBinaryExpression pIastBinaryExpression) {
-    CSimpleType typeOperand1 =
-        (CSimpleType) pIastBinaryExpression.getOperand1().getExpressionType();
-    CSimpleType typeOperand2 =
-        (CSimpleType) pIastBinaryExpression.getOperand2().getExpressionType();
-    return (typeOperand1.getType().isFloatingPointType()
-        || typeOperand2.getType().isFloatingPointType());
+  private boolean checkIsFloatComparison(CBinaryExpression pIastBinaryExpression) {
+    if (pIastBinaryExpression.getOperand1().getExpressionType() instanceof CSimpleType
+        && pIastBinaryExpression.getOperand2().getExpressionType() instanceof CSimpleType) {
+      CSimpleType typeOperand1 =
+          (CSimpleType) pIastBinaryExpression.getOperand1().getExpressionType();
+      CSimpleType typeOperand2 =
+          (CSimpleType) pIastBinaryExpression.getOperand2().getExpressionType();
+      return (typeOperand1.getType().isFloatingPointType()
+          || typeOperand2.getType().isFloatingPointType());
+    } else {
+      return false;
+    }
   }
 }
