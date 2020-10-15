@@ -33,7 +33,7 @@ import benchexec.tablegenerator
 benchexec.tablegenerator.DEFAULT_OUTPUT_PATH = "test/results/"
 benchexec.tablegenerator.LIB_URL = "https://www.sosy-lab.org/lib"
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         sys.exit(benchexec.tablegenerator.main())
     except KeyboardInterrupt:
