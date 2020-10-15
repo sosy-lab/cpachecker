@@ -210,7 +210,8 @@ public class PJBDDRegionManager implements RegionManager {
     @Option(
         secure = true,
         description =
-            "Initial size of the BDD node table in percentage of available Java heap memory (only used if initTableSize is 0).")
+            "Initial size of the BDD node table in percentage of available Java heap memory (only"
+                + " used if initTableSize is 0).")
     private double initTableRatio = 0.001;
 
     @Option(
@@ -222,27 +223,22 @@ public class PJBDDRegionManager implements RegionManager {
     @Option(
         secure = true,
         description =
-            "Size of the BDD cache in relation to the node table size (set to 0 to use fixed BDD cache size).")
+            "Size of the BDD cache in relation to the node table size (set to 0 to use fixed BDD"
+                + " cache size).")
     private double cacheRatio = 0.1;
 
     @Option(
         secure = true,
         description =
-            "Threadsafe reference counting is very costly, with this option gc can be disabled. Only applicable with useInts = true.")
+            "Threadsafe reference counting is very costly, with this option gc can be disabled."
+                + " Only applicable with useInts = true.")
     private boolean disableGC = false;
 
-    @Option(
-        secure = true,
-        description =
-            "Use internal a int based bdd representation.")
+    @Option(secure = true, description = "Use internal a int based bdd representation.")
     private boolean useInts = false;
 
-    @Option(
-        secure = true,
-        description =
-            "Use bdd chaining.")
+    @Option(secure = true, description = "Use bdd chaining.")
     private boolean useChainedBDD = false;
-
 
     private BuildFromConfig(Configuration pConfig) throws InvalidConfigurationException {
       pConfig.inject(this);
