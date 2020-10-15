@@ -31,6 +31,9 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extension
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAEncodingExtensionWrapper;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAInvariants;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TALocalMutexActions;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TANoConsequentDelays;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TANoConsequentDiscretes;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAOnlyFinalIdles;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAShallowStrictSync;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAShallowSync;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensions.TAShallowSyncDifference;
@@ -276,7 +279,22 @@ public class TAFormulaEncodingProvider {
     if (options.encodingExtensions.contains(TAEncodingExtensionType.TRANSITION_TYPES)) {
       result.add(new TATransitionTypes(pFmgr));
     }
-
+    if (options.encodingExtensions.contains(TAEncodingExtensionType.NO_CONSEQUENT_DELAYS)) {
+      result.add(new TANoConsequentDelays(pFmgr, false));
+    }
+    if (options.encodingExtensions.contains(TAEncodingExtensionType.NO_CONSEQUENT_DELAYS_LOCAL)) {
+      result.add(new TANoConsequentDelays(pFmgr, true));
+    }
+    if (options.encodingExtensions.contains(TAEncodingExtensionType.NO_CONSEQUENT_DISCRETES)) {
+      result.add(new TANoConsequentDiscretes(pFmgr, false));
+    }
+    if (options.encodingExtensions.contains(
+        TAEncodingExtensionType.NO_CONSEQUENT_DISCRETES_LOCAL)) {
+      result.add(new TANoConsequentDiscretes(pFmgr, true));
+    }
+    if (options.encodingExtensions.contains(TAEncodingExtensionType.ONLY_FINAL_IDLES)) {
+      result.add(new TAOnlyFinalIdles(pFmgr));
+    }
     return result;
   }
 
