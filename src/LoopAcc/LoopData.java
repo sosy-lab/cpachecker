@@ -69,7 +69,7 @@ public class LoopData implements Comparable<LoopData> {
       List<CFANode> loopNodes,
       Loop loop,
       LogManager pLogger) {
-    this.loopStart = nameStart;
+    loopStart = nameStart;
     this.endOfCondition = new ArrayList<>();
     conditionInFor = new ArrayList<>();
     output = new ArrayList<>();
@@ -77,42 +77,53 @@ public class LoopData implements Comparable<LoopData> {
     this.endOfCondition.add(endCondition);
     loopInLoop = isInnerLoop(loop, cfa);
     outerLoop = isOuterLoop(loop, cfa);
-    loopType = findLoopType();
+    loopType = findLoopType(loopStart, forStart);
     nodesInLoop = loopNodes;
     loopEnd = nodesInLoop.get(nodesInLoop.size() - LAST_POSITION_OF_LIST);
-    nodesInCondition = nodesInCondition(cfa, pLogger);
-    output = getAllOutputs(cfa);
-    condition = nodesToCondition();
-    getAllPaths();
-    inputOutput = getAllIO();
+    nodesInCondition =
+        nodesInCondition(cfa, pLogger, loopStart, loopType, nodesInLoop, endOfCondition, forStart);
+    output = getAllOutputs(cfa, nodesInLoop, output);
+    // testen ob flagendless und failedState gesetzt werden
+    condition =
+        nodesToCondition(
+            nodesInCondition, loopType, endOfCondition, failedState, conditionInFor, flagEndless);
+    inputOutput = getAllIO(output, nodesInLoop);
     numberAllOutputs = getAllNumberOutputs(output);
-    amountOfPaths = getAllPaths();
-    canBeAccelerated = canLoopBeAccelerated();
+    amountOfPaths = getAllPaths(nodesInLoop, loopEnd, nodesInCondition, failedState, output);
+    canBeAccelerated =
+        canLoopBeAccelerated(
+            nodesInCondition,
+            loopType,
+            amountOfPaths,
+            numberAllOutputs,
+            flagEndless,
+            conditionInFor);
   }
 
-  public int getNumberOutputs() {
-    return numberAllOutputs;
-  }
   /**
    * looks for the looptype of a loop
    *
+   * @param firstNode while loops typically have the "while" in the entering edge of the first cfa
+   *     node of the loop
+   * @param firstForNode for loops typically have the "for" indicator a few nodes behind the first
+   *     CFANode of the loop
    * @return returns the type of the loop, possible solutions are "while", "for" at the moment
    */
-  private String findLoopType() {
+  private String findLoopType(CFANode firstNode, CFANode firstForNode) {
     String tempLoopType = "";
 
-    if (loopStart.getNumEnteringEdges() > 0
-        && loopStart.getEnteringEdge(ONLY_ENTERING_EDGE).getDescription().equals("while")) {
-      tempLoopType = loopStart.getEnteringEdge(ONLY_ENTERING_EDGE).getDescription();
+    if (firstNode.getNumEnteringEdges() > 0
+        && firstNode.getEnteringEdge(ONLY_ENTERING_EDGE).getDescription().equals("while")) {
+      tempLoopType = firstNode.getEnteringEdge(ONLY_ENTERING_EDGE).getDescription();
     } else {
-      CFANode temp = loopStart.getEnteringEdge(ONLY_ENTERING_EDGE).getPredecessor();
+      CFANode temp = firstNode.getEnteringEdge(ONLY_ENTERING_EDGE).getPredecessor();
       boolean flag = true;
 
       while (flag) {
         if (temp.getNumEnteringEdges() > 0
             && temp.getEnteringEdge(ONLY_ENTERING_EDGE).getDescription().contains("for")) {
           tempLoopType = temp.getEnteringEdge(ONLY_ENTERING_EDGE).getDescription();
-          forStart = temp;
+          firstForNode = temp;
           flag = false;
         }
         if (temp.getNumEnteringEdges() > 0) {
@@ -146,6 +157,13 @@ public class LoopData implements Comparable<LoopData> {
     return tempInnerLoop;
   }
 
+  /**
+   * this function checks if the loop is a outer loop for some other loop
+   *
+   * @param loop this loop
+   * @param cfa uses the information about all loops that you can get from the cfa
+   * @return returns a boolean value, true if it is a outer loop, false if it isn't
+   */
   private boolean isOuterLoop(Loop loop, CFA cfa) {
     boolean tempOuterLoop = false;
 
@@ -162,12 +180,16 @@ public class LoopData implements Comparable<LoopData> {
   /**
    * This method looks for all the outputs a loop can have
    *
+   * @param cfa uses the cfa to check when a variable get initialized
+   * @param loopNodes checks all of the nodes in a loop for output variables
+   * @param outputs adds a output-variable to the outputs list
    * @return returns a list with all of the variable names that are outputs in a loop
    */
-  private List<String> getAllOutputs(CFA cfa) {
+  private List<String> getAllOutputs(CFA cfa, List<CFANode> loopNodes, List<String> outputs) {
+    // checken ob output liste aktualisiert wird
     List<String> tempOutput = new ArrayList<>();
 
-    for (CFANode node : nodesInLoop) {
+    for (CFANode node : loopNodes) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
         if ((node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.StatementEdge)
                 || node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.DeclarationEdge))
@@ -175,7 +197,7 @@ public class LoopData implements Comparable<LoopData> {
                 || CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i)) != null)) {
           boolean flag = true;
 
-          for (String s : output) {
+          for (String s : outputs) {
             if (s.contentEquals(
                 CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i))
                     .split(OUTPUT_NAME_SYMBOL_CUT)[OUTPUT_VARIABLE_ARRAY_POSITION])) {
@@ -340,11 +362,14 @@ public class LoopData implements Comparable<LoopData> {
    * This method compares the input-variable names and output-variable names to see if there are
    * some that are equal since these are inputs and outputs and used for the loopabstraction
    *
+   * @param tmpOutput List of all the output variables to compare to the input variables
+   * @param loopNodes List of all the nodes in the loop to filter out the input variables with the
+   *     getAllInputs method
    * @return returns a list of variables that are inputs and outputs at the same time
    */
-  private List<String> getAllIO() {
-    List<String> inputs = getAllInputs();
-    List<String> outputs = output;
+  private List<String> getAllIO(List<String> tmpOutput, List<CFANode> loopNodes) {
+    List<String> inputs = getAllInputs(loopNodes);
+    List<String> outputs = tmpOutput;
     List<String> temp = new ArrayList<>();
 
     for (String o : outputs) {
@@ -368,12 +393,14 @@ public class LoopData implements Comparable<LoopData> {
   /**
    * This method looks for all of the input-variables in the loop
    *
+   * @param loopNodes List of all the nodes in the loop to check if either of them has a edge that
+   *     uses a variable that qualifies as an input
    * @return returns a list with the names of all the input variables
    */
-  private List<String> getAllInputs() {
+  private List<String> getAllInputs(List<CFANode> loopNodes) {
     List<String> temp = new ArrayList<>();
 
-    for (CFANode node : nodesInLoop) {
+    for (CFANode node : loopNodes) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
         if ((node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.StatementEdge)
                 || node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.DeclarationEdge))
@@ -404,6 +431,13 @@ public class LoopData implements Comparable<LoopData> {
     return temp;
   }
 
+  /**
+   * extracts the crucial information from the Variable-Right-Hand-Side String and adds them to a
+   * InputVariable-List
+   *
+   * @param temp List where the information will be saved after extracting it
+   * @param stringSplit String that has to be worked on by this method
+   */
   private void getInputFromRightHandSide(List<String> temp, String stringSplit) {
     String[] tempStorage = stringSplit.split(",");
     List<String> tempS = new ArrayList<>();
@@ -425,13 +459,30 @@ public class LoopData implements Comparable<LoopData> {
    *
    * @return number of possible paths in one iteration
    */
-  private int getAllPaths() {
+
+  /**
+   * This method looks for all the possible path that the loop can go in one iteration
+   *
+   * @param loopNodes List of all loop-nodes to check how many paths are going from this node to the
+   *     next node
+   * @param endNode last node of this loop
+   * @param conditionNodes Nodes that are part of the condition of this loop
+   * @param failed the CFANode that shows when the loop reaches the failed state, since this node
+   *     may be part of the loop but it's leaving edges don't count towards the number of paths
+   * @param outputs List of the outputs of the loop since size of Array counts towards the number of
+   *     all paths if an array is part of the loop
+   * @return number of possible paths in one iteration
+   */
+  private int getAllPaths(
+      List<CFANode> loopNodes,
+      CFANode endNode,
+      List<CFANode> conditionNodes,
+      CFANode failed,
+      List<String> outputs) {
     // there is always one path in a loop that can be travelled
     int paths = 1;
-    for (CFANode node : nodesInLoop) {
-      if ((!node.equals(loopEnd))
-          && (!nodesInCondition.contains(node))
-          && !node.equals(failedState)) {
+    for (CFANode node : loopNodes) {
+      if ((!node.equals(endNode)) && (!conditionNodes.contains(node)) && !node.equals(failed)) {
         // we subtract 1 from the amount of leaving edges to indicate that this is the one path we
         // already
         // account for, we only add numbers to the paths that if there are more possibilities like
@@ -439,7 +490,7 @@ public class LoopData implements Comparable<LoopData> {
         paths += (node.getNumLeavingEdges() - LAST_POSITION_OF_LIST);
       }
     }
-    for (String z : output) {
+    for (String z : outputs) {
       if (z.contains("Array")) {
         // we add the number of array-cells to the number of paths in case there is an array
         // in the loop. this is an over-approximation that could be refined if you know the
@@ -457,19 +508,41 @@ public class LoopData implements Comparable<LoopData> {
    * @param cfa used to get a list of all nodes to see which variables are already initialized
    * @return returns a list with all the nodes that are part of the condition
    */
-  public List<CFANode> nodesInCondition(CFA cfa, LogManager pLogger) {
 
+  /**
+   * This method looks for all of the nodes in the condition and even cuts out the nodes that belong
+   * to an if-case
+   *
+   * @param cfa
+   * @param pLogger
+   * @param start
+   * @param type
+   * @param loopNodes
+   * @param conditionEnd
+   * @param startFor
+   * @return returns a list with all the nodes that are part of the condition
+   */
+  public List<CFANode> nodesInCondition(
+      CFA cfa,
+      LogManager pLogger,
+      CFANode start,
+      String type,
+      List<CFANode> loopNodes,
+      List<CFANode> conditionEnd,
+      CFANode startFor) {
+
+    // TODO verstehen und comment schreiben
     List<CFANode> nodes = new ArrayList<>();
     List<CFANode> tempNodes = new ArrayList<>();
-    CFANode tempNode = loopStart;
+    CFANode tempNode = start;
     boolean flag = true;
 
-    if (loopType.contentEquals("while")) {
+    if (type.contentEquals("while")) {
 
       while (flag) {
 
         if (tempNode.getLeavingEdge(VALID_STATE).getEdgeType().equals(CFAEdgeType.AssumeEdge)
-            && nodesInLoop.contains(tempNode.getLeavingEdge(VALID_STATE).getSuccessor())
+            && loopNodes.contains(tempNode.getLeavingEdge(VALID_STATE).getSuccessor())
             && !nodes.contains(tempNode)) {
           nodes.add(tempNode);
         }
@@ -480,12 +553,12 @@ public class LoopData implements Comparable<LoopData> {
                   .getLeavingEdge(VALID_STATE)
                   .getEdgeType()
                   .equals(CFAEdgeType.AssumeEdge)
-              && nodesInLoop.contains(tempNode.getLeavingEdge(i).getSuccessor())) {
+              && loopNodes.contains(tempNode.getLeavingEdge(i).getSuccessor())) {
 
             tempNodes.add(tempNode.getLeavingEdge(i).getSuccessor());
           }
         }
-        if (!endOfCondition.contains(tempNode) && nodesInLoop.contains(tempNode)) {
+        if (!conditionEnd.contains(tempNode) && loopNodes.contains(tempNode)) {
           tempNode = tempNode.getLeavingEdge(VALID_STATE).getSuccessor();
         } else if (!tempNodes.isEmpty()) {
           tempNode = tempNodes.get(tempNodes.size() - LAST_POSITION_OF_LIST);
@@ -494,10 +567,10 @@ public class LoopData implements Comparable<LoopData> {
           flag = false;
         }
       }
-    } else if (loopType.contentEquals("for")) {
+    } else if (type.contentEquals("for")) {
       for (CFANode node : cfa.getAllNodes()) {
-        if (node.getNodeNumber() >= forStart.getNodeNumber()
-            && node.getNodeNumber() <= loopStart.getNodeNumber() + 1) {
+        if (node.getNodeNumber() >= startFor.getNodeNumber()
+            && node.getNodeNumber() <= start.getNodeNumber() + 1) {
           nodes.add(node);
         }
       }
@@ -526,18 +599,26 @@ public class LoopData implements Comparable<LoopData> {
     }
     if (!nodes.isEmpty()) {
       if (LoopGetIfAfterLoopCondition.getSmallestIf(nodes, pLogger) != NO_IF_CASE) {
-        List<CFANode> tempN = copyList(nodes);
-
-        for (Iterator<CFANode> tempIterator = tempN.iterator(); tempIterator.hasNext(); ) {
-          CFANode temps = tempIterator.next();
-          if (temps.getLeavingEdge(VALID_STATE).getFileLocation().getStartingLineInOrigin()
-              >= LoopGetIfAfterLoopCondition.getSmallestIf(nodes, pLogger)) {
-            endOfCondition.add(temps);
-            tempIterator.remove();
+        /**
+         * List<CFANode> tempN = copyList(nodes);
+         *
+         * <p>for (Iterator<CFANode> tempIterator = tempN.iterator(); tempIterator.hasNext(); ) {
+         * CFANode temps = tempIterator.next(); if
+         * (temps.getLeavingEdge(VALID_STATE).getFileLocation().getStartingLineInOrigin() >=
+         * LoopGetIfAfterLoopCondition.getSmallestIf(nodes, pLogger)) { conditionEnd.add(temps);
+         * tempIterator.remove(); } }
+         */
+        List<CFANode> tempNodeList = new ArrayList<>();
+        for (CFANode node : nodes) {
+          if (node.getLeavingEdge(VALID_STATE).getFileLocation().getStartingLineInOrigin()
+              < LoopGetIfAfterLoopCondition.getSmallestIf(nodes, pLogger)) {
+            tempNodeList.add(node);
+          } else {
+            conditionEnd.add(node);
           }
         }
 
-        nodes = tempN;
+        nodes = tempNodeList;
       }
     }
     return nodes;
@@ -547,15 +628,30 @@ public class LoopData implements Comparable<LoopData> {
    * This method takes all of the nodes in the condition of this loop and returns a readable string
    * that shows the condition of the loop
    *
-   * @return string that shows the condition of the loop
+   * @param conditionNodes all Nodes that are part of the condition
+   * @param type type of the loop to determine the way the condition will be put together
+   * @param conditionEnd nodes that are not in the condition to make sure that only nodes in the
+   *     condition will be part of the condition string
+   * @param failed this method sets the failed state
+   * @param conditionFor inner condition part that handles the boolean part of a for loop
+   * @param endless information if the loop is a endless loop
+   * @return string that represents the condition of the loop
    */
-  public String nodesToCondition() {
+  public String nodesToCondition(
+      List<CFANode> conditionNodes,
+      String type,
+      List<CFANode> conditionEnd,
+      CFANode failed,
+      List<CFANode> conditionFor,
+      boolean endless) {
+
+    // TODO mit Martin besprechen ob n Iterator nicht doch besser wäre
 
     String cond = "";
-    List<CFANode> temp = copyList(nodesInCondition);
+    List<CFANode> temp = copyList(conditionNodes);
     CFANode node;
 
-    if (loopType.contentEquals("while")) {
+    if (type.contentEquals("while")) {
       if (temp.isEmpty()) {
         cond = "1";
       }
@@ -568,7 +664,7 @@ public class LoopData implements Comparable<LoopData> {
           boolean notNodeToEndCondition = true;
 
           for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-            if (endOfCondition.contains(node.getLeavingEdge(i).getSuccessor())) {
+            if (conditionEnd.contains(node.getLeavingEdge(i).getSuccessor())) {
               notNodeToEndCondition = false;
             }
           }
@@ -580,10 +676,10 @@ public class LoopData implements Comparable<LoopData> {
           }
         } else {
           cond = cond + node.getLeavingEdge(VALID_STATE).getCode();
-          failedState = node.getLeavingEdge(ERROR_STATE).getSuccessor();
+          failed = node.getLeavingEdge(ERROR_STATE).getSuccessor();
         }
       }
-    } else if (loopType.contentEquals("for")) {
+    } else if (type.contentEquals("for")) {
 
       CFANode start = temp.get(FIRST_POSITION_OF_LIST);
       temp.remove(FIRST_POSITION_OF_LIST);
@@ -604,7 +700,8 @@ public class LoopData implements Comparable<LoopData> {
       CFANode end = temp.get(FIRST_POSITION_OF_LIST);
       temp.remove(FIRST_POSITION_OF_LIST);
 
-      conditionInFor = copyList(forCondition);
+      // hier nochmal überlegen
+      conditionFor = copyList(forCondition);
 
       cond += start.getLeavingEdge(VALID_STATE).getDescription();
 
@@ -616,7 +713,7 @@ public class LoopData implements Comparable<LoopData> {
           boolean notNodeToEndCondition = true;
 
           for (int i = 0; i < node.getNumLeavingEdges(); i++) {
-            if (endOfCondition.contains(node.getLeavingEdge(i).getSuccessor())) {
+            if (conditionEnd.contains(node.getLeavingEdge(i).getSuccessor())) {
               notNodeToEndCondition = false;
             }
           }
@@ -629,10 +726,10 @@ public class LoopData implements Comparable<LoopData> {
         } else {
           if (node.getLeavingEdge(VALID_STATE).getCode().contentEquals("")) {
             cond = cond + "1";
-            flagEndless = true;
+            endless = true;
           } else {
             cond = cond + node.getLeavingEdge(VALID_STATE).getCode();
-            failedState = node.getLeavingEdge(ERROR_STATE).getSuccessor();
+            failed = node.getLeavingEdge(ERROR_STATE).getSuccessor();
           }
         }
       }
@@ -647,19 +744,31 @@ public class LoopData implements Comparable<LoopData> {
    * This method looks for hints if it makes any sense to accelerate the loop or if a
    * Bounded-Model-Checker should be able to handle it
    *
-   * @return returns true if the loop should be accelerated or false if it doesn't make that much
-   *     sense to accelerate it
+   * @param conditionNodes all Nodes of the condition to check if the
+   * @param type loop type to specify the method used to check that
+   * @param pathNumber number of possible path in the loop
+   * @param outputNumber number of outputs in the loop
+   * @param endless check if the loop already has the endless tag, the loop should be abstracted if
+   *     it is already endless
+   * @param forCondition inner part of the for condition
+   * @return true if the loop should be accelerated or false if it doesn't make that much sense to
+   *     accelerate it
    */
-  private boolean canLoopBeAccelerated() {
-    List<CFANode> nodes = copyList(nodesInCondition);
+  private boolean canLoopBeAccelerated(
+      List<CFANode> conditionNodes,
+      String type,
+      int pathNumber,
+      int outputNumber,
+      boolean endless,
+      List<CFANode> forCondition) {
 
     boolean canAccelerate = false;
 
     List<Boolean> temp = new ArrayList<>();
 
-    if (loopType.contentEquals("while")) {
+    if (type.contentEquals("while")) {
       List<String> rightSideVariable = new ArrayList<>();
-      for (CFANode node : nodes) {
+      for (CFANode node : conditionNodes) {
         rightSideVariable.add(
             node.getLeavingEdge(VALID_STATE)
                 .getRawAST()
@@ -671,7 +780,7 @@ public class LoopData implements Comparable<LoopData> {
       for (String variable : rightSideVariable) {
         try {
           double d = Double.parseDouble(variable);
-          if (d > amountOfPaths || d > numberAllOutputs) {
+          if (d > pathNumber || d > outputNumber) {
             temp.add(true);
           }
         } catch (NumberFormatException | NullPointerException nfe) {
@@ -679,7 +788,7 @@ public class LoopData implements Comparable<LoopData> {
         }
         try {
           int d = Integer.parseInt(variable);
-          if (d > amountOfPaths || d > numberAllOutputs) {
+          if (d > pathNumber || d > outputNumber) {
             temp.add(true);
           }
         } catch (NumberFormatException | NullPointerException nfe1) {
@@ -687,7 +796,7 @@ public class LoopData implements Comparable<LoopData> {
         }
         try {
           long d = Long.parseLong(variable);
-          if (d > amountOfPaths || d > numberAllOutputs) {
+          if (d > pathNumber || d > outputNumber) {
             temp.add(true);
           }
         } catch (NumberFormatException | NullPointerException nfe2) {
@@ -695,7 +804,7 @@ public class LoopData implements Comparable<LoopData> {
         }
         try {
           float d = Float.parseFloat(variable);
-          if (d > amountOfPaths || d > numberAllOutputs) {
+          if (d > pathNumber || d > outputNumber) {
             temp.add(true);
           }
         } catch (NumberFormatException | NullPointerException nfe3) {
@@ -703,7 +812,7 @@ public class LoopData implements Comparable<LoopData> {
         }
         try {
           BigInteger d = new BigInteger(variable);
-          if (d.intValueExact() > amountOfPaths || d.intValueExact() > numberAllOutputs) {
+          if (d.intValueExact() > pathNumber || d.intValueExact() > outputNumber) {
             temp.add(true);
           }
         } catch (NumberFormatException | NullPointerException nfe4) {
@@ -711,10 +820,10 @@ public class LoopData implements Comparable<LoopData> {
         }
       }
 
-    } else if (loopType.contentEquals("for")) {
-      if (!flagEndless) {
+    } else if (type.contentEquals("for")) {
+      if (!endless) {
         List<String> rightSideVariable = new ArrayList<>();
-        for (CFANode node : conditionInFor) {
+        for (CFANode node : forCondition) {
           rightSideVariable.add(
               node.getLeavingEdge(VALID_STATE)
                   .getRawAST()
@@ -726,7 +835,7 @@ public class LoopData implements Comparable<LoopData> {
         for (String variable : rightSideVariable) {
           try {
             double d = Double.parseDouble(variable);
-            if (d > amountOfPaths || d > numberAllOutputs) {
+            if (d > pathNumber || d > outputNumber) {
               temp.add(true);
             }
           } catch (NumberFormatException | NullPointerException nfe) {
@@ -734,7 +843,7 @@ public class LoopData implements Comparable<LoopData> {
           }
           try {
             int d = Integer.parseInt(variable);
-            if (d > amountOfPaths || d > numberAllOutputs) {
+            if (d > pathNumber || d > outputNumber) {
               temp.add(true);
             }
           } catch (NumberFormatException | NullPointerException nfe1) {
@@ -742,7 +851,7 @@ public class LoopData implements Comparable<LoopData> {
           }
           try {
             long d = Long.parseLong(variable);
-            if (d > amountOfPaths || d > numberAllOutputs) {
+            if (d > pathNumber || d > outputNumber) {
               temp.add(true);
             }
           } catch (NumberFormatException | NullPointerException nfe2) {
@@ -750,7 +859,7 @@ public class LoopData implements Comparable<LoopData> {
           }
           try {
             float d = Float.parseFloat(variable);
-            if (d > amountOfPaths || d > numberAllOutputs) {
+            if (d > pathNumber || d > outputNumber) {
               temp.add(true);
             }
           } catch (NumberFormatException | NullPointerException nfe3) {
@@ -758,7 +867,7 @@ public class LoopData implements Comparable<LoopData> {
           }
           try {
             BigInteger d = new BigInteger(variable);
-            if (d.intValueExact() > amountOfPaths || d.intValueExact() > numberAllOutputs) {
+            if (d.intValueExact() > pathNumber || d.intValueExact() > outputNumber) {
               temp.add(true);
             }
           } catch (NumberFormatException | NullPointerException nfe4) {
@@ -846,6 +955,10 @@ public class LoopData implements Comparable<LoopData> {
 
   public Loop getInnerLoop() {
     return innerLoop;
+  }
+
+  public int getNumberOutputs() {
+    return numberAllOutputs;
   }
 
   public String outputToString() {

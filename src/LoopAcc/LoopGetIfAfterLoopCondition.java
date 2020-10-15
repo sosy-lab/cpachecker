@@ -50,10 +50,10 @@ public class LoopGetIfAfterLoopCondition {
     }
   }
 
-  private static int findSmallestIfLineNumber() {
-    if (!linesWithIf.isEmpty()) {
-      int small = linesWithIf.get(0);
-      for (Integer v : linesWithIf) {
+  private static int findSmallestIfLineNumber(List<Integer> ifLines) {
+    if (!ifLines.isEmpty()) {
+      int small = ifLines.get(0);
+      for (Integer v : ifLines) {
         if (v < small) {
           small = v;
         }
@@ -119,7 +119,7 @@ public class LoopGetIfAfterLoopCondition {
     biggestLineNumber = getBiggestLineNumber(nodes);
     linesWithIf = new ArrayList<>();
     readFile();
-    smallestIf = findSmallestIfLineNumber();
+    smallestIf = findSmallestIfLineNumber(linesWithIf);
     return smallestIf;
   }
 }
