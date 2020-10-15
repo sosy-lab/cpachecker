@@ -15,7 +15,6 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -36,6 +35,8 @@ import org.sosy_lab.numericdomains.environment.Variable;
  * <p>The type of the domain is specified by the {@link NumericState#manager}
  */
 public class NumericState implements AbstractState, LatticeAbstractState<NumericState> {
+  private static final String NON_EMPTY_VARIABLE_NAME = "__NON_EMPTY_VARIABLE__";
+
   private final Manager manager;
   private final Value value;
   private final LogManager logger;
@@ -63,7 +64,9 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
    */
   public NumericState(Manager numericManager, LogManager logManager) {
     manager = numericManager;
-    Environment environment = new Environment(new Variable[] {}, new Variable[] {});
+    // The variable is needed, because a value with an empty environment is always a bottom element.
+    Variable nonEmptyVariable = new Variable(NON_EMPTY_VARIABLE_NAME);
+    Environment environment = new Environment(new Variable[] {nonEmptyVariable}, new Variable[] {});
     logger = logManager;
     value = new Value(manager, environment, ValueType.TOP);
     isLoopHead = false;
@@ -197,18 +200,6 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
    */
   public Optional<NumericState> meetConstraints(Collection<TreeConstraint> pConstraints) {
     Optional<Value> newAbs = value.meet(pConstraints.toArray(TreeConstraint[]::new));
-
-    logger.log(
-        Level.SEVERE,
-        "Value:"
-            + value
-            + "\nConstraints: "
-            + Arrays.toString(pConstraints.toArray(TreeConstraint[]::new))
-            + "\nresult:"
-            + newAbs.get().toPrettyString(false)
-            + "\nAs Box:"
-            + Arrays.toString(newAbs.get().toBox()));
-
     if (newAbs.isPresent()) {
       if (!newAbs.get().isBottom()) {
         return Optional.of(new NumericState(newAbs.get(), logger));
@@ -217,7 +208,6 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
         newAbs.get().dispose();
       }
     }
-
     return Optional.empty();
   }
 
@@ -227,7 +217,7 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
    * <p>This method is necessary because the meet with TreeConstraints is sometimes not correctly
    * computed, if an epsilon value is used.
    */
-  public Optional<NumericState> meetAssumption(Collection<TreeConstraint> pConstraints) {
+  public Optional<NumericState> meetEpsilon(Collection<TreeConstraint> pConstraints) {
     // Fix problem where  meet with TreeConstraints is not computed correctly
     // Instead create a value from the constraints and compute the meet between the values
     if (manager instanceof org.sosy_lab.numericdomains.elina.ZonesManager

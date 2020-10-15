@@ -107,7 +107,7 @@ public class NumericDeclarationVisitor
       extendedState.getValue().dispose();
 
       Collection<NumericState> successors = initializedStates;
-      if (!simpleType.isUnsigned()) {
+      if (simpleType.isUnsigned()) {
         successors =
             setVariableUnsigned(
                 variable.get(), extendedState.getValue().getEnvironment(), initializedStates);

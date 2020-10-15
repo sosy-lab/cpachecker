@@ -37,7 +37,6 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.numeric.NumericVariable;
-import org.sosy_lab.cpachecker.cpa.numeric.visitor.PartialState.ApplyEpsilon;
 import org.sosy_lab.cpachecker.cpa.numeric.visitor.PartialState.TruthAssumption;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.numericdomains.Manager;
@@ -118,24 +117,12 @@ public class NumericRightHandSideVisitor
       CBinaryExpression pIastBinaryExpression,
       Collection<PartialState> pLeftExpression,
       Collection<PartialState> pRightExpression) {
-
-    if (checkIsFloatComparison(pIastBinaryExpression)) {
-      return PartialState.applyComparisonOperator(
-          pIastBinaryExpression.getOperator(),
-          pLeftExpression,
-          pRightExpression,
-          TruthAssumption.ASSUME_EITHER,
-          ApplyEpsilon.APPLY_EPSILON,
-          environment);
-    } else {
-      return PartialState.applyComparisonOperator(
-          pIastBinaryExpression.getOperator(),
-          pLeftExpression,
-          pRightExpression,
-          TruthAssumption.ASSUME_EITHER,
-          ApplyEpsilon.EXACT,
-          environment);
-    }
+    return PartialState.applyComparisonOperator(
+        pIastBinaryExpression.getOperator(),
+        pLeftExpression,
+        pRightExpression,
+        TruthAssumption.ASSUME_EITHER,
+        environment);
   }
 
   private Collection<PartialState> handleArithmeticOperator(
@@ -218,13 +205,13 @@ public class NumericRightHandSideVisitor
   @Override
   public Collection<PartialState> visit(CStringLiteralExpression pIastStringLiteralExpression)
       throws UnrecognizedCodeException {
-    return ImmutableSet.of(createUnconstrainedPartialState(false));
+    return ImmutableSet.of(createUnconstrainedPartialState(true));
   }
 
   @Override
   public Collection<PartialState> visit(CTypeIdExpression pIastTypeIdExpression)
       throws UnrecognizedCodeException {
-    return ImmutableSet.of(createUnconstrainedPartialState(false));
+    return ImmutableSet.of(createUnconstrainedPartialState(true));
   }
 
   @Override
@@ -333,18 +320,4 @@ public class NumericRightHandSideVisitor
           CBinaryExpression.BinaryOperator.GREATER_THAN,
           CBinaryExpression.BinaryOperator.LESS_EQUAL,
           CBinaryExpression.BinaryOperator.LESS_THAN);
-
-  private boolean checkIsFloatComparison(CBinaryExpression pIastBinaryExpression) {
-    if (pIastBinaryExpression.getOperand1().getExpressionType() instanceof CSimpleType
-        && pIastBinaryExpression.getOperand2().getExpressionType() instanceof CSimpleType) {
-      CSimpleType typeOperand1 =
-          (CSimpleType) pIastBinaryExpression.getOperand1().getExpressionType();
-      CSimpleType typeOperand2 =
-          (CSimpleType) pIastBinaryExpression.getOperand2().getExpressionType();
-      return (typeOperand1.getType().isFloatingPointType()
-          || typeOperand2.getType().isFloatingPointType());
-    } else {
-      return false;
-    }
-  }
 }

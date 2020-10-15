@@ -12,17 +12,19 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Optional;
-import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.numeric.NumericState;
 import org.sosy_lab.cpachecker.cpa.numeric.NumericVariable;
@@ -149,19 +151,6 @@ public class NumericStatementVisitor
     for (PartialState partialState : expressions) {
       NumericState newState =
           extendedState.assignTreeExpression(variable.get(), partialState.getPartialConstraint());
-      if (logger.wouldBeLogged(Level.SEVERE)) {
-        logger.log(
-            Level.SEVERE,
-            pIastExpressionAssignmentStatement,
-            "as",
-            partialState,
-            "assign to:",
-            variable,
-            "results in:",
-            newState,
-            " isBottom?",
-            newState.getValue().isBottom());
-      }
       if (!newState.getValue().isBottom()) {
         successorsBuilder.add(newState);
       } else {
@@ -195,11 +184,22 @@ public class NumericStatementVisitor
         } else {
           // Function is extern, so the value can not be constrained
           Interval interval;
-          if (variable.get().getSimpleType().isUnsigned()) {
-            interval = PartialState.UNSIGNED_UNCONSTRAINED_INTERVAL;
+          final boolean returnTypeIsSigned;
+
+          CFunctionDeclaration declaration =
+              pIastFunctionCallAssignmentStatement.getRightHandSide().getDeclaration();
+          CType type = (declaration == null) ? null : declaration.getType().getReturnType();
+          if (type instanceof CSimpleType) {
+            returnTypeIsSigned = ((CSimpleType) type).isSigned();
           } else {
-            interval = PartialState.UNCONSTRAINED_INTERVAL;
+            returnTypeIsSigned = true;
           }
+          if (variable.get().getSimpleType().isSigned() || returnTypeIsSigned) {
+            interval = PartialState.UNCONSTRAINED_INTERVAL;
+          } else {
+            interval = PartialState.UNSIGNED_UNCONSTRAINED_INTERVAL;
+          }
+
           NumericState newState =
               state.assignTreeExpression(variable.get(), new ConstantTreeNode(interval));
           return ImmutableSet.of(newState);

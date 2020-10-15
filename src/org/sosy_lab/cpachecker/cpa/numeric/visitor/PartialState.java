@@ -60,10 +60,12 @@ public class PartialState {
   private static final TreeNode TRUE_COMPARISON_RESULT = new ConstantTreeNode(MpqScalar.of(1));
   private static final TreeNode FALSE_COMPARISON_RESULT = new ConstantTreeNode(MpqScalar.of(0));
 
-  /** Epsilon used for comparison of floating point values. */
-  private static final Scalar EPSILON = DoubleScalar.of(0.00000000000001);
+  private static final double EPSILON_VALUE = 0.00000000000001;
 
-  private static final Scalar DOUBLE_EPSILON = DoubleScalar.of(0.00000000000002);
+  /** Epsilon used for comparison of floating point values. */
+  private static final Scalar EPSILON = DoubleScalar.of(EPSILON_VALUE);
+  /** Double the epsilon value used for */
+  private static final Scalar DOUBLE_EPSILON = DoubleScalar.of(2 * EPSILON_VALUE);
 
   /**
    * Epsilon Interval [-{@link PartialState#EPSILON}, {@link PartialState#EPSILON}]used for equality
@@ -166,12 +168,25 @@ public class PartialState {
     return builder.build();
   }
 
+  /**
+   * Applies the comparison operator for the two expressions.
+   *
+   * <p>The result contains the new constraint as part of the constraints. The new expression is
+   * either 1 or 0 depending on whether the assumption was true or false.
+   *
+   * @param operator comparison operator
+   * @param leftExpressions expression left of the comparison operator
+   * @param rightExpressions expression right of the comparison operator
+   * @param truthAssumption whether the comparison should be assumed true or false
+   * @param environment environment of the state to which the comparison will be applied
+   * @return partial state containing the comparison in the constraints and the result of the
+   *     comparison as partial constraint
+   */
   static ImmutableCollection<PartialState> applyComparisonOperator(
       CBinaryExpression.BinaryOperator operator,
       Collection<PartialState> leftExpressions,
       Collection<PartialState> rightExpressions,
       TruthAssumption truthAssumption,
-      ApplyEpsilon useEpsilon,
       Environment environment) {
     ImmutableSet.Builder<PartialState> builder = new ImmutableSet.Builder<>();
     // Create one possible state for each combination of left expression and right expression
@@ -179,12 +194,7 @@ public class PartialState {
       for (PartialState rightExpression : rightExpressions) {
         builder.addAll(
             applyComparisonOperator(
-                operator,
-                leftExpression,
-                rightExpression,
-                truthAssumption,
-                useEpsilon,
-                environment));
+                operator, leftExpression, rightExpression, truthAssumption, environment));
       }
     }
     return builder.build();
@@ -375,7 +385,6 @@ public class PartialState {
    * @param leftExpression partial state containing the first part of the constraint
    * @param rightExpression partial state containing the second part of the constraint
    * @param assumption describes whether the assumption is expected to be true, false or either
-   * @param useEpsilon whether the comparison should use epsilons or should be exact
    * @param environment environment of the constraints in the partial state
    * @return collection of the partial states after applying the comparison operator
    */
@@ -384,8 +393,9 @@ public class PartialState {
       PartialState leftExpression,
       PartialState rightExpression,
       TruthAssumption assumption,
-      ApplyEpsilon useEpsilon,
       Environment environment) {
+    // Use epsilon for comparison if either of the two expressions contains a float variable.
+    final ApplyEpsilon useEpsilon;
     if (leftExpression.containsFloatVariable || rightExpression.containsFloatVariable) {
       useEpsilon = ApplyEpsilon.APPLY_EPSILON;
     } else {

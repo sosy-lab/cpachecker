@@ -73,10 +73,10 @@ public class NumericVariable extends org.sosy_lab.numericdomains.environment.Var
     if (pManager instanceof org.sosy_lab.numericdomains.elina.PolyhedraManager) {
       pLogManager.log(
           Level.SEVERE,
-          "Elina Polyhedra Manager",
+          "Elina Polyhedra Manager:",
           pManager.getDomainLibrary(),
           pManager.getDomainVersion(),
-          "does not support floating point variables, do not trust the result.");
+          "does not support floating point variables, do not trust the result!");
     }
     hasPrintedFloatWarning = true;
   }

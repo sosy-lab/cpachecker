@@ -9,10 +9,8 @@
 package org.sosy_lab.cpachecker.cpa.numeric.visitor;
 
 import com.google.common.collect.ImmutableSet;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Optional;
-import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAddressOfLabelExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CArraySubscriptExpression;
@@ -35,10 +33,8 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.numeric.NumericState;
 import org.sosy_lab.cpachecker.cpa.numeric.NumericTransferRelation;
-import org.sosy_lab.cpachecker.cpa.numeric.visitor.PartialState.ApplyEpsilon;
 import org.sosy_lab.cpachecker.cpa.numeric.visitor.PartialState.TruthAssumption;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
-import org.sosy_lab.numericdomains.constraint.TreeConstraint;
 
 public class NumericAssumptionHandler
     implements CExpressionVisitor<Collection<NumericState>, UnrecognizedCodeException> {
@@ -95,51 +91,29 @@ public class NumericAssumptionHandler
     final boolean usesEpsilon;
 
     if (checkIsFloatComparison(pIastBinaryExpression)) {
-      // Use comparison with epsilon for real valued variables
-      states =
-          PartialState.applyComparisonOperator(
-              pIastBinaryExpression.getOperator(),
-              statesLeft,
-              statesRight,
-              truthAssumption,
-              ApplyEpsilon.APPLY_EPSILON,
-              state.getValue().getEnvironment());
       usesEpsilon = true;
-
     } else {
-      states =
-          PartialState.applyComparisonOperator(
-              pIastBinaryExpression.getOperator(),
-              statesLeft,
-              statesRight,
-              truthAssumption,
-              ApplyEpsilon.EXACT,
-              state.getValue().getEnvironment());
       usesEpsilon = false;
     }
+
+    states =
+        PartialState.applyComparisonOperator(
+            pIastBinaryExpression.getOperator(),
+            statesLeft,
+            statesRight,
+            truthAssumption,
+            state.getValue().getEnvironment());
 
     ImmutableSet.Builder<NumericState> successorsBuilder = new ImmutableSet.Builder<>();
 
     for (PartialState partialState : states) {
       Optional<NumericState> successor;
       if (usesEpsilon) {
-        successor = state.meetAssumption(partialState.getConstraints());
+        successor = state.meetEpsilon(partialState.getConstraints());
       } else {
         successor = state.meetConstraints(partialState.getConstraints());
       }
       successor.ifPresent(successorsBuilder::add);
-      if (successor.isPresent() && logger.wouldBeLogged(Level.FINEST)) {
-        logger.log(
-            Level.FINEST,
-            pIastBinaryExpression,
-            truthAssumption,
-            "_:_",
-            Arrays.toString(partialState.getConstraints().toArray(TreeConstraint[]::new)),
-            "\napplied to: ",
-            state,
-            " \nsuccessor:",
-            successor.get());
-      }
     }
 
     Collection<NumericState> successors = successorsBuilder.build();

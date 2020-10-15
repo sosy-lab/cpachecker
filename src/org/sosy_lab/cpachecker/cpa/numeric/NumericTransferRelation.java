@@ -172,7 +172,6 @@ public class NumericTransferRelation
             declaration, pCfaEdge.getSuccessor(), precision, state.getManager(), logger);
 
     if (variable.isPresent()) {
-      logger.log(Level.SEVERE, "ApplyAssignmentConstraints", variable, expression);
       ImmutableSet.Builder<NumericState> statesBuilder = new ImmutableSet.Builder<>();
       Collection<PartialState> partialAssignments =
           expression.accept(
@@ -203,7 +202,7 @@ public class NumericTransferRelation
     // Meet the constraints and then assign the value
 
     for (NumericState successorCandidate : pSuccessorCandidates.build()) {
-      Optional<NumericState> tempState = successorCandidate.meetAssumption(assignmentConstraints);
+      Optional<NumericState> tempState = successorCandidate.meetEpsilon(assignmentConstraints);
       Optional<NumericState> out =
           tempState.map(
               (st) -> st.assignTreeExpression(pVariable, partialAssignment.getPartialConstraint()));
@@ -215,9 +214,9 @@ public class NumericTransferRelation
             }
           });
 
-      if (logger.wouldBeLogged(Level.SEVERE)) {
+      if (logger.wouldBeLogged(Level.FINEST)) {
         logger.log(
-            Level.SEVERE,
+            Level.FINEST,
             "To",
             successorCandidate,
             "Add parameter: ",

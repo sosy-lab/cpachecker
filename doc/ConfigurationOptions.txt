@@ -1857,10 +1857,6 @@ cpa.monitor.pathcomputationlimit = 0
 # in assumptions
 cpa.nondeterminism.acceptConstrained = true
 
-# Use this to set which type of variables should be handled.
-cpa.numeric.NumericTransferRelation.handledVariableTypes = INTEGERS_AND_DOUBLES
-  enum:     [ONLY_INTEGERS, ONLY_DOUBLES, INTEGERS_AND_DOUBLES]
-
 # MergeOperation that should be used by the domain.
 cpa.numeric.mergeOperator = SEP
   enum:     [SEP, JOIN, WIDENING, SEP_WIDENING]
