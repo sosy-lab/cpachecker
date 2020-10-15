@@ -61,11 +61,8 @@ public class PartialState {
   private static final TreeNode FALSE_COMPARISON_RESULT = new ConstantTreeNode(MpqScalar.of(0));
 
   private static final double EPSILON_VALUE = 0.00000000000001;
-
   /** Epsilon used for comparison of floating point values. */
   private static final Scalar EPSILON = DoubleScalar.of(EPSILON_VALUE);
-  /** Double the epsilon value used for */
-  private static final Scalar DOUBLE_EPSILON = DoubleScalar.of(2 * EPSILON_VALUE);
 
   /**
    * Epsilon Interval [-{@link PartialState#EPSILON}, {@link PartialState#EPSILON}]used for equality
@@ -233,17 +230,14 @@ public class PartialState {
     switch (pOperator) {
       case EQUALS:
         if (pAssumption == TruthAssumption.ASSUME_TRUE) {
-          epsilonType =
-              (useEpsilon == ApplyEpsilon.APPLY_EPSILON
-                  ? EpsilonType.INTERVAL_EPSILON
-                  : EpsilonType.EXACT);
+          epsilonType = EpsilonType.EXACT;
           return ImmutableSet.of(
               buildSimpleComparison(
                   ConstraintType.EQUALS, leftExpression, rightExpression, epsilonType));
         } else {
           epsilonType =
               (useEpsilon == ApplyEpsilon.APPLY_EPSILON
-                  ? EpsilonType.SUBTRACT_EPSILON_TWICE
+                  ? EpsilonType.SUBTRACT_EPSILON
                   : EpsilonType.EXACT);
           return buildAndSplitInequalityComparison(leftExpression, rightExpression, epsilonType);
         }
@@ -251,14 +245,11 @@ public class PartialState {
         if (pAssumption == TruthAssumption.ASSUME_TRUE) {
           epsilonType =
               (useEpsilon == ApplyEpsilon.APPLY_EPSILON
-                  ? EpsilonType.SUBTRACT_EPSILON_TWICE
+                  ? EpsilonType.SUBTRACT_EPSILON
                   : EpsilonType.EXACT);
           return buildAndSplitInequalityComparison(leftExpression, rightExpression, epsilonType);
         } else {
-          epsilonType =
-              (useEpsilon == ApplyEpsilon.APPLY_EPSILON
-                  ? EpsilonType.INTERVAL_EPSILON
-                  : EpsilonType.EXACT);
+          epsilonType = EpsilonType.EXACT;
           return ImmutableSet.of(
               buildSimpleComparison(
                   ConstraintType.EQUALS, leftExpression, rightExpression, epsilonType));
@@ -267,26 +258,20 @@ public class PartialState {
         if (pAssumption == TruthAssumption.ASSUME_TRUE) {
           epsilonType =
               (useEpsilon == ApplyEpsilon.APPLY_EPSILON
-                  ? EpsilonType.SUBTRACT_EPSILON_TWICE
+                  ? EpsilonType.SUBTRACT_EPSILON
                   : EpsilonType.EXACT);
           return ImmutableSet.of(
               buildSimpleComparison(
                   ConstraintType.BIGGER, leftExpression, rightExpression, epsilonType));
         } else {
-          epsilonType =
-              (useEpsilon == ApplyEpsilon.APPLY_EPSILON
-                  ? EpsilonType.ADD_EPSILON
-                  : EpsilonType.EXACT);
+          epsilonType = EpsilonType.EXACT;
           return ImmutableSet.of(
               buildSimpleComparison(
                   ConstraintType.BIGGER_EQUALS, rightExpression, leftExpression, epsilonType));
         }
       case GREATER_EQUAL:
         if (pAssumption == TruthAssumption.ASSUME_TRUE) {
-          epsilonType =
-              (useEpsilon == ApplyEpsilon.APPLY_EPSILON
-                  ? EpsilonType.ADD_EPSILON
-                  : EpsilonType.EXACT);
+          epsilonType = EpsilonType.EXACT;
 
           return ImmutableSet.of(
               buildSimpleComparison(
@@ -294,7 +279,7 @@ public class PartialState {
         } else {
           epsilonType =
               (useEpsilon == ApplyEpsilon.APPLY_EPSILON
-                  ? EpsilonType.SUBTRACT_EPSILON_TWICE
+                  ? EpsilonType.SUBTRACT_EPSILON
                   : EpsilonType.EXACT);
           return ImmutableSet.of(
               buildSimpleComparison(
@@ -304,33 +289,27 @@ public class PartialState {
         if (pAssumption == TruthAssumption.ASSUME_TRUE) {
           epsilonType =
               (useEpsilon == ApplyEpsilon.APPLY_EPSILON
-                  ? EpsilonType.SUBTRACT_EPSILON_TWICE
+                  ? EpsilonType.SUBTRACT_EPSILON
                   : EpsilonType.EXACT);
           return ImmutableSet.of(
               buildSimpleComparison(
                   ConstraintType.BIGGER, rightExpression, leftExpression, epsilonType));
         } else {
-          epsilonType =
-              (useEpsilon == ApplyEpsilon.APPLY_EPSILON
-                  ? EpsilonType.ADD_EPSILON
-                  : EpsilonType.EXACT);
+          epsilonType = EpsilonType.EXACT;
           return ImmutableSet.of(
               buildSimpleComparison(
                   ConstraintType.BIGGER_EQUALS, leftExpression, rightExpression, epsilonType));
         }
       case LESS_EQUAL:
         if (pAssumption == TruthAssumption.ASSUME_TRUE) {
-          epsilonType =
-              (useEpsilon == ApplyEpsilon.APPLY_EPSILON
-                  ? EpsilonType.ADD_EPSILON
-                  : EpsilonType.EXACT);
+          epsilonType = EpsilonType.EXACT;
           return ImmutableSet.of(
               buildSimpleComparison(
                   ConstraintType.BIGGER_EQUALS, rightExpression, leftExpression, epsilonType));
         } else {
           epsilonType =
               (useEpsilon == ApplyEpsilon.APPLY_EPSILON
-                  ? EpsilonType.SUBTRACT_EPSILON_TWICE
+                  ? EpsilonType.SUBTRACT_EPSILON
                   : EpsilonType.EXACT);
           return ImmutableSet.of(
               buildSimpleComparison(
@@ -472,15 +451,8 @@ public class PartialState {
       case ADD_EPSILON:
         temp = new BinaryTreeNode(BinaryOperator.ADD, temp, new ConstantTreeNode(EPSILON));
         break;
-      case ADD_EPSILON_TWICE:
-        temp = new BinaryTreeNode(BinaryOperator.ADD, temp, new ConstantTreeNode(DOUBLE_EPSILON));
-        break;
       case SUBTRACT_EPSILON:
         temp = new BinaryTreeNode(BinaryOperator.SUBTRACT, temp, new ConstantTreeNode(EPSILON));
-        break;
-      case SUBTRACT_EPSILON_TWICE:
-        temp =
-            new BinaryTreeNode(BinaryOperator.SUBTRACT, temp, new ConstantTreeNode(DOUBLE_EPSILON));
         break;
       case INTERVAL_EPSILON:
         temp = new BinaryTreeNode(BinaryOperator.ADD, temp, new ConstantTreeNode(EPSILON_INTERVAL));
@@ -574,12 +546,8 @@ public class PartialState {
     EXACT,
     /** Increase the values by epsilon. */
     ADD_EPSILON,
-    /** Increase the value by 2*epsilon. */
-    ADD_EPSILON_TWICE,
     /** Decrease the values by epsilon. */
     SUBTRACT_EPSILON,
-    /** Decrease the value by 2*epsilon. */
-    SUBTRACT_EPSILON_TWICE,
     /** Widen the values by the interval. */
     INTERVAL_EPSILON;
   }
