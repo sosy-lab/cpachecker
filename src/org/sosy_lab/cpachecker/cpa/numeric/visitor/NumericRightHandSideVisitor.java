@@ -269,7 +269,7 @@ public class NumericRightHandSideVisitor
       Optional<NumericVariable> variable =
           NumericVariable.valueOf(
               pIastIdExpression.getDeclaration(), edge.getSuccessor(), precision, manager, logger);
-      if (variable.isPresent()) {
+      if (variable.isPresent() && environment.containsVariable(variable.get())) {
         PartialState out = new PartialState(variable.get());
         return ImmutableSet.of(out);
       } else {

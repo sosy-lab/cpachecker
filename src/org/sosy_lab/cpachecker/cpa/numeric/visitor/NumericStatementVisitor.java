@@ -128,7 +128,8 @@ public class NumericStatementVisitor
     } else {
       Collection<Variable> newVariable = ImmutableSet.of(variable.get());
       if (variable.get().getSimpleType().getType().isIntegerType()) {
-        extendedState = state.addVariables(newVariable, ImmutableSet.of(), NewVariableValue.ZERO);
+        extendedState =
+            state.addVariables(newVariable, ImmutableSet.of(), NewVariableValue.UNCONSTRAINED);
       } else {
         extendedState =
             state.addVariables(ImmutableSet.of(), newVariable, NewVariableValue.UNCONSTRAINED);
