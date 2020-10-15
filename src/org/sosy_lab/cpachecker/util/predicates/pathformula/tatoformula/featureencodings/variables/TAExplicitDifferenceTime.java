@@ -19,14 +19,22 @@ import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
 public class TAExplicitDifferenceTime extends TAExplicitTime {
+  private static final String ZERO_VARIABLE_NAME = "#global_zero_var";
+
+  private boolean differenceZero;
+  private boolean differenceEquals;
 
   public TAExplicitDifferenceTime(
       FormulaManagerView pFmgr,
       boolean pLocalEncoding,
       boolean pAllowZeroDelay,
       FormulaType<?> pClockVariableType,
-      TimedAutomatonView pAutomata) {
+      TimedAutomatonView pAutomata,
+      boolean pDifferenceZero,
+      boolean pDifferenceEquals) {
     super(pFmgr, pLocalEncoding, pAllowZeroDelay, pClockVariableType, pAutomata);
+    differenceZero = pDifferenceZero;
+    differenceEquals = pDifferenceEquals;
   }
 
   @Override
@@ -111,6 +119,9 @@ public class TAExplicitDifferenceTime extends TAExplicitTime {
   }
 
   private BooleanFormula makeVariablesEqualFormula(Formula variable1, Formula variable2) {
+    if (!differenceEquals) {
+      return fmgr.makeEqual(variable1, variable2);
+    }
     var difference1 = fmgr.makeMinus(variable1, variable2);
     var difference2 = fmgr.makeMinus(variable2, variable1);
     var zero = fmgr.makeNumber(clockVariableType, 0);
@@ -118,5 +129,17 @@ public class TAExplicitDifferenceTime extends TAExplicitTime {
     return bFmgr.and(
         fmgr.makeLessOrEqual(difference1, zero, true),
         fmgr.makeLessOrEqual(difference2, zero, true));
+  }
+
+  @Override
+  public BooleanFormula makeTimeEqualsZeroFormula(TaDeclaration pAutomaton, int pVariableIndex) {
+    if (!differenceZero) {
+      return super.makeTimeEqualsZeroFormula(pAutomaton, pVariableIndex);
+    }
+
+    var timeVariable = makeTimeVariableFormula(pAutomaton, pVariableIndex);
+    var zeroVariable = fmgr.makeVariable(clockVariableType, ZERO_VARIABLE_NAME);
+
+    return makeVariablesEqualFormula(timeVariable, zeroVariable);
   }
 }
