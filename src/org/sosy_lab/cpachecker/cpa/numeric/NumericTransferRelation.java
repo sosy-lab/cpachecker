@@ -213,21 +213,6 @@ public class NumericTransferRelation
               pStatesBuilder.add(st);
             }
           });
-
-      if (logger.wouldBeLogged(Level.FINEST)) {
-        logger.log(
-            Level.FINEST,
-            "To",
-            successorCandidate,
-            "Add parameter: ",
-            pVariable,
-            "=",
-            partialAssignment.getPartialConstraint(),
-            " by using: ",
-            assignmentConstraints,
-            "successors:",
-            (out.isPresent() ? out.get() : "EMPTY"));
-      }
       successorCandidate.getValue().dispose();
     }
   }
