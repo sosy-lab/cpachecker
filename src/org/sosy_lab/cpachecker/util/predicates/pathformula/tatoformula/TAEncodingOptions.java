@@ -134,10 +134,4 @@ public class TAEncodingOptions {
       secure = true,
       description = "The size of the bit vectors, if clockVariableType is BitVector")
   public int bitVectorClockVariableSize = 10;
-
-  @Option(secure = true, description = "Whether to use difference logic for initial zero")
-  public boolean timeDifferenceZero = false;
-
-  @Option(secure = true, description = "Whether to use difference logic for equality")
-  public boolean timeDifferenceEquals = false;
 }

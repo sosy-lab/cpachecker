@@ -193,13 +193,7 @@ public class TAFormulaEncodingProvider {
     }
     if (options.timeEncoding == TimeEncodingType.GLOBAL_EXPLICIT_DIFFERENCE) {
       return new TAExplicitDifferenceTime(
-          pFmgr,
-          false,
-          options.allowZeroDelay,
-          clockClockVariableType,
-          pAutomata,
-          options.timeDifferenceZero,
-          options.timeDifferenceEquals);
+          pFmgr, false, options.allowZeroDelay, clockClockVariableType, pAutomata);
     }
     if (options.timeEncoding == TimeEncodingType.GLOBAL_IMPLICIT) {
       return new TAImplicitTime(
@@ -215,13 +209,7 @@ public class TAFormulaEncodingProvider {
     }
     if (options.timeEncoding == TimeEncodingType.LOCAL_EXPLICIT_DIFFERENCE) {
       return new TAExplicitDifferenceTime(
-          pFmgr,
-          true,
-          options.allowZeroDelay,
-          clockClockVariableType,
-          pAutomata,
-          options.timeDifferenceZero,
-          options.timeDifferenceEquals);
+          pFmgr, true, options.allowZeroDelay, clockClockVariableType, pAutomata);
     }
     throw new AssertionError("Unknown encoding type");
   }
