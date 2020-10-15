@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -194,8 +195,40 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
    * @param pConstraints constraints with which the meet is computed
    * @return state containing the meet as value, empty if the resulting value is the bottom value
    */
-  public Optional<NumericState> meet(Collection<TreeConstraint> pConstraints) {
-    // Fix problem where elina does not compute meet with TreeConstraints correctly
+  public Optional<NumericState> meetConstraints(Collection<TreeConstraint> pConstraints) {
+    Optional<Value> newAbs = value.meet(pConstraints.toArray(TreeConstraint[]::new));
+
+    logger.log(
+        Level.SEVERE,
+        "Value:"
+            + value
+            + "\nConstraints: "
+            + Arrays.toString(pConstraints.toArray(TreeConstraint[]::new))
+            + "\nresult:"
+            + newAbs.get().toPrettyString(false)
+            + "\nAs Box:"
+            + Arrays.toString(newAbs.get().toBox()));
+
+    if (newAbs.isPresent()) {
+      if (!newAbs.get().isBottom()) {
+        return Optional.of(new NumericState(newAbs.get(), logger));
+      } else {
+        // If the new Value is the bottom value it can be ignored
+        newAbs.get().dispose();
+      }
+    }
+
+    return Optional.empty();
+  }
+
+  /**
+   * This method works like {@see meetConstraints}.
+   *
+   * <p>This method is necessary because the meet with TreeConstraints is sometimes not correctly
+   * computed, if an epsilon value is used.
+   */
+  public Optional<NumericState> meetAssumption(Collection<TreeConstraint> pConstraints) {
+    // Fix problem where  meet with TreeConstraints is not computed correctly
     // Instead create a value from the constraints and compute the meet between the values
     if (manager instanceof org.sosy_lab.numericdomains.elina.ZonesManager
         || manager instanceof org.sosy_lab.numericdomains.elina.OctagonManager) {
@@ -208,18 +241,7 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
       temp.dispose();
       return newState;
     } else {
-      Optional<Value> newAbs = value.meet(pConstraints.toArray(TreeConstraint[]::new));
-
-      if (newAbs.isPresent()) {
-        if (!newAbs.get().isBottom()) {
-          return Optional.of(new NumericState(newAbs.get(), logger));
-        } else {
-          // If the new Value is the bottom value it can be ignored
-          newAbs.get().dispose();
-        }
-      }
-
-      return Optional.empty();
+      return meetConstraints(pConstraints);
     }
   }
 

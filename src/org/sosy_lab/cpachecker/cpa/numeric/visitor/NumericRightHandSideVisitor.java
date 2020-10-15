@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
-import org.sosy_lab.cpachecker.cpa.numeric.NumericTransferRelation.HandleNumericTypes;
 import org.sosy_lab.cpachecker.cpa.numeric.NumericVariable;
 import org.sosy_lab.cpachecker.cpa.numeric.visitor.PartialState.ApplyEpsilon;
 import org.sosy_lab.cpachecker.cpa.numeric.visitor.PartialState.TruthAssumption;
@@ -45,11 +44,8 @@ import org.sosy_lab.numericdomains.Manager;
 import org.sosy_lab.numericdomains.coefficients.Coefficient;
 import org.sosy_lab.numericdomains.coefficients.MpqScalar;
 import org.sosy_lab.numericdomains.constraint.tree.BinaryOperator;
-import org.sosy_lab.numericdomains.constraint.tree.ConstantTreeNode;
 import org.sosy_lab.numericdomains.constraint.tree.RoundingType;
-import org.sosy_lab.numericdomains.constraint.tree.TreeNode;
 import org.sosy_lab.numericdomains.constraint.tree.UnaryOperator;
-import org.sosy_lab.numericdomains.constraint.tree.VariableTreeNode;
 import org.sosy_lab.numericdomains.environment.Environment;
 
 /**
@@ -68,8 +64,6 @@ public class NumericRightHandSideVisitor
 
   private final Manager manager;
 
-  private final HandleNumericTypes handledTypes;
-
   private final VariableTrackingPrecision precision;
 
   private final CFAEdge edge;
@@ -81,19 +75,16 @@ public class NumericRightHandSideVisitor
    *
    * @param pEnvironment environment of the state for which this is called
    * @param pManager manager used in the CPA
-   * @param pHandledTypes specifies which numeric types should be handled
    * @param cfaEdge current cfaEdge
    * @param pPrecision precision of the current CPA
    */
   public NumericRightHandSideVisitor(
       Environment pEnvironment,
       Manager pManager,
-      HandleNumericTypes pHandledTypes,
       CFAEdge cfaEdge,
       VariableTrackingPrecision pPrecision,
       LogManager pLogManager) {
     environment = pEnvironment;
-    handledTypes = pHandledTypes;
     edge = cfaEdge;
     precision = pPrecision;
     manager = pManager;
@@ -117,10 +108,7 @@ public class NumericRightHandSideVisitor
       newExpressions =
           handleComparisonOperator(pIastBinaryExpression, leftExpression, rightExpression);
     } else {
-      newExpressions =
-          ImmutableSet.of(
-              new PartialState(
-                  new ConstantTreeNode(PartialState.UNCONSTRAINED_INTERVAL), ImmutableSet.of()));
+      newExpressions = ImmutableSet.of(new PartialState(PartialState.UNCONSTRAINED_INTERVAL));
     }
 
     return newExpressions;
@@ -208,8 +196,7 @@ public class NumericRightHandSideVisitor
       throws UnrecognizedCodeException {
     char value = pIastCharLiteralExpression.getValue();
     Coefficient coeff = MpqScalar.of((int) value);
-    PartialState partialState = new PartialState(new ConstantTreeNode(coeff), ImmutableSet.of());
-    return ImmutableSet.of(partialState);
+    return ImmutableSet.of(new PartialState(coeff));
   }
 
   @Override
@@ -218,18 +205,14 @@ public class NumericRightHandSideVisitor
     BigDecimal decimal = pIastFloatLiteralExpression.getValue();
     ExtendedRational rational = new ExtendedRational(Rational.ofBigDecimal(decimal));
     Coefficient coeff = MpqScalar.of(rational);
-    TreeNode constNode = new ConstantTreeNode(coeff);
-    PartialState out = new PartialState(constNode, ImmutableSet.of());
-    return ImmutableSet.of(out);
+    return ImmutableSet.of(new PartialState(coeff));
   }
 
   @Override
   public Collection<PartialState> visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
       throws UnrecognizedCodeException {
     Coefficient coeff = MpqScalar.of(pIastIntegerLiteralExpression.asLong());
-    TreeNode constNode = new ConstantTreeNode(coeff);
-    PartialState out = new PartialState(constNode, ImmutableSet.of());
-    return ImmutableSet.of(out);
+    return ImmutableSet.of(new PartialState(coeff));
   }
 
   @Override
@@ -257,12 +240,13 @@ public class NumericRightHandSideVisitor
         return PartialState.applyUnaryArithmeticOperator(
             UnaryOperator.NEGATE, states, roundingType, PartialState.DEFAULT_ROUNDING_MODE);
       default:
-        TreeNode unconstrained = new ConstantTreeNode(PartialState.UNCONSTRAINED_INTERVAL);
-        ImmutableSet.Builder<PartialState> unconstrainedStates = new ImmutableSet.Builder<>();
-        for (PartialState state : states) {
-          unconstrainedStates.add(new PartialState(unconstrained, state.getConstraints()));
+        final boolean isSigned;
+        if (pIastUnaryExpression.getExpressionType() instanceof CSimpleType) {
+          isSigned = ((CSimpleType) pIastUnaryExpression.getExpressionType()).isSigned();
+        } else {
+          isSigned = true;
         }
-        return unconstrainedStates.build();
+        return ImmutableSet.of(createUnconstrainedPartialState(isSigned));
     }
   }
 
@@ -298,17 +282,12 @@ public class NumericRightHandSideVisitor
       Optional<NumericVariable> variable =
           NumericVariable.valueOf(
               pIastIdExpression.getDeclaration(), edge.getSuccessor(), precision, manager, logger);
-      if (variable.isPresent()
-          && ((variable.get().getSimpleType().getType().isFloatingPointType()
-                  && handledTypes.handleReals())
-              || (variable.get().getSimpleType().getType().isIntegerType()
-                  && handledTypes.handleIntegers()))) {
-        TreeNode node = new VariableTreeNode(variable.get());
-        PartialState out = new PartialState(node, ImmutableSet.of());
+      if (variable.isPresent()) {
+        PartialState out = new PartialState(variable.get());
         return ImmutableSet.of(out);
       } else {
-        return ImmutableSet.of(
-            createUnconstrainedPartialState(variable.get().getSimpleType().isSigned()));
+        boolean isSigned = ((CSimpleType) pIastIdExpression.getDeclaration().getType()).isSigned();
+        return ImmutableSet.of(createUnconstrainedPartialState(isSigned));
       }
     }
     // Type can not be handled therefore it is substituted with an unconstrained value:
@@ -317,11 +296,9 @@ public class NumericRightHandSideVisitor
 
   private PartialState createUnconstrainedPartialState(boolean isSigned) {
     if (isSigned) {
-      return new PartialState(
-          new ConstantTreeNode(PartialState.UNCONSTRAINED_INTERVAL), ImmutableSet.of());
+      return new PartialState(PartialState.UNCONSTRAINED_INTERVAL);
     } else {
-      return new PartialState(
-          new ConstantTreeNode(PartialState.UNSIGNED_UNCONSTRAINED_INTERVAL), ImmutableSet.of());
+      return new PartialState(PartialState.UNSIGNED_UNCONSTRAINED_INTERVAL);
     }
   }
 

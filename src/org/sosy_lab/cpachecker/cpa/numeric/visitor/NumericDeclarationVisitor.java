@@ -26,7 +26,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.numeric.NumericState;
-import org.sosy_lab.cpachecker.cpa.numeric.NumericTransferRelation.HandleNumericTypes;
 import org.sosy_lab.cpachecker.cpa.numeric.NumericVariable;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.numericdomains.Value.NewVariableValue;
@@ -41,7 +40,6 @@ public class NumericDeclarationVisitor
     implements CSimpleDeclarationVisitor<Collection<NumericState>, UnrecognizedCodeException> {
   private final NumericState state;
   private final LogManager logger;
-  private final HandleNumericTypes handledTypes;
   private final CFAEdge edge;
   private final VariableTrackingPrecision precision;
 
@@ -49,19 +47,16 @@ public class NumericDeclarationVisitor
    * Creates a NumericDeclarationVisitor.
    *
    * @param pState state before the declaration
-   * @param pHandledTypes the types which are handled by the CPA
    * @param pEdge edge of the declaration
    * @param pPrecision precision of the CPA
    */
   public NumericDeclarationVisitor(
       NumericState pState,
-      HandleNumericTypes pHandledTypes,
       CFAEdge pEdge,
       VariableTrackingPrecision pPrecision,
       LogManager logManager) {
     this.state = pState;
     logger = logManager;
-    handledTypes = pHandledTypes;
     precision = pPrecision;
     edge = pEdge;
   }
@@ -79,19 +74,9 @@ public class NumericDeclarationVisitor
       final ImmutableSet<Variable> realVar;
       if (simpleType.getType().isFloatingPointType()) {
         intVar = ImmutableSet.of();
-        if (handledTypes.handleReals()) {
-          realVar = ImmutableSet.of(variable.get());
-        } else {
-          // Since the variable is not handled anyway it doesn't need to be added to the state
-          realVar = ImmutableSet.of();
-        }
+        realVar = ImmutableSet.of(variable.get());
       } else {
-        if (handledTypes.handleIntegers()) {
-          intVar = ImmutableSet.of(variable.get());
-        } else {
-          // Since the variable is not handled anyway it doesn't need to be added to the state
-          intVar = ImmutableSet.of();
-        }
+        intVar = ImmutableSet.of(variable.get());
         realVar = ImmutableSet.of();
       }
 
@@ -131,7 +116,7 @@ public class NumericDeclarationVisitor
       if (!successors.isEmpty()) {
         return successors;
       } else {
-        // Return the state before the creation as a fallback
+        // Return the state before the addition of the variable as a fallback
         return ImmutableSet.of(state.createCopy());
       }
     }
@@ -147,7 +132,7 @@ public class NumericDeclarationVisitor
       TreeConstraint biggerThanZero =
           new TreeConstraint(pEnvironment, ConstraintType.BIGGER_EQUALS, null, rootNode);
 
-      Optional<NumericState> successor = pState.meet(ImmutableSet.of(biggerThanZero));
+      Optional<NumericState> successor = pState.meetConstraints(ImmutableSet.of(biggerThanZero));
       successor.ifPresent(unsigned::add);
       pState.getValue().dispose();
     }
@@ -162,12 +147,7 @@ public class NumericDeclarationVisitor
     Collection<PartialState> init =
         expr.accept(
             new NumericRightHandSideVisitor(
-                pState.getValue().getEnvironment(),
-                state.getManager(),
-                handledTypes,
-                edge,
-                precision,
-                logger));
+                pState.getValue().getEnvironment(), state.getManager(), edge, precision, logger));
 
     for (PartialState partialState : init) {
       NumericState tempSuccessor =
@@ -175,7 +155,7 @@ public class NumericDeclarationVisitor
       if (partialState.getConstraints().isEmpty()) {
         pSuccessorStates.add(tempSuccessor);
       } else {
-        Optional<NumericState> temp = pState.meet(partialState.getConstraints());
+        Optional<NumericState> temp = pState.meetConstraints(partialState.getConstraints());
         temp.ifPresent(pSuccessorStates::add);
       }
     }

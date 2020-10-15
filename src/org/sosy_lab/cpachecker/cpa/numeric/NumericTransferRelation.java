@@ -15,10 +15,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Level;
-import org.sosy_lab.common.configuration.Configuration;
-import org.sosy_lab.common.configuration.InvalidConfigurationException;
-import org.sosy_lab.common.configuration.Option;
-import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
@@ -55,7 +51,6 @@ import org.sosy_lab.numericdomains.constraint.TreeConstraint;
 import org.sosy_lab.numericdomains.environment.Environment;
 import org.sosy_lab.numericdomains.environment.Variable;
 
-@Options(prefix = "cpa.numeric.NumericTransferRelation")
 public class NumericTransferRelation
     extends ForwardingTransferRelation<
         Collection<NumericState>, NumericState, VariableTrackingPrecision> {
@@ -63,18 +58,8 @@ public class NumericTransferRelation
   private final LogManager logger;
   private boolean useLoopInformation;
 
-  @Option(
-      secure = true,
-      name = "handledVariableTypes",
-      toUppercase = true,
-      description = "Use this to set which type of variables should be handled.")
-  private HandleNumericTypes handledVariableTypes = HandleNumericTypes.INTEGERS_AND_DOUBLES;
-
-  NumericTransferRelation(Configuration config, LogManager pLogManager)
-      throws InvalidConfigurationException {
-    config.inject(this);
+  NumericTransferRelation(LogManager pLogManager) {
     logger = pLogManager;
-    logger.log(Level.CONFIG, handledVariableTypes);
     useLoopInformation = false;
   }
 
@@ -93,16 +78,14 @@ public class NumericTransferRelation
       CAssumeEdge cfaEdge, CExpression cExpression, boolean truthAssumption)
       throws UnrecognizedCodeException {
     return cExpression.accept(
-        new NumericAssumptionHandler(
-            state, handledVariableTypes, truthAssumption, cfaEdge, precision, logger));
+        new NumericAssumptionHandler(state, truthAssumption, cfaEdge, precision, logger));
   }
 
   @Override
   protected Collection<NumericState> handleDeclarationEdge(
       CDeclarationEdge cfaEdge, CDeclaration declaration) throws UnrecognizedCodeException {
     Collection<NumericState> successors =
-        declaration.accept(
-            new NumericDeclarationVisitor(state, handledVariableTypes, cfaEdge, precision, logger));
+        declaration.accept(new NumericDeclarationVisitor(state, cfaEdge, precision, logger));
     if (!successors.isEmpty()) {
       return successors;
     } else {
@@ -113,8 +96,7 @@ public class NumericTransferRelation
   @Override
   protected Collection<NumericState> handleStatementEdge(
       CStatementEdge cfaEdge, CStatement statement) throws UnrecognizedCodeException {
-    return statement.accept(
-        new NumericStatementVisitor(state, cfaEdge, handledVariableTypes, precision, logger));
+    return statement.accept(new NumericStatementVisitor(state, cfaEdge, precision, logger));
   }
 
   @Override
@@ -141,12 +123,9 @@ public class NumericTransferRelation
         continue;
       }
 
-      CSimpleType declarationType = (CSimpleType) declaration.getType();
-
-      if (declarationType.getType().isFloatingPointType() && handledVariableTypes.handleReals()) {
+      if (variable.get().getSimpleType().getType().isFloatingPointType()) {
         realVariables.add(variable.get());
-      } else if (declarationType.getType().isIntegerType()
-          && handledVariableTypes.handleIntegers()) {
+      } else {
         integerVariables.add(variable.get());
       }
       if (state.getValue().getEnvironment().containsVariable(variable.get())) {
@@ -193,17 +172,12 @@ public class NumericTransferRelation
             declaration, pCfaEdge.getSuccessor(), precision, state.getManager(), logger);
 
     if (variable.isPresent()) {
-      logger.log(Level.FINEST, "ApplyAssignmentConstraints", variable, expression);
+      logger.log(Level.SEVERE, "ApplyAssignmentConstraints", variable, expression);
       ImmutableSet.Builder<NumericState> statesBuilder = new ImmutableSet.Builder<>();
       Collection<PartialState> partialAssignments =
           expression.accept(
               new NumericRightHandSideVisitor(
-                  pEnvironment,
-                  state.getManager(),
-                  handledVariableTypes,
-                  pCfaEdge,
-                  precision,
-                  logger));
+                  pEnvironment, state.getManager(), pCfaEdge, precision, logger));
       for (PartialState partialAssignment : partialAssignments) {
         ImmutableList.Builder<NumericState> successorCandidates = new ImmutableList.Builder<>();
         for (NumericState current : pStates) {
@@ -211,7 +185,7 @@ public class NumericTransferRelation
         }
 
         if (pEnvironment.containsVariable(variable.get())) {
-          AssignParameter(variable.get(), statesBuilder, partialAssignment, successorCandidates);
+          assignParameter(variable.get(), statesBuilder, partialAssignment, successorCandidates);
         }
       }
       return statesBuilder.build();
@@ -220,7 +194,7 @@ public class NumericTransferRelation
     }
   }
 
-  private void AssignParameter(
+  private void assignParameter(
       Variable pVariable,
       Builder<NumericState> pStatesBuilder,
       PartialState partialAssignment,
@@ -229,7 +203,7 @@ public class NumericTransferRelation
     // Meet the constraints and then assign the value
 
     for (NumericState successorCandidate : pSuccessorCandidates.build()) {
-      Optional<NumericState> tempState = successorCandidate.meet(assignmentConstraints);
+      Optional<NumericState> tempState = successorCandidate.meetAssumption(assignmentConstraints);
       Optional<NumericState> out =
           tempState.map(
               (st) -> st.assignTreeExpression(pVariable, partialAssignment.getPartialConstraint()));
@@ -241,9 +215,9 @@ public class NumericTransferRelation
             }
           });
 
-      if (logger.wouldBeLogged(Level.FINEST)) {
+      if (logger.wouldBeLogged(Level.SEVERE)) {
         logger.log(
-            Level.FINEST,
+            Level.SEVERE,
             "To",
             successorCandidate,
             "Add parameter: ",
@@ -278,9 +252,7 @@ public class NumericTransferRelation
         assert ((CVariableDeclaration) declaration.get()).getInitializer() == null;
         Collection<NumericState> intermediateStates =
             ((CDeclaration) declaration.get())
-                .accept(
-                    new NumericDeclarationVisitor(
-                        state, handledVariableTypes, cfaEdge, precision, logger));
+                .accept(new NumericDeclarationVisitor(state, cfaEdge, precision, logger));
         // The declaration of the return variable does not contain an initializer and therefore can
         // only return exactly one state.
         assert intermediateStates.size() == 1;
@@ -291,8 +263,7 @@ public class NumericTransferRelation
               assignment
                   .get()
                   .accept(
-                      new NumericStatementVisitor(
-                          intermediateState, cfaEdge, handledVariableTypes, precision, logger));
+                      new NumericStatementVisitor(intermediateState, cfaEdge, precision, logger));
           // Dispose of value in intermediate state
           if (!assigned.contains(intermediateState)) {
             intermediateState.getValue().dispose();
@@ -333,7 +304,7 @@ public class NumericTransferRelation
         Collection<NumericState> tempStates =
             assignment.accept(
                 new NumericStatementVisitor(
-                    state, handledVariableTypes, returnVariable.get(), cfaEdge, precision, logger));
+                    state, returnVariable.get(), cfaEdge, precision, logger));
         ImmutableSet.Builder<NumericState> successorsBuilder = new ImmutableSet.Builder<>();
         for (NumericState tempState : tempStates) {
           successorsBuilder.add(tempState.removeVariables(ImmutableSet.of(returnVariable.get())));
@@ -441,24 +412,6 @@ public class NumericTransferRelation
       }
 
       return reducedSuccessors;
-    }
-  }
-
-  /** Sets which variable types should be considered. */
-  public enum HandleNumericTypes {
-    /** Consider only integer valued variables. */
-    ONLY_INTEGERS,
-    /** Consider only real valued variables. */
-    ONLY_DOUBLES,
-    /** Consider both integer and real valued variables. */
-    INTEGERS_AND_DOUBLES;
-
-    public boolean handleReals() {
-      return this == ONLY_DOUBLES || this == INTEGERS_AND_DOUBLES;
-    }
-
-    public boolean handleIntegers() {
-      return this == ONLY_INTEGERS || this == INTEGERS_AND_DOUBLES;
     }
   }
 }

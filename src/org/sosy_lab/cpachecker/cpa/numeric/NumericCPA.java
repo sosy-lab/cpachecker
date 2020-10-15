@@ -119,7 +119,7 @@ public class NumericCPA extends AbstractCPA implements StatisticsProvider, Proof
   public NumericCPA(
       Configuration pConfig, CFA pCfa, ShutdownNotifier pShutdownNotifier, LogManager pLogManager)
       throws InvalidConfigurationException {
-    super(DelegateAbstractDomain.getInstance(), new NumericTransferRelation(pConfig, pLogManager));
+    super(DelegateAbstractDomain.getInstance(), new NumericTransferRelation(pLogManager));
     pConfig.inject(this);
     logger = pLogManager;
     cfa = pCfa;

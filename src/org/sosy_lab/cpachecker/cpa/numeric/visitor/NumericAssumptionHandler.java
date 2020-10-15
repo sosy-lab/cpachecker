@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.numeric.NumericState;
 import org.sosy_lab.cpachecker.cpa.numeric.NumericTransferRelation;
-import org.sosy_lab.cpachecker.cpa.numeric.NumericTransferRelation.HandleNumericTypes;
 import org.sosy_lab.cpachecker.cpa.numeric.visitor.PartialState.ApplyEpsilon;
 import org.sosy_lab.cpachecker.cpa.numeric.visitor.PartialState.TruthAssumption;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -47,13 +46,11 @@ public class NumericAssumptionHandler
   private final NumericState state;
   private final TruthAssumption truthAssumption;
   private final LogManager logger;
-  private final HandleNumericTypes handledTypes;
   private final VariableTrackingPrecision precision;
   private final CFAEdge edge;
 
   public NumericAssumptionHandler(
       NumericState pState,
-      HandleNumericTypes pHandledTypes,
       boolean pTruthAssumption,
       CFAEdge pEdge,
       VariableTrackingPrecision pPrecision,
@@ -65,7 +62,6 @@ public class NumericAssumptionHandler
     } else {
       truthAssumption = TruthAssumption.ASSUME_FALSE;
     }
-    handledTypes = pHandledTypes;
     edge = pEdge;
     precision = pPrecision;
   }
@@ -80,7 +76,6 @@ public class NumericAssumptionHandler
                 new NumericRightHandSideVisitor(
                     state.getValue().getEnvironment(),
                     state.getManager(),
-                    handledTypes,
                     edge,
                     precision,
                     logger));
@@ -91,12 +86,13 @@ public class NumericAssumptionHandler
                 new NumericRightHandSideVisitor(
                     state.getValue().getEnvironment(),
                     state.getManager(),
-                    handledTypes,
                     edge,
                     precision,
                     logger));
 
     Collection<PartialState> states;
+
+    final boolean usesEpsilon;
 
     if (checkIsFloatComparison(pIastBinaryExpression)) {
       // Use comparison with epsilon for real valued variables
@@ -108,6 +104,8 @@ public class NumericAssumptionHandler
               truthAssumption,
               ApplyEpsilon.APPLY_EPSILON,
               state.getValue().getEnvironment());
+      usesEpsilon = true;
+
     } else {
       states =
           PartialState.applyComparisonOperator(
@@ -117,12 +115,18 @@ public class NumericAssumptionHandler
               truthAssumption,
               ApplyEpsilon.EXACT,
               state.getValue().getEnvironment());
+      usesEpsilon = false;
     }
 
     ImmutableSet.Builder<NumericState> successorsBuilder = new ImmutableSet.Builder<>();
 
     for (PartialState partialState : states) {
-      Optional<NumericState> successor = state.meet(partialState.getConstraints());
+      Optional<NumericState> successor;
+      if (usesEpsilon) {
+        successor = state.meetAssumption(partialState.getConstraints());
+      } else {
+        successor = state.meetConstraints(partialState.getConstraints());
+      }
       successor.ifPresent(successorsBuilder::add);
       if (successor.isPresent() && logger.wouldBeLogged(Level.FINEST)) {
         logger.log(

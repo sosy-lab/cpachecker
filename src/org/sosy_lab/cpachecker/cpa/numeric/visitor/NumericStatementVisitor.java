@@ -25,7 +25,6 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatementVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.numeric.NumericState;
-import org.sosy_lab.cpachecker.cpa.numeric.NumericTransferRelation.HandleNumericTypes;
 import org.sosy_lab.cpachecker.cpa.numeric.NumericVariable;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.numericdomains.Value.NewVariableValue;
@@ -49,8 +48,6 @@ public class NumericStatementVisitor
 
   private final LogManager logger;
 
-  private final HandleNumericTypes handledTypes;
-
   private final VariableTrackingPrecision precision;
 
   private final CFAEdge edge;
@@ -60,19 +57,16 @@ public class NumericStatementVisitor
    *
    * @param pState current state
    * @param cfaEdge current edge
-   * @param pHandledTypes defines which types should be handled in the statement
    * @param pPrecision precision of the CPA
    */
   public NumericStatementVisitor(
       NumericState pState,
       CFAEdge cfaEdge,
-      HandleNumericTypes pHandledTypes,
       VariableTrackingPrecision pPrecision,
       LogManager logManager) {
     state = pState;
     returnVariable = Optional.empty();
     logger = logManager;
-    handledTypes = pHandledTypes;
     edge = cfaEdge;
     precision = pPrecision;
   }
@@ -84,14 +78,12 @@ public class NumericStatementVisitor
    * other statements, the value is ignored.
    *
    * @param pState current state
-   * @param pHandledTypes defines which types should be handled in the statement
    * @param pReturnVariable return variable used for a CFunctionCallAssignmentStatement
    * @param cfaEdge current edge
    * @param pPrecision precision of the CPA
    */
   public NumericStatementVisitor(
       NumericState pState,
-      HandleNumericTypes pHandledTypes,
       @Nullable Variable pReturnVariable,
       CFAEdge cfaEdge,
       VariableTrackingPrecision pPrecision,
@@ -99,7 +91,6 @@ public class NumericStatementVisitor
     state = pState;
     returnVariable = Optional.ofNullable(pReturnVariable);
     logger = logManager;
-    handledTypes = pHandledTypes;
     edge = cfaEdge;
     precision = pPrecision;
   }
@@ -149,7 +140,6 @@ public class NumericStatementVisitor
                 new NumericRightHandSideVisitor(
                     extendedState.getValue().getEnvironment(),
                     state.getManager(),
-                    handledTypes,
                     edge,
                     precision,
                     logger));
@@ -159,9 +149,9 @@ public class NumericStatementVisitor
     for (PartialState partialState : expressions) {
       NumericState newState =
           extendedState.assignTreeExpression(variable.get(), partialState.getPartialConstraint());
-      if (logger.wouldBeLogged(Level.FINEST)) {
+      if (logger.wouldBeLogged(Level.SEVERE)) {
         logger.log(
-            Level.FINEST,
+            Level.SEVERE,
             pIastExpressionAssignmentStatement,
             "as",
             partialState,

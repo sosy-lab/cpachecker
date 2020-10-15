@@ -72,13 +72,12 @@ public class NumericVariable extends org.sosy_lab.numericdomains.environment.Var
   private static void checkHandlesFloat(Manager pManager, LogManager pLogManager) {
     if (pManager instanceof org.sosy_lab.numericdomains.elina.PolyhedraManager) {
       pLogManager.log(
-          Level.WARNING,
+          Level.SEVERE,
           "Elina Polyhedra Manager",
           pManager.getDomainLibrary(),
           pManager.getDomainVersion(),
-          "does not support floating point variables. Result may be unsound");
+          "does not support floating point variables, do not trust the result.");
     }
-
     hasPrintedFloatWarning = true;
   }
 
