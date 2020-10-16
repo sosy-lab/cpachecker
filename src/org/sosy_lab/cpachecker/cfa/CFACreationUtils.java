@@ -88,7 +88,12 @@ public class CFACreationUtils {
           level = Level.FINER;
         }
 
-        logger.logf(level, "%s: Dead code detected: %s", edge.getFileLocation(), edge.getRawStatement());
+        logger.logf(
+            level,
+            "%s: Dead code detected: %s in function:%s",
+            edge.getFileLocation(),
+            edge.getRawStatement(),
+            predecessor.getFunctionName());
       }
 
       lastDetectedDeadCode = edge.getSuccessor().getNodeNumber();
