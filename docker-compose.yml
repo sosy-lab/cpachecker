@@ -6,5 +6,5 @@ services:
     volumes:
       - "./output:/usr/app/output"
       - "./test:/usr/app/test"
-      - "../sv-benchmarks/c:/usr/app/test/programs/benchmarks"
+      - "../sv-benchmarks/c:/mnt/benchmarks"
       - "/sys/fs/cgroup:/sys/fs/cgroup"

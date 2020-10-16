@@ -13,6 +13,7 @@ public class utils {
      * org.sosy_lab.cpachecker.cpa.value.type.Value) into it's concrete
      * implmenentation.
      */
+    @SuppressWarnings("InstanceOfAndCastMatchWrongType")
     public static Value toValue(Object value){
         if (value instanceof Boolean) {
             return BooleanValue.valueOf((Boolean) value);

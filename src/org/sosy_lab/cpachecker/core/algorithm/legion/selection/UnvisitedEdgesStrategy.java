@@ -49,7 +49,9 @@ public class UnvisitedEdgesStrategy implements Selector {
         try {
             f = formulaManager.makeAnd(ps.getPathFormula(), selected.getSecond());
         } catch (InterruptedException ex) {
+            logger.log(Level.SEVERE, "Could not finish formula makeAnd", ex);
         } catch (CPATransferException ex) {
+            logger.log(Level.SEVERE, "Could not do formula makeAnd", ex);
         }
         return f;
     }
