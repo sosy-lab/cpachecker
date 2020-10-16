@@ -1,11 +1,15 @@
 #!/usr/bin/python3
 
-from __future__ import print_function
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2017 Rodrigo Castano
+# SPDX-FileCopyrightText: 2017-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
 
 import argparse
-import errno
-import glob
-import json
 import logging
 import os
 import os.path
@@ -15,7 +19,6 @@ import subprocess
 import sys
 import time
 from subprocess import check_output
-from textwrap import wrap
 
 
 class FoundBugException(Exception):
@@ -36,17 +39,11 @@ def print_command(command, logger):
 
 
 def create_temp_dir(temp_dir):
-    try:
-        shutil.rmtree(temp_dir)
-    except:
-        pass
+    shutil.rmtree(temp_dir, ignore_errors=True)
     os.makedirs(temp_dir)
 
 
 coverage_test_case_message = "Found covering test case"
-#
-# def found_coverage_test_case(output):
-#     return coverage_test_case_message.encode('utf-8') in output
 
 
 def gen_reach_exit_spec(f):
@@ -297,7 +294,7 @@ class ComputeCoverage:
         else:
             timelimit_prop = ["-setprop", "limits.time.cpu=" + str(timelimit) + "s"]
 
-        return (
+        return (  # noqa: ECE001
             [
                 os.path.join(cpachecker_root, "scripts", "cpa.sh"),
                 "-config",
@@ -364,6 +361,8 @@ class Timer:
 
 # When adding additional generators also update argparse documentation.
 available_generators = ["fixpoint", "blind"]
+
+
 # It will be necessary to refactor this code to support custom configuration
 # of the generators.
 def create_generator(
@@ -564,7 +563,6 @@ class GenerateFirstThenCollect(ComputeCoverage):
         create_temp_dir(temp_dir)
         specs = [aa_file, cex_spec_file]
         lines_covered = set()
-        lines_to_cover = set()
         command = self.cpachecker_command(
             temp_dir=temp_dir,
             specs=specs,
@@ -577,7 +575,7 @@ class GenerateFirstThenCollect(ComputeCoverage):
         try:
             run_command(command, logger)
             lines_covered = get_covered_lines(temp_dir)
-            lines_to_cover = get_lines_to_cover(temp_dir)
+            get_lines_to_cover(temp_dir)
         finally:
             shutil.rmtree(temp_dir)
         return lines_covered
@@ -827,7 +825,7 @@ def check_args(args, logger):
         sys.exit(0)
 
 
-def main(argv, logger, timer=Timer()):
+def main(argv, logger, timer=Timer()):  # noqa: B008
     parser = create_arg_parser()
     if len(argv) == 0:
         parser.print_help()

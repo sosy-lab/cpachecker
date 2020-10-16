@@ -1,30 +1,14 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
@@ -46,6 +30,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
+import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 
 public final class CounterexampleStoreAlgorithm implements Algorithm, StatisticsProvider {
@@ -94,7 +79,7 @@ public final class CounterexampleStoreAlgorithm implements Algorithm, Statistics
       final UnmodifiableReachedSet pReached) {
     ImmutableMap.Builder<ARGState, CounterexampleInfo> counterexamples = ImmutableMap.builder();
 
-    for (AbstractState targetState : from(pReached).filter(IS_TARGET_STATE)) {
+    for (AbstractState targetState : from(pReached).filter(AbstractStates::isTargetState)) {
       ARGState s = (ARGState) targetState;
       CounterexampleInfo cex =
           ARGUtils.tryGetOrCreateCounterexampleInformation(s, argCpa, allocator)

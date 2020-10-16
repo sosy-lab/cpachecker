@@ -1,3 +1,11 @@
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 // This automaton checks correct usage of mutex locks (simplified version):
 // it is forbidden to acquire or release the same mutex twice in the same process and
 // all acquired mutexes should be released at finalization.

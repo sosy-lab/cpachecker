@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: The Linux kernel authors
+//
+// SPDX-License-Identifier: GPL-2.0-only
 
 typedef unsigned long size_t;
 

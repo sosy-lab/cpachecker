@@ -1,34 +1,17 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.smg.join;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Sets;
-import java.util.Set;
+import java.util.Iterator;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -79,21 +62,20 @@ final class SMGJoinMatchObjects {
       UnmodifiableSMG pSMG1,
       UnmodifiableSMG pSMG2) {
 
-    Set<SMGEdgeHasValue> edges1 = pSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj1));
-    Set<SMGEdgeHasValue> edges2 = pSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj2));
+    SMGHasValueEdges edges1 = pSMG1.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj1));
+    SMGHasValueEdges edges2 = pSMG2.getHVEdges(SMGEdgeHasValueFilter.objectFilter(pObj2));
+    Iterator<SMGEdgeHasValue> iterator2 = edges2.iterator();
+    SMGEdgeHasValue hv2 = iterator2.hasNext() ? iterator2.next() : null;
 
-    //TODO: We go through some fields twice, fix
-    for (SMGEdgeHasValue hv : Sets.union(edges1, edges2)) {
-      // edges are already filtered for given object, just filter again for type and offset.
-      SMGEdgeHasValueFilter filter =
-          new SMGEdgeHasValueFilter()
-              .filterBySize(hv.getSizeInBits())
-              .filterAtOffset(hv.getOffset());
-      Iterable<SMGEdgeHasValue> hv1 = filter.filter(edges1);
-      Iterable<SMGEdgeHasValue> hv2 = filter.filter(edges2);
-      if (Iterables.size(hv1) > 0 && Iterables.size(hv2) > 0) {
-        SMGValue v1 = Iterators.getOnlyElement(hv1.iterator()).getValue();
-        SMGValue v2 = Iterators.getOnlyElement(hv2.iterator()).getValue();
+    for (SMGEdgeHasValue hv1 : edges1) {
+      while (hv2 != null && hv2.getOffset() < hv1.getOffset()) {
+        hv2 = iterator2.hasNext() ? iterator2.next() : null;
+      }
+      if (hv2 != null
+          && hv1.getOffset() == hv2.getOffset()
+          && hv1.getSizeInBits() == hv2.getSizeInBits()) {
+        SMGValue v1 = hv1.getValue();
+        SMGValue v2 = hv2.getValue();
         if (pMapping1.containsKey(v1)
             && pMapping2.containsKey(v2)
             && !pMapping1.get(v1).equals(pMapping2.get(v2))) {

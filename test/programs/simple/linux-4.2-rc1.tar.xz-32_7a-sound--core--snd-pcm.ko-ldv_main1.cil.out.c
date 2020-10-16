@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: The Linux kernel authors
+//
+// SPDX-License-Identifier: GPL-2.0-only
+
 struct snd_pcm_substream {
    struct snd_pcm_runtime *runtime ;
 };

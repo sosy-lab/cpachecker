@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -90,8 +75,8 @@ public class SMGTest {
     SMGEdgeHasValue hv = new SMGEdgeHasValue(mockTypeSize, 32, obj1, SMGZeroValue.INSTANCE);
     smg1.addHasValueEdge(hv);
 
-    TreeMap<Long, Integer> nullEdges = smg1.getNullEdgesMapOffsetToSizeForObject(obj1);
-    assertThat(nullEdges).containsExactly(32L, 32);
+    TreeMap<Long, Long> nullEdges = smg1.getNullEdgesMapOffsetToSizeForObject(obj1);
+    assertThat(nullEdges).containsExactly(32L, 32L);
   }
 
   @Test
@@ -179,8 +164,8 @@ public class SMGTest {
     assertThat(smg1.getObjects()).contains(object);
     smg1.removeObject(object);
     assertThat(smg1.getObjects()).doesNotContain(object);
-    assertThat(smg1.getHVEdges()).contains(hv0);
-    assertThat(smg1.getHVEdges()).contains(hv4);
+    assertThat(smg1.getHVEdges().contains(hv0)).isTrue();
+    assertThat(smg1.getHVEdges().contains(hv4)).isTrue();
     assertThat(smg1.getPTEdges()).contains(pt);
   }
 
@@ -201,11 +186,11 @@ public class SMGTest {
     smg1.addHasValueEdge(hv4);
 
     assertThat(smg1.getObjects()).contains(object);
-    smg1.removeObjectAndEdges(object);
-    assertThat(smg1.getObjects()).doesNotContain(object);
+    smg1.markObjectDeletedAndRemoveEdges(object);
+    assertThat(smg1.isObjectValid(object)).isFalse();
     assertThat(smg1.getHVEdges()).doesNotContain(hv0);
     assertThat(smg1.getHVEdges()).doesNotContain(hv4);
-    assertThat(smg1.getPTEdges()).doesNotContain(pt);
+    assertThat(smg1.getPTEdges()).contains(pt);
   }
 
   @Test
@@ -310,8 +295,13 @@ public class SMGTest {
     smg1.addObject(object_16b);
     assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isTrue();
 
-    smg1.addHasValueEdge(hv_edge2);
-    assertThat(SMGConsistencyVerifier.verifySMG(logger, smg1)).isFalse();
+    boolean thrown = false;
+    try {
+      smg1.addHasValueEdge(hv_edge2);
+    } catch (AssertionError pAssertionError) {
+      thrown = true;
+    }
+    assertThat(thrown).isTrue();
   }
 
   @Test

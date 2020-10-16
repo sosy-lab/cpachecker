@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.automaton;
 
 import com.google.common.base.Joiner;
@@ -30,9 +15,9 @@ import com.google.common.base.Strings;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.io.ByteSource;
 import com.google.common.io.MoreFiles;
@@ -49,6 +34,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -91,6 +77,8 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.parser.Scope;
+import org.sosy_lab.cpachecker.core.specification.Property;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonExpression.StringExpression;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonVariable.AutomatonIntVariable;
 import org.sosy_lab.cpachecker.cpa.automaton.CParserUtils.ParserTools;
@@ -101,8 +89,6 @@ import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.NumericIdProvider;
-import org.sosy_lab.cpachecker.util.Property;
-import org.sosy_lab.cpachecker.util.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.AssumeCase;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.GraphMLTag;
@@ -139,7 +125,7 @@ public class AutomatonGraphmlParser {
   private static final String TOO_MANY_GRAPHS_ERROR_MESSAGE =
       "The witness file must describe exactly one witness automaton.";
 
-  private static final String ACCESS_ERROR_MESSAGE = "Error while accessing witness file: %s!";
+
 
   private static final String INVALID_AUTOMATON_ERROR_MESSAGE =
       "The witness automaton provided is invalid!";
@@ -255,22 +241,21 @@ public class AutomatonGraphmlParser {
     this.config = pConfig;
     this.parserTools =
         ParserTools.create(ExpressionTrees.newFactory(), cfa.getMachineModel(), logger);
-    this.stateInvariantsMap = Maps.newHashMap();
+    this.stateInvariantsMap = new HashMap<>();
   }
 
   /**
    * Parses a witness specification from a file and returns the Automata found in the file.
    *
    * @param pInputFile the path to the input file to parse the witness from.
-   * @param pProperties which are assumed to be witnessed.
    * @throws InvalidConfigurationException if the configuration is invalid.
    * @return the automata representing the witnesses found in the file.
    */
-  public List<Automaton> parseAutomatonFile(Path pInputFile, Set<Property> pProperties)
+  public Automaton parseAutomatonFile(Path pInputFile)
       throws InvalidConfigurationException, InterruptedException {
     return AutomatonGraphmlParser.handlePotentiallyGZippedInput(
         MoreFiles.asByteSource(pInputFile),
-        inputStream -> parseAutomatonFile(inputStream, pProperties),
+        inputStream -> parseAutomatonFile(inputStream),
         e -> new WitnessParseException(e));
   }
 
@@ -278,12 +263,11 @@ public class AutomatonGraphmlParser {
    * Parses a specification from an InputStream and returns the Automata found in the file.
    *
    * @param pInputStream the input stream to parse the witness from.
-   * @param pProperties which are assumed to be witnessed.
    * @throws InvalidConfigurationException if the configuration is invalid.
    * @throws IOException if there occurs an IOException while reading from the stream.
    * @return the automata representing the witnesses found in the stream.
    */
-  private List<Automaton> parseAutomatonFile(InputStream pInputStream, Set<Property> pProperties)
+  private Automaton parseAutomatonFile(InputStream pInputStream)
       throws InvalidConfigurationException, IOException, InterruptedException {
     final CParser cparser =
         CParser.Factory.getParser(
@@ -298,7 +282,7 @@ public class AutomatonGraphmlParser {
             cfa.getMachineModel(),
             shutdownNotifier);
 
-    AutomatonGraphmlParserState graphMLParserState = setupGraphMLParser(pInputStream, pProperties);
+    AutomatonGraphmlParserState graphMLParserState = setupGraphMLParser(pInputStream);
 
     WitnessType graphType = graphMLParserState.getWitnessType();
     if ((noCorrectnessValidation && graphType.equals(WitnessType.CORRECTNESS_WITNESS))
@@ -329,7 +313,7 @@ public class AutomatonGraphmlParser {
     }
 
     // the automaton will be an ISA if specified
-    automaton = invariantsSpecAutomaton.build(automaton, config, logger, cfa);
+    automaton = invariantsSpecAutomaton.build(automaton, config, logger, shutdownNotifier, cfa);
 
     if (automatonDumpFile != null) {
       try (Writer w = IO.openOutputFile(automatonDumpFile, Charset.defaultCharset())) {
@@ -345,7 +329,7 @@ public class AutomatonGraphmlParser {
       }
     }
 
-    return ImmutableList.of(automaton);
+    return automaton;
   }
 
   /**
@@ -882,7 +866,7 @@ public class AutomatonGraphmlParser {
   }
 
   private Optional<String> getFunction(
-      AutomatonGraphmlParserState pGraphmlParserState,
+      @SuppressWarnings("unused") AutomatonGraphmlParserState pGraphmlParserState,
       GraphMLThread pThread,
       Optional<String> pFunctionName)
       throws WitnessParseException {
@@ -890,10 +874,8 @@ public class AutomatonGraphmlParser {
         || !cfa.getAllFunctionNames().contains(pFunctionName.orElseThrow())) {
       return pFunctionName;
     }
-    Optional<String> functionName =
-        pGraphmlParserState.getFunctionForThread(pThread, pFunctionName.orElseThrow());
-    if (functionName.isPresent()) {
-      return functionName;
+    if (pFunctionName.isPresent()) {
+      return pFunctionName;
     }
     throw new WitnessParseException(
         String.format(
@@ -1026,14 +1008,12 @@ public class AutomatonGraphmlParser {
    * into an intermediate representation.
    *
    * @param pInputStream the input stream to read from.
-   * @param pProperties which are assumed to be witnessed.
    * @return the initialized parser state.
    * @throws IOException if reading from the input stream fails.
    * @throws WitnessParseException if the initial validity checks for conformity with the witness
    *     format fail.
    */
-  private AutomatonGraphmlParserState setupGraphMLParser(
-      InputStream pInputStream, Set<Property> pProperties)
+  private AutomatonGraphmlParserState setupGraphMLParser(InputStream pInputStream)
       throws IOException, WitnessParseException {
 
     GraphMLDocumentData docDat = parseXML(pInputStream);
@@ -1041,6 +1021,7 @@ public class AutomatonGraphmlParser {
     checkFields(docDat.getGraph());
 
     WitnessType graphType = getWitnessType(docDat.getGraph());
+    Set<Property> specType = getSpecAsProperties(docDat.getGraph());
 
     // Extract the information on the automaton ----
     Node nameAttribute = docDat.getGraph().getAttributes().getNamedItem("name");
@@ -1076,7 +1057,7 @@ public class AutomatonGraphmlParser {
         AutomatonGraphmlParserState.initialize(
             automatonName,
             graphType,
-            pProperties,
+            specType,
             states.values(),
             enteringTransitions,
             leavingTransitions,
@@ -1576,6 +1557,45 @@ public class AutomatonGraphmlParser {
       }
     }
     return witnessType;
+  }
+
+  private Set<Property> getSpecAsProperties(final Node pAutomaton) {
+    Set<String> specText = GraphMLDocumentData.getDataOnNode(pAutomaton, KeyDef.SPECIFICATION);
+    if (specText.isEmpty()) {
+      return ImmutableSet.of(CommonPropertyType.REACHABILITY);
+    } else {
+      ImmutableSet.Builder<Property> properties =
+          ImmutableSet.builderWithExpectedSize(specText.size());
+      for (String prop : specText) {
+        try {
+          properties.add(getProperty(prop));
+        } catch (IllegalArgumentException | IndexOutOfBoundsException e) {
+          logger.logf(
+              Level.WARNING, "Cannot map specification %s to property type. Will ignore it.", prop);
+        }
+      }
+      return properties.build();
+    }
+  }
+
+  private Property getProperty(final String pProperty) {
+    String prop;
+    if (pProperty.trim().startsWith("CHECK")) {
+      prop = pProperty.substring(pProperty.indexOf(",") + 1, pProperty.lastIndexOf(")")).trim();
+      if (prop.startsWith("LTL")) {
+        prop = prop.substring(prop.indexOf("(") + 1, prop.lastIndexOf(")"));
+      }
+    } else {
+      prop = pProperty;
+    }
+
+    for (CommonPropertyType propType : CommonPropertyType.values()) {
+      if (propType.toString().equals(prop)) {
+        return propType;
+      }
+    }
+
+    return CommonPropertyType.valueOf(prop.trim());
   }
 
   private static String transitionToString(Node pTransition) {
@@ -2205,7 +2225,7 @@ public class AutomatonGraphmlParser {
       message = "Exception occurred, but details are unknown: " + pException.toString();
     }
     if (pException instanceof IOException) {
-      return String.format(ACCESS_ERROR_MESSAGE, message);
+      return String.format("Error while accessing witness file: %s!", message);
     }
     return message;
   }

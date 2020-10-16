@@ -1,30 +1,16 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm.residualprogram;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -36,9 +22,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -58,7 +42,6 @@ import org.sosy_lab.cpachecker.cfa.export.CFAToPixelsWriter;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.CPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ConditionFolder.FOLDER_TYPE;
@@ -71,21 +54,19 @@ import org.sosy_lab.cpachecker.core.interfaces.Targetable;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonState;
-import org.sosy_lab.cpachecker.cpa.automaton.ControlAutomatonCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackCPA;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackState;
 import org.sosy_lab.cpachecker.cpa.callstack.CallstackStateEqualsWrapper;
 import org.sosy_lab.cpachecker.cpa.composite.CompositeCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
-import org.sosy_lab.cpachecker.cpa.powerset.PowerSetCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.exceptions.ParserException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
-import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.cwriter.ARGToCTranslator;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
@@ -93,6 +74,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 public class ResidualProgramConstructionAlgorithm implements Algorithm, StatisticsProvider {
 
   public enum ResidualGenStrategy {
+    REACHABILITY,
     SLICING,
     CONDITION,
     CONDITION_PLUS_FOLD,
@@ -239,6 +221,7 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       try {
         Files.deleteIfExists(residualProgram);
       } catch (IOException e) {
+        // ignore error on deleting file
       }
       throw new CPAException("Failed to write residual program.");
     }
@@ -287,12 +270,9 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
       CoreComponentsFactory coreComponents =
           new CoreComponentsFactory(config, logger, shutdown, new AggregatedReachedSets());
 
-      Specification constrSpec = spec;
-      List<Path> specList = new ArrayList<>(constrSpec.getSpecFiles());
-      specList.add(conditionSpec);
-      specList.add(condition);
-      constrSpec =
-          Specification.fromFiles(spec.getProperties(), specList, cfa, config, logger, shutdown);
+      final Specification constrSpec =
+          spec.withAdditionalSpecificationFile(
+              ImmutableSet.of(conditionSpec, condition), cfa, config, logger, shutdown);
 
       ConfigurableProgramAnalysis cpa = coreComponents.createCPA(cfa, constrSpec);
 
@@ -326,7 +306,8 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
   }
 
   private String getResidualProgramText(
-      final ARGState pARGRoot, @Nullable final Set<ARGState> pAddPragma) throws CPAException {
+      final ARGState pARGRoot, @Nullable final Set<ARGState> pAddPragma)
+      throws CPAException, IOException {
     ARGState root = pARGRoot;
     if (constructionStrategy == ResidualGenStrategy.CONDITION_PLUS_FOLD) {
       Preconditions.checkState(pAddPragma == null);
@@ -411,21 +392,6 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
           considersLocation = true;
         } else if (innerCPA instanceof CallstackCPA) {
           considersCallstack = true;
-        } else if (!(innerCPA instanceof ControlAutomatonCPA)) {
-          if (innerCPA instanceof PowerSetCPA) {
-            for (ConfigurableProgramAnalysis cpaInSetJoin : CPAs
-                .asIterable(((PowerSetCPA) innerCPA).getWrappedCPAs().get(0))) {
-              if (!(cpaInSetJoin instanceof ControlAutomatonCPA
-                  || cpaInSetJoin instanceof CompositeCPA)) {
-                throw new InvalidConfigurationException(
-                      "The CompositeCPA may only consider LocationCPA, CallstackCPA, SetJoinCPA, and AutomatonCPAs.");
-              }
-            }
-          } else {
-
-            throw new InvalidConfigurationException(
-                "The CompositeCPA may only consider LocationCPA, CallstackCPA, SetJoinCPA, and AutomatonCPAs.");
-          }
         }
       }
 
@@ -546,9 +512,9 @@ public class ResidualProgramConstructionAlgorithm implements Algorithm, Statisti
           | InvalidConfigurationException
           | IOException
           | ParserException e) {
+        // ignore
+        return null;
       }
-
-      return null;
     }
 
     @Override

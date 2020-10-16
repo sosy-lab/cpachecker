@@ -1,30 +1,14 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocations;
 
 import com.google.common.base.Predicate;
@@ -38,7 +22,6 @@ import java.io.Writer;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -61,7 +44,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CoreComponentsFactory;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -69,6 +51,7 @@ import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.StateSpacePartition;
 import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -215,13 +198,8 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
       ResourceLimitChecker.fromConfiguration(lConfig, lLogger, lShutdownManager).start();
 
       Specification lSpecification =
-          Specification.fromFiles(
-              specification.getProperties(),
-              Iterables.concat(specification.getSpecFiles(), Collections.singleton(automatonFile)),
-              cfa,
-              lConfig,
-              lLogger,
-              shutdownNotifier);
+          specification.withAdditionalSpecificationFile(
+              ImmutableSet.of(automatonFile), cfa, lConfig, lLogger, shutdownNotifier);
       CoreComponentsFactory factory =
           new CoreComponentsFactory(
               lConfig, lLogger, lShutdownManager.getNotifier(), new AggregatedReachedSets());
@@ -239,7 +217,7 @@ public class CounterexampleCPAchecker implements CounterexampleChecker {
       CPAs.closeIfPossible(lAlgorithm, lLogger);
 
       if (provideCEXInfoFromCEXCheck || replaceCexWithCexFromCheck) {
-        AbstractState target = from(lReached).firstMatch(IS_TARGET_STATE).orNull();
+        AbstractState target = from(lReached).firstMatch(AbstractStates::isTargetState).orNull();
         if (target instanceof ARGState) {
           ARGState argTarget = (ARGState) target;
           Optional<CounterexampleInfo> counterexampleFromCheck =

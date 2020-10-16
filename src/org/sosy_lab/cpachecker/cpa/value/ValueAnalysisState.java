@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.value;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -29,6 +14,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -41,16 +27,33 @@ import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.collect.PathCopyingPersistentTreeMap;
 import org.sosy_lab.common.collect.PersistentMap;
+import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpressionBuilder;
+import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFloatLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
+import org.sosy_lab.cpachecker.cfa.types.c.CBitFieldType;
+import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType;
+import org.sosy_lab.cpachecker.cfa.types.c.CEnumType.CEnumerator;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CStorageClass;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CTypes;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractQueryableState;
+import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
 import org.sosy_lab.cpachecker.core.interfaces.Graphable;
 import org.sosy_lab.cpachecker.core.interfaces.PseudoPartitionable;
@@ -62,6 +65,10 @@ import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.InvalidQueryException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
+import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
+import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.predicates.smt.BitvectorFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FloatingPointFormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
@@ -75,7 +82,7 @@ import org.sosy_lab.java_smt.api.FormulaType;
 import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 
 public final class ValueAnalysisState
-    implements AbstractQueryableState, FormulaReportingState,
+    implements AbstractQueryableState, FormulaReportingState, ExpressionTreeReportingState,
         ForgetfulState<ValueAnalysisInformation>, Serializable, Graphable,
         LatticeAbstractState<ValueAnalysisState>, PseudoPartitionable {
 
@@ -750,6 +757,101 @@ public final class ValueAnalysisState
   @Override
   public Object getPseudoHashCode() {
     return this;
+  }
+
+  @Override
+  public ExpressionTree<Object> getFormulaApproximation(
+      FunctionEntryNode pFunctionScope, CFANode pLocation) {
+
+    if (machineModel == null) {
+      return ExpressionTrees.getTrue();
+    }
+
+    //TODO: Get real logger
+    CBinaryExpressionBuilder builder =
+        new CBinaryExpressionBuilder(machineModel, LogManager.createNullLogManager());
+    ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
+    List<ExpressionTree<Object>> result = new ArrayList<>();
+
+    for (Entry<MemoryLocation, ValueAndType> entry : constantsMap.entrySet()) {
+      NumericValue num = entry.getValue().getValue().asNumericValue();
+      if (num != null) {
+        MemoryLocation memoryLocation = entry.getKey();
+        Type type = entry.getValue().getType();
+        if (!memoryLocation.isReference()
+            && memoryLocation.isOnFunctionStack(pFunctionScope.getFunctionName())
+            && type instanceof CType
+            && CTypes.isArithmeticType((CType) type)) {
+          CType cType = (CType) type;
+          if (cType instanceof CBitFieldType) {
+            cType = ((CBitFieldType) cType).getType();
+          }
+          if (cType instanceof CElaboratedType) {
+            cType = ((CElaboratedType) cType).getRealType();
+          }
+          assert cType != null && CTypes.isArithmeticType(cType);
+          String id = memoryLocation.getIdentifier();
+          if (!pFunctionScope.getReturnVariable().isPresent()
+              || !id.equals(pFunctionScope.getReturnVariable().get().getName())) {
+            FileLocation loc =
+                pLocation.getNumEnteringEdges() > 0
+                    ? pLocation.getEnteringEdge(0).getFileLocation()
+                    : pFunctionScope.getFileLocation();
+            CVariableDeclaration decl =
+                new CVariableDeclaration(
+                    loc,
+                    false,
+                    CStorageClass.AUTO,
+                    cType,
+                    id,
+                    id,
+                    memoryLocation.getAsSimpleString(),
+                    null);
+            CExpression var = new CIdExpression(loc, decl);
+            CExpression val = null;
+            if (cType instanceof CSimpleType) {
+              CSimpleType simpleType = (CSimpleType) type;
+              if (simpleType.getType().isIntegerType()) {
+                long value = num.getNumber().longValue();
+                val = new CIntegerLiteralExpression(loc, simpleType, BigInteger.valueOf(value));
+              } else if (simpleType.getType().isFloatingPointType()) {
+                double value = num.getNumber().doubleValue();
+                if (((Double) value).isNaN() || ((Double) value).isInfinite()) {
+                  // Cannot represent this here
+                  continue;
+                }
+                val = new CFloatLiteralExpression(loc, simpleType, BigDecimal.valueOf(value));
+              } else {
+                throw new AssertionError("Unexpected type: " + simpleType);
+              }
+            } else if (cType instanceof CEnumType) {
+              CEnumType enumType = (CEnumType) cType;
+              Long value = num.getNumber().longValue();
+              for (CEnumerator enumerator : enumType.getEnumerators()) {
+                if (enumerator.getValue() == value) {
+                  val = new CIdExpression(loc, enumerator);
+                  break;
+                }
+              }
+              if(val == null) {
+                val = new CIntegerLiteralExpression(loc, enumType, BigInteger.valueOf(value));
+              }
+            } else {
+              // disabled since this blocks too many programs for which plenty other information
+              // would be available, so just skip the current variable
+
+              // throw new AssertionError("Unknown arithmetic type: " + cType);
+
+              continue;
+            }
+            CBinaryExpression exp =
+                builder.buildBinaryExpressionUnchecked(var, val, BinaryOperator.EQUALS);
+            result.add(LeafExpression.of(exp));
+          }
+        }
+      }
+    }
+    return factory.and(result);
   }
 
   public static class ValueAndType implements Serializable {

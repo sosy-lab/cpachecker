@@ -1,4 +1,15 @@
 <?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="1">
 
@@ -25,10 +36,12 @@
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
 
     <!-- Instable: sometimes timeout, sometimes not -->
-    <exclude>../programs/benchmarks/ssh/*</exclude>
-    <exclude>../programs/benchmarks/ssh-simplified/s3_clnt_1*</exclude>
-    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_13*</exclude>
-    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_1a*</exclude>
+    <exclude>../programs/benchmarks/openssl/*</exclude>
+    <exclude>../programs/benchmarks/openssl-simplified/s3_clnt_1*</exclude>
+    <exclude>../programs/benchmarks/openssl-simplified/s3_clnt_4.cil-2.yml</exclude>
+    <exclude>../programs/benchmarks/openssl-simplified/s3_srvr_13*</exclude>
+    <exclude>../programs/benchmarks/openssl-simplified/s3_srvr_1a*</exclude>
+    <exclude>../programs/benchmarks/openssl-simplified/s3_srvr_14.cil.yml</exclude>
 
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
@@ -53,6 +66,8 @@
     <exclude>../programs/benchmarks/loops/sum0*</exclude>
     <exclude>../programs/benchmarks/loop-acceleration/diamond_*</exclude>
     <exclude>../programs/benchmarks/loop-lit/cggmp2005_*</exclude>
+    <exclude>../programs/benchmarks/loop-invgen/id_build.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/benchmarks/loop-invariants/linear-inequality-inv-b.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/benchmarks/loops-crafted-1/*</exclude> <!-- only timeouts -->
     <exclude>../programs/benchmarks/nla-digbench/*</exclude> <!-- only timeouts -->
 

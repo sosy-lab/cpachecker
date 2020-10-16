@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm.parallel_bam;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractLocation;
@@ -49,6 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.logging.Level;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.blocks.Block;
@@ -110,9 +96,9 @@ class ReachedSetExecutor {
   private final LogManager logger;
 
   /**
-   * This variable is shared acros all threads and counts the number of currently scheduled, but not
-   * yet running jobs. It is used to automatically shutdown the thread pool as soon as all jobs are
-   * done.
+   * This variable is shared across all threads and counts the number of currently scheduled, but
+   * not yet running jobs. It is used to automatically shutdown the thread pool as soon as all jobs
+   * are done.
    */
   private final AtomicInteger scheduledJobs;
 
@@ -123,7 +109,11 @@ class ReachedSetExecutor {
 
   /**
    * This set contains all sub-reached-sets that have to be finished before the current one. The
-   * state is unique. Synchronized access guaranteed by only instance-local access in the current
+   * state is unique and belongs to the current reached-set (but not its watlist). We removed the
+   * state from the waitlist temporary until the sub-RSE is finished, and re-add it afterwards to be
+   * analyzed again, such the the computed block abstraction can be applied.
+   *
+   * Synchronized access guaranteed by only instance-local access in the current
    * {@link ReachedSetExecutor}!
    */
   private final Set<AbstractState> dependsOn = new LinkedHashSet<>();
@@ -256,6 +246,9 @@ class ReachedSetExecutor {
     // TODO checking this once on RSE-creation would be sufficient
     checkForTargetState();
 
+    assert FluentIterable.from(rs).filter(MissingBlockAbstractionState.class).isEmpty()
+        : "dummy state should never exist for longer than needed in a reached-set";
+
     if (!targetStateFound) {
       // further analysis of the reached-set, sub-analysis is scheduled if necessary
       algorithm.run(rs);
@@ -363,7 +356,12 @@ class ReachedSetExecutor {
     }
 
     logger.logf(
-        level, "%s :: finished=%s, targetStateFound=%s", this, isFinished, targetStateFound);
+        level,
+        "%s :: finished=%s, targetStateFound=%s, terminateAnalysis=%s",
+        this,
+        isFinished,
+        targetStateFound,
+        terminateAnalysis);
   }
 
   private void updateCache() {
@@ -399,7 +397,11 @@ class ReachedSetExecutor {
     // first lock is only against deadlock of locks for 'reachedSetMapping' and 'dependingFrom'.
     // TODO optimize lock/unlock behavior if performance is too bad
     synchronized (dependingFrom) {
-      logger.logf(level, "%s :: %s -> %s", this, this, dependingFrom.keys());
+      logger.logf(
+          level,
+          "%s :: -> %s",
+          this,
+          Iterables.transform(dependingFrom.entries(), e -> e.getKey() + "#" + id(e.getValue())));
       for (Entry<ReachedSetExecutor, Collection<AbstractState>> parent :
           dependingFrom.asMap().entrySet()) {
         registerJob(parent.getKey(), parent.getKey().asRunnable(parent.getValue()));
@@ -430,14 +432,21 @@ class ReachedSetExecutor {
   private void handleMissingBlock(MissingBlockAbstractionState pBsme)
       throws UnsupportedCodeException {
     final AbstractState parentState = pBsme.getState();
+    @Nullable final ReachedSet reached = pBsme.getReachedSet();
     assert rs.contains(parentState) : "parent reachedset must contain entry state";
 
-    logger.logf(level, "%s :: missing block, bsme=%s", this, id(parentState));
+    logger.logf(
+        level,
+        "%s :: missing block, bsme=%s, reached=%s",
+        this,
+        id(parentState),
+        reached == null ? reached : id(reached));
 
     rs.remove(pBsme);
 
     if (targetStateFound) {
-      logger.logf(Level.SEVERE, "%s :: after finding a missing block, we should not get new states", this);
+      logger.logf(
+          Level.SEVERE, "%s :: after finding a missing block, we should not get new states", this);
       throw new AssertionError("after finding a missing block, we should not get new states");
     }
 
@@ -449,14 +458,6 @@ class ReachedSetExecutor {
       throw new UnsupportedCodeException("recursion", entryLocation.getLeavingEdge(0));
     }
 
-    if (shutdownNotifier.shouldShutdown() || terminateAnalysis.get()) {
-      // if an error was found somewhere, we do not longer schedule new sub-analyses
-      logger.logf(level, "%s :: exiting on demand", this);
-      // cleanup, re-add state for further exploration
-      rs.reAddToWaitlist(parentState);
-      return;
-    }
-
     // register new sub-analysis as asynchronous/parallel/future work, if not existent
     ReachedSetExecutor subRse = createAndRegisterNewReachedSet(pBsme);
 
@@ -466,15 +467,9 @@ class ReachedSetExecutor {
     // register callback to get results of terminated analysis
     registerJob(subRse, subRse.asRunnable());
 
-    if (rs.getWaitlist().isEmpty()) {
-      // optimization: if no further states are waiting, no need to schedule the current RSE.
-      // when sub-analysis is finished, the current analysis is re-started.
-      logger.logf(level, "%s :: not scheduling self, emtpy waitlist", this);
-    } else {
-      // register current RSE for further analysis.
-      // this step results in 'parallel' execution of current analysis and sub-analysis.
-      registerJob(this, this.asRunnable());
-    }
+    // register current RSE for further analysis.
+    // this step results in 'parallel' execution of current analysis and sub-analysis.
+    registerJob(this, this.asRunnable());
   }
 
   /** We need to traverse the RSEs whether there is a cyclic dependency. */
@@ -517,28 +512,27 @@ class ReachedSetExecutor {
       }
     }
 
-    ReachedSetExecutor newSubRse =
-        new ReachedSetExecutor(
-            bamcpa,
+    // check whether we already have a matching RSE.
+    // If an old RSE is available, ignore the newly created one. Otherwise use the new one.
+    ReachedSetExecutor subRse =
+        reachedSetMapping.computeIfAbsent(
             newRs,
-            pBsme.getBlock(),
-            false, // mainReachedSet is never nested in another reached-set
-            reachedSetMapping,
-            pool,
-            algorithmFactory,
-            shutdownNotifier,
-            stats,
-            errors,
-            terminateAnalysis,
-            scheduledJobs,
-            logger);
-
-    // check whether we already have a matching RSE. If not use the new one.
-    ReachedSetExecutor subRse = reachedSetMapping.putIfAbsent(newRs, newSubRse);
-    if (subRse == null) { // there was an already existent RSE
-      subRse = newSubRse;
-      logger.logf(level, "%s :: register subRSE %s", this, id(newRs));
-    }
+            newRs2 ->
+                new ReachedSetExecutor(
+                    bamcpa,
+                    newRs2,
+                    pBsme.getBlock(),
+                    false, // mainReachedSet is never nested in another reached-set
+                    reachedSetMapping,
+                    pool,
+                    algorithmFactory,
+                    shutdownNotifier,
+                    stats,
+                    errors,
+                    terminateAnalysis,
+                    scheduledJobs,
+                    logger));
+    logger.logf(level, "%s :: register sub%s", this, subRse);
     return subRse;
   }
 
@@ -547,7 +541,7 @@ class ReachedSetExecutor {
    * reached-set.
    */
   private void registerJob(ReachedSetExecutor pRse, Runnable r) {
-    logger.logf(level, "%s :: scheduling RSE: %s", this, pRse);
+    logger.logf(level, "%s :: scheduling %s", this, pRse);
     pRse.addNewTask(r);
   }
 

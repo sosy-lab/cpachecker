@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2014  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.arg;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -134,9 +119,8 @@ public class ARGReachedSet {
    * Warning: This might remove states that could cover other states.
    */
   public void removeSafeRegions() {
-    Collection<AbstractState> targetStates = from(mReached)
-        .filter(AbstractStates.IS_TARGET_STATE)
-        .toList();
+    Collection<AbstractState> targetStates =
+        from(mReached).filter(AbstractStates::isTargetState).toList();
     if (!targetStates.isEmpty()) {
       removeUnReachableFrom(targetStates,
           ARGState::getParents, x -> x.wasExpanded());
@@ -232,15 +216,16 @@ public class ARGReachedSet {
   }
 
   /**
-   * Safely remove a port of the ARG which has been proved as completely
-   * unreachable. This method takes care of the coverage relationships of the
-   * removed nodes, re-adding covered nodes to the waitlist if necessary.
+   * Safely remove a part of the ARG which has been proved as completely unreachable. This method
+   * takes care of the coverage relationships of the removed nodes, re-adding covered nodes to the
+   * waitlist if necessary.
+   * 
    * @param rootOfInfeasiblePart The root of the subtree to remove.
    */
   public void removeInfeasiblePartofARG(ARGState rootOfInfeasiblePart) {
     dumpSubgraph(rootOfInfeasiblePart);
 
-    Set<ARGState> infeasibleSubtree = rootOfInfeasiblePart.getSubgraph();
+    Set<ARGState> infeasibleSubtree = rootOfInfeasiblePart.getSubgraph().toSet();
 
     for (ARGState removedNode : infeasibleSubtree) {
       removeCoverageOf(removedNode);
@@ -263,7 +248,8 @@ public class ARGReachedSet {
    * @param argState the state to be removed including its subtree
    */
   public void cutOffSubtree(ARGState argState) {
-    Set<ARGState> subgraph = argState.getSubgraph();
+    // copy whole subgraph before modifying ARG!
+    ImmutableList<ARGState> subgraph = argState.getSubgraph().toList();
     mReached.removeAll(subgraph);
 
     for (ARGState ae : subgraph) {
@@ -331,21 +317,16 @@ public class ARGReachedSet {
 
     dumpSubgraph(e);
 
-    Set<ARGState> toUnreach = e.getSubgraph();
-
     // collect all elements covered by the subtree
-    List<ARGState> newToUnreach = new ArrayList<>();
+    ImmutableList<ARGState> subtree = e.getSubgraph().toList();
+    ImmutableSet<ARGState> toUnreach =
+        from(subtree).transformAndConcat(ARGState::getCoveredByThis).append(subtree).toSet();
 
-    for (ARGState ae : toUnreach) {
-      newToUnreach.addAll(ae.getCoveredByThis());
-    }
     // we remove the covered states completely,
     // maybe we re-explore them later and find coverage again.
     // caution: siblings of the covered state might be re-explored, too,
     // they should be covered by the existing/previous siblings
     // (if sibling not removed and precision is not weaker)
-    toUnreach.addAll(newToUnreach);
-
     Set<ARGState> toWaitlist = removeSet(toUnreach);
 
     return toWaitlist;
@@ -445,9 +426,7 @@ public class ARGReachedSet {
     element.uncover();
 
     // this is the subtree of elements which now become uncovered
-    Set<ARGState> uncoveredSubTree = element.getSubgraph();
-
-    for (ARGState e : uncoveredSubTree) {
+    for (ARGState e : element.getSubgraph()) {
       assert !e.isCovered();
 
       e.setHasCoveredParent(false);
@@ -475,8 +454,7 @@ public class ARGReachedSet {
     // ignore return value of stop, because it will always be false
 
     if (v.isCovered()) {
-      Set<ARGState> subtree = v.getSubgraph();
-      subtree.remove(v);
+      ImmutableSet<ARGState> subtree = v.getSubgraph().filter(s -> !s.equals(v)).toSet();
 
       removeCoverageOf(v);
       for (ARGState childOfV : subtree) {

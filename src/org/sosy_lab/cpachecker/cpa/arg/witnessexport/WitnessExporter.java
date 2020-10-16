@@ -1,37 +1,18 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2016  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Queues;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Collection;
 import java.util.Deque;
 import java.util.HashSet;
@@ -39,25 +20,17 @@ import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiPredicate;
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
-import org.sosy_lab.cpachecker.cfa.ast.AExpressionStatement;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
-import org.sosy_lab.cpachecker.core.Specification;
-import org.sosy_lab.cpachecker.core.counterexample.AssumptionToEdgeAllocator;
-import org.sosy_lab.cpachecker.core.counterexample.ConcreteState;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
 import org.sosy_lab.cpachecker.core.interfaces.ExpressionTreeReportingState;
-import org.sosy_lab.cpachecker.core.interfaces.FormulaReportingState;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
-import org.sosy_lab.cpachecker.cpa.predicate.PredicateAbstractState;
-import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
-import org.sosy_lab.cpachecker.cpa.value.refiner.ValueAnalysisConcreteErrorPathAllocator;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
@@ -65,12 +38,7 @@ import org.sosy_lab.cpachecker.util.automaton.VerificationTaskMetaData;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTree;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTreeFactory;
 import org.sosy_lab.cpachecker.util.expressions.ExpressionTrees;
-import org.sosy_lab.cpachecker.util.expressions.LeafExpression;
 import org.sosy_lab.cpachecker.util.expressions.Simplifier;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaToCVisitor;
-import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class WitnessExporter {
 
@@ -78,25 +46,15 @@ public class WitnessExporter {
 
     private final ExpressionTreeFactory<Object> factory;
     private final CFA cfa;
-    private final FormulaManagerView fmgr;
-    private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
-    public ProofInvariantProvider(
-        CFA pCfa,
-        ExpressionTreeFactory<Object> pFactory,
-        FormulaManagerView pFmgr,
-        AssumptionToEdgeAllocator pAssumptionToEdgeAllocator) {
+    public ProofInvariantProvider(CFA pCfa, ExpressionTreeFactory<Object> pFactory) {
       cfa = pCfa;
       factory = pFactory;
-      fmgr = pFmgr;
-      assumptionToEdgeAllocator = pAssumptionToEdgeAllocator;
     }
 
     @Override
     public ExpressionTree<Object> provideInvariantFor(
         CFAEdge pEdge, Optional<? extends Collection<? extends ARGState>> pStates) {
-      // TODO interface for extracting the information from states, similar to
-      // FormulaReportingState
       if (!pStates.isPresent()) {
         return ExpressionTrees.getTrue();
       }
@@ -104,8 +62,6 @@ public class WitnessExporter {
       String functionName = pEdge.getSuccessor().getFunctionName();
       for (ARGState state : pStates.get()) {
         Set<ExpressionTree<Object>> approximations = new LinkedHashSet<>();
-        approximations.addAll(extractValueAnalysisInvariants(pEdge, state));
-        approximations.add(extractPredicateAnalysisAbstractionStateInvariants(functionName, state));
         for (ExpressionTreeReportingState etrs :
             AbstractStates.asIterable(state).filter(ExpressionTreeReportingState.class)) {
           approximations.add(
@@ -116,85 +72,11 @@ public class WitnessExporter {
       }
       return factory.or(stateInvariants);
     }
-
-    private ExpressionTree<Object> extractPredicateAnalysisAbstractionStateInvariants(
-        String functionName, ARGState state) throws AssertionError {
-      final PredicateAbstractState predState =
-          AbstractStates.extractStateByType(state, PredicateAbstractState.class);
-      if (predState == null || !predState.isAbstractionState()) { // if state not available
-        return ExpressionTrees.getTrue();
-      }
-
-      BooleanFormula inv = ((FormulaReportingState) predState).getFormulaApproximation(fmgr);
-      String invString = null;
-      try {
-        // filter out variables that are not global and
-        // not local in the current function
-        String prefix = functionName + FUNCTION_DELIMITER;
-        inv =
-            fmgr.filterLiterals(
-                inv,
-                e -> {
-                  for (String name : fmgr.extractVariableNames(e)) {
-                    if (name.contains(FUNCTION_DELIMITER) && !name.startsWith(prefix)) {
-                      return false;
-                    }
-                  }
-                  return true;
-                });
-
-        FormulaToCVisitor v = new FormulaToCVisitor(fmgr);
-        boolean isValid = fmgr.visit(inv, v);
-        if (isValid) {
-          invString = v.getString();
-        }
-      } catch (InterruptedException e) {
-        throw new AssertionError("Witnessexport was interrupted for generation of Proofwitness", e);
-      }
-      if (invString != null) {
-        if (invString.equals("0")) {
-          return ExpressionTrees.getFalse();
-        }
-        if (!invString.equals("1")) {
-          return LeafExpression.of(invString);
-        }
-      }
-      return ExpressionTrees.getTrue(); // no new invariant
-    }
-
-    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-    private ImmutableCollection<ExpressionTree<Object>>
-        extractValueAnalysisInvariants(
-        CFAEdge pEdge, ARGState state) {
-      final ValueAnalysisState valueAnalysisState =
-          AbstractStates.extractStateByType(state, ValueAnalysisState.class);
-      if (valueAnalysisState == null) { // if state not available
-        return ImmutableSet.of();
-      }
-
-      ConcreteState concreteState =
-          ValueAnalysisConcreteErrorPathAllocator.createConcreteState(valueAnalysisState);
-      Iterable<AExpressionStatement> invariants =
-          WitnessFactory.ASSUMPTION_FILTER
-              .apply(assumptionToEdgeAllocator.allocateAssumptionsToEdge(pEdge, concreteState))
-              .getExpStmts();
-      ImmutableList.Builder<ExpressionTree<Object>> stateInvariants = ImmutableList.builder();
-      for (AExpressionStatement expressionStatement : invariants) {
-        stateInvariants.add(LeafExpression.of(expressionStatement.getExpression()));
-      }
-      return stateInvariants.build();
-    }
   }
-
-  private static final String FUNCTION_DELIMITER = "::";
-
   protected final WitnessOptions options;
 
   protected final CFA cfa;
   protected final LogManager logger;
-  private final FormulaManagerView fmgr;
-
-  private final AssumptionToEdgeAllocator assumptionToEdgeAllocator;
 
   protected final ExpressionTreeFactory<Object> factory = ExpressionTrees.newFactory();
   protected final Simplifier<Object> simplifier = ExpressionTrees.newSimplifier(factory);
@@ -213,14 +95,11 @@ public class WitnessExporter {
     pConfig.inject(options);
     this.cfa = pCFA;
     this.logger = pLogger;
-    this.fmgr = Solver.create(pConfig, pLogger, ShutdownNotifier.createDummy()).getFormulaManager();
-    this.assumptionToEdgeAllocator =
-        AssumptionToEdgeAllocator.create(pConfig, pLogger, pCFA.getMachineModel());
     this.verificationTaskMetaData = new VerificationTaskMetaData(pConfig, pSpecification);
   }
 
   public ProofInvariantProvider getProofInvariantProvider() {
-    return new ProofInvariantProvider(cfa, factory, fmgr, assumptionToEdgeAllocator);
+    return new ProofInvariantProvider(cfa, factory);
   }
 
   public Witness generateErrorWitness(

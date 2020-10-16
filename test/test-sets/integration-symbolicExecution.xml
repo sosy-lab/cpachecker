@@ -1,4 +1,15 @@
 <?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="5 GB" cpuCores="1">
 
@@ -34,13 +45,13 @@
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
     <exclude>../programs/benchmarks/ntdrivers-simplified/*</exclude> <!-- mostly timeouts -->
-    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_*</exclude> <!-- mostly timeouts -->
+    <exclude>../programs/benchmarks/openssl-simplified/s3_srvr_*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/locks/test_locks_12.yml</exclude> <!-- timeouts -->
     <exclude>../programs/benchmarks/locks/test_locks_13.yml</exclude> <!-- timeouts -->
     <exclude>../programs/benchmarks/locks/test_locks_14-1.yml</exclude> <!-- timeouts -->
     <exclude>../programs/benchmarks/locks/test_locks_15-2.yml</exclude> <!-- timeouts -->
     <exclude>../programs/benchmarks/ntdrivers/*</exclude> <!-- mostly timeouts -->
-    <exclude>../programs/benchmarks/ssh/s3_srvr.*</exclude> <!-- infeasible cex can't be removed -->
+    <exclude>../programs/benchmarks/openssl/s3_srvr.*</exclude> <!-- infeasible cex can't be removed -->
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks>

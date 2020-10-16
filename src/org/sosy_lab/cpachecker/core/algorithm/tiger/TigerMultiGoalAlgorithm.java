@@ -20,7 +20,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.tiger;
 
 import static com.google.common.collect.FluentIterable.from;
-import static org.sosy_lab.cpachecker.util.AbstractStates.IS_TARGET_STATE;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,7 +42,6 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
-import org.sosy_lab.cpachecker.core.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithmConfiguration.CoverageCheck;
 import org.sosy_lab.cpachecker.core.algorithm.tiger.TigerAlgorithmConfiguration.GoalReduction;
@@ -57,6 +55,7 @@ import org.sosy_lab.cpachecker.core.interfaces.AbstractWrapperState;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.core.interfaces.WrapperCPA;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
@@ -403,8 +402,9 @@ public class TigerMultiGoalAlgorithm extends TigerBaseAlgorithm<CFAGoal> {
       Set<CFAGoal> partition,
       List<Set<CFAGoal>> partitions) {
     assert ARGUtils.checkARG(pReachedSet);
-    assert (from(pReachedSet).filter(IS_TARGET_STATE).size() < 2);
-    AbstractState reachedState = from(pReachedSet).firstMatch(IS_TARGET_STATE).orNull();
+    assert (from(pReachedSet).filter(AbstractStates::isTargetState).size() < 2);
+    AbstractState reachedState =
+        from(pReachedSet).firstMatch(AbstractStates::isTargetState).orNull();
     if (reachedState != null) {
       ARGState targetState = (ARGState) reachedState;
 

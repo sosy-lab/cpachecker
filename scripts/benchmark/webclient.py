@@ -1,35 +1,15 @@
-"""
-CPAchecker is a tool for configurable software verification.
-This file is part of CPAchecker.
-
-Copyright (C) 2007-2014  Dirk Beyer
-All rights reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-
-CPAchecker web page:
-  http://cpachecker.sosy-lab.org
-"""
-
-# prepare for Python 3
-from __future__ import absolute_import, division, print_function, unicode_literals
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
 
 import sys
 
 sys.dont_write_bytecode = True  # prevent creation of .pyc files
 
-import base64
 import fnmatch
 import hashlib
 import io
@@ -44,6 +24,7 @@ import ssl
 import zipfile
 import zlib
 
+from getpass import getpass
 from time import sleep
 from time import time
 
@@ -57,8 +38,10 @@ from benchexec.util import get_files
 
 try:
     import sseclient  # @UnresolvedImport
-except:
-    pass
+
+    HAS_SSECLIENT = True
+except ImportError:
+    HAS_SSECLIENT = False
 
 """
 This module provides helpers for accessing the web interface of the VerifierCloud.
@@ -66,6 +49,7 @@ This module provides helpers for accessing the web interface of the VerifierClou
 
 __all__ = [
     "WebClientError",
+    "UserAbortError",
     "WebInterface",
     "handle_result",
     "MEMLIMIT",
@@ -115,8 +99,16 @@ class WebClientError(Exception):
         return repr(self.value)
 
 
+class UserAbortError(Exception):
+    def _init_(self, value):
+        self.value = value
+
+    def _str_(self):
+        return repr(self.value)
+
+
 class PollingResultDownloader:
-    def __init__(self, web_interface, result_poll_interval, unfinished_runs={}):
+    def __init__(self, web_interface, result_poll_interval, unfinished_runs=None):
         self._unfinished_runs = set()
         self._unfinished_runs_lock = threading.Lock()
         self._web_interface = web_interface
@@ -172,7 +164,7 @@ class PollingResultDownloader:
         self._state_poll_executor.shutdown(wait=True)
 
 
-try:
+if HAS_SSECLIENT:
 
     class ShouldReconnectSeeClient(sseclient.SSEClient):
         def __init__(
@@ -269,17 +261,10 @@ try:
                     self._fall_back()
                     return
 
-                # instead of a nice loop aka 'for message in self._sse_client',
-                # we use a generator to handle exceptions (AttributeError) in a better way
-                def iterate(sseClient):
-                    try:
-                        for message in sseClient:
-                            yield message
-                    except AttributeError as e:
-                        logging.warning("SSE connection terminated: %s", e)
-                        raise StopIteration
-
-                for message in iterate(self._sse_client):
+                for message in self._sse_client:
+                    if self._shutdown:
+                        self._sse_client.resp.close()
+                        break
                     data = message.data
                     tokens = data.split(" ")
                     if len(tokens) == 2:
@@ -339,13 +324,7 @@ try:
 
         def shutdown(self, wait=True):
             self._shutdown = True
-            if self._sse_client:
-                self._sse_client.resp.close()
             self._state_receive_executor.shutdown(wait=wait)
-
-
-except:
-    pass
 
 
 class RunResultFuture(Future):
@@ -357,10 +336,7 @@ class RunResultFuture(Future):
     def cancel(self):
         canceled = super().cancel()
         if canceled:
-            try:
-                self._web_interface._stop_run(self._run_id)
-            except:
-                logging.warning("Stopping of run %s failed", self._run_id)
+            self._web_interface._stop_run(self._run_id)
 
         return canceled
 
@@ -384,11 +360,15 @@ class WebInterface:
         Creates a new WebInterface object.
         The given svn revision is resolved (e.g. 'HEAD' -> 17495).
         @param web_interface_url: the base URL of the VerifierCloud's web interface
-        @param user_pwd: user name and password in the format '<user_name>:<password>' or none if no authentification is required
+        @param user_pwd: user name (and password) in the format '<user_name>[:<password>]' or none if no authentification is required
         @param revision: the svn revision string, defaults to 'trunk:HEAD'
         @param thread_count: the number of threads for fetching results in parallel
         @param result_poll_interval: the number of seconds to wait between polling results
         """
+        # this attribute is used to communicate shutdown to the futures
+        # of the run submission in case the user cancels while the run submission is still ongoing:
+        self.active = True
+
         if not (1 <= thread_count <= MAX_SUBMISSION_THREADS):
             sys.exit(
                 "Invalid number {} of client threads, needs to be between 1 and {}.".format(
@@ -419,6 +399,10 @@ class WebInterface:
         logging.info("Using VerifierCloud at %s", web_interface_url)
 
         self._connection = requests.Session()
+        # increase the pool size a bit to get rid of warnings on aborting with SIGINT:
+        self._connection.mount(
+            "https://", requests.adapters.HTTPAdapter(pool_maxsize=100)
+        )
         self._connection.headers.update(default_headers)
         try:
             cert_paths = ssl.get_default_verify_paths()
@@ -430,12 +414,7 @@ class WebInterface:
         self._connection.verify = cert_path or True
 
         if user_pwd:
-            self._connection.auth = (user_pwd.split(":")[0], user_pwd.split(":")[1])
-            self._base64_user_pwd = base64.b64encode(user_pwd.encode("utf-8")).decode(
-                "utf-8"
-            )
-        else:
-            self._base64_user_pwd = None
+            self._connection.auth = self.getUserAndPassword(user_pwd)
 
         self._unfinished_runs = {}
         self._unfinished_runs_lock = threading.Lock()
@@ -445,17 +424,27 @@ class WebInterface:
         self._executor = ThreadPoolExecutor(thread_count)
         self._thread_local = threading.local()
         self._hash_code_cache = {}
-        self._group_id = str(random.randint(0, 1000000))
+        self._group_id = str(random.randint(0, 1000000))  # noqa: S311
         self._read_hash_code_cache()
         self._resolved_tool_revision(revision)
         self._tool_name = self._request_tool_name()
 
-        try:
+        if HAS_SSECLIENT:
             self._result_downloader = SseResultDownloader(self, result_poll_interval)
-        except:
+        else:
             self._result_downloader = PollingResultDownloader(
                 self, result_poll_interval
             )
+
+    def getUserAndPassword(self, user_pwd):
+        # split only once, password might contain special char ':'
+        tokens = user_pwd.split(":", maxsplit=1)
+        if len(tokens) == 2 and all(tokens):
+            user, password = tokens
+        else:
+            user = user_pwd
+            password = getpass("Please enter password for user '" + user + "': ")
+        return user, password
 
     def _read_hash_code_cache(self):
         if not os.path.isfile(HASH_CODE_CACHE_PATH):
@@ -468,13 +457,19 @@ class WebInterface:
                     self._hash_code_cache[(tokens[0], tokens[1])] = tokens[2]
 
     def _write_hash_code_cache(self):
+        # make snapshot of hash code cache to avoid concurrent modification.
+        # We reset self._hash_code_cache to {} to save memory and because
+        # it will not be needed any more (this method is only called upon shutdown).
+        hash_code_cache = self._hash_code_cache
+        self._hash_code_cache = {}
+
         directory = os.path.dirname(HASH_CODE_CACHE_PATH)
         try:
             os.makedirs(directory, exist_ok=True)
             with tempfile.NamedTemporaryFile(dir=directory, delete=False) as tmpFile:
-                for (path, mTime), hashValue in self._hash_code_cache.items():
-                    line = (path + "\t" + mTime + "\t" + hashValue + "\n").encode()
-                    tmpFile.write(line)
+                for (path, mTime), hashValue in hash_code_cache.items():
+                    line = path + "\t" + mTime + "\t" + hashValue + "\n"
+                    tmpFile.write(line.encode())
 
                 os.renames(tmpFile.name, HASH_CODE_CACHE_PATH)
         except OSError as e:
@@ -582,8 +577,8 @@ class WebInterface:
         priority="IDLE",
         user_pwd=None,
         revision=None,
-        result_files_patterns=[],
-        required_files=[],
+        result_files_patterns=(),
+        required_files=(),
     ):
         """
         Submits a single run to the VerifierCloud.
@@ -602,8 +597,11 @@ class WebInterface:
         @param result_files_patterns: list of result_files_pattern (optional)
         @param required_files: list of additional file required to execute the run (optional)
         @raise WebClientError: if the HTTP request could not be created
+        @raise UserAbortError: if the user already requested shutdown on this instance
         @raise HTTPError: if the HTTP request was not successful
         """
+        if not self.active:
+            raise UserAbortError("User interrupt detected while submitting runs.")
         if result_files_pattern:
             if result_files_patterns:
                 raise ValueError(
@@ -994,19 +992,11 @@ class WebInterface:
                     exception,
                 )
 
-                # client error
-                # if type(exception) is HTTPError and exception.response and  \
-                #    400 <= exception.response.status_code and exception.response.status_code <= 499:
-
                 if attempts < 10:
                     self._download_attempts[run_id] = attempts + 1
                     self._download_result_async(run_id)
                 else:
                     self._run_failed(run_id)
-
-                # else:
-                #    # retry t
-                #    self._download_result_async(run_id)
 
         if run_id not in self._downloading_result_futures.values():
             # result is not downloaded
@@ -1035,6 +1025,7 @@ class WebInterface:
         """
         Cancels all unfinished runs and stops all internal threads.
         """
+        self.active = False
         self._result_downloader.shutdown()
 
         if len(self._unfinished_runs) > 0:
@@ -1045,7 +1036,9 @@ class WebInterface:
                 for runId in self._unfinished_runs.keys():
                     stop_tasks.add(stop_executor.submit(self._stop_run, runId))
                     self._unfinished_runs[runId].set_exception(
-                        WebClientError("WebInterface was stopped.")
+                        UserAbortError(
+                            "Run was canceled because user requested shutdown."
+                        )
                     )
                 self._unfinished_runs.clear()
 
@@ -1066,11 +1059,18 @@ class WebInterface:
         try:
             self._request("DELETE", path, expectedStatusCodes=[200, 204, 404])
         except HTTPError as e:
+            reason = e.reason if hasattr(e, "reason") else "<unknown>"
+            content = (
+                e.response.content
+                if hasattr(e, "response") and hasattr(e.response, "content")
+                else "<unknown>"
+            )
             logging.info(
-                "Stopping of run %s failed: %s\n%s",
+                "Stopping of run %s failed: %s\n%s\n%s",
                 run_id,
-                e.reason,
-                e.response.content or "",
+                e,
+                reason,
+                content or "",
             )
 
     def _request(
@@ -1080,7 +1080,7 @@ class WebInterface:
         data=None,
         headers=None,
         files=None,
-        expectedStatusCodes=[200],
+        expectedStatusCodes=(200,),
         user_pwd=None,
     ):
         url = self._web_interface_url + path
@@ -1183,7 +1183,7 @@ def handle_result(
     handle_run_info=_handle_run_info,
     handle_host_info=_handle_host_info,
     handle_special_files=_handle_special_files,
-    result_files_patterns=["*"],
+    result_files_patterns=("*"),
 ):
     """
     Parses the given result ZIP archive: Extract meta information

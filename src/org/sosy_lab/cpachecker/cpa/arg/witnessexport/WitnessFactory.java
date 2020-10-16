@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import static com.google.common.base.Strings.nullToEmpty;
@@ -37,8 +22,8 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
@@ -172,8 +157,8 @@ class WitnessFactory implements EdgeAppender {
   }
 
   /**
-   * Filter the assumptions of an edge for relevant assumptions,
-   * and then return a new edge based on the filtered assumptions.
+   * Filter the assumptions of an edge for relevant assumptions, and then return a new edge based on
+   * the filtered assumptions.
    */
   static final Function<CFAEdgeWithAssumptions, CFAEdgeWithAssumptions> ASSUMPTION_FILTER =
       new Function<>() {
@@ -181,13 +166,16 @@ class WitnessFactory implements EdgeAppender {
         @Override
         public CFAEdgeWithAssumptions apply(CFAEdgeWithAssumptions pEdgeWithAssumptions) {
           int originalSize = pEdgeWithAssumptions.getExpStmts().size();
-          List<AExpressionStatement> expressionStatements = new ArrayList<>(originalSize);
+          ImmutableList.Builder<AExpressionStatement> expressionStatementsBuilder =
+              ImmutableList.builderWithExpectedSize(originalSize);
           for (AExpressionStatement expressionStatement : pEdgeWithAssumptions.getExpStmts()) {
             if (isRelevantExpression(expressionStatement.getExpression())) {
-              expressionStatements.add(expressionStatement);
+              expressionStatementsBuilder.add(expressionStatement);
             }
           }
 
+          ImmutableList<AExpressionStatement> expressionStatements =
+              expressionStatementsBuilder.build();
           if (expressionStatements.size() == originalSize) {
             return pEdgeWithAssumptions;
           }
@@ -198,8 +186,8 @@ class WitnessFactory implements EdgeAppender {
         }
 
         /**
-         * Check whether an expresion is relevant for the witness export,
-         * e.g., we assume that assignments of constants to pointers are not relevant.
+         * Check whether an expresion is relevant for the witness export, e.g., we assume that
+         * assignments of constants to pointers are not relevant.
          */
         private boolean isRelevantExpression(final AExpression assumption) {
           if (!(assumption instanceof CBinaryExpression)) {
@@ -638,11 +626,11 @@ class WitnessFactory implements EdgeAppender {
           getEdgeWithAssignments(pFrom, pEdge, state, pValueMap);
 
       if (cfaEdgeWithAssignments != null) {
-        Collection<AExpressionStatement> assignments = cfaEdgeWithAssignments.getExpStmts();
+        ImmutableList<AExpressionStatement> assignments = cfaEdgeWithAssignments.getExpStmts();
         Predicate<AExpressionStatement> assignsParameterOfOtherFunction =
             new AssignsParameterOfOtherFunction(pEdge);
-        Collection<AExpressionStatement> functionValidAssignments =
-            Collections2.filter(assignments, assignsParameterOfOtherFunction);
+        ImmutableList<AExpressionStatement> functionValidAssignments =
+            from(assignments).filter(assignsParameterOfOtherFunction).toList();
 
         if (functionValidAssignments.size() < assignments.size()) {
           cfaEdgeWithAssignments =
@@ -654,8 +642,8 @@ class WitnessFactory implements EdgeAppender {
             String keyFrom = pTo;
             CFAEdge keyEdge = Iterables.getOnlyElement(nextEdges);
             ARGState keyState = Iterables.getOnlyElement(state.getChildren());
-            Collection<AExpressionStatement> valueAssignments =
-                Collections2.filter(assignments, Predicates.not(assignsParameterOfOtherFunction));
+            ImmutableList<AExpressionStatement> valueAssignments =
+                from(assignments).filter(Predicates.not(assignsParameterOfOtherFunction)).toList();
             CFAEdgeWithAssumptions valueCFAEdgeWithAssignments =
                 new CFAEdgeWithAssumptions(keyEdge, valueAssignments, "");
             delayedAssignments.put(
@@ -760,12 +748,11 @@ class WitnessFactory implements EdgeAppender {
    *
    * @param toIgnore a tmp variable that will not be removed.
    */
-  private Collection<AExpressionStatement> getAssignments(
-      CFAEdgeWithAssumptions cfaEdgeWithAssignments,
-      @Nullable AIdExpression toIgnore) {
+  private ImmutableList<AExpressionStatement> getAssignments(
+      CFAEdgeWithAssumptions cfaEdgeWithAssignments, @Nullable AIdExpression toIgnore) {
     // Do not export our own temporary variables
     Predicate<CIdExpression> isGoodVariable = v -> !isTmpVariable(v) || v.equals(toIgnore);
-    Collection<AExpressionStatement> assignments = new ArrayList<>();
+    ImmutableList.Builder<AExpressionStatement> assignments = ImmutableList.builder();
     for (AExpressionStatement s : cfaEdgeWithAssignments.getExpStmts()) {
       if (s.getExpression() instanceof CExpression
           && CFAUtils.getIdExpressionsOfExpression((CExpression) s.getExpression())
@@ -773,7 +760,7 @@ class WitnessFactory implements EdgeAppender {
         assignments.add(s);
       }
     }
-    return assignments;
+    return assignments.build();
   }
 
   /** Determine the scope for static local variables. */
@@ -1151,7 +1138,7 @@ class WitnessFactory implements EdgeAppender {
     edgeToCFAEdges.clear();
 
     BiPredicate<ARGState, ARGState> isRelevantEdge = pIsRelevantEdge;
-    Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableMultimap.of();
+    Multimap<ARGState, CFAEdgeWithAssumptions> valueMap = ImmutableListMultimap.of();
     Map<ARGState, CFAEdgeWithAdditionalInfo> additionalInfo = getAdditionalInfo(pCounterExample);
     additionalInfoConverters = getAdditionalInfoConverters(pCounterExample);
 
@@ -1668,7 +1655,8 @@ class WitnessFactory implements EdgeAppender {
 
   private void putEdge(Edge pEdge) {
     assert leavingEdges.size() == enteringEdges.size();
-    assert !pEdge.getSource().equals(SINK_NODE_ID);
+    assert !pEdge.getSource().equals(SINK_NODE_ID)
+        : "unexpected edge added to witness (edge should not start with SINK): " + pEdge;
     leavingEdges.put(pEdge.getSource(), pEdge);
     enteringEdges.put(pEdge.getTarget(), pEdge);
     assert leavingEdges.size() == enteringEdges.size();
@@ -1754,10 +1742,9 @@ class WitnessFactory implements EdgeAppender {
   private boolean exportInvariant(CFAEdge pEdge, Optional<Collection<ARGState>> pFromState) {
     if (pFromState.isPresent()
         && pFromState.orElseThrow().stream()
-            .anyMatch(
-                s ->
-                    AbstractStates.extractStateByType(s, PredicateAbstractState.class) != null
-                        && PredicateAbstractState.CONTAINS_ABSTRACTION_STATE.apply(s))) {
+            .map(AbstractStates.toState(PredicateAbstractState.class))
+            .filter(s -> s != null)
+            .anyMatch(PredicateAbstractState::containsAbstractionState)) {
       return true;
     }
     if (AutomatonGraphmlCommon.handleAsEpsilonEdge(pEdge)) {

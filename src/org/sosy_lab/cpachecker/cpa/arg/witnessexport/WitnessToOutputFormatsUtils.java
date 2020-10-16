@@ -1,36 +1,25 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2019  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.util.logging.Level.WARNING;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Queues;
-import com.google.common.collect.Sets;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -89,11 +78,11 @@ public class WitnessToOutputFormatsUtils {
    * @param edgesMap map that will be filled with information about the edges
    */
   public static void witnessToMapsForHTMLReport(
-      Witness witness, Map<String, Object> nodesMap, Map<String, Object> edgesMap) {
+      Witness witness, Map<String, Map<String, Object>> nodesMap, Map<String, Object> edgesMap) {
     NumericIdProvider idProvider = NumericIdProvider.create();
     String entryStateNode = witness.getEntryStateNodeId();
-    Set<String> nodes = Sets.newHashSet();
-    Deque<String> waitlist = Queues.newArrayDeque();
+    Set<String> nodes = new HashSet<>();
+    Deque<String> waitlist = new ArrayDeque<>();
     waitlist.push(entryStateNode);
     // Element entryNode = createNewNode(doc, entryStateNodeId, witness);
     // addInvariantsData(doc, entryNode, entryStateNodeId, witness);
@@ -102,11 +91,10 @@ public class WitnessToOutputFormatsUtils {
     while (!waitlist.isEmpty()) {
       String source = waitlist.pop();
 
-      @SuppressWarnings("unchecked")
-      Map<String, Object> sourceNode = (Map<String, Object>) nodesMap.get(source);
+      Map<String, Object> sourceNode = nodesMap.get(source);
       if (sourceNode == null) {
         // targetNode = createNewNode(doc, edge.getTarget(), witness);
-        sourceNode = Maps.newHashMap();
+        sourceNode = new HashMap<>();
 
         List<Integer> nodeIds = witness
             .getARGStatesFor(source)

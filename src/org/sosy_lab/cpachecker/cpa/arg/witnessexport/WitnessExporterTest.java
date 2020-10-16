@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import static com.google.common.truth.Truth.assertWithMessage;
@@ -65,7 +50,11 @@ public class WitnessExporterTest {
 
     BDD_CONCURRENCY("bddAnalysis-concurrency"),
 
-    PREDICATE_ANALYSIS("predicateAnalysis");
+    PREDICATE_ANALYSIS("predicateAnalysis"),
+
+    VALUE_ANALYSIS("valueAnalysis"),
+
+    BAM("valueAnalysis-predicateAnalysis-bam");
 
     private final String fileName;
 
@@ -81,6 +70,19 @@ public class WitnessExporterTest {
   @Test(timeout = 90000)
   public void multivar_true() throws Exception {
     new WitnessTester("multivar.i", ExpectedVerdict.TRUE, WitnessGenerationConfig.K_INDUCTION)
+        .performTest();
+  }
+
+  @Test(timeout = 90000)
+  public void multivar_true_2() throws Exception {
+    new WitnessTester(
+            "multivar.i", ExpectedVerdict.TRUE, WitnessGenerationConfig.PREDICATE_ANALYSIS)
+        .performTest();
+  }
+
+  @Test(timeout = 90000)
+  public void max_true() throws Exception {
+    new WitnessTester("max.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.VALUE_ANALYSIS)
         .performTest();
   }
 
@@ -109,7 +111,7 @@ public class WitnessExporterTest {
         .performTest();
   }
 
-  @Test(timeout = 90000)
+  @Test(timeout = 200000)
   public void concurrency_false_mix000_power() throws Exception {
     new WitnessTester(
             "mix000_power.oepc.i", ExpectedVerdict.FALSE, WitnessGenerationConfig.BDD_CONCURRENCY)
@@ -120,6 +122,46 @@ public class WitnessExporterTest {
   public void rule60_list2_false() throws Exception {
     new WitnessTester(
             "rule60_list2.i", ExpectedVerdict.FALSE, WitnessGenerationConfig.PREDICATE_ANALYSIS)
+        .performTest();
+  }
+
+  @Test(timeout = 90000)
+  public void rule60_list2_false_2() throws Exception {
+    new WitnessTester(
+        "rule60_list2.i", ExpectedVerdict.FALSE, WitnessGenerationConfig.VALUE_ANALYSIS)
+        .performTest();
+  }
+
+  @Test(timeout = 90000)
+  public void valueInvariant_true() throws Exception {
+    new WitnessTester(
+        "valueInvariant.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.VALUE_ANALYSIS)
+        .performTest();
+  }
+
+  @Test(timeout = 90000)
+  public void valueInvariant_true_2() throws Exception {
+    new WitnessTester(
+        "valueInvariant.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.BAM)
+        .performTest();
+  }
+
+  @Test(timeout = 90000)
+  public void max_true_2() throws Exception {
+    new WitnessTester("max.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.BAM).performTest();
+  }
+
+  @Test(timeout = 90000)
+  public void weekdays_true() throws Exception {
+    new WitnessTester(
+            "weekdays.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.VALUE_ANALYSIS)
+        .performTest();
+  }
+
+  @Test(timeout = 90000)
+  public void weekdays_no_termination_true() throws Exception {
+    new WitnessTester(
+        "weekdays_no_termination.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.VALUE_ANALYSIS)
         .performTest();
   }
 
@@ -162,6 +204,9 @@ public class WitnessExporterTest {
               + "::supply-reached-refinable");
     } else {
       overrideOptions.put("cpa.arg.proofWitness", pWitnessPath.uncompressedFilePath.toString());
+    }
+    if(pExpected.equals(ExpectedVerdict.TRUE)) {
+      overrideOptions.put("cpa.arg.compressWitness", "false");
     }
     Configuration generationConfig =
         getProperties(pGenerationConfig.fileName, overrideOptions, pSpecification);

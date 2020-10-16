@@ -1,3 +1,9 @@
+// SPDX-FileCopyrightText: 2020 2001-2016, Daniel Kroening, Edmund Clarke
+// SPDX-FileCopyrightText: 2020 Computer Science Department, Carnegie Mellon University
+// SPDX-FileCopyrightText: 2020 Computer Science Department, University of Oxford
+//
+// SPDX-License-Identifier: LicenseRef-BSD-4-Clause-CBMC
+
 extern _Bool __VERIFIER_nondet_bool(void);
 extern void abort(void); 
 void assume_abort_if_not(int cond) { 

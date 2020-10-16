@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: The Linux kernel authors
+//
+// SPDX-License-Identifier: GPL-2.0-only
+
 extern void __VERIFIER_error() __attribute__ ((__noreturn__));
 
 /*

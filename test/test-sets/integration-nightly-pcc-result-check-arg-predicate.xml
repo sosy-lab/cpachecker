@@ -1,4 +1,15 @@
 <?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 <!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
 <benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="3 GB" cpuCores="1">
 
@@ -11,34 +22,18 @@
 
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <propertyfile  expectedverdict="true">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-    <!-- only tasks which fulfill property -->
-    <exclude>../programs/benchmarks/ntdrivers-simplified/*_false-unreach-call*.cil.c</exclude> 
-    <exclude>../programs/benchmarks/ssh-simplified/*_false-unreach-call*.cil.c</exclude>
-    <exclude>../programs/benchmarks/locks/*_false-unreach-call*.c</exclude>
-    <exclude>../programs/benchmarks/ntdrivers/*_false-unreach-call*.i.cil.c</exclude>
-    <exclude>../programs/benchmarks/ssh/*_false-unreach-call*.i.cil.c</exclude>
     <!-- exclude timeout, unknown tasks since PCC proof checking likely not started-->
-    <exclude>../programs/benchmarks/ssh/*</exclude>
+    <exclude>../programs/benchmarks/openssl/*</exclude>
   </tasks>
   
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <propertyfile  expectedverdict="true">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-    <!-- only tasks which fulfill property -->
-    <exclude>../programs/benchmarks/heap-manipulation/*_false-unreach-call*.i</exclude>
-    <exclude>../programs/benchmarks/list-properties/*_false-unreach-call*.i</exclude>
-    <exclude>../programs/benchmarks/ldv-regression/*_false-unreach-call*.i</exclude>
-    <exclude>../programs/benchmarks/ldv-regression/test[0-9][0-9]_false-unreach-call*.c</exclude>
-    <exclude>../programs/benchmarks/ddv-machzwd/*_false-unreach-call*.i</exclude>
-    <exclude>../programs/benchmarks/forester-heap/*_false-unreach-call*.i</exclude>
-    <exclude>../programs/benchmarks/list-ext-properties/*_false-unreach-call*.i</exclude>
-    <exclude>../programs/benchmarks/list-ext2-properties/*_false-unreach-call*.i</exclude>
-    <exclude>../programs/benchmarks/ldv-sets/*_false-unreach-call*.i</exclude>
     <!-- exclude timeout, error tasks since PCC proof checking likely not started-->
     <exclude>../programs/benchmarks/heap-manipulation/*</exclude>
     <exclude>../programs/benchmarks/forester-heap/*</exclude>
@@ -46,44 +41,30 @@
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <propertyfile  expectedverdict="true">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-    <!-- only tasks which fulfill property -->
-    <exclude>../programs/benchmarks/loops/*_false-unreach-call*.i</exclude>
-    <exclude>../programs/benchmarks/loop-acceleration/*_false-unreach-call*.i</exclude>
-    <exclude>../programs/benchmarks/loop-invgen/*_false-unreach-call*.i</exclude>
-    <exclude>../programs/benchmarks/loop-lit/*_false-unreach-call*.i</exclude>
-    <exclude>../programs/benchmarks/loops/compact_false-unreach-call.c</exclude>
-    <exclude>../programs/benchmarks/loops/heavy_false-unreach-call.c</exclude>
     <!-- exclude timeout, error tasks since PCC proof checking likely not started-->
     <exclude>../programs/benchmarks/loop-new/*</exclude>
     <exclude>../programs/benchmarks/loop-industry-pattern/*</exclude>
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <propertyfile  expectedverdict="true">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-    <exclude>../programs/benchmarks/seq-mthreaded/*_true-unreach-call*</exclude> <!-- only timeouts -->
-    <exclude>../programs/benchmarks/seq-mthreaded/rek*</exclude> <!-- only timeouts -->
+    <exclude>../programs/benchmarks/seq-mthreaded/*</exclude> <!-- only timeouts -->
+    <exclude>../programs/benchmarks/seq-mthreaded-reduced/*</exclude> <!-- only timeouts -->
     <exclude>../programs/benchmarks/seq-pthread/*</exclude> <!-- only timeouts -->
-    <!-- only tasks which fulfill property -->
-    <exclude>../programs/benchmarks/systemc/*_false-unreach-call*.cil.c</exclude>
-    <exclude>../programs/benchmarks/seq-mthreaded/*_false-unreach-call.*.c</exclude>
-    <exclude>../programs/benchmarks/seq-pthread/*_false-unreach-call*.i</exclude>
   </tasks>
   <tasks>
     <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
     <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <propertyfile  expectedverdict="true">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="-skipRecursion"/>
     <option name="-64"/>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
-    <!-- only tasks which fulfill property -->
-    <exclude>../programs/benchmarks/ldv-linux-3.0/*_false-unreach-call*.c</exclude>
-    <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a*false-unreach-call*.cil.out.c</exclude>
   </tasks>
 
   <columns>

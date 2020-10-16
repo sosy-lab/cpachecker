@@ -1,0 +1,130 @@
+<?xml version="1.0"?>
+
+<!--
+This file is part of CPAchecker,
+a tool for configurable software verification:
+https://cpachecker.sosy-lab.org
+
+SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.0//EN" "http://www.sosy-lab.org/benchexec/benchmark-1.0.dtd">
+<!--<benchmark tool="cpachecker" timelimit="900 s" hardtimelimit="960 s" memlimit="15 GB" cpuCores="2">-->
+<benchmark tool="cpachecker" timelimit="60 s" hardtimelimit="90 s" memlimit="5 GB" cpuCores="1">
+
+  <!--<option name="-heap">13000M</option>-->
+  <option name="-heap">2000M</option>
+  <option name="-benchmark"/>
+  <option name="-noout"/>
+  <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
+
+  <rundefinition name="imc-no-fallback">
+    <option name="-bmc-interpolation"/>
+    <option name="-setprop">imc.fallBack=false</option>
+  </rundefinition>
+
+  <rundefinition name="imc">
+    <option name="-bmc-interpolation"/>
+  </rundefinition>
+
+  <!--
+  <rundefinition name="bmc-incremental">
+    <option name="-bmc-incremental"/>
+  </rundefinition>-->
+
+  <!--
+  <rundefinition name="bmc-incremental-ABEl">
+    <option name="-bmc-incremental-ABEl"/>
+  </rundefinition>-->
+
+  <!--
+  <rundefinition name="ki-plain">
+    <option name="-config">config/components/kInduction/kInduction.properties</option>
+  </rundefinition>-->
+
+  <!--
+  <rundefinition name="ki-kipdr">
+    <option name="-kInduction-kipdrInvariants"/>
+  </rundefinition>-->
+
+  <!--
+  <rundefinition name="ki-df">
+    <option name="-kInduction"></option>
+  </rundefinition>-->
+
+  <!--
+  <rundefinition name="predicate">
+    <option name="-predicateAnalysis"/>
+  </rundefinition>-->
+
+  <!--
+  <rundefinition name="predicate-impact">
+    <option name="-predicateAnalysis-ImpactRefiner-ABEl"/>
+  </rundefinition>-->
+
+  <!--
+  <rundefinition name="pdr">
+    <option name="-config">config/unmaintained/components/kInduction/pdr.properties</option>
+    <option name="-setprop">pdr.abstractionStrategy=ALLSAT_BASED_PREDICATE_ABSTRACTION</option>
+    <option name="-setprop">pdr.liftingStrategy=ABSTRACTION_BASED_LIFTING</option>
+	<option name="-setprop">pdr.invariantRefinementStrategy=UNSAT_CORE_BASED_STRENGTHENING</option>
+  </rundefinition>-->
+
+  <!--
+  <rundefinition name="impact">
+    <option name="-config">config/unmaintained/impactAlgorithm-SBE.properties</option>
+  </rundefinition>-->
+
+  <tasks name="ReachSafety-ArraysReach">
+    <includesfile>../programs/benchmarks/ReachSafety-Arrays.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+
+  <tasks name="ReachSafety-BitVectorsReach">
+    <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+
+  <tasks name="ReachSafety-ControlFlow">
+    <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  
+  <tasks name="ReachSafety-ECA">
+    <includesfile>../programs/benchmarks/ReachSafety-ECA.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+
+  <tasks name="ReachSafety-Floats">
+    <includesfile>../programs/benchmarks/ReachSafety-Floats.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+
+  <tasks name="ReachSafety-HeapReach">
+    <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+  
+  <tasks name="ReachSafety-Loops">
+    <includesfile>../programs/benchmarks/ReachSafety-Loops.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+
+  <tasks name="ReachSafety-ProductLines">
+    <includesfile>../programs/benchmarks/ReachSafety-ProductLines.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+
+  <tasks name="ReachSafety-Sequentialized">
+    <includesfile>../programs/benchmarks/ReachSafety-Sequentialized.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+  </tasks>
+
+  <tasks name="SoftwareSystems-DeviceDriversLinux64-ReachSafety">
+    <includesfile>../programs/benchmarks/SoftwareSystems-DeviceDriversLinux64-ReachSafety.set</includesfile>
+    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+	<option name="-64"/>
+  </tasks>
+</benchmark>

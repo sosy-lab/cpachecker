@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2017  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.statistics;
 
 import java.lang.ref.Reference;
@@ -115,10 +100,8 @@ public class ThreadSafeTimerContainer extends AbstractStatValue {
 
   private long eval(Function<Timer, Long> f, BiFunction<Long, Long, Long> acc) {
     long currentInterval = 0;
-    synchronized (activeTimers) {
-      for (Timer timer : activeTimers.values()) {
-        currentInterval = acc.apply(currentInterval, f.apply(timer));
-      }
+    for (Timer timer : activeTimers.values()) {
+      currentInterval = acc.apply(currentInterval, f.apply(timer));
     }
     return currentInterval;
   }
@@ -133,7 +116,9 @@ public class ThreadSafeTimerContainer extends AbstractStatValue {
   }
 
   long sumTime() {
-    return sumTime + eval(t -> convert(t.getSumTime()), Math::addExact);
+    synchronized (activeTimers) {
+      return sumTime + eval(t -> convert(t.getSumTime()), Math::addExact);
+    }
   }
 
   /**
@@ -142,7 +127,9 @@ public class ThreadSafeTimerContainer extends AbstractStatValue {
    */
   public TimeSpan getMaxTime() {
     cleanupReferences();
-    return export(Math.max(maxTime, eval(t -> convert(t.getMaxTime()), Math::max)));
+    synchronized (activeTimers) {
+      return export(Math.max(maxTime, eval(t -> convert(t.getMaxTime()), Math::max)));
+    }
   }
 
   /**
@@ -151,7 +138,9 @@ public class ThreadSafeTimerContainer extends AbstractStatValue {
    */
   public int getNumberOfIntervals() {
     cleanupReferences();
-    return (int) (numberOfIntervals + eval(t -> (long)t.getNumberOfIntervals(), Math::addExact));
+    synchronized (activeTimers) {
+      return (int) (numberOfIntervals + eval(t -> (long) t.getNumberOfIntervals(), Math::addExact));
+    }
   }
 
   /**
@@ -212,6 +201,10 @@ public class ThreadSafeTimerContainer extends AbstractStatValue {
 
     public boolean isRunning() {
       return timer.isRunning();
+    }
+
+    public TimeSpan getLengthOfLastInterval() {
+      return timer.getLengthOfLastInterval();
     }
   }
 

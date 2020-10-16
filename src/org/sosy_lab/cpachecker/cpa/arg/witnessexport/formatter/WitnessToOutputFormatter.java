@@ -1,28 +1,17 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2020  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cpa.arg.witnessexport.formatter;
 
-import com.google.common.collect.Maps;
-import com.google.common.collect.Queues;
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.arg.witnessexport.Edge;
@@ -55,8 +44,8 @@ public abstract class WitnessToOutputFormatter<T> {
 
   private void traverseGraph(Appendable pTarget) throws IOException {
     String entryStateNodeId = witness.getEntryStateNodeId();
-    Map<String, T> nodes = Maps.newHashMap();
-    Deque<String> waitlist = Queues.newArrayDeque();
+    Map<String, T> nodes = new HashMap<>();
+    Deque<String> waitlist = new ArrayDeque<>();
     waitlist.push(entryStateNodeId);
     T entryNode = createNewNode(entryStateNodeId, pTarget);
     addAndGetInvariantsData(entryNode, entryStateNodeId, pTarget);
@@ -96,7 +85,7 @@ public abstract class WitnessToOutputFormatter<T> {
   /** This method is called AFTER traversing the witness graph. */
   protected abstract void finish(Appendable pTarget) throws IOException;
 
-  /** @return a unique identifier for the new node. */
+  /** Returns a unique identifier for the new node. */
   protected abstract T createNewNode(String pNodeId, Appendable pTarget) throws IOException;
 
   protected abstract void createNewEdge(

@@ -1,29 +1,15 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.cmdline;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.FluentIterable.from;
 import static java.util.stream.Collectors.toList;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
@@ -39,10 +25,10 @@ import com.google.common.collect.Sets;
 import com.google.common.io.Closer;
 import com.google.common.io.MoreFiles;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.io.StringWriter;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -56,11 +42,11 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.matheclipse.core.util.WriterOutputStream;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.ShutdownNotifier.ShutdownRequestListener;
+import org.sosy_lab.common.annotations.SuppressForbidden;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.ConfigurationBuilder;
 import org.sosy_lab.common.configuration.FileOption;
@@ -80,18 +66,20 @@ import org.sosy_lab.cpachecker.core.CPAcheckerResult;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.pcc.ProofGenerator;
 import org.sosy_lab.cpachecker.core.counterexample.ReportGenerator;
+import org.sosy_lab.cpachecker.core.specification.Property;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonCoverageType;
+import org.sosy_lab.cpachecker.core.specification.Property.CommonPropertyType;
+import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
 import org.sosy_lab.cpachecker.cpa.automaton.AutomatonGraphmlParser;
+import org.sosy_lab.cpachecker.cpa.testtargets.CoverFunction;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetType;
-import org.sosy_lab.cpachecker.util.Property;
-import org.sosy_lab.cpachecker.util.Property.CommonCoverageType;
-import org.sosy_lab.cpachecker.util.Property.CommonPropertyType;
 import org.sosy_lab.cpachecker.util.PropertyFileParser;
 import org.sosy_lab.cpachecker.util.PropertyFileParser.InvalidPropertyFileException;
-import org.sosy_lab.cpachecker.util.SpecificationProperty;
 import org.sosy_lab.cpachecker.util.automaton.AutomatonGraphmlCommon.WitnessType;
 import org.sosy_lab.cpachecker.util.globalinfo.GlobalInfo;
 import org.sosy_lab.cpachecker.util.resources.ResourceLimitChecker;
 
+@SuppressForbidden("System.out in this class is ok")
 public class CPAMain {
 
   static final int ERROR_EXIT_CODE = 1;
@@ -516,6 +504,18 @@ public class CPAMain {
           .copyFrom(config)
           .setOption("testcase.targets.type", TARGET_TYPES.get(properties.iterator().next()).name())
           .build();
+    } else if (from(properties).anyMatch(p -> p instanceof CoverFunction)) {
+      if (properties.size() != 1) {
+        throw new InvalidConfigurationException(
+            "Unsupported combination of properties: " + properties);
+      }
+      return Configuration.builder()
+          .copyFrom(config)
+          .setOption("testcase.targets.type", "FUN_CALL")
+          .setOption(
+              "testcase.targets.funName",
+              ((CoverFunction) properties.iterator().next()).getCoverFunction())
+          .build();
     } else {
       alternateConfigFile = null;
     }
@@ -606,10 +606,9 @@ public class CPAMain {
 
     String specFiles =
         Optionals.presentInstances(
-                properties
-                    .stream()
-                    .map(SpecificationProperty::getInternalSpecificationPath)
-                    .distinct())
+                properties.stream().map(SpecificationProperty::getInternalSpecificationPath))
+            .map(Object::toString)
+            .distinct()
             .collect(Collectors.joining(","));
     cmdLineOptions.put(SPECIFICATION_OPTION, specFiles);
     if (cmdLineOptions.containsKey(ENTRYFUNCTION_OPTION)) {
@@ -728,11 +727,10 @@ public class CPAMain {
 
     PrintStream stream = makePrintStream(mergeStreams(console, file));
 
-    StringWriter statistics = new StringWriter();
+    ByteArrayOutputStream statistics = new ByteArrayOutputStream();
     try {
       // print statistics
-      PrintStream statisticsStream =
-          makePrintStream(mergeStreams(stream, new WriterOutputStream(statistics)));
+      PrintStream statisticsStream = makePrintStream(mergeStreams(stream, statistics));
       mResult.printStatistics(statisticsStream);
       stream.println();
 
@@ -760,7 +758,10 @@ public class CPAMain {
     // export report
     if (mResult.getResult() != Result.NOT_YET_STARTED) {
       reportGenerator.generate(
-          mResult.getResult(), mResult.getCfa(), mResult.getReached(), statistics.toString());
+          mResult.getResult(),
+          mResult.getCfa(),
+          mResult.getReached(),
+          statistics.toString(Charset.defaultCharset()));
     }
   }
 

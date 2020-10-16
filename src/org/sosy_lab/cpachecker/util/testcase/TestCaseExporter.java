@@ -1,22 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.util.testcase;
 
 import com.google.common.base.Joiner;
@@ -55,14 +44,15 @@ import org.sosy_lab.common.io.PathTemplate;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
+import org.sosy_lab.cpachecker.cfa.ast.ALiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.core.CPAchecker;
 import org.sosy_lab.cpachecker.core.counterexample.CFAEdgeWithAssumptions;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.util.BiPredicates;
-import org.sosy_lab.cpachecker.util.SpecificationProperty;
 import org.sosy_lab.cpachecker.util.harness.HarnessExporter;
 import org.sosy_lab.cpachecker.util.testcase.TestVector.TargetTestVector;
 
@@ -108,6 +98,16 @@ public class TestCaseExporter {
   )
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path testCaseZip = null;
+
+  @Option(
+    secure = true,
+    description = "Only convert literal value and do not add suffix, e.g., for unsigned, etc.")
+  private boolean plainLiteralValue = false;
+
+  @Option(
+    secure = true,
+    description = "Do not output values for variables that are not initialized when declared")
+  private boolean excludeInitialization = false;
 
   private static int testsWritten = 0;
 
@@ -319,6 +319,9 @@ public class TestCaseExporter {
     if (pInputValue instanceof CCastExpression) {
       return unpack(((CCastExpression) pInputValue).getOperand());
     } else {
+      if (plainLiteralValue && pInputValue instanceof ALiteralExpression) {
+        return String.valueOf(((ALiteralExpression) pInputValue).getValue());
+      }
       return pInputValue.toASTString();
     }
   }
@@ -338,7 +341,9 @@ public class TestCaseExporter {
       final TestVector vector = maybeTestVector.orElseThrow().getVector();
 
       List<String> inputs =
-          vector.getTestInputsInOrder().stream()
+          vector.getTestInputsInOrder()
+              .stream()
+              .filter(v -> excludeInitialization && (v instanceof ExpressionTestValue))
               .map(v -> unpack(v.getValue()))
               .collect(Collectors.toList());
 

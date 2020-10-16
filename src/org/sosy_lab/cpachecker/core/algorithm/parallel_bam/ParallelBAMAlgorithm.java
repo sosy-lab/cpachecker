@@ -1,26 +1,11 @@
-/*
- *  CPAchecker is a tool for configurable software verification.
- *  This file is part of CPAchecker.
- *
- *  Copyright (C) 2007-2018  Dirk Beyer
- *  All rights reserved.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *
- *
- *  CPAchecker web page:
- *    http://cpachecker.sosy-lab.org
- */
+// This file is part of CPAchecker,
+// a tool for configurable software verification:
+// https://cpachecker.sosy-lab.org
+//
+// SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package org.sosy_lab.cpachecker.core.algorithm.parallel_bam;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -81,6 +66,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatHist;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsSeries;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsSeries.NoopStatisticsSeries;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsSeries.StatisticsSeriesWithNumbers;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
 
@@ -307,7 +293,8 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
 
     checkState(
         mainRScontainsTarget.get() == otherRScontainsTarget.get(),
-        "when a target is found in a sub-analysis (%s), we expect a target in the main-reached-set (%s)",
+        "when a target is found in a sub-analysis (%s), we expect a target in the main-reached-set"
+            + " (%s)",
         otherRScontainsTarget.get(),
         mainRScontainsTarget.get());
   }
@@ -344,7 +331,9 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     private final StatCounter unfinishedRSEcounter = new StatCounter("unfinished reached-sets");
 
     final StatisticsSeries<Integer> runningRSESeries =
-        (runningRSESeriesFile == null) ? new NoopStatisticsSeries<>() : new StatisticsSeries<>();
+        (runningRSESeriesFile == null)
+            ? new NoopStatisticsSeries<>()
+            : new StatisticsSeriesWithNumbers();
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
@@ -356,7 +345,17 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
       StatisticsUtils.write(pOut, 0, 50, threadTime);
       StatisticsUtils.write(pOut, 1, 50, addingStatesTime);
       StatisticsUtils.write(pOut, 1, 50, terminationCheckTime);
+      if (runningRSESeriesFile != null) {
+        final StatisticsSeriesWithNumbers sswn = (StatisticsSeriesWithNumbers) runningRSESeries;
+        StatisticsUtils.write(
+            pOut, 1, 50, "Avg. number of parallel RSEs w/o time", sswn.getStatsWithoutTime());
+        StatisticsUtils.write(
+            pOut, 1, 50, "Avg. number of parallel RSEs over time", sswn.getStatsOverTime());
+      }
+    }
 
+    @Override
+    public void writeOutputFiles(Result pResult, UnmodifiableReachedSet pReached) {
       if (runningRSESeriesFile != null) {
         try {
           IO.writeFile(runningRSESeriesFile, Charset.defaultCharset(), runningRSESeries);
