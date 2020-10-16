@@ -18,8 +18,8 @@ int foobar(int x, int y) {
 
 
 int main() {
-	int x= __VERIFIER_nondet_int();
-int y = __VERIFIER_nondet_int();
+	int x = __VERIFIER_nondet_int();
+	int y = __VERIFIER_nondet_int();
 	foobar(x, y);
 	return 0;
 }
