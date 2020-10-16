@@ -107,7 +107,23 @@ public class TestGoalProvider {
         || fqlQuery.equalsIgnoreCase(PredefinedCoverageCriteria.ConditionCoverage)
         || fqlQuery.equalsIgnoreCase(PredefinedCoverageCriteria.AssumeCoverage)) {
       edgeCriterion = getAssumeEdgeCriterion();
+    } else {
+      Pattern pattern = Pattern.compile("COVER EDGES\\(@CALL\\((.*)\\)\\)");
+      Matcher matcher = pattern.matcher(fqlQuery);
+      if (matcher.find()) {
+        String functionName = matcher.group(1);
+        edgeCriterion =
+            edge -> edge instanceof CStatementEdge
+                && ((CStatementEdge) edge).getStatement() instanceof CFunctionCall
+                && ((CFunctionCall) ((CStatementEdge) edge).getStatement())
+                    .getFunctionCallExpression()
+                    .getFunctionNameExpression()
+                    .toASTString()
+                    .equals(functionName);
+      }
+
     }
+
     if (edgeCriterion != null) {
       Set<CFAEdge> edges = extractEdgesByCriterion(edgeCriterion, cfa);
 
