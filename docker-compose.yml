@@ -1,15 +1,10 @@
 version: "3.7"
 services:
   cpachecker:
+    command: scripts/benchmark.py --no-container test/test-sets/legion.xml
     build: .
     volumes:
-      - "./src:/usr/app/src"
       - "./output:/usr/app/output"
-      - "./build:/usr/app/build"
-      - "./doc:/usr/app/doc"
-      - "./config:/usr/app/config"
-      - "./.vscode:/usr/app/.vscode"
-      - "./.devcontainer:/usr/app/.devcontainer"
-      - "./.idea:/usr/app/.idea"
-      - "./.git:/usr/app/.git"
-      - "../sv-benchmarks:/mnt/sv-benchmarks"
+      - "./test:/usr/app/test"
+      - "../sv-benchmarks/c:/usr/app/test/programs/benchmarks"
+      - "/sys/fs/cgroup:/sys/fs/cgroup"

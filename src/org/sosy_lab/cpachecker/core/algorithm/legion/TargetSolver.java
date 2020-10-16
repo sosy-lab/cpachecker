@@ -102,7 +102,10 @@ public class TargetSolver {
 
         logger.log(Level.INFO, "Solve path constraints. ", target.toString());
         pProver.push(target);
-        assertThat(pProver).isSatisfiable();
+        boolean isUnsat = pProver.isUnsat();
+        if (isUnsat){
+            throw new SolverException("Formula is unsat");
+        }
         return pProver.getModel();
     }
 

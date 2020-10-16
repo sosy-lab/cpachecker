@@ -22,11 +22,17 @@ RUN cd /tmp; \
     ant -f fetch.xml -Ddest=system && \
     rm -rf /tmp/apache-ant*
 
+# Volume for build dir caching
+VOLUME [ "/usr/app/bin" ]
+
+# Chache dependencies
 COPY build /usr/app/build
 COPY lib /usr/app/lib
 COPY build*.xml /usr/app/
 RUN ant -lib lib/java/build resolve-dependencies
 
+# Copy the rest
 COPY . /usr/app
 
-# RUN ant -lib lib/java/build build -Dcompile.warn=true -Derrorprone.disable=true
+# Build cpachecker
+RUN ant -lib lib/java/build build -Dcompile.warn=true -Derrorprone.disable=true

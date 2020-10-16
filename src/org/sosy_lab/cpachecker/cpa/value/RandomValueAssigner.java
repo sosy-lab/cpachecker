@@ -210,7 +210,7 @@ public final class RandomValueAssigner implements MemoryLocationValueHandler {
         value = new NumericValue(this.rnd.nextInt());
         pPreviousState.nonDeterministicMark = true;
         this.logger.log(
-            Level.INFO,
+            Level.FINE,
             "Assigned random value " + value + " to memory location " + pMemLocation);
         break;
       case FLOAT:
