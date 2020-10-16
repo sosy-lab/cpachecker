@@ -12,7 +12,10 @@ import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Queue;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -38,6 +41,8 @@ public abstract class TAEncodingBase implements TAFormulaEncoding {
   protected final TimedAutomatonView automata;
   private TAEncodingExtension extensions;
 
+  private Queue<BooleanFormula> formulas;
+
   public TAEncodingBase(
       FormulaManagerView pFmgr,
       TimedAutomatonView pAutomata,
@@ -50,6 +55,8 @@ public abstract class TAEncodingBase implements TAFormulaEncoding {
     clocks = pClocks;
     locations = pLocations;
     extensions = pExtension;
+
+    formulas = new ArrayDeque<>();
   }
 
   @Override
@@ -69,7 +76,9 @@ public abstract class TAEncodingBase implements TAFormulaEncoding {
     var automataFormula = bFmgr.and(automatonFormulas);
     var extensionsFormula = extensions.makeStepFormula(pLastReachedIndex);
     var successorFormula = bFmgr.and(automataFormula, extensionsFormula);
-    return ImmutableSet.of(successorFormula);
+
+    formulas.add(successorFormula);
+    return ImmutableSet.of(bFmgr.makeTrue());
   }
 
   private final BooleanFormula makeSuccessorFormulaForAutomaton(
@@ -142,7 +151,10 @@ public abstract class TAEncodingBase implements TAFormulaEncoding {
     var initialFormulas =
         from(automata.getAllAutomata())
             .transform(automaton -> makeInitialFormulaForAutomaton(automaton, pInitialIndex));
-    return bFmgr.and(initialFormulas.toSet());
+
+    var initialFormula = bFmgr.and(initialFormulas.toSet());
+    formulas.add(initialFormula);
+    return initialFormula;
   }
 
   private final BooleanFormula makeInitialFormulaForAutomaton(
@@ -161,7 +173,7 @@ public abstract class TAEncodingBase implements TAFormulaEncoding {
   }
 
   @Override
-  public BooleanFormula getFormulaFromReachedSet(Iterable<AbstractState> pReachedSet) {
+  public Collection<BooleanFormula> getFormulaFromReachedSet(Iterable<AbstractState> pReachedSet) {
     var unrollingStates =
         from(pReachedSet)
             .transform(aState -> AbstractStates.extractStateByType(aState, TAUnrollingState.class));
@@ -170,15 +182,18 @@ public abstract class TAEncodingBase implements TAFormulaEncoding {
             .collect(Collectors.maxBy(Integer::compareTo))
             .orElseThrow();
 
-    var stepFormulas = unrollingStates.transform(TAUnrollingState::getFormula);
-    var behaviorEncoding = bFmgr.and(stepFormulas.toSet());
+    var resultFormulas = new ArrayList<BooleanFormula>();
+    while (!formulas.isEmpty()) {
+      resultFormulas.add(formulas.remove());
+    }
 
     var finalConditions =
         from(automata.getAllAutomata())
             .transform(automaton -> makeFinalConditionForAutomaton(automaton, maxUnrolling));
     var finalCondition = bFmgr.and(finalConditions.toSet());
 
-    return bFmgr.and(behaviorEncoding, finalCondition);
+    resultFormulas.add(finalCondition);
+    return resultFormulas;
   }
 
   private final BooleanFormula makeFinalConditionForAutomaton(

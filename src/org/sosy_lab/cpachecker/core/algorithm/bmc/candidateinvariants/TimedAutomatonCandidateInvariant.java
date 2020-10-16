@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.bmc.candidateinvariants;
 
-
 import com.google.common.collect.FluentIterable;
+import java.util.Collection;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
@@ -46,7 +46,11 @@ public class TimedAutomatonCandidateInvariant implements CandidateInvariant {
   public BooleanFormula getAssertion(
       Iterable<AbstractState> pReachedSet, FormulaManagerView pFMGR, PathFormulaManager pPFMGR)
       throws InterruptedException {
-    return pFMGR.makeNot(encoding.getFormulaFromReachedSet(pReachedSet));
+    return pFMGR.getBooleanFormulaManager().makeTrue();
+  }
+
+  public Collection<BooleanFormula> getFormulas(Iterable<AbstractState> pReachedSet) {
+    return encoding.getFormulaFromReachedSet(pReachedSet);
   }
 
   @Override

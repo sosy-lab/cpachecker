@@ -10,7 +10,8 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.extensio
 
 import static com.google.common.collect.FluentIterable.from;
 
-import com.google.common.collect.ImmutableSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
@@ -29,6 +30,9 @@ public class TAShallowSyncDifference extends TAEncodingExtensionBase {
   private final FormulaType<?> countFormulaType;
   private final FormulaType<?> actionOrderFormulaType;
   private final TimedAutomatonView automata;
+  private Map<TaDeclaration, TaVariable> timeStampVariables;
+
+  private static final String LOCAL_TIMESTAMP_VARIABLE = "#local_timestamp";
 
   public TAShallowSyncDifference(
       FormulaManagerView pFmgr,
@@ -41,6 +45,20 @@ public class TAShallowSyncDifference extends TAEncodingExtensionBase {
     automata = pAutomata;
     countFormulaType = FormulaType.IntegerType;
     actionOrderFormulaType = FormulaType.IntegerType;
+    timeStampVariables = new HashMap<>();
+    addLocalTimeStampVariables();
+  }
+
+  private void addLocalTimeStampVariables() {
+    automata
+        .getAllAutomata()
+        .forEach(
+            automaton -> {
+              var clockVariable =
+                  automata.addClockToAutomaton(
+                      automaton, LOCAL_TIMESTAMP_VARIABLE + "#" + automaton.getName());
+              timeStampVariables.put(automaton, clockVariable);
+            });
   }
 
   @Override
@@ -179,14 +197,12 @@ public class TAShallowSyncDifference extends TAEncodingExtensionBase {
   }
 
   private BooleanFormula makeOccurenceTimeStampFormula(
-      int pOccurenceCount,
-      TaVariable pVariable,
-      TaDeclaration pAutomaton,
-      int pTimedVariableIndex) {
-    var variableName = "occurence_time#" + pOccurenceCount + "#" + pVariable.getName();
-    var timeStampVariable = new TaVariable(variableName, "", false);
-    return time.makeEqualsZeroFormula(
-        pAutomaton, pTimedVariableIndex, ImmutableSet.of(timeStampVariable), false);
+      int pOccurenceCount, TaVariable pVariable, TaDeclaration pAutomaton, int pTimeVariableIndex) {
+    var occurenceTimeStampName = "occurence_time#" + pOccurenceCount + "#" + pVariable.getName();
+    var occurenceTimeStamp = fmgr.makeVariable(time.getClockVariableType(), occurenceTimeStampName);
+    var localTimeStampValue =
+        time.evaluateClock(pAutomaton, pTimeVariableIndex, timeStampVariables.get(pAutomaton));
+    return fmgr.makeEqual(occurenceTimeStamp, localTimeStampValue);
   }
 
   private BooleanFormula makeOccurenceCountUnchangedFormula(
@@ -203,9 +219,9 @@ public class TAShallowSyncDifference extends TAEncodingExtensionBase {
 
   private BooleanFormula makeFinalTimeVariableSyncFormula(
       TaDeclaration pAutomaton, int pTimeVariableIndex) {
-    var finalTimeVariableName = "#final_time";
-    var finalTimeVariable = new TaVariable(finalTimeVariableName, "", false);
-    return time.makeEqualsZeroFormula(
-        pAutomaton, pTimeVariableIndex, ImmutableSet.of(finalTimeVariable), false);
+    var finalTimeVariable = fmgr.makeVariable(time.getClockVariableType(), "#final_time");
+    var localTimeStampValue =
+        time.evaluateClock(pAutomaton, pTimeVariableIndex, timeStampVariables.get(pAutomaton));
+    return fmgr.makeEqual(finalTimeVariable, localTimeStampValue);
   }
 }

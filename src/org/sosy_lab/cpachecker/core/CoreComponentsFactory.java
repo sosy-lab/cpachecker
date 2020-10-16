@@ -43,6 +43,7 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.Language;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AnalysisWithRefinableEnablerCPAAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.AssumptionCollectorAlgorithm;
@@ -64,6 +65,7 @@ import org.sosy_lab.cpachecker.core.algorithm.SelectionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.TestCaseGeneratorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.UndefinedFunctionCollectorAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.BMCAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.bmc.TimedAutomataBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.bmc.pdr.PdrAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.counterexamplecheck.CounterexampleCheckAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.impact.ImpactAlgorithm;
@@ -457,6 +459,19 @@ public class CoreComponentsFactory {
 
       if (useBMC) {
         verifyNotNull(shutdownManager);
+        if (cfa.getLanguage() == Language.CTA) {
+          algorithm =
+              new TimedAutomataBMCAlgorithm(
+                  algorithm,
+                  cpa,
+                  config,
+                  logger,
+                  reachedSetFactory,
+                  shutdownManager,
+                  cfa,
+                  specification,
+                  aggregatedReachedSets);
+        } else {
         algorithm =
             new BMCAlgorithm(
                 algorithm,
@@ -468,6 +483,7 @@ public class CoreComponentsFactory {
                 cfa,
                 specification,
                 aggregatedReachedSets);
+        }
       }
 
       if (checkCounterexamples) {

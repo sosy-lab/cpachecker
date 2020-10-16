@@ -23,5 +23,5 @@ public interface TAFormulaEncoding {
   Collection<BooleanFormula> buildSuccessorFormulas(
       BooleanFormula predecessor, int pLastReachedIndex);
 
-  BooleanFormula getFormulaFromReachedSet(Iterable<AbstractState> pReachedSet);
+  Collection<BooleanFormula> getFormulaFromReachedSet(Iterable<AbstractState> pReachedSet);
 }
