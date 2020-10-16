@@ -1,6 +1,6 @@
 package org.sosy_lab.cpachecker.core.algorithm.legion.selection;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.Random;
 import java.util.logging.Level;
 
@@ -29,7 +29,7 @@ public class RandomSelectionStrategy implements Selector {
 
     @Override
     public PathFormula select(ReachedSet reachedSet) {
-        LinkedList<AbstractState> nonDetStates = getNondetStates(reachedSet);
+        ArrayList<AbstractState> nonDetStates = getNondetStates(reachedSet);
         int rnd = random.nextInt(nonDetStates.size());
         AbstractState target = nonDetStates.get(rnd);
         logger.log(
@@ -44,8 +44,8 @@ public class RandomSelectionStrategy implements Selector {
     /**
      * Find all nondet-marked states from the reachedSet
      */
-    LinkedList<AbstractState> getNondetStates(ReachedSet reachedSet) {
-        LinkedList<AbstractState> nonDetStates = new LinkedList<>();
+    ArrayList<AbstractState> getNondetStates(ReachedSet reachedSet) {
+        ArrayList<AbstractState> nonDetStates = new ArrayList<>();
         for (AbstractState state : reachedSet.asCollection()) {
             ValueAnalysisState vs =
                     AbstractStates.extractStateByType(state, ValueAnalysisState.class);

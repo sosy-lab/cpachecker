@@ -1,8 +1,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.legion;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Map.Entry;
 import java.util.logging.Level;
@@ -11,7 +14,6 @@ import javax.annotation.Nullable;
 
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
-import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -29,6 +31,7 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.testcase.XMLTestCaseExport;
+
 
 public class OutputWriter {
 
@@ -65,7 +68,7 @@ public class OutputWriter {
      * This only needs to be done once and does not contain testcase specific information.
      */
     private void writeTestMetadata() {
-        try (FileWriter metadata = new FileWriter(this.path + "/metadata.xml")) {
+        try (Writer metadata = Files.newBufferedWriter(Paths.get(this.path + "/metadata.xml"), Charset.defaultCharset())) {
             XMLTestCaseExport.writeXMLMetadata(metadata, predicateCPA.getCfa(), null, "legion");
             metadata.flush();
         } catch (IOException exc) {
@@ -165,7 +168,7 @@ public class OutputWriter {
         String filename = String.format("/testcase_%s.xml", this.testCaseNumber);
         logger.log(Level.WARNING, "Writing testcase ", filename);
 
-        try (FileWriter testcase = new FileWriter(this.path + filename)) {
+        try (Writer testcase = Files.newBufferedWriter(Paths.get(this.path + filename), Charset.defaultCharset())) {
             testcase.write("<testcase>\n");
             for (Entry<MemoryLocation, ValueAndType> v : values) {
                 String name = v.getKey().toString();

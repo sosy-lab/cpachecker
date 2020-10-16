@@ -3,8 +3,6 @@ package org.sosy_lab.cpachecker.core.algorithm.legion;
 import java.util.ArrayList;
 import java.util.logging.Level;
 
-import static org.sosy_lab.java_smt.test.ProverEnvironmentSubject.assertThat;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;

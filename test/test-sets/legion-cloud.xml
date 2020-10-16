@@ -23,8 +23,8 @@ SPDX-License-Identifier: Apache-2.0
   </rundefinition>
 
   <tasks name="ReachSafety-Bitvector">
-    <includesfile>../programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
-    <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <includesfile>../test/program/benchmarks/ReachSafety-BitVectors.set</includesfile>
+    <propertyfile>../test/program/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
 
 </benchmark>

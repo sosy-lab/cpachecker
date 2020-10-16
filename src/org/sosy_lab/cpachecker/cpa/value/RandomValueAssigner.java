@@ -23,12 +23,9 @@
  */
 package org.sosy_lab.cpachecker.cpa.value;
 
-import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.logging.Level;
-
-import com.google.common.collect.ImmutableList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -47,7 +44,6 @@ import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.states.MemoryLocationValueHandler;
-import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 /**
  * Memory location value handler that assigns randomly chosen values to the given memory locations.

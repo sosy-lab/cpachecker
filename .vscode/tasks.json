@@ -13,11 +13,16 @@
             "type": "shell",
             "command": "scripts/cpa.sh -spec config/specification/sv-comp-reachability.spc -config config/legion.properties /mnt/sv-benchmarks/c/array-crafted/bAnd1.i",
             "problemMatcher": []
+        },{
+            "label": "Run small benchmark",
+            "type": "shell",
+            "command": "scripts/benchmark.py --no-container test/test-sets/legion.xml",
+            "problemMatcher": []
         },
         {
             "label": "Build",
             "type": "shell",
-            "command": "ant -lib lib/java/build build -Dcompile.warn=true -Derrorprone.disable=true",
+            "command": "ant -lib lib/java/build build",
             "group": {
                 "kind": "build",
                 "isDefault": true

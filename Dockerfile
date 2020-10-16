@@ -35,4 +35,4 @@ RUN ant -lib lib/java/build resolve-dependencies
 COPY . /usr/app
 
 # Build cpachecker
-RUN ant -lib lib/java/build build -Dcompile.warn=true -Derrorprone.disable=true
+RUN ant -lib lib/java/build build
