@@ -201,6 +201,11 @@ public class TimedAutomatonView {
     return result.toSet();
   }
 
+  public Iterable<TaVariable> getSharedActionsByAutomaton(TaDeclaration pAutomaton) {
+    var allActions = getActionsByAutomaton(pAutomaton);
+    return from(allActions).filter(action -> !action.isLocal()).toSet();
+  }
+
   public Iterable<TaVariable> getAllActions() {
     return from(getAllAutomata()).transformAndConcat(automaton -> getActionsByAutomaton(automaton));
   }

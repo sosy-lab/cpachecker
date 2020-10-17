@@ -252,7 +252,9 @@ public class TAFormulaEncodingProvider {
       result.add(new TAShallowSyncTimeStamp(pFmgr, pAutomata, pTime, pActions));
     }
     if (options.encodingExtensions.contains(TAEncodingExtensionType.SHALLOW_SYNC_DIFFERENCE)) {
-      result.add(new TAShallowSyncDifference(pFmgr, pAutomata, pTime, pActions));
+      result.add(
+          new TAShallowSyncDifference(
+              pFmgr, pAutomata, pTime, pActions, options.carryOverCounterValue));
     }
     if (options.encodingExtensions.contains(TAEncodingExtensionType.INVARIANTS)) {
       result.add(

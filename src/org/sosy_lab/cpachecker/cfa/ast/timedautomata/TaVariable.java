@@ -45,4 +45,8 @@ public class TaVariable implements Serializable {
     }
     return name;
   }
+
+  public boolean isLocal() {
+    return isLocal;
+  }
 }

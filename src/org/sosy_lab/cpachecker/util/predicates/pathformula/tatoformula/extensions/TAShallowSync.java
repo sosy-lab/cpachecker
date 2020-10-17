@@ -46,12 +46,12 @@ public class TAShallowSync extends TAEncodingExtensionBase {
   @Override
   public BooleanFormula makeAutomatonStep(TaDeclaration pAutomaton, int pLastReachedIndex) {
     var actionOccurenceFormulas =
-        from(automata.getActionsByAutomaton(pAutomaton))
+        from(automata.getSharedActionsByAutomaton(pAutomaton))
             .transform(action -> makeActionOccurenceFormula(pAutomaton, pLastReachedIndex, action));
     var actionOccurencesFormula = bFmgr.and(actionOccurenceFormulas.toSet());
 
     var counterStepFormulas =
-        from(automata.getActionsByAutomaton(pAutomaton))
+        from(automata.getSharedActionsByAutomaton(pAutomaton))
             .transform(action -> makeCounterStepFormula(pAutomaton, pLastReachedIndex, action));
     var counterStepsFormula = bFmgr.and(counterStepFormulas.toSet());
 
@@ -116,7 +116,7 @@ public class TAShallowSync extends TAEncodingExtensionBase {
   @Override
   public BooleanFormula makeInitialFormula(TaDeclaration pAutomaton, int pInitialIndex) {
     var initialCounts =
-        from(automata.getActionsByAutomaton(pAutomaton))
+        from(automata.getSharedActionsByAutomaton(pAutomaton))
             .transform(
                 action -> makeOccurenceCountEqualsFormula(pAutomaton, pInitialIndex, action, 0));
     return bFmgr.and(initialCounts.toSet());
@@ -127,7 +127,7 @@ public class TAShallowSync extends TAEncodingExtensionBase {
       TaDeclaration pAutomaton, int pMaxUnrolling) {
 
     var occurenceCounts = bFmgr.makeTrue();
-    for (var action : automata.getActionsByAutomaton(pAutomaton)) {
+    for (var action : automata.getSharedActionsByAutomaton(pAutomaton)) {
       var localOccurenceCount = makeOccurenceCountFormula(pAutomaton, pMaxUnrolling, action);
       var globalOccurenceCount = makeFinalOccurenceCountVariable(action);
       occurenceCounts =

@@ -32,13 +32,16 @@ public class TAShallowSyncDifference extends TAEncodingExtensionBase {
   private final TimedAutomatonView automata;
   private Map<TaDeclaration, TaVariable> timeStampVariables;
 
+  private final boolean carryOverCounterValue;
+
   private static final String LOCAL_TIMESTAMP_VARIABLE = "#local_timestamp";
 
   public TAShallowSyncDifference(
       FormulaManagerView pFmgr,
       TimedAutomatonView pAutomata,
       TAVariables pTime,
-      TAActions pActions) {
+      TAActions pActions,
+      boolean pCarryOverCounterValue) {
     super(pFmgr);
     time = pTime;
     actions = pActions;
@@ -47,6 +50,7 @@ public class TAShallowSyncDifference extends TAEncodingExtensionBase {
     actionOrderFormulaType = FormulaType.IntegerType;
     timeStampVariables = new HashMap<>();
     addLocalTimeStampVariables();
+    carryOverCounterValue = pCarryOverCounterValue;
   }
 
   private void addLocalTimeStampVariables() {
@@ -64,12 +68,12 @@ public class TAShallowSyncDifference extends TAEncodingExtensionBase {
   @Override
   public BooleanFormula makeAutomatonStep(TaDeclaration pAutomaton, int pLastReachedIndex) {
     var actionOccurenceFormulas =
-        from(automata.getActionsByAutomaton(pAutomaton))
+        from(automata.getSharedActionsByAutomaton(pAutomaton))
             .transform(action -> makeActionOccurenceFormula(pAutomaton, pLastReachedIndex, action));
     var actionOccurencesFormula = bFmgr.and(actionOccurenceFormulas.toSet());
 
     var counterStepFormulas =
-        from(automata.getActionsByAutomaton(pAutomaton))
+        from(automata.getSharedActionsByAutomaton(pAutomaton))
             .transform(action -> makeCounterStepFormula(pAutomaton, pLastReachedIndex, action));
     var counterStepsFormula = bFmgr.and(counterStepFormulas.toSet());
 
@@ -140,13 +144,17 @@ public class TAShallowSyncDifference extends TAEncodingExtensionBase {
     var ifAction = bFmgr.implication(actionOccurs, increse);
     var ifNoAction = bFmgr.implication(bFmgr.not(actionOccurs), unchanged);
 
-    return bFmgr.and(ifAction, ifNoAction);
+    if (carryOverCounterValue) {
+      return bFmgr.and(ifAction, ifNoAction);
+    }
+
+    return ifAction;
   }
 
   @Override
   public BooleanFormula makeInitialFormula(TaDeclaration pAutomaton, int pInitialIndex) {
     var initialCounts =
-        from(automata.getActionsByAutomaton(pAutomaton))
+        from(automata.getSharedActionsByAutomaton(pAutomaton))
             .transform(
                 action -> makeOccurenceCountEqualsFormula(pAutomaton, pInitialIndex, action, 0));
     return bFmgr.and(initialCounts.toSet());
@@ -157,7 +165,7 @@ public class TAShallowSyncDifference extends TAEncodingExtensionBase {
       TaDeclaration pAutomaton, int pMaxUnrolling) {
 
     var occurenceCounts = bFmgr.makeTrue();
-    for (var action : automata.getActionsByAutomaton(pAutomaton)) {
+    for (var action : automata.getSharedActionsByAutomaton(pAutomaton)) {
       var localOccurenceCount = makeOccurenceCountVariable(pAutomaton, pMaxUnrolling, action);
       var globalOccurenceCount = makeFinalOccurenceCountVariable(action);
       occurenceCounts =

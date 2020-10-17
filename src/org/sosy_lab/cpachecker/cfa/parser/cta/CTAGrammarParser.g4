@@ -108,7 +108,7 @@ guardDefinition
 	;
 
 resetDefinition
-	: RESET vars+=IDENTIFIER (COMMA IDENTIFIER)*
+	: RESET vars+=IDENTIFIER (COMMA vars+=IDENTIFIER)*
 	;
 
 gotoDefinition
