@@ -2810,6 +2810,9 @@ cpa.timedautomata.automatonEncodingType = CONSTRAINT_UNROLLING
 # The size of the bit vectors, if clockVariableType is BitVector
 cpa.timedautomata.bitVectorClockVariableSize = 10
 
+# Setting this option to false, makes the shallow sync semantics incomplete
+cpa.timedautomata.carryOverCounterValue = true
+
 # The formula type for timed automaton clock variables
 cpa.timedautomata.clockVariableType = RATIONAL
   enum:     [BITVECTOR, RATIONAL, INTEGER]

@@ -14,14 +14,12 @@ import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class TAOnlyFinalIdles extends TAEncodingExtensionBase {
-  private final boolean isLocal = true;
-
   public TAOnlyFinalIdles(FormulaManagerView pFmgr) {
     super(pFmgr);
   }
 
   private BooleanFormula getHasIdledMarker(TaDeclaration pAutomaton, int pVariableIndex) {
-    var variableName = "#has_idled#" + (isLocal ? pAutomaton.getName() : "");
+    var variableName = "#has_idled#" + pAutomaton.getName();
     return fmgr.getBooleanFormulaManager().makeVariable(variableName, pVariableIndex);
   }
 

@@ -86,7 +86,7 @@ public class TAExplicitDifferenceTime extends TAExplicitTime {
     if (allowZeroDelay) {
       timeVariableRelation = fmgr.makeLessOrEqual(differenceFormula, zero, true);
     } else {
-      timeVariableRelation = fmgr.makeLessOrEqual(differenceFormula, zero, true);
+      timeVariableRelation = fmgr.makeLessThan(differenceFormula, zero, true);
     }
 
     return timeVariableRelation;
