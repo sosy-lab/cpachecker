@@ -505,21 +505,14 @@ public class LoopData implements Comparable<LoopData> {
    * This method looks for all of the nodes in the condition and even cuts out the nodes that belong
    * to an if-case
    *
-   * @param cfa used to get a list of all nodes to see which variables are already initialized
-   * @return returns a list with all the nodes that are part of the condition
-   */
-
-  /**
-   * This method looks for all of the nodes in the condition and even cuts out the nodes that belong
-   * to an if-case
-   *
-   * @param cfa
-   * @param pLogger
-   * @param start
-   * @param type
-   * @param loopNodes
-   * @param conditionEnd
-   * @param startFor
+   * @param cfa used to check which nodes are part of the for-condition since there are some that
+   *     are before the "start node" used by the loop class
+   * @param pLogger logs exceptions
+   * @param start start node of the loop
+   * @param type loop type, right now supports for and while loop
+   * @param loopNodes used to check if the node in question is part of the loop
+   * @param conditionEnd nodes that are after the condition, can be more than one in some cases
+   * @param startFor start node of a for loop, can differ from the normal loop Start node
    * @return returns a list with all the nodes that are part of the condition
    */
   public List<CFANode> nodesInCondition(
