@@ -107,6 +107,14 @@ public class LoopGetIfAfterLoopCondition {
     return big;
   }
 
+  /**
+   * Method that finds out if there is a if-case in the loop and in which line it starts, only the
+   * if-case with the lowest line number will be returned if there are multiple
+   *
+   * @param nodes loop nodes that have to be analyzed
+   * @param pLogger logger that logs exceptions
+   * @return returns the line-number the if case starts, there are no if cases if it returns -1
+   */
   public static int getSmallestIf(List<CFANode> nodes, LogManager pLogger) {
     logger = pLogger;
     for (CFANode n : nodes) {

@@ -53,8 +53,10 @@ public class LoopAbstractionHeader {
    * between the loops that can't be analyzed by a BMC, all the loops or none
    *
    * @param loopI LoopInformation object that includes all the info needed to abstract a loop
-   * @param config config object that enables switching between the 3 modes, default is that none of
-   *     the data will be rewritten
+   * @param automate boolean that shows if the files get automatically overwritten
+   * @param config configuration object that enables switching between the 3 modes, default is that
+   *     none of the data will be rewritten
+   * @param logger logger that logs all exceptions
    * @throws InvalidConfigurationException throws an exception if the configuration doesn't match
    *     the supported options
    */

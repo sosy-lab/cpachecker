@@ -25,12 +25,17 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
 public class LoopAbstraction {
   private int lineNumber = 1;
 
-  public LoopAbstraction() {}
-
+  // TODO wortwahl nochmal überprüfen
   /**
    * This method changes all the necessary lines of codes and saves it in a new file
    *
    * @param loopInfo Information about all the loops in the file
+   * @param logger logger that logs all the exceptions
+   * @param pathForNewFile systempath to the directory where the new file should be saved
+   * @param abstractionLevel level of abstraction, "naive" and "advanced" possible, naive is a
+   *     bigger overapproximation than advanced
+   * @param automate the file will be overwritten if this is true
+   * @param onlyAccL if this is true only the loops that can be accelerated will be abstracted
    */
   public void changeFileToAbstractFile(
       LoopInformation loopInfo,
@@ -515,6 +520,18 @@ public class LoopAbstraction {
     printFile(loopInfo, content, pathForNewFile, logger, automate);
   }
 
+  /**
+   * Method that assigns variables non-deterministic values
+   *
+   * @param loopD all necessary information about this loop
+   * @param preUsedVariables List that collect all the variables that get initialized before their
+   *     Initialization in the program
+   * @param abstractionLevel in a naive abstraction level all of the outputs will get
+   *     non-deterministic values, in the advanced case only the IO-Variables will get
+   *     non-deterministic
+   * @return returns a string that get's added to the program-string with non-deterministic values
+   *     assigned
+   */
   private String undeterministicVariables(
       LoopData loopD, List<String> preUsedVariables, String abstractionLevel) {
     String tmp = "";
@@ -863,6 +880,14 @@ public class LoopAbstraction {
     return tmp;
   }
 
+  /**
+   * checks if the variable in the line already got used and if that is the case if it would
+   * normally get initialized in this line which would get changed in this method
+   *
+   * @param preUsedVariables Variables that already got initialized
+   * @param line string that get's checked if there is a variable that needs to be changed
+   * @return returns a line of the program that can be added back to the program-string
+   */
   private String variablesAlreadyUsed(List<String> preUsedVariables, String line) {
     boolean uVFlag = false;
     String thisLine = line;
@@ -903,6 +928,13 @@ public class LoopAbstraction {
     return thisLine;
   }
 
+  /**
+   * Method to abstract the while-loop-header
+   *
+   * @param loopD information about this specific loop
+   * @param abstractionLevel naive or advanced will get different results
+   * @return string that is the new abstracted header of the while loop
+   */
   private String whileCondition(LoopData loopD, String abstractionLevel) {
     if (abstractionLevel.equals("naiv")) {
       return "if(" + loopD.getCondition() + "){" + System.lineSeparator();
@@ -917,6 +949,15 @@ public class LoopAbstraction {
     }
   }
 
+  /**
+   * Method to abstract the for-loop-header
+   *
+   * @param loopD Information about this loop
+   * @param preUsedVariables List of Variables that are already intialized to see if you have to
+   *     initialize the variable on the left of the for-condition
+   * @param abstractionLevel naive or abstracted, naive is a bigger over-approximation
+   * @return string that is the new abstracted header of the for loop
+   */
   private String forCondition(
       LoopData loopD, List<String> preUsedVariables, String abstractionLevel) {
     boolean flag = true;
@@ -984,6 +1025,14 @@ public class LoopAbstraction {
     }
   }
 
+  /**
+   * checks if there is a if-case that has to be closed, is used to get the __VERIFIER_assume(!) at
+   * the right position, it would be in the loop otherwise
+   *
+   * @param line line from the program
+   * @param closed boolean that represents if there is an open if-case
+   * @return boolean that shows if there is still an open if case or not
+   */
   private boolean ifCaseClosed(String line, boolean closed) {
 
     boolean ifCaseC = closed;
