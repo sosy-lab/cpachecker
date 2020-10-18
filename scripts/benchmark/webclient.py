@@ -901,7 +901,7 @@ class WebInterface:
         norm_path = os.path.normpath(path)
         if ".." in norm_path or os.path.isabs(norm_path):
             norm_path = os.path.basename(norm_path)
-        return norm_path
+        return norm_path.replace("\\", "/")
 
     def flush_runs(self):
         """
