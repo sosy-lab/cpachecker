@@ -139,9 +139,4 @@ public class TAEncodingOptions {
       secure = true,
       description = "The size of the bit vectors, if clockVariableType is BitVector")
   public int bitVectorClockVariableSize = 10;
-
-  @Option(
-      secure = true,
-      description = "Setting this option to false, makes the shallow sync semantics incomplete")
-  public boolean carryOverCounterValue = true;
 }

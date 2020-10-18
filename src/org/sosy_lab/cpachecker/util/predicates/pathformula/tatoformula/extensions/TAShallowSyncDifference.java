@@ -32,16 +32,13 @@ public class TAShallowSyncDifference extends TAEncodingExtensionBase {
   private final TimedAutomatonView automata;
   private Map<TaDeclaration, TaVariable> timeStampVariables;
 
-  private final boolean carryOverCounterValue;
-
   private static final String LOCAL_TIMESTAMP_VARIABLE = "#local_timestamp";
 
   public TAShallowSyncDifference(
       FormulaManagerView pFmgr,
       TimedAutomatonView pAutomata,
       TAVariables pTime,
-      TAActions pActions,
-      boolean pCarryOverCounterValue) {
+      TAActions pActions) {
     super(pFmgr);
     time = pTime;
     actions = pActions;
@@ -50,7 +47,6 @@ public class TAShallowSyncDifference extends TAEncodingExtensionBase {
     actionOrderFormulaType = FormulaType.IntegerType;
     timeStampVariables = new HashMap<>();
     addLocalTimeStampVariables();
-    carryOverCounterValue = pCarryOverCounterValue;
   }
 
   private void addLocalTimeStampVariables() {
@@ -98,7 +94,9 @@ public class TAShallowSyncDifference extends TAEncodingExtensionBase {
   private BooleanFormula makeActionTimeStampForOccurenceFormula(
       TaDeclaration pAutomaton, int pLastReachedIndex, TaVariable action, int occurenceCount) {
     var occurenceCountFormula =
-        makeOccurenceCountEqualsFormula(pAutomaton, pLastReachedIndex + 1, action, occurenceCount);
+        makeOccurenceCountEqualsFormula(pAutomaton, pLastReachedIndex, action, occurenceCount);
+    var actionOccuredFormula =
+        actions.makeActionEqualsFormula(pAutomaton, pLastReachedIndex, action);
 
     var timeOfOccurence =
         makeOccurenceTimeStampFormula(occurenceCount, action, pAutomaton, pLastReachedIndex);
@@ -110,7 +108,8 @@ public class TAShallowSyncDifference extends TAEncodingExtensionBase {
     var f2 = fmgr.makeLessThan(oldLocalOrderVariable, newLocalOrderVariable, false);
     var f3 = bFmgr.and(f1, f2);
 
-    return bFmgr.implication(occurenceCountFormula, bFmgr.and(f3, timeOfOccurence));
+    return bFmgr.implication(
+        bFmgr.and(occurenceCountFormula, actionOccuredFormula), bFmgr.and(f3, timeOfOccurence));
   }
 
   private BooleanFormula makeDifferenceEqualsFormula(
@@ -144,11 +143,7 @@ public class TAShallowSyncDifference extends TAEncodingExtensionBase {
     var ifAction = bFmgr.implication(actionOccurs, increse);
     var ifNoAction = bFmgr.implication(bFmgr.not(actionOccurs), unchanged);
 
-    if (carryOverCounterValue) {
-      return bFmgr.and(ifAction, ifNoAction);
-    }
-
-    return ifAction;
+    return bFmgr.and(ifAction, ifNoAction);
   }
 
   @Override
