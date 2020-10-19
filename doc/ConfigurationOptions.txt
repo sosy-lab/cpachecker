@@ -475,7 +475,7 @@ analysis.unknownIfUnrestrictedProgram = false
 # select an analysis from a set of analyses after unknown result
 analysis.useCompositionAnalysis = false
 
-# Use explainer algorithm to prove (non-)termination.
+# Use explainer for fault localization with distance metrics 
 analysis.useExplainer = false
 
 # add declarations for global variables before entry function
