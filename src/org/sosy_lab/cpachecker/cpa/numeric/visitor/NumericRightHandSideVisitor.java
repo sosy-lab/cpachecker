@@ -174,6 +174,7 @@ public class NumericRightHandSideVisitor
       throws UnrecognizedCodeException {
     RoundingType roundingType = PartialState.convertToRoundingType(pIastCastExpression);
     Collection<PartialState> operandStates = pIastCastExpression.getOperand().accept(this);
+
     return PartialState.applyUnaryArithmeticOperator(
         UnaryOperator.CAST, operandStates, roundingType, PartialState.DEFAULT_ROUNDING_MODE);
   }
@@ -198,6 +199,13 @@ public class NumericRightHandSideVisitor
   @Override
   public Collection<PartialState> visit(CIntegerLiteralExpression pIastIntegerLiteralExpression)
       throws UnrecognizedCodeException {
+    if (pIastIntegerLiteralExpression.getExpressionType() instanceof CSimpleType) {
+      if (((CSimpleType) pIastIntegerLiteralExpression.getExpressionType()).isUnsigned()) {
+        if (pIastIntegerLiteralExpression.getValue().signum() < 0) {
+          return ImmutableSet.of(new PartialState(PartialState.UNSIGNED_UNCONSTRAINED_INTERVAL));
+        }
+      }
+    }
     Coefficient coeff = MpqScalar.of(pIastIntegerLiteralExpression.asLong());
     return ImmutableSet.of(new PartialState(coeff));
   }
@@ -227,13 +235,13 @@ public class NumericRightHandSideVisitor
         return PartialState.applyUnaryArithmeticOperator(
             UnaryOperator.NEGATE, states, roundingType, PartialState.DEFAULT_ROUNDING_MODE);
       default:
-        final boolean isSigned;
+        final boolean isUnsigned;
         if (pIastUnaryExpression.getExpressionType() instanceof CSimpleType) {
-          isSigned = ((CSimpleType) pIastUnaryExpression.getExpressionType()).isSigned();
+          isUnsigned = ((CSimpleType) pIastUnaryExpression.getExpressionType()).isUnsigned();
         } else {
-          isSigned = true;
+          isUnsigned = false;
         }
-        return ImmutableSet.of(createUnconstrainedPartialState(isSigned));
+        return ImmutableSet.of(createUnconstrainedPartialState(!isUnsigned));
     }
   }
 
@@ -273,8 +281,9 @@ public class NumericRightHandSideVisitor
         PartialState out = new PartialState(variable.get());
         return ImmutableSet.of(out);
       } else {
-        boolean isSigned = ((CSimpleType) pIastIdExpression.getDeclaration().getType()).isSigned();
-        return ImmutableSet.of(createUnconstrainedPartialState(isSigned));
+        boolean isUnsigned =
+            ((CSimpleType) pIastIdExpression.getDeclaration().getType()).isUnsigned();
+        return ImmutableSet.of(createUnconstrainedPartialState(!isUnsigned));
       }
     }
     // Type can not be handled therefore it is substituted with an unconstrained value:

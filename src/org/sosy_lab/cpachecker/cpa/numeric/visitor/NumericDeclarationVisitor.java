@@ -102,12 +102,21 @@ public class NumericDeclarationVisitor
         initializedStates =
             applyInitializer(variable, extendedState, (CInitializerExpression) initializer);
       } else {
-        initializedStates = ImmutableSet.of(extendedState.createCopy());
+        PartialState partialState;
+        if (simpleType.isUnsigned()) {
+          partialState = new PartialState(PartialState.UNSIGNED_UNCONSTRAINED_INTERVAL);
+        } else {
+          partialState = new PartialState(PartialState.UNCONSTRAINED_INTERVAL);
+        }
+        initializedStates =
+            ImmutableSet.of(
+                extendedState.assignTreeExpression(
+                    variable.get(), partialState.getPartialConstraint()));
       }
       extendedState.getValue().dispose();
 
       Collection<NumericState> successors = initializedStates;
-      if (simpleType.isUnsigned()) {
+      if (simpleType.isUnsigned() && initializer != null) {
         successors =
             setVariableUnsigned(
                 variable.get(), extendedState.getValue().getEnvironment(), initializedStates);
