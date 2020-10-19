@@ -11,10 +11,6 @@ int main() {
   int a = 0;
 
   while (1) {
-    if (i == 10) {
-      goto LOOPEND;
-    }
-
     if (i == 20) {
        goto LOOPEND;
     } else {
@@ -22,12 +18,19 @@ int main() {
        a++;
     }
 
+    if (i != a) {
+      goto ERROR;
+    }
   }
 
   LOOPEND:
-  __VERIFIER_assert(i == 20);	
-  return (1);
 
+  if (a != 19) {
+     goto ERROR;
+  }
 
+  return (0);
+  ERROR:
+  return (-1);
 }
 
