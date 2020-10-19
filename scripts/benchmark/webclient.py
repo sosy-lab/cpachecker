@@ -1092,27 +1092,9 @@ class WebInterface:
             counter += 1
             # send request
             try:
-                logging.debug(
-                    "REQUEST:"
-                    "\n    method = %s"
-                    "\n    url = %s"
-                    "\n    data = %s"
-                    "\n    files = %s"
-                    "\n    header = %s"
-                    "\n    auth = %s",
-                    method,
-                    url,
-                    data,
-                    ("[\n        " + "\n        ".join(map(str, files)) + "\n    ]")
-                    if files
-                    else files,
-                    headers,
-                    auth,
-                )
                 response = self._connection.request(
                     method, url, data=data, files=files, headers=headers, auth=auth
                 )
-                logging.debug("RESPONSE: [%s] %s", response.status_code, response.text)
 
             except Exception as e:
                 if counter < 5:
