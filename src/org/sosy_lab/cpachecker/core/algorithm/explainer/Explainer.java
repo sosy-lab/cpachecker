@@ -79,6 +79,13 @@ public class Explainer extends NestingAlgorithm {
       description = "The distance metric that ought to be used for the computation of the distance")
   private Metric distanceMetric = Metric.ADM;
 
+  @Option(
+      secure = true,
+      name = "stopAfter",
+      description =
+          "The number that specifies how many times are we going to iterate over the reachedSet")
+  private int stopAfter = 40;
+
   private PredicateCPA cpa;
 
   private final ExplainerAlgorithmStatistics stats;
@@ -121,12 +128,11 @@ public class Explainer extends NestingAlgorithm {
     // currentReached
     AlgorithmStatus status;
     status = firstStepAlgorithm.run(currentReached);
-    /*int i = 0;
-    // TODO: Review: HAVE TO FIX THIS
-    while (currentReached.hasWaitingState() && i < 40) {
+    int i = 0;
+    while (currentReached.hasWaitingState() && i < stopAfter) {
       status = firstStepAlgorithm.run(currentReached);
       i++;
-    }*/
+    }
     reached.setDelegate(currentReached);
 
     // Find All Targets

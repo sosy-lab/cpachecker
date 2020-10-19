@@ -211,6 +211,10 @@ public class DistanceCalculationHelper {
         children = ImmutableList.copyOf(currentNode.getChildren());
       }
 
+      if (children.size() == 0) {
+        return paths;
+      }
+
       do {
         if (children.size() > 1) {
           // add new paths to nodeWaitList

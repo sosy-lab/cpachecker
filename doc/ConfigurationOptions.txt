@@ -3296,6 +3296,10 @@ explainer.distanceMetric = ADM
 # Configuration of the first step of the Explainer Algorithm
 explainer.firstStep = no default value
 
+# The number that specifies how many times are we going to iterate over the
+# reachedSet
+explainer.stopAfter = 40
+
 # Ranking algorithm to use for fault localization
 faultLocalization.type = TARANTULA
   enum:     [TARANTULA, DSTAR, OCHIAI]

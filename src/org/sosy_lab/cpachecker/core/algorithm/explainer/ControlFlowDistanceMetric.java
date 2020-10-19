@@ -40,6 +40,9 @@ import org.sosy_lab.cpachecker.util.Pair;
  * the program execution. Then, starting from the branch that is closer to the error, it changes its
  * flow and expands its new direction in order to find if it leads to a successful exit of the
  * program
+ *
+ * <p>Important Information: This class finds all the possible abstract program paths as computed by
+ * the used CPA and does not consider the semantics of the program.
  */
 public class ControlFlowDistanceMetric implements DistanceMetric {
 
