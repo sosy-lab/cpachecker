@@ -211,7 +211,7 @@ public class DistanceCalculationHelper {
         children = ImmutableList.copyOf(currentNode.getChildren());
       }
 
-      if (children.size() == 0) {
+      if (children.isEmpty()) {
         return paths;
       }
 
