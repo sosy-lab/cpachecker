@@ -426,7 +426,7 @@ class WebInterface:
         self._hash_code_cache = {}
         self._group_id = str(random.randint(0, 1000000))  # noqa: S311
         self._read_hash_code_cache()
-        self._resolved_tool_revision(revision)
+        self._revision = self._request_tool_revision(revision)
         self._tool_name = self._request_tool_name()
 
         if HAS_SSECLIENT:
@@ -479,12 +479,10 @@ class WebInterface:
                 e.strerror,
             )
 
-    def _resolved_tool_revision(self, revision):
-
+    def _request_tool_revision(self, revision):
         path = "tool/version_string?revision=" + revision
-
         (resolved_svn_revision, _) = self._request("GET", path)
-        self._revision = resolved_svn_revision.decode("UTF-8")
+        return resolved_svn_revision.decode("UTF-8")
 
     def _request_tool_name(self):
         path = "tool/name"
@@ -903,7 +901,7 @@ class WebInterface:
         norm_path = os.path.normpath(path)
         if ".." in norm_path or os.path.isabs(norm_path):
             norm_path = os.path.basename(norm_path)
-        return norm_path
+        return norm_path.replace("\\", "/")
 
     def flush_runs(self):
         """

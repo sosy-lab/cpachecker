@@ -88,6 +88,7 @@ import org.sosy_lab.cpachecker.cfa.model.AssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.FunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType.ComplexTypeKind;
@@ -165,13 +166,13 @@ public class HarnessExporter {
       codeAppender.appendln("struct _IO_FILE;");
       codeAppender.appendln("typedef struct _IO_FILE FILE;");
       codeAppender.appendln("extern struct _IO_FILE *stderr;");
-      codeAppender.appendln("extern int fprintf(FILE *__restrict __stream, const char *__restrict __format, ...);");
+      codeAppender.appendln(
+          "extern int fprintf(FILE *__restrict __stream, const char *__restrict __format, ...);");
       codeAppender.appendln("extern void exit(int __status) __attribute__ ((__noreturn__));");
 
       // implement error-function
       CFAEdge edgeToTarget = testVector.orElseThrow().getEdgeToTarget();
-      Optional<AFunctionDeclaration> errorFunction =
-          getErrorFunction(edgeToTarget, externalFunctions);
+      Optional<AFunctionDeclaration> errorFunction = getErrorFunction(edgeToTarget);
       if (errorFunction.isPresent()) {
         codeAppender.append(errorFunction.orElseThrow());
         codeAppender.appendln(" {");
@@ -203,22 +204,30 @@ public class HarnessExporter {
     }
   }
 
-  private Optional<AFunctionDeclaration> getErrorFunction(
-      CFAEdge pEdgeToTarget, Set<AFunctionDeclaration> pExternalFunctions) {
+  private Optional<AFunctionDeclaration> getErrorFunction(CFAEdge pEdgeToTarget) {
+    AFunctionCall callStatement = null;
     if (pEdgeToTarget instanceof AStatementEdge) {
       AStatementEdge statementEdge = (AStatementEdge) pEdgeToTarget;
       AStatement statement = statementEdge.getStatement();
       if (statement instanceof AFunctionCall) {
-        AFunctionCall functionCallStatement = (AFunctionCall) statement;
-        AFunctionCallExpression functionCallExpression =
-            functionCallStatement.getFunctionCallExpression();
-        AFunctionDeclaration declaration = functionCallExpression.getDeclaration();
-        if (declaration != null && pExternalFunctions.contains(declaration)) {
-          return Optional.of(functionCallExpression.getDeclaration());
-        }
+        callStatement = (AFunctionCall) statement;
       }
+    } else if (pEdgeToTarget instanceof FunctionCallEdge) {
+      callStatement = ((FunctionCallEdge) pEdgeToTarget).getSummaryEdge().getExpression();
     }
-    return Optional.empty();
+
+    if (callStatement != null) {
+      return getFunctionDeclaration(callStatement);
+    } else {
+      return Optional.empty();
+    }
+  }
+
+  private Optional<AFunctionDeclaration> getFunctionDeclaration(final AFunctionCall pFunctionCall) {
+    final AFunctionCallExpression functionCallExpression =
+        pFunctionCall.getFunctionCallExpression();
+    final AFunctionDeclaration declaration = functionCallExpression.getDeclaration();
+    return Optional.ofNullable(declaration);
   }
 
   private Set<AFunctionDeclaration> getExternalFunctions() {

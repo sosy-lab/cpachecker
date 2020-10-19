@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.core.specification.SpecificationProperty;
 import org.sosy_lab.cpachecker.cpa.arg.ARGCPA;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
+import org.sosy_lab.cpachecker.cpa.testtargets.CoverFunction;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetCPA;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetProvider;
 import org.sosy_lab.cpachecker.cpa.testtargets.TestTargetState;
@@ -112,7 +113,8 @@ public class TestCaseGeneratorAlgorithm implements ProgressReportingAlgorithm, S
     if (pSpec.getProperties().size() == 1) {
       specProp = pSpec.getProperties().iterator().next();
       Preconditions.checkArgument(
-          specProp.getProperty() instanceof CommonCoverageType,
+          specProp.getProperty() instanceof CommonCoverageType
+              || specProp.getProperty() instanceof CoverFunction,
           "Property %s not supported for test generation",
           specProp.getProperty());
     } else {

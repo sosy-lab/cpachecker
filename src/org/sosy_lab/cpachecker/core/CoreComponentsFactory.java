@@ -31,6 +31,7 @@ import org.sosy_lab.cpachecker.core.algorithm.CustomInstructionRequirementsExtra
 import org.sosy_lab.cpachecker.core.algorithm.ExceptionHandlingAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ExternalCBMCAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithCoverage;
+import org.sosy_lab.cpachecker.core.algorithm.FaultLocalizationWithTraceFormula;
 import org.sosy_lab.cpachecker.core.algorithm.MPIPortfolioAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NoopAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.ParallelAlgorithm;
@@ -95,12 +96,6 @@ public class CoreComponentsFactory {
       description = "stop CPAchecker after startup (internal option, not intended for users)")
   private boolean disableAnalysis = false;
 
-  @Option(
-      secure = true,
-      name = "algorithm.faultLocalization",
-      description = "use fault localization")
-  private boolean useFaultLocalization = false;
-
   @Option(secure=true, description="use assumption collecting algorithm")
   private boolean collectAssumptions = false;
 
@@ -117,19 +112,31 @@ public class CoreComponentsFactory {
         + "\nCurrently all refiner require the use of the ARGCPA.")
   private boolean useCEGAR = false;
 
-  @Option(secure=true, description="use a second model checking run (e.g., with CBMC or a different CPAchecker configuration) to double-check counter-examples")
+  @Option(
+      secure = true,
+      description =
+          "use a second model checking run (e.g., with CBMC or a different CPAchecker"
+              + " configuration) to double-check counter-examples")
   private boolean checkCounterexamples = false;
 
   @Option(secure = true, description = "use counterexample check and the BDDCPA Restriction option")
   private boolean checkCounterexamplesWithBDDCPARestriction = false;
 
-  @Option(secure = true, description="After an incomplete analysis constructs a residual program which contains all program paths which are not fully explored")
+  @Option(
+      secure = true,
+      description =
+          "After an incomplete analysis constructs a residual program which contains all program"
+              + " paths which are not fully explored")
   private boolean unexploredPathsAsProgram = false;
 
-  @Option(secure = true, description="Solely construct the residual program for a given condition/assumption.")
+  @Option(
+      secure = true,
+      description = "Solely construct the residual program for a given condition/assumption.")
   private boolean constructResidualProgram = false;
 
-  @Option(secure = true, description="Construct a residual program from condition and verify residual program")
+  @Option(
+      secure = true,
+      description = "Construct a residual program from condition and verify residual program")
   private boolean asConditionalVerifier = false;
 
   @Option(secure = true, description = "Construct the program slice for the given configuration.")
@@ -212,8 +219,10 @@ public class CoreComponentsFactory {
   )
   private boolean splitProgram = false;
 
-  @Option(secure=true,
-      description="memorize previously used (incomplete) reached sets after a restart of the analysis")
+  @Option(
+      secure = true,
+      description =
+          "memorize previously used (incomplete) reached sets after a restart of the analysis")
   private boolean memorizeReachedAfterRestart = false;
 
   @Option(secure=true, name="algorithm.analysisWithEnabler",
@@ -235,13 +244,20 @@ public class CoreComponentsFactory {
       + "and extract requirements on a (reconfigurable) HW from the proof")
   private boolean useProofCheckAndExtractCIRequirementsAlgorithm = false;
 
-  @Option(secure=true, name="algorithm.proofCheckWithARGCMCStrategy",
-      description="use a proof check algorithm that using pcc.strategy=arg.ARG_CMCStrategy to validate a previously generated proof")
+  @Option(
+      secure = true,
+      name = "algorithm.proofCheckWithARGCMCStrategy",
+      description =
+          "use a proof check algorithm that using pcc.strategy=arg.ARG_CMCStrategy to validate a"
+              + " previously generated proof")
   private boolean useProofCheckWithARGCMCStrategy = false;
 
-  @Option(secure=true, name="algorithm.propertyCheck",
-      description = "do analysis and then check "
-      + "if reached set fulfills property specified by ConfigurableProgramAnalysisWithPropertyChecker")
+  @Option(
+      secure = true,
+      name = "algorithm.propertyCheck",
+      description =
+          "do analysis and then check if reached set fulfills property specified by"
+              + " ConfigurableProgramAnalysisWithPropertyChecker")
   private boolean usePropertyCheckingAlgorithm = false;
 
   @Option(secure=true, name="checkProof",
@@ -262,14 +278,26 @@ public class CoreComponentsFactory {
       description = "collect undefined functions")
   private boolean useUndefinedFunctionCollector = false;
 
-  @Option(secure=true, name="extractRequirements.customInstruction", description="do analysis and then extract pre- and post conditions for custom instruction from analysis result")
+  @Option(
+      secure = true,
+      name = "extractRequirements.customInstruction",
+      description =
+          "do analysis and then extract pre- and post conditions for custom instruction from"
+              + " analysis result")
   private boolean useCustomInstructionRequirementExtraction = false;
 
-  @Option(secure = true, name = "algorithm.useParallelBAM", description = "run the parallel BAM algortihm.")
+  @Option(
+      secure = true,
+      name = "algorithm.useParallelBAM",
+      description = "run the parallel BAM algortihm.")
   private boolean useParallelBAM = false;
 
-  @Option(secure=true, name="unknownIfUnrestrictedProgram",
-      description="stop the analysis with the result unknown if the program does not satisfies certain restrictions.")
+  @Option(
+      secure = true,
+      name = "unknownIfUnrestrictedProgram",
+      description =
+          "stop the analysis with the result unknown if the program does not satisfies certain"
+              + " restrictions.")
   private boolean unknownIfUnrestrictedProgram = false;
 
   @Option(
@@ -283,6 +311,18 @@ public class CoreComponentsFactory {
       name = "algorithm.CBMC",
       description = "use CBMC as an external tool from CPAchecker")
   boolean runCBMCasExternalTool = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.faultLocalization.by_coverage",
+      description = "for found property violation, perform fault localization with coverage")
+  private boolean useFaultLocalizationWithCoverage = false;
+
+  @Option(
+      secure = true,
+      name = "algorithm.faultLocalization.by_traceformula",
+      description = "for found property violation, perform fault localization with trace formulas")
+  boolean useFaultLocalizationWithTraceFormulas = false;
 
   private final Configuration config;
   private final LogManager logger;
@@ -549,10 +589,6 @@ public class CoreComponentsFactory {
             new ResultCheckAlgorithm(
                 algorithm, cpa, cfa, config, logger, shutdownNotifier, specification);
       }
-      if (useFaultLocalization) {
-        algorithm = new FaultLocalizationWithCoverage(algorithm, shutdownNotifier, logger,config);
-      }
-
       if (useCustomInstructionRequirementExtraction) {
         algorithm = new CustomInstructionRequirementsExtractingAlgorithm(algorithm, cpa, config, logger, shutdownNotifier, cfa);
       }
@@ -584,6 +620,13 @@ public class CoreComponentsFactory {
 
       if (useMPV) {
         algorithm = new MPVAlgorithm(cpa, config, logger, shutdownNotifier, specification, cfa);
+      }
+
+      if (useFaultLocalizationWithCoverage) {
+        algorithm = new FaultLocalizationWithCoverage(algorithm, shutdownNotifier, logger, config);
+      }
+      if(useFaultLocalizationWithTraceFormulas) {
+        algorithm = new FaultLocalizationWithTraceFormula(algorithm, config, logger, cfa, shutdownNotifier);
       }
     }
 

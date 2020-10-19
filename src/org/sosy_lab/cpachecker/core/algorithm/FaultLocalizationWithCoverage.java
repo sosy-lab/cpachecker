@@ -50,7 +50,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultInfo.Info
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
 
-@Options(prefix = "faultLocalization")
+@Options(prefix = "faultLocalization.by_coverage")
 public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvider, Statistics {
   private enum AlgorithmType {
     TARANTULA,
@@ -84,11 +84,20 @@ public class FaultLocalizationWithCoverage implements Algorithm, StatisticsProvi
 
   @Override
   public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
+    AlgorithmStatus status = algorithm.run(reachedSet);
     totalTime.start();
-    AlgorithmStatus status;
     try {
-      status = algorithm.run(reachedSet);
-      FluentIterable<CounterexampleInfo> counterExamples = getCounterexampleInfos(reachedSet);
+      List<CounterexampleInfo> counterExamples = getCounterexampleInfos(reachedSet).toList();
+
+      if (counterExamples.isEmpty()) {
+        logger.log(
+            Level.INFO,
+            "No counterexamples found in computed reached set"
+                + " - stopping fault localization early."
+                + " If CPAchecker found a property violation,"
+                + " consider analysis.alwaysStoreCounterexamples=true");
+        return status;
+      }
 
       SafeCase safeCase = new SafeCase(reachedSet);
       FailedCase failedCase = new FailedCase(reachedSet);

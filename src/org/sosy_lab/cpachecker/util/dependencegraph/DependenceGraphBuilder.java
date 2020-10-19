@@ -420,7 +420,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         DependenceType.CONTROL);
   }
 
-  private void addControlDependences() {
+  private void addControlDependences() throws InterruptedException {
 
     int controlDepCount = 0;
     boolean dependOnBothAssumptions = controlDepsTakeBothAssumptions;
@@ -457,9 +457,20 @@ public class DependenceGraphBuilder implements StatisticsProvider {
       }
 
       Set<CFAEdge> noDomEdges = new HashSet<>();
-      for (CFANode node : cfa.getFunctionNodes(entryNode.getFunction().getQualifiedName())) {
-        int nodeId = domTree.getId(node);
-        if (nodeId == Dominance.UNDEFINED || !domTree.hasParent(nodeId)) {
+      if (CFAUtils.existsPath(
+          entryNode, entryNode.getExitNode(), CFAUtils::allLeavingEdges, shutdownNotifier)) {
+        for (CFANode node : cfa.getFunctionNodes(entryNode.getFunction().getQualifiedName())) {
+          int nodeId = domTree.getId(node);
+          if (!domTree.hasParent(nodeId)) {
+            Iterables.addAll(noDomEdges, CFAUtils.allEnteringEdges(node));
+            Iterables.addAll(noDomEdges, CFAUtils.allLeavingEdges(node));
+          }
+        }
+      } else {
+        // Sometimes there is no path from the function entry node to the function exit node.
+        // In this case, domTree is incomplete as it does not contain all function nodes.
+        // Calling domTree.getId would throw an exception for these missing nodes.
+        for (CFANode node : cfa.getFunctionNodes(entryNode.getFunction().getQualifiedName())) {
           Iterables.addAll(noDomEdges, CFAUtils.allEnteringEdges(node));
           Iterables.addAll(noDomEdges, CFAUtils.allLeavingEdges(node));
         }

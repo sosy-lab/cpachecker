@@ -886,7 +886,7 @@ public class PredicateAbstractionManager {
 
     } finally {
       abstractionModelEnumTimer.stop();
-      abstractionBddConstructionTimer.stop();
+      abstractionBddConstructionTimer.stopIfRunning();
     }
   }
 
