@@ -511,7 +511,6 @@ public class LoopAbstraction {
             }
           }
         }
-        // reader.close();
       }
     } catch (IOException e) {
       logger.logUserException(
