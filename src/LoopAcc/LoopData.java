@@ -77,16 +77,13 @@ public class LoopData implements Comparable<LoopData> {
     this.endOfCondition.add(endCondition);
     loopInLoop = isInnerLoop(loop, cfa);
     outerLoop = isOuterLoop(loop, cfa);
-    loopType = findLoopType(loopStart, forStart);
+    loopType = findLoopType(loopStart);
     nodesInLoop = loopNodes;
     loopEnd = nodesInLoop.get(nodesInLoop.size() - LAST_POSITION_OF_LIST);
     nodesInCondition =
         nodesInCondition(cfa, pLogger, loopStart, loopType, nodesInLoop, endOfCondition, forStart);
-    output = getAllOutputs(cfa, nodesInLoop, output);
-    // testen ob flagendless und failedState gesetzt werden
-    condition =
-        nodesToCondition(
-            nodesInCondition, loopType, endOfCondition, failedState, conditionInFor, flagEndless);
+    output = getAllOutputs(cfa, nodesInLoop);
+    condition = nodesToCondition(nodesInCondition, loopType, endOfCondition, conditionInFor);
     inputOutput = getAllIO(output, nodesInLoop);
     numberAllOutputs = getAllNumberOutputs(output);
     amountOfPaths = getAllPaths(nodesInLoop, loopEnd, nodesInCondition, failedState, output);
@@ -105,11 +102,9 @@ public class LoopData implements Comparable<LoopData> {
    *
    * @param firstNode while loops typically have the "while" in the entering edge of the first cfa
    *     node of the loop
-   * @param firstForNode for loops typically have the "for" indicator a few nodes behind the first
-   *     CFANode of the loop
    * @return returns the type of the loop, possible solutions are "while", "for" at the moment
    */
-  private String findLoopType(CFANode firstNode, CFANode firstForNode) {
+  private String findLoopType(CFANode firstNode) {
     String tempLoopType = "";
 
     if (firstNode.getNumEnteringEdges() > 0
@@ -123,7 +118,7 @@ public class LoopData implements Comparable<LoopData> {
         if (temp.getNumEnteringEdges() > 0
             && temp.getEnteringEdge(ONLY_ENTERING_EDGE).getDescription().contains("for")) {
           tempLoopType = temp.getEnteringEdge(ONLY_ENTERING_EDGE).getDescription();
-          firstForNode = temp;
+          setForStart(temp);
           flag = false;
         }
         if (temp.getNumEnteringEdges() > 0) {
@@ -133,7 +128,6 @@ public class LoopData implements Comparable<LoopData> {
         }
       }
     }
-
     return tempLoopType;
   }
 
@@ -182,11 +176,9 @@ public class LoopData implements Comparable<LoopData> {
    *
    * @param cfa uses the cfa to check when a variable get initialized
    * @param loopNodes checks all of the nodes in a loop for output variables
-   * @param outputs adds a output-variable to the outputs list
    * @return returns a list with all of the variable names that are outputs in a loop
    */
-  private List<String> getAllOutputs(CFA cfa, List<CFANode> loopNodes, List<String> outputs) {
-    // checken ob output liste aktualisiert wird
+  private List<String> getAllOutputs(CFA cfa, List<CFANode> loopNodes) {
     List<String> tempOutput = new ArrayList<>();
 
     for (CFANode node : loopNodes) {
@@ -196,14 +188,6 @@ public class LoopData implements Comparable<LoopData> {
             && (CFAEdgeUtils.getLeftHandSide(node.getLeavingEdge(i)) != null
                 || CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i)) != null)) {
           boolean flag = true;
-
-          for (String s : outputs) {
-            if (s.contentEquals(
-                CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i))
-                    .split(OUTPUT_NAME_SYMBOL_CUT)[OUTPUT_VARIABLE_ARRAY_POSITION])) {
-              flag = false;
-            }
-          }
 
           boolean flagCPAchecker = true;
           if (CFAEdgeUtils.getLeftHandVariable(node.getLeavingEdge(i)) != null
@@ -524,7 +508,6 @@ public class LoopData implements Comparable<LoopData> {
       List<CFANode> conditionEnd,
       CFANode startFor) {
 
-    // TODO verstehen und comment schreiben
     List<CFANode> nodes = new ArrayList<>();
     List<CFANode> tempNodes = new ArrayList<>();
     CFANode tempNode = start;
@@ -625,18 +608,14 @@ public class LoopData implements Comparable<LoopData> {
    * @param type type of the loop to determine the way the condition will be put together
    * @param conditionEnd nodes that are not in the condition to make sure that only nodes in the
    *     condition will be part of the condition string
-   * @param failed this method sets the failed state
    * @param conditionFor inner condition part that handles the boolean part of a for loop
-   * @param endless information if the loop is a endless loop
    * @return string that represents the condition of the loop
    */
   public String nodesToCondition(
       List<CFANode> conditionNodes,
       String type,
       List<CFANode> conditionEnd,
-      CFANode failed,
-      List<CFANode> conditionFor,
-      boolean endless) {
+      List<CFANode> conditionFor) {
 
     // TODO mit Martin besprechen ob n Iterator nicht doch besser wäre
 
@@ -669,7 +648,7 @@ public class LoopData implements Comparable<LoopData> {
           }
         } else {
           cond = cond + node.getLeavingEdge(VALID_STATE).getCode();
-          failed = node.getLeavingEdge(ERROR_STATE).getSuccessor();
+          setFailedState(node.getLeavingEdge(ERROR_STATE).getSuccessor());
         }
       }
     } else if (type.contentEquals("for")) {
@@ -719,10 +698,10 @@ public class LoopData implements Comparable<LoopData> {
         } else {
           if (node.getLeavingEdge(VALID_STATE).getCode().contentEquals("")) {
             cond = cond + "1";
-            endless = true;
+            setEndless(true);
           } else {
             cond = cond + node.getLeavingEdge(VALID_STATE).getCode();
-            failed = node.getLeavingEdge(ERROR_STATE).getSuccessor();
+            setFailedState(node.getLeavingEdge(ERROR_STATE).getSuccessor());
           }
         }
       }
@@ -952,6 +931,18 @@ public class LoopData implements Comparable<LoopData> {
 
   public int getNumberOutputs() {
     return numberAllOutputs;
+  }
+
+  private void setForStart(CFANode fs) {
+    forStart = fs;
+  }
+
+  private void setFailedState(CFANode failed) {
+    failedState = failed;
+  }
+
+  private void setEndless(boolean endless) {
+    flagEndless = endless;
   }
 
   public String outputToString() {
