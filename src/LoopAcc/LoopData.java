@@ -8,7 +8,6 @@
 package LoopAcc;
 
 import com.google.common.collect.Iterables;
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -782,14 +781,11 @@ public class LoopData implements Comparable<LoopData> {
         } catch (NumberFormatException | NullPointerException nfe3) {
           temp.add(true);
         }
-        try {
-          BigInteger d = new BigInteger(variable);
-          if (d.intValueExact() > pathNumber || d.intValueExact() > outputNumber) {
-            temp.add(true);
-          }
-        } catch (NumberFormatException | NullPointerException nfe4) {
-          temp.add(true);
-        }
+        /*
+         * try { BigInteger d = new BigInteger(variable); if (d.intValueExact() > pathNumber ||
+         * d.intValueExact() > outputNumber) { temp.add(true); } } catch (NumberFormatException |
+         * NullPointerException nfe4) { temp.add(true); }
+         */
       }
 
     } else if (type.contentEquals("for")) {
@@ -837,14 +833,11 @@ public class LoopData implements Comparable<LoopData> {
           } catch (NumberFormatException | NullPointerException nfe3) {
             temp.add(true);
           }
-          try {
-            BigInteger d = new BigInteger(variable);
-            if (d.intValueExact() > pathNumber || d.intValueExact() > outputNumber) {
-              temp.add(true);
-            }
-          } catch (NumberFormatException | NullPointerException nfe4) {
-            temp.add(true);
-          }
+          /*
+           * try { BigInteger d = new BigInteger(variable); if (d.intValueExact() > pathNumber ||
+           * d.intValueExact() > outputNumber) { temp.add(true); } } catch (NumberFormatException |
+           * NullPointerException nfe4) { temp.add(true); }
+           */
         }
       } else {
         temp.add(true);
