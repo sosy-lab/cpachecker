@@ -75,6 +75,10 @@ public class ControlFlowDistanceMetric implements DistanceMetric {
     List<List<CFAEdge>> successfulGeneratedPath =
         pathGenerator(branchesCe, counterexample.asStatesList());
 
+    if (successfulGeneratedPath == null) {
+      return;
+    }
+
     List<List<CFAEdge>> replace = new ArrayList<>();
     for (List<CFAEdge> pCFAEdges : successfulGeneratedPath) {
       replace.add(distanceHelper.cleanPath(pCFAEdges));

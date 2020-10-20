@@ -28,7 +28,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 
 /**
  * This class contains various methods that are essential for the calculation of the distance
- * between 2 Executions
+ * between 2 program executions
  */
 public class DistanceCalculationHelper {
 
@@ -212,7 +212,7 @@ public class DistanceCalculationHelper {
       }
 
       if (children.isEmpty()) {
-        return paths;
+        continue;
       }
 
       do {
