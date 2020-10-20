@@ -384,14 +384,7 @@ public class NumericTransferRelation
 
       if (logger.wouldBeLogged(Level.FINEST)) {
         for (NumericState successor : reducedSuccessors) {
-          logger.log(
-              Level.FINEST,
-              edge.getEdgeType(),
-              edge.getCode(),
-              "successor:",
-              successor,
-              "as Interval:",
-              successor.getValue().toIntervalString(false));
+          logger.log(Level.FINEST, edge.getEdgeType(), edge.getCode(), "successor:", successor);
         }
       }
 

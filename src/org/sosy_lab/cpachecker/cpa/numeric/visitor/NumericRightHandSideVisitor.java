@@ -41,6 +41,7 @@ import org.sosy_lab.cpachecker.cpa.numeric.visitor.PartialState.TruthAssumption;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 import org.sosy_lab.numericdomains.Manager;
 import org.sosy_lab.numericdomains.coefficients.Coefficient;
+import org.sosy_lab.numericdomains.coefficients.DoubleScalar;
 import org.sosy_lab.numericdomains.coefficients.MpqScalar;
 import org.sosy_lab.numericdomains.constraint.tree.BinaryOperator;
 import org.sosy_lab.numericdomains.constraint.tree.RoundingType;
@@ -175,8 +176,13 @@ public class NumericRightHandSideVisitor
     RoundingType roundingType = PartialState.convertToRoundingType(pIastCastExpression);
     Collection<PartialState> operandStates = pIastCastExpression.getOperand().accept(this);
 
-    return PartialState.applyUnaryArithmeticOperator(
-        UnaryOperator.CAST, operandStates, roundingType, PartialState.DEFAULT_ROUNDING_MODE);
+    if (manager instanceof org.sosy_lab.numericdomains.elina.ZonesManager) {
+      // Zones domain sometimes segfaults on unary operations
+      return operandStates;
+    } else {
+      return PartialState.applyUnaryArithmeticOperator(
+          UnaryOperator.CAST, operandStates, roundingType, PartialState.DEFAULT_ROUNDING_MODE);
+    }
   }
 
   @Override
@@ -232,8 +238,16 @@ public class NumericRightHandSideVisitor
 
     switch (operator) {
       case MINUS:
-        return PartialState.applyUnaryArithmeticOperator(
-            UnaryOperator.NEGATE, states, roundingType, PartialState.DEFAULT_ROUNDING_MODE);
+        if (manager instanceof org.sosy_lab.numericdomains.elina.ZonesManager) {
+          return PartialState.applyBinaryArithmeticOperator(
+              BinaryOperator.SUBTRACT,
+              ImmutableSet.of(new PartialState(DoubleScalar.of(0))),
+              states,
+              PartialState.DEFAULT_ROUNDING_TYPE);
+        } else {
+          return PartialState.applyUnaryArithmeticOperator(
+              UnaryOperator.NEGATE, states, roundingType, PartialState.DEFAULT_ROUNDING_MODE);
+        }
       default:
         final boolean isUnsigned;
         if (pIastUnaryExpression.getExpressionType() instanceof CSimpleType) {
