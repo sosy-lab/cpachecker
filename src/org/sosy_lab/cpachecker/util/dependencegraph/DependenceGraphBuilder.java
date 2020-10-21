@@ -422,7 +422,8 @@ public class DependenceGraphBuilder implements StatisticsProvider {
                 }
               }
 
-            } else if (useEdge instanceof CFunctionSummaryEdge) {
+            } else if (useEdge instanceof CFunctionSummaryEdge
+                && !(defEdge instanceof CFunctionReturnEdge)) {
 
               CFunctionSummaryEdge summaryEdge = (CFunctionSummaryEdge) useEdge;
               List<CParameterDeclaration> params =
