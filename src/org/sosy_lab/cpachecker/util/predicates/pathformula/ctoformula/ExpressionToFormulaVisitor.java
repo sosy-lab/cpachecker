@@ -1426,10 +1426,8 @@ public class ExpressionToFormulaVisitor
     CExpression op1 = exp.getOperand1();
     CExpression op2 = exp.getOperand2();
     if (op1 instanceof CLiteralExpression && CTypes.isIntegerType(op1.getExpressionType())) {
-      // return Optional.of(FormulaType.IntegerType);
       return Optional.of(mgr.getFormulaType(toFormula(op2)));
     } else if (op2 instanceof CLiteralExpression && CTypes.isIntegerType(op2.getExpressionType())) {
-      // return Optional.of(FormulaType.IntegerType);
       return Optional.of(mgr.getFormulaType(toFormula(op1)));
     } else {
       return Optional.empty();

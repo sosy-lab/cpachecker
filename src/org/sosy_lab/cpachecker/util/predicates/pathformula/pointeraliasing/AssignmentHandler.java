@@ -947,8 +947,18 @@ class AssignmentHandler {
     final Expression newRhsExpression;
     if (CTypeUtils.isSimpleType(rhsType) && !rhsExpression.isNondetValue()) {
       Formula rhsFormula = getValueFormula(rhsType, rhsExpression).orElseThrow();
-      rhsFormula = conv.makeCast(rhsType, lhsType, rhsFormula, constraints, edge);
-      rhsFormula = conv.makeValueReinterpretation(lhsType, newLhsType, rhsFormula);
+      if (options.useVariableClassification()) {
+        rhsFormula =
+            conv.makeFormulaTypeCast(
+                conv.getFormulaTypeFromCType(lhsType),
+                rhsType,
+                rhsFormula,
+                ssa,
+                constraints);
+      } else {
+        rhsFormula = conv.makeCast(rhsType, lhsType, rhsFormula, constraints, edge);
+        rhsFormula = conv.makeValueReinterpretation(lhsType, newLhsType, rhsFormula);
+      }
       newRhsExpression = Value.ofValueOrNondet(rhsFormula);
     } else if (rhsType instanceof CCompositeType) {
       // reinterpret compositetype as bitvector; concatenate its fields appropriately in case of

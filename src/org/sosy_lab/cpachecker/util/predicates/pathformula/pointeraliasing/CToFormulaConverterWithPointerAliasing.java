@@ -347,8 +347,7 @@ public class CToFormulaConverterWithPointerAliasing extends CtoFormulaConverter 
     checkIsSimplified(type);
     final String ufName = regionMgr.getPointerAccessName(region);
     final int index = getIndex(ufName, type, ssa);
-    final FormulaType<?> returnType;
-    returnType = getFormulaTypeFromCType(type);
+    final FormulaType<?> returnType = getFormulaTypeFromCType(type);
     return ptsMgr.makePointerDereference(ufName, returnType, index, address);
   }
 
