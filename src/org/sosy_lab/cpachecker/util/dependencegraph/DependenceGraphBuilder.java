@@ -433,10 +433,21 @@ public class DependenceGraphBuilder implements StatisticsProvider {
               assert params.size() == expressions.size();
 
               for (int index = 0; index < params.size(); index++) {
-                if (EdgeDefUseData.extract(expressions.get(index)).getUses().contains(cause)) {
 
-                  useEdgeCause =
+                EdgeDefUseData defUseData = EdgeDefUseData.extract(expressions.get(index));
+
+                if (defUseData.getUses().contains(cause)) {
+
+                  Optional<MemoryLocation> paramUseCause =
                       Optional.of(MemoryLocation.valueOf(params.get(index).getQualifiedName()));
+
+                  addDependence(
+                      getDGNode(defEdge, defEdgeCause),
+                      getDGNode(useEdge, paramUseCause),
+                      DependenceType.FLOW);
+                  flowDepCount.value++;
+
+                } else if (!defUseData.getPointeeUses().isEmpty()) {
 
                   addDependence(
                       getDGNode(defEdge, defEdgeCause),
