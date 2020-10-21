@@ -11,6 +11,7 @@ package org.sosy_lab.cpachecker.util.dependencegraph;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ForwardingTable;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
@@ -51,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -59,6 +61,7 @@ import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CComplexType;
 import org.sosy_lab.cpachecker.core.CPABuilder;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -381,19 +384,75 @@ public class DependenceGraphBuilder implements StatisticsProvider {
             Optional<MemoryLocation> defEdgeCause = Optional.empty();
             Optional<MemoryLocation> useEdgeCause = Optional.empty();
 
-            if (defEdge instanceof CFunctionCallEdge || defEdge instanceof CFunctionReturnEdge) {
+            if (defEdge instanceof CFunctionCallEdge
+                || defEdge instanceof CFunctionReturnEdge
+                || defEdge instanceof CFunctionSummaryEdge) {
               defEdgeCause = Optional.of(cause);
             }
 
-            if (useEdge instanceof CFunctionCallEdge || useEdge instanceof CFunctionReturnEdge) {
+            if (useEdge instanceof CFunctionCallEdge
+                || useEdge instanceof CFunctionReturnEdge
+                || useEdge instanceof CFunctionSummaryEdge) {
               useEdgeCause = Optional.of(cause);
             }
 
-            addDependence(
-                getDGNode(defEdge, defEdgeCause),
-                getDGNode(useEdge, useEdgeCause),
-                DependenceType.FLOW);
-            flowDepCount.value++;
+            if (defEdge instanceof CFunctionReturnEdge
+                && useEdge instanceof CFunctionSummaryEdge
+                && ((CFunctionReturnEdge) defEdge)
+                    .getFunctionEntry()
+                    .getReturnVariable()
+                    .transform(decl -> MemoryLocation.valueOf(decl.getQualifiedName()))
+                    .toJavaUtil()
+                    .equals(defEdgeCause)) {
+
+              Optional<CFAEdge> optCallEdge =
+                  CFAUtils.leavingEdges(useEdge.getPredecessor())
+                      .firstMatch(Predicates.instanceOf(CFunctionCallEdge.class))
+                      .toJavaUtil();
+
+              if (optCallEdge.isPresent()) {
+
+                EdgeDefUseData defUseData = EdgeDefUseData.extract(optCallEdge.orElseThrow());
+
+                for (MemoryLocation summaryEdgeDef : defUseData.getDefs()) {
+                  addDependence(
+                      getDGNode(defEdge, defEdgeCause),
+                      getDGNode(useEdge, Optional.of(summaryEdgeDef)),
+                      DependenceType.FLOW);
+                }
+              }
+
+            } else if (useEdge instanceof CFunctionSummaryEdge) {
+
+              CFunctionSummaryEdge summaryEdge = (CFunctionSummaryEdge) useEdge;
+              List<CParameterDeclaration> params =
+                  summaryEdge.getFunctionEntry().getFunctionParameters();
+              List<CExpression> expressions =
+                  summaryEdge.getExpression().getFunctionCallExpression().getParameterExpressions();
+
+              assert params.size() == expressions.size();
+
+              for (int index = 0; index < params.size(); index++) {
+                if (EdgeDefUseData.extract(expressions.get(index)).getUses().contains(cause)) {
+
+                  useEdgeCause =
+                      Optional.of(MemoryLocation.valueOf(params.get(index).getQualifiedName()));
+
+                  addDependence(
+                      getDGNode(defEdge, defEdgeCause),
+                      getDGNode(useEdge, useEdgeCause),
+                      DependenceType.FLOW);
+                  flowDepCount.value++;
+                }
+              }
+            } else {
+
+              addDependence(
+                  getDGNode(defEdge, defEdgeCause),
+                  getDGNode(useEdge, useEdgeCause),
+                  DependenceType.FLOW);
+              flowDepCount.value++;
+            }
           };
 
       boolean isMain = entryNode.equals(cfa.getMainFunction());
