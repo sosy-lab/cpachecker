@@ -9,7 +9,6 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print;
 
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -33,7 +32,7 @@ public class ExpressionNode implements FormulaNode {
 
   @Override
   public List<FormulaNode> getSuccessors() {
-    return ImmutableList.of();
+    return operands;
   }
 
   @Override
@@ -64,6 +63,10 @@ public class ExpressionNode implements FormulaNode {
       }
     }
     return Objects.equals(operator, that.operator);
+  }
+
+  public String getOperator() {
+    return operator;
   }
 
   @Override

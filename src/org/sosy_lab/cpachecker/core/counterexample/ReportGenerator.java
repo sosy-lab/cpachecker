@@ -343,6 +343,7 @@ public class ReportGenerator {
         flInfo.faultsToJSON(writer);
         writer.write(",\n\"precondition\":");
         flInfo.writePrecondition(writer);
+        //flInfo.closeAll();
       } else {
         writer.write(",\n\"errorPath\":");
         counterExample.toJSON(writer);

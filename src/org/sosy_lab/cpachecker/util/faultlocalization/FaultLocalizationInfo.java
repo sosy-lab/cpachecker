@@ -24,9 +24,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.common.JSON;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.trace_formula.TraceFormula;
 import org.sosy_lab.cpachecker.core.counterexample.CFAPathWithAdditionalInfo;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
+import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class FaultLocalizationInfo extends CounterexampleInfo {
 
@@ -37,7 +37,8 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
   private Multimap<CFAEdge, Integer> mapEdgeToRankedFaultIndex;
   private Map<CFAEdge, FaultContribution> mapEdgeToFaultContribution;
 
-  private Optional<TraceFormula> traceFormula;
+  private Optional<BooleanFormula> precondition;
+  private List<BooleanFormula> atoms;
 
   /**
    * Fault localization algorithms will result in a set of sets of CFAEdges that are most likely to fix a bug.
@@ -65,8 +66,9 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         pParent.isPreciseCounterExample(),
         CFAPathWithAdditionalInfo.empty());
     rankedList = pFaults;
-    traceFormula = Optional.empty();
+    precondition = Optional.empty();
     htmlWriter = new FaultReportWriter();
+    atoms = new ArrayList<>();
   }
 
   /**
@@ -95,8 +97,9 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         pParent.isPreciseCounterExample(),
         CFAPathWithAdditionalInfo.empty());
     rankedList = FaultRankingUtils.rank(pRanking, pFaults);
-    traceFormula = Optional.empty();
+    precondition = Optional.empty();
     htmlWriter = new FaultReportWriter();
+    atoms = new ArrayList<>();
   }
 
   /**
@@ -115,13 +118,14 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
    *
    * @param pFaults set of faults obtained by a fault localization algorithm
    * @param pScoring how to calculate the scores of each fault
-   * @param pTraceFormula the precondition of a trace formula
+   * @param pPrecondition the precondition of a trace formula
    * @param pParent the counterexample info of the target state
    */
   public FaultLocalizationInfo(
       Set<Fault> pFaults,
       FaultScoring pScoring,
-      TraceFormula pTraceFormula,
+      BooleanFormula pPrecondition,
+      List<BooleanFormula> pAtoms,
       CounterexampleInfo pParent) {
     super(
         pParent.isSpurious(),
@@ -130,7 +134,8 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
         pParent.isPreciseCounterExample(),
         CFAPathWithAdditionalInfo.empty());
     rankedList = FaultRankingUtils.rank(pScoring, pFaults);
-    traceFormula = Optional.of(pTraceFormula);
+    precondition = Optional.of(pPrecondition);
+    atoms = pAtoms;
     htmlWriter = new FaultReportWriter();
   }
 
@@ -237,8 +242,8 @@ public class FaultLocalizationInfo extends CounterexampleInfo {
 
   public void writePrecondition(Writer writer) throws IOException {
     JSON.writeJSONString(Collections.singletonMap("fl-precondition",
-        traceFormula.isPresent() ?
-            InformationProvider.prettyPrecondition(traceFormula.orElseThrow()) :
+        precondition.isPresent() ?
+            InformationProvider.prettyPrecondition(precondition.orElseThrow(), atoms) :
             ""), writer);
   }
 }

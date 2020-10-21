@@ -72,7 +72,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
 
   private StatTimer totalTime = new StatTimer(StatKind.SUM, "Total time for ErrInv");
   private StatCounter searchCalls = new StatCounter("Number of search calls");
-  private StatCounter solverCalls = new StatCounter("Numer of solver calls");
+  private StatCounter solverCalls = new StatCounter("Number of solver calls");
   private StatCounter memoizationCalls =
       new StatCounter("Number of interpolant-interval cache hits");
 
@@ -243,10 +243,9 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
         Fault singleton = new Fault(prev);
         singleton.setIntendedIndex(i);
         faults.add(singleton);
-        continue;
-      }
-      if (errorInvariant instanceof Interval) {
+      } else if (errorInvariant instanceof Interval) {
         Interval curr = (Interval) errorInvariant;
+        curr.invariant = formulaContext.getSolver().getFormulaManager().uninstantiate(curr.invariant);
         Selector next;
         if (i + 1 < abstractTrace.size()) {
           next = (Selector) abstractTrace.get(i + 1);

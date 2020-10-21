@@ -80,4 +80,9 @@ public class FormulaContext {
   public ShutdownNotifier getShutdownNotifier() {
     return shutdownNotifier;
   }
+
+  public void closeAll() {
+    solver.close();
+    prover.close();
+  }
 }

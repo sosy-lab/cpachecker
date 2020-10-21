@@ -9,7 +9,10 @@
 package org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print.FormulaNode.FormulaNodeType;
 import org.sosy_lab.java_smt.api.BooleanFormula;
@@ -69,6 +72,7 @@ public class BooleanFormulaParser {
           }
           if (currentString.startsWith(" ") && currentString.endsWith(" ") && !currentString.isBlank()) {
             syntaxStack.push(new LiteralNode(currentString.trim()));
+            // " " is correct here
             currentString = " ";
           }
           if (currentString.startsWith(" ") && currentString.endsWith(")")) {
@@ -331,6 +335,24 @@ public class BooleanFormulaParser {
         pSyntaxStack.push(notNode);
       }
     }
+  }
+
+  public static List<FormulaNode> toConjunctionArgs(FormulaNode root) {
+    return splitOn(root, FormulaNodeType.AndNode);
+  }
+
+  public static List<FormulaNode> toDisjunctionArgs(FormulaNode root) {
+    return splitOn(root, FormulaNodeType.OrNode);
+  }
+
+  private static List<FormulaNode> splitOn (FormulaNode root, FormulaNodeType type) {
+    List<FormulaNode> parts = new ArrayList<>();
+    if (root.getType().equals(type)) {
+      root.getSuccessors().stream().filter(Objects::nonNull).forEach(n -> parts.addAll(splitOn(n, type)));
+    } else {
+      parts.add(root);
+    }
+    return parts;
   }
 
 }

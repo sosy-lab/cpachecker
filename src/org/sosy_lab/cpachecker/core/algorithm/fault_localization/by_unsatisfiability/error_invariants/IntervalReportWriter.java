@@ -12,7 +12,6 @@ import com.google.common.base.Splitter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.core.algorithm.fault_localization.by_unsatisfiability.error_invariants.ErrorInvariantsAlgorithm.Interval;
@@ -25,17 +24,9 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.FaultReason;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.PotentialFix;
 import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print.BooleanFormulaParser;
-import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
-import org.sosy_lab.java_smt.api.BooleanFormula;
-import org.sosy_lab.java_smt.api.BooleanFormulaManager;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.pretty_print.FormulaNode;
 
 public class IntervalReportWriter extends FaultReportWriter {
-
-  private FormulaManagerView fmgr;
-
-  public IntervalReportWriter(FormulaManagerView pFormulaManager) {
-    fmgr = pFormulaManager;
-  }
 
   @Override
   public String toHtml(Fault pFault) {
@@ -143,33 +134,26 @@ public class IntervalReportWriter extends FaultReportWriter {
    * @return relevant information
    */
   private String extractRelevantInformation(Interval interval) {
-    BooleanFormulaManager bmgr = fmgr.getBooleanFormulaManager();
+
+    FormulaNode root = BooleanFormulaParser.parse(interval.getInvariant());
+    List<FormulaNode> conjunctions = BooleanFormulaParser.toConjunctionArgs(root);
     List<String> helpfulFormulas = new ArrayList<>();
-    Set<BooleanFormula> conjunctions = bmgr.toConjunctionArgs(interval.getInvariant(), true);
-    for (BooleanFormula f : conjunctions) {
+
+    for (FormulaNode f : conjunctions) {
       if (f.toString().contains("_ADDRESS_OF")) {
         List<String> findName = Splitter.on("__ADDRESS_OF_").splitToList(f.toString());
         if (findName.size() > 1) {
           List<String> extractName = Splitter.on("@").splitToList(findName.get(1));
           if (!extractName.isEmpty()) {
-            helpfulFormulas.add("(`values_of` " + extractName.get(0) + ")");
+            helpfulFormulas.add("(values of " + extractName.get(0) + ")");
             continue;
           }
         }
       }
-      helpfulFormulas.add(BooleanFormulaParser.parse(fmgr.uninstantiate(f)).toString());
+      helpfulFormulas.add(f.toString());
     }
     // return "<ul><li>"  + helpfulFormulas.stream().distinct().map(s -> s.replaceAll("@",
     // "")).collect(Collectors.joining(" </li><li> ")) + "</li></ul>";
-    if (helpfulFormulas.isEmpty()) {
-      if (bmgr.makeTrue().equals(interval.getInvariant())) {
-        return "true";
-      }
-      if (bmgr.makeFalse().equals(interval.getInvariant())) {
-        return "false";
-      }
-      return interval.getInvariant().toString();
-    }
     return helpfulFormulas.stream()
         .distinct()
         .map(s -> s.replaceAll("@", ""))

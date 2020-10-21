@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -170,7 +171,7 @@ public class FaultLocalizationWithTraceFormula
     }
     if (!algorithmType.equals(AlgorithmTypes.MAXSAT) && options.isReduceSelectors()) {
       throw new InvalidConfigurationException(
-          "The option reduceselectors will be ignored since MAX-SAT is not selected");
+          "The option reduceselectors requires the MAXSAT algorithm");
     }
     if (!options.getDisable().isBlank() && algorithmType.equals(AlgorithmTypes.ERRINV)) {
       throw new InvalidConfigurationException(
@@ -284,12 +285,24 @@ public class FaultLocalizationWithTraceFormula
       InformationProvider.searchForAdditionalInformation(errorIndicators, edgeList);
       InformationProvider.addDefaultPotentialFixesToFaults(errorIndicators, 3);
 
-      FaultLocalizationInfo info = new FaultLocalizationInfo(errorIndicators, scoring, tf, pInfo);
+      List<BooleanFormula> nondets = tf.getEntries().toAtomList()
+          .stream()
+          .filter(f -> f.toString().contains("__VERIFIER_nondet"))
+          .map(f -> context.getSolver().getFormulaManager().uninstantiate(f))
+          .collect(Collectors.toList());
+      FaultLocalizationInfo info = new FaultLocalizationInfo(
+          errorIndicators,
+          scoring,
+          tf.getPrecondition(),
+          nondets,
+          pInfo);
 
       if (algorithmType.equals(AlgorithmTypes.ERRINV)) {
-        info.replaceHtmlWriter(new IntervalReportWriter(context.getSolver().getFormulaManager()));
+        info.replaceHtmlWriter(new IntervalReportWriter());
         info.sortIntended();
-        info.getRankedList().remove(0);
+        if (!info.getRankedList().isEmpty()) {
+          info.getRankedList().remove(0);
+        }
       }
 
       info.getHtmlWriter().hideTypes(InfoType.RANK_INFO);
