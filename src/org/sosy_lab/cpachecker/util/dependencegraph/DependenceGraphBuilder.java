@@ -144,7 +144,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
               + " state space for deterministic programs. This behavior is also closer to the"
               + " static program slicing based on control-flow graphs (CFGs), where branching is"
               + " represented by a single assumption (with true- and false-edges)")
-  private boolean controlDepsTakeBothAssumptions = false;
+  private boolean controlDepsTakeBothAssumptions = true;
 
   @Option(
       secure = true,
