@@ -433,6 +433,16 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
               assert params.size() == expressions.size();
 
+              if (foreignDefUseData
+                  .getForeignUses(summaryEdge.getFunctionEntry().getFunction())
+                  .contains(cause)) {
+                addDependence(
+                    getDGNode(defEdge, defEdgeCause),
+                    getDGNode(useEdge, useEdgeCause),
+                    DependenceType.FLOW);
+                flowDepCount.value++;
+              }
+
               for (int index = 0; index < params.size(); index++) {
 
                 EdgeDefUseData defUseData = EdgeDefUseData.extract(expressions.get(index));
