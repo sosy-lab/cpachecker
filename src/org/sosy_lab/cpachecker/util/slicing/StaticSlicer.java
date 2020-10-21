@@ -20,8 +20,11 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
@@ -74,19 +77,44 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
   @Override
   public Slice getSlice0(CFA pCfa, Collection<CFAEdge> pSlicingCriteria)
       throws InterruptedException {
+
     candidateSliceCount.setNextValue(pSlicingCriteria.size());
     int realSlices = 0;
     slicingTime.start();
+
+    Set<CFAEdge> criteriaEdges = new HashSet<>();
     Set<CFAEdge> relevantEdges = new HashSet<>();
+
+    criteriaEdges.addAll(pSlicingCriteria);
+
+    // TODO: make this configurable
+    for (CFANode node : pCfa.getAllNodes()) {
+      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
+        if (edge instanceof CStatementEdge) {
+          CStatement statement = ((CStatementEdge) edge).getStatement();
+          if (statement instanceof CFunctionCallStatement) {
+            String functionName =
+                ((CFunctionCallStatement) statement)
+                    .getFunctionCallExpression()
+                    .getDeclaration()
+                    .getQualifiedName();
+            if (functionName.equals("abort")) {
+              criteriaEdges.add(edge);
+            }
+          }
+        }
+      }
+    }
+
     try {
       // Heuristic: Reverse to make states that are deeper in the path first - these
       // have a higher chance of including earlier states in their dependences
-      ImmutableList<CFAEdge> criteriaEdges =
+      ImmutableList<CFAEdge> sortedCriteriaEdges =
           ImmutableList.sortedCopyOf(
               Comparator.comparingInt(edge -> edge.getPredecessor().getReversePostorderId()),
-              pSlicingCriteria);
+              criteriaEdges);
 
-      for (CFAEdge g : criteriaEdges) {
+      for (CFAEdge g : sortedCriteriaEdges) {
         if (relevantEdges.contains(g)) {
           // If the relevant edges contain g, then all dependences of g are also already included
           // and we can skip it (this is only true as long as no function call/return edge is a
