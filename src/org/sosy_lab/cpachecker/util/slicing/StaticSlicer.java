@@ -21,6 +21,7 @@ import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -93,12 +94,9 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
         if (edge instanceof CStatementEdge) {
           CStatement statement = ((CStatementEdge) edge).getStatement();
           if (statement instanceof CFunctionCallStatement) {
-            String functionName =
-                ((CFunctionCallStatement) statement)
-                    .getFunctionCallExpression()
-                    .getDeclaration()
-                    .getQualifiedName();
-            if (functionName.equals("abort")) {
+            CFunctionDeclaration declaration =
+                ((CFunctionCallStatement) statement).getFunctionCallExpression().getDeclaration();
+            if (declaration != null && declaration.getQualifiedName().equals("abort")) {
               criteriaEdges.add(edge);
             }
           }
