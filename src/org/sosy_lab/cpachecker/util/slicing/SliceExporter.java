@@ -8,7 +8,6 @@
 
 package org.sosy_lab.cpachecker.util.slicing;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableSet;
@@ -20,13 +19,13 @@ import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.TreeMap;
@@ -43,6 +42,7 @@ import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
@@ -52,6 +52,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -70,8 +71,9 @@ import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
+import org.sosy_lab.cpachecker.cfa.types.c.CVoidType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
-import org.sosy_lab.cpachecker.util.CFATraversal;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
@@ -118,20 +120,6 @@ public class SliceExporter {
     logger = pLogger;
   }
 
-  /** Returns true if any leaving edge of any node is contained in pRelevantEdges. */
-  private boolean containsRelevantEdge(Collection<CFANode> pNodes, Set<CFAEdge> pRelevantEdges) {
-
-    for (CFANode node : pNodes) {
-      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
-        if (pRelevantEdges.contains(edge)) {
-          return true;
-        }
-      }
-    }
-
-    return false;
-  }
-
   /**
    * Returns true if the node hast at least one leaving edge and only leaving edges that are assume
    * edges and not contained in pRelevantEdges.
@@ -147,14 +135,12 @@ public class SliceExporter {
     return pNode.getNumLeavingEdges() > 0;
   }
 
-  private <T> List<T> filterParams(Iterable<T> pInput, Slice pSlice, CDeclarationEdge pEdge) {
+  private <T> List<T> filterParams(
+      Iterable<T> pInput, AFunctionDeclaration pFunction, FunctionManager pFunctionManager) {
 
-    CDeclaration declaration = pEdge.getDeclaration();
-
-    checkArgument(
-        (declaration instanceof CFunctionDeclaration), "pEdge must be a function declaration edge");
-
-    CFunctionDeclaration functionDeclaration = (CFunctionDeclaration) declaration;
+    CFunctionDeclaration functionDeclaration = (CFunctionDeclaration) pFunction;
+    CDeclarationEdge declarationEdge = pFunctionManager.getDeclarationEdge(pFunction);
+    Slice slice = pFunctionManager.getSlice();
 
     List<T> result = new ArrayList<>();
     Iterator<T> iterator = pInput.iterator();
@@ -166,7 +152,7 @@ public class SliceExporter {
 
       MemoryLocation memoryLocation = MemoryLocation.valueOf(parameter.getQualifiedName());
 
-      if (pSlice.isRelevantDef(pEdge, memoryLocation)) {
+      if (slice.isRelevantDef(declarationEdge, memoryLocation)) {
         result.add(element);
       }
     }
@@ -176,27 +162,36 @@ public class SliceExporter {
     return result;
   }
 
-  private CFunctionDeclaration cloneFunctionDeclaration(Slice pSlice, CDeclarationEdge pEdge) {
+  private CFunctionDeclaration cloneFunctionDeclaration(
+      AFunctionDeclaration pFunction, FunctionManager pFunctionManager) {
 
-    CDeclaration declaration = pEdge.getDeclaration();
-
-    checkArgument(
-        (declaration instanceof CFunctionDeclaration), "pEdge must be a function declaration edge");
-
-    CFunctionDeclaration originalFunctionDeclaration = (CFunctionDeclaration) declaration;
+    CFunctionDeclaration originalFunctionDeclaration = (CFunctionDeclaration) pFunction;
+    CDeclarationEdge originalDeclarationEdge = pFunctionManager.getDeclarationEdge(pFunction);
+    FunctionEntryNode originalFunctionEntryNode = pFunctionManager.getEntryNode(pFunction);
+    Slice slice = pFunctionManager.getSlice();
 
     CFunctionType originalFunctionType = originalFunctionDeclaration.getType();
     List<CParameterDeclaration> relevantParameters =
-        filterParams(originalFunctionDeclaration.getParameters(), pSlice, pEdge);
+        filterParams(originalFunctionDeclaration.getParameters(), pFunction, pFunctionManager);
+
+    CType relevantReturnType = originalFunctionType.getReturnType();
+    Optional<? extends AVariableDeclaration> optRetVar =
+        originalFunctionEntryNode.getReturnVariable().toJavaUtil();
+
+    if (optRetVar.isPresent()) {
+      MemoryLocation memoryLocation =
+          MemoryLocation.valueOf(optRetVar.orElseThrow().getQualifiedName());
+      if (!slice.isRelevantDef(originalDeclarationEdge, memoryLocation)) {
+        relevantReturnType = CVoidType.VOID;
+      }
+    }
 
     CFunctionType relevantFunctionType =
         new CFunctionTypeWithNames(
-            originalFunctionType.getReturnType(),
-            relevantParameters,
-            originalFunctionType.takesVarArgs());
+            relevantReturnType, relevantParameters, originalFunctionType.takesVarArgs());
 
     return new CFunctionDeclaration(
-        pEdge.getFileLocation(),
+        originalDeclarationEdge.getFileLocation(),
         relevantFunctionType,
         originalFunctionDeclaration.getQualifiedName(),
         relevantParameters);
@@ -210,10 +205,7 @@ public class SliceExporter {
    * from specified pNode is created, stored in pNodeMap, and returned.
    */
   private CFANode cloneNode(
-      CFANode pNode,
-      Map<Integer, CFANode> pNodeMap,
-      Slice pSlice,
-      Map<AFunctionDeclaration, CDeclarationEdge> pFunctionDeclarations) {
+      CFANode pNode, Map<Integer, CFANode> pNodeMap, FunctionManager pFunctionManager) {
 
     CFANode newNode = pNodeMap.get(pNode.getNodeNumber());
     if (newNode != null) {
@@ -221,10 +213,10 @@ public class SliceExporter {
     }
 
     var functionDeclaration = (CFunctionDeclaration) pNode.getFunction();
-    var declarationEdge = pFunctionDeclarations.get(functionDeclaration);
+    var declarationEdge = pFunctionManager.getDeclarationEdge(functionDeclaration);
 
     if (declarationEdge != null) {
-      functionDeclaration = cloneFunctionDeclaration(pSlice, declarationEdge);
+      functionDeclaration = cloneFunctionDeclaration(functionDeclaration, pFunctionManager);
     }
 
     if (pNode instanceof CLabelNode) {
@@ -246,8 +238,23 @@ public class SliceExporter {
 
       var relevantFunctionExitNode =
           (FunctionExitNode)
-              cloneNode(
-                  originalFunctionEntryNode.getExitNode(), pNodeMap, pSlice, pFunctionDeclarations);
+              cloneNode(originalFunctionEntryNode.getExitNode(), pNodeMap, pFunctionManager);
+
+      if (functionDeclaration.getType().getReturnType().equals(CVoidType.VOID)) {
+        newNode =
+            new CFunctionEntryNode(
+                originalFunctionEntryNode.getFileLocation(),
+                functionDeclaration,
+                relevantFunctionExitNode,
+                com.google.common.base.Optional.absent());
+      } else {
+        newNode =
+            new CFunctionEntryNode(
+                originalFunctionEntryNode.getFileLocation(),
+                functionDeclaration,
+                relevantFunctionExitNode,
+                originalFunctionEntryNode.getReturnVariable());
+      }
 
       newNode =
           new CFunctionEntryNode(
@@ -287,31 +294,41 @@ public class SliceExporter {
       CFunctionCallEdge pEdge,
       CFANode pPredecessor,
       CFANode pSuccessor,
-      Slice pSlice,
-      CDeclarationEdge pDeclarationEdge) {
+      FunctionManager pFunctionManager) {
 
     var originalFunctionSummaryEdge = pEdge.getSummaryEdge();
     var originalFunctionEntryNode = pEdge.getSuccessor();
 
-    var relevantFunctionDeclaration = cloneFunctionDeclaration(pSlice, pDeclarationEdge);
+    var relevantFunctionDeclaration =
+        cloneFunctionDeclaration(
+            originalFunctionEntryNode.getFunctionDefinition(), pFunctionManager);
+    Optional<CVariableDeclaration> optionalReturnVariable =
+        originalFunctionEntryNode.getReturnVariable().toJavaUtil();
+
+    if (relevantFunctionDeclaration.getType().getReturnType().equals(CVoidType.VOID)) {
+      optionalReturnVariable = Optional.empty();
+    }
+
     var relevantFunctionExitNode = new FunctionExitNode(relevantFunctionDeclaration);
     var relevantFunctionEntryNode =
         new CFunctionEntryNode(
             pEdge.getFileLocation(),
             relevantFunctionDeclaration,
             relevantFunctionExitNode,
-            originalFunctionEntryNode.getReturnVariable());
+            com.google.common.base.Optional.fromJavaUtil(optionalReturnVariable));
 
     var originalFunctionCall = originalFunctionSummaryEdge.getExpression();
     var originalFunctionCallExpression = originalFunctionCall.getFunctionCallExpression();
     List<CExpression> relevantParameterExpressions =
         filterParams(
-            originalFunctionCallExpression.getParameterExpressions(), pSlice, pDeclarationEdge);
+            originalFunctionCallExpression.getParameterExpressions(),
+            originalFunctionEntryNode.getFunctionDefinition(),
+            pFunctionManager);
 
     var relevantFunctionCallExpression =
         new CFunctionCallExpression(
             pEdge.getFileLocation(),
-            originalFunctionCallExpression.getExpressionType(),
+            relevantFunctionDeclaration.getType().getReturnType(),
             originalFunctionCallExpression.getFunctionNameExpression(),
             relevantParameterExpressions,
             relevantFunctionDeclaration);
@@ -320,20 +337,30 @@ public class SliceExporter {
 
     if (originalFunctionCall instanceof CFunctionCallStatement) {
 
-      var originalFunctionCallStatement = (CFunctionCallStatement) originalFunctionCall;
+      CFunctionCallStatement originalStatement = (CFunctionCallStatement) originalFunctionCall;
       relevantFunctionCall =
           new CFunctionCallStatement(
-              originalFunctionCallStatement.getFileLocation(), relevantFunctionCallExpression);
+              originalStatement.getFileLocation(), relevantFunctionCallExpression);
 
     } else if (originalFunctionCall instanceof CFunctionCallAssignmentStatement) {
 
-      var originalFunctionCallAssignmentStatement =
+      CFunctionCallAssignmentStatement originalStatement =
           (CFunctionCallAssignmentStatement) originalFunctionCall;
-      relevantFunctionCall =
-          new CFunctionCallAssignmentStatement(
-              originalFunctionCallAssignmentStatement.getFileLocation(),
-              originalFunctionCallAssignmentStatement.getLeftHandSide(),
-              relevantFunctionCallExpression);
+
+      if (optionalReturnVariable.isPresent()) {
+
+        relevantFunctionCall =
+            new CFunctionCallAssignmentStatement(
+                originalStatement.getFileLocation(),
+                originalStatement.getLeftHandSide(),
+                relevantFunctionCallExpression);
+
+      } else {
+
+        relevantFunctionCall =
+            new CFunctionCallStatement(
+                originalStatement.getFileLocation(), relevantFunctionCallExpression);
+      }
 
     } else {
       throw new AssertionError("Unknown function call type: " + originalFunctionCall);
@@ -367,27 +394,25 @@ public class SliceExporter {
    * <p>Treatment of CFunctionCallEdges is special and handled in {@link #cloneFunctionCall}.
    */
   private CFAEdge cloneEdge(
-      CFAEdge pEdge,
-      CFANode pPredecessor,
-      CFANode pSuccessor,
-      Slice pSlice,
-      Map<AFunctionDeclaration, CDeclarationEdge> pFunctionDeclarations) {
+      CFAEdge pEdge, CFANode pPredecessor, CFANode pSuccessor, FunctionManager pFunctionManager) {
 
-    FileLocation loc = pEdge.getFileLocation();
-    String raw = pEdge.getRawStatement();
-    String desc = pEdge.getDescription();
     CFAEdgeType type = pEdge.getEdgeType();
 
     if (type == CFAEdgeType.BlankEdge) {
 
-      return new BlankEdge(raw, loc, pPredecessor, pSuccessor, desc);
+      return new BlankEdge(
+          pEdge.getRawStatement(),
+          pEdge.getFileLocation(),
+          pPredecessor,
+          pSuccessor,
+          pEdge.getDescription());
 
     } else if (type == CFAEdgeType.AssumeEdge && pEdge instanceof CAssumeEdge) {
 
       CAssumeEdge assumeEdge = (CAssumeEdge) pEdge;
       return new CAssumeEdge(
-          raw,
-          loc,
+          assumeEdge.getRawStatement(),
+          assumeEdge.getFileLocation(),
           pPredecessor,
           pSuccessor,
           assumeEdge.getRawAST().get(),
@@ -399,9 +424,9 @@ public class SliceExporter {
 
       CFunctionSummaryStatementEdge statementEdge = (CFunctionSummaryStatementEdge) pEdge;
       return new CFunctionSummaryStatementEdge(
-          raw,
+          statementEdge.getRawStatement(),
           statementEdge.getStatement(),
-          loc,
+          statementEdge.getFileLocation(),
           pPredecessor,
           pSuccessor,
           statementEdge.getFunctionCall(),
@@ -410,7 +435,12 @@ public class SliceExporter {
     } else if (type == CFAEdgeType.StatementEdge && pEdge instanceof CStatementEdge) {
 
       CStatementEdge statementEdge = (CStatementEdge) pEdge;
-      return new CStatementEdge(raw, statementEdge.getStatement(), loc, pPredecessor, pSuccessor);
+      return new CStatementEdge(
+          statementEdge.getRawStatement(),
+          statementEdge.getStatement(),
+          statementEdge.getFileLocation(),
+          pPredecessor,
+          pSuccessor);
 
     } else if (type == CFAEdgeType.DeclarationEdge && pEdge instanceof CDeclarationEdge) {
       
@@ -419,28 +449,31 @@ public class SliceExporter {
       CDeclaration relevantDeclaration = originalDeclaration;
 
       if (originalDeclaration instanceof CFunctionDeclaration) {
-        relevantDeclaration = cloneFunctionDeclaration(pSlice, declarationEdge);
+        relevantDeclaration =
+            cloneFunctionDeclaration((CFunctionDeclaration) originalDeclaration, pFunctionManager);
       }
 
-      return new CDeclarationEdge(raw, loc, pPredecessor, pSuccessor, relevantDeclaration);
+      return new CDeclarationEdge(
+          declarationEdge.getRawStatement(),
+          declarationEdge.getFileLocation(),
+          pPredecessor,
+          pSuccessor,
+          relevantDeclaration);
 
     } else if (type == CFAEdgeType.ReturnStatementEdge && pEdge instanceof CReturnStatementEdge) {
 
       CReturnStatementEdge returnStatementEdge = (CReturnStatementEdge) pEdge;
       return new CReturnStatementEdge(
-          raw,
+          returnStatementEdge.getRawStatement(),
           returnStatementEdge.getRawAST().get(),
-          loc,
+          returnStatementEdge.getFileLocation(),
           pPredecessor,
           (FunctionExitNode) pSuccessor);
 
     } else if (type == CFAEdgeType.FunctionCallEdge && pEdge instanceof CFunctionCallEdge) {
 
-      CDeclarationEdge declarationEdge =
-          pFunctionDeclarations.get(pEdge.getSuccessor().getFunction());
-
       return cloneFunctionCall(
-          (CFunctionCallEdge) pEdge, pPredecessor, pSuccessor, pSlice, declarationEdge);
+          (CFunctionCallEdge) pEdge, pPredecessor, pSuccessor, pFunctionManager);
 
     } else {
       throw new AssertionError(
@@ -456,17 +489,16 @@ public class SliceExporter {
    * <p>Nodes of the created function are added to pNewNodes.
    *
    * @param pEntryNode the entry node for the function.
-   * @param pSlice the program slice.
-   * @param pFunctionDeclarations a map from function declarations to the corresponding function
-   *     declaration edges.
+   * @param pFunctionManager the function manger for the original functions.
    * @param pNewNodes the mapping of function names to function nodes (multimap).
    * @return the function entry node of the created function.
    */
   private FunctionEntryNode createRelevantFunction(
       CFunctionEntryNode pEntryNode,
-      Slice pSlice,
-      Map<AFunctionDeclaration, CDeclarationEdge> pFunctionDeclarations,
+      FunctionManager pFunctionManager,
       Multimap<String, CFANode> pNewNodes) {
+
+    ImmutableSet<CFAEdge> relevantEdges = pFunctionManager.getRelevantEdges();
 
     Map<Integer, CFANode> nodeMap =
         new HashMap<>(); // mapping of old-node-number --> new-node-clone
@@ -475,7 +507,7 @@ public class SliceExporter {
         new HashSet<>(); // a node is visited when all its leaving edges were added to the waitlist
 
     FunctionEntryNode newEntryNode =
-        (FunctionEntryNode) cloneNode(pEntryNode, nodeMap, pSlice, pFunctionDeclarations);
+        (FunctionEntryNode) cloneNode(pEntryNode, nodeMap, pFunctionManager);
     CFAUtils.leavingEdges(pEntryNode).copyInto(waitlist);
     visited.add(pEntryNode);
 
@@ -486,7 +518,7 @@ public class SliceExporter {
       CFANode succ = edge.getSuccessor();
 
       CFAEdge newEdge;
-      CFANode newPred = cloneNode(pred, nodeMap, pSlice, pFunctionDeclarations);
+      CFANode newPred = cloneNode(pred, nodeMap, pFunctionManager);
       CFANode newSucc;
 
       // step over function
@@ -494,14 +526,14 @@ public class SliceExporter {
         succ = ((CFunctionCallEdge) edge).getSummaryEdge().getSuccessor();
       }
 
-      newSucc = cloneNode(succ, nodeMap, pSlice, pFunctionDeclarations);
+      newSucc = cloneNode(succ, nodeMap, pFunctionManager);
 
-      if (pSlice.getRelevantEdges().contains(edge)
+      if (relevantEdges.contains(edge)
           || edge.getEdgeType() == CFAEdgeType.BlankEdge
           || edge.getEdgeType() == CFAEdgeType.AssumeEdge
           || edge instanceof CFunctionSummaryStatementEdge) {
 
-        newEdge = cloneEdge(edge, newPred, newSucc, pSlice, pFunctionDeclarations);
+        newEdge = cloneEdge(edge, newPred, newSucc, pFunctionManager);
 
       } else {
         newEdge = new BlankEdge("", edge.getFileLocation(), newPred, newSucc, "slice-irrelevant");
@@ -528,7 +560,7 @@ public class SliceExporter {
         //          This code *must* be updated if any slicing method is used that creates
         //          irrelevant branching conditions, but at the same time allows nested relevant
         //          statements in those branches.
-        if (skipNextAssumeBranching(succ, pSlice.getRelevantEdges())) {
+        if (skipNextAssumeBranching(succ, relevantEdges)) {
 
           CFAEdge assumeEdge = succ.getLeavingEdge(0);
           waitlist.add(
@@ -558,11 +590,9 @@ public class SliceExporter {
     final CFA originalCfa = pSlice.getOriginalCfa();
     final ImmutableSet<CFAEdge> relevantEdges = pSlice.getRelevantEdges();
 
-    NavigableMap<String, FunctionEntryNode> newFunctions = new TreeMap<>();
-    TreeMultimap<String, CFANode> newNodes = TreeMultimap.create();
-    Map<AFunctionDeclaration, CDeclarationEdge> functionDeclarations = new HashMap<>();
-    FunctionEntryNode newMainEntryNode = null;
+    FunctionManager functionManager = new FunctionManager(pSlice);
 
+    Map<AFunctionDeclaration, CDeclarationEdge> functionDeclarations = new HashMap<>();
     for (CFAEdge edge : relevantEdges) {
       if (edge instanceof CDeclarationEdge) {
         CDeclarationEdge declarationEdge = (CDeclarationEdge) edge;
@@ -573,37 +603,47 @@ public class SliceExporter {
       }
     }
 
-    for (String functionName : originalCfa.getAllFunctionNames()) {
-      final boolean isMainFunction =
-          functionName.equals(originalCfa.getMainFunction().getFunctionName());
-
-      FunctionEntryNode entryNode = originalCfa.getFunctionHead(functionName);
-
-      Collection<CFANode> functionNodes =
-          CFATraversal.dfs().collectNodesReachableFromTo(entryNode, entryNode.getExitNode());
-
-      if (isMainFunction || containsRelevantEdge(functionNodes, relevantEdges)) {
-        final FunctionEntryNode newEntryNode =
-            createRelevantFunction(
-                (CFunctionEntryNode) entryNode, pSlice, functionDeclarations, newNodes);
-        newFunctions.put(functionName, newEntryNode);
-
-        if (isMainFunction) {
-          checkState(
-              newMainEntryNode == null,
-              "Trying to set entry node of main function, but one already exists: %s",
-              newMainEntryNode);
-          newMainEntryNode = newEntryNode;
-        }
+    for (FunctionEntryNode entryNode : originalCfa.getAllFunctionHeads()) {
+      AFunctionDeclaration function = entryNode.getFunction();
+      CDeclarationEdge declarationEdge = functionDeclarations.get(function);
+      if (declarationEdge != null) {
+        functionManager.insert(function, entryNode, declarationEdge);
       }
     }
-    assert newMainEntryNode != null;
+
+    AFunctionDeclaration originalMainFunction = originalCfa.getMainFunction().getFunction();
+    if (!functionManager.isRelevant(originalMainFunction)) {
+      FunctionEntryNode entryNode = originalCfa.getMainFunction();
+      functionManager.insert(entryNode.getFunction(), entryNode, null);
+    }
+
+    NavigableMap<String, FunctionEntryNode> relevantFunctions = new TreeMap<>();
+    TreeMultimap<String, CFANode> relevantNodes = TreeMultimap.create();
+    FunctionEntryNode relevantMainEntryNode = null;
+    for (AFunctionDeclaration originalFunction : functionManager.getFunctions()) {
+
+      FunctionEntryNode originalEntryNode = functionManager.getEntryNode(originalFunction);
+      FunctionEntryNode relevantEntryNode =
+          createRelevantFunction(
+              (CFunctionEntryNode) originalEntryNode, functionManager, relevantNodes);
+      relevantFunctions.put(originalFunction.getQualifiedName(), relevantEntryNode);
+
+      if (originalFunction.equals(originalMainFunction)) {
+        checkState(
+            relevantMainEntryNode == null,
+            "Trying to set entry node of main function, but one already exists: %s",
+            relevantMainEntryNode);
+        relevantMainEntryNode = relevantEntryNode;
+      }
+    }
+
+    assert relevantMainEntryNode != null : "Entry node of main function is missing";
 
     return new MutableCFA(
         originalCfa.getMachineModel(),
-        newFunctions,
-        newNodes,
-        newMainEntryNode,
+        relevantFunctions,
+        relevantNodes,
+        relevantMainEntryNode,
         originalCfa.getFileNames(),
         originalCfa.getLanguage());
   }
@@ -663,6 +703,61 @@ public class SliceExporter {
                 }
               })
           .start();
+    }
+  }
+
+  private static final class FunctionManager {
+
+    private final Slice slice;
+    private final Map<AFunctionDeclaration, FunctionManager.Value> functions;
+
+    private FunctionManager(Slice pSlice) {
+
+      slice = pSlice;
+      functions = new HashMap<>();
+    }
+
+    private Slice getSlice() {
+      return slice;
+    }
+
+    private Set<AFunctionDeclaration> getFunctions() {
+      return functions.keySet();
+    }
+
+    private ImmutableSet<CFAEdge> getRelevantEdges() {
+      return slice.getRelevantEdges();
+    }
+
+    private void insert(
+        AFunctionDeclaration pFunction,
+        FunctionEntryNode pEntryNode,
+        CDeclarationEdge pDeclarationEdge) {
+      functions.put(pFunction, new FunctionManager.Value(pEntryNode, pDeclarationEdge));
+    }
+
+    private boolean isRelevant(AFunctionDeclaration pFunction) {
+      return functions.containsKey(pFunction);
+    }
+
+    private CDeclarationEdge getDeclarationEdge(AFunctionDeclaration pFunction) {
+      return functions.get(pFunction).declarationEdge;
+    }
+
+    private FunctionEntryNode getEntryNode(AFunctionDeclaration pFunction) {
+      return functions.get(pFunction).entryNode;
+    }
+
+    private static final class Value {
+
+      private final FunctionEntryNode entryNode;
+      private final CDeclarationEdge declarationEdge;
+
+      private Value(FunctionEntryNode pEntryNode, CDeclarationEdge pDeclarationEdge) {
+
+        entryNode = pEntryNode;
+        declarationEdge = pDeclarationEdge;
+      }
     }
   }
 }
