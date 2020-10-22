@@ -21,6 +21,7 @@ import java.io.Serializable;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -93,7 +94,7 @@ public final class DependenceGraph implements Serializable {
     return nodes.getAllNodes();
   }
 
-  public Collection<CFAEdge> getReachable(CFAEdge pStart, TraversalDirection pDirection)
+  public Reachable getReachable(CFAEdge pStart, TraversalDirection pDirection)
       throws InterruptedException {
     return getReachable(pStart, pDirection, ImmutableSet.of());
   }
@@ -105,14 +106,13 @@ public final class DependenceGraph implements Serializable {
    * @param pDirection direction of the search for reachability
    * @param pEdgesToIgnore edges to ignore on the search. Edges in this collection are ignored in
    *     the search.
-   * @return the set of reachable CFA edges from the given edge, traversing through the graph in the
-   *     given direction
    */
-  public Collection<CFAEdge> getReachable(
+  public Reachable getReachable(
       CFAEdge pStart, TraversalDirection pDirection, Collection<CFAEdge> pEdgesToIgnore)
       throws InterruptedException {
     Collection<CFAEdge> reachable = new HashSet<>();
     Collection<DGNode> visited = new HashSet<>();
+    Set<MemoryLocation> reachedCauses = new HashSet<>();
     Queue<DGNode> waitlist = new ArrayDeque<>();
     nodes.getNodesForEdge(pStart).forEach(waitlist::offer);
 
@@ -128,12 +128,17 @@ public final class DependenceGraph implements Serializable {
           reachable.addAll(nodes.nodesForEdges.keys());
         } else if (!pEdgesToIgnore.contains(current.getCfaEdge())) {
           reachable.add(current.getCfaEdge());
+          MemoryLocation cause = current.getCause();
+          if (cause != null) {
+            reachedCauses.add(current.getCause());
+          }
           Collection<DGNode> adjacent = getAdjacentNeighbors(current, pDirection);
           waitlist.addAll(adjacent);
         }
       }
     }
-    return reachable;
+
+    return new Reachable(ImmutableSet.copyOf(reachable), ImmutableSet.copyOf(reachedCauses));
   }
 
   private Collection<DGNode> getAdjacentNeighbors(
@@ -248,6 +253,30 @@ public final class DependenceGraph implements Serializable {
           + ",\n\tspecial nodes="
           + specialNodes
           + "\n}";
+    }
+  }
+
+  public static final class Reachable {
+
+    private final ImmutableSet<CFAEdge> edges;
+    private final ImmutableSet<MemoryLocation> causes;
+
+    private Reachable(ImmutableSet<CFAEdge> pEdges, ImmutableSet<MemoryLocation> pCauses) {
+      edges = pEdges;
+      causes = pCauses;
+    }
+
+    public ImmutableSet<CFAEdge> getEdges() {
+      return edges;
+    }
+
+    public ImmutableSet<MemoryLocation> getCauses() {
+      return causes;
+    }
+
+    @Override
+    public String toString() {
+      return String.format(Locale.ENGLISH, "(edges: %s, causes: %s)", edges, causes);
     }
   }
 

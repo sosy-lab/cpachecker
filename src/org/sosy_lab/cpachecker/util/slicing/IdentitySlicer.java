@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.slicing;
 
+import com.google.common.collect.ImmutableMultimap;
 import java.util.Collection;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
@@ -39,6 +40,6 @@ public class IdentitySlicer extends AbstractSlicer {
   public Slice getSlice0(CFA pCfa, Collection<CFAEdge> pSlicingCriteria) {
     EdgeCollectingCFAVisitor visitor = new EdgeCollectingCFAVisitor();
     CFATraversal.dfs().traverseOnce(pCfa.getMainFunction(), visitor);
-    return new Slice(pCfa, visitor.getVisitedEdges(), pSlicingCriteria);
+    return new Slice(pCfa, visitor.getVisitedEdges(), pSlicingCriteria, ImmutableMultimap.of());
   }
 }

@@ -8,8 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.slicing;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Multimap;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Comparator;
@@ -21,11 +22,14 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
+import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -34,6 +38,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.TraversalDirection;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
 import org.sosy_lab.cpachecker.util.statistics.StatKind;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
@@ -86,6 +91,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     Set<CFAEdge> criteriaEdges = new HashSet<>();
     Set<CFAEdge> relevantEdges = new HashSet<>();
+    Set<MemoryLocation> relevantCauses = new HashSet<>();
 
     criteriaEdges.addAll(pSlicingCriteria);
 
@@ -122,10 +128,29 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
         } else {
           realSlices++;
         }
-        relevantEdges.addAll(depGraph.getReachable(g, TraversalDirection.BACKWARD));
+
+        DependenceGraph.Reachable reachable = depGraph.getReachable(g, TraversalDirection.BACKWARD);
+        relevantEdges.addAll(reachable.getEdges());
+        relevantCauses.addAll(reachable.getCauses());
       }
 
-      final Slice slice = new Slice(pCfa, relevantEdges, pSlicingCriteria, ImmutableMultimap.of());
+      Multimap<CFAEdge, MemoryLocation> relevantEdgeDefs = HashMultimap.create();
+      for (CFAEdge edge : relevantEdges) {
+        if (edge instanceof CDeclarationEdge) {
+          CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
+          if (declaration instanceof CFunctionDeclaration) {
+            for (CParameterDeclaration param :
+                ((CFunctionDeclaration) declaration).getParameters()) {
+              MemoryLocation memoryLocation = MemoryLocation.valueOf(param.getQualifiedName());
+              if (relevantCauses.contains(memoryLocation)) {
+                relevantEdgeDefs.put(edge, MemoryLocation.valueOf(param.getQualifiedName()));
+              }
+            }
+          }
+        }
+      }
+
+      final Slice slice = new Slice(pCfa, relevantEdges, pSlicingCriteria, relevantEdgeDefs);
       slicingTime.stop();
 
       sliceEdgesNumber.setNextValue(relevantEdges.size());
