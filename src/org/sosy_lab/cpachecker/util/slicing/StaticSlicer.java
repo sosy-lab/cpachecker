@@ -14,14 +14,18 @@ import com.google.common.collect.Multimap;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.CFA;
+import org.sosy_lab.cpachecker.cfa.ast.AVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
@@ -30,6 +34,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
@@ -79,6 +84,54 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
             .orElseThrow(
                 () -> new InvalidConfigurationException("Dependence graph required, but missing"));
 
+  }
+
+  private Multimap<CFAEdge, MemoryLocation> getRelevantEdgeDefs(
+      CFA pCfa, Set<CFAEdge> pRelevantEdges, Set<MemoryLocation> pRelevantCauses) {
+
+    Map<CFunctionDeclaration, CDeclarationEdge> declarationEdges = new HashMap<>();
+    Multimap<CFAEdge, MemoryLocation> relevantEdgeDefs = HashMultimap.create();
+
+    for (CFAEdge edge : pRelevantEdges) {
+      if (edge instanceof CDeclarationEdge) {
+
+        CDeclarationEdge declarationEdge = (CDeclarationEdge) edge;
+        CDeclaration declaration = declarationEdge.getDeclaration();
+
+        if (declaration instanceof CFunctionDeclaration) {
+
+          CFunctionDeclaration functionDeclaration = (CFunctionDeclaration) declaration;
+          declarationEdges.put(functionDeclaration, declarationEdge);
+
+          for (CParameterDeclaration param : functionDeclaration.getParameters()) {
+            MemoryLocation memoryLocation = MemoryLocation.valueOf(param.getQualifiedName());
+            if (pRelevantCauses.contains(memoryLocation)) {
+              relevantEdgeDefs.put(edge, memoryLocation);
+            }
+          }
+        }
+      }
+    }
+
+    for (CFAEdge edge : pRelevantEdges) {
+      if (edge instanceof CReturnStatementEdge) {
+
+        CFunctionDeclaration function = (CFunctionDeclaration) edge.getPredecessor().getFunction();
+        Optional<? extends AVariableDeclaration> optRetVar =
+            pCfa.getFunctionHead(function.getQualifiedName()).getReturnVariable().toJavaUtil();
+        CDeclarationEdge declarationEdge = declarationEdges.get(function);
+
+        if (optRetVar.isPresent() && declarationEdge != null) {
+          MemoryLocation memoryLocation =
+              MemoryLocation.valueOf(optRetVar.orElseThrow().getQualifiedName());
+          if (pRelevantCauses.contains(memoryLocation)) {
+            relevantEdgeDefs.put(declarationEdge, memoryLocation);
+          }
+        }
+      }
+    }
+
+    return relevantEdgeDefs;
   }
 
   @Override
@@ -134,22 +187,8 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
         relevantCauses.addAll(reachable.getCauses());
       }
 
-      Multimap<CFAEdge, MemoryLocation> relevantEdgeDefs = HashMultimap.create();
-      for (CFAEdge edge : relevantEdges) {
-        if (edge instanceof CDeclarationEdge) {
-          CDeclaration declaration = ((CDeclarationEdge) edge).getDeclaration();
-          if (declaration instanceof CFunctionDeclaration) {
-            for (CParameterDeclaration param :
-                ((CFunctionDeclaration) declaration).getParameters()) {
-              MemoryLocation memoryLocation = MemoryLocation.valueOf(param.getQualifiedName());
-              if (relevantCauses.contains(memoryLocation)) {
-                relevantEdgeDefs.put(edge, MemoryLocation.valueOf(param.getQualifiedName()));
-              }
-            }
-          }
-        }
-      }
-
+      Multimap<CFAEdge, MemoryLocation> relevantEdgeDefs =
+          getRelevantEdgeDefs(pCfa, relevantEdges, relevantCauses);
       final Slice slice = new Slice(pCfa, relevantEdges, pSlicingCriteria, relevantEdgeDefs);
       slicingTime.stop();
 
