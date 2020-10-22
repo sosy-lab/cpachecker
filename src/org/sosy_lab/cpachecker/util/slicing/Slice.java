@@ -10,6 +10,7 @@ package org.sosy_lab.cpachecker.util.slicing;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -37,7 +38,7 @@ public class Slice {
     cfa = pCfa;
     relevantEdges = ImmutableSet.copyOf(pRelevantEdges);
     criteria = ImmutableList.copyOf(pCriteria);
-    relevantEdgeDefs = ImmutableMultimap.copyOf(pRelevantEdgeDefs);
+    relevantEdgeDefs = ImmutableListMultimap.copyOf(pRelevantEdgeDefs);
   }
 
   public ImmutableSet<CFAEdge> getRelevantEdges() {

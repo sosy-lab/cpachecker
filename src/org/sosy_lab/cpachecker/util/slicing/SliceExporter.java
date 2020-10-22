@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.slicing;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.collect.ImmutableSet;
@@ -150,9 +151,8 @@ public class SliceExporter {
 
     CDeclaration declaration = pEdge.getDeclaration();
 
-    if (!(declaration instanceof CFunctionDeclaration)) {
-      throw new IllegalArgumentException("pEdge must be a function declaration edge");
-    }
+    checkArgument(
+        (declaration instanceof CFunctionDeclaration), "pEdge must be a function declaration edge");
 
     CFunctionDeclaration functionDeclaration = (CFunctionDeclaration) declaration;
 
@@ -180,9 +180,8 @@ public class SliceExporter {
 
     CDeclaration declaration = pEdge.getDeclaration();
 
-    if (!(declaration instanceof CFunctionDeclaration)) {
-      throw new IllegalArgumentException("pEdge must be a function declaration edge");
-    }
+    checkArgument(
+        (declaration instanceof CFunctionDeclaration), "pEdge must be a function declaration edge");
 
     CFunctionDeclaration originalFunctionDeclaration = (CFunctionDeclaration) declaration;
 
