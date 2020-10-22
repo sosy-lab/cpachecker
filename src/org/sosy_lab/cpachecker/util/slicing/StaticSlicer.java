@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.util.slicing;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Comparator;
@@ -124,7 +125,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
         relevantEdges.addAll(depGraph.getReachable(g, TraversalDirection.BACKWARD));
       }
 
-      final Slice slice = new Slice(pCfa, relevantEdges, pSlicingCriteria);
+      final Slice slice = new Slice(pCfa, relevantEdges, pSlicingCriteria, ImmutableMultimap.of());
       slicingTime.stop();
 
       sliceEdgesNumber.setNextValue(relevantEdges.size());

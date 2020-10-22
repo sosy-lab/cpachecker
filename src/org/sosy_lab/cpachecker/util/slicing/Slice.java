@@ -10,10 +10,13 @@ package org.sosy_lab.cpachecker.util.slicing;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 import java.util.Collection;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 public class Slice {
 
@@ -21,10 +24,20 @@ public class Slice {
   private final ImmutableSet<CFAEdge> relevantEdges;
   private final ImmutableCollection<CFAEdge> criteria;
 
-  Slice(final CFA pCfa, final Collection<CFAEdge> pRelevantEdges, Collection<CFAEdge> pCriteria) {
+  // A def is relevant for an edge if its memory location is contained in the value collection for
+  // this specific edge.
+  // If an edge is not contained in this multimap, all defs are relevant for this edge.
+  private final ImmutableMultimap<CFAEdge, MemoryLocation> relevantEdgeDefs;
+
+  Slice(
+      final CFA pCfa,
+      final Collection<CFAEdge> pRelevantEdges,
+      Collection<CFAEdge> pCriteria,
+      Multimap<CFAEdge, MemoryLocation> pRelevantEdgeDefs) {
     cfa = pCfa;
     relevantEdges = ImmutableSet.copyOf(pRelevantEdges);
     criteria = ImmutableList.copyOf(pCriteria);
+    relevantEdgeDefs = ImmutableMultimap.copyOf(pRelevantEdgeDefs);
   }
 
   public ImmutableSet<CFAEdge> getRelevantEdges() {
@@ -37,5 +50,14 @@ public class Slice {
 
   public CFA getOriginalCfa() {
     return cfa;
+  }
+
+  public boolean isRelevantDef(CFAEdge pEdge, MemoryLocation pMemoryLocation) {
+
+    if (relevantEdgeDefs.containsKey(pEdge)) {
+      return relevantEdgeDefs.get(pEdge).contains(pMemoryLocation);
+    } else {
+      return true;
+    }
   }
 }
