@@ -64,6 +64,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
@@ -299,6 +300,13 @@ public class SliceExporter {
     var originalFunctionSummaryEdge = pEdge.getSummaryEdge();
     var originalFunctionEntryNode = pEdge.getSuccessor();
 
+    CFunctionReturnEdge originalFunctionReturnEdge = null;
+    for (CFAEdge edge : CFAUtils.enteringEdges(originalFunctionSummaryEdge.getSuccessor())) {
+      if (edge instanceof CFunctionReturnEdge) {
+        originalFunctionReturnEdge = (CFunctionReturnEdge) edge;
+      }
+    }
+
     var relevantFunctionDeclaration =
         cloneFunctionDeclaration(
             originalFunctionEntryNode.getFunctionDefinition(), pFunctionManager);
@@ -349,11 +357,24 @@ public class SliceExporter {
 
       if (optionalReturnVariable.isPresent()) {
 
-        relevantFunctionCall =
-            new CFunctionCallAssignmentStatement(
-                originalStatement.getFileLocation(),
-                originalStatement.getLeftHandSide(),
-                relevantFunctionCallExpression);
+        String returnVariableName = optionalReturnVariable.orElseThrow().getQualifiedName();
+
+        if (pFunctionManager
+            .getSlice()
+            .isRelevantDef(
+                originalFunctionReturnEdge, MemoryLocation.valueOf(returnVariableName))) {
+
+          relevantFunctionCall =
+              new CFunctionCallAssignmentStatement(
+                  originalStatement.getFileLocation(),
+                  originalStatement.getLeftHandSide(),
+                  relevantFunctionCallExpression);
+        } else {
+
+          relevantFunctionCall =
+              new CFunctionCallStatement(
+                  originalStatement.getFileLocation(), relevantFunctionCallExpression);
+        }
 
       } else {
 

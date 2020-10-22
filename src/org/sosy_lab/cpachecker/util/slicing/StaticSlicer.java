@@ -20,6 +20,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
@@ -34,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.cfa.model.c.CDeclarationEdge;
+import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
@@ -42,6 +44,7 @@ import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.util.CFAUtils;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
+import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.ReachableEntry;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph.TraversalDirection;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.statistics.StatInt;
@@ -87,10 +90,23 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
   }
 
   private Multimap<CFAEdge, MemoryLocation> getRelevantEdgeDefs(
-      CFA pCfa, Set<CFAEdge> pRelevantEdges, Set<MemoryLocation> pRelevantCauses) {
+      CFA pCfa,
+      Set<DependenceGraph.ReachableEntry> pReachableEntries,
+      Set<CFAEdge> pRelevantEdges,
+      Set<MemoryLocation> pRelevantCauses) {
 
     Map<CFunctionDeclaration, CDeclarationEdge> declarationEdges = new HashMap<>();
     Multimap<CFAEdge, MemoryLocation> relevantEdgeDefs = HashMultimap.create();
+
+    for (DependenceGraph.ReachableEntry entry : pReachableEntries) {
+
+      CFAEdge edge = entry.getCfaEdge();
+      Optional<MemoryLocation> cause = entry.getCause();
+
+      if (edge instanceof CFunctionReturnEdge && cause.isPresent()) {
+        relevantEdgeDefs.put(edge, cause.orElseThrow());
+      }
+    }
 
     for (CFAEdge edge : pRelevantEdges) {
       if (edge instanceof CDeclarationEdge) {
@@ -144,6 +160,7 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
 
     Set<CFAEdge> criteriaEdges = new HashSet<>();
     Set<CFAEdge> relevantEdges = new HashSet<>();
+    Set<DependenceGraph.ReachableEntry> reachableEntries = new HashSet<>();
     Set<MemoryLocation> relevantCauses = new HashSet<>();
 
     criteriaEdges.addAll(pSlicingCriteria);
@@ -182,13 +199,20 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
           realSlices++;
         }
 
-        DependenceGraph.Reachable reachable = depGraph.getReachable(g, TraversalDirection.BACKWARD);
-        relevantEdges.addAll(reachable.getEdges());
-        relevantCauses.addAll(reachable.getCauses());
+        reachableEntries.addAll(depGraph.getReachable(g, TraversalDirection.BACKWARD));
       }
 
+      relevantEdges.addAll(
+          reachableEntries.stream().map(ReachableEntry::getCfaEdge).collect(Collectors.toSet()));
+      relevantCauses.addAll(
+          reachableEntries.stream()
+              .map(ReachableEntry::getCause)
+              .filter(Optional::isPresent)
+              .map(Optional::orElseThrow)
+              .collect(Collectors.toSet()));
+
       Multimap<CFAEdge, MemoryLocation> relevantEdgeDefs =
-          getRelevantEdgeDefs(pCfa, relevantEdges, relevantCauses);
+          getRelevantEdgeDefs(pCfa, reachableEntries, relevantEdges, relevantCauses);
       final Slice slice = new Slice(pCfa, relevantEdges, pSlicingCriteria, relevantEdgeDefs);
       slicingTime.stop();
 

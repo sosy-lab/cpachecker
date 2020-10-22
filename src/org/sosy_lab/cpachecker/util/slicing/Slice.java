@@ -26,8 +26,7 @@ public class Slice {
   private final ImmutableCollection<CFAEdge> criteria;
 
   // A def is relevant for an edge if its memory location is contained in the value collection for
-  // this specific edge.
-  // If an edge is not contained in this multimap, all defs are relevant for this edge.
+  // this specific edge. Otherwise, the def is irrelevant.
   private final ImmutableMultimap<CFAEdge, MemoryLocation> relevantEdgeDefs;
 
   Slice(
@@ -58,7 +57,7 @@ public class Slice {
     if (relevantEdgeDefs.containsKey(pEdge)) {
       return relevantEdgeDefs.get(pEdge).contains(pMemoryLocation);
     } else {
-      return true;
+      return false;
     }
   }
 }

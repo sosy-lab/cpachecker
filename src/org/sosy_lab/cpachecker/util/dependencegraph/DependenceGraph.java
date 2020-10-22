@@ -94,7 +94,7 @@ public final class DependenceGraph implements Serializable {
     return nodes.getAllNodes();
   }
 
-  public Reachable getReachable(CFAEdge pStart, TraversalDirection pDirection)
+  public ImmutableSet<ReachableEntry> getReachable(CFAEdge pStart, TraversalDirection pDirection)
       throws InterruptedException {
     return getReachable(pStart, pDirection, ImmutableSet.of());
   }
@@ -107,12 +107,11 @@ public final class DependenceGraph implements Serializable {
    * @param pEdgesToIgnore edges to ignore on the search. Edges in this collection are ignored in
    *     the search.
    */
-  public Reachable getReachable(
+  public ImmutableSet<ReachableEntry> getReachable(
       CFAEdge pStart, TraversalDirection pDirection, Collection<CFAEdge> pEdgesToIgnore)
       throws InterruptedException {
-    Collection<CFAEdge> reachable = new HashSet<>();
     Collection<DGNode> visited = new HashSet<>();
-    Set<MemoryLocation> reachedCauses = new HashSet<>();
+    Set<ReachableEntry> reachable = new HashSet<>();
     Queue<DGNode> waitlist = new ArrayDeque<>();
     nodes.getNodesForEdge(pStart).forEach(waitlist::offer);
 
@@ -125,20 +124,21 @@ public final class DependenceGraph implements Serializable {
         // FIXME: this is a strong overapproximation: If an unknown pointer is used,
         // we don't know anything, so we use the full program as slice
         if (current.isUnknownPointerNode()) {
-          reachable.addAll(nodes.nodesForEdges.keys());
-        } else if (!pEdgesToIgnore.contains(current.getCfaEdge())) {
-          reachable.add(current.getCfaEdge());
-          MemoryLocation cause = current.getCause();
-          if (cause != null) {
-            reachedCauses.add(current.getCause());
+          reachable.clear();
+          for (CFAEdge edge : nodes.nodesForEdges.keySet()) {
+            reachable.add(new ReachableEntry(edge, Optional.empty()));
           }
+          break;
+        } else if (!pEdgesToIgnore.contains(current.getCfaEdge())) {
+          reachable.add(
+              new ReachableEntry(current.getCfaEdge(), Optional.ofNullable(current.getCause())));
           Collection<DGNode> adjacent = getAdjacentNeighbors(current, pDirection);
           waitlist.addAll(adjacent);
         }
       }
     }
 
-    return new Reachable(ImmutableSet.copyOf(reachable), ImmutableSet.copyOf(reachedCauses));
+    return ImmutableSet.copyOf(reachable);
   }
 
   private Collection<DGNode> getAdjacentNeighbors(
@@ -256,28 +256,57 @@ public final class DependenceGraph implements Serializable {
     }
   }
 
-  public static final class Reachable {
+  public static final class ReachableEntry {
 
-    private final ImmutableSet<CFAEdge> edges;
-    private final ImmutableSet<MemoryLocation> causes;
+    private final CFAEdge edge;
+    private final Optional<MemoryLocation> cause;
 
-    private Reachable(ImmutableSet<CFAEdge> pEdges, ImmutableSet<MemoryLocation> pCauses) {
-      edges = pEdges;
-      causes = pCauses;
+    private ReachableEntry(CFAEdge pEdge, Optional<MemoryLocation> pCause) {
+      edge = pEdge;
+      cause = pCause;
     }
 
-    public ImmutableSet<CFAEdge> getEdges() {
-      return edges;
+    public CFAEdge getCfaEdge() {
+      return edge;
     }
 
-    public ImmutableSet<MemoryLocation> getCauses() {
-      return causes;
+    public Optional<MemoryLocation> getCause() {
+      return cause;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(cause, edge);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+
+      if (this == obj) {
+        return true;
+      }
+
+      if (obj == null) {
+        return false;
+      }
+
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+
+      ReachableEntry other = (ReachableEntry) obj;
+      return Objects.equals(cause, other.cause) && Objects.equals(edge, other.edge);
     }
 
     @Override
     public String toString() {
-      return String.format(Locale.ENGLISH, "(edges: %s, causes: %s)", edges, causes);
+      return String.format(
+          Locale.ENGLISH,
+          "(edge: %s, cause: %s)",
+          edge,
+          cause.map(MemoryLocation::toString).orElse("none"));
     }
+    
   }
 
   static final class NodeMap {
