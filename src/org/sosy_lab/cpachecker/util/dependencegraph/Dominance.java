@@ -429,12 +429,12 @@ public final class Dominance {
     }
 
     /**
-     * @throws IllegalArgumentException if the specified ID is not valid. Valid IDs must be {@code
-     *     >= 0} and {@code < getNodeCount()}.
+     * @throws IllegalArgumentException if the specified ID is not valid. Valid IDs must fulfill
+     *     {@code 0 <= ID < getNodeCount()}.
      */
     private void checkId(int pId) {
       if (pId < 0 || pId >= nodes.length) {
-        throw new IllegalArgumentException("pId must be >= 0 and < getNodeCount(): " + pId);
+        throw new IllegalArgumentException("pId must fulfill 0 <= ID < getNodeCount(): " + pId);
       }
     }
 
@@ -450,13 +450,14 @@ public final class Dominance {
     /**
      * Returns the ID for the specified node.
      *
-     * <p>A valid ID for a node is {@code >= 0}, {@code < getNodeCount()}, and unique for every node
-     * in this tree. All valid IDs are used (there is a node for every valid ID).
+     * <p>A valid ID for a node fulfills {@code 0 <= ID < getNodeCount()} and is unique for every
+     * node in this tree. All valid IDs are used (there is a node for every valid ID).
      *
      * @param pNode the node to get the ID for.
-     * @return the ID of the node, if the node is contained in this tree; otherwise, {@link
-     *     Dominance#UNDEFINED} is returned.
+     * @return the ID for the specified node.
      * @throws NullPointerException if {@code pNode} is {@code null}.
+     * @throws IllegalArgumentException if {@code pNode} was not part of the original graph during
+     *     graph traversal in {@link #createDomTree}.
      */
     public int getId(T pNode) {
 
@@ -464,7 +465,11 @@ public final class Dominance {
 
       Integer id = ids.get(pNode);
 
-      return id != null ? id : UNDEFINED;
+      if (id == null) {
+        throw new IllegalArgumentException("unknown node: " + pNode);
+      }
+
+      return id;
     }
 
     /**
@@ -475,8 +480,8 @@ public final class Dominance {
      *
      * @param pId the ID to get the node for.
      * @return the node with the specified ID.
-     * @throws IllegalArgumentException if the specified ID is not valid. Valid IDs must be {@code
-     *     >= 0} and {@code < getNodeCount()}.
+     * @throws IllegalArgumentException if the specified ID is not valid. Valid IDs must fulfill
+     *     {@code 0 <= ID < getNodeCount()}.
      */
     public T getNode(int pId) {
 
@@ -496,8 +501,8 @@ public final class Dominance {
      * @param pId the node's ID.
      * @return if the node has a parent, the parent's ID; otherwise, {@link Dominance#UNDEFINED} is
      *     returned.
-     * @throws IllegalArgumentException if the specified ID is not valid. Valid IDs must be {@code
-     *     >= 0} and {@code < getNodeCount()}.
+     * @throws IllegalArgumentException if the specified ID is not valid. Valid IDs must fulfill
+     *     {@code 0 <= ID < getNodeCount()}.
      */
     public int getParent(int pId) {
 
@@ -511,8 +516,8 @@ public final class Dominance {
      *
      * @param pId ID of the node.
      * @return true, if node has a parent in the dominance tree; otherwise, false.
-     * @throws IllegalArgumentException if the specified ID is not valid. Valid IDs must be {@code
-     *     >= 0} and {@code < getNodeCount()}.
+     * @throws IllegalArgumentException if the specified ID is not valid. Valid IDs must fulfill
+     *     {@code 0 <= ID < getNodeCount()}.
      */
     public boolean hasParent(int pId) {
 
@@ -532,8 +537,8 @@ public final class Dominance {
      * @param pDescendantId the descendant-node's ID.
      * @return true, if {@code pAncestorId} is indeed an ancestor of {@code pDescendantId} in this
      *     dominance tree; otherwise, false.
-     * @throws IllegalArgumentException if any of the specified IDs is not valid. Valid IDs must be
-     *     {@code >= 0} and {@code < getNodeCount()}.
+     * @throws IllegalArgumentException if any of the specified IDs is not valid. Valid IDs must
+     *     fulfill {@code 0 <= ID < getNodeCount()}.
      */
     public boolean isAncestorOf(int pAncestorId, int pDescendantId) {
 
@@ -747,10 +752,10 @@ public final class Dominance {
      * Returns the dominance frontier for the specified node.
      *
      * @param pNode the node to get the dominance frontier for.
-     * @return if there is a dominance frontier for the specified node, the dominance frontier is
-     *     returned; otherwise, {@code null} is returned (this only happens when the node was not
-     *     discovered during the traversal of the original graph).
+     * @return the dominance frontier for the specified node.
      * @throws NullPointerException if {@code pNode} is {@code null}.
+     * @throws IllegalArgumentException if {@code pNode} was not part of the original graph during
+     *     graph traversal in {@link #createDomTree}.
      */
     public Set<T> getFrontier(T pNode) {
 
@@ -758,7 +763,11 @@ public final class Dominance {
 
       Integer id = ids.get(pNode);
 
-      return id != null ? getFrontier(id) : null;
+      if (id == null) {
+        throw new IllegalArgumentException("unknown node: " + pNode);
+      }
+
+      return getFrontier(id);
     }
 
     /**
@@ -766,9 +775,9 @@ public final class Dominance {
      *
      * @param pNodes the set of nodes to get the iterated dominance frontier for.
      * @return an unmodifiable set consisting of all nodes in the iterated dominance frontier.
-     * @throws IllegalArgumentException if {@code pNodes} contains a node that has no dominance
-     *     frontier (see {@link #getFrontier(Object) getFrontier}).
      * @throws NullPointerException if {@code pNodes} is {@code null}.
+     * @throws IllegalArgumentException if {@code pNodes} contains a node that was not part of the
+     *     original graph during graph traversal in {@link #createDomTree}.
      */
     public Set<T> getIteratedFrontier(Set<T> pNodes) {
 

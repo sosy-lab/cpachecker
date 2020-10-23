@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.cmdline;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.FluentIterable.from;
 import static java.util.stream.Collectors.toList;
 import static org.sosy_lab.common.collect.Collections3.transformedImmutableSetCopy;
 import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
@@ -16,7 +17,6 @@ import static org.sosy_lab.common.io.DuplicateOutputStream.mergeStreams;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -507,7 +507,7 @@ public class CPAMain {
           .copyFrom(config)
           .setOption("testcase.targets.type", TARGET_TYPES.get(properties.iterator().next()).name())
           .build();
-    } else if (!Sets.filter(properties, Predicates.instanceOf(CoverFunction.class)).isEmpty()) {
+    } else if (from(properties).anyMatch(p -> p instanceof CoverFunction)) {
       if (properties.size() != 1) {
         throw new InvalidConfigurationException(
             "Unsupported combination of properties: " + properties);

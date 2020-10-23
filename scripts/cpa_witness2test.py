@@ -207,25 +207,48 @@ def create_parser():
         dest="specification_file",
         type=str,
         action="store",
+        required=True,
         help="specification file",
     )
 
     parser.add_argument(
-        "-witness", dest="witness_file", type=str, action="store", help="witness file"
+        "-witness",
+        dest="witness_file",
+        required=True,
+        type=str,
+        action="store",
+        help="witness file",
     )
 
-    parser.add_argument(
-        "file", type=str, nargs="?", help="file to validate witness for"
-    )
+    parser.add_argument("file", help="file to validate witness for")
 
     return parser
 
 
-def _parse_args(argv=sys.argv[1:]):
+def _determine_file_args(argv):
+    parameter_prefix = "-"
+    files = []
+    logging.debug(f"Determining file args from {argv}")
+    for fst, snd in zip(argv[:-1], argv[1:]):
+        if not fst.startswith(parameter_prefix) and not snd.startswith(
+            parameter_prefix
+        ):
+            files.append(snd)
+    logging.debug(f"Determined file args: {files}")
+    return files
+
+
+def _parse_args(argv):
     parser = create_parser()
-    args = parser.parse_known_args(argv[:-1])[0]
-    args_file = parser.parse_args([argv[-1]])  # Parse the file name
-    args.file = args_file.file
+    args, remainder = parser.parse_known_args(argv)
+    args.file = _determine_file_args(argv)
+    if not args.file:
+        raise ValueError("The following argument is required: program file")
+    if len(args.file) > 1:
+        raise ValueError(
+            "Too many values for argument: Only one program file supported"
+        )
+    args.file = args.file[0]
 
     return args
 
@@ -589,8 +612,10 @@ def _execute_harnesses(
 statistics = []
 
 
-def run():
-    args = _parse_args()
+def run(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
+    args = _parse_args(argv)
     output_dir = args.output_path
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
@@ -621,9 +646,16 @@ def run():
                 result = ValidationResult(RESULT_UNK)
         finally:
             for i in os.listdir(harness_output_dir):
-                shutil.move(
-                    os.path.join(harness_output_dir, i), os.path.join(output_dir, i)
-                )
+                source = os.path.join(harness_output_dir, i)
+                target = os.path.join(output_dir, i)
+                try:
+                    shutil.copytree(
+                        source,
+                        target,
+                        dirs_exist_ok=True,
+                    )
+                except NotADirectoryError:
+                    shutil.move(source, target)
 
     if args.stats:
         print(os.linesep + "Statistics:")
@@ -647,7 +679,8 @@ logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 
 if __name__ == "__main__":
     try:
-        run()
+        sys.exit(run())
     except ValidationError as e:
         logging.error(e.msg)
         print("Verification result: ERROR.")
+        sys.exit(1)
