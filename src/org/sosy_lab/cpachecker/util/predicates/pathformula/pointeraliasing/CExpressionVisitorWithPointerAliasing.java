@@ -341,7 +341,7 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
           conv.makeCast(
               subscriptType,
               CPointerType.POINTER_TO_VOID,
-              visitor.asValueFormula(subscript.accept(this), subscriptType),
+              asValueFormula(subscript.accept(this), subscriptType),
               constraints,
               edge);
     }
@@ -391,7 +391,12 @@ class CExpressionVisitorWithPointerAliasing extends DefaultCExpressionVisitor<Ex
                 pts,
                 regionMgr,
                 Optional.of(typeHandler.getPointerType()));
-        final AliasedLocation base = e.getFieldOwner().accept(forceIntVisitor).asAliasedLocation();
+        final AliasedLocation base;
+        if (conv.options.useVariableClassification()) {
+          base = e.getFieldOwner().accept(forceIntVisitor).asAliasedLocation();
+        } else {
+          base = e.getFieldOwner().accept(this).asAliasedLocation();
+        }
 
         final String fieldName = e.getFieldName();
         usedFields.add(CompositeField.of((CCompositeType) fieldOwnerType, fieldName));
