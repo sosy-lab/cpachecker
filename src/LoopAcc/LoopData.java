@@ -82,7 +82,8 @@ public class LoopData implements Comparable<LoopData> {
     nodesInCondition =
         nodesInCondition(cfa, pLogger, loopStart, loopType, nodesInLoop, endOfCondition, forStart);
     output = getAllOutputs(cfa, nodesInLoop);
-    condition = nodesToCondition(nodesInCondition, loopType, endOfCondition, conditionInFor);
+    condition =
+        nodesToCondition(nodesInCondition, loopType, endOfCondition, conditionInFor, flagEndless);
     inputOutput = getAllIO(output, nodesInLoop);
     numberAllOutputs = getAllNumberOutputs(output);
     amountOfPaths = getAllPaths(nodesInLoop, loopEnd, nodesInCondition, failedState, output);
@@ -401,11 +402,13 @@ public class LoopData implements Comparable<LoopData> {
           temp.add(edgeCode.split(" ")[POSITION_OF_VARIABLE_IN_ARRAY_ZERO]);
           temp.add(edgeCode.split(" ")[POSITION_OF_VARIABLE_IN_ARRAY_TWO]);
         } else if (node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.FunctionCallEdge)) {
-          temp.add(
-              node.getLeavingEdge(i)
-                  .getCode()
-                  .split("\\(")[POSITION_OF_VARIABLE_IN_ARRAY_ONE]
-                  .split("\\)")[POSITION_OF_VARIABLE_IN_ARRAY_ZERO]);
+          if (!node.getLeavingEdge(i).getCode().contains("()")) {
+            temp.add(
+                node.getLeavingEdge(i)
+                    .getCode()
+                    .split("\\(")[POSITION_OF_VARIABLE_IN_ARRAY_ONE]
+                    .split("\\)")[POSITION_OF_VARIABLE_IN_ARRAY_ZERO]);
+          }
         } else if (node.getLeavingEdge(i).getEdgeType().equals(CFAEdgeType.ReturnStatementEdge)) {
           temp.add(node.getLeavingEdge(i).getCode().split(" ")[POSITION_OF_VARIABLE_IN_ARRAY_ONE]);
         }
@@ -596,6 +599,9 @@ public class LoopData implements Comparable<LoopData> {
         nodes = tempNodeList;
       }
     }
+    if (nodes.isEmpty()) {
+      setEndless(true);
+    }
     return nodes;
   }
 
@@ -614,7 +620,8 @@ public class LoopData implements Comparable<LoopData> {
       List<CFANode> conditionNodes,
       String type,
       List<CFANode> conditionEnd,
-      List<CFANode> conditionFor) {
+      List<CFANode> conditionFor,
+      boolean endless) {
 
     // TODO mit Martin besprechen ob n Iterator nicht doch besser wäre
 
@@ -623,7 +630,7 @@ public class LoopData implements Comparable<LoopData> {
     CFANode node;
 
     if (type.contentEquals("while")) {
-      if (temp.isEmpty()) {
+      if (temp.isEmpty() || endless == true) {
         cond = "1";
       }
 
@@ -736,7 +743,7 @@ public class LoopData implements Comparable<LoopData> {
     boolean canAccelerate = false;
 
     List<Boolean> temp = new ArrayList<>();
-
+    if (!endless) {
     if (type.contentEquals("while")) {
       List<String> rightSideVariable = new ArrayList<>();
       for (CFANode node : conditionNodes) {
@@ -789,7 +796,6 @@ public class LoopData implements Comparable<LoopData> {
       }
 
     } else if (type.contentEquals("for")) {
-      if (!endless) {
         List<String> rightSideVariable = new ArrayList<>();
         for (CFANode node : forCondition) {
           rightSideVariable.add(
@@ -839,14 +845,14 @@ public class LoopData implements Comparable<LoopData> {
            * NullPointerException nfe4) { temp.add(true); }
            */
         }
-      } else {
-        temp.add(true);
-      }
     }
     for (Boolean b : temp) {
       if (b) {
         canAccelerate = true;
       }
+    }
+    } else {
+      canAccelerate = true;
     }
     return canAccelerate;
   }

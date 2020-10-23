@@ -234,28 +234,19 @@ public class LoopAbstraction {
                       content += line + System.lineSeparator();
                       lineNumber++;
                     }
-                    boolean flagTopIf2 = false;
-                    boolean flagKP2 = false;
                     line = reader.readLine();
                     line = variablesAlreadyUsed(preUsedVariables, line);
-                    if (line != null && line.contains("if")) {
-                      flagTopIf2 = true;
-                      flagKP2 = true;
+                    boolean flagEnd = false;
+                    while (line != null && !flagEnd) {
                       closed = ifCaseClosed(line, closed);
-                      content += line + System.lineSeparator();
-                      lineNumber++;
-                    }
-                    while (!closed) {
-                      if (flagTopIf2) {
-                        line = reader.readLine();
-                        line = variablesAlreadyUsed(preUsedVariables, line);
+                      if (!closed) {
+                        content += line + System.lineSeparator();
+                        lineNumber++;
+                      } else {
+                        flagEnd = true;
+                        content += line + System.lineSeparator();
+                        lineNumber++;
                       }
-                      flagTopIf2 = true;
-                      closed = ifCaseClosed(line, closed);
-                      content += line + System.lineSeparator();
-                      lineNumber++;
-                    }
-                    if (flagKP2 || flagTopIf2) {
                       line = reader.readLine();
                       line = variablesAlreadyUsed(preUsedVariables, line);
                     }
@@ -269,6 +260,8 @@ public class LoopAbstraction {
                       content += line + System.lineSeparator();
                       lineNumber++;
                     }
+
+
                     content +=
                         ("__VERIFIER_assume(!("
                             + loopD.getCondition()
@@ -276,28 +269,19 @@ public class LoopAbstraction {
                             + System.lineSeparator());
 
                     for (int i = outerLoopTemp.size() - 1; i >= 0; i--) {
-                      boolean flagIf = false;
-                      boolean flagKP = false;
                       line = reader.readLine();
                       line = variablesAlreadyUsed(preUsedVariables, line);
-                      if (line != null && line.contains("if")) {
-                        flagIf = true;
-                        flagKP = true;
+                      boolean flagEnd1 = false;
+                      while (line != null && !flagEnd1) {
                         closed = ifCaseClosed(line, closed);
-                        content += line + System.lineSeparator();
-                        lineNumber++;
-                      }
-                      while (!closed) {
-                        if (flagIf) {
-                          line = reader.readLine();
-                          line = variablesAlreadyUsed(preUsedVariables, line);
+                        if (!closed) {
+                          content += line + System.lineSeparator();
+                          lineNumber++;
+                        } else {
+                          flagEnd1 = true;
+                          content += line + System.lineSeparator();
+                          lineNumber++;
                         }
-                        flagIf = true;
-                        closed = ifCaseClosed(line, closed);
-                        content += line + System.lineSeparator();
-                        lineNumber++;
-                      }
-                      if (flagKP || flagIf) {
                         line = reader.readLine();
                         line = variablesAlreadyUsed(preUsedVariables, line);
                       }
@@ -348,35 +332,25 @@ public class LoopAbstraction {
                       content += line + System.lineSeparator();
                       lineNumber++;
                     }
-                    boolean flagIfTop = false;
-                    boolean flagKP = false;
                     line = reader.readLine();
                     line = variablesAlreadyUsed(preUsedVariables, line);
-                    if (line != null && line.contains("if")) {
-                      flagIfTop = true;
-                      flagKP = true;
+                    boolean flagEnd = false;
+                    while (line != null && !flagEnd) {
                       closed = ifCaseClosed(line, closed);
-                      content += line + System.lineSeparator();
-                      lineNumber++;
-                    }
-                    while (!closed) {
-                      if (flagIfTop) {
-                        line = reader.readLine();
-                        line = variablesAlreadyUsed(preUsedVariables, line);
+                      if (!closed) {
+                        content += line + System.lineSeparator();
+                        lineNumber++;
+                      } else {
+                        flagEnd = true;
+                        content += line + System.lineSeparator();
+                        lineNumber++;
                       }
-                      flagIfTop = true;
-                      closed = ifCaseClosed(line, closed);
-                      content += line + System.lineSeparator();
-                      lineNumber++;
-                    }
-                    if (flagKP || flagIfTop) {
                       line = reader.readLine();
                       line = variablesAlreadyUsed(preUsedVariables, line);
                     }
                     closed = ifCaseClosed(line, closed);
                     content += line + System.lineSeparator();
                     lineNumber++;
-
                     while (line != null && !line.contains("}")) {
                       line = reader.readLine();
                       line = variablesAlreadyUsed(preUsedVariables, line);
@@ -391,28 +365,19 @@ public class LoopAbstraction {
                             + System.lineSeparator());
 
                     for (int i = outerLoopTemp.size() - 1; i >= 0; i--) {
-                      boolean flagIf = false;
-                      boolean flagBotKP = false;
                       line = reader.readLine();
                       line = variablesAlreadyUsed(preUsedVariables, line);
-                      if (line != null && line.contains("if")) {
-                        flagIf = true;
-                        flagBotKP = true;
+                      boolean flagEnd1 = false;
+                      while (line != null && !flagEnd1) {
                         closed = ifCaseClosed(line, closed);
-                        content += line + System.lineSeparator();
-                        lineNumber++;
-                      }
-                      while (!closed) {
-                        if (flagIf) {
-                          line = reader.readLine();
-                          line = variablesAlreadyUsed(preUsedVariables, line);
+                        if (!closed) {
+                          content += line + System.lineSeparator();
+                          lineNumber++;
+                        } else {
+                          flagEnd1 = true;
+                          content += line + System.lineSeparator();
+                          lineNumber++;
                         }
-                        flagIf = true;
-                        closed = ifCaseClosed(line, closed);
-                        content += line + System.lineSeparator();
-                        lineNumber++;
-                      }
-                      if (flagBotKP || flagIf) {
                         line = reader.readLine();
                         line = variablesAlreadyUsed(preUsedVariables, line);
                       }
