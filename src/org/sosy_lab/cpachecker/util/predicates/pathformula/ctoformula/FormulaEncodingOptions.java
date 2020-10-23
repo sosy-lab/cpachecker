@@ -115,13 +115,13 @@ public class FormulaEncodingOptions {
   @Option(
     secure = true,
     description = "Use the Integer formula type as default for pointers. This option is only enabled, when using variable classification as well.")
-  private boolean useIntegerAsPointerType = true;
+  private boolean useIntegerAsPointerType = false;
 
   @Option(
     secure = true,
     description = "Ignore possible Overflows for Integer variables classified as IntAdd. "
         + "This option is only relevant, if Variable Classification is used.")
-  private boolean ignoreOverflowsInVarClass = true;
+  private boolean ignoreOverflowsInVarClass = false;
 
   public FormulaEncodingOptions(Configuration config) throws InvalidConfigurationException {
     config.inject(this, FormulaEncodingOptions.class);
