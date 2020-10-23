@@ -110,7 +110,7 @@ public class FormulaEncodingOptions {
   @Option(
     secure = true,
     description = "Use Variable Classification to simplify formulas, if possible.")
-  private boolean useVariableClassification = true;
+  private boolean useVariableClassification = false;
 
   @Option(
     secure = true,
