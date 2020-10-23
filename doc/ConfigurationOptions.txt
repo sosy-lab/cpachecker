@@ -479,6 +479,9 @@ analysis.unknownIfUnrestrictedProgram = false
 # select an analysis from a set of analyses after unknown result
 analysis.useCompositionAnalysis = false
 
+# Use explainer for fault localization with distance metrics 
+analysis.useExplainer = false
+
 # add declarations for global variables before entry function
 analysis.useGlobalVars = true
 
@@ -3305,6 +3308,18 @@ enabledanalysis.allowLazyRefinement = false
 # Which CPA is used as enabler in the current analysis.
 enabledanalysis.enablerCPA = PREDICATE
   enum:     [APRON, INTERVAL, OCTAGON, PREDICATE, VALUE]
+
+# The distance metric that ought to be used for the computation of the
+# distance
+explainer.distanceMetric = ADM
+  enum:     [ADM, CFDM, PG]
+
+# Configuration of the first step of the Explainer Algorithm
+explainer.firstStep = no default value
+
+# The number that specifies how many times are we going to iterate over the
+# reachedSet
+explainer.stopAfter = 40
 
 # Ranking algorithm to use for fault localization
 faultLocalization.by_coverage.type = TARANTULA
