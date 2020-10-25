@@ -2797,7 +2797,7 @@ cpa.timedautomata.actionDetachedIdle = true
 # Formula representation of actions. Options are: BOOLEAN_VAR, LOCAL_VAR,
 # GLOBAL_VAR
 cpa.timedautomata.actionEncoding = GLOBAL_ID
-  enum:     [LOCAL_ID, GLOBAL_ID, BOOLEAN_VAR]
+  enum:     [LOCAL_ID, GLOBAL_ID, BOOLEAN_VAR, BOOLEAN_VAR_LOCAL]
 
 # Delays of zero are allowed if true
 cpa.timedautomata.allowZeroDelay = true
@@ -2809,9 +2809,6 @@ cpa.timedautomata.automatonEncodingType = CONSTRAINT_UNROLLING
 
 # The size of the bit vectors, if clockVariableType is BitVector
 cpa.timedautomata.bitVectorClockVariableSize = 10
-
-# Setting this option to false, makes the shallow sync semantics incomplete
-cpa.timedautomata.carryOverCounterValue = true
 
 # The formula type for timed automaton clock variables
 cpa.timedautomata.clockVariableType = RATIONAL
@@ -2840,7 +2837,7 @@ cpa.timedautomata.invariantType = LOCAL
 
 # Formula representation of locations. Options are: BOOLEAN_VAR, LOCAL_VAR
 cpa.timedautomata.locationEncoding = LOCAL_ID
-  enum:     [LOCAL_ID, GLOBAL_ID, BOOLEAN_VAR]
+  enum:     [LOCAL_ID, GLOBAL_ID, BOOLEAN_VAR, BOOLEAN_VAR_LOCAL]
 
 # Amount by which to increase the maximum unrolling step bound.
 cpa.timedautomata.stepCountAdujstmentStep = 0

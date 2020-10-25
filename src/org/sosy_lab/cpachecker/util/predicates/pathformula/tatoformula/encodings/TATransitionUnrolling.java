@@ -10,7 +10,9 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.encoding
 
 import static com.google.common.collect.FluentIterable.from;
 
+import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Sets;
+import com.google.common.collect.Table;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,13 +46,13 @@ public class TATransitionUnrolling extends TAEncodingBase {
 
     delayEdge = TCFAEdge.createDummyEdge();
 
-    var variableNames = new HashMap<TCFAEdge, String>();
+    Table<TaDeclaration, TCFAEdge, String> variableNames = HashBasedTable.create();
     var elementsByAutomaton = new HashMap<TaDeclaration, Collection<TCFAEdge>>();
     from(automata.getAllAutomata())
         .transformAndConcat(this::getTransitionVariablesForAutomaton)
         .forEach(
             variable -> {
-              variableNames.put(variable.edge, variable.variableName);
+              variableNames.put(variable.automaton, variable.edge, variable.variableName);
               elementsByAutomaton.computeIfAbsent(variable.automaton, a -> new HashSet<>());
               elementsByAutomaton.get(variable.automaton).add(variable.edge);
             });

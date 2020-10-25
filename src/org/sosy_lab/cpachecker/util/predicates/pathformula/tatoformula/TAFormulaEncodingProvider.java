@@ -8,7 +8,9 @@
 
 package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula;
 
+import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Table;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -121,14 +123,14 @@ public class TAFormulaEncodingProvider {
 
   private TABooleanVarLocations createTABooleanVarLocations(
       FormulaManagerView pFmgr, TimedAutomatonView pAutomata) {
-    var variableNames = new HashMap<TCFANode, String>();
+    Table<TaDeclaration, TCFANode, String> variableNames = HashBasedTable.create();
     var elementsByAutomaton = new HashMap<TaDeclaration, Collection<TCFANode>>();
     pAutomata
         .getAllNodes()
         .forEach(
             location -> {
               var automaton = location.getAutomatonDeclaration();
-              variableNames.put(location, location.getName());
+              variableNames.put(automaton, location, location.getName());
               elementsByAutomaton.computeIfAbsent(automaton, a -> new HashSet<>());
               elementsByAutomaton.get(automaton).add(location);
             });
@@ -145,7 +147,9 @@ public class TAFormulaEncodingProvider {
       case GLOBAL_ID:
         return createTAGlobalVarActions(pFmgr, pAutomata);
       case BOOLEAN_VAR:
-        return createTABooleanVarActions(pFmgr, pAutomata);
+        return createTABooleanVarActions(pFmgr, pAutomata, false);
+      case BOOLEAN_VAR_LOCAL:
+        return createTABooleanVarActions(pFmgr, pAutomata, true);
       default:
         throw new AssertionError("Action encoding not supported");
     }
@@ -168,15 +172,16 @@ public class TAFormulaEncodingProvider {
   }
 
   private TABooleanVarActions createTABooleanVarActions(
-      FormulaManagerView pFmgr, TimedAutomatonView pAutomata) {
-    var variableNames = new HashMap<TaVariable, String>();
+      FormulaManagerView pFmgr, TimedAutomatonView pAutomata, boolean isLocal) {
+    Table<TaDeclaration, TaVariable, String> variableNames = HashBasedTable.create();
     var elementsByAutomaton = new HashMap<TaDeclaration, Collection<TaVariable>>();
     for (var automaton : pAutomata.getAllAutomata()) {
       pAutomata
           .getActionsByAutomaton(automaton)
           .forEach(
               action -> {
-                variableNames.put(action, action.getName());
+                var variableName = (isLocal ? automaton.getName() + "#" : "") + action.getName();
+                variableNames.put(automaton, action, variableName);
                 elementsByAutomaton.computeIfAbsent(automaton, a -> new HashSet<>());
                 elementsByAutomaton.get(automaton).add(action);
               });
@@ -184,7 +189,7 @@ public class TAFormulaEncodingProvider {
 
     var featureEncoding =
         new TABooleanVarFeatureEncoding<>(pFmgr, variableNames, elementsByAutomaton);
-    return new TABooleanVarActions(featureEncoding);
+    return new TABooleanVarActions(featureEncoding, pAutomata, pFmgr, isLocal);
   }
 
   private TAVariables createTimeEncoding(FormulaManagerView pFmgr, TimedAutomatonView pAutomata) {

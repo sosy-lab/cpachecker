@@ -43,7 +43,8 @@ public class TAEncodingOptions {
   public static enum DiscreteEncodingType {
     LOCAL_ID,
     GLOBAL_ID,
-    BOOLEAN_VAR
+    BOOLEAN_VAR,
+    BOOLEAN_VAR_LOCAL
   }
 
   @Option(

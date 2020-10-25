@@ -138,9 +138,9 @@ public class TAShallowSyncDifference extends TAEncodingExtensionBase {
       TaDeclaration pAutomaton, int pLastReachedIndex, TaVariable action) {
     var actionOccurs = actions.makeActionEqualsFormula(pAutomaton, pLastReachedIndex, action);
     var unchanged = makeOccurenceCountUnchangedFormula(pAutomaton, pLastReachedIndex, action);
-    var increse = makeOccurenceCountIncreaseFormula(pAutomaton, pLastReachedIndex, action);
+    var increase = makeOccurenceCountIncreaseFormula(pAutomaton, pLastReachedIndex, action);
 
-    var ifAction = bFmgr.implication(actionOccurs, increse);
+    var ifAction = bFmgr.implication(actionOccurs, increase);
     var ifNoAction = bFmgr.implication(bFmgr.not(actionOccurs), unchanged);
 
     return bFmgr.and(ifAction, ifNoAction);
