@@ -18,7 +18,7 @@ import org.sosy_lab.java_smt.api.BooleanFormula;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaType;
 
-public class TAGlobalVarDiscreteFeatureEncoding<T> implements TADiscreteFeatureEncoding<T> {
+public class TAGlobalVarDiscreteFeatureEncoding<T> implements TAGlobalDiscreteFeatureEncoding<T> {
   private final String variableName;
   private final FormulaType<?> variableType;
   private final Map<T, Integer> values;
@@ -50,7 +50,7 @@ public class TAGlobalVarDiscreteFeatureEncoding<T> implements TADiscreteFeatureE
     return makeEqualsFormula(pVariableIndex, feature);
   }
 
-  // This is a global encoding - it doesnt need automata information
+  @Override
   public BooleanFormula makeEqualsFormula(int pVariableIndex, T feature) {
     var variable = makeVariableFormula(pVariableIndex);
     var value = makeValueFormula(feature);

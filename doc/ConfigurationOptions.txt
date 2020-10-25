@@ -2797,7 +2797,8 @@ cpa.timedautomata.actionDetachedIdle = true
 # Formula representation of actions. Options are: BOOLEAN_VAR, LOCAL_VAR,
 # GLOBAL_VAR
 cpa.timedautomata.actionEncoding = GLOBAL_ID
-  enum:     [LOCAL_ID, GLOBAL_ID, BOOLEAN_VAR, BOOLEAN_VAR_LOCAL]
+  enum:     [LOCAL_ID, GLOBAL_ID, BOOLEAN_VAR, BOOLEAN_VAR_LOCAL,
+             BOOLEAN_DISCRETE_GLOBAL, BOOLEAN_DISCRETE_LOCAL]
 
 # Delays of zero are allowed if true
 cpa.timedautomata.allowZeroDelay = true
@@ -2837,7 +2838,8 @@ cpa.timedautomata.invariantType = LOCAL
 
 # Formula representation of locations. Options are: BOOLEAN_VAR, LOCAL_VAR
 cpa.timedautomata.locationEncoding = LOCAL_ID
-  enum:     [LOCAL_ID, GLOBAL_ID, BOOLEAN_VAR, BOOLEAN_VAR_LOCAL]
+  enum:     [LOCAL_ID, GLOBAL_ID, BOOLEAN_VAR, BOOLEAN_VAR_LOCAL,
+             BOOLEAN_DISCRETE_GLOBAL, BOOLEAN_DISCRETE_LOCAL]
 
 # Amount by which to increase the maximum unrolling step bound.
 cpa.timedautomata.stepCountAdujstmentStep = 0

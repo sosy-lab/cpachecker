@@ -13,19 +13,19 @@ import static com.google.common.collect.FluentIterable.from;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariable;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.TimedAutomatonView;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.TALocalVarDiscreteFeatureEncoding;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.TADiscreteFeatureEncoding;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class TALocalVarActions implements TAActions {
   private final TimedAutomatonView automata;
-  private final TALocalVarDiscreteFeatureEncoding<TaVariable> encoding;
+  private final TADiscreteFeatureEncoding<TaVariable> encoding;
   private final FormulaManagerView fmgr;
 
   public TALocalVarActions(
       FormulaManagerView pFmgr,
       TimedAutomatonView pAutomata,
-      TALocalVarDiscreteFeatureEncoding<TaVariable> pEncoding) {
+      TADiscreteFeatureEncoding<TaVariable> pEncoding) {
     automata = pAutomata;
     encoding = pEncoding;
     fmgr = pFmgr;

@@ -44,7 +44,9 @@ public class TAEncodingOptions {
     LOCAL_ID,
     GLOBAL_ID,
     BOOLEAN_VAR,
-    BOOLEAN_VAR_LOCAL
+    BOOLEAN_VAR_LOCAL,
+    BOOLEAN_DISCRETE_GLOBAL,
+    BOOLEAN_DISCRETE_LOCAL
   }
 
   @Option(

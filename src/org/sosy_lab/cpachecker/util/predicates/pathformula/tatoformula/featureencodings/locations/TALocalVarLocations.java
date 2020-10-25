@@ -10,13 +10,13 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featuree
 
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.timedautomata.TCFANode;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.TALocalVarDiscreteFeatureEncoding;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.TADiscreteFeatureEncoding;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class TALocalVarLocations implements TALocations {
-  private final TALocalVarDiscreteFeatureEncoding<TCFANode> encoding;
+  private final TADiscreteFeatureEncoding<TCFANode> encoding;
 
-  public TALocalVarLocations(TALocalVarDiscreteFeatureEncoding<TCFANode> pEncoding) {
+  public TALocalVarLocations(TADiscreteFeatureEncoding<TCFANode> pEncoding) {
     encoding = pEncoding;
   }
 

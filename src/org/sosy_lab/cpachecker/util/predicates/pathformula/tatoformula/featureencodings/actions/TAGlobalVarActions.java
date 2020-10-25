@@ -10,13 +10,13 @@ package org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featuree
 
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.timedautomata.TaVariable;
-import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.TAGlobalVarDiscreteFeatureEncoding;
+import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.TAGlobalDiscreteFeatureEncoding;
 import org.sosy_lab.java_smt.api.BooleanFormula;
 
 public class TAGlobalVarActions implements TAActions {
-  private final TAGlobalVarDiscreteFeatureEncoding<TaVariable> encoding;
+  private final TAGlobalDiscreteFeatureEncoding<TaVariable> encoding;
 
-  public TAGlobalVarActions(TAGlobalVarDiscreteFeatureEncoding<TaVariable> pEncoding) {
+  public TAGlobalVarActions(TAGlobalDiscreteFeatureEncoding<TaVariable> pEncoding) {
     encoding = pEncoding;
   }
 
