@@ -94,7 +94,7 @@ public class TAShallowSyncDifference extends TAEncodingExtensionBase {
   private BooleanFormula makeActionTimeStampForOccurenceFormula(
       TaDeclaration pAutomaton, int pLastReachedIndex, TaVariable action, int occurenceCount) {
     var occurenceCountFormula =
-        makeOccurenceCountEqualsFormula(pAutomaton, pLastReachedIndex, action, occurenceCount);
+        makeOccurenceCountEqualsFormula(pAutomaton, pLastReachedIndex + 1, action, occurenceCount);
     var actionOccuredFormula =
         actions.makeActionEqualsFormula(pAutomaton, pLastReachedIndex, action);
 
