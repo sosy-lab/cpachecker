@@ -16,6 +16,7 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cpa.numeric.NumericVariable;
+import org.sosy_lab.numericdomains.Manager;
 import org.sosy_lab.numericdomains.coefficients.Coefficient;
 import org.sosy_lab.numericdomains.coefficients.DoubleScalar;
 import org.sosy_lab.numericdomains.coefficients.Interval;
@@ -184,14 +185,15 @@ public class PartialState {
       Collection<PartialState> leftExpressions,
       Collection<PartialState> rightExpressions,
       TruthAssumption truthAssumption,
-      Environment environment) {
+      Environment environment,
+      Manager manager) {
     ImmutableSet.Builder<PartialState> builder = new ImmutableSet.Builder<>();
     // Create one possible state for each combination of left expression and right expression
     for (PartialState leftExpression : leftExpressions) {
       for (PartialState rightExpression : rightExpressions) {
         builder.addAll(
             applyComparisonOperator(
-                operator, leftExpression, rightExpression, truthAssumption, environment));
+                operator, leftExpression, rightExpression, truthAssumption, environment, manager));
       }
     }
     return builder.build();
@@ -372,13 +374,15 @@ public class PartialState {
       PartialState leftExpression,
       PartialState rightExpression,
       TruthAssumption assumption,
-      Environment environment) {
+      Environment environment,
+      Manager manager) {
     // Use epsilon for comparison if either of the two expressions contains a float variable.
     final ApplyEpsilon useEpsilon;
-    if (leftExpression.containsFloatVariable || rightExpression.containsFloatVariable) {
-      useEpsilon = ApplyEpsilon.APPLY_EPSILON;
-    } else {
+    if (manager instanceof org.sosy_lab.numericdomains.apron.PolyhedraManager
+        || (!leftExpression.containsFloatVariable && !rightExpression.containsFloatVariable)) {
       useEpsilon = ApplyEpsilon.EXACT;
+    } else {
+      useEpsilon = ApplyEpsilon.APPLY_EPSILON;
     }
 
     ImmutableSet.Builder<PartialState> statesBuilder = new ImmutableSet.Builder<>();

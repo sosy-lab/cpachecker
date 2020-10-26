@@ -102,7 +102,8 @@ public class NumericAssumptionHandler
             statesLeft,
             statesRight,
             truthAssumption,
-            state.getValue().getEnvironment());
+            state.getValue().getEnvironment(),
+            state.getManager());
 
     ImmutableSet.Builder<NumericState> successorsBuilder = new ImmutableSet.Builder<>();
 

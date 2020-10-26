@@ -12,7 +12,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Optional;
-import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -148,17 +147,41 @@ public class NumericStatementVisitor
     ImmutableList.Builder<NumericState> successorsBuilder = new ImmutableList.Builder<>();
 
     for (PartialState partialState : expressions) {
-      NumericState newState =
-          extendedState.assignTreeExpression(variable.get(), partialState.getPartialConstraint());
-      if (!newState.getValue().isBottom()) {
-        successorsBuilder.add(newState);
+      Optional<NumericState> intermediateState;
+      if (partialState.getConstraints().size() != 0) {
+        intermediateState = extendedState.meetConstraints(partialState.getConstraints());
       } else {
-        // Dispose value that will not be used
-        newState.getValue().dispose();
+        intermediateState = Optional.of(extendedState.createCopy());
+      }
+      if (intermediateState.isPresent()) {
+        if (!intermediateState.get().isBottom()) {
+          NumericState newState =
+              extendedState.assignTreeExpression(
+                  variable.get(), partialState.getPartialConstraint());
+          if (!newState.getValue().isBottom()) {
+            successorsBuilder.add(newState);
+          } else {
+            // Dispose value that will not be used
+            newState.getValue().dispose();
+          }
+          intermediateState.get().getValue().dispose();
+        }
       }
     }
     extendedState.getValue().dispose();
-    return successorsBuilder.build();
+    Collection<NumericState> successors = successorsBuilder.build();
+    if (successors.isEmpty()) {
+      // Set the variable to unconstrained as fallback
+      final TreeNode unconstrainedValue;
+      if (variable.get().getSimpleType().isUnsigned()) {
+        unconstrainedValue = new ConstantTreeNode(PartialState.UNSIGNED_UNCONSTRAINED_INTERVAL);
+      } else {
+        unconstrainedValue = new ConstantTreeNode(PartialState.UNCONSTRAINED_INTERVAL);
+      }
+      return ImmutableSet.of(state.assignTreeExpression(variable.get(), unconstrainedValue));
+    } else {
+      return successors;
+    }
   }
 
   @Override

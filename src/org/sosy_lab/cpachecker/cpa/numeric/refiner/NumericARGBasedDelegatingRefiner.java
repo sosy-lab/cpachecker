@@ -210,7 +210,7 @@ class NumericARGBasedDelegatingRefiner implements ARGBasedRefiner, Statistics, S
     Multimap<CFANode, MemoryLocation> increment = checker.getPrecisionIncrement();
     // no newly tracked variables, so the refinement was not successful
     if (increment.isEmpty()) {
-      return false;
+    //  return false;
     }
 
     reached.removeSubtree(

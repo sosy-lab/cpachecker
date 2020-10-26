@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
 import org.sosy_lab.cpachecker.core.defaults.precision.VariableTrackingPrecision;
 import org.sosy_lab.cpachecker.cpa.numeric.visitor.NumericAssumptionHandler;
@@ -111,15 +110,13 @@ public class NumericTransferRelation
     ImmutableSet.Builder<Variable> realVariables = new ImmutableSet.Builder<>();
 
     for (CParameterDeclaration declaration : parameters) {
-      if (!(declaration.getType() instanceof CSimpleType)) {
-        // Do nothing for types that aren't handled by the cpa
-        continue;
-      }
       Optional<NumericVariable> variable =
           NumericVariable.valueOf(
               declaration, cfaEdge.getSuccessor(), precision, state.getManager(), logger);
-
-      if (variable.isEmpty()) {
+      if (variable.isEmpty()
+          || state.getValue().getEnvironment().containsVariable(variable.get())) {
+        // Nothing to add if the variable can not be handled by the CPA or if it already exists in
+        // the state
         continue;
       }
 
@@ -138,7 +135,7 @@ public class NumericTransferRelation
             integerVariables.build(), realVariables.build(), NewVariableValue.UNCONSTRAINED);
     Environment extendedEnvironment = extendedState.getValue().getEnvironment();
 
-    // Set values of the variables one by one
+    // Set values of the variables
     Collection<NumericState> successors = ImmutableSet.of(extendedState);
 
     for (int i = 0; i < parameters.size(); i++) {

@@ -123,7 +123,8 @@ public class NumericRightHandSideVisitor
         pLeftExpression,
         pRightExpression,
         TruthAssumption.ASSUME_EITHER,
-        environment);
+        environment,
+        manager);
   }
 
   private Collection<PartialState> handleArithmeticOperator(
