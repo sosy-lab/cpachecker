@@ -25,11 +25,13 @@ public class TAGlobalVarDiscreteFeatureEncoding<T> implements TAGlobalDiscreteFe
   private final FormulaManagerView fmgr;
 
   public TAGlobalVarDiscreteFeatureEncoding(
-      FormulaManagerView pFmgr, String pVariableName, Set<T> pDomain) {
+      FormulaManagerView pFmgr,
+      String pVariableName,
+      Set<T> pDomain,
+      FormulaType<?> pVariableType) {
     fmgr = pFmgr;
     variableName = pVariableName;
-    var bitVectorSize = (int) (Math.log(pDomain.size()) / Math.log(2) + 1);
-    variableType = FormulaType.getBitvectorTypeWithSize(bitVectorSize);
+    variableType = pVariableType;
 
     var valueMap = new HashMap<T, Integer>();
     pDomain.forEach(value -> valueMap.put(value, valueMap.size()));

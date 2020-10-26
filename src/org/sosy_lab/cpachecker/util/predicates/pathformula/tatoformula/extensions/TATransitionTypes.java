@@ -15,6 +15,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureen
 import org.sosy_lab.cpachecker.util.predicates.pathformula.tatoformula.featureencodings.TALocalVarDiscreteFeatureEncoding;
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.java_smt.api.BooleanFormula;
+import org.sosy_lab.java_smt.api.FormulaType;
 
 /**
  * Adds for each automaton a variable that represents transition type (idle/delay/discrete). This
@@ -27,7 +28,9 @@ public class TATransitionTypes extends TAEncodingExtensionBase {
   public TATransitionTypes(FormulaManagerView pFmgr) {
     super(pFmgr);
     var transitions = ImmutableSet.of("DISCRETE", "DELAY", "IDLE");
-    variables = new TALocalVarDiscreteFeatureEncoding<>(pFmgr, "transition_type", transitions);
+    variables =
+        new TALocalVarDiscreteFeatureEncoding<>(
+            pFmgr, "transition_type", transitions, FormulaType.IntegerType);
   }
 
   @Override

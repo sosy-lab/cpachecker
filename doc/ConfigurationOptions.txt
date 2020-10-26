@@ -2800,6 +2800,10 @@ cpa.timedautomata.actionEncoding = GLOBAL_ID
   enum:     [LOCAL_ID, GLOBAL_ID, BOOLEAN_VAR, BOOLEAN_VAR_LOCAL,
              BOOLEAN_DISCRETE_GLOBAL, BOOLEAN_DISCRETE_LOCAL]
 
+# The formula type for timed automaton action variables
+cpa.timedautomata.actionVariableType = INTEGER
+  enum:     [BITVECTOR, RATIONAL, INTEGER]
+
 # Delays of zero are allowed if true
 cpa.timedautomata.allowZeroDelay = true
 
@@ -2840,6 +2844,10 @@ cpa.timedautomata.invariantType = LOCAL
 cpa.timedautomata.locationEncoding = LOCAL_ID
   enum:     [LOCAL_ID, GLOBAL_ID, BOOLEAN_VAR, BOOLEAN_VAR_LOCAL,
              BOOLEAN_DISCRETE_GLOBAL, BOOLEAN_DISCRETE_LOCAL]
+
+# The formula type for timed automaton location variables
+cpa.timedautomata.locationVariableType = INTEGER
+  enum:     [BITVECTOR, RATIONAL, INTEGER]
 
 # Amount by which to increase the maximum unrolling step bound.
 cpa.timedautomata.stepCountAdujstmentStep = 0

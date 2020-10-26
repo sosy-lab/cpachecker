@@ -28,7 +28,7 @@ public class TAGlobalBooleanDiscreteFeatureEncoding<X>
       FormulaManagerView pFmgr, String pVariableName, Collection<X> pDomain) {
     bFmgr = pFmgr.getBooleanFormulaManager();
     variableName = pVariableName;
-    numberOfVariables = (int) (Math.log(pDomain.size()) / Math.log(2) + 1);
+    numberOfVariables = (int) Math.ceil(Math.log(pDomain.size()) / Math.log(2));
 
     var valueMap = new HashMap<X, Integer>();
     pDomain.forEach(value -> valueMap.put(value, valueMap.size()));

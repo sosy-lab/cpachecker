@@ -121,9 +121,10 @@ public class TAFormulaEncodingProvider {
 
   private TALocalVarLocations createTaLocalVarLocations(
       FormulaManagerView pFmgr, TimedAutomatonView pAutomata) {
+    var allNodes = ImmutableSet.copyOf(pAutomata.getAllNodes());
+    var variableType = getDiscreteFormulaType(options.locationVariableType, allNodes.size());
     var featureEncoding =
-        new TALocalVarDiscreteFeatureEncoding<>(
-            pFmgr, "location", ImmutableSet.copyOf(pAutomata.getAllNodes()));
+        new TALocalVarDiscreteFeatureEncoding<>(pFmgr, "location", allNodes, variableType);
     return new TALocalVarLocations(featureEncoding);
   }
 
@@ -182,17 +183,22 @@ public class TAFormulaEncodingProvider {
 
   private TALocalVarActions createTALocalVarActions(
       FormulaManagerView pFmgr, TimedAutomatonView pAutomata) {
+    var allActions = ImmutableSet.copyOf(pAutomata.getAllActions());
+    FormulaType<?> variableType =
+        getDiscreteFormulaType(options.actionVariableType, allActions.size());
     var featureEncoding =
-        new TALocalVarDiscreteFeatureEncoding<>(
-            pFmgr, "action", ImmutableSet.copyOf(pAutomata.getAllActions()));
+        new TALocalVarDiscreteFeatureEncoding<>(pFmgr, "action", allActions, variableType);
     return new TALocalVarActions(pFmgr, pAutomata, featureEncoding);
   }
 
   private TAGlobalVarActions createTAGlobalVarActions(
       FormulaManagerView pFmgr, TimedAutomatonView pAutomata) {
+    var allActions = ImmutableSet.copyOf(pAutomata.getAllActions());
+    FormulaType<?> variableType =
+        getDiscreteFormulaType(options.actionVariableType, allActions.size());
+
     var featureEncoding =
-        new TAGlobalVarDiscreteFeatureEncoding<>(
-            pFmgr, "global#action", ImmutableSet.copyOf(pAutomata.getAllActions()));
+        new TAGlobalVarDiscreteFeatureEncoding<>(pFmgr, "global#action", allActions, variableType);
     return new TAGlobalVarActions(featureEncoding);
   }
 
@@ -369,5 +375,22 @@ public class TAFormulaEncodingProvider {
     }
 
     throw new AssertionError("Unknown encoding type");
+  }
+
+  private FormulaType<?> getDiscreteBitvectorType(int numberOfElements) {
+    var bitVectorSize = (int) Math.ceil(Math.log(numberOfElements) / Math.log(2));
+    return FormulaType.getBitvectorTypeWithSize(bitVectorSize);
+  }
+
+  private FormulaType<?> getDiscreteFormulaType(
+      TAEncodingOptions.VariableType pVariableType, int numberOfElements) {
+    switch (pVariableType) {
+      case INTEGER:
+        return FormulaType.IntegerType;
+      case BITVECTOR:
+        return getDiscreteBitvectorType(numberOfElements);
+      default:
+        throw new AssertionError("Invalid discrete formula type");
+    }
   }
 }

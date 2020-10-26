@@ -129,14 +129,20 @@ public class TAEncodingOptions {
   @Option(secure = true, description = "Delays of zero are allowed if true")
   public Boolean allowZeroDelay = true;
 
-  public static enum ClockVariableType {
+  public static enum VariableType {
     BITVECTOR,
     RATIONAL,
     INTEGER
   }
 
   @Option(secure = true, description = "The formula type for timed automaton clock variables")
-  public ClockVariableType clockVariableType = ClockVariableType.RATIONAL;
+  public VariableType clockVariableType = VariableType.RATIONAL;
+
+  @Option(secure = true, description = "The formula type for timed automaton location variables")
+  public VariableType locationVariableType = VariableType.INTEGER;
+
+  @Option(secure = true, description = "The formula type for timed automaton action variables")
+  public VariableType actionVariableType = VariableType.INTEGER;
 
   @Option(
       secure = true,
