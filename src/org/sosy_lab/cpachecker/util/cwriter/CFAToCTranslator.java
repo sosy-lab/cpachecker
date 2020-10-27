@@ -32,7 +32,12 @@ import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.Language;
+import org.sosy_lab.cpachecker.cfa.ast.c.CAssignment;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.c.CIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.c.CStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
@@ -45,6 +50,7 @@ import org.sosy_lab.cpachecker.cfa.model.c.CFunctionCallEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.c.CFunctionSummaryStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.c.CLabelNode;
+import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CArrayType;
 import org.sosy_lab.cpachecker.cfa.types.c.CProblemType;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
@@ -425,6 +431,22 @@ public class CFAToCTranslator {
     }
   }
 
+  private boolean isTmpVariable(CIdExpression pIdExpression) {
+    return pIdExpression.getName().startsWith("__CPAchecker_TMP_");
+  }
+
+  private String getTmpVariableDeclarationString(CLeftHandSide pLhs) {
+
+    if (pLhs instanceof CIdExpression) {
+      CIdExpression idExpression = (CIdExpression) pLhs;
+      if (isTmpVariable(idExpression)) {
+        return idExpression.getDeclaration().toASTString();
+      }
+    }
+
+    return "";
+  }
+
   private CompoundStatement addIfStatementToBlock(
       CFANode pNode, CompoundStatement block, String conditionCode, CFAEdge pOrigin) {
     block.addStatement(createSimpleStatement(pNode, conditionCode, pOrigin));
@@ -453,12 +475,29 @@ public class CFAToCTranslator {
           if (statementText.matches("^__CPAchecker_TMP_[0-9]+;?$")) {
             return ""; // ignore empty temporary variable statements;
           }
+
+          if (pCFAEdge instanceof CStatementEdge) {
+            CStatement statement = ((CStatementEdge) pCFAEdge).getStatement();
+            if (statement instanceof CAssignment) {
+              CLeftHandSide lhs = ((CAssignment) statement).getLeftHandSide();
+              statementText = getTmpVariableDeclarationString(lhs) + statementText;
+            }
+          }
+
           return statementText + (statementText.endsWith(";") ? "" : ";");
         }
 
       case FunctionCallEdge:
         {
-          String statement = ((CFunctionCallEdge) pCFAEdge).getSummaryEdge().getCode();
+          var functionCallSummaryEdge = ((CFunctionCallEdge) pCFAEdge).getSummaryEdge();
+          String statement = functionCallSummaryEdge.getCode();
+
+          var functionCall = functionCallSummaryEdge.getExpression();
+          if (functionCall instanceof CFunctionCallAssignmentStatement) {
+            CLeftHandSide lhs = ((CFunctionCallAssignmentStatement) functionCall).getLeftHandSide();
+            statement = getTmpVariableDeclarationString(lhs) + statement;
+          }
+
           return statement + (statement.endsWith(";") ? "" : ";");
         }
 
