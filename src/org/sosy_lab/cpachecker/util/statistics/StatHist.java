@@ -41,6 +41,12 @@ public class StatHist extends AbstractStatValue {
     }
   }
 
+  public void insertValue(long pNewValue, int occurrences) {
+    synchronized (hist) {
+      hist.add(pNewValue, occurrences);
+    }
+  }
+
   @Override
   public String toString() {
     synchronized (hist) {

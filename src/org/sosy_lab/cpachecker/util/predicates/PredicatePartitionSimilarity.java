@@ -8,6 +8,7 @@
 
 package org.sosy_lab.cpachecker.util.predicates;
 
+import com.google.common.collect.Sets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -106,8 +107,7 @@ public class PredicatePartitionSimilarity extends PredicatePartition {
       Set<String> varsInPrevPred = fmgr.extractVariableNames(predInPartition.getSymbolicAtom());
       int index = predInPartition.getVariableNumber();
       // the similarity is equal to the number of variables the predicates have in common
-      varsInPrevPred.retainAll(varsInNewPred);
-      Integer similarity = varsInPrevPred.size();
+      Integer similarity = Sets.intersection(varsInPrevPred, varsInNewPred).size();
       Map<Integer, Integer> similaritiesPrevPred = similarityRelation.get(index);
       similaritiesPrevPred.put(varIDNewPredicate, similarity);
       similarities.put(index, similarity);

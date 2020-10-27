@@ -134,6 +134,17 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
   @Option(
       secure = true,
+      name = "controldeps.considerInverseAssumption",
+      description =
+          "Whether to take an assumption edge 'p' as control dependence if edge 'not p' is a"
+              + " control dependence. This creates a larger slice, but may reduce the size of the"
+              + " state space for deterministic programs. This behavior is also closer to the"
+              + " static program slicing based on control-flow graphs (CFGs), where branching is"
+              + " represented by a single assumption (with true- and false-edges)")
+  private boolean controlDepsTakeBothAssumptions = false;
+
+  @Option(
+      secure = true,
       name = "flowdeps.use",
       description = "Whether to consider (data-)flow dependencies.")
   private boolean considerFlowDeps = true;
@@ -244,26 +255,6 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         node -> !(node instanceof FunctionEntryNode));
   }
 
-  private static boolean dominates(
-      DomTree<CFANode> pDomTree, int pDominatingNodeId, int pDominatedNodeId) {
-
-    if (pDominatingNodeId == pDominatedNodeId) {
-      return true;
-    }
-
-    int node = pDominatedNodeId;
-    while (pDomTree.hasParent(node)) {
-
-      node = pDomTree.getParent(node);
-
-      if (node == pDominatingNodeId) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
   private boolean ignoreFunctionEdge(CFAEdge pEdge) {
     return pEdge instanceof CFunctionCallEdge || pEdge instanceof CFunctionReturnEdge;
   }
@@ -299,6 +290,8 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         GlobalPointerState.createFlowSensitive(cfa, logger, shutdownNotifier);
 
     boolean unknownPointer = false;
+
+    outer:
     for (CFANode node : cfa.getAllNodes()) {
       for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
 
@@ -306,9 +299,24 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
         for (CExpression expression :
             Iterables.concat(edgeDefUseData.getPointeeDefs(), edgeDefUseData.getPointeeUses())) {
-          if (pointerState.getPossiblePointees(edge, expression).isEmpty()) {
+
+          Set<MemoryLocation> possiblePointees = pointerState.getPossiblePointees(edge, expression);
+
+          // if there are no possible pointees, the pointer is unknown
+          if (possiblePointees.isEmpty()) {
             unknownPointer = true;
-            break;
+            break outer;
+          }
+
+          // the current pointer analysis doesn't support structs and unions
+          // potential pointers to struct instances point to the struct-type declaration
+          // if such an unsupported usage is encountered, the pointer is unknown
+          for (MemoryLocation possiblePointee : possiblePointees) {
+            String identifier = possiblePointee.getIdentifier();
+            if (identifier.contains("struct ") || identifier.contains("union ")) {
+              unknownPointer = true;
+              break outer;
+            }
           }
         }
       }
@@ -405,9 +413,18 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     }
   }
 
-  private void addControlDependences() {
+  private void addControlDependence(CFAEdge pDependingOnEdge, CFAEdge pDependentEdge) {
+    addDependence(
+        getDGNode(pDependingOnEdge, Optional.empty()),
+        getDGNode(pDependentEdge, Optional.empty()),
+        DependenceType.CONTROL);
+  }
+
+  private void addControlDependences() throws InterruptedException {
 
     int controlDepCount = 0;
+    boolean dependOnBothAssumptions = controlDepsTakeBothAssumptions;
+
     for (FunctionEntryNode entryNode : cfa.getAllFunctionHeads()) {
 
       DomTree<CFANode> domTree =
@@ -423,14 +440,13 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         int nodeId = domTree.getId(dependentNode);
         for (CFANode branchNode : frontiers.getFrontier(dependentNode)) {
           for (CFAEdge assumeEdge : CFAUtils.leavingEdges(branchNode)) {
-            int assumeNodeId = domTree.getId(assumeEdge.getSuccessor());
-            if (dominates(domTree, nodeId, assumeNodeId)) {
+            int assumeSuccessorId = domTree.getId(assumeEdge.getSuccessor());
+            if (dependOnBothAssumptions
+                || nodeId == assumeSuccessorId
+                || domTree.isAncestorOf(nodeId, assumeSuccessorId)) {
               for (CFAEdge dependentEdge : CFAUtils.allLeavingEdges(dependentNode)) {
                 if (!ignoreFunctionEdge(dependentEdge) && !assumeEdge.equals(dependentEdge)) {
-                  addDependence(
-                      getDGNode(assumeEdge, Optional.empty()),
-                      getDGNode(dependentEdge, Optional.empty()),
-                      DependenceType.CONTROL);
+                  addControlDependence(assumeEdge, dependentEdge);
                   controlDepCount++;
                   dependentEdges.add(dependentEdge);
                 }
@@ -441,9 +457,20 @@ public class DependenceGraphBuilder implements StatisticsProvider {
       }
 
       Set<CFAEdge> noDomEdges = new HashSet<>();
-      for (CFANode node : cfa.getFunctionNodes(entryNode.getFunction().getQualifiedName())) {
-        int nodeId = domTree.getId(node);
-        if (nodeId == Dominance.UNDEFINED || !domTree.hasParent(nodeId)) {
+      if (CFAUtils.existsPath(
+          entryNode, entryNode.getExitNode(), CFAUtils::allLeavingEdges, shutdownNotifier)) {
+        for (CFANode node : cfa.getFunctionNodes(entryNode.getFunction().getQualifiedName())) {
+          int nodeId = domTree.getId(node);
+          if (!domTree.hasParent(nodeId)) {
+            Iterables.addAll(noDomEdges, CFAUtils.allEnteringEdges(node));
+            Iterables.addAll(noDomEdges, CFAUtils.allLeavingEdges(node));
+          }
+        }
+      } else {
+        // Sometimes there is no path from the function entry node to the function exit node.
+        // In this case, domTree is incomplete as it does not contain all function nodes.
+        // Calling domTree.getId would throw an exception for these missing nodes.
+        for (CFANode node : cfa.getFunctionNodes(entryNode.getFunction().getQualifiedName())) {
           Iterables.addAll(noDomEdges, CFAUtils.allEnteringEdges(node));
           Iterables.addAll(noDomEdges, CFAUtils.allLeavingEdges(node));
         }
@@ -460,10 +487,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         if (!ignoreFunctionEdge(dependentEdge)) {
           for (CFAEdge assumeEdge : noDomAssumes) {
             if (!assumeEdge.equals(dependentEdge)) {
-              addDependence(
-                  getDGNode(assumeEdge, Optional.empty()),
-                  getDGNode(dependentEdge, Optional.empty()),
-                  DependenceType.CONTROL);
+              addControlDependence(assumeEdge, dependentEdge);
               controlDepCount++;
               dependentEdges.add(dependentEdge);
             }
@@ -476,10 +500,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         if (callEdge instanceof CFunctionCallEdge) {
           CFAEdge summaryEdge = ((CFunctionCallEdge) callEdge).getSummaryEdge();
           callEdges.add(callEdge);
-          addDependence(
-              getDGNode(summaryEdge, Optional.empty()),
-              getDGNode(callEdge, Optional.empty()),
-              DependenceType.CONTROL);
+          addControlDependence(summaryEdge, callEdge);
           controlDepCount++;
         }
       }
@@ -488,10 +509,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
         for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
           if (!dependentEdges.contains(edge) && !ignoreFunctionEdge(edge)) {
             for (CFAEdge callEdge : callEdges) {
-              addDependence(
-                  getDGNode(callEdge, Optional.empty()),
-                  getDGNode(edge, Optional.empty()),
-                  DependenceType.CONTROL);
+              addControlDependence(callEdge, edge);
               controlDepCount++;
             }
           }

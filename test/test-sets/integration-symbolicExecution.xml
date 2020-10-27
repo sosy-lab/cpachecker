@@ -45,13 +45,13 @@ SPDX-License-Identifier: Apache-2.0
   <tasks>
     <includesfile>../programs/benchmarks/ReachSafety-ControlFlow.set</includesfile>
     <exclude>../programs/benchmarks/ntdrivers-simplified/*</exclude> <!-- mostly timeouts -->
-    <exclude>../programs/benchmarks/ssh-simplified/s3_srvr_*</exclude> <!-- mostly timeouts -->
+    <exclude>../programs/benchmarks/openssl-simplified/s3_srvr_*</exclude> <!-- mostly timeouts -->
     <exclude>../programs/benchmarks/locks/test_locks_12.yml</exclude> <!-- timeouts -->
     <exclude>../programs/benchmarks/locks/test_locks_13.yml</exclude> <!-- timeouts -->
     <exclude>../programs/benchmarks/locks/test_locks_14-1.yml</exclude> <!-- timeouts -->
     <exclude>../programs/benchmarks/locks/test_locks_15-2.yml</exclude> <!-- timeouts -->
     <exclude>../programs/benchmarks/ntdrivers/*</exclude> <!-- mostly timeouts -->
-    <exclude>../programs/benchmarks/ssh/s3_srvr.*</exclude> <!-- infeasible cex can't be removed -->
+    <exclude>../programs/benchmarks/openssl/s3_srvr.*</exclude> <!-- infeasible cex can't be removed -->
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
   <tasks>

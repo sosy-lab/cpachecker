@@ -32,7 +32,7 @@ import org.sosy_lab.cpachecker.util.faultlocalization.appendables.RankInfo;
  */
 public class FaultReportWriter {
 
-  private Set<InfoType> hideTypes;
+  protected Set<InfoType> hideTypes;
 
   public FaultReportWriter() {
     hideTypes = new HashSet<>();
@@ -80,7 +80,7 @@ public class FaultReportWriter {
    * @param infos the FaultInfos appended to a Fault(Contribution)
    * @return hmtl code of this instance
    */
-  private String toHtml(List<FaultInfo> infos, List<CFAEdge> correspondingEdges){
+  protected String toHtml(List<FaultInfo> infos, List<CFAEdge> correspondingEdges){
     List<FaultReason> faultReasons = new ArrayList<>();
     List<RankInfo> faultInfo = new ArrayList<>();
     List<PotentialFix> faultFix = new ArrayList<>();
@@ -107,6 +107,26 @@ public class FaultReportWriter {
     String header = "Error suspected on line(s): <strong>" + listDistinctLineNumbersAndJoin(correspondingEdges)
         + "</strong><br>";
     StringBuilder html = new StringBuilder();
+
+    if (!correspondingEdges.isEmpty()) {
+      html.append(" Relevant lines:\n<ul class=\"fault-lines\">\n");
+      correspondingEdges.stream()
+          .sorted(Comparator.comparingInt(e -> e.getFileLocation().getStartingLineInOrigin()))
+          .forEach(
+              e ->
+                  html.append(
+                      "<li>"
+                          + "<span class=\"line-number\">"
+                          + e.getFileLocation().getStartingLineInOrigin()
+                          + "</span>"
+                          + "<span class=\"line-content\">"
+                          + e.getDescription()
+                          + "</span>"
+                          + "</li>"));
+      html.append("</ul>\n");
+    } else {
+      header = "Additional Information";
+    }
 
     if (!faultReasons.isEmpty() && !hideTypes.contains(InfoType.REASON)) {
       html.append(printList("Detected <strong>" +
@@ -140,7 +160,11 @@ public class FaultReportWriter {
     return header + "<br>" + html;
   }
 
-  private String printList(String headline, String htmlId, List<? extends FaultInfo> infos, boolean useOrderedList){
+  protected String printList(
+      String headline,
+      String htmlId,
+      List<? extends FaultInfo> infos,
+      boolean useOrderedList){
     List<? extends FaultInfo> copy = new ArrayList<>(infos);
     Collections.sort(copy);
     String listType = useOrderedList? "ol":"ul";
@@ -156,7 +180,7 @@ public class FaultReportWriter {
     return out.toString();
   }
 
-  private String listDistinctLineNumbersAndJoin(List<CFAEdge> edges){
+  protected String listDistinctLineNumbersAndJoin(List<CFAEdge> edges){
     return edges
         .stream()
         .mapToInt(l -> l.getFileLocation().getStartingLineInOrigin())

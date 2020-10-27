@@ -233,6 +233,9 @@ public final class AbstractionManager {
    * Reorders the BDD variables.
    */
   public void reorderPredicates() {
+    if (varOrderMethod == PredicateOrderingStrategy.DISABLE) {
+      return; // do nothing
+    }
     if (this.varOrderMethod.getIsFrameworkStrategy()) {
       rmgr.reorder(this.varOrderMethod);
     } else {

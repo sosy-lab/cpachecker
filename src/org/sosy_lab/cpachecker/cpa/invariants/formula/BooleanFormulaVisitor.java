@@ -8,8 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-
-public interface BooleanFormulaVisitor<ConstantType, ReturnType> {
+interface BooleanFormulaVisitor<ConstantType, ReturnType> {
 
   /**
    * Visits the boolean constant {@code false}.

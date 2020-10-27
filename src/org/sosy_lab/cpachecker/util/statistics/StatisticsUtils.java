@@ -28,8 +28,8 @@ public class StatisticsUtils {
     return String.format("%1.0f%%", val / full * 100);
   }
 
-  public static String valueWithPercentage(long value, int totalCount) {
-    return value + " (" + toPercent(value, totalCount) + ")";
+  public static String valueWithPercentage(Number value, Number totalCount) {
+    return value + " (" + toPercent(value.doubleValue(), totalCount.doubleValue()) + ")";
   }
 
   public static String div(double val, double full) {

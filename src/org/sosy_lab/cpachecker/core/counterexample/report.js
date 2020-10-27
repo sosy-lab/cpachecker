@@ -412,12 +412,14 @@ with considerably less effort */
 					var element = $rootScope.errorPath[j];
 					if (element.faults.includes(i)) {
 						fInfo["errPathIds"].push(j);
+						fInfo["valDict"] = element.valDict;
 					}
 					fInfo["lines"] = getLinesOfFault(fInfo);
 				}
 				$rootScope.faults.push(fInfo);
 			}
 		}
+
 
 		$scope.hideFaults = ($rootScope.faults == undefined || $rootScope.faults.length == 0);
 

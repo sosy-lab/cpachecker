@@ -1155,42 +1155,31 @@ class ASTConverter {
           e);
 
     }
-    CIdExpression owner = (CIdExpression) exp.getFieldOwner();
-
-    if (!(owner.getExpressionType() instanceof CElaboratedType)) {
+    final CType ownerType = exp.getFieldOwner().getExpressionType().getCanonicalType();
+    if (!(ownerType instanceof CCompositeType)) {
       throw parseContext.parseError(
-          "unexpected type " + owner.getExpressionType() + " in __builtin_offsetof argument",
-          e);
+          "unexpected type " + ownerType + " in __builtin_offsetof argument", e);
     }
-    CElaboratedType structType = (CElaboratedType) owner.getExpressionType();
+    CCompositeType structType = (CCompositeType) ownerType;
 
     BigInteger sumOffset = BigInteger.ZERO;
     Collections.reverse(fields);
 
-    if (!(structType.getRealType() instanceof CCompositeType)) {
-      throw parseContext.parseError(
-          "unexpected type " + structType.getRealType() + " in __builtin_offsetof argument: ",
-          e);
-    }
     for (CFieldReference field : fields) {
-      BigInteger offset =
-          machinemodel.getFieldOffsetInBits(
-              (CCompositeType) structType.getRealType(),
-              field.getFieldName());
+      BigInteger offset = machinemodel.getFieldOffsetInBits(structType, field.getFieldName());
       sumOffset = sumOffset.add(offset);
       CFieldReference lastField = fields.get(fields.size() - 1);
       if (!field.equals(lastField)) {
-        if (!(field.getExpressionType() instanceof CElaboratedType)) {
+        final CType fieldType = field.getExpressionType().getCanonicalType();
+        if (!(fieldType instanceof CCompositeType)) {
           throw parseContext.parseError(
-              "unexpected type " + field.getExpressionType() + " in __builtin_offsetof argument",
-              e);
+              "unexpected type " + fieldType + " in __builtin_offsetof argument", e);
         }
-        structType = (CElaboratedType) field.getExpressionType();
+        structType = (CCompositeType) fieldType;
       }
     }
 
     return sumOffset;
-
   }
 
   private boolean areCompatibleTypes(CType a, CType b) {

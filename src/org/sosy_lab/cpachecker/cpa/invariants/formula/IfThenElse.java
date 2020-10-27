@@ -8,11 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
+import com.google.common.base.Preconditions;
 import java.util.Objects;
 
-import com.google.common.base.Preconditions;
-
-public class IfThenElse<ConstantType> extends AbstractFormula<ConstantType> {
+class IfThenElse<ConstantType> extends AbstractFormula<ConstantType> {
 
   private final BooleanFormula<ConstantType> condition;
 

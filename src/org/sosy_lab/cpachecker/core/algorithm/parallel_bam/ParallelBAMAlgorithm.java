@@ -66,6 +66,7 @@ import org.sosy_lab.cpachecker.util.statistics.StatHist;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsSeries;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsSeries.NoopStatisticsSeries;
+import org.sosy_lab.cpachecker.util.statistics.StatisticsSeries.StatisticsSeriesWithNumbers;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.cpachecker.util.statistics.ThreadSafeTimerContainer;
 
@@ -292,7 +293,8 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
 
     checkState(
         mainRScontainsTarget.get() == otherRScontainsTarget.get(),
-        "when a target is found in a sub-analysis (%s), we expect a target in the main-reached-set (%s)",
+        "when a target is found in a sub-analysis (%s), we expect a target in the main-reached-set"
+            + " (%s)",
         otherRScontainsTarget.get(),
         mainRScontainsTarget.get());
   }
@@ -329,7 +331,9 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
     private final StatCounter unfinishedRSEcounter = new StatCounter("unfinished reached-sets");
 
     final StatisticsSeries<Integer> runningRSESeries =
-        (runningRSESeriesFile == null) ? new NoopStatisticsSeries<>() : new StatisticsSeries<>();
+        (runningRSESeriesFile == null)
+            ? new NoopStatisticsSeries<>()
+            : new StatisticsSeriesWithNumbers();
 
     @Override
     public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
@@ -341,6 +345,13 @@ public class ParallelBAMAlgorithm implements Algorithm, StatisticsProvider {
       StatisticsUtils.write(pOut, 0, 50, threadTime);
       StatisticsUtils.write(pOut, 1, 50, addingStatesTime);
       StatisticsUtils.write(pOut, 1, 50, terminationCheckTime);
+      if (runningRSESeriesFile != null) {
+        final StatisticsSeriesWithNumbers sswn = (StatisticsSeriesWithNumbers) runningRSESeries;
+        StatisticsUtils.write(
+            pOut, 1, 50, "Avg. number of parallel RSEs w/o time", sswn.getStatsWithoutTime());
+        StatisticsUtils.write(
+            pOut, 1, 50, "Avg. number of parallel RSEs over time", sswn.getStatsOverTime());
+      }
     }
 
     @Override

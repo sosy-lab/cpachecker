@@ -65,6 +65,9 @@ import org.sosy_lab.java_smt.api.FloatingPointFormulaManager;
 import org.sosy_lab.java_smt.api.Formula;
 import org.sosy_lab.java_smt.api.FormulaManager;
 import org.sosy_lab.java_smt.api.FormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.ArrayFormulaType;
+import org.sosy_lab.java_smt.api.FormulaType.BitvectorType;
+import org.sosy_lab.java_smt.api.FormulaType.FloatingPointType;
 import org.sosy_lab.java_smt.api.FunctionDeclaration;
 import org.sosy_lab.java_smt.api.FunctionDeclarationKind;
 import org.sosy_lab.java_smt.api.IntegerFormulaManager;
@@ -1018,6 +1021,20 @@ public class FormulaManagerView {
 
   public <T extends Formula> FormulaType<T> getFormulaType(T pFormula) {
     return wrappingHandler.getFormulaType(pFormula);
+  }
+
+  public BitvectorType getFormulaType(BitvectorFormula pFormula) {
+    return (BitvectorType) wrappingHandler.getFormulaType(pFormula);
+  }
+
+  public FloatingPointType getFormulaType(FloatingPointFormula pFormula) {
+    return (FloatingPointType) wrappingHandler.getFormulaType(pFormula);
+  }
+
+  @SuppressWarnings("unchecked")
+  public <I extends Formula, E extends Formula> ArrayFormulaType<I, E> getFormulaType(
+      ArrayFormula<I, E> pFormula) {
+    return (ArrayFormulaType<I, E>) wrappingHandler.getFormulaType(pFormula);
   }
 
   private <T extends Formula> FormulaType<T> getRawFormulaType(T pFormula) {

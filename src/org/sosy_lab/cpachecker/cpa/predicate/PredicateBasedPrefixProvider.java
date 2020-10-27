@@ -22,12 +22,14 @@ import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
+import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
 import org.sosy_lab.cpachecker.cpa.arg.path.PathIterator;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
+import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
@@ -43,7 +45,11 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
   @Option(secure=true, description="Max. number of prefixes to extract")
   private int maxPrefixCount = 64;
 
-  @Option(secure=true, description="Max. length of feasible prefixes to extract from if at least one prefix was already extracted")
+  @Option(
+      secure = true,
+      description =
+          "Max. length of feasible prefixes to extract from if at least one prefix was already"
+              + " extracted")
   private int maxPrefixLength = 1024;
 
   private final LogManager logger;
@@ -73,6 +79,18 @@ public class PredicateBasedPrefixProvider implements PrefixProvider {
     shutdownNotifier = pShutdownNotifier;
     solver = pSolver;
     pathFormulaManager = pPathFormulaManager;
+  }
+
+  public static PredicateBasedPrefixProvider create(ConfigurableProgramAnalysis pCpa)
+      throws InvalidConfigurationException {
+    PredicateCPA predicateCpa =
+        CPAs.retrieveCPAOrFail(pCpa, PredicateCPA.class, PredicateBasedPrefixProvider.class);
+    return new PredicateBasedPrefixProvider(
+        predicateCpa.getConfiguration(),
+        predicateCpa.getLogger(),
+        predicateCpa.getSolver(),
+        predicateCpa.getPathFormulaManager(),
+        predicateCpa.getShutdownNotifier());
   }
 
   @Override

@@ -16,12 +16,10 @@ import org.sosy_lab.cpachecker.cpa.invariants.OverflowEventHandler;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
 
 /**
- * This factory provides operators that can be applied to an interval operand
- * and a big integer operand, producing another interval representing the result
- * of the operation.
+ * This factory provides operators that can be applied to an interval operand and a big integer
+ * operand, producing another interval representing the result of the operation.
  */
-public enum ISIOperatorFactory {
-
+enum ISIOperatorFactory {
   INSTANCE;
 
   /**

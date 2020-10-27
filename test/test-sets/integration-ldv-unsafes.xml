@@ -73,6 +73,8 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/ldv-benchmarks/unsafes/68_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-68_1a-drivers--staging--media--msi3101--sdr-msi3101.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/ldv-benchmarks/unsafes/68_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-68_1a-drivers--usb--core--usbcore.ko-ldv_main11.cil.out.yml</exclude> <!-- flapping timeout -->
     <exclude>../programs/ldv-benchmarks/unsafes/68_1a/linux-3.16-rc1/linux-3.16-rc1.tar.xz-68_1a-sound--usb--snd-usb-audio.ko-ldv_main7.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/106_1a/linux-3.12-rc1/linux-3.12-rc1-106_1a-drivers--scsi--scsi_mod.ko-ldv_main0.cil.out.yml</exclude> <!-- flapping timeout -->
+    <exclude>../programs/ldv-benchmarks/unsafes/32_7a/linux-4.2-rc1/linux-4.2-rc1.tar.xz-32_7a-drivers--gpu--drm--ttm--ttm.ko-ldv_main5.cil.out.yml</exclude> <!-- flapping timeout -->
   </tasks>
 
   <tasks>
