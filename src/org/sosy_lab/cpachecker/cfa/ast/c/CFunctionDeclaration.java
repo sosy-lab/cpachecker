@@ -10,11 +10,13 @@ package org.sosy_lab.cpachecker.cfa.ast.c;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.FileLocation;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
+import org.sosy_lab.cpachecker.cfa.types.c.CFunctionTypeWithNames;
 
 /**
  * This class represents forward declarations of functions.
@@ -54,6 +56,20 @@ public final class CFunctionDeclaration extends AFunctionDeclaration implements 
   @Override
   public List<CParameterDeclaration> getParameters() {
     return (List<CParameterDeclaration>)super.getParameters();
+  }
+
+  @Override
+  public String toASTString(boolean qualified){
+
+    if(qualified && getType() instanceof CFunctionTypeWithNames){
+      // CFunction type with names requires special handling if we want a qualified ASTString
+      String qualifiedName = Strings.nullToEmpty(getQualifiedName()).replace("::", "__");
+
+      return ((CFunctionTypeWithNames) getType()).toQualifiedASTString(qualifiedName)+";";
+
+    }
+
+    return super.toASTString(qualified);
   }
 
   @Override

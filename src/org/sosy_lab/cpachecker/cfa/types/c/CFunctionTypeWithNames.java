@@ -12,10 +12,12 @@ import static org.sosy_lab.common.collect.Collections3.transformedImmutableListC
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.Objects;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.AAstNode;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 
 /**
@@ -51,6 +53,26 @@ public final class CFunctionTypeWithNames extends CFunctionType implements CType
   @Override
   public String toString() {
     return toASTString(Strings.nullToEmpty(getName()), getParameterDeclarations());
+  }
+
+
+  /**
+   * Return a qualified string representation of a function declaration with
+   * a given name and this type.
+   *
+   * Example:
+   * If type is a function with names and we call <code>toQualifiedASTString</code>,
+   * the result contains only qualified names.
+   *
+   * @param pDeclarator The name of the function to declare
+   * @return A string representation of this type.
+   */
+  // This method is only need since we store names in declaration
+  // This method might not be needed for Types in general
+  public String toQualifiedASTString(String pDeclarator){
+    return toASTString(pDeclarator,
+                       Lists.transform(getParameterDeclarations(), AAstNode::toQualifiedASTString)
+                       );
   }
 
   @Override
