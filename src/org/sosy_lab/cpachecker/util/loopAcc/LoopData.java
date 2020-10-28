@@ -48,7 +48,6 @@ public class LoopData implements Comparable<LoopData> {
 
   private final int OUTPUT_VARIABLE_ARRAY_POSITION = 2;
   private final String OUTPUT_NAME_SYMBOL_CUT = ":";
-  private final String EMPTY_STRING = "";
   private final int FLAG_FOR_LAST_STRING = 1;
   private final int ONLY_ENTERING_EDGE = 0;
   private final int POSITION_OF_VARIABLE_IN_ARRAY_ZERO = 0;
