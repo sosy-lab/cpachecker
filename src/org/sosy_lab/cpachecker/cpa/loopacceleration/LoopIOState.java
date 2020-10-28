@@ -32,7 +32,7 @@ public class LoopIOState implements AbstractState, Graphable {
     if (obj == null) {
       return false;
     }
-    if (getClass() != obj.getClass()) {
+    if (!(obj instanceof LoopIOState)) {
       return false;
     }
     LoopIOState other = (LoopIOState) obj;
