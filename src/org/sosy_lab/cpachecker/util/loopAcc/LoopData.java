@@ -629,7 +629,7 @@ public class LoopData implements Comparable<LoopData> {
     CFANode node;
 
     if (type.contentEquals("while")) {
-      if (temp.isEmpty() || endless == true) {
+      if (temp.isEmpty() || endless) {
         cond = "1";
       }
 
