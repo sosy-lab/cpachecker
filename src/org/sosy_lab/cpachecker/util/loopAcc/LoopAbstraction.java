@@ -11,9 +11,10 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Iterables;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
+import java.io.Writer;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -458,13 +459,13 @@ public class LoopAbstraction {
                                 .getEndingLineInOrigin()
                         && line != null
                         && (lineNumber
-                            < (loopD
+                            < loopD
                                 .getInnerLoop()
                                 .getIncomingEdges()
                                 .asList()
                                 .get(0)
                                 .getFileLocation()
-                                .getStartingLineInOrigin()))) {
+                                .getStartingLineInOrigin())) {
                       line = reader.readLine();
                       line = variablesAlreadyUsed(preUsedVariables, line);
                       closed = ifCaseClosed(line, closed);
@@ -1033,7 +1034,7 @@ public class LoopAbstraction {
         String cond = Iterables.get(Splitter.on(';').split(loopD.getCondition()), 0);
 
         if (cond.contains(variable)) {
-          cond = cond.split(variable)[1];
+          cond = Iterables.get(Splitter.on(variable).split(cond), 1);
         }
 
         return cond
@@ -1104,7 +1105,7 @@ public class LoopAbstraction {
     File file = new File(fileName);
 
     file.getParentFile().mkdirs();
-    try (FileWriter fileWriter = new FileWriter(file)) {
+    try (Writer fileWriter = Files.newBufferedWriter(file.toPath(), Charset.defaultCharset())) {
       String fileContent = content;
       fileWriter.write(fileContent);
     } catch (IOException e) {
