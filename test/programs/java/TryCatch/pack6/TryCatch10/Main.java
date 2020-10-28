@@ -9,10 +9,10 @@
 public class Main {
   public static void main(String[] args) {
 
-    int[] intArray = new int[3];
+    int[][] intArray = new int[3][2];
 
     try {
-      final int i = intArray[3];
+      final int i = intArray[3][1];
       System.out.println(i);
       System.out.println("No Exception thrown");
     } catch (ArrayIndexOutOfBoundsException e) {
@@ -21,7 +21,7 @@ public class Main {
       assert true;
     } catch (RuntimeException e) {
       System.out.println("Runtime Exception: " + e);
-      throw new RuntimeException();
+      assert false;
     }
     finally{
       assert true;

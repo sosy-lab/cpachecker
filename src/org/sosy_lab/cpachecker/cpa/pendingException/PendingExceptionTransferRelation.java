@@ -8,16 +8,24 @@
 
 package org.sosy_lab.cpachecker.cpa.pendingException;
 
+import com.google.common.collect.Lists;
 import java.util.Collection;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
+import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
+import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.PendingExceptionOfJIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.PendingExceptionOfJRunTimeType;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
@@ -29,6 +37,7 @@ import org.sosy_lab.cpachecker.cfa.model.java.JMethodSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JThrowStatementEdge;
+import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
 import org.sosy_lab.cpachecker.core.defaults.ForwardingTransferRelation;
@@ -43,7 +52,76 @@ public class PendingExceptionTransferRelation
   @Override
   protected PendingExceptionState handleDeclarationEdge(
       JDeclarationEdge cfaEdge, JDeclaration decl) {
+
+    AInitializer initializer = null;
+    if (decl instanceof JVariableDeclaration) {
+      initializer = ((JVariableDeclaration) decl).getInitializer();
+    }
+
+    // Note array name and array size
+    if (decl.getType() instanceof JArrayType && initializer != null) {
+      assert initializer instanceof JInitializerExpression
+          : "Initializer should be of type JInitializerExpression. If not, cases need to be added";
+      JExpression jArrayCreationExpression = ((JInitializerExpression) initializer).getExpression();
+      assert jArrayCreationExpression instanceof JArrayCreationExpression;
+      state
+          .getArrays()
+          .put(
+              getScopedVariableName(functionName, decl.getName()),
+              ((JArrayCreationExpression) jArrayCreationExpression).getLength());
+    }
+    // Check array name and size
+    else if (initializer instanceof JInitializerExpression
+        && ((JInitializerExpression) initializer).getExpression()
+        instanceof JArraySubscriptExpression) {
+
+      String nameOfArray = getNameOfArrayFromInitializer((JInitializerExpression) initializer);
+      List<JExpression> dimensions =
+          state.getArrays().get(getScopedVariableName(functionName, nameOfArray));
+      boolean arrayAccessOutOfBounds =
+          isArrayAccessOutOfBounds(
+              (JArraySubscriptExpression) ((JInitializerExpression) initializer).getExpression(),
+              dimensions);
+      if (arrayAccessOutOfBounds) {
+        state
+            .getPendingExceptions()
+            .put(
+                PendingExceptionState.PENDING_EXCEPTION,
+                "java.lang.ArrayIndexOutOfBoundsException");
+      }
+    }
     return state; // TODO
+  }
+
+  private boolean isArrayAccessOutOfBounds(
+      JArraySubscriptExpression pJArraySubscriptExpression, List<JExpression> dimensionsOfArray) {
+
+    JArraySubscriptExpression currentJArraySubscriptExpression = pJArraySubscriptExpression;
+    for (JExpression dimensionOfArray : Lists.reverse(dimensionsOfArray)) {
+      JIntegerLiteralExpression currentSubscriptExpression =
+          (JIntegerLiteralExpression) currentJArraySubscriptExpression.getSubscriptExpression();
+      int sizeOfArray = ((JIntegerLiteralExpression) dimensionOfArray).getValue().intValue();
+      int access = currentSubscriptExpression.getValue().intValue();
+      if (access >= sizeOfArray) {
+        return true;
+      }
+      currentJArraySubscriptExpression =
+          (JArraySubscriptExpression) currentJArraySubscriptExpression.getArrayExpression();
+    }
+    return false;
+  }
+
+  private String getNameOfArrayFromInitializer(JInitializerExpression pInitializer) {
+    JExpression arrayExpression =
+        ((JArraySubscriptExpression) pInitializer.getExpression()).getArrayExpression();
+    assert arrayExpression instanceof JIdExpression
+        || arrayExpression instanceof JArraySubscriptExpression;
+    if (arrayExpression instanceof JIdExpression) {
+      return ((JIdExpression) arrayExpression).getName();
+    } else {
+      return ((JIdExpression) ((JArraySubscriptExpression) arrayExpression).getArrayExpression())
+          .getName();
+    }
   }
 
   @Override
@@ -82,8 +160,8 @@ public class PendingExceptionTransferRelation
 
       assert isThrowable(rightHandSide.getExpressionType());
 
-      // TODO Don't hardcode, use already existing method
-      state.getPendingExceptions().put(functionName + "::" + rightHandSide.toString(), "");
+      String variableName = getScopedVariableName(functionName, rightHandSide.toString());
+      state.getPendingExceptions().put(variableName, "");
     }
 
     return state; // TODO Create copy?
@@ -141,13 +219,20 @@ public class PendingExceptionTransferRelation
       if ((abstractState instanceof RTTState)) {
         for (String variableName :
             ((PendingExceptionState) pState).getPendingExceptions().keySet()) {
-          String value = ((RTTState) abstractState).getConstantsMap().get(variableName);
-          ((PendingExceptionState) pState)
-              .getPendingExceptions()
-              .put(variableName, ((RTTState) abstractState).getRunTimeClassOfUniqueObject(value));
+          if (((RTTState) abstractState).getConstantsMap().containsKey(variableName)) {
+            String value = ((RTTState) abstractState).getConstantsMap().get(variableName);
+            ((PendingExceptionState) pState)
+                .getPendingExceptions()
+                .put(variableName, ((RTTState) abstractState).getRunTimeClassOfUniqueObject(value));
+          }
         }
       }
     }
     return super.strengthen(pState, pOtherStates, pCfaEdge, pPrecision);
+  }
+
+  private static String getScopedVariableName(String pFunctionName, String pVariableName) {
+    String variableDelimiter = "::";
+    return pFunctionName + variableDelimiter + pVariableName;
   }
 }

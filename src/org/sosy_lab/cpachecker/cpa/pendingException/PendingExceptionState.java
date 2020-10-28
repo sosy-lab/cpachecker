@@ -9,22 +9,35 @@
 package org.sosy_lab.cpachecker.cpa.pendingException;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.sosy_lab.common.Appenders.AbstractAppender;
+import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
 public class PendingExceptionState extends AbstractAppender
     implements LatticeAbstractState<PendingExceptionState> {
 
+  public static final String PENDING_EXCEPTION = "pending_exception";
+
+  // Name of variable, RunTimeType
+  private final Map<String, String> pendingExceptions;
+
+  // Name of Array and length
+  private final Map<String, List<JExpression>> arrays;
+
+  public PendingExceptionState() {
+    pendingExceptions = new HashMap<>();
+    arrays = new HashMap<>();
+  }
+
   public Map<String, String> getPendingExceptions() {
     return pendingExceptions;
   }
 
-  private final Map<String, String> pendingExceptions;
-
-  public PendingExceptionState() {
-    pendingExceptions = new HashMap<>();
+  Map<String, List<JExpression>> getArrays() {
+    return arrays;
   }
 
   @Override
