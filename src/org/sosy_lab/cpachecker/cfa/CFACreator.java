@@ -8,8 +8,6 @@
 
 package org.sosy_lab.cpachecker.cfa;
 
-import LoopAcc.LoopAbstractionHeader;
-import LoopAcc.LoopInformation;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.io.MoreFiles;
@@ -97,6 +95,8 @@ import org.sosy_lab.cpachecker.util.Pair;
 import org.sosy_lab.cpachecker.util.cwriter.CFAToCTranslator;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraph;
 import org.sosy_lab.cpachecker.util.dependencegraph.DependenceGraphBuilder;
+import org.sosy_lab.cpachecker.util.loopAcc.LoopAbstractionHeader;
+import org.sosy_lab.cpachecker.util.loopAcc.LoopInformation;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsUtils;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassification;
 import org.sosy_lab.cpachecker.util.variableclassification.VariableClassificationBuilder;
