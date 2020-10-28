@@ -8,8 +8,8 @@
 
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
-
-public class ContainsOnlyEnvInfoVisitor<T> extends DefaultNumeralFormulaVisitor<T, Boolean> implements BooleanFormulaVisitor<T, Boolean> {
+class ContainsOnlyEnvInfoVisitor<T> extends DefaultNumeralFormulaVisitor<T, Boolean>
+    implements BooleanFormulaVisitor<T, Boolean> {
 
   private final CollectVarsVisitor<T> collectVarsVisitor = new CollectVarsVisitor<>();
 

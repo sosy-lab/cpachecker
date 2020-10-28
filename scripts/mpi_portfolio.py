@@ -273,7 +273,7 @@ class MPIMain:
                 self.analysis_param[ANALYSIS],
             )
 
-            if not os.path.exists(self.analysis_param[OUTPUT_PATH]):
+            if not os.path.isdir(self.analysis_param[OUTPUT_PATH]):
                 os.makedirs(self.analysis_param[OUTPUT_PATH])
 
             logger.info("Executing cmd: %s", cmdline)
@@ -294,9 +294,7 @@ class MPIMain:
                         outputfile.write(proc_stdout)
                         proc_output = proc_stdout.split("\n")
 
-            logger.info(
-                "Process returned with status code %d", self.process.returncode,
-            )
+            logger.info("Process returned with status code %d", self.process.returncode)
             if not self.shutdown_requested:
                 self.shutdown_requested = True
                 self.publish_completion_of_subprocess(proc_output)

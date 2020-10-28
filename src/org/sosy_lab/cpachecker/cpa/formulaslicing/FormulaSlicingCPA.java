@@ -46,7 +46,7 @@ import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManagerImp
 import org.sosy_lab.cpachecker.util.predicates.smt.FormulaManagerView;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
 import org.sosy_lab.cpachecker.util.predicates.weakening.InductiveWeakeningManager;
-
+import org.sosy_lab.cpachecker.util.predicates.weakening.WeakeningOptions;
 
 public class FormulaSlicingCPA extends SingleEdgeTransferRelation
   implements
@@ -79,8 +79,9 @@ public class FormulaSlicingCPA extends SingleEdgeTransferRelation
     CachingPathFormulaManager pathFormulaManager = new CachingPathFormulaManager
         (origPathFormulaManager);
 
-    inductiveWeakeningManager = new InductiveWeakeningManager(pConfiguration, solver, pLogger,
-        pShutdownNotifier);
+    inductiveWeakeningManager =
+        new InductiveWeakeningManager(
+            new WeakeningOptions(pConfiguration), solver, pLogger, pShutdownNotifier);
     rcnfManager = new RCNFManager(pConfiguration);
     manager = new FormulaSlicingManager(
         pConfiguration,

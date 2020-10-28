@@ -2211,7 +2211,12 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   @Override
   public String toDOTLabel() {
-    return toString();
+    // same as "toString", but without the heap to reduce the amount of text.
+    String parent =
+        getPredecessorId() == 0
+            ? "no parent, initial state"
+            : "parent [" + getPredecessorId() + "]";
+    return String.format("[%d] with %s", getId(), parent);
   }
 
   @Override

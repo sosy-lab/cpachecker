@@ -14,7 +14,7 @@ import com.google.common.base.Preconditions;
 import java.math.BigInteger;
 import java.util.Objects;
 
-public class CompoundBitVectorIntervalManager implements CompoundIntervalManager {
+class CompoundBitVectorIntervalManager implements CompoundIntervalManager {
 
   private final BitVectorInfo info;
 

@@ -26,15 +26,16 @@ public class FormulaEncodingOptions {
   @Option(secure=true, description = "Handle field access via extract and concat instead of new variables.")
   private boolean handleFieldAccess = false;
 
-  @Option(secure=true, description="Set of functions that should be considered as giving "
-    + "a non-deterministic return value. "
-    + "If you specify this option, the default values are not added automatically "
-    + "to the list, so you need to specify them explicitly if you need them. "
-    + "Mentioning a function in this list has only an effect, if it is an "
-    + "'external function', i.e., no source is given in the code for this function.")
-  private Set<String> nondetFunctions = ImmutableSet.of(
-      "sscanf",
-      "random");
+  @Option(
+      secure = true,
+      description =
+          "Set of functions that should be considered as giving "
+              + "a non-deterministic return value. "
+              + "If you specify this option, the default values are not added automatically "
+              + "to the list, so you need to specify them explicitly if you need them. "
+              + "Mentioning a function in this list has only an effect, if it is an "
+              + "'external function', i.e., no source is given in the code for this function.")
+  private Set<String> nondetFunctions = ImmutableSet.of("sscanf", "rand", "random");
 
   @Option(secure=true, description="Regexp pattern for functions that should be considered as giving "
     + "a non-deterministic return value (c.f. cpa.predicate.nondedFunctions)")

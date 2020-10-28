@@ -11,9 +11,7 @@ package org.sosy_lab.cpachecker.cpa.invariants;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.Type;
 
-
-public enum CompoundMathematicalIntervalManagerFactory implements CompoundIntervalManagerFactory {
-
+enum CompoundMathematicalIntervalManagerFactory implements CompoundIntervalManagerFactory {
   INSTANCE;
 
   @Override

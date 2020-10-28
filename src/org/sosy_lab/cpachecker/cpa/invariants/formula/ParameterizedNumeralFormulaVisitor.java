@@ -9,16 +9,14 @@
 package org.sosy_lab.cpachecker.cpa.invariants.formula;
 
 /**
- * Instances of implementing classes are visitors for invariants formulae that
- * accept an additional parameter to take into consideration on visiting a
- * formula.
+ * Instances of implementing classes are visitors for invariants formulae that accept an additional
+ * parameter to take into consideration on visiting a formula.
  *
- * @param <ConstantType> the type of the constants used in the visited
- * formulae.
+ * @param <ConstantType> the type of the constants used in the visited formulae.
  * @param <ParameterType> the type of the additional parameter.
  * @param <ReturnType> the type of the visit results.
  */
-public interface ParameterizedNumeralFormulaVisitor<ConstantType, ParameterType, ReturnType> {
+interface ParameterizedNumeralFormulaVisitor<ConstantType, ParameterType, ReturnType> {
 
   /**
    * Visits the given addition invariants formula.

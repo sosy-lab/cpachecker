@@ -1197,7 +1197,7 @@ v.addInitializer(initializer);
 
     if (exportCfaToC && exportCfaToCFile != null) {
       try {
-        String code = new CFAToCTranslator().translateCfa(cfa);
+        String code = new CFAToCTranslator(config).translateCfa(cfa);
         try (Writer writer = IO.openOutputFile(exportCfaToCFile, Charset.defaultCharset())) {
           writer.write(code);
         }

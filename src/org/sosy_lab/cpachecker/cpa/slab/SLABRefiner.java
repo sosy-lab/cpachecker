@@ -37,6 +37,7 @@ import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPARefinerFactory;
 import org.sosy_lab.cpachecker.cpa.predicate.RefinementStrategy;
 import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsRefiner;
 import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsStrategy;
+import org.sosy_lab.cpachecker.cpa.predicate.SlicingAbstractionsUtils.AbstractionPosition;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
@@ -173,7 +174,14 @@ public class SLABRefiner implements Refiner, StatisticsProvider {
     PathFormulaManager pfmgr = slabCpa.getPredicateCpa().getPathFormulaManager();
 
     BooleanFormula formula =
-        buildPathFormula(startState, endState, startSSAMap, startPts, solver, pfmgr, true)
+        buildPathFormula(
+                startState,
+                endState,
+                startSSAMap,
+                startPts,
+                solver.getFormulaManager(),
+                pfmgr,
+                AbstractionPosition.BOTH)
             .getFormula();
 
     boolean infeasible = false;

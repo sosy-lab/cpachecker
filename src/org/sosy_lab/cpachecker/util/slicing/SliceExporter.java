@@ -93,11 +93,13 @@ public class SliceExporter {
 
   private final LogManager logger;
   private int exportCount = -1;
+  private final CFAToCTranslator translator;
 
   public SliceExporter(Configuration pConfig, LogManager pLogger)
       throws InvalidConfigurationException {
     pConfig.inject(this);
 
+    translator = new CFAToCTranslator(pConfig);
     logger = pLogger;
   }
 
@@ -355,7 +357,6 @@ public class SliceExporter {
       if (pRelevantEdges.contains(edge)
           || edge.getEdgeType() == CFAEdgeType.BlankEdge
           || edge.getEdgeType() == CFAEdgeType.AssumeEdge
-          || edge.getEdgeType() == CFAEdgeType.DeclarationEdge
           || edge instanceof CFunctionSummaryStatementEdge) {
 
         newEdge = cloneEdge(edge, newPred, newSucc);
@@ -425,7 +426,8 @@ public class SliceExporter {
 
       FunctionEntryNode entryNode = originalCfa.getFunctionHead(functionName);
 
-      Collection<CFANode> functionNodes = CFATraversal.dfs().collectNodesReachableFrom(entryNode);
+      Collection<CFANode> functionNodes =
+          CFATraversal.dfs().collectNodesReachableFromTo(entryNode, entryNode.getExitNode());
 
       if (isMainFunction || containsRelevantEdge(functionNodes, relevantEdges)) {
         final FunctionEntryNode newEntryNode =
@@ -498,7 +500,8 @@ public class SliceExporter {
 
                 try (Writer writer = IO.openOutputFile(path, Charset.defaultCharset())) {
 
-                  String code = new CFAToCTranslator().translateCfa(sliceCfa);
+                  assert translator != null;
+                  String code = translator.translateCfa(sliceCfa);
                   writer.write(code);
 
                 } catch (CPAException | IOException | InvalidConfigurationException e) {

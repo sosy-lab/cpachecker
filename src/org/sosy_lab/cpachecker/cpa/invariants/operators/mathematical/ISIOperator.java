@@ -8,19 +8,17 @@
 
 package org.sosy_lab.cpachecker.cpa.invariants.operators.mathematical;
 
+import java.math.BigInteger;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cpa.invariants.SimpleInterval;
 import org.sosy_lab.cpachecker.cpa.invariants.operators.Operator;
 
-import java.math.BigInteger;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 /**
- * Instances of implementations of this interface are operators that can
- * be applied to a simple interval operand and a big integer operand,
- * producing another simple interval representing the result of the operation.
+ * Instances of implementations of this interface are operators that can be applied to a simple
+ * interval operand and a big integer operand, producing another simple interval representing the
+ * result of the operation.
  */
-public enum ISIOperator implements Operator<SimpleInterval, BigInteger, SimpleInterval> {
+enum ISIOperator implements Operator<SimpleInterval, BigInteger, SimpleInterval> {
 
   /**
    * The addition operator for adding intervals to big integers.

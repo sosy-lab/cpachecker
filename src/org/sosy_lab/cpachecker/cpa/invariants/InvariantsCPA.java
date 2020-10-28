@@ -125,8 +125,17 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     @Option(secure=true, description="controls whether to use abstract evaluation always, never, or depending on entering edges.")
     private AbstractionStrategyFactories abstractionStateFactory = AbstractionStrategyFactories.ENTERING_EDGES;
 
-    @Option(secure=true, description="controls the condition adjustment logic: STATIC means that condition adjustment is a no-op, INTERESTING_VARIABLES increases the interesting variable limit, MAXIMUM_FORMULA_DEPTH increases the maximum formula depth, ABSTRACTION_STRATEGY tries to choose a more precise abstraction strategy and COMPOUND combines the other strategies (minus STATIC).")
-    private ConditionAdjusterFactories conditionAdjusterFactory = ConditionAdjusterFactories.COMPOUND;
+    @Option(
+        secure = true,
+        description =
+            "controls the condition adjustment logic: "
+                + "STATIC means that condition adjustment is a no-op, "
+                + "INTERESTING_VARIABLES increases the interesting variable limit, "
+                + "MAXIMUM_FORMULA_DEPTH increases the maximum formula depth, "
+                + "ABSTRACTION_STRATEGY tries to choose a more precise abstraction strategy, "
+                + "COMPOUND combines the other strategies (minus STATIC).")
+    private ConditionAdjusterFactories conditionAdjusterFactory =
+        ConditionAdjusterFactories.COMPOUND;
 
     @Option(secure=true, description="include type information for variables, such as x >= MIN_INT && x <= MAX_INT")
     private boolean includeTypeInformation = true;
@@ -596,7 +605,9 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
 
     boolean adjustConditions();
 
-    void adjustReachedSet(ReachedSet pReachedSet);
+    default void adjustReachedSet(ReachedSet pReachedSet) {
+      pReachedSet.clear();
+    }
 
   }
 
@@ -800,11 +811,6 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     }
 
     @Override
-    public void adjustReachedSet(ReachedSet pReachedSet) {
-      pReachedSet.clear();
-    }
-
-    @Override
     public int getInc() {
       return this.inc;
     }
@@ -840,11 +846,6 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
     }
 
     @Override
-    public void adjustReachedSet(ReachedSet pReachedSet) {
-      pReachedSet.clear();
-    }
-
-    @Override
     public int getInc() {
       return this.inc;
     }
@@ -875,11 +876,6 @@ public class InvariantsCPA implements ConfigurableProgramAnalysis, ReachedSetAdj
       }
       cpa.logManager.log(Level.INFO, "Adjusting abstraction strategy to", cpa.options.abstractionStateFactory);
       return true;
-    }
-
-    @Override
-    public void adjustReachedSet(ReachedSet pReachedSet) {
-      pReachedSet.clear();
     }
 
   }

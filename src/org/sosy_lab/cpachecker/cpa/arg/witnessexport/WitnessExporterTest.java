@@ -50,7 +50,11 @@ public class WitnessExporterTest {
 
     BDD_CONCURRENCY("bddAnalysis-concurrency"),
 
-    PREDICATE_ANALYSIS("predicateAnalysis");
+    PREDICATE_ANALYSIS("predicateAnalysis"),
+
+    VALUE_ANALYSIS("valueAnalysis"),
+
+    BAM("valueAnalysis-predicateAnalysis-bam");
 
     private final String fileName;
 
@@ -66,6 +70,19 @@ public class WitnessExporterTest {
   @Test(timeout = 90000)
   public void multivar_true() throws Exception {
     new WitnessTester("multivar.i", ExpectedVerdict.TRUE, WitnessGenerationConfig.K_INDUCTION)
+        .performTest();
+  }
+
+  @Test(timeout = 90000)
+  public void multivar_true_2() throws Exception {
+    new WitnessTester(
+            "multivar.i", ExpectedVerdict.TRUE, WitnessGenerationConfig.PREDICATE_ANALYSIS)
+        .performTest();
+  }
+
+  @Test(timeout = 90000)
+  public void max_true() throws Exception {
+    new WitnessTester("max.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.VALUE_ANALYSIS)
         .performTest();
   }
 
@@ -94,7 +111,7 @@ public class WitnessExporterTest {
         .performTest();
   }
 
-  @Test(timeout = 90000)
+  @Test(timeout = 200000)
   public void concurrency_false_mix000_power() throws Exception {
     new WitnessTester(
             "mix000_power.oepc.i", ExpectedVerdict.FALSE, WitnessGenerationConfig.BDD_CONCURRENCY)
@@ -105,6 +122,46 @@ public class WitnessExporterTest {
   public void rule60_list2_false() throws Exception {
     new WitnessTester(
             "rule60_list2.i", ExpectedVerdict.FALSE, WitnessGenerationConfig.PREDICATE_ANALYSIS)
+        .performTest();
+  }
+
+  @Test(timeout = 90000)
+  public void rule60_list2_false_2() throws Exception {
+    new WitnessTester(
+        "rule60_list2.i", ExpectedVerdict.FALSE, WitnessGenerationConfig.VALUE_ANALYSIS)
+        .performTest();
+  }
+
+  @Test(timeout = 90000)
+  public void valueInvariant_true() throws Exception {
+    new WitnessTester(
+        "valueInvariant.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.VALUE_ANALYSIS)
+        .performTest();
+  }
+
+  @Test(timeout = 90000)
+  public void valueInvariant_true_2() throws Exception {
+    new WitnessTester(
+        "valueInvariant.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.BAM)
+        .performTest();
+  }
+
+  @Test(timeout = 90000)
+  public void max_true_2() throws Exception {
+    new WitnessTester("max.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.BAM).performTest();
+  }
+
+  @Test(timeout = 90000)
+  public void weekdays_true() throws Exception {
+    new WitnessTester(
+            "weekdays.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.VALUE_ANALYSIS)
+        .performTest();
+  }
+
+  @Test(timeout = 90000)
+  public void weekdays_no_termination_true() throws Exception {
+    new WitnessTester(
+        "weekdays_no_termination.c", ExpectedVerdict.TRUE, WitnessGenerationConfig.VALUE_ANALYSIS)
         .performTest();
   }
 
@@ -147,6 +204,9 @@ public class WitnessExporterTest {
               + "::supply-reached-refinable");
     } else {
       overrideOptions.put("cpa.arg.proofWitness", pWitnessPath.uncompressedFilePath.toString());
+    }
+    if(pExpected.equals(ExpectedVerdict.TRUE)) {
+      overrideOptions.put("cpa.arg.compressWitness", "false");
     }
     Configuration generationConfig =
         getProperties(pGenerationConfig.fileName, overrideOptions, pSpecification);

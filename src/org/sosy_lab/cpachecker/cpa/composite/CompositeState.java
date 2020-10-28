@@ -14,8 +14,8 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Ordering;
-import com.google.common.collect.Sets;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -61,13 +61,13 @@ public class CompositeState
   @Override
   public Set<Property> getViolatedProperties() throws IllegalStateException {
     checkState(isTarget());
-    Set<Property> properties = Sets.newHashSetWithExpectedSize(states.size());
+    ImmutableSet.Builder<Property> properties = ImmutableSet.builder();
     for (AbstractState element : states) {
       if ((element instanceof Targetable) && ((Targetable)element).isTarget()) {
         properties.addAll(((Targetable)element).getViolatedProperties());
       }
     }
-    return properties;
+    return properties.build();
   }
 
   @Override

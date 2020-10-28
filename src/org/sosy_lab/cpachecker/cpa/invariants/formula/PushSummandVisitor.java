@@ -15,16 +15,16 @@ import java.util.Map;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * Instances of this class are parameterized invariants formula visitors used
- * to push one constant summand of an addition into the formula of the other
- * summand. This is possible as long as the operand can validly commute across
- * the concerned formulae and is performed with the goal of consuming the
- * operand in a formula, which means that the operand was added to another
- * constant producing a new constant instead of a more complex formula.
+ * Instances of this class are parameterized invariants formula visitors used to push one constant
+ * summand of an addition into the formula of the other summand. This is possible as long as the
+ * operand can validly commute across the concerned formulae and is performed with the goal of
+ * consuming the operand in a formula, which means that the operand was added to another constant
+ * producing a new constant instead of a more complex formula.
  *
  * @param <T> the type of the constants used
  */
-public class PushSummandVisitor<T> extends DefaultParameterizedNumeralFormulaVisitor<T, T, NumeralFormula<T>>{
+class PushSummandVisitor<T>
+    extends DefaultParameterizedNumeralFormulaVisitor<T, T, NumeralFormula<T>> {
 
   private static final String SUMMAND_ALREADY_CONSUMED_MESSAGE = "Summand already consumed.";
 

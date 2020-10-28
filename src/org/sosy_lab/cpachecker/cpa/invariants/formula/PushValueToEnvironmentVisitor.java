@@ -21,12 +21,12 @@ import org.sosy_lab.cpachecker.cpa.invariants.Typed;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * Instances of this class are parameterized compound state invariants formula
- * visitors used to push information from an assumption into the environment.
- * The visited formulae are the expressions for which the states provided as
- * the additional parameters are assumed.
+ * Instances of this class are parameterized compound state invariants formula visitors used to push
+ * information from an assumption into the environment. The visited formulae are the expressions for
+ * which the states provided as the additional parameters are assumed.
  */
-public class PushValueToEnvironmentVisitor implements ParameterizedNumeralFormulaVisitor<CompoundInterval, CompoundInterval, Boolean> {
+class PushValueToEnvironmentVisitor
+    implements ParameterizedNumeralFormulaVisitor<CompoundInterval, CompoundInterval, Boolean> {
 
   private final PushAssumptionToEnvironmentVisitor pushAssumptionToEnvironmentVisitor;
 
