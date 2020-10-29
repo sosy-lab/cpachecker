@@ -48,7 +48,8 @@ public class LoopAbstraction {
       String pathForNewFile,
       String abstractionLevel,
       boolean automate,
-      boolean onlyAccL) {
+      boolean onlyAccL)
+      throws NoPossibleTypeException {
     List<LoopData> outerLoopTemp = new ArrayList<>();
     List<Integer> loopStarts = new ArrayList<>();
     List<String> preUsedVariables = new ArrayList<>();
@@ -506,9 +507,12 @@ public class LoopAbstraction {
    *     non-deterministic
    * @return returns a string that get's added to the program-string with non-deterministic values
    *     assigned
+   * @throws NoPossibleTypeException if another data type is used than the normal ones this method
+   *     throws an exception --- besser worden
    */
   private String undeterministicVariables(
-      LoopData loopD, List<String> preUsedVariables, String abstractionLevel) {
+      LoopData loopD, List<String> preUsedVariables, String abstractionLevel)
+      throws NoPossibleTypeException {
     String tmp = "";
     List<String> variables = null;
     if (abstractionLevel.equals("naiv")) {
@@ -801,6 +805,7 @@ public class LoopAbstraction {
                         + "=__VERIFIER_nondet_float();}"
                         + System.lineSeparator());
             break;
+          default: throw new NoPossibleTypeException();
         }
       } else {
         switch (Iterables.get(Splitter.on('&').split(x), 1)) {
@@ -886,6 +891,8 @@ public class LoopAbstraction {
             }
             tmp += (Iterables.get(Splitter.on('&').split(x),0) + "=__VERIFIER_nondet_float();" + System.lineSeparator());
             break;
+          default:
+            throw new NoPossibleTypeException();
         }
       }
     }

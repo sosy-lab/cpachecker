@@ -47,19 +47,19 @@ public class LoopData implements Comparable<LoopData> {
   private Loop innerLoop;
   private boolean canBeAccelerated;
 
-  private final int OUTPUT_VARIABLE_ARRAY_POSITION = 2;
-  private final String OUTPUT_NAME_SYMBOL_CUT = ":";
-  private final int FLAG_FOR_LAST_STRING = 1;
-  private final int ONLY_ENTERING_EDGE = 0;
-  private final int POSITION_OF_VARIABLE_IN_ARRAY_ZERO = 0;
-  private final int POSITION_OF_VARIABLE_IN_ARRAY_ONE = 1;
-  private final int POSITION_OF_VARIABLE_IN_ARRAY_TWO = 2;
-  private final int VALID_STATE = 0;
-  private final int ERROR_STATE = 1;
-  private final int LAST_POSITION_OF_LIST = 1;
-  private final int FIRST_POSITION_OF_LIST = 0;
-  private final int EMPTY_LIST = 0;
-  private final int NO_IF_CASE = -1;
+  private static final int OUTPUT_VARIABLE_ARRAY_POSITION = 2;
+  private static final String OUTPUT_NAME_SYMBOL_CUT = ":";
+  private static final int FLAG_FOR_LAST_STRING = 1;
+  private static final int ONLY_ENTERING_EDGE = 0;
+  private static final int POSITION_OF_VARIABLE_IN_ARRAY_ZERO = 0;
+  private static final int POSITION_OF_VARIABLE_IN_ARRAY_ONE = 1;
+  private static final int POSITION_OF_VARIABLE_IN_ARRAY_TWO = 2;
+  private static final int VALID_STATE = 0;
+  private static final int ERROR_STATE = 1;
+  private static final int LAST_POSITION_OF_LIST = 1;
+  private static final int FIRST_POSITION_OF_LIST = 0;
+  private static final int EMPTY_LIST = 0;
+  private static final int NO_IF_CASE = -1;
 
   public LoopData(
       CFANode nameStart,

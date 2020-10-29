@@ -7,6 +7,7 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.util.loopAcc;
 
+import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -73,7 +74,11 @@ public class LoopAbstractionHeader {
   }
 
   public void abstractLoop() {
+    try {
     loopAbstraction.changeFileToAbstractFile(
         loopI, logger, pathForAbstractLoops, shouldAbstract, automate, accLoops);
+    } catch (NoPossibleTypeException e) {
+      logger.logUserException(Level.WARNING, e, "A unknown data type is used.");
+    }
   }
 }

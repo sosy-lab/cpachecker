@@ -19,7 +19,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 public class LoopStatistics implements Statistics {
 
   List<LoopData> loopList;
-  private final String NAME = "LoopStatistics ";
+  private static final String NAME = "LoopStatistics ";
 
   private List<String[]> loopStartAndEnd;
   private List<String[]> loopType;

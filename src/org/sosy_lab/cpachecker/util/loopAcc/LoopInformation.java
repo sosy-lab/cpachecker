@@ -54,8 +54,8 @@ public class LoopInformation implements StatisticsProvider {
   private List<LoopData> loopData;
   private final LogManager logger;
 
-  private final int FIRST_ELEMENT_OF_LIST = 0;
-  private final int VALID_STATE = 0;
+  private static final int FIRST_ELEMENT_OF_LIST = 0;
+  private static final int VALID_STATE = 0;
 
   public LoopInformation(Configuration config, LogManager pLogger, CFA cfa)
       throws InvalidConfigurationException {
