@@ -20,11 +20,9 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class LoopIOTransferRelation extends SingleEdgeTransferRelation {
 
-  CFA cfa;
   final Collection<CFANode> allNodes;
 
   public LoopIOTransferRelation(CFA cfa) {
-    this.cfa = cfa;
     allNodes = cfa.getAllNodes();
   }
 

@@ -510,7 +510,7 @@ public class LoopAbstraction {
   private String undeterministicVariables(
       LoopData loopD, List<String> preUsedVariables, String abstractionLevel) {
     String tmp = "";
-    List<String> variables = new ArrayList<>();
+    List<String> variables = null;
     if (abstractionLevel.equals("naiv")) {
       variables = loopD.getOutputs();
     } else {
@@ -1103,8 +1103,12 @@ public class LoopAbstraction {
     }
 
     File file = new File(fileName);
-
+    try {
     file.getParentFile().mkdirs();
+    } catch (Exception e) {
+      logger.logUserException(Level.WARNING, e, "Security Exception");
+    }
+
     try (Writer fileWriter = Files.newBufferedWriter(file.toPath(), Charset.defaultCharset())) {
       String fileContent = content;
       fileWriter.write(fileContent);
