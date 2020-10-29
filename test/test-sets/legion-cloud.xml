@@ -19,6 +19,8 @@ SPDX-License-Identifier: Apache-2.0
   <option name="-benchmark"/>
 
   <rundefinition name="legion"></rundefinition>
+  <resultfiles>**.xml*</resultfiles>
+
 
   <tasks name="ReachSafety-Bitvector">
     <includesfile>../../test/programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
