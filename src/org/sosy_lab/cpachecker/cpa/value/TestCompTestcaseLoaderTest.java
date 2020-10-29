@@ -46,7 +46,7 @@ public class TestCompTestcaseLoaderTest {
 
   /** Verifies that two maps are equal */
   private void assertMapEquals(Map<Integer, String> pExpected, Map<Integer, String> pActual) {
-    assertThat(pActual.entrySet().size()).isEqualTo(pExpected.entrySet().size());
+    assertThat(pActual.entrySet()).hasSize(pExpected.entrySet().size());
 
     for (Entry<Integer, String> e : pExpected.entrySet()) {
       assertThat(pActual.get(e.getKey())).isEqualTo(e.getValue());
