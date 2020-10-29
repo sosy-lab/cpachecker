@@ -12,18 +12,22 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigDecimal;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
+import org.sosy_lab.common.configuration.FileOption;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
@@ -128,6 +132,8 @@ public class ValueAnalysisTransferRelation
   // the value of the map entry is the explanation for the user
   private static final ImmutableMap<String, String> UNSUPPORTED_FUNCTIONS = ImmutableMap.of();
 
+  private static final AtomicInteger indexForNextRandomValue = new AtomicInteger();
+
   @Options(prefix = "cpa.value")
   public static class ValueTransferOptions {
 
@@ -158,7 +164,24 @@ public class ValueAnalysisTransferRelation
     @Option(secure=true, description="Track or not function pointer values")
     private boolean ignoreFunctionValue = true;
 
-    @Option(secure = true, description = "Use equality assumptions to assign values (e.g., (x == 0) => x = 0)")
+    @Option(
+        secure = true,
+        description =
+            "If 'ignoreFunctionValue' is set to true, this option allows "
+                + "to provide a fixed set of values in the TestComp format. It is used for "
+                + "function-calls to calls of VERIFIER_nondet_*. The file is provided via the option functionValuesForRandom ")
+    private boolean ignoreFunctionValueExceptRandom = false;
+
+    @Option(
+        secure = true,
+        description =
+            "Fixed set of values for function calls to VERIFIER_nondet_*. Does only work, if ignoreFunctionValueExceptRandom is enabled ")
+    @FileOption(FileOption.Type.OPTIONAL_INPUT_FILE)
+    private Path functionValuesForRandom = null;
+
+    @Option(
+        secure = true,
+        description = "Use equality assumptions to assign values (e.g., (x == 0) => x = 0)")
     private boolean assignEqualityAssumptions = true;
 
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
@@ -179,6 +202,14 @@ public class ValueAnalysisTransferRelation
 
     boolean isIgnoreFunctionValue() {
       return ignoreFunctionValue;
+    }
+
+    public boolean isIgnoreFunctionValueExceptRandom() {
+      return ignoreFunctionValueExceptRandom;
+    }
+
+    public Path getFunctionValuesForRandom() {
+      return functionValuesForRandom;
     }
   }
 
@@ -1636,7 +1667,17 @@ public class ValueAnalysisTransferRelation
 
   /** returns an initialized, empty visitor */
   private ExpressionValueVisitor getVisitor(ValueAnalysisState pState, String pFunctionName) {
-    if (options.isIgnoreFunctionValue()) {
+    if (options.isIgnoreFunctionValueExceptRandom()
+        && options.isIgnoreFunctionValue()
+        && options.getFunctionValuesForRandom() != null) {
+      return new ExpressionValueVisitorWithPredefinedValues(
+          pState,
+          pFunctionName,
+          options.getFunctionValuesForRandom(),
+          ValueAnalysisTransferRelation.indexForNextRandomValue,
+          machineModel,
+          logger);
+    } else if (options.isIgnoreFunctionValue()) {
       return new ExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
     } else {
       return new FunctionPointerExpressionValueVisitor(pState, pFunctionName, machineModel, logger);
