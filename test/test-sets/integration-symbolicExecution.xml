@@ -88,6 +88,5 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/ldv-linux-3.4-simple/43_1a_cilled_ok_nondet_linux-43_1a-drivers--hid--*</exclude>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="-skipRecursion"/>
-    <option name="-64"/>
   </tasks>
 </benchmark>

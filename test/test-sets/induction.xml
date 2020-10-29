@@ -25,7 +25,6 @@ SPDX-License-Identifier: Apache-2.0
   <tasks name="DeviceDrivers64">
     <includesfile>../programs/benchmarks/DeviceDriversLinux64.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/unreach-call.prp</propertyfile>
-    <option name="-64"/>
   </tasks>
   <tasks name="ECA">
     <includesfile>../programs/benchmarks/ECA.set</includesfile>
