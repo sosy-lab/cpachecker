@@ -8,15 +8,17 @@
 
 package org.sosy_lab.cpachecker.cpa.value;
 
-import static org.junit.Assert.assertTrue;
+import static com.google.common.truth.Truth.assertThat;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import org.junit.Test;
 
 public class TestCompTestcaseLoaderTest {
-  final String PREFIX = "test/programs/testcomp-tests/";
+
+  static final String PREFIX = "test/programs/testcomp-tests/";
 
   @Test
   public void testLoadingSingleInput() throws Exception {
@@ -44,11 +46,10 @@ public class TestCompTestcaseLoaderTest {
 
   /** Verifies that two maps are equal */
   private void assertMapEquals(Map<Integer, String> pExpected, Map<Integer, String> pActual) {
-    assertTrue(
-        "The map does not contain the expected number of entries",
-        pExpected.entrySet().size() == pActual.entrySet().size());
-    for (Integer k : pExpected.keySet()) {
-      assertTrue("An entry in the map does not match", pExpected.get(k).equals(pActual.get(k)));
+    assertThat(pActual.entrySet().size()).isEqualTo(pExpected.entrySet().size());
+
+    for (Entry<Integer, String> e : pExpected.entrySet()) {
+      assertThat(pActual.get(e.getKey())).isEqualTo(e.getValue());
     }
   }
 
