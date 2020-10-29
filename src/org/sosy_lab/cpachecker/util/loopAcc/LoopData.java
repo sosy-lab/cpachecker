@@ -1003,8 +1003,8 @@ public class LoopData implements Comparable<LoopData> {
     flagEndless = endless;
   }
 
-  private void setConditionInFor(List<CFANode> condition) {
-    conditionInFor = condition;
+  private void setConditionInFor(List<CFANode> tempForCondition) {
+    conditionInFor = tempForCondition;
   }
 
   public String outputToString() {
