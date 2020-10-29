@@ -82,8 +82,7 @@ public class LoopData implements Comparable<LoopData> {
     nodesInCondition =
         nodesInCondition(cfa, pLogger, loopStart, loopType, nodesInLoop, endOfCondition, forStart);
     output = getAllOutputs(cfa, nodesInLoop);
-    condition =
-        nodesToCondition(nodesInCondition, loopType, endOfCondition, conditionInFor, flagEndless);
+    condition = nodesToCondition(nodesInCondition, loopType, endOfCondition, flagEndless);
     inputOutput = getAllIO(output, nodesInLoop);
     numberAllOutputs = getAllNumberOutputs(output);
     amountOfPaths = getAllPaths(nodesInLoop, loopEnd, nodesInCondition, failedState, output);
@@ -670,14 +669,12 @@ public class LoopData implements Comparable<LoopData> {
    * @param type type of the loop to determine the way the condition will be put together
    * @param conditionEnd nodes that are not in the condition to make sure that only nodes in the
    *     condition will be part of the condition string
-   * @param conditionFor inner condition part that handles the boolean part of a for loop
    * @return string that represents the condition of the loop
    */
   public String nodesToCondition(
       List<CFANode> conditionNodes,
       String type,
       List<CFANode> conditionEnd,
-      List<CFANode> conditionFor,
       boolean endless) {
 
     // TODO mit Martin besprechen ob n Iterator nicht doch besser wäre
@@ -735,8 +732,7 @@ public class LoopData implements Comparable<LoopData> {
       CFANode end = temp.get(FIRST_POSITION_OF_LIST);
       temp.remove(FIRST_POSITION_OF_LIST);
 
-      // hier nochmal überlegen
-      conditionFor = copyList(forCondition);
+      setConditionInFor(forCondition);
 
       cond += start.getLeavingEdge(VALID_STATE).getDescription();
 
@@ -1005,6 +1001,10 @@ public class LoopData implements Comparable<LoopData> {
 
   private void setEndless(boolean endless) {
     flagEndless = endless;
+  }
+
+  private void setConditionInFor(List<CFANode> condition) {
+    conditionInFor = condition;
   }
 
   public String outputToString() {
