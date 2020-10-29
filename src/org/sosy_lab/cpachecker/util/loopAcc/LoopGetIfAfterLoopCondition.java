@@ -7,9 +7,14 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.util.loopAcc;
 
+import com.google.common.base.Splitter;
+import com.google.common.collect.Iterables;
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.Reader;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -32,7 +37,8 @@ public class LoopGetIfAfterLoopCondition {
 
   // diese Implementierung könnte ineffizienter sein
   private static void readFile() {
-    try (FileReader freader = new FileReader(fileLocation.getFileName())) {
+    try (Reader freader =
+        Files.newBufferedReader(Paths.get(fileLocation.getFileName()), Charset.defaultCharset())) {
       try (BufferedReader reader = new BufferedReader(freader)) {
         String line = "";
         int lineNumber = 1;
@@ -65,7 +71,7 @@ public class LoopGetIfAfterLoopCondition {
   }
 
   private static void findIf(String text, int lineNumber) {
-    String temp = text.split("\\(")[0];
+    String temp = Iterables.get(Splitter.on('(').split(text), 0);
     if (temp.contains("if")) {
       linesWithIf.add(lineNumber);
     }

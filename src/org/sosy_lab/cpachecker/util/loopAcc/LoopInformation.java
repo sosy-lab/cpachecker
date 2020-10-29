@@ -92,11 +92,11 @@ public class LoopInformation implements StatisticsProvider {
         // suche erste nicht assume edge -> kann eig auch in loopdata ausgelagert werden
         while (tempEdge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
           for (int i = 0; i < tempEdge.getSuccessor().getNumLeavingEdges(); i++) {
-            if (!(tempEdge
+            if (!tempEdge
                 .getSuccessor()
                 .getLeavingEdge(i)
                 .getEdgeType()
-                .equals(CFAEdgeType.AssumeEdge))) {
+                .equals(CFAEdgeType.AssumeEdge)) {
               tempNode = tempEdge.getSuccessor();
             }
           }
