@@ -9,6 +9,12 @@
             "args": "-config config/legion.properties -spec sv-comp-reachability doc/examples/legion/example.c",
         },{
             "type": "java",
+            "name": "Byte Add (Launch)",
+            "request": "launch",
+            "mainClass": "org.sosy_lab.cpachecker.cmdline.CPAMain",
+            "args": "-config config/legion.properties -spec sv-comp-reachability doc/examples/legion/byte_add_1-1.i",
+        },{
+            "type": "java",
             "name": "SVComp Debug (Launch)",
             "request": "launch",
             "mainClass": "org.sosy_lab.cpachecker.cmdline.CPAMain",

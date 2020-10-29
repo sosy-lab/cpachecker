@@ -117,6 +117,7 @@ public class TargetSolver {
         for (ValueAssignment assignment : pConstraints.asList()) {
             String name = assignment.getName();
 
+            // TODO this prevents values passed to functions beeing computed
             if (!name.startsWith("__VERIFIER_nondet_")) {
                 continue;
             }

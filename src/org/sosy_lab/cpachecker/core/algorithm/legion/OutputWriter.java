@@ -32,7 +32,6 @@ import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 import org.sosy_lab.cpachecker.util.testcase.XMLTestCaseExport;
 
-
 public class OutputWriter {
 
     private LogManager logger;
@@ -68,7 +67,10 @@ public class OutputWriter {
      * This only needs to be done once and does not contain testcase specific information.
      */
     private void writeTestMetadata() {
-        try (Writer metadata = Files.newBufferedWriter(Paths.get(this.path + "/metadata.xml"), Charset.defaultCharset())) {
+        try (Writer metadata =
+                Files.newBufferedWriter(
+                        Paths.get(this.path + "/metadata.xml"),
+                        Charset.defaultCharset())) {
             XMLTestCaseExport.writeXMLMetadata(metadata, predicateCPA.getCfa(), null, "legion");
             metadata.flush();
         } catch (IOException exc) {
@@ -80,13 +82,34 @@ public class OutputWriter {
      * Handles writing of all testcases necessary for the given reachedSet.
      */
     public void writeTestCases(ReachedSet pReachedSet) {
+        // Get starting point for search
         AbstractState first = pReachedSet.getFirstState();
         ARGState args = AbstractStates.extractStateByType(first, ARGState.class);
 
+        // Search individual testcases
         ArrayList<Entry<MemoryLocation, ValueAndType>> values = new ArrayList<>();
         searchTestCase(args, values);
-        try {
-            writeVariablesToTestcase(values);
+
+        // Determine file to open
+        String filename = String.format("/testcase_%s.xml", this.testCaseNumber);
+        logger.log(Level.WARNING, "Writing testcase ", filename);
+
+        try (Writer testcase =
+                Files.newBufferedWriter(
+                        Paths.get(this.path + filename),
+                        Charset.defaultCharset())) {
+            // Write header
+            testcase.write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>");
+            testcase.write(
+                    "<!DOCTYPE testcase PUBLIC \"+//IDN sosy-lab.org//DTD test-format testcase 1.0//EN\" \"https://sosy-lab.org/test-format/testcase-1.0.dtd\">");
+            testcase.write("<testcase>\n");
+
+            // Write testcases
+            writeVariablesToTestcase(values, testcase);
+
+            // Footer and flush
+            testcase.write("</testcase>\n");
+            testcase.flush();
         } catch (IOException exc) {
             logger.log(Level.SEVERE, "Could not write test output", exc);
         }
@@ -162,34 +185,27 @@ public class OutputWriter {
     /**
      * Write variables from values to a testcase file.
      */
-    private void writeVariablesToTestcase(ArrayList<Entry<MemoryLocation, ValueAndType>> values)
+    private void writeVariablesToTestcase(
+            ArrayList<Entry<MemoryLocation, ValueAndType>> values,
+            Writer testcase)
             throws IOException {
 
-        String filename = String.format("/testcase_%s.xml", this.testCaseNumber);
-        logger.log(Level.WARNING, "Writing testcase ", filename);
+        for (Entry<MemoryLocation, ValueAndType> v : values) {
+            String name = v.getKey().toString();
+            String type = v.getValue().getType().toString();
+            Value value = v.getValue().getValue();
 
-        try (Writer testcase = Files.newBufferedWriter(Paths.get(this.path + filename), Charset.defaultCharset())) {
-            testcase.write("<testcase>\n");
-            for (Entry<MemoryLocation, ValueAndType> v : values) {
-                String name = v.getKey().toString();
-                String type = v.getValue().getType().toString();
-                Value value = v.getValue().getValue();
-
-                String value_str = "";
-                if (type.equals("int")) {
-                    value_str = String.valueOf(((NumericValue) value).longValue());
-                }
-
-                testcase.write(
-                        String.format(
-                                "\t<input variable=\"%s\" type=\"%s\">%s</input>\n",
-                                name,
-                                type,
-                                value_str));
+            String value_str = "";
+            if (type.equals("int")) {
+                value_str = String.valueOf(((NumericValue) value).longValue());
             }
 
-            testcase.write("</testcase>\n");
-            testcase.flush();
+            testcase.write(
+                    String.format(
+                            "\t<input variable=\"%s\" type=\"%s\">%s</input>\n",
+                            name,
+                            type,
+                            value_str));
         }
         this.testCaseNumber += 1;
     }
