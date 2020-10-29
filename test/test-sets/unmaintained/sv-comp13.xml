@@ -17,39 +17,39 @@ SPDX-License-Identifier: Apache-2.0
   <option name="-noout"/>
 
   <tasks name="BitVectors">
-    <includesfile>../programs/benchmarks/BitVectors.set</includesfile>
+    <includesfile>../../programs/benchmarks/BitVectors.set</includesfile>
   </tasks>
   <tasks name="Concurrency">
-    <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
+    <includesfile>../../programs/benchmarks/Concurrency.set</includesfile>
   </tasks>
   <tasks name="ControlFlowInteger-MemPrecise">
-    <includesfile>../programs/benchmarks/ControlFlowInteger-MemPrecise.set</includesfile>
+    <includesfile>../../programs/benchmarks/ControlFlowInteger-MemPrecise.set</includesfile>
   </tasks>
   <tasks name="ControlFlowInteger-MemSimple">
-    <includesfile>../programs/benchmarks/ControlFlowInteger-MemSimple.set</includesfile>
+    <includesfile>../../programs/benchmarks/ControlFlowInteger-MemSimple.set</includesfile>
   </tasks>
   <tasks name="DeviceDrivers64">
-    <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
+    <includesfile>../../programs/benchmarks/DeviceDrivers64.set</includesfile>
     <option name="-64"/>
   </tasks>
   <tasks name="FeatureChecks">
-    <includesfile>../programs/benchmarks/FeatureChecks.set</includesfile>
+    <includesfile>../../programs/benchmarks/FeatureChecks.set</includesfile>
   </tasks>
   <tasks name="HeapManipulation">
-    <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
+    <includesfile>../../programs/benchmarks/HeapManipulation.set</includesfile>
   </tasks>
   <tasks name="Loops">
-    <includesfile>../programs/benchmarks/Loops.set</includesfile>
+    <includesfile>../../programs/benchmarks/Loops.set</includesfile>
   </tasks>
   <tasks name="MemorySafety">
-    <includesfile>../programs/benchmarks/MemorySafety.set</includesfile>
+    <includesfile>../../programs/benchmarks/MemorySafety.set</includesfile>
     <option name="-preprocess"/>
   </tasks>
   <tasks name="ProductLines">
-    <includesfile>../programs/benchmarks/ProductLines.set</includesfile>
+    <includesfile>../../programs/benchmarks/ProductLines.set</includesfile>
   </tasks>
   <tasks name="SystemC">
-    <includesfile>../programs/benchmarks/SystemC.set</includesfile>
+    <includesfile>../../programs/benchmarks/SystemC.set</includesfile>
   </tasks>
 
   <rundefinition name="combinations">
