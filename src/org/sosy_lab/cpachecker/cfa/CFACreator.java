@@ -403,16 +403,25 @@ public class CFACreator {
       throws InvalidConfigurationException, ParserException, InterruptedException {
 
     stats.totalTime.start();
+    CFA cfa = null;
     try {
       ParseResult parseResult = parseToCFAs(program);
       FunctionEntryNode mainFunction = parseResult.getFunctions().get(mainFunctionName);
       assert mainFunction != null : "program lacks main function.";
 
-      CFA cfa = createCFA(parseResult, mainFunction);
+      cfa = createCFA(parseResult, mainFunction);
 
       return cfa;
     } finally {
       stats.totalTime.stop();
+      if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))
+          || ((exportFunctionCallsFile != null) && exportFunctionCalls)
+          || ((exportFunctionCallsUsedFile != null) && exportFunctionCalls)
+          || ((serializeCfaFile != null) && serializeCfa)
+          || (exportCfaPixelFile != null)
+          || (exportCfaToCFile != null && exportCfaToC)) {
+        exportCFAAsync(cfa);
+      }
     }
   }
 
@@ -429,6 +438,7 @@ public class CFACreator {
           throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
     boolean flag = false;
+    CFA result = null;
 
     Preconditions.checkArgument(!sourceFiles.isEmpty(), "At least one source file must be provided!");
     if (!loopIsAutomated || automateAbstractLoopParser) {
@@ -456,8 +466,6 @@ public class CFACreator {
         throw new AssertionError();
       }
 
-      CFA result;
-
       if (!automateAbstractLoopParser) {
         result = createCFA(c, mainFunction);
     } else {
@@ -477,6 +485,14 @@ public class CFACreator {
     } finally {
       if (flag || !loopIsAutomated) {
       stats.totalTime.stop();
+        if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))
+            || ((exportFunctionCallsFile != null) && exportFunctionCalls)
+            || ((exportFunctionCallsUsedFile != null) && exportFunctionCalls)
+            || ((serializeCfaFile != null) && serializeCfa)
+            || (exportCfaPixelFile != null)
+            || (exportCfaToCFile != null && exportCfaToC)) {
+          exportCFAAsync(result);
+        }
     }
     }
   }
@@ -611,15 +627,6 @@ public class CFACreator {
     stats.checkTime.start();
     assert CFACheck.check(mainFunction, null, machineModel);
     stats.checkTime.stop();
-
-    if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))
-        || ((exportFunctionCallsFile != null) && exportFunctionCalls)
-        || ((exportFunctionCallsUsedFile != null) && exportFunctionCalls)
-        || ((serializeCfaFile != null) && serializeCfa)
-        || (exportCfaPixelFile != null)
-        || (exportCfaToCFile != null && exportCfaToC)) {
-      exportCFAAsync(immutableCFA);
-    }
 
     logger.log(Level.FINE, "DONE, CFA for", immutableCFA.getNumberOfFunctions(), "functions created.");
 
