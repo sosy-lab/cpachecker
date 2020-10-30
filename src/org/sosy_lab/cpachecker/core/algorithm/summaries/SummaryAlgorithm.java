@@ -59,13 +59,13 @@ public class SummaryAlgorithm implements Algorithm {
   /**
    * CPAchecker configuration with which the tool currently operates.
    */
-  @SuppressWarnings({"FieldCanBeLocal"})
+  @SuppressWarnings("FieldCanBeLocal")
   private final Configuration config;
 
   /**
    * Formula manager for formula management.
    */
-  @SuppressWarnings("FieldCanBeLocal")
+  @SuppressWarnings({"FieldCanBeLocal", "unused"})
   private final FormulaManagerView fmgr;
 
   private SummaryAlgorithm(
