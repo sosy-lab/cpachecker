@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.ADeclarationEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -47,6 +49,9 @@ public class LoopData implements Comparable<LoopData> {
   private Loop innerLoop;
   private boolean canBeAccelerated;
 
+  private Timer timeToAnalyze;
+  private TimeSpan analyzeTime;
+
   private static final int OUTPUT_VARIABLE_ARRAY_POSITION = 2;
   private static final String OUTPUT_NAME_SYMBOL_CUT = ":";
   private static final int FLAG_FOR_LAST_STRING = 1;
@@ -68,6 +73,8 @@ public class LoopData implements Comparable<LoopData> {
       List<CFANode> loopNodes,
       Loop loop,
       LogManager pLogger) {
+    timeToAnalyze = new Timer();
+    timeToAnalyze.start();
     loopStart = nameStart;
     this.endOfCondition = new ArrayList<>();
     conditionInFor = new ArrayList<>();
@@ -94,6 +101,8 @@ public class LoopData implements Comparable<LoopData> {
             numberAllOutputs,
             flagEndless,
             conditionInFor);
+    timeToAnalyze.stop();
+    analyzeTime = timeToAnalyze.getLengthOfLastInterval();
   }
 
   /**
@@ -1005,6 +1014,10 @@ public class LoopData implements Comparable<LoopData> {
 
   private void setConditionInFor(List<CFANode> tempForCondition) {
     conditionInFor = tempForCondition;
+  }
+
+  public long getAnalyzeTime() {
+    return analyzeTime.asMillis();
   }
 
   public String outputToString() {
