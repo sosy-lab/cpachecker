@@ -99,7 +99,7 @@ public class ExplainTool {
       FaultContribution con = new FaultContribution(wasChangedTo.getCounterexampleElement(i));
       contributionSet.add(con);
       hints.add(
-          FaultInfo.hint(
+          FaultInfo.justify(
               "LINE "
                   + wasChangedTo.getCounterexampleElement(i).getLineNumber()
                   + " WAS: "
@@ -112,14 +112,14 @@ public class ExplainTool {
       FaultContribution con = new FaultContribution(delEdge);
       contributionSet.add(con);
       hints.add(
-          FaultInfo.hint("LINE " + delEdge.getLineNumber() + ", DELETED: " + delEdge.getCode()));
+          FaultInfo.justify("LINE " + delEdge.getLineNumber() + ", DELETED: " + delEdge.getCode()));
     }
 
     for (CFAEdge exEdge : executed) {
       FaultContribution con = new FaultContribution(exEdge);
       contributionSet.add(con);
       hints.add(
-          FaultInfo.hint("LINE " + exEdge.getLineNumber() + ", WAS EXECUTED: " + exEdge.getCode()));
+          FaultInfo.justify("LINE " + exEdge.getLineNumber() + ", WAS EXECUTED: " + exEdge.getCode()));
     }
 
     fault = new Fault(contributionSet);
