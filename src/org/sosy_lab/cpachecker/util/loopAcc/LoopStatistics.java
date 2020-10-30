@@ -37,8 +37,8 @@ public class LoopStatistics implements Statistics {
   }
 
   /**
-   * Method that collects the data from all the loops in multiple arraylists to be used in a
-   * statisticsoutput
+   * Method that collects the data from all the loops in multiple array lists to be used in a
+   * statistics output
    */
   private void usefulLoopStatistics() {
     loopStartAndEnd = new ArrayList<>();

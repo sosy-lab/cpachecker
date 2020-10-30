@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.common.time.TimeSpan;
+import org.sosy_lab.common.time.Timer;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 
 /**
@@ -29,6 +31,13 @@ import org.sosy_lab.cpachecker.cfa.model.CFANode;
  */
 public class LoopAbstraction {
   private int lineNumber = 1;
+  private final Timer totalTime;
+  private TimeSpan timeToAbstract;
+
+  public LoopAbstraction() {
+    super();
+    totalTime = new Timer();
+  }
 
   // TODO wortwahl nochmal überprüfen
   /**
@@ -63,6 +72,7 @@ public class LoopAbstraction {
       boolean automate,
       boolean onlyAccL)
       throws IllegalArgumentException {
+    totalTime.start();
     List<LoopData> outerLoopTemp = new ArrayList<>();
     List<Integer> loopStarts = new ArrayList<>();
     List<String> preUsedVariables = new ArrayList<>();
@@ -185,8 +195,8 @@ public class LoopAbstraction {
               flagDouble = false;
             }
             break;
-          default:
-            throw new IllegalArgumentException();
+            //  default:
+            //    throw new IllegalArgumentException();
         }
       }
     }
@@ -509,6 +519,8 @@ public class LoopAbstraction {
           Level.WARNING, e, "Something is not working with the file you try to import");
     }
     printFile(loopInfo, content, pathForNewFile, logger, automate);
+    totalTime.stop();
+    timeToAbstract = totalTime.getLengthOfLastInterval();
   }
 
   /**
@@ -820,8 +832,8 @@ public class LoopAbstraction {
                         + "=__VERIFIER_nondet_float();}"
                         + System.lineSeparator());
             break;
-          default:
-            throw new IllegalArgumentException();
+            // default:
+            //   throw new IllegalArgumentException();
         }
       } else {
         switch (Iterables.get(Splitter.on('&').split(x), 1)) {
@@ -907,8 +919,8 @@ public class LoopAbstraction {
             }
             tmp += (Iterables.get(Splitter.on('&').split(x),0) + "=__VERIFIER_nondet_float();" + System.lineSeparator());
             break;
-          default:
-            throw new IllegalArgumentException();
+            // default:
+            //   throw new IllegalArgumentException();
         }
       }
     }
@@ -1162,5 +1174,9 @@ public class LoopAbstraction {
     } else {
       return x;
     }
+  }
+
+  public TimeSpan getTimeToAbstract() {
+    return timeToAbstract;
   }
 }

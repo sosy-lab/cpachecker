@@ -7,12 +7,15 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.sosy_lab.cpachecker.util.loopAcc;
 
+import java.util.Collection;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 
 /**
  * This class helps to abstract the loop code so that different cpa's or bounded model checker can
@@ -21,7 +24,7 @@ import org.sosy_lab.common.log.LogManager;
  * newly created file.
  */
 @Options(prefix = "loopacc.loopabstractionheader")
-public class LoopAbstractionHeader {
+public class LoopAbstractionHeader implements StatisticsProvider {
 
   @Option(
       secure = true,
@@ -48,6 +51,7 @@ public class LoopAbstractionHeader {
   private LoopInformation loopI;
   private LogManager logger;
   private boolean automate;
+  private AbstractionStatistic timeToAbstract;
 
   /**
    * Constructor that enables the CPAchecker to rewrite the loops in the programs, you can choose
@@ -77,8 +81,14 @@ public class LoopAbstractionHeader {
     try {
     loopAbstraction.changeFileToAbstractFile(
         loopI, logger, pathForAbstractLoops, shouldAbstract, automate, accLoops);
+      timeToAbstract = new AbstractionStatistic(loopAbstraction.getTimeToAbstract());
     } catch (IllegalArgumentException e) {
       logger.logUserException(Level.WARNING, e, "A unknown data type is used.");
     }
+  }
+
+  @Override
+  public void collectStatistics(Collection<Statistics> pStatsCollection) {
+    pStatsCollection.add(timeToAbstract);
   }
 }

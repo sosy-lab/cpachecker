@@ -476,6 +476,7 @@ public class CFACreator {
       LoopAbstractionHeader loopAbstraction =
           new LoopAbstractionHeader(builder, automateAbstractLoopParser, config, logger);
       loopAbstraction.abstractLoop();
+        loopAbstraction.collectStatistics(stats.statisticsCollection);
       automateAbstractLoopParser = false;
       result = parseFileAndCreateCFA(sourceFiles);
     }
@@ -617,6 +618,7 @@ public class CFACreator {
       LoopAbstractionHeader loopAbstraction =
           new LoopAbstractionHeader(builder, automateAbstractLoopParser, config, logger);
       loopAbstraction.abstractLoop();
+      loopAbstraction.collectStatistics(stats.statisticsCollection);
     }
 
     stats.processingTime.stop();
