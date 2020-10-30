@@ -9,6 +9,7 @@
 package org.sosy_lab.cpachecker.core.algorithm.explainer;
 
 import static com.google.common.collect.FluentIterable.from;
+
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -20,7 +21,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
-import javax.naming.ConfigurationException;
 import org.sosy_lab.common.Optionals;
 import org.sosy_lab.common.ShutdownManager;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.CFA;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
-import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.NestingAlgorithm;
 import org.sosy_lab.cpachecker.core.counterexample.CounterexampleInfo;
@@ -47,6 +46,7 @@ import org.sosy_lab.cpachecker.core.reachedset.AggregatedReachedSets;
 import org.sosy_lab.cpachecker.core.reachedset.ForwardingReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
+import org.sosy_lab.cpachecker.core.specification.Specification;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
@@ -112,9 +112,7 @@ public class Explainer extends NestingAlgorithm {
     try {
       ShutdownManager shutdownManager = ShutdownManager.createWithParent(shutdownNotifier);
       secondAlg = createAlgorithm(firstStepConfig, cfa.getMainFunction(), shutdownManager, reached);
-      cpa =
-          CPAs.retrieveCPAOrFail(
-              secondAlg.getSecond(), PredicateCPA.class, ConfigurationException.class);
+      cpa = CPAs.retrieveCPAOrFail(secondAlg.getSecond(), PredicateCPA.class, Explainer.class);
     } catch (IOException pE) {
       throw new AssertionError(pE);
     } catch (InvalidConfigurationException pE) {

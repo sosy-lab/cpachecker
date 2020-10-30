@@ -15,14 +15,14 @@ SPDX-License-Identifier: Apache-2.0
 
   <rundefinition name="predicateAnalysis">
     <tasks>
-      <includesfile>../programs/benchmarks/Concurrency.set</includesfile>
-      <includesfile>../programs/benchmarks/ControlFlowInteger.set</includesfile>
-      <includesfile>../programs/benchmarks/HeapManipulation.set</includesfile>
-      <includesfile>../programs/benchmarks/SystemC.set</includesfile>
-      <includesfile>../programs/benchmarks/DeviceDrivers.set</includesfile>
+      <includesfile>../../programs/benchmarks/Concurrency.set</includesfile>
+      <includesfile>../../programs/benchmarks/ControlFlowInteger.set</includesfile>
+      <includesfile>../../programs/benchmarks/HeapManipulation.set</includesfile>
+      <includesfile>../../programs/benchmarks/SystemC.set</includesfile>
+      <includesfile>../../programs/benchmarks/DeviceDrivers.set</includesfile>
     </tasks>
     <tasks>
-      <includesfile>../programs/benchmarks/DeviceDrivers64.set</includesfile>
+      <includesfile>../../programs/benchmarks/DeviceDrivers64.set</includesfile>
       <option name="-64"/>
     </tasks>
     <option name="-svcomp12"/>

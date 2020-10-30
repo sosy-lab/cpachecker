@@ -55,13 +55,11 @@ SPDX-License-Identifier: Apache-2.0
     <exclude>../programs/benchmarks/pthread-ext/*</exclude>
     <exclude>../programs/benchmarks/pthread-nondet/*</exclude>
     <exclude>../programs/benchmarks/ldv*/*</exclude>
-    <option name="-32"/>
   </tasks>
   <tasks name="BitVectorsOverflows">
     <includesfile>../programs/benchmarks/NoOverflows-BitVectors.set</includesfile>
     <propertyfile>../programs/benchmarks/properties/no-overflow.prp</propertyfile>
     <exclude>../programs/benchmarks/termination-crafted-lit/*</exclude> <!-- only timeout -->
-    <option name="-64"/>
   </tasks>
     <tasks name="HeapReach">
     <includesfile>../programs/benchmarks/ReachSafety-Heap.set</includesfile>
