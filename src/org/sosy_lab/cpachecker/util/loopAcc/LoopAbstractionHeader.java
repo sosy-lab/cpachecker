@@ -77,7 +77,7 @@ public class LoopAbstractionHeader {
     try {
     loopAbstraction.changeFileToAbstractFile(
         loopI, logger, pathForAbstractLoops, shouldAbstract, automate, accLoops);
-    } catch (NoPossibleTypeException e) {
+    } catch (IllegalArgumentException e) {
       logger.logUserException(Level.WARNING, e, "A unknown data type is used.");
     }
   }

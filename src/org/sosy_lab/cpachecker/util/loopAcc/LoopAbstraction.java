@@ -42,6 +42,19 @@ public class LoopAbstraction {
    * @param automate the file will be overwritten if this is true
    * @param onlyAccL if this is true only the loops that can be accelerated will be abstracted
    */
+
+  /**
+   * This method changes all the necessary lines of codes and saves it in a new file
+   *
+   * @param loopInfo Information about all the loops in the file
+   * @param logger logger that logs all the exceptions
+   * @param pathForNewFile systempath to the directory where the new file should be saved
+   * @param abstractionLevel level of abstraction, "naive" and "advanced" possible, naive is a
+   *     bigger overapproximation than advanced
+   * @param automate the file will be overwritten if this is true
+   * @param onlyAccL if this is true only the loops that can be accelerated will be abstracted
+   * @throws IllegalArgumentException throws if there is a non c data type
+   */
   public void changeFileToAbstractFile(
       LoopInformation loopInfo,
       LogManager logger,
@@ -49,7 +62,7 @@ public class LoopAbstraction {
       String abstractionLevel,
       boolean automate,
       boolean onlyAccL)
-      throws NoPossibleTypeException {
+      throws IllegalArgumentException {
     List<LoopData> outerLoopTemp = new ArrayList<>();
     List<Integer> loopStarts = new ArrayList<>();
     List<String> preUsedVariables = new ArrayList<>();
@@ -172,6 +185,8 @@ public class LoopAbstraction {
               flagDouble = false;
             }
             break;
+          default:
+            throw new IllegalArgumentException();
         }
       }
     }
@@ -507,12 +522,12 @@ public class LoopAbstraction {
    *     non-deterministic
    * @return returns a string that get's added to the program-string with non-deterministic values
    *     assigned
-   * @throws NoPossibleTypeException if another data type is used than the normal ones this method
+   * @throws IllegalArgumentException if another data type is used than the normal ones this method
    *     throws an exception --- besser worden
    */
   private String undeterministicVariables(
       LoopData loopD, List<String> preUsedVariables, String abstractionLevel)
-      throws NoPossibleTypeException {
+      throws IllegalArgumentException {
     String tmp = "";
     List<String> variables = null;
     if (abstractionLevel.equals("naiv")) {
@@ -805,7 +820,8 @@ public class LoopAbstraction {
                         + "=__VERIFIER_nondet_float();}"
                         + System.lineSeparator());
             break;
-          default: throw new NoPossibleTypeException();
+          default:
+            throw new IllegalArgumentException();
         }
       } else {
         switch (Iterables.get(Splitter.on('&').split(x), 1)) {
@@ -892,7 +908,7 @@ public class LoopAbstraction {
             tmp += (Iterables.get(Splitter.on('&').split(x),0) + "=__VERIFIER_nondet_float();" + System.lineSeparator());
             break;
           default:
-            throw new NoPossibleTypeException();
+            throw new IllegalArgumentException();
         }
       }
     }
