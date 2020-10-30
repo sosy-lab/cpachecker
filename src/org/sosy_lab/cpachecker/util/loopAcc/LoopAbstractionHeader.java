@@ -8,7 +8,6 @@
 package org.sosy_lab.cpachecker.util.loopAcc;
 
 import java.util.Collection;
-import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -78,13 +77,9 @@ public class LoopAbstractionHeader implements StatisticsProvider {
   }
 
   public void abstractLoop() {
-    try {
     loopAbstraction.changeFileToAbstractFile(
         loopI, logger, pathForAbstractLoops, shouldAbstract, automate, accLoops);
       timeToAbstract = new AbstractionStatistic(loopAbstraction.getTimeToAbstract());
-    } catch (IllegalArgumentException e) {
-      logger.logUserException(Level.WARNING, e, "A unknown data type is used.");
-    }
   }
 
   @Override
