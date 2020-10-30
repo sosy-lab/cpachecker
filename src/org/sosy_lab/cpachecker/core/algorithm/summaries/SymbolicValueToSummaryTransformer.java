@@ -45,21 +45,20 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * <code>SymbolicValueToSummaryTransformer</code> represents a transformation of a
- * <code>SymbolicValue</code> to a summary.<br/>
- * Currently, summaries are represented as plain <code>String</code>, and the returned entity of
- * this transformer is the <code>StringBuilder</code> used to construct the summary.<p>
- * The transformation recursively visits all subexpressions of the <code>SymbolicValue</code>, and
- * adds them to the summary.
+ * {@link SymbolicValueToSummaryTransformer} represents a transformation of a
+ * {@link SymbolicExpression} to a summary.<br/>
+ * Currently, summaries are represented as plain {@link String}, and the return value of
+ * this transformation is the {@link StringBuilder} used to construct the summary. The
+ * transformation recursively visits all subexpressions of the {@link SymbolicExpression}, and adds
+ * them to the summary.
  */
 @SuppressWarnings({"ResultOfMethodCallIgnored"})
 public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<StringBuilder> {
 
   /**
-   * The <code>StringBuilder</code> with which the summary is created.<br/>
-   * After the recursive visiting of all subexpressions of a <code>SymbolicValue</code> is finished,
-   * it contains the generated summary.
-   *
+   * The {@link StringBuilder} with which the summary is created.<br/>
+   * After the recursive visiting of all subexpressions of a {@link SymbolicExpression}, it contains
+   * the generated summary.
    */
   private final StringBuilder strBuilder = new StringBuilder();
 
@@ -68,20 +67,19 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
    * the right of the function signature in the summary string) in parenthesis. If the summary
    * only contains a single variable or constant, no parenthesis are required.<p>
    *
-   * During <i>only</i> the first invocation of any <code>visit</code> method of a transformer with
-   * a subexpression, it must therefore first use {@link #unwrapWithParenthesis(SymbolicExpression)}
-   * on the expression itself, instead of directly unpacking its operands.
-   * {@link #unwrapWithParenthesis(SymbolicExpression)} also takes care of not putting parenthesis
-   * around single variables or constants.<p>
+   * During <i>only the first</i> invocation of any <code>visit</code> method of a transformer for
+   * a {@link SymbolicExpression}, it must therefore use
+   * {@link #unwrapWithParenthesis(SymbolicExpression)} on the expression itself, instead of
+   * directly unpacking its operands. {@link #unwrapWithParenthesis(SymbolicExpression)} also takes
+   * care of not putting parenthesis around single variables or constants.<p>
    *
-   * This internal flag indicates whether this behavior during <i>only</i> the first invocation of
-   * any visit method of a <code>SymbolicValueToSummaryTransformer</code> has already been
-   * performed.
+   * This internal flag indicates whether that operation (i. e. creation of the outermost
+   * parenthesis) has already been performed, or is still pending.
    */
   private boolean outerParenthesisAdded = false;
 
   /**
-   * Create a new <code>SymbolicValueToSummaryTransformer</code> <i>without</i> function
+   * Create a new {@link SymbolicValueToSummaryTransformer} for a summary <i>without</i> function
    * signature.<br/>
    * Different to {@link #SymbolicValueToSummaryTransformer(LocationState, ValueAnalysisState)}, the
    * generated summary is <i>not</i> started by prepending the function signature.
@@ -90,14 +88,15 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
   }
 
   /**
-   * Create a new <code>SymbolicValueToSummaryTransformer</code> with function signature.<br/>
+   * Create a new {@link SymbolicValueToSummaryTransformer} for a summary <i>with</i> function
+   * signature.<br/>
    * Different to the default constructor, the generated summary is started by appending the
    * signature of the function represented in the provided parameters.
    *
-   * @param locationState The LocationState of the abstract valueState for which the function scope
-   *                      is analyzed.
+   * @param locationState The {@link LocationState} of the abstract state for which the function
+   *                      scope is analyzed.
    *
-   * @param valueState The <code>ValueAnalysisState</code> of the abstract state for which the
+   * @param valueState The {@link ValueAnalysisState} of the abstract state for which the
    *                   function scope is analyzed.
    */
   public SymbolicValueToSummaryTransformer(
@@ -231,26 +230,29 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
 
   /**
    * Add expression to summary, and recursively continue visiting its subexpressions.<br/>
-   * @param op String representation of the operation represented by the symbolic expression.
-   *           Added as prefix operator of the expression in the summary.
+   *
+   * @param operator {@link String} representation of the operation represented by the symbolic
+   *                         expression. Added with <i>prefix notation</i> in the summary.
+   *
    * @param expr The unary symbolic expression which is added to the summary.
    */
-  private StringBuilder unwrap(final String op, final UnarySymbolicExpression expr) {
+  private StringBuilder unwrap(final String operator, final UnarySymbolicExpression expr) {
     final SymbolicExpression operand = expr.getOperand();
-    strBuilder.append(" ").append(op);
+    strBuilder.append(" ").append(operator);
     return unwrapWithParenthesis(operand);
   }
 
   /**
    * Identical to {@link #unwrap(String, UnarySymbolicExpression)}, despite operating on a
-   * <code>BinarySymbolicExpression</code>.<br/>
+   * {@link BinarySymbolicExpression}.<br/>
    * This method therefore has to recursively unwrap <i>two operands</i> instead of one, and adds
    * the operator in between with <i>infix notation</i>.
    *
    * @see #unwrap(String, UnarySymbolicExpression)
    *
-   * @param op String representation of the operation represented by the symbolic expression.
-   *           Added as infix operator of the expression in the summary.
+   * @param op {@link String} representation of the operation represented by the symbolic
+   *                         expression. Added with <i>infix notation</i> in the summary.
+   *
    * @param expr The binary symbolic expression which is added to the summary.
    */
   private StringBuilder unwrap(final String op, final BinarySymbolicExpression expr) {
@@ -269,12 +271,12 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
 
   /**
    * Recursively continue visiting subexpressions, and wrap the current one with parenthesis.<br/>
-   * Parenthesis are omitted if the subexpression contains just a single variable or constant.
+   * Parenthesis are omitted if the subexpression contains only a single variable or constant.
    *
-   * @param expr The SymbolicExpression which is visited next, and whose value is wrapped in
+   * @param expr The {@link SymbolicExpression} which is visited next, and whose value is wrapped in
    *             parenthesis.
    *
-   * @return The <code>StringBuilder</code> of the created summary.
+   * @return The {@link StringBuilder} of the created summary.
    */
   private StringBuilder unwrapWithParenthesis(final SymbolicExpression expr) {
     final boolean constant = expr instanceof ConstantSymbolicExpression;
@@ -292,16 +294,16 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
 
   /**
    * Append function signature to summary.<br/>
-   * Internal utility method which derives the function signature of the current scope for the
-   * provided locationState, and appends it to the generated summary (which should yet be empty when
-   * this method is called).<p>
-   * If <code>SymbolicValueToSummaryTransformer</code> is created with the non-trivial constructor,
-   * this method is used internally to start the created summary with the function signature.
+   * Internal utility method which derives the function signature of the current scope in the
+   * provided {@link LocationState}, and appends it to the generated summary (which should yet be
+   * empty when this method is called).<p>
+   * If {@link SymbolicValueToSummaryTransformer} is created with the non-default constructor,
+   * this method is used internally to begin the created summary with the function signature.
    *
-   * @param locationState The LocationState of the abstract valueState for which the function scope is
-   *                 analyzed.
+   * @param locationState The {@link LocationState} of the abstract state for which the function
+   *                      scope is analyzed.
    *
-   * @param valueState The <code>ValueAnalysisState</code> of the abstract state for which the
+   * @param valueState The {@link ValueAnalysisState} of the abstract state for which the
    *                   function scope is analyzed.
    */
   private void addFunctionSignature(LocationState locationState, ValueAnalysisState valueState) {
@@ -332,15 +334,15 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
 
   /**
    * Return all function parameters which remain as symbolic variables in the summary.<br/>
-   * During Symbolic Execution, formal parameters which are filled with constant
+   * During symbolic execution, formal parameters which are filled with constant
    * arguments in the analyzed program will be represented as
-   * {@link ConstantSymbolicExpression} which contains the corresponding constant value. As a
+   * {@link ConstantSymbolicExpression} which contain the corresponding constant values. As a
    * result, the information where they actually occurred as variables within the function body is
    * not readily available. In the produced summary, only the actual argument (i.e. the constant
    * value present during function invocation) is used and makes it into the summary.<p>
    *
    * This can result in summaries like<br/>
-   * <code>f: (x, y) -> x + 5</code><br/>
+   * <code>f: (x, y) -&gt; x + 5</code><br/>
    * if <code>f</code> is called as <code>f(x, 5)</code> in the analyzed code.<p>
    *
    * To prevent the occurrence of such parameters in the function signature within summaries, this
@@ -354,7 +356,7 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
    *                        Used to determine which parameters actually become tracked memory
    *                        locations (and therefore symbolic variables in the summary).
    *
-   * @return Immutable list of function parameters which actually occur as symbolic variables in the
+   * @return {@link ImmutableList} of function parameters which actually occur as symbolic variables in the
    *          summary.
    */
   ImmutableList<AParameterDeclaration> determineActualParameters(

@@ -33,9 +33,10 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * {@link SummaryAlgorithm} implements configurable code summarization.<br/>
  * Status is tracked in #796.<p>
  *
- * For now, it is limited to
+ * For now, it is limited to<br/>
  * a) functions (summaries are only prepared for complete functions, not arbitrary code blocks),
- * b) information from symbolic execution (which must be executed prior)
+ *    <br/>
+ * b) information from symbolic execution (which must be executed prior)<br/>
  * c) simple textual summaries just represented as plain {@link String}.
  */
 public class SummaryAlgorithm implements Algorithm {
@@ -115,14 +116,13 @@ public class SummaryAlgorithm implements Algorithm {
   /**
    * Internal utility method to generate a summary from {@link LocationState} and
    * {@link ValueAnalysisState} of an abstract state.<br/>
-   * Summaries are currently represented as just plain {@link String}, and can only be created for
+   * Summaries are currently represented as just plain {@link String}, and can only be created at
    * function exit locations.
    *
    * @param locationState Location information of the abstract state. Used to derive the function
    *                      signature in the summary.
    *
-   * @param valueState Value information of the current abstract state. Used to produce the actual
-   *                   summary.
+   * @param valueState Value information of the abstract state. Used to produce the actual summary.
    */
   private void createSummaryForState(
       final LocationState locationState, final ValueAnalysisState valueState) {
