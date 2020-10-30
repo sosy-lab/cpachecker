@@ -940,6 +940,16 @@ public class LoopData implements Comparable<LoopData> {
             : 1));
   }
 
+  @Override
+  public boolean equals(Object otherLoop) {
+    if (this.getLoopStart().getNodeNumber()
+        != ((LoopData) otherLoop).getLoopStart().getNodeNumber()) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+
   public CFANode getLoopStart() {
     return loopStart;
   }
