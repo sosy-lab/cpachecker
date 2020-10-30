@@ -209,6 +209,9 @@ analysis.algorithm.faultLocalization.by_coverage = false
 # formulas
 analysis.algorithm.faultLocalization.by_traceformula = false
 
+# Generate code summaries (experimental).
+analysis.algorithm.generateCodeSummaries = false
+
 # Use McMillan's Impact algorithm for lazy interpolation
 analysis.algorithm.impact = false
 

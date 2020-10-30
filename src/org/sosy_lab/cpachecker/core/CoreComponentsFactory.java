@@ -318,6 +318,12 @@ public class CoreComponentsFactory {
       description = "for found property violation, perform fault localization with trace formulas")
   boolean useFaultLocalizationWithTraceFormulas = false;
 
+  @Option(
+      secure = true,
+      name = "algorithm.generateCodeSummaries",
+      description = "Generate code summaries (experimental).")
+  boolean generateCodeSummaries = false;
+
   private final Configuration config;
   private final LogManager logger;
   private final @Nullable ShutdownManager shutdownManager;
