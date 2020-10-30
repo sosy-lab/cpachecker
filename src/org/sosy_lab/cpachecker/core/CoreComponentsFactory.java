@@ -60,6 +60,7 @@ import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ConditionalVerifie
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAfterAnalysisAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.ResidualProgramConstructionAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.residualprogram.slicing.SlicingAlgorithm;
+import org.sosy_lab.cpachecker.core.algorithm.summaries.SummaryAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.TerminationAlgorithm;
 import org.sosy_lab.cpachecker.core.algorithm.termination.validation.NonTerminationWitnessValidator;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
@@ -545,6 +546,10 @@ public class CoreComponentsFactory {
 
       if (checkCounterexamplesWithBDDCPARestriction) {
         algorithm = new BDDCPARestrictionAlgorithm(algorithm, cpa, config, logger);
+      }
+
+      if (generateCodeSummaries) {
+        algorithm = SummaryAlgorithm.create(algorithm, config, logger, shutdownNotifier);
       }
 
       if (useTestCaseGeneratorAlgorithm) {
