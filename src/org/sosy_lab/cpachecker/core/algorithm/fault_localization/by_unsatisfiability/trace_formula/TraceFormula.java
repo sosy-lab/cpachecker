@@ -12,9 +12,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -108,10 +110,6 @@ public abstract class TraceFormula {
     public boolean isReduceSelectors() {
       return reduceSelectors;
     }
-
-    public void setReduceSelectors(boolean pReduceSelectors) {
-      reduceSelectors = pReduceSelectors;
-    }
   }
 
   /**
@@ -129,8 +127,8 @@ public abstract class TraceFormula {
     context = pContext;
     bmgr = context.getSolver().getFormulaManager().getBooleanFormulaManager();
     calculateEntries();
-    postcondition = calculatePostCondition();
     precondition = calculatePrecondition();
+    postcondition = calculatePostCondition();
     trace = calculateTrace();
   }
 
@@ -212,7 +210,7 @@ public abstract class TraceFormula {
           BooleanFormula formula =
               bmgr.and(
                   entries.removeExtract(
-                      entry -> entry.getAtomId() == currI, edge -> edge.getAtom()));
+                      entry -> entry.getAtomId() == currI, FormulaEntryList.FormulaEntry::getAtom));
           postCond = bmgr.and(postCond, formula);
           postConditionOffset = i;
         } else {
@@ -224,8 +222,14 @@ public abstract class TraceFormula {
             BooleanFormula formula =
                 bmgr.and(
                     entries.removeExtract(
-                        entry -> entry.getSelector().getEdge().equals(curr),
-                        edge -> edge.getAtom()));
+                        entry -> {
+                          if (entry.getSelector() == null) {
+                            //TODO find better solution
+                            return false;
+                          }
+                          return entry.getSelector().getEdge().equals(curr);
+                        },
+                        FormulaEntryList.FormulaEntry::getAtom));
             postCond = bmgr.and(postCond, formula);
             postConditionOffset = i;
           }
@@ -296,6 +300,7 @@ public abstract class TraceFormula {
         }
       }
     }
+
   }
 
   /**
@@ -396,7 +401,6 @@ public abstract class TraceFormula {
 
         isIf = false;
         for (FormulaLabel label : edge.getLabels()) {
-
           switch (label) {
             case IF:
               {
@@ -404,16 +408,16 @@ public abstract class TraceFormula {
                 conditions.push(edge.getEntry().getAtom());
                 entries.remove(edge.getEntry());
                 isIf = true;
-                continue;
+                break;
               }
             case ENDIF:
               {
                 // an if statement ended here -> pop it from the stack
                 conditions.pop();
-                continue;
+                break;
               }
             default:
-              continue;
+              throw new AssertionError("not a valid label");
           }
         }
 
