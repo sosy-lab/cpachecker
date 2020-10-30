@@ -13,6 +13,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -129,7 +130,7 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
     totalTime.start();
 
     List<BooleanFormula> interpolants = getInterpolants();
-    Set<Interval> allIntervals = new HashSet<>();
+    List<Interval> sortedIntervals = new ArrayList<>();
 
     // calculate interval boundaries for each interpolant
     for (int i = 0; i < interpolants.size(); i++) {
@@ -139,14 +140,11 @@ public class ErrorInvariantsAlgorithm implements FaultLocalizerWithTraceFormula,
               search(0, i, interpolant, true),
               search(i, tf.traceSize(), interpolant, false) - 1,
               interpolant);
-      allIntervals.add(current);
+      sortedIntervals.add(current);
     }
 
     // sort the intervals and calculate abstrace error trace
-    List<Interval> sortedIntervals =
-        allIntervals.stream()
-            .sorted(Comparator.comparingInt(interval -> interval.start))
-            .collect(Collectors.toList());
+    Collections.sort(sortedIntervals, Comparator.comparingInt(i -> i.start));
     List<Selector> selectors = errorTrace.getEntries().toSelectorList();
     Interval maxInterval = sortedIntervals.get(0);
     int prevEnd = 0;
