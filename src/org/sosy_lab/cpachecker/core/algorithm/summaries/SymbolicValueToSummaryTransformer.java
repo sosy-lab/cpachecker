@@ -126,87 +126,87 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
 
   @Override
   public StringBuilder visit(AdditionExpression pExpression) {
-    return unwrap(" + ", pExpression);
+    return unwrap("+", pExpression);
   }
 
   @Override
   public StringBuilder visit(SubtractionExpression pExpression) {
-    return unwrap(" - ", pExpression);
+    return unwrap("-", pExpression);
   }
 
   @Override
   public StringBuilder visit(MultiplicationExpression pExpression) {
-    return unwrap(" * ", pExpression);
+    return unwrap("*", pExpression);
   }
 
   @Override
   public StringBuilder visit(DivisionExpression pExpression) {
-    return unwrap(" / ", pExpression);
+    return unwrap("/", pExpression);
   }
 
   @Override
   public StringBuilder visit(ModuloExpression pExpression) {
-    return unwrap(" % ", pExpression);
+    return unwrap("%", pExpression);
   }
 
   @Override
   public StringBuilder visit(BinaryAndExpression pExpression) {
-    return unwrap(" & ", pExpression);
+    return unwrap("&", pExpression);
   }
 
   @Override
   public StringBuilder visit(BinaryNotExpression pExpression) {
-    return unwrap(" ~ ", pExpression);
+    return unwrap("~", pExpression);
   }
 
   @Override
   public StringBuilder visit(BinaryOrExpression pExpression) {
-    return unwrap(" | ", pExpression);
+    return unwrap("|", pExpression);
   }
 
   @Override
   public StringBuilder visit(BinaryXorExpression pExpression) {
-    return unwrap(" ^ ", pExpression);
+    return unwrap("^", pExpression);
   }
 
   @Override
   public StringBuilder visit(ShiftRightExpression pExpression) {
-    return unwrap(" >> ", pExpression);
+    return unwrap(">>", pExpression);
   }
 
   @Override
   public StringBuilder visit(ShiftLeftExpression pExpression) {
-    return unwrap(" << ", pExpression);
+    return unwrap("<<", pExpression);
   }
 
   @Override
   public StringBuilder visit(LogicalNotExpression pExpression) {
-    return unwrap(" ! ", pExpression);
+    return unwrap("!", pExpression);
   }
 
   @Override
   public StringBuilder visit(LessThanOrEqualExpression pExpression) {
-    return unwrap(" <= ", pExpression);
+    return unwrap("<=", pExpression);
   }
 
   @Override
   public StringBuilder visit(LessThanExpression pExpression) {
-    return unwrap(" < ", pExpression);
+    return unwrap("<", pExpression);
   }
 
   @Override
   public StringBuilder visit(EqualsExpression pExpression) {
-    return unwrap(" == ", pExpression);
+    return unwrap("==", pExpression);
   }
 
   @Override
   public StringBuilder visit(LogicalOrExpression pExpression) {
-    return unwrap(" || ", pExpression);
+    return unwrap("||", pExpression);
   }
 
   @Override
   public StringBuilder visit(LogicalAndExpression pExpression) {
-    return unwrap(" && ", pExpression);
+    return unwrap("&&", pExpression);
   }
 
   @Override
@@ -216,17 +216,17 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
 
   @Override
   public StringBuilder visit(PointerExpression pExpression) {
-    return unwrap(" *", pExpression);
+    return unwrap("*", pExpression);
   }
 
   @Override
   public StringBuilder visit(AddressOfExpression pExpression) {
-    return unwrap(" &", pExpression);
+    return unwrap("&", pExpression);
   }
 
   @Override
   public StringBuilder visit(NegationExpression pExpression) {
-    return unwrap(" !", pExpression);
+    return unwrap("!", pExpression);
   }
 
   /**
@@ -237,7 +237,7 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
    */
   private StringBuilder unwrap(final String op, final UnarySymbolicExpression expr) {
     final SymbolicExpression operand = expr.getOperand();
-    strBuilder.append(op);
+    strBuilder.append(" ").append(op);
     return unwrapWithParenthesis(operand);
   }
 
@@ -263,7 +263,7 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
     final SymbolicExpression rhs = expr.getOperand2();
 
     unwrapWithParenthesis(lhs);
-    strBuilder.append(op);
+    strBuilder.append(" ").append(op).append(" ");
     return unwrapWithParenthesis(rhs);
   }
 
