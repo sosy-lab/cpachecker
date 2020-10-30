@@ -64,16 +64,16 @@ public class ThreadModularCPARefiner implements ARGBasedRefiner, StatisticsProvi
   @IntegerOption(min = 0)
   private int stopAfterNRefinements = 0;
 
-  private final ARGBasedRefiner delegate;
+  protected final ARGBasedRefiner delegate;
   // statistics
-  private final StatTimer totalTime = new StatTimer("Time for threadmodular refinement");
-  private final StatTimer delegatingTime = new StatTimer("Time for delegate refiner");
-  private final StatTimer modifingPathTime = new StatTimer("Time for modifing paths");
-  private final StatCounter numberOfUsefulRefinements =
+  protected final StatTimer totalTime = new StatTimer("Time for threadmodular refinement");
+  protected final StatTimer delegatingTime = new StatTimer("Time for delegate refiner");
+  protected final StatTimer modifingPathTime = new StatTimer("Time for modifing paths");
+  protected final StatCounter numberOfUsefulRefinements =
       new StatCounter("Number of useful refinements");
 
-  private final LogManager logger;
-  private final GlobalRefinementStrategy strategy;
+  protected final LogManager logger;
+  protected final GlobalRefinementStrategy strategy;
 
   public ThreadModularCPARefiner(
       LogManager pLogger,
@@ -82,7 +82,7 @@ public class ThreadModularCPARefiner implements ARGBasedRefiner, StatisticsProvi
       ARGBasedRefiner pDelegate)
       throws InvalidConfigurationException {
 
-    pConfig.inject(this);
+    pConfig.inject(this, ThreadModularCPARefiner.class);
     logger = pLogger;
     strategy = pStrategy;
     delegate = pDelegate;
@@ -231,7 +231,7 @@ public class ThreadModularCPARefiner implements ARGBasedRefiner, StatisticsProvi
     }
   }
 
-  private class Stats implements Statistics {
+  protected class Stats implements Statistics {
 
     @Override
     public void printStatistics(PrintStream out, Result result, UnmodifiableReachedSet reached) {
