@@ -950,6 +950,12 @@ public class LoopData implements Comparable<LoopData> {
     }
   }
 
+  @Override
+  public int hashCode() {
+    final int prime = 29;
+    return loopStart.getNodeNumber() * prime;
+  }
+
   public CFANode getLoopStart() {
     return loopStart;
   }
@@ -1026,8 +1032,8 @@ public class LoopData implements Comparable<LoopData> {
     conditionInFor = tempForCondition;
   }
 
-  public long getAnalyzeTime() {
-    return analyzeTime.asMillis();
+  public TimeSpan getAnalyzeTime() {
+    return analyzeTime;
   }
 
   public String outputToString() {

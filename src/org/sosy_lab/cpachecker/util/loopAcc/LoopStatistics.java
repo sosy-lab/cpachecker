@@ -11,6 +11,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.time.TimeSpan;
 import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.interfaces.Statistics;
 import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
@@ -30,7 +31,7 @@ public class LoopStatistics implements Statistics {
   private List<String[]> ioVariables;
   private List<String[]> oVariables;
   private List<String[]> accelerationPossible;
-  private long timeToAnalyze;
+  private TimeSpan timeToAnalyze;
 
   public LoopStatistics(List<LoopData> loopList) {
     this.loopList = loopList;
@@ -51,7 +52,6 @@ public class LoopStatistics implements Statistics {
     ioVariables = new ArrayList<>();
     oVariables = new ArrayList<>();
     accelerationPossible = new ArrayList<>();
-    timeToAnalyze = 0;
 
     for (int i = 0; i < loopList.size(); i++) {
       if (!loopList.isEmpty()) {
@@ -81,7 +81,11 @@ public class LoopStatistics implements Statistics {
         oVariables.add(o);
         String[] acc = {"L" + (i + 1), "" + loopList.get(i).getCanBeAccelerated()};
         accelerationPossible.add(acc);
-        timeToAnalyze += loopList.get(i).getAnalyzeTime();
+        if (i == 0) {
+          timeToAnalyze = loopList.get(i).getAnalyzeTime();
+        } else {
+          timeToAnalyze = TimeSpan.sum(timeToAnalyze, loopList.get(i).getAnalyzeTime());
+        }
       }
     }
   }
