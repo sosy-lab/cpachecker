@@ -942,7 +942,7 @@ public class LoopData implements Comparable<LoopData> {
 
   @Override
   public boolean equals(Object otherLoop) {
-    if (otherLoop == null || (!(otherLoop instanceof LoopData))) {
+    if (otherLoop == null || !(otherLoop instanceof LoopData)) {
       return false;
     }
     if(otherLoop == this) {
