@@ -46,10 +46,6 @@ public class LoopAbstractionHeader implements StatisticsProvider {
   private boolean accLoops = true;
 
   private LoopAbstraction loopAbstraction;
-
-  private LoopInformation loopI;
-  private LogManager logger;
-  private boolean automate;
   private AbstractionStatistic timeToAbstract;
 
   /**
@@ -68,9 +64,6 @@ public class LoopAbstractionHeader implements StatisticsProvider {
       LoopInformation loopI, boolean automate, Configuration config, LogManager logger)
       throws InvalidConfigurationException {
     config.inject(this);
-    this.logger = logger;
-    this.loopI = loopI;
-    this.automate = automate;
     pathForAbstractLoops = loopI.getCFA().getFileNames().get(0).toString();
 
     loopAbstraction = new LoopAbstraction();
