@@ -166,15 +166,17 @@ public class StaticSlicer extends AbstractSlicer implements StatisticsProvider {
     criteriaEdges.addAll(pSlicingCriteria);
 
     // TODO: make this configurable
-    for (CFANode node : pCfa.getAllNodes()) {
-      for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
-        if (edge instanceof CStatementEdge) {
-          CStatement statement = ((CStatementEdge) edge).getStatement();
-          if (statement instanceof CFunctionCallStatement) {
-            CFunctionDeclaration declaration =
-                ((CFunctionCallStatement) statement).getFunctionCallExpression().getDeclaration();
-            if (declaration != null && declaration.getQualifiedName().equals("abort")) {
-              criteriaEdges.add(edge);
+    if (!criteriaEdges.isEmpty()) {
+      for (CFANode node : pCfa.getAllNodes()) {
+        for (CFAEdge edge : CFAUtils.allLeavingEdges(node)) {
+          if (edge instanceof CStatementEdge) {
+            CStatement statement = ((CStatementEdge) edge).getStatement();
+            if (statement instanceof CFunctionCallStatement) {
+              CFunctionDeclaration declaration =
+                  ((CFunctionCallStatement) statement).getFunctionCallExpression().getDeclaration();
+              if (declaration != null && declaration.getQualifiedName().equals("abort")) {
+                criteriaEdges.add(edge);
+              }
             }
           }
         }
