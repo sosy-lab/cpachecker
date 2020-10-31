@@ -11,7 +11,6 @@ package org.sosy_lab.cpachecker.util.dependencegraph;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ForwardingTable;
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.ImmutableList;
@@ -287,6 +286,28 @@ public class DependenceGraphBuilder implements StatisticsProvider {
     return ImmutableList.copyOf(declEdges);
   }
 
+  private CFunctionCallEdge getCallEdge(CFunctionSummaryEdge pSummaryEdge) {
+
+    for (CFAEdge edge : CFAUtils.leavingEdges(pSummaryEdge.getPredecessor())) {
+      if (edge instanceof CFunctionCallEdge) {
+        return (CFunctionCallEdge) edge;
+      }
+    }
+
+    throw new AssertionError("No CFunctionCallEdge for CFunctionSummaryEdge");
+  }
+
+  private void addFlowDependence(
+      CFAEdge pDefEdge,
+      Optional<MemoryLocation> pDefEdgeCause,
+      CFAEdge pUseEdge,
+      Optional<MemoryLocation> pUseEdgeCause) {
+    addDependence(
+        getDGNode(pDefEdge, pDefEdgeCause),
+        getDGNode(pUseEdge, pUseEdgeCause),
+        DependenceType.FLOW);
+  }
+
   private void addFlowDependencesNew() throws InterruptedException, CPAException {
 
     GlobalPointerState pointerState =
@@ -366,10 +387,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
       CFAEdge funcDeclEdge = declarationEdges.get(entryNode.getFunctionName());
       for (CFAEdge callEdge : CFAUtils.enteringEdges(entryNode)) {
-        addDependence(
-            getDGNode(funcDeclEdge, Optional.empty()),
-            getDGNode(callEdge, Optional.empty()),
-            DependenceType.FLOW);
+        addFlowDependence(funcDeclEdge, Optional.empty(), callEdge, Optional.empty());
         flowDepCount.value++;
       }
 
@@ -405,21 +423,11 @@ public class DependenceGraphBuilder implements StatisticsProvider {
                     .toJavaUtil()
                     .equals(defEdgeCause)) {
 
-              Optional<CFAEdge> optCallEdge =
-                  CFAUtils.leavingEdges(useEdge.getPredecessor())
-                      .firstMatch(Predicates.instanceOf(CFunctionCallEdge.class))
-                      .toJavaUtil();
+              CFunctionCallEdge callEdge = getCallEdge((CFunctionSummaryEdge) useEdge);
+              EdgeDefUseData defUseData = EdgeDefUseData.extract(callEdge);
 
-              if (optCallEdge.isPresent()) {
-
-                EdgeDefUseData defUseData = EdgeDefUseData.extract(optCallEdge.orElseThrow());
-
-                for (MemoryLocation summaryEdgeDef : defUseData.getDefs()) {
-                  addDependence(
-                      getDGNode(defEdge, defEdgeCause),
-                      getDGNode(useEdge, Optional.of(summaryEdgeDef)),
-                      DependenceType.FLOW);
-                }
+              for (MemoryLocation summaryEdgeDef : defUseData.getDefs()) {
+                addFlowDependence(defEdge, defEdgeCause, useEdge, Optional.of(summaryEdgeDef));
               }
 
             } else if (useEdge instanceof CFunctionSummaryEdge
@@ -436,10 +444,7 @@ public class DependenceGraphBuilder implements StatisticsProvider {
               if (foreignDefUseData
                   .getForeignUses(summaryEdge.getFunctionEntry().getFunction())
                   .contains(cause)) {
-                addDependence(
-                    getDGNode(defEdge, defEdgeCause),
-                    getDGNode(useEdge, useEdgeCause),
-                    DependenceType.FLOW);
+                addFlowDependence(defEdge, defEdgeCause, useEdge, useEdgeCause);
                 flowDepCount.value++;
               }
 
@@ -451,20 +456,12 @@ public class DependenceGraphBuilder implements StatisticsProvider {
 
                 if (defUseData.getUses().contains(cause)
                     || !defUseData.getPointeeUses().isEmpty()) {
-
-                  addDependence(
-                      getDGNode(defEdge, defEdgeCause),
-                      getDGNode(useEdge, paramUseCause),
-                      DependenceType.FLOW);
+                  addFlowDependence(defEdge, defEdgeCause, useEdge, paramUseCause);
                   flowDepCount.value++;
                 }
               }
             } else {
-
-              addDependence(
-                  getDGNode(defEdge, defEdgeCause),
-                  getDGNode(useEdge, useEdgeCause),
-                  DependenceType.FLOW);
+              addFlowDependence(defEdge, defEdgeCause, useEdge, useEdgeCause);
               flowDepCount.value++;
             }
           };
