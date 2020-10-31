@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
+import org.sosy_lab.cpachecker.cpa.arg.ARGUtils;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormulaManager;
@@ -35,9 +36,8 @@ public class RecomputeBlockFormulaStrategy extends BlockFormulaStrategy {
     PathFormula previousPathFormula = pfmgr.makeEmptyPathFormula();
     for (ARGState next : abstractionStates) {
       final ARGState start = current;
-      // Quick hack for TM experiments
-      // partialPath = ARGUtils.getOnePathFromTo((x) -> x == start, next).getFullPath();
-      partialPath = start.getEdgesToChild(next);
+      // Note, getEdges does not work with branching
+      partialPath = ARGUtils.getOnePathFromTo((x) -> x == start, next).getFullPath();
       PathFormula partialFormula = pfmgr.makeEmptyPathFormula(previousPathFormula);
       for (CFAEdge edge : partialPath) {
         partialFormula = pfmgr.makeAnd(partialFormula, edge);

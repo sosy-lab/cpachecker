@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.cpa.arg.ARGBasedRefiner;
 import org.sosy_lab.cpachecker.cpa.arg.ARGReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.arg.path.ARGPath;
+import org.sosy_lab.cpachecker.cpa.usage.refinement.PredicateRefinerAdapter.UsageStatisticsRefinementStrategy;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
@@ -75,6 +76,10 @@ public class ThreadModularCPARefiner implements ARGBasedRefiner, StatisticsProvi
   protected final LogManager logger;
   protected final GlobalRefinementStrategy strategy;
 
+  // In case of usage refinement we have several global refinements level, thus we can not work with
+  // strategy here, it will be done in the caller
+  protected final boolean singleRefinementLevel;
+
   public ThreadModularCPARefiner(
       LogManager pLogger,
       GlobalRefinementStrategy pStrategy,
@@ -86,6 +91,8 @@ public class ThreadModularCPARefiner implements ARGBasedRefiner, StatisticsProvi
     logger = pLogger;
     strategy = pStrategy;
     delegate = pDelegate;
+    // Not really good detection way
+    singleRefinementLevel = !(pStrategy instanceof UsageStatisticsRefinementStrategy);
   }
 
   @Override
@@ -97,7 +104,9 @@ public class ThreadModularCPARefiner implements ARGBasedRefiner, StatisticsProvi
 
       int iterationCounter = 0;
       Collection<CFANode> previousNodes = ImmutableSet.of();
-      // strategy.initializeGlobalRefinement();
+      if (singleRefinementLevel) {
+        strategy.initializeGlobalRefinement();
+      }
       CounterexampleInfo counterexample;
 
       ARGPath refinedPath = allStatesTrace;
@@ -121,7 +130,9 @@ public class ThreadModularCPARefiner implements ARGBasedRefiner, StatisticsProvi
         if (!counterexample.isSpurious()) {
           if (iterationCounter == 1) {
             // real ARG path
-            // strategy.resetGlobalRefinement();
+            if (singleRefinementLevel) {
+              strategy.resetGlobalRefinement();
+            }
             return counterexample;
           } else {
             // need to rebuild abstraction with new predicates to obtain the potentially true path
@@ -147,7 +158,9 @@ public class ThreadModularCPARefiner implements ARGBasedRefiner, StatisticsProvi
 
       } while (refinedPath != null);
 
-      // strategy.updatePrecisionAndARG();
+      if (singleRefinementLevel) {
+        strategy.updatePrecisionAndARG();
+      }
       return counterexample;
 
     } finally {

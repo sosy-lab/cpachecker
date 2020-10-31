@@ -64,16 +64,20 @@ public class ThreadEffectRefiner extends ThreadModularCPARefiner {
           throws CPAException, InterruptedException {
     totalTime.start();
 
-    strategy.initializeGlobalRefinement();
+    if (singleRefinementLevel) {
+      strategy.initializeGlobalRefinement();
+    }
 
-    for (ARGState state : allStatesTrace.asStatesList()) {
-      if (state.getAppliedFrom() != null) {
-        for (ARGState projection : state.getAppliedFrom().getSecond().getProjectedFrom()) {
-          numberOfPaths.inc();
-          ARGPath pathToAppliedstate = ARGUtils.getOnePathTo(projection);
-          CounterexampleInfo inf = delegate.performRefinementForPath(pReached, pathToAppliedstate);
-          if (inf.isSpurious()) {
-            numberOfSpuriousPathes.inc();
+    if (false) {
+      for (ARGState state : allStatesTrace.asStatesList()) {
+        if (state.getAppliedFrom() != null) {
+          for (ARGState projection : state.getAppliedFrom().getSecond().getProjectedFrom()) {
+            numberOfPaths.inc();
+            ARGPath pathToAppliedstate = ARGUtils.getOnePathTo(projection);
+            CounterexampleInfo inf = delegate.performRefinementForPath(pReached, pathToAppliedstate);
+            if (inf.isSpurious()) {
+              numberOfSpuriousPathes.inc();
+            }
           }
         }
       }
@@ -83,7 +87,7 @@ public class ThreadEffectRefiner extends ThreadModularCPARefiner {
     CounterexampleInfo couterexample = delegate.performRefinementForPath(pReached, allStatesTrace);
     delegatingTime.stop();
 
-    if (couterexample.isSpurious()) {
+    if (couterexample.isSpurious() && singleRefinementLevel) {
       strategy.updatePrecisionAndARG();
     }
     totalTime.stop();

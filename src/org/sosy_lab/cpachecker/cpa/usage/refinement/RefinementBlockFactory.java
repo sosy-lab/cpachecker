@@ -134,6 +134,7 @@ public class RefinementBlockFactory {
     } else {
       computer = new ARGPathRestorator(idExtractor);
     }
+    PredicateRefinerAdapterFactory factory = new PredicateRefinerAdapterFactory(cpa, logger);
 
     for (int i = RefinementChain.size() - 1; i >= 0; i--) {
 
@@ -192,26 +193,20 @@ public class RefinementBlockFactory {
 
           case ImprecisePredicateRefiner:
             currentBlock =
-                PredicateRefinerAdapter.createImpreciseRefiner(
-                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
-                    cpa,
-                    logger);
+                factory.createImpreciseRefiner(
+                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock);
             break;
 
           case PredicateRefiner:
             currentBlock =
-                PredicateRefinerAdapter.createPlainRefiner(
-                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
-                    cpa,
-                    logger);
+                factory.createPlainRefiner(
+                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock);
             break;
 
           case ThreadModularRefiner:
             currentBlock =
-                PredicateRefinerAdapter.createThreadModularRefiner(
-                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock,
-                    cpa,
-                    logger);
+                factory.createThreadModularRefiner(
+                    (ConfigurableRefinementBlock<Pair<ExtendedARGPath, ExtendedARGPath>>) currentBlock);
             break;
 
           case SharedRefiner:
