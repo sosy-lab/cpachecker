@@ -50,7 +50,10 @@ import org.sosy_lab.cpachecker.cfa.MutableCFA;
 import org.sosy_lab.cpachecker.cfa.ast.c.CComplexTypeDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCall;
+import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionCallAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.c.CFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.ast.c.CLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.c.CParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
@@ -440,6 +443,17 @@ public class DependenceGraphBuilder implements StatisticsProvider {
                   summaryEdge.getExpression().getFunctionCallExpression().getParameterExpressions();
 
               assert params.size() == expressions.size();
+
+              CFunctionCall functionCall = summaryEdge.getExpression();
+              if (functionCall instanceof CFunctionCallAssignmentStatement) {
+                CLeftHandSide lhs =
+                    ((CFunctionCallAssignmentStatement) functionCall).getLeftHandSide();
+                EdgeDefUseData defUseData = EdgeDefUseData.extract(lhs);
+                if (defUseData.getUses().contains(cause)
+                    || !defUseData.getPointeeUses().isEmpty()) {
+                  addFlowDependence(defEdge, defEdgeCause, useEdge, useEdgeCause);
+                }
+              }
 
               if (foreignDefUseData
                   .getForeignUses(summaryEdge.getFunctionEntry().getFunction())
