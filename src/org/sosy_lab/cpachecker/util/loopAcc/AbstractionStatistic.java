@@ -26,7 +26,11 @@ public class AbstractionStatistic implements Statistics {
 
   @Override
   public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
-    pOut.println("Time to abstract loops:" + timeToAbstract);
+    if (timeToAbstract != null) {
+      pOut.println("Time to abstract loops:" + timeToAbstract);
+    } else {
+      pOut.println("Time to abstract loops:");
+    }
   }
 
   @Override

@@ -32,6 +32,7 @@ public class LoopStatistics implements Statistics {
   private List<String[]> oVariables;
   private List<String[]> accelerationPossible;
   private TimeSpan timeToAnalyze;
+  private boolean flagNull;
 
   public LoopStatistics(List<LoopData> loopList) {
     this.loopList = loopList;
@@ -52,6 +53,7 @@ public class LoopStatistics implements Statistics {
     ioVariables = new ArrayList<>();
     oVariables = new ArrayList<>();
     accelerationPossible = new ArrayList<>();
+    flagNull = false;
 
     for (int i = 0; i < loopList.size(); i++) {
       if (!loopList.isEmpty()) {
@@ -81,7 +83,9 @@ public class LoopStatistics implements Statistics {
         oVariables.add(o);
         String[] acc = {"L" + (i + 1), "" + loopList.get(i).getCanBeAccelerated()};
         accelerationPossible.add(acc);
-        if (i == 0) {
+        if (timeToAnalyze == null) {
+          flagNull = true;
+        } else if (i == 0) {
           timeToAnalyze = loopList.get(i).getAnalyzeTime();
         } else {
           timeToAnalyze = TimeSpan.sum(timeToAnalyze, loopList.get(i).getAnalyzeTime());
@@ -113,7 +117,9 @@ public class LoopStatistics implements Statistics {
     pOut.println("IO-Variables:" + ArrayToString(ioVariables));
     pOut.println("Outputvariables:" + ArrayToString(oVariables));
     pOut.println("Can loop be accelerated:" + ArrayToString(accelerationPossible));
-    pOut.println("Time to analyze loop in ms:" + timeToAnalyze);
+    if (!flagNull) {
+      pOut.println("Time to analyze loop in ms:" + timeToAnalyze);
+    }
   }
 
   @Override

@@ -30,7 +30,7 @@ public class LoopAbstractionHeader implements StatisticsProvider {
       name = "shouldAbstract",
       values = {"naiv", "advanced", "none"},
       description = "AbstractLoops to be able to process them")
-  private String shouldAbstract = "naiv";
+  private String shouldAbstract = "none";
 
   @Option(
       secure = true,
@@ -74,12 +74,11 @@ public class LoopAbstractionHeader implements StatisticsProvider {
     pathForAbstractLoops = loopI.getCFA().getFileNames().get(0).toString();
 
     loopAbstraction = new LoopAbstraction();
-  }
-
-  public void abstractLoop() {
-    loopAbstraction.changeFileToAbstractFile(
-        loopI, logger, pathForAbstractLoops, shouldAbstract, automate, accLoops);
-      timeToAbstract = new AbstractionStatistic(loopAbstraction.getTimeToAbstract());
+    if (!shouldAbstract.equals("none")) {
+      loopAbstraction.changeFileToAbstractFile(
+          loopI, logger, pathForAbstractLoops, shouldAbstract, automate, accLoops);
+    }
+    timeToAbstract = new AbstractionStatistic(loopAbstraction.getTimeToAbstract());
   }
 
   @Override
