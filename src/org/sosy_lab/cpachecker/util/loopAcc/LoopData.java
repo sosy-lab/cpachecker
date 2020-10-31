@@ -942,11 +942,17 @@ public class LoopData implements Comparable<LoopData> {
 
   @Override
   public boolean equals(Object otherLoop) {
-    if (this.getLoopStart().getNodeNumber()
-        != ((LoopData) otherLoop).getLoopStart().getNodeNumber()) {
+    if (otherLoop == null || (!(otherLoop instanceof LoopData))) {
       return false;
-    } else {
+    }
+    if(otherLoop == this) {
       return true;
+    }
+    LoopData ld = (LoopData)otherLoop;
+    if(this.getLoopStart().getNodeNumber() == ld.getLoopStart().getNodeNumber()) {
+      return true;
+    } else {
+      return false;
     }
   }
 
