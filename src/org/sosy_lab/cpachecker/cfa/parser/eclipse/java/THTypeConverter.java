@@ -59,14 +59,15 @@ class THTypeConverter extends TypeConverter {
     if (superClass != null && !t.isRecovered()) {
       superClassType = convertClassType(superClass);
     } else if (t.isRecovered()) {
-      Class<?> cls = null;
+      Class<?> cls;
       try {
         cls = Class.forName(typeName);
-      } catch (ClassNotFoundException ignored) {
-      }
-      try {
-        cls = Class.forName("java.lang." + typeName);
-      } catch (ClassNotFoundException ignored) {
+      } catch (ClassNotFoundException e) {
+        try {
+          cls = Class.forName("java.lang." + typeName);
+        } catch (ClassNotFoundException pE) {
+          cls = null;
+        }
       }
       if (cls != null && cls.getSuperclass() != null) {
         superClassType = createJClassTypeFromClass(cls.getSuperclass());
