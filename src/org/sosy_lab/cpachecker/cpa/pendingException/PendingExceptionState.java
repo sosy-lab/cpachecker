@@ -30,7 +30,27 @@ public class PendingExceptionState extends AbstractAppender
   private final Map<String, List<BigInteger>> arrays;
   private final Deque<Boolean> tryStack = new ArrayDeque<>();
 
+  private int counterMethodInvocationsTested = 0;
+  private int counterExceptionsCaught = 0;
+
+  public int getCounterMethodInvocationsTested() {
+    return counterMethodInvocationsTested;
+  }
+
+  public void increaseCounterMethodInvocationsTested() {
+    counterMethodInvocationsTested++;
+  }
+
+  public int getCounterExceptionsCaught() {
+    return counterExceptionsCaught;
+  }
+
+  public void increaseCounterExceptionsCaught() {
+    counterExceptionsCaught++;
+  }
+
   public String getMethodInvocationObject() {
+    increaseCounterMethodInvocationsTested();
     return methodInvocationObject;
   }
 
@@ -55,19 +75,19 @@ public class PendingExceptionState extends AbstractAppender
 
   @Override
   public void appendTo(Appendable appendable) {
-    // TODO
+
   }
 
   @Override
   public PendingExceptionState join(PendingExceptionState other)
       throws CPAException, InterruptedException {
-    return null; // TODO
+    return null;
   }
 
   @Override
   public boolean isLessOrEqual(PendingExceptionState other)
       throws CPAException, InterruptedException {
-    return false; // TODO
+    return false;
   }
 
   public void addTryStack() {

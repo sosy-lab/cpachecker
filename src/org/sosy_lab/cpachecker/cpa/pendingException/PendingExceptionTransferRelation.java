@@ -105,6 +105,7 @@ public class PendingExceptionTransferRelation
             .put(
                 PendingExceptionState.PENDING_EXCEPTION,
                 "java.lang.ArrayIndexOutOfBoundsException");
+        state.increaseCounterExceptionsCaught();
       }
     } else if (initializer instanceof JInitializerExpression
         && ((JInitializerExpression) initializer).getExpression() instanceof JFieldAccess) {
@@ -203,6 +204,7 @@ public class PendingExceptionTransferRelation
 
         String variableName = getScopedVariableName(functionName, rightHandSide.toString());
         state.getPendingExceptions().put(variableName, "");
+        state.increaseCounterExceptionsCaught();
       } else if (leftHandSide instanceof JArraySubscriptExpression) {
         String name =
             ((JIdExpression) ((JArraySubscriptExpression) leftHandSide).getArrayExpression())
@@ -218,6 +220,7 @@ public class PendingExceptionTransferRelation
               .put(
                   PendingExceptionState.PENDING_EXCEPTION,
                   "java.lang.ArrayIndexOutOfBoundsException");
+          state.increaseCounterExceptionsCaught();
         }
       }
       if (leftHandSide instanceof JFieldAccess) {
@@ -246,6 +249,7 @@ public class PendingExceptionTransferRelation
       parent = parent.getSuperclass();
       counter++;
     } while (!parent.equals(Object.class));
+    pState.increaseCounterExceptionsCaught();
   }
 
   @Override
@@ -310,6 +314,7 @@ public class PendingExceptionTransferRelation
             ((PendingExceptionState) pState)
                 .getPendingExceptions()
                 .put(variableName, ((RTTState) abstractState).getRunTimeClassOfUniqueObject(value));
+            ((PendingExceptionState) pState).increaseCounterExceptionsCaught();
           }
         }
       }
