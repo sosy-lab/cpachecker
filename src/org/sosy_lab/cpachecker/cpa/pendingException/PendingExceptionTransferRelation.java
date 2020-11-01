@@ -9,11 +9,14 @@
 package org.sosy_lab.cpachecker.cpa.pendingException;
 
 import com.google.common.collect.Lists;
+import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JArrayInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
@@ -63,20 +66,26 @@ public class PendingExceptionTransferRelation
       assert initializer instanceof JInitializerExpression
           : "Initializer should be of type JInitializerExpression. If not, cases need to be added";
       JExpression jArrayCreationExpression = ((JInitializerExpression) initializer).getExpression();
-      assert jArrayCreationExpression instanceof JArrayCreationExpression;
-      state
-          .getArrays()
-          .put(
-              getScopedVariableName(functionName, decl.getName()),
-              ((JArrayCreationExpression) jArrayCreationExpression).getLength());
+      List<BigInteger> arrayLengths = new ArrayList<>();
+      if (jArrayCreationExpression instanceof JArrayCreationExpression) {
+        arrayLengths =
+            convertLengthList(((JArrayCreationExpression) jArrayCreationExpression).getLength());
+      } else if (jArrayCreationExpression instanceof JArrayInitializer) {
+        arrayLengths.add(
+            BigInteger.valueOf(
+                ((JArrayInitializer) jArrayCreationExpression).getInitializerExpressions().size()));
+      } else if (jArrayCreationExpression instanceof JIdExpression) {
+        arrayLengths.add(BigInteger.valueOf(0L));
+      }
+      state.getArrays().put(getScopedVariableName(functionName, decl.getName()), arrayLengths);
     }
     // Check array name and size
     else if (initializer instanceof JInitializerExpression
         && ((JInitializerExpression) initializer).getExpression()
-        instanceof JArraySubscriptExpression) {
+            instanceof JArraySubscriptExpression) {
 
       String nameOfArray = getNameOfArrayFromInitializer((JInitializerExpression) initializer);
-      List<JExpression> dimensions =
+      List<BigInteger> dimensions =
           state.getArrays().get(getScopedVariableName(functionName, nameOfArray));
       boolean arrayAccessOutOfBounds =
           isArrayAccessOutOfBounds(
@@ -93,14 +102,24 @@ public class PendingExceptionTransferRelation
     return state; // TODO
   }
 
+  private List<BigInteger> convertLengthList(List<JExpression> lengthList) {
+    List<BigInteger> result = new ArrayList<>(lengthList.size());
+    for (JExpression expression : lengthList) {
+      if (expression instanceof JIntegerLiteralExpression) {
+        result.add(((JIntegerLiteralExpression) expression).getValue());
+      }
+    }
+    return result;
+  }
+
   private boolean isArrayAccessOutOfBounds(
-      JArraySubscriptExpression pJArraySubscriptExpression, List<JExpression> dimensionsOfArray) {
+      JArraySubscriptExpression pJArraySubscriptExpression, List<BigInteger> dimensionsOfArray) {
 
     JArraySubscriptExpression currentJArraySubscriptExpression = pJArraySubscriptExpression;
-    for (JExpression dimensionOfArray : Lists.reverse(dimensionsOfArray)) {
+    for (BigInteger dimensionOfArray : Lists.reverse(dimensionsOfArray)) {
       JIntegerLiteralExpression currentSubscriptExpression =
           (JIntegerLiteralExpression) currentJArraySubscriptExpression.getSubscriptExpression();
-      int sizeOfArray = ((JIntegerLiteralExpression) dimensionOfArray).getValue().intValue();
+      int sizeOfArray = dimensionOfArray.intValue();
       int access = currentSubscriptExpression.getValue().intValue();
       if (access >= sizeOfArray) {
         return true;
@@ -130,7 +149,7 @@ public class PendingExceptionTransferRelation
 
     if (expression instanceof JRunTimeTypeEqualsType
         && ((JRunTimeTypeEqualsType) expression).getRunTimeTypeExpression()
-        instanceof PendingExceptionOfJRunTimeType) {
+            instanceof PendingExceptionOfJRunTimeType) {
 
       final String s = ((JRunTimeTypeEqualsType) expression).getTypeDef().toASTString("");
       final boolean b = state.getPendingExceptions().containsValue(s);
@@ -164,7 +183,7 @@ public class PendingExceptionTransferRelation
       state.getPendingExceptions().put(variableName, "");
     }
 
-    return state; // TODO Create copy?
+    return state;
   }
 
   @Override
@@ -173,12 +192,12 @@ public class PendingExceptionTransferRelation
       List<JExpression> arguments,
       List<JParameterDeclaration> parameters,
       String calledFunctionName) {
-    return state; // TODO
+    return state;
   }
 
   @Override
   protected PendingExceptionState handleReturnStatementEdge(JReturnStatementEdge cfaEdge) {
-    return state; // TODO
+    return state;
   }
 
   @Override
@@ -187,7 +206,7 @@ public class PendingExceptionTransferRelation
       JMethodSummaryEdge fnkCall,
       JMethodOrConstructorInvocation summaryExpr,
       String callerFunctionName) {
-    return state; // TODO
+    return state;
   }
 
   private boolean isThrowable(JType pJType) {

@@ -8,11 +8,11 @@
 
 package org.sosy_lab.cpachecker.cpa.pendingException;
 
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.sosy_lab.common.Appenders.AbstractAppender;
-import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.core.defaults.LatticeAbstractState;
 import org.sosy_lab.cpachecker.exceptions.CPAException;
 
@@ -25,7 +25,7 @@ public class PendingExceptionState extends AbstractAppender
   private final Map<String, String> pendingExceptions;
 
   // Name of Array and length
-  private final Map<String, List<JExpression>> arrays;
+  private final Map<String, List<BigInteger>> arrays;
 
   public PendingExceptionState() {
     pendingExceptions = new HashMap<>();
@@ -36,7 +36,7 @@ public class PendingExceptionState extends AbstractAppender
     return pendingExceptions;
   }
 
-  Map<String, List<JExpression>> getArrays() {
+  Map<String, List<BigInteger>> getArrays() {
     return arrays;
   }
 
