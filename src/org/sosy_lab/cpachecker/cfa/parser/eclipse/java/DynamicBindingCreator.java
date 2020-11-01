@@ -410,7 +410,7 @@ class DynamicBindingCreator {
       assert edge.getStatement() instanceof JMethodInvocationStatement
           : "Statement is no Function Call";
 
-      newFunctionCall = new JMethodInvocationStatement(fileloc, newFunctionCallExpression);
+      newFunctionCall = new JMethodInvocationStatement(fileloc, newFunctionCallExpression, null);
     }
 
 
@@ -512,7 +512,7 @@ class DynamicBindingCreator {
     } else {
       assert edge.getStatement() instanceof JMethodInvocationStatement
           : "Statement is no Function Call";
-      newFunctionCall = new JMethodInvocationStatement(fileloc, newFunctionCallExpression);
+      newFunctionCall = new JMethodInvocationStatement(fileloc, newFunctionCallExpression, null);
     }
 
     CFANode postFunctionCallNode = new CFANode(callInFunction);

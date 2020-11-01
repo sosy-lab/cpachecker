@@ -13,6 +13,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.cpachecker.cfa.ast.AInitializer;
 import org.sosy_lab.cpachecker.cfa.ast.java.JArrayCreationExpression;
@@ -21,17 +22,21 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JArraySubscriptExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionAssignmentStatement;
+import org.sosy_lab.cpachecker.cfa.ast.java.JFieldAccess;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIntegerLiteralExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
+import org.sosy_lab.cpachecker.cfa.ast.java.JMethodInvocationStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
+import org.sosy_lab.cpachecker.cfa.ast.java.JSimpleDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.PendingExceptionOfJIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.PendingExceptionOfJRunTimeType;
+import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
@@ -51,6 +56,9 @@ import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
 public class PendingExceptionTransferRelation
     extends ForwardingTransferRelation<PendingExceptionState, PendingExceptionState, Precision> {
+
+  // Keep in sync with CFAMethodBuilder
+  private static final String EDGE_DESCRIPTION_FIRST_CATCH_CLAUSE = "Enter first catch clause";
 
   @Override
   protected PendingExceptionState handleDeclarationEdge(
@@ -163,42 +171,77 @@ public class PendingExceptionTransferRelation
   }
 
   @Override
+  protected PendingExceptionState handleBlankEdge(BlankEdge cfaEdge) {
+    assert state != null;
+    String cfaEdgeDescription = cfaEdge.getDescription();
+    if ("try".equals(cfaEdgeDescription)) {
+      state.addTryStack();
+    }
+    if (EDGE_DESCRIPTION_FIRST_CATCH_CLAUSE.equals(cfaEdgeDescription)) {
+      state.removeTryStack();
+    }
+    if ("assert fail".equals(cfaEdgeDescription)
+        && state.isInTryStack()
+        && !state.getPendingExceptions().isEmpty()) {
+      return null;
+    }
+    return state;
+  }
+
+  @Override
   protected PendingExceptionState handleStatementEdge(
       JStatementEdge cfaEdge, JStatement statement) {
     assert state != null;
 
-    if (!(statement instanceof JExpressionAssignmentStatement)) {
-      return state;
-    }
-
-    JLeftHandSide leftHandSide = ((JExpressionAssignmentStatement) statement).getLeftHandSide();
-    if ((leftHandSide instanceof PendingExceptionOfJIdExpression)) {
-
-      final JExpression rightHandSide =
-          ((JExpressionAssignmentStatement) statement).getRightHandSide();
-
-      assert isThrowable(rightHandSide.getExpressionType());
-
-      String variableName = getScopedVariableName(functionName, rightHandSide.toString());
-      state.getPendingExceptions().put(variableName, "");
-    } else if (leftHandSide instanceof JArraySubscriptExpression) {
-      String name =
-          ((JIdExpression) ((JArraySubscriptExpression) leftHandSide).getArrayExpression())
-              .getName();
-      String scopedVariableName = getScopedVariableName(functionName, name);
-      boolean arrayAccessOutOfBounds =
-          isArrayAccessOutOfBounds(
-              (JArraySubscriptExpression) leftHandSide, state.getArrays().get(scopedVariableName));
-      if (arrayAccessOutOfBounds) {
-        state
-            .getPendingExceptions()
-            .put(
-                PendingExceptionState.PENDING_EXCEPTION,
-                "java.lang.ArrayIndexOutOfBoundsException");
+    if (statement instanceof JMethodInvocationStatement) {
+      JSimpleDeclaration simpleDeclaration =
+          ((JMethodInvocationStatement) statement).getSimpleDeclaration();
+      if (simpleDeclaration != null) {
+        state.setMethodInvocationObject(
+            getScopedVariableName(functionName, simpleDeclaration.getName()));
       }
     }
+    if (statement instanceof JExpressionAssignmentStatement) {
+      JLeftHandSide leftHandSide = ((JExpressionAssignmentStatement) statement).getLeftHandSide();
+      if ((leftHandSide instanceof PendingExceptionOfJIdExpression)) {
 
+        final JExpression rightHandSide =
+            ((JExpressionAssignmentStatement) statement).getRightHandSide();
+
+        assert isThrowable(rightHandSide.getExpressionType());
+
+        String variableName = getScopedVariableName(functionName, rightHandSide.toString());
+        state.getPendingExceptions().put(variableName, "");
+      } else if (leftHandSide instanceof JArraySubscriptExpression) {
+        String name =
+            ((JIdExpression) ((JArraySubscriptExpression) leftHandSide).getArrayExpression())
+                .getName();
+        String scopedVariableName = getScopedVariableName(functionName, name);
+        boolean arrayAccessOutOfBounds =
+            isArrayAccessOutOfBounds(
+                (JArraySubscriptExpression) leftHandSide,
+                state.getArrays().get(scopedVariableName));
+        if (arrayAccessOutOfBounds) {
+          state
+              .getPendingExceptions()
+              .put(
+                  PendingExceptionState.PENDING_EXCEPTION,
+                  "java.lang.ArrayIndexOutOfBoundsException");
+        }
+      }
+      if (leftHandSide instanceof JFieldAccess) {
+        if (((JFieldAccess) leftHandSide).getDeclaration().getInitializer() == null) {
+          addNullPointerExceptionToState(state);
+        }
+      }
+    }
     return state;
+  }
+
+  private static void addNullPointerExceptionToState(PendingExceptionState pState) {
+    pState
+        .getPendingExceptions()
+        .put(PendingExceptionState.PENDING_EXCEPTION, "java.lang.NullPointerException");
   }
 
   @Override
@@ -251,6 +294,11 @@ public class PendingExceptionTransferRelation
       throws CPATransferException, InterruptedException {
     for (AbstractState abstractState : pOtherStates) {
       if ((abstractState instanceof RTTState)) {
+        if (pCfaEdge instanceof JStatementEdge
+            && ((JStatementEdge) pCfaEdge).getStatement() instanceof JMethodInvocationStatement) {
+          checkForMethodInvocationOnNullObject(
+              (PendingExceptionState) pState, (RTTState) abstractState);
+        }
         for (String variableName :
             ((PendingExceptionState) pState).getPendingExceptions().keySet()) {
           if (((RTTState) abstractState).getConstantsMap().containsKey(variableName)) {
@@ -263,6 +311,18 @@ public class PendingExceptionTransferRelation
       }
     }
     return super.strengthen(pState, pOtherStates, pCfaEdge, pPrecision);
+  }
+
+  private void checkForMethodInvocationOnNullObject(
+      PendingExceptionState pState, RTTState pRTTState) {
+    String methodInvocationObject = pState.getMethodInvocationObject();
+    Map<String, String> constantsMap = pRTTState.getConstantsMap();
+    if (constantsMap.containsKey(methodInvocationObject)) {
+      if ("null".equals(constantsMap.get(methodInvocationObject))) {
+        addNullPointerExceptionToState(pState);
+        pState.setMethodInvocationObject("");
+      }
+    }
   }
 
   private static String getScopedVariableName(String pFunctionName, String pVariableName) {

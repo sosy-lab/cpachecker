@@ -129,8 +129,9 @@ class CFAMethodBuilder extends ASTVisitor {
 
   // Data structures for handling loops & else conditions
   private final Deque<CFANode> loopStartStack = new ArrayDeque<>();
-  private final Deque<CFANode> loopNextStack  = new ArrayDeque<>(); // For the node following the current if / while block
-  private final Deque<CFANode> elseStack      = new ArrayDeque<>();
+  private final Deque<CFANode> loopNextStack = new ArrayDeque<>();
+  // For the node following the current if / while block
+  private final Deque<CFANode> elseStack = new ArrayDeque<>();
 
   // Data structure for handling switch-statements
   private final Deque<JExpression> switchExprStack = new ArrayDeque<>();
@@ -139,10 +140,17 @@ class CFAMethodBuilder extends ASTVisitor {
   // Data structure for handling try catch throw
   // First value of list is post catch nodes, second is post finally node
   private final Deque<List<Optional<CFANode>>> tryStack = new ArrayDeque<>();
+  private final static String EDGE_DESCRIPTION_AFTER_CAUGHT_EXCEPTION =
+      "go to end of try after caught exception";
+  private final static String EDGE_DESCRIPTION_AFTER_LAST_CATCH_CLAUSE =
+      "go to end of try after last catch clause";
+  // Keep in sync with PendingExceptionTransferRelation
+  private static final String EDGE_DESCRIPTION_FIRST_CATCH_CLAUSE = "Enter first catch clause";
 
   // Data structures for label , continue , break
   private final Map<String, CLabelNode> labelMap = new HashMap<>();
-  private final Map<String, List<Pair<CFANode, ContinueStatement>>> registeredContinues = new HashMap<>();
+  private final Map<String, List<Pair<CFANode, ContinueStatement>>> registeredContinues =
+      new HashMap<>();
 
   // Data structures for handling method declarations
   private JMethodEntryNode cfa = null;
@@ -1242,7 +1250,7 @@ private void handleTernaryExpression(ConditionalExpression condExp,
             new JStatementEdge(
                 condExp.toString(),
                 new JMethodInvocationStatement(
-                    astCreator.getFileLocation(condExp), (JMethodInvocationExpression) exp),
+                    astCreator.getFileLocation(condExp), (JMethodInvocationExpression) exp, null),
                 fileLocation,
                 prevNode,
                 lastNode);
@@ -1812,7 +1820,13 @@ private void handleTernaryExpression(ConditionalExpression condExp,
       // True if throw statement was reached
       CFANode preCatchNode = getPreCatchNode().orElseThrow();
       if (preCatchNode != prevNode) {
-        BlankEdge blankEdge = new BlankEdge("", FileLocation.DUMMY, prevNode, preCatchNode, "");
+        BlankEdge blankEdge =
+            new BlankEdge(
+                "",
+                FileLocation.DUMMY,
+                prevNode,
+                preCatchNode,
+                EDGE_DESCRIPTION_FIRST_CATCH_CLAUSE);
         addToCFA(blankEdge);
         prevNode = preCatchNode;
       }
@@ -1874,7 +1888,12 @@ private void handleTernaryExpression(ConditionalExpression condExp,
 
       if (prevNode.getNumEnteringEdges() > 0) {
         BlankEdge blankEdge =
-            new BlankEdge("", FileLocation.DUMMY, prevNode, getPostCatchNode().orElseThrow(), "");
+            new BlankEdge(
+                "",
+                FileLocation.DUMMY,
+                prevNode,
+                getPostCatchNode().orElseThrow(),
+                EDGE_DESCRIPTION_AFTER_CAUGHT_EXCEPTION);
         addToCFA(blankEdge);
       }
     }
@@ -1882,7 +1901,12 @@ private void handleTernaryExpression(ConditionalExpression condExp,
     if (isLastCatchClause(pCatchClause)) {
       final CFANode postCatchNode = getPostCatchNode().orElseThrow();
       BlankEdge blankEdge =
-          new BlankEdge("", FileLocation.DUMMY, nextNode, postCatchNode, "go to end of try");
+          new BlankEdge(
+              "",
+              FileLocation.DUMMY,
+              nextNode,
+              postCatchNode,
+              EDGE_DESCRIPTION_AFTER_LAST_CATCH_CLAUSE);
       addToCFA(blankEdge);
       locStack.pop();
       locStack.push(postCatchNode);
@@ -2907,8 +2931,8 @@ private void handleTernaryExpression(ConditionalExpression condExp,
                                         constructorNameExp,
                                         pParametersToCallWith,
                                         pConstructorToInvoke);
-    JStatement superInvocationStatement = new JMethodInvocationStatement(FileLocation.DUMMY, superInvocation);
-
+    JStatement superInvocationStatement =
+        new JMethodInvocationStatement(FileLocation.DUMMY, superInvocation, null);
 
     CFANode prevNode = locStack.pop();
     CFANode nextNode = new CFANode(cfa.getFunction());

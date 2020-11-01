@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.cpa.pendingException;
 
 import java.math.BigInteger;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +28,17 @@ public class PendingExceptionState extends AbstractAppender
 
   // Name of Array and length
   private final Map<String, List<BigInteger>> arrays;
+  private final Deque<Boolean> tryStack = new ArrayDeque<>();
+
+  public String getMethodInvocationObject() {
+    return methodInvocationObject;
+  }
+
+  public void setMethodInvocationObject(String pMethodInvocationObject) {
+    this.methodInvocationObject = pMethodInvocationObject;
+  }
+
+  private String methodInvocationObject = "";
 
   public PendingExceptionState() {
     pendingExceptions = new HashMap<>();
@@ -55,5 +68,17 @@ public class PendingExceptionState extends AbstractAppender
   public boolean isLessOrEqual(PendingExceptionState other)
       throws CPAException, InterruptedException {
     return false; // TODO
+  }
+
+  public void addTryStack() {
+    tryStack.push(true);
+  }
+
+  public void removeTryStack() {
+    tryStack.pop();
+  }
+
+  public boolean isInTryStack() {
+    return !tryStack.isEmpty();
   }
 }

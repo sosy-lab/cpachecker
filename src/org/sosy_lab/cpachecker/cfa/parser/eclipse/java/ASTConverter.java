@@ -704,7 +704,13 @@ class ASTConverter {
       return (JMethodInvocationAssignmentStatement) node;
 
     } else if (node instanceof JMethodInvocationExpression) {
-      return new JMethodInvocationStatement(getFileLocation(s), (JMethodInvocationExpression) node);
+      JSimpleDeclaration jSimpleDeclaration = null;
+      if (s.getExpression() instanceof MethodInvocation
+          && ((MethodInvocation) s.getExpression()).getExpression() instanceof SimpleName) {
+        jSimpleDeclaration =
+            scope.lookupVariable(((SimpleName) ((MethodInvocation) s.getExpression()).getExpression()).getIdentifier());
+      }
+      return new JMethodInvocationStatement(getFileLocation(s), (JMethodInvocationExpression) node, jSimpleDeclaration);
 
     } else if (node instanceof JExpression) {
       return new JExpressionStatement(getFileLocation(s), (JExpression) node);
@@ -786,8 +792,15 @@ class ASTConverter {
           new JIdExpression(idExpression.getFileLocation(), idExpression.getExpressionType(), name, declaration);
     }
 
-    return new JMethodInvocationStatement(getFileLocation(sCI), new JSuperConstructorInvocation(getFileLocation(sCI),
-        (JClassType) getDeclaringClassType(binding), functionName, params, declaration));
+    return new JMethodInvocationStatement(
+        getFileLocation(sCI),
+        new JSuperConstructorInvocation(
+            getFileLocation(sCI),
+            (JClassType) getDeclaringClassType(binding),
+            functionName,
+            params,
+            declaration),
+        null);
   }
 
   private JConstructorType convertConstructorType(IMethodBinding pBinding) {
