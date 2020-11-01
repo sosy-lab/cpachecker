@@ -10,16 +10,21 @@ package org.sosy_lab.cpachecker.core.algorithm.summaries;
 
 import static org.sosy_lab.cpachecker.util.AbstractStates.extractStateByType;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
+import org.sosy_lab.cpachecker.cfa.model.FunctionEntryNode;
 import org.sosy_lab.cpachecker.cfa.model.FunctionExitNode;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.cpa.location.LocationCPA;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValue;
@@ -98,14 +103,27 @@ public class SummaryAlgorithm implements Algorithm {
 
     logger.log(Level.INFO, "Starting function summarization ...");
 
-    for(AbstractState state : reachedSet) {
-      final ValueAnalysisState valueState = extractStateByType(state, ValueAnalysisState.class);
+    final Map<FunctionEntryNode, ValueAnalysisState> entryStates = new HashMap<>();
+
+    for (final AbstractState state : reachedSet) {
       final LocationState locationState = extractStateByType(state, LocationState.class);
+      final ValueAnalysisState valueState = extractStateByType(state, ValueAnalysisState.class);
 
-      final boolean requiredStatesExist = (locationState != null) && (valueState != null);
+      if (locationState == null || valueState == null) {
+        continue;
+      }
 
-      if (requiredStatesExist && locationState.getLocationNode() instanceof FunctionExitNode) {
-        createSummaryForState(locationState, valueState);
+      if (locationState.getLocationNode() instanceof FunctionEntryNode) {
+        final FunctionEntryNode entryNode = (FunctionEntryNode) locationState.getLocationNode();
+        entryStates.put(entryNode, valueState);
+      }
+
+      if (locationState.getLocationNode() instanceof FunctionExitNode) {
+        final FunctionExitNode exitNode = (FunctionExitNode) locationState.getLocationNode();
+        final ValueAnalysisState entryState = entryStates.get(exitNode.getEntryNode());
+
+        final AFunctionDeclaration function = locationState.getLocationNode().getFunction();
+        createSummaryForStates(function, entryState, valueState);
       }
     }
 
@@ -114,38 +132,45 @@ public class SummaryAlgorithm implements Algorithm {
   }
 
   /**
-   * Internal utility method to generate a summary from {@link LocationState} and
-   * {@link ValueAnalysisState} of an abstract state.<br/>
-   * Summaries are currently represented as just plain {@link String}, and can only be created at
-   * function exit locations.
+   * Internal utility method to generate a summary for the control flow within the function defined
+   * by {@link AFunctionDeclaration}, between the two {@link ValueAnalysisState} <code>entryState
+   * </code> and <code>exitState</code>. Summaries are currently represented as plain {@link
+   * String}, and logged with Level.FINE.
    *
-   * @param locationState Location information of the abstract state. Used to derive the function
-   *                      signature in the summary.
-   *
-   * @param valueState Value information of the abstract state. Used to produce the actual summary.
+   * @param function Declaration of the function for which the summary is created.
+   * @param entryState Value information of the abstract state in which the function is entered.
+   *     <br>
+   *     If {@link LocationCPA} was active in parallel, the corresponding {@link LocationState} in
+   *     the composite abstract state is a {@link FunctionEntryNode}.
+   * @param exitState Value information of the abstract state in which the function is left.<br>
+   *     If {@link LocationCPA} was active in parallel, the corresponding {@link LocationState} in
+   *     the composite abstract state is a {@link FunctionExitNode}.
    */
-  private void createSummaryForState(
-      final LocationState locationState, final ValueAnalysisState valueState) {
+  private void createSummaryForStates(
+      final AFunctionDeclaration function,
+      final ValueAnalysisState entryState,
+      final ValueAnalysisState exitState) {
+
     final Optional<MemoryLocation> returnValue =
-        valueState.getTrackedMemoryLocations().stream()
-        .filter(memoryLocation -> memoryLocation.getIdentifier().equals("__retval__"))
-        .findFirst();
+        exitState.getTrackedMemoryLocations().stream()
+            .filter(memoryLocation -> memoryLocation.getIdentifier().equals("__retval__"))
+            .findFirst();
 
     if(returnValue.isEmpty())
     {
       return;
     }
 
-    final Value value = valueState.getValueAndTypeFor(returnValue.get()).getValue();
+    final Value value = exitState.getValueFor(returnValue.get());
 
     if (value instanceof SymbolicValue) {
       final SymbolicValue symbolicValue = (SymbolicValue) value;
 
       final SymbolicValueToSummaryTransformer transformer =
-        new SymbolicValueToSummaryTransformer(locationState, valueState);
+          new SymbolicValueToSummaryTransformer(function, entryState);
 
-        String summary = symbolicValue.accept(transformer).toString();
-        logger.log(Level.FINE, summary, "\n");
+      String summary = symbolicValue.accept(transformer).toString();
+      logger.log(Level.FINE, summary, "\n");
     }
   }
 }

@@ -8,13 +8,12 @@
 
 package org.sosy_lab.cpachecker.core.algorithm.summaries;
 
-import com.google.common.collect.ImmutableList;
-import java.util.List;
-import java.util.Set;
+import com.google.common.collect.ImmutableMap;
+import java.util.Map;
+import java.util.Optional;
 import org.sosy_lab.cpachecker.cfa.ast.AFunctionDeclaration;
-import org.sosy_lab.cpachecker.cfa.ast.AParameterDeclaration;
-import org.sosy_lab.cpachecker.cpa.location.LocationState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AdditionExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.AddressOfExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.BinaryAndExpression;
@@ -42,15 +41,17 @@ import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicExpression;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicIdentifier;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.SymbolicValueVisitor;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.type.UnarySymbolicExpression;
+import org.sosy_lab.cpachecker.cpa.value.type.NumericValue;
+import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
- * {@link SymbolicValueToSummaryTransformer} represents a transformation of a
- * {@link SymbolicExpression} to a summary.<br/>
- * Currently, summaries are represented as plain {@link String}, and the return value of
- * this transformation is the {@link StringBuilder} used to construct the summary. The
- * transformation recursively visits all subexpressions of the {@link SymbolicExpression}, and adds
- * them to the summary.
+ * {@link SymbolicValueToSummaryTransformer} represents a transformation of a {@link
+ * SymbolicExpression} to a summary.<br>
+ * Currently, summaries are represented as plain {@link String}, and the return value of this
+ * transformation is the {@link StringBuilder} used to construct the summary. The transformation
+ * recursively visits all subexpressions of the {@link SymbolicExpression}, and adds them to the
+ * summary.
  */
 @SuppressWarnings({"ResultOfMethodCallIgnored"})
 public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<StringBuilder> {
@@ -63,45 +64,83 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
   private final StringBuilder strBuilder = new StringBuilder();
 
   /**
+   * Flag which indicates whether outer parenthesis have been added.<br>
    * For consistent notation, it is required to wrap the whole summary expression (which occurs to
-   * the right of the function signature in the summary string) in parenthesis. If the summary
-   * only contains a single variable or constant, no parenthesis are required.<p>
+   * the right of the function signature in the summary string) in parenthesis. If the summary only
+   * contains a single variable or constant, no parenthesis are required.
    *
-   * During <i>only the first</i> invocation of any <code>visit</code> method of a transformer for
-   * a {@link SymbolicExpression}, it must therefore use
-   * {@link #unwrapWithParenthesis(SymbolicExpression)} on the expression itself, instead of
-   * directly unpacking its operands. {@link #unwrapWithParenthesis(SymbolicExpression)} also takes
-   * care of not putting parenthesis around single variables or constants.<p>
+   * <p>During <i>only the first</i> invocation of any <code>visit</code> method of a transformer
+   * for a {@link SymbolicExpression}, it must therefore use {@link
+   * #unwrapWithParenthesis(SymbolicExpression)} on the expression itself, instead of directly
+   * unpacking its operands. {@link #unwrapWithParenthesis(SymbolicExpression)} also takes care of
+   * not putting parenthesis around single variables or constants.
    *
-   * This internal flag indicates whether that operation (i. e. creation of the outermost
+   * <p>This internal flag indicates whether that operation (i. e. creation of the outermost
    * parenthesis) has already been performed, or is still pending.
    */
   private boolean outerParenthesisAdded = false;
 
   /**
-   * Create a new {@link SymbolicValueToSummaryTransformer} for a summary <i>without</i> function
-   * signature.<br/>
-   * Different to {@link #SymbolicValueToSummaryTransformer(LocationState, ValueAnalysisState)}, the
-   * generated summary is <i>not</i> started by prepending the function signature.
+   * {@link MemoryLocation} and {@link ValueAnalysisState} of function parameters.<br>
+   * To identify the original parameters in the symbolic expression for the return value of the
+   * function, the {@link ValueAndType} of each parameter is stored for the state directly after
+   * entering the function. Then, if these expressions are found again while unpacking the symbolic
+   * expression of the return value, the parameter identifier is inserted directly (instead of
+   * further unpacking the represented operations; which would include operations performed
+   * <i>before</i> entering the function).
+   *
+   * <p>Currently, it is not possible to directly identify function parameters which have been set
+   * to constant values during the function call. For example. if a function <code>f(x, y)</code> is
+   * called as <br>
+   * <code>    f(x, 5)</code>,<br>
+   * the symbolic expression representing the argument <code>y=5</code> will not be recognized as an
+   * parameter.
+   *
+   * <p>The reason is that in the list of parameters available from the {@link ValueAnalysisState}
+   * at the function entry location, the parameter is not represented as {@link SymbolicExpression}
+   * which then contains the actual number; but instead, as a plain {@link NumericValue}. However,
+   * from comparing two numeric values, the parameter can not be identified reliably in the symbolic
+   * expressions which represents the operations of the function (e. g. because the same numeric
+   * value could be used for multiple parameters).
+   *
+   * <p>This is different from more complex arguments, e. g. <code>f(x, y + 5)</code>. Here, the
+   * list of parameters at the function entry location contains a {@link SymbolicExpression} (which
+   * represents the addition, and possibly casting operations), which is then uniquely identified
+   * within the analyzed {@link SymbolicExpression} of the function return value.
+   *
+   * <p>As a result, plain numerical arguments are just removed from the list of parameters, and
+   * replaced with their corresponding value in the summary. <code>f(x, 5)</code> therefore leads to
+   * a summary with signature <code>f(x)</code>, and all occurrences of <code>x</code> within the
+   * function body will be replaced by the number <code>5</code>.
+   *
+   * <p>During initialization, the list of parameters is assigned based on the {@link
+   * ValueAnalysisState} of the function entry location.
    */
-  public SymbolicValueToSummaryTransformer() {
-  }
+  private ImmutableMap<MemoryLocation, ValueAndType> parameters;
+
+  private SymbolicValueToSummaryTransformer() {}
 
   /**
-   * Create a new {@link SymbolicValueToSummaryTransformer} for a summary <i>with</i> function
-   * signature.<br/>
+   * Create a new {@link SymbolicValueToSummaryTransformer} for a summary.<br>
    * Different to the default constructor, the generated summary is started by appending the
    * signature of the function represented in the provided parameters.
    *
-   * @param locationState The {@link LocationState} of the abstract state for which the function
-   *                      scope is analyzed.
-   *
-   * @param valueState The {@link ValueAnalysisState} of the abstract state for which the
-   *                   function scope is analyzed.
+   * @param function Declaration of the function for which the summary is created.
+   * @param entryState The {@link ValueAnalysisState} of the abstract state at the position where
+   *     the summarized function is entered.
    */
   public SymbolicValueToSummaryTransformer(
-      final LocationState locationState, final ValueAnalysisState valueState) {
-    addFunctionSignature(locationState, valueState);
+      final AFunctionDeclaration function, final ValueAnalysisState entryState) {
+    final String scope = function.getQualifiedName();
+
+    parameters =
+        entryState.getConstants().stream()
+            .filter(constant -> constant.getKey().isOnFunctionStack(scope))
+            .filter(constant -> !constant.getValue().getValue().isNumericValue())
+            .collect(
+                ImmutableMap.toImmutableMap(entry -> entry.getKey(), entry -> entry.getValue()));
+
+    addFunctionSignature(function);
   }
 
   @Override
@@ -112,15 +151,17 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
 
   @Override
   public StringBuilder visit(ConstantSymbolicExpression pExpression) {
-    final var value = pExpression.getValue();
+    final Optional<MemoryLocation> variable = pExpression.getRepresentedLocation();
 
-    if (value instanceof SymbolicIdentifier) {
-      final SymbolicIdentifier identifier = (SymbolicIdentifier) value;
-      return identifier.accept(this);
+    if (variable.isPresent()) {
+      String identifier = variable.get().getIdentifier();
+      strBuilder.append(identifier);
     } else {
-      final Number number = value.asNumericValue().getNumber();
-      return strBuilder.append(number);
+      final Value value = pExpression.getValue();
+      strBuilder.append(value.asNumericValue().getNumber());
     }
+
+    return strBuilder;
   }
 
   @Override
@@ -210,6 +251,10 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
 
   @Override
   public StringBuilder visit(CastExpression pExpression) {
+    /*
+     * Summaries currently don't convey no type information.
+     * Cast operations are therefore ignored, and the operand expression is unpacked directly.
+     */
     return pExpression.getOperand().accept(this);
   }
 
@@ -261,12 +306,9 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
       return unwrapWithParenthesis(expr);
     }
 
-    final SymbolicExpression lhs = expr.getOperand1();
-    final SymbolicExpression rhs = expr.getOperand2();
-
-    unwrapWithParenthesis(lhs);
+    unwrapWithParenthesis(expr.getOperand1());
     strBuilder.append(" ").append(op).append(" ");
-    return unwrapWithParenthesis(rhs);
+    return unwrapWithParenthesis(expr.getOperand2());
   }
 
   /**
@@ -279,6 +321,10 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
    * @return The {@link StringBuilder} of the created summary.
    */
   private StringBuilder unwrapWithParenthesis(final SymbolicExpression expr) {
+    if (isParameter(expr)) {
+      return strBuilder.append(expr.getRepresentedLocation().get().getIdentifier());
+    }
+
     final boolean constant = expr instanceof ConstantSymbolicExpression;
     final boolean cast = expr instanceof CastExpression;
 
@@ -294,39 +340,32 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
   }
 
   /**
-   * Append function signature to summary.<br/>
-   * Internal utility method which derives the function signature of the current scope in the
-   * provided {@link LocationState}, and appends it to the generated summary (which should yet be
-   * empty when this method is called).<p>
-   * If {@link SymbolicValueToSummaryTransformer} is created with the non-default constructor,
-   * this method is used internally to begin the created summary with the function signature.
+   * Append function signature to summary.<br>
+   * Internal utility method which derives the function signature of the current scope from the
+   * parameters already stored, and the provided {@link AFunctionDeclaration}, and appends it to the
+   * generated summary (which should yet be empty when this method is called).
    *
-   * @param locationState The {@link LocationState} of the abstract state for which the function
-   *                      scope is analyzed.
+   * <p>This method is used internally to begin the created summary with the function signature.
    *
-   * @param valueState The {@link ValueAnalysisState} of the abstract state for which the
-   *                   function scope is analyzed.
+   * @param function The {@link AFunctionDeclaration} of the function for which the summary is
+   *     created.
    */
-  private void addFunctionSignature(LocationState locationState, ValueAnalysisState valueState) {
-    final AFunctionDeclaration function = locationState.getLocationNode().getFunction();
+  private void addFunctionSignature(AFunctionDeclaration function) {
     final String name = function.getName();
 
     strBuilder.append(name);
     strBuilder.append(": (");
 
-    ImmutableList<AParameterDeclaration> params =
-        determineActualParameters(function, valueState.getTrackedMemoryLocations());
-
     int index = 0;
-    for (final AParameterDeclaration param : params) {
-      strBuilder.append(param.getName());
+    for (final Map.Entry<MemoryLocation, ValueAndType> entry : this.parameters.entrySet()) {
+      strBuilder.append(entry.getKey().getIdentifier());
 
-      if (++index < params.size()) {
+      if (++index < this.parameters.size()) {
         strBuilder.append(",");
       }
     }
 
-    if (params.isEmpty()) {
+    if (this.parameters.isEmpty()) {
       strBuilder.append(" ");
     }
 
@@ -334,42 +373,28 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
   }
 
   /**
-   * Return all function parameters which remain as symbolic variables in the summary.<br/>
-   * During symbolic execution, formal parameters which are filled with constant
-   * arguments in the analyzed program will be represented as
-   * {@link ConstantSymbolicExpression} which contain the corresponding constant values. As a
-   * result, the information where they actually occurred as variables within the function body is
-   * not readily available. In the produced summary, only the actual argument (i.e. the constant
-   * value present during function invocation) is used and makes it into the summary.<p>
+   * Check whether expression is function parameter.<br>
+   * Internal utility method which checks whether the provided expression is identical to one of the
+   * parameters with which the function was called. In this case, it can be replaced with the
+   * parameter identifier in the created summary.
    *
-   * This can result in summaries like<br/>
-   * <code>f: (x, y) -&gt; x + 5</code><br/>
-   * if <code>f</code> is called as <code>f(x, 5)</code> in the analyzed code.<p>
+   * <p>Some limitations apply, see description on {@link #parameters}.
    *
-   * To prevent the occurrence of such parameters in the function signature within summaries, this
-   * internal utility method filters the list of parameters and returns an updated one where only
-   * "real" parameters which make it into the generated summary as symbolic variables remain.<p>
-   *
-   * @param function The function for which the parameters are analyzed. Used to determine the list
-   *                 of formal parameters.
-   *
-   * @param memoryLocations The list of memory locations at the analyzed location in the function.
-   *                        Used to determine which parameters actually become tracked memory
-   *                        locations (and therefore symbolic variables in the summary).
-   *
-   * @return {@link ImmutableList} of function parameters which actually occur as symbolic variables in the
-   *          summary.
+   * @param expr The expression which is checked for being a function parameter.
+   * @return true if the expression is a function parameter, false otherwise (with limitations).
    */
-  ImmutableList<AParameterDeclaration> determineActualParameters(
-      final AFunctionDeclaration function, final Set<MemoryLocation> memoryLocations) {
-    final List<? extends AParameterDeclaration> params = function.getParameters();
+  private boolean isParameter(final SymbolicExpression expr) {
+    final Optional<MemoryLocation> location = expr.getRepresentedLocation();
 
-    ImmutableList<String> actualParameters = memoryLocations.stream()
-        .map(memoryLocation -> memoryLocation.getIdentifier())
-        .collect(ImmutableList.toImmutableList());
+    if (location.isEmpty()) {
+      return false;
+    }
 
-    return params.stream()
-        .filter(parameter -> actualParameters.contains(parameter.getName()))
-        .collect(ImmutableList.toImmutableList());
+    final ValueAndType param = this.parameters.get(location.get());
+    if (param != null && param.getValue().equals(expr)) {
+      return true;
+    }
+
+    return false;
   }
 }
