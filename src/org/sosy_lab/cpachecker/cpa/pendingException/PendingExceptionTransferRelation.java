@@ -24,6 +24,7 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JExpressionAssignmentStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JInitializerExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.JIntegerLiteralExpression;
+import org.sosy_lab.cpachecker.cfa.ast.java.JLeftHandSide;
 import org.sosy_lab.cpachecker.cfa.ast.java.JMethodOrConstructorInvocation;
 import org.sosy_lab.cpachecker.cfa.ast.java.JParameterDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.JRunTimeTypeEqualsType;
@@ -39,7 +40,6 @@ import org.sosy_lab.cpachecker.cfa.model.java.JMethodReturnEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JMethodSummaryEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JReturnStatementEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JStatementEdge;
-import org.sosy_lab.cpachecker.cfa.model.java.JThrowStatementEdge;
 import org.sosy_lab.cpachecker.cfa.types.java.JArrayType;
 import org.sosy_lab.cpachecker.cfa.types.java.JClassType;
 import org.sosy_lab.cpachecker.cfa.types.java.JType;
@@ -77,6 +77,7 @@ public class PendingExceptionTransferRelation
       } else if (jArrayCreationExpression instanceof JIdExpression) {
         arrayLengths.add(BigInteger.valueOf(0L));
       }
+      assert state != null;
       state.getArrays().put(getScopedVariableName(functionName, decl.getName()), arrayLengths);
     }
     // Check array name and size
@@ -99,7 +100,7 @@ public class PendingExceptionTransferRelation
                 "java.lang.ArrayIndexOutOfBoundsException");
       }
     }
-    return state; // TODO
+    return state;
   }
 
   private List<BigInteger> convertLengthList(List<JExpression> lengthList) {
@@ -146,7 +147,7 @@ public class PendingExceptionTransferRelation
   @Override
   protected @Nullable PendingExceptionState handleAssumption(
       JAssumeEdge cfaEdge, JExpression expression, boolean truthAssumption) {
-
+    assert state != null;
     if (expression instanceof JRunTimeTypeEqualsType
         && ((JRunTimeTypeEqualsType) expression).getRunTimeTypeExpression()
             instanceof PendingExceptionOfJRunTimeType) {
@@ -166,13 +167,12 @@ public class PendingExceptionTransferRelation
       JStatementEdge cfaEdge, JStatement statement) {
     assert state != null;
 
-    if (!(cfaEdge instanceof JThrowStatementEdge)
-        || !(statement instanceof JExpressionAssignmentStatement)) {
+    if (!(statement instanceof JExpressionAssignmentStatement)) {
       return state;
     }
 
-    if ((((JExpressionAssignmentStatement) statement).getLeftHandSide()
-        instanceof PendingExceptionOfJIdExpression)) {
+    JLeftHandSide leftHandSide = ((JExpressionAssignmentStatement) statement).getLeftHandSide();
+    if ((leftHandSide instanceof PendingExceptionOfJIdExpression)) {
 
       final JExpression rightHandSide =
           ((JExpressionAssignmentStatement) statement).getRightHandSide();
@@ -181,6 +181,21 @@ public class PendingExceptionTransferRelation
 
       String variableName = getScopedVariableName(functionName, rightHandSide.toString());
       state.getPendingExceptions().put(variableName, "");
+    } else if (leftHandSide instanceof JArraySubscriptExpression) {
+      String name =
+          ((JIdExpression) ((JArraySubscriptExpression) leftHandSide).getArrayExpression())
+              .getName();
+      String scopedVariableName = getScopedVariableName(functionName, name);
+      boolean arrayAccessOutOfBounds =
+          isArrayAccessOutOfBounds(
+              (JArraySubscriptExpression) leftHandSide, state.getArrays().get(scopedVariableName));
+      if (arrayAccessOutOfBounds) {
+        state
+            .getPendingExceptions()
+            .put(
+                PendingExceptionState.PENDING_EXCEPTION,
+                "java.lang.ArrayIndexOutOfBoundsException");
+      }
     }
 
     return state;
