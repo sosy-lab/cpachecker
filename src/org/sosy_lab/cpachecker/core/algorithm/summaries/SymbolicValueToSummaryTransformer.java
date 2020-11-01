@@ -280,13 +280,14 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
    */
   private StringBuilder unwrapWithParenthesis(final SymbolicExpression expr) {
     final boolean constant = expr instanceof ConstantSymbolicExpression;
+    final boolean cast = expr instanceof CastExpression;
 
-    if (!constant) {
+    if (constant || cast) {
+      expr.accept(this);
+    } else {
       strBuilder.append("(");
       expr.accept(this);
       strBuilder.append(")");
-    } else {
-      expr.accept(this);
     }
 
     return strBuilder;
