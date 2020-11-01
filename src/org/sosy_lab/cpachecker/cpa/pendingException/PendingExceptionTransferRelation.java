@@ -90,7 +90,7 @@ public class PendingExceptionTransferRelation
     // Check array name and size
     else if (initializer instanceof JInitializerExpression
         && ((JInitializerExpression) initializer).getExpression()
-            instanceof JArraySubscriptExpression) {
+        instanceof JArraySubscriptExpression) {
 
       String nameOfArray = getNameOfArrayFromInitializer((JInitializerExpression) initializer);
       List<BigInteger> dimensions =
@@ -106,7 +106,17 @@ public class PendingExceptionTransferRelation
                 PendingExceptionState.PENDING_EXCEPTION,
                 "java.lang.ArrayIndexOutOfBoundsException");
       }
+    } else if (initializer instanceof JInitializerExpression
+        && ((JInitializerExpression) initializer).getExpression() instanceof JFieldAccess) {
+      String name =
+          ((JFieldAccess) ((JInitializerExpression) initializer).getExpression())
+              .getReferencedVariable()
+              .getName();
+      if (!state.getArrays().containsKey(getScopedVariableName(functionName, name))) {
+        addNullPointerExceptionToState(state);
+      }
     }
+
     return state;
   }
 
