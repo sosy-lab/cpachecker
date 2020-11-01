@@ -16,7 +16,7 @@ public class Main {
     try {
       int i = a.i;
     } catch (NullPointerException exc) {
-      assert true;
+      assert false;
     }
   }
 }
