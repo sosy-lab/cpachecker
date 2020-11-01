@@ -1580,17 +1580,19 @@ class ASTConverter {
         return Optional.absent();
       }
     }
-    List<Class<?>> argumentsAsClassArray =
+    java.util.Optional<List<Class<?>>> argumentsAsClassArray =
         convertArgumentListToClassList(pArguments, pImportDeclarations);
-
+    if(argumentsAsClassArray.isEmpty()){
+      return Optional.absent();
+    }
     for (Constructor<?> constructor : cls.getDeclaredConstructors()) {
       boolean match = true;
       Class<?>[] parameterTypes = constructor.getParameterTypes();
-      if (parameterTypes.length != argumentsAsClassArray.size()) {
+      if (parameterTypes.length != argumentsAsClassArray.get().size()) {
         continue;
       }
       for (int i = 0; i < parameterTypes.length; i++) {
-        if (!parameterTypes[i].isAssignableFrom(argumentsAsClassArray.get(i))) {
+        if (!parameterTypes[i].isAssignableFrom(argumentsAsClassArray.get().get(i))) {
           match = false;
           break;
         }
@@ -1602,7 +1604,7 @@ class ASTConverter {
     return Optional.absent();
   }
 
-  private List<Class<?>> convertArgumentListToClassList(
+  private java.util.Optional<List<Class<?>>> convertArgumentListToClassList(
       List<?> pArguments, Set<ImportDeclaration> pImportDeclarations) {
     List<Class<?>> result = new ArrayList<>(pArguments.size());
     for (Object argument : pArguments) {
@@ -1625,7 +1627,8 @@ class ASTConverter {
           final JType jType = typeConverter.convert(binding);
           result.add(getClassOfJType(jType, pImportDeclarations).get());
         } else {
-          throw new AssertionError("Cannot find class of " + argument.toString());
+          // TODO Need better solution for Method Invocations
+          return java.util.Optional.empty();
         }
       }
       else if (argument instanceof InfixExpression){
@@ -1639,7 +1642,7 @@ class ASTConverter {
     if (pArguments.size() != result.size()) {
       throw new AssertionError("Error while converting arguments into array of classes.");
     }
-    return ImmutableList.copyOf(result);
+    return java.util.Optional.of(ImmutableList.copyOf(result));
   }
 
   private Optional<JSimpleDeclaration> getJSimpleDeclarationOfArgument(final Object pArgument) {
@@ -1797,13 +1800,27 @@ class ASTConverter {
         JType jType;
         if (argument instanceof InfixExpression) {
           jType = convert((InfixExpression) argument).getExpressionType();
+          if(jType instanceof JSimpleType){
+            name = ((JSimpleType) jType).toString();
+            qualifiedName = ((JSimpleType) jType).toString();
+          } else {
+            name = ((JClassType) jType).getSimpleName();
+            qualifiedName = ((JClassType) jType).getName();
+          }
+        } else if (argument instanceof StringLiteral) {
+          jType = convert((StringLiteral) argument).getExpressionType();
           name = ((JClassType) jType).getSimpleName();
           qualifiedName = ((JClassType) jType).getName();
         } else {
           ITypeBinding binding = ((Expression) argument).resolveTypeBinding();
           jType = typeConverter.convert(binding);
-          name = binding.getName();
-          qualifiedName = binding.getQualifiedName();
+          if (binding != null) {
+            name = binding.getName();
+            qualifiedName = binding.getQualifiedName();
+          } else {
+            name = jType.toString();
+            qualifiedName = jType.toString();
+          }
         }
         parameterList.add(
             new JParameterDeclaration(
