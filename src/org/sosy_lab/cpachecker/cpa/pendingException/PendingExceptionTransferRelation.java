@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cfa.ast.java.JStatement;
 import org.sosy_lab.cpachecker.cfa.ast.java.JVariableDeclaration;
 import org.sosy_lab.cpachecker.cfa.ast.java.PendingExceptionOfJIdExpression;
 import org.sosy_lab.cpachecker.cfa.ast.java.PendingExceptionOfJRunTimeType;
-import org.sosy_lab.cpachecker.cfa.model.BlankEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JAssumeEdge;
 import org.sosy_lab.cpachecker.cfa.model.java.JDeclarationEdge;
@@ -171,24 +170,6 @@ public class PendingExceptionTransferRelation
   }
 
   @Override
-  protected PendingExceptionState handleBlankEdge(BlankEdge cfaEdge) {
-    assert state != null;
-    String cfaEdgeDescription = cfaEdge.getDescription();
-    if ("try".equals(cfaEdgeDescription)) {
-      state.addTryStack();
-    }
-    if (EDGE_DESCRIPTION_FIRST_CATCH_CLAUSE.equals(cfaEdgeDescription)) {
-      state.removeTryStack();
-    }
-    if ("assert fail".equals(cfaEdgeDescription)
-        && state.isInTryStack()
-        && !state.getPendingExceptions().isEmpty()) {
-      return null;
-    }
-    return state;
-  }
-
-  @Override
   protected PendingExceptionState handleStatementEdge(
       JStatementEdge cfaEdge, JStatement statement) {
     assert state != null;
@@ -239,9 +220,22 @@ public class PendingExceptionTransferRelation
   }
 
   private static void addNullPointerExceptionToState(PendingExceptionState pState) {
-    pState
-        .getPendingExceptions()
-        .put(PendingExceptionState.PENDING_EXCEPTION, "java.lang.NullPointerException");
+    Class<?> cls;
+    try {
+      cls = Class.forName("java.lang.NullPointerException");
+    } catch (ClassNotFoundException e) {
+      return;
+    }
+    Map<String, String> pendingExceptions = pState.getPendingExceptions();
+    pendingExceptions.put(
+        PendingExceptionState.PENDING_EXCEPTION, "java.lang.NullPointerException");
+    Class<?> parent = cls.getSuperclass();
+    int counter = 1;
+    do {
+      pendingExceptions.put(PendingExceptionState.PENDING_EXCEPTION + counter, parent.getName());
+      parent = parent.getSuperclass();
+      counter++;
+    } while (!parent.equals(Object.class));
   }
 
   @Override
