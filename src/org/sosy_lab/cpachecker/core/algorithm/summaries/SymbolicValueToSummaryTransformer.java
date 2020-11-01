@@ -105,7 +105,7 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
    *
    * <p>This is different from more complex arguments, e. g. <code>f(x, y + 5)</code>. Here, the
    * list of parameters at the function entry location contains a {@link SymbolicExpression} (which
-   * represents the addition, and possibly casting operations), which is then uniquely identified
+   * represents the addition, and possible casting operations), which is then uniquely identified
    * within the analyzed {@link SymbolicExpression} of the function return value.
    *
    * <p>As a result, plain numerical arguments are just removed from the list of parameters, and
@@ -117,8 +117,6 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
    * ValueAnalysisState} of the function entry location.
    */
   private ImmutableMap<MemoryLocation, ValueAndType> parameters;
-
-  private SymbolicValueToSummaryTransformer() {}
 
   /**
    * Create a new {@link SymbolicValueToSummaryTransformer} for a summary.<br>
