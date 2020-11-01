@@ -19,10 +19,16 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.legion;
 
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.logging.Level;
 
-import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -45,7 +51,7 @@ import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 @Options(prefix = "legion")
 public class LegionAlgorithm implements Algorithm {
-    
+
     // Configuration Options
     @Option(
         secure = true,
@@ -76,12 +82,13 @@ public class LegionAlgorithm implements Algorithm {
     // General fields
     private final Algorithm algorithm;
     private final LogManager logger;
+    private Configuration config;
 
     // CPAs + components
     private ValueAnalysisCPA valueCpa;
     private Solver solver;
     final PredicateCPA predCpa;
-    
+
     // Legion Specific
     private OutputWriter outputWriter;
     private Selector selectionStrategy;
@@ -98,6 +105,7 @@ public class LegionAlgorithm implements Algorithm {
         this.logger = pLogger;
 
         pConfig.inject(this, LegionAlgorithm.class);
+        this.config = pConfig;
 
         // Fetch solver from predicate CPA and valueCpa (used in fuzzer)
         this.predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, LegionAlgorithm.class);
@@ -106,7 +114,7 @@ public class LegionAlgorithm implements Algorithm {
 
         // Configure Output
         this.outputWriter = new OutputWriter(logger, predCpa, "./output/testcases");
-        
+
         // Set selection Strategy, targetSolver and fuzzer
         this.selectionStrategy = buildSelectionStrategy();
         this.targetSolver = new TargetSolver(logger, solver, maxSolverAsks);
@@ -123,6 +131,7 @@ public class LegionAlgorithm implements Algorithm {
         // Before asking a solver for path constraints, one initial pass through the program
         // has to be done to provide an initial set of states. This initial discovery
         // is meant to be cheap in resources and tries to establish easy to reach states.
+        Instant init_start = Instant.now();
         ArrayList<ArrayList<ValueAssignment>> preloadedValues = new ArrayList<>();
         try {
             reachedSet = fuzzer.fuzz(reachedSet, initialPasses, algorithm, preloadedValues);
@@ -131,14 +140,21 @@ public class LegionAlgorithm implements Algorithm {
             outputWriter.writeTestCases(reachedSet);
             return AlgorithmStatus.SOUND_AND_PRECISE;
         }
+        Instant init_end = Instant.now();
+        Duration init_time = Duration.between(init_start, init_end);
+
 
         // In it's main iterations, ask the solver for new solutions every time.
         // This is done until a resource limit is reached or no new target states
         // are available.
+        Duration selection_time = Duration.ZERO;
+        Duration targetting_time = Duration.ZERO;
+        Duration fuzzing_time = Duration.ZERO;
         for (int i = 0; i < maxIterations; i++) {
             logger.log(Level.INFO, "Iteration", i + 1);
 
             // Phase Selection: Select non-deterministic variables for path solving
+            Instant selection_start = Instant.now();
             PathFormula target;
             try {
                 target = selectionStrategy.select(reachedSet);
@@ -151,25 +167,65 @@ public class LegionAlgorithm implements Algorithm {
                 logger.log(Level.WARNING, "No target states left");
                 break;
             }
+            Instant selection_end = Instant.now();
+            selection_time = selection_time.plus(Duration.between(selection_start, selection_end));
+
 
             // Phase Targetting: Solve for the target and produce a number of values
             // needed as input to reach this target.
+            Instant targetting_start = Instant.now();
             preloadedValues = this.targetSolver.target(target);
-            
+            Instant targetting_end = Instant.now();
+            targetting_time = targetting_time.plus(Duration.between(targetting_start, targetting_end));
+
             // Phase Fuzzing: Run the configured number of fuzzingPasses to detect
             // new paths through the program.
+            Instant fuzzing_start = Instant.now();
             int fuzzingPasses = (int) Math.ceil(fuzzingMultiplier * preloadedValues.size());
             try {
                 reachedSet = fuzzer.fuzz(reachedSet, fuzzingPasses, algorithm, preloadedValues);
             } catch (PropertyViolationException ex) {
                 logger.log(Level.WARNING, "Found violated property in iteration", i + 1);
-                return AlgorithmStatus.SOUND_AND_PRECISE;
+                status = AlgorithmStatus.SOUND_AND_PRECISE;
+                break;
             } finally {
                 valueCpa.getTransferRelation().clearKnownValues();
             }
+            Instant fuzzing_end = Instant.now();
+            fuzzing_time = fuzzing_time.plus(Duration.between(fuzzing_start, fuzzing_end));
         }
 
+        writeInfo(init_time, selection_time, targetting_time, fuzzing_time);
+
         return status;
+    }
+
+    void writeInfo(Duration init, Duration selection, Duration targetting, Duration fuzzing) {
+        try (Writer testcase =
+                Files.newBufferedWriter(
+                        Paths.get("output/exec_info.yml"),
+                        Charset.defaultCharset())) {
+            testcase.write("---\n");
+
+            @SuppressWarnings("deprecation")
+            String programName = config.getProperty("analysis.programNames");
+            testcase.write(String.format("program: %s\n", programName));
+
+            testcase.write("\n");
+            testcase.write("settings:\n");
+            testcase.write(String.format("  selection_strategy: %s\n", selectionStrategyOption));
+
+            testcase.write("\n# Time format is seconds\n");
+            testcase.write("times:\n");
+            testcase.write(String.format("  init:       %s\n", (float) init.toNanos() / 1000000000));
+            testcase.write(
+                    String.format("  selection:  %s\n", (float) selection.toNanos() / 1000000000));
+            testcase.write(
+                    String.format("  targetting: %s\n", (float) targetting.toNanos() / 1000000000));
+            testcase.write(String.format("  fuzzing:    %s\n", (float) fuzzing.toNanos() / 1000000000));
+        } catch (IOException exc) {
+            logger.log(Level.SEVERE, "Could not write info file", exc);
+        }
     }
 
     Selector buildSelectionStrategy() {
