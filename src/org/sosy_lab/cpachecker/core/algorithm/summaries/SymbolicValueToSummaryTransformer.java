@@ -68,14 +68,14 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
    * For consistent notation, it is required to wrap the whole summary expression (which occurs to
    * the right of the function signature in the summary string) in parenthesis. If the summary only
    * contains a single variable or constant, no parenthesis are required.
-   *
-   * <p>During <i>only the first</i> invocation of any <code>visit</code> method of a transformer
+   * <p>
+   * During <i>only the first</i> invocation of any <code>visit</code> method of a transformer
    * for a {@link SymbolicExpression}, it must therefore use {@link
    * #unwrapWithParenthesis(SymbolicExpression)} on the expression itself, instead of directly
    * unpacking its operands. {@link #unwrapWithParenthesis(SymbolicExpression)} also takes care of
    * not putting parenthesis around single variables or constants.
-   *
-   * <p>This internal flag indicates whether that operation (i. e. creation of the outermost
+   * <p>
+   * This internal flag indicates whether that operation (i. e. creation of the outermost
    * parenthesis) has already been performed, or is still pending.
    */
   private boolean outerParenthesisAdded = false;
@@ -83,45 +83,47 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
   /**
    * {@link MemoryLocation} and {@link ValueAnalysisState} of function parameters.<br>
    * To identify the original parameters in the symbolic expression for the return value of the
-   * function, the {@link ValueAndType} of each parameter is stored for the state directly after
-   * entering the function. Then, if these expressions are found again while unpacking the symbolic
-   * expression of the return value, the parameter identifier is inserted directly (instead of
-   * further unpacking the represented operations; which would include operations performed
-   * <i>before</i> entering the function).
-   *
-   * <p>Currently, it is not possible to directly identify function parameters which have been set
+   * function, the {@link ValueAndType} of each parameter is stored as they occur in the state
+   * directly after entering the function. Then, if these expressions are found again while
+   * unpacking the symbolic expression of the return value, the parameter identifier is inserted
+   * directly (instead of further unpacking the represented operations; which would include
+   * operations performed <i>before</i> entering the function).
+   * <p>
+   * Currently, it is not possible to directly identify function parameters which have been set
    * to constant values during the function call. For example. if a function <code>f(x, y)</code> is
    * called as <br>
    * <code>    f(x, 5)</code>,<br>
    * the symbolic expression representing the argument <code>y=5</code> will not be recognized as an
    * parameter.
-   *
-   * <p>The reason is that in the list of parameters available from the {@link ValueAnalysisState}
+   * <p>
+   * The reason is that in the list of parameters available from the {@link ValueAnalysisState}
    * at the function entry location, the parameter is not represented as {@link SymbolicExpression}
-   * which then contains the actual number; but instead, as a plain {@link NumericValue}. However,
+   * which then contains the actual number; but instead as a plain {@link NumericValue}. However,
    * from comparing two numeric values, the parameter can not be identified reliably in the symbolic
    * expressions which represents the operations of the function (e. g. because the same numeric
    * value could be used for multiple parameters).
-   *
-   * <p>This is different from more complex arguments, e. g. <code>f(x, y + 5)</code>. Here, the
+   * <p>
+   * This is different from more complex arguments, e. g. <code>f(x, y + 5)</code>. Here, the
    * list of parameters at the function entry location contains a {@link SymbolicExpression} (which
    * represents the addition, and possible casting operations), which is then uniquely identified
    * within the analyzed {@link SymbolicExpression} of the function return value.
-   *
-   * <p>As a result, plain numerical arguments are just removed from the list of parameters, and
+   * <p>
+   * As a result, plain numerical arguments are just removed from the list of parameters, and
    * replaced with their corresponding value in the summary. <code>f(x, 5)</code> therefore leads to
    * a summary with signature <code>f(x)</code>, and all occurrences of <code>x</code> within the
    * function body will be replaced by the number <code>5</code>.
-   *
-   * <p>During initialization, the list of parameters is assigned based on the {@link
+   * <p>
+   * During initialization, the list of parameters is assigned based on the {@link
    * ValueAnalysisState} of the function entry location.
    */
   private final ImmutableMap<MemoryLocation, ValueAndType> parameters;
 
   /**
-   * Create a new {@link SymbolicValueToSummaryTransformer} for a summary.<br>
-   * Different to the default constructor, the generated summary is started by appending the
-   * signature of the function represented in the provided parameters.
+   * Create a new {@link SymbolicValueToSummaryTransformer}<br/>
+   * This transformer is then used to generate a textual code summary for a
+   * {@link SymbolicExpression} which represents the return value of the function declared in the
+   * provided {@link AFunctionDeclaration} and which is entered in the provided
+   * {@link ValueAnalysisState}.<br>
    *
    * @param pFunction Declaration of the function for which the summary is created.
    *
@@ -348,8 +350,8 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
    * Internal utility method which derives the function signature of the current scope from the
    * parameters already stored, and the provided {@link AFunctionDeclaration}, and appends it to the
    * generated summary (which should yet be empty when this method is called).
-   *
-   * <p>This method is used internally to begin the created summary with the function signature.
+   * <p>
+   * This method is used internally to begin the created summary with the function signature.
    *
    * @param pFunction The {@link AFunctionDeclaration} of the function for which the summary is
    *     created.
@@ -381,8 +383,8 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
    * Internal utility method which checks whether the provided expression is identical to one of the
    * parameters with which the function was called. In this case, it can be replaced with the
    * parameter identifier in the created summary.
-   *
-   * <p>Some limitations apply, see description on {@link #parameters}.
+   * <p>
+   * <i>Some limitations apply, see description on {@link #parameters}.</i>
    *
    * @param pExpression The expression which is checked for being a function parameter.
    *

@@ -36,8 +36,9 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
 
 /**
  * {@link SummaryAlgorithm} implements configurable code summarization.<br/>
- * Status is tracked in #796.<p>
- *
+ * Status tracked in  <a href="https://gitlab.com/sosy-lab/software/cpachecker/-/issues/796"
+ * target="_top">#796</a>.
+ * <p>
  * For now, it is limited to<br/>
  * a) functions (summaries are only prepared for complete functions, not arbitrary code blocks),
  *    <br/>
@@ -57,7 +58,7 @@ public class SummaryAlgorithm implements Algorithm {
   private final LogManager logger;
 
   /**
-   * Shutdown notifier which is used check whether shutdown has been requested.
+   * Shutdown notifier to check whether shutdown has been requested.
    */
   @SuppressWarnings("FieldCanBeLocal")
   private final ShutdownNotifier shutdownNotifier;
@@ -130,10 +131,10 @@ public class SummaryAlgorithm implements Algorithm {
   }
 
   /**
-   * Internal utility method to generate a summary for the control flow within the function defined
-   * by {@link AFunctionDeclaration}, between the two {@link ValueAnalysisState} <code>entryState
-   * </code> and <code>exitState</code>. Summaries are currently represented as plain {@link
-   * String}, and logged with Level.FINE.
+   * Internal utility method to generate a summary for the control flow within the pFunction defined
+   * by {@link AFunctionDeclaration}, between the two {@link ValueAnalysisState} <code>pEntryState
+   * </code> and <code>pExitState</code>. Summaries are currently represented as plain {@link
+   * String}, and logged with <code>Level.FINE</code>.
    *
    * @param pFunction Declaration of the pFunction for which the summary is created.
    * @param pEntryState Value information of the abstract state in which the pFunction is entered.
