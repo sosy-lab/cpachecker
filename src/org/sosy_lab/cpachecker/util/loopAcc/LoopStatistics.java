@@ -83,7 +83,7 @@ public class LoopStatistics implements Statistics {
         oVariables.add(o);
         String[] acc = {"L" + (i + 1), "" + loopList.get(i).getCanBeAccelerated()};
         accelerationPossible.add(acc);
-        if (timeToAnalyze == null) {
+        if (loopList.get(i).getAnalyzeTime() == null) {
           flagNull = true;
         } else if (i == 0) {
           timeToAnalyze = loopList.get(i).getAnalyzeTime();
