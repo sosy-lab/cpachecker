@@ -53,7 +53,7 @@ import org.sosy_lab.cpachecker.util.states.MemoryLocation;
  * recursively visits all subexpressions of the {@link SymbolicExpression}, and adds them to the
  * summary.
  */
-@SuppressWarnings({"ResultOfMethodCallIgnored"})
+@SuppressWarnings("ResultOfMethodCallIgnored")
 public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<StringBuilder> {
 
   /**
