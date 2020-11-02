@@ -109,9 +109,7 @@ public class SummaryAlgorithm implements Algorithm {
       final LocationState locationState = extractStateByType(state, LocationState.class);
       final ValueAnalysisState valueState = extractStateByType(state, ValueAnalysisState.class);
 
-      if (locationState == null || valueState == null) {
-        continue;
-      }
+      assert (locationState != null && valueState != null);
 
       if (locationState.getLocationNode() instanceof FunctionEntryNode) {
         final FunctionEntryNode entryNode = (FunctionEntryNode) locationState.getLocationNode();
@@ -156,10 +154,7 @@ public class SummaryAlgorithm implements Algorithm {
             .filter(memoryLocation -> memoryLocation.getIdentifier().equals("__retval__"))
             .findFirst();
 
-    if(returnValue.isEmpty())
-    {
-      return;
-    }
+    assert returnValue.isPresent();
 
     final Value value = pExitState.getValueFor(returnValue.get());
 
