@@ -19,27 +19,31 @@
  */
 package org.sosy_lab.cpachecker.core.algorithm.legion;
 
-import java.io.IOException;
-import java.io.Writer;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.PrintStream;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
+import org.sosy_lab.cpachecker.core.CPAcheckerResult.Result;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.algorithm.legion.selection.RandomSelectionStrategy;
 import org.sosy_lab.cpachecker.core.algorithm.legion.selection.Selector;
 import org.sosy_lab.cpachecker.core.algorithm.legion.selection.UnvisitedEdgesStrategy;
 import org.sosy_lab.cpachecker.core.interfaces.ConfigurableProgramAnalysis;
+import org.sosy_lab.cpachecker.core.interfaces.Statistics;
+import org.sosy_lab.cpachecker.core.interfaces.StatisticsProvider;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
+import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 import org.sosy_lab.cpachecker.cpa.predicate.PredicateCPA;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.exceptions.CPAEnabledAnalysisPropertyViolationException;
@@ -47,11 +51,11 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
-import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
+import org.sosy_lab.java_smt.api.SolverException;
 
 @Options(prefix = "legion")
-public class LegionAlgorithm implements Algorithm {
+public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistics {
 
     // Configuration Options
     @Option(
@@ -96,6 +100,9 @@ public class LegionAlgorithm implements Algorithm {
     private TargetSolver targetSolver;
     private Fuzzer fuzzer;
 
+    // Statistics
+    private HashMap<String, Duration> timings;
+
     public LegionAlgorithm(
             final Algorithm algorithm,
             final LogManager pLogger,
@@ -120,6 +127,8 @@ public class LegionAlgorithm implements Algorithm {
         this.selectionStrategy = buildSelectionStrategy();
         this.targetSolver = new TargetSolver(logger, solver, maxSolverAsks);
         this.fuzzer = new Fuzzer(logger, valueCpa, this.outputWriter);
+
+        this.timings = new HashMap<>();
     }
 
     @Override
@@ -142,15 +151,14 @@ public class LegionAlgorithm implements Algorithm {
             return AlgorithmStatus.SOUND_AND_PRECISE;
         }
         Instant init_end = Instant.now();
-        Duration init_time = Duration.between(init_start, init_end);
-
+        timings.merge(
+                "init",
+                Duration.between(init_start, init_end),
+                (oldValue, newValue) -> oldValue.plus(newValue));
 
         // In it's main iterations, ask the solver for new solutions every time.
         // This is done until a resource limit is reached or no new target states
         // are available.
-        Duration selection_time = Duration.ZERO;
-        Duration targetting_time = Duration.ZERO;
-        Duration fuzzing_time = Duration.ZERO;
         for (int i = 0; i < maxIterations; i++) {
             logger.log(Level.INFO, "Iteration", i + 1);
 
@@ -169,8 +177,10 @@ public class LegionAlgorithm implements Algorithm {
                 break;
             }
             Instant selection_end = Instant.now();
-            selection_time = selection_time.plus(Duration.between(selection_start, selection_end));
-
+            timings.merge(
+                    "selection",
+                    Duration.between(selection_start, selection_end),
+                    (oldValue, newValue) -> oldValue.plus(newValue));
 
             // Phase Targetting: Solve for the target and produce a number of values
             // needed as input to reach this target.
@@ -184,7 +194,10 @@ public class LegionAlgorithm implements Algorithm {
                 preloadedValues = previousLoadedValues;
             }
             Instant targetting_end = Instant.now();
-            targetting_time = targetting_time.plus(Duration.between(targetting_start, targetting_end));
+            timings.merge(
+                    "targetting",
+                    Duration.between(targetting_start, targetting_end),
+                    (oldValue, newValue) -> oldValue.plus(newValue));
 
             // Phase Fuzzing: Run the configured number of fuzzingPasses to detect
             // new paths through the program.
@@ -200,40 +213,13 @@ public class LegionAlgorithm implements Algorithm {
                 valueCpa.getTransferRelation().clearKnownValues();
             }
             Instant fuzzing_end = Instant.now();
-            fuzzing_time = fuzzing_time.plus(Duration.between(fuzzing_start, fuzzing_end));
+            timings.merge(
+                    "fuzzing",
+                    Duration.between(fuzzing_start, fuzzing_end),
+                    (oldValue, newValue) -> oldValue.plus(newValue));
+
         }
-
-        writeInfo(init_time, selection_time, targetting_time, fuzzing_time);
-
         return status;
-    }
-
-    void writeInfo(Duration init, Duration selection, Duration targetting, Duration fuzzing) {
-        try (Writer testcase =
-                Files.newBufferedWriter(
-                        Paths.get("output/exec_info.yml"),
-                        Charset.defaultCharset())) {
-            testcase.write("---\n");
-
-            @SuppressWarnings("deprecation")
-            String programName = config.getProperty("analysis.programNames");
-            testcase.write(String.format("program: %s\n", programName));
-
-            testcase.write("\n");
-            testcase.write("settings:\n");
-            testcase.write(String.format("  selection_strategy: %s\n", selectionStrategyOption));
-
-            testcase.write("\n# Time format is seconds\n");
-            testcase.write("times:\n");
-            testcase.write(String.format("  init:       %s\n", (float) init.toNanos() / 1000000000));
-            testcase.write(
-                    String.format("  selection:  %s\n", (float) selection.toNanos() / 1000000000));
-            testcase.write(
-                    String.format("  targetting: %s\n", (float) targetting.toNanos() / 1000000000));
-            testcase.write(String.format("  fuzzing:    %s\n", (float) fuzzing.toNanos() / 1000000000));
-        } catch (IOException exc) {
-            logger.log(Level.SEVERE, "Could not write info file", exc);
-        }
     }
 
     Selector buildSelectionStrategy() {
@@ -245,5 +231,38 @@ public class LegionAlgorithm implements Algorithm {
         }
         throw new IllegalArgumentException(
                 "Selection strategy " + selectionStrategyOption + " unknown");
+    }
+
+    @Override
+    public void collectStatistics(Collection<Statistics> pStatsCollection) {
+        pStatsCollection.add(this);
+    }
+
+    @Override
+    public void printStatistics(PrintStream pOut, Result pResult, UnmodifiableReachedSet pReached) {
+        @SuppressWarnings("deprecation")
+        String programName = config.getProperty("analysis.programNames");
+        pOut.println("program: " + programName);
+
+        pOut.println("");
+        pOut.println("settings:");
+        pOut.println("  selection_strategy: " + selectionStrategyOption);
+
+        pOut.println("");
+        pOut.println("times:");
+        String format = "  %-10s: %ss";
+        for (Map.Entry<String, Duration> entry : timings.entrySet()) {
+            String out =
+                    String.format(
+                            format,
+                            entry.getKey(),
+                            (float) entry.getValue().toMillis() / 1000);
+            pOut.println(out);
+        }
+    }
+
+    @Override
+    public @Nullable String getName() {
+        return "Legion Algorithm";
     }
 }

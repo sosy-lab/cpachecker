@@ -99,9 +99,9 @@ public class OutputWriter {
                         Paths.get(this.path + filename),
                         Charset.defaultCharset())) {
             // Write header
-            testcase.write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>");
+            testcase.write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
             testcase.write(
-                    "<!DOCTYPE testcase PUBLIC \"+//IDN sosy-lab.org//DTD test-format testcase 1.0//EN\" \"https://sosy-lab.org/test-format/testcase-1.0.dtd\">");
+                    "<!DOCTYPE testcase PUBLIC \"+//IDN sosy-lab.org//DTD test-format testcase 1.0//EN\" \"https://sosy-lab.org/test-format/testcase-1.0.dtd\">\n");
             testcase.write("<testcase>\n");
 
             // Write testcases
