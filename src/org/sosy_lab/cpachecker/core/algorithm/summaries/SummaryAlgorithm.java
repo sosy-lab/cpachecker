@@ -155,7 +155,9 @@ public class SummaryAlgorithm implements Algorithm {
             .filter(memoryLocation -> memoryLocation.getIdentifier().equals("__retval__"))
             .findFirst();
 
-    assert returnValue.isPresent();
+    if (returnValue.isEmpty()) {
+      return;
+    }
 
     final Value value = pExitState.getValueFor(returnValue.get());
 
