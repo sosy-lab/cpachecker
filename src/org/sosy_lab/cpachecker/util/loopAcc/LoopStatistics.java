@@ -83,12 +83,12 @@ public class LoopStatistics implements Statistics {
         oVariables.add(o);
         String[] acc = {"L" + (i + 1), "" + loopList.get(i).getCanBeAccelerated()};
         accelerationPossible.add(acc);
-        if (loopList.get(i).getAnalyzeTime() == null) {
-          flagNull = true;
-        } else if (i == 0) {
+        if (loopList.get(i).getAnalyzeTime() != null) {
+        if (i == 0) {
           timeToAnalyze = loopList.get(i).getAnalyzeTime();
         } else {
           timeToAnalyze = TimeSpan.sum(timeToAnalyze, loopList.get(i).getAnalyzeTime());
+        }
         }
       }
     }
@@ -117,9 +117,7 @@ public class LoopStatistics implements Statistics {
     pOut.println("IO-Variables:" + ArrayToString(ioVariables));
     pOut.println("Outputvariables:" + ArrayToString(oVariables));
     pOut.println("Can loop be accelerated:" + ArrayToString(accelerationPossible));
-    if (!flagNull) {
-      pOut.println("Time to analyze loop in ms:" + timeToAnalyze);
-    }
+    pOut.println("Time to analyze loop in ms:" + timeToAnalyze);
   }
 
   @Override
