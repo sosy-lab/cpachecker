@@ -47,6 +47,7 @@ import org.sosy_lab.cpachecker.exceptions.CPAException;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.predicates.pathformula.PathFormula;
 import org.sosy_lab.cpachecker.util.predicates.smt.Solver;
+import org.sosy_lab.java_smt.api.SolverException;
 import org.sosy_lab.java_smt.api.Model.ValueAssignment;
 
 @Options(prefix = "legion")
@@ -174,7 +175,14 @@ public class LegionAlgorithm implements Algorithm {
             // Phase Targetting: Solve for the target and produce a number of values
             // needed as input to reach this target.
             Instant targetting_start = Instant.now();
-            preloadedValues = this.targetSolver.target(target);
+            ArrayList<ArrayList<ValueAssignment>> previousLoadedValues = preloadedValues;
+            try {
+                preloadedValues = this.targetSolver.target(target);
+            } catch (SolverException ex) {
+                // Re-Run with previous preloaded Values
+                logger.log(Level.WARNING, "Running with previous preloaded values");
+                preloadedValues = previousLoadedValues;
+            }
             Instant targetting_end = Instant.now();
             targetting_time = targetting_time.plus(Duration.between(targetting_start, targetting_end));
 

@@ -37,10 +37,11 @@ public class TargetSolver {
     /**
      * Phase targetting Solve for the given targets and return matching values.
      * 
-     * @param pTarget        The target formula to solve for.
+     * @param pTarget The target formula to solve for.
+     * @throws SolverException
      */
     ArrayList<ArrayList<ValueAssignment>> target(PathFormula pTarget)
-                    throws InterruptedException {
+            throws InterruptedException, SolverException {
                         
         ArrayList<ArrayList<ValueAssignment>> preloadedValues = new ArrayList<>();
 
@@ -56,7 +57,8 @@ public class TargetSolver {
             try (Model constraints = solvePathConstrains(pTarget.getFormula(), prover)) {
                 preloadedValues.add(computePreloadValues(constraints));
             } catch (SolverException ex) {
-                this.logger.log(Level.WARNING, "Could not solve formula.");
+                this.logger.log(Level.WARNING, "Could not solve even once formula.");
+                throw ex;
             }
 
             // Repeats the solving at most pMaxSolverAsks amount of times
@@ -78,7 +80,9 @@ public class TargetSolver {
                     Model constraints = prover.getModel();
                     preloadedValues.add(computePreloadValues(constraints));
                 } catch (SolverException ex) {
-                    this.logger.log(Level.WARNING, "Could not solve formula.");
+                    // If this is not solvable, just skip
+                    this.logger.log(Level.INFO, "Could not solve for more solutions.");
+                    continue;
                 } finally {
                     prover.pop();
                 }
