@@ -32,7 +32,6 @@ public class LoopStatistics implements Statistics {
   private List<String[]> oVariables;
   private List<String[]> accelerationPossible;
   private TimeSpan timeToAnalyze;
-  private boolean flagNull;
 
   public LoopStatistics(List<LoopData> loopList) {
     this.loopList = loopList;
@@ -53,7 +52,6 @@ public class LoopStatistics implements Statistics {
     ioVariables = new ArrayList<>();
     oVariables = new ArrayList<>();
     accelerationPossible = new ArrayList<>();
-    flagNull = false;
 
     for (int i = 0; i < loopList.size(); i++) {
       if (!loopList.isEmpty()) {

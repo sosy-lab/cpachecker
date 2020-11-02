@@ -10,7 +10,7 @@ int main() {
   int i = 0;
   int a = 0;
 
-  while (1) {
+for(1){
     if (i == 20) {
        goto LOOPEND;
     } else {
