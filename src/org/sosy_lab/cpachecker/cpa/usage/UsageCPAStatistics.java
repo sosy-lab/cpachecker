@@ -68,7 +68,7 @@ public class UsageCPAStatistics implements Statistics {
 
   final StatTimer transferRelationTimer = new StatTimer("Time for transfer relation");
   final StatTimer transferForEdgeTimer = new StatTimer("Time for transfer for edge");
-  final StatTimer usagePreparationTimer = new StatTimer("Time for usage transfer");
+  final StatTimer bindingTimer = new StatTimer("Time for binding computation");
   final StatTimer checkForSkipTimer = new StatTimer("Time for checking edge for skip");
   final StatTimer innerAnalysisTimer = new StatTimer("Time for inner analyses");
   final StatTimer stopTimer = new StatTimer("Time for stop operator");
@@ -101,7 +101,7 @@ public class UsageCPAStatistics implements Statistics {
         .put(transferForEdgeTimer)
         .beginLevel()
         .put(checkForSkipTimer)
-          .put(usagePreparationTimer)
+          .put(bindingTimer)
           .put(innerAnalysisTimer)
         .endLevel()
         .endLevel()

@@ -66,21 +66,14 @@ public class UsageState extends AbstractSingleWrapperState
     if (!id1.equals(id2)) {
       UsageState result = new UsageState(this.getWrappedState(), this);
       // Optimization to store
-      int d1 = id1.getDereference();
       AbstractIdentifier newId1 = id1.cloneWithDereference(0);
-      int d2 = id2.getDereference();
-      AbstractIdentifier newId2 = id2.cloneWithDereference(d2 - d1);
+      AbstractIdentifier newId2 =
+          id2.cloneWithDereference(id2.getDereference() - id1.getDereference());
       ImmutableMap.Builder<AbstractIdentifier, AbstractIdentifier> builder = ImmutableMap.builder();
 
-      for (Entry<AbstractIdentifier, AbstractIdentifier> entry : variableBindingRelation.entrySet()) {
-        AbstractIdentifier key = entry.getKey();
-        if (key.equals(newId1)) {
-          // Can not remove from builder, so have to go through a map manually
-          builder.put(newId1, newId2);
-        } else {
-          builder.put(entry);
-        }
-      }
+      builder.putAll(variableBindingRelation);
+      // Should replace old value if was present
+      builder.put(newId1, newId2);
       result.variableBindingRelation = builder.build();
 
       return result;
@@ -88,16 +81,20 @@ public class UsageState extends AbstractSingleWrapperState
     return this;
   }
 
-  public AbstractIdentifier getLinksIfNecessary(final AbstractIdentifier id) {
+  private AbstractIdentifier getLinksIfNecessary(final AbstractIdentifier id) {
     /* Special get!
      * If we get **b, having (*b, c), we give *c
      */
     AbstractIdentifier newId = id.cloneWithDereference(0);
     if (variableBindingRelation.containsKey(newId)) {
-      int d = id.getDereference();
       AbstractIdentifier initialId = variableBindingRelation.get(newId);
-      AbstractIdentifier pointsTo = initialId.cloneWithDereference(initialId.getDereference() + d);
-      return getLinksIfNecessary(pointsTo);
+      AbstractIdentifier pointsTo =
+          initialId.cloneWithDereference(initialId.getDereference() + id.getDereference());
+      if (newId.compareTo(initialId.cloneWithDereference(0)) != 0) {
+        return getLinksIfNecessary(pointsTo);
+      } else {
+        return pointsTo;
+      }
     }
 
     return id;

@@ -14,6 +14,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Level;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.log.LogManager;
@@ -91,27 +92,24 @@ public class BinderFunctionInfo {
     return linkInfo != null;
   }
 
-  public AbstractIdentifier constructFirstIdentifier(
+  public Optional<Pair<AbstractIdentifier, AbstractIdentifier>> constructIdentifiers(
       final CExpression left,
       final List<CExpression> params,
-      String currentFunction,
       IdentifierCreator creator) {
-    return constructIdentifier(linkInfo.getFirst(), left, params, currentFunction, creator);
-  }
 
-  public AbstractIdentifier constructSecondIdentifier(
-      final CExpression left,
-      final List<CExpression> params,
-      String currentFunction,
-      IdentifierCreator creator) {
-    return constructIdentifier(linkInfo.getSecond(), left, params, currentFunction, creator);
+    AbstractIdentifier idIn = constructIdentifier(linkInfo.getFirst(), left, params, creator);
+    AbstractIdentifier idFrom = constructIdentifier(linkInfo.getFirst(), left, params, creator);
+
+    if (idIn == null || idFrom == null) {
+      return Optional.empty();
+    }
+    return Optional.of(Pair.of(idIn, idFrom));
   }
 
   private AbstractIdentifier constructIdentifier(
       final LinkerInfo info,
       final CExpression left,
       final List<CExpression> params,
-      String currentFunction,
       IdentifierCreator creator) {
 
     CExpression expr;
@@ -126,7 +124,7 @@ public class BinderFunctionInfo {
        */
       return null;
     }
-    return creator.createIdentifier(expr, info.dereference, currentFunction);
+    return creator.createIdentifier(expr, info.dereference);
   }
 
   public AbstractIdentifier createParamenterIdentifier(

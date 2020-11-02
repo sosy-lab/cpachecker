@@ -119,7 +119,6 @@ public class UsageProcessor {
 
     totalTimer.start();
     result = new ArrayList<>();
-    boolean resultComputed = false;
 
     ARGState argState = (ARGState) pState;
     CFANode node = AbstractStates.extractLocation(argState);
@@ -128,6 +127,7 @@ public class UsageProcessor {
       totalTimer.stop();
       return result;
     }
+    boolean resultComputed = false;
 
     for (ARGState child : argState.getChildren()) {
       CFANode childNode = AbstractStates.extractLocation(child);
@@ -151,23 +151,20 @@ public class UsageProcessor {
         usagePreparationTimer.start();
         for (Pair<AbstractIdentifier, Access> pair : ids) {
           AbstractIdentifier id = pair.getFirst();
-          UsageState uState = UsageState.get(pState);
-          id = uState.getLinksIfNecessary(id);
+          // Links will be extracted as aliases later
 
           searchingCacheTimer.start();
           boolean b = redundantIds.contains(id);
           searchingCacheTimer.stop();
-          if (b) {
-            continue;
+          if (!b) {
+            createUsages(id, node, child, pair.getSecond());
           }
-          createUsages(id, node, child, pair.getSecond());
         }
         usagePreparationTimer.stop();
 
       } else {
         // No edge, for example, due to BAM
         // Note, function call edge was already handled, we do not miss it
-        continue;
       }
     }
 
