@@ -116,7 +116,7 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
    * <p>During initialization, the list of parameters is assigned based on the {@link
    * ValueAnalysisState} of the function entry location.
    */
-  private ImmutableMap<MemoryLocation, ValueAndType> parameters;
+  private final ImmutableMap<MemoryLocation, ValueAndType> parameters;
 
   /**
    * Create a new {@link SymbolicValueToSummaryTransformer} for a summary.<br>
