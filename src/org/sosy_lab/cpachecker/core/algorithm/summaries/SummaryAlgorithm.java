@@ -120,7 +120,7 @@ public class SummaryAlgorithm implements Algorithm {
         final FunctionExitNode exitNode = (FunctionExitNode) locationState.getLocationNode();
         final ValueAnalysisState entryState = entryStates.get(exitNode.getEntryNode());
 
-        final AFunctionDeclaration function = locationState.getLocationNode().getFunction();
+        final AFunctionDeclaration function = exitNode.getFunction();
         createSummaryForStates(function, entryState, valueState);
       }
     }
