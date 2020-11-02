@@ -123,22 +123,23 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
    * Different to the default constructor, the generated summary is started by appending the
    * signature of the function represented in the provided parameters.
    *
-   * @param function Declaration of the function for which the summary is created.
-   * @param entryState The {@link ValueAnalysisState} of the abstract state at the position where
-   *     the summarized function is entered.
+   * @param pFunction Declaration of the function for which the summary is created.
+   *
+   * @param pEntryState The {@link ValueAnalysisState} of the abstract state at the position where
+   *     the summarized pFunction is entered.
    */
   public SymbolicValueToSummaryTransformer(
-      final AFunctionDeclaration function, final ValueAnalysisState entryState) {
-    final String scope = function.getQualifiedName();
+      final AFunctionDeclaration pFunction, final ValueAnalysisState pEntryState) {
+    final String scope = pFunction.getQualifiedName();
 
     parameters =
-        entryState.getConstants().stream()
+        pEntryState.getConstants().stream()
             .filter(constant -> constant.getKey().isOnFunctionStack(scope))
             .filter(constant -> !constant.getValue().getValue().isNumericValue())
             .collect(
                 ImmutableMap.toImmutableMap(entry -> entry.getKey(), entry -> entry.getValue()));
 
-    addFunctionSignature(function);
+    addFunctionSignature(pFunction);
   }
 
   @Override
@@ -274,14 +275,16 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
   /**
    * Add expression to summary, and recursively continue visiting its subexpressions.<br/>
    *
-   * @param operator {@link String} representation of the operation represented by the symbolic
+   * @param pOperator {@link String} representation of the operation represented by the symbolic
    *                         expression. Added with <i>prefix notation</i> in the summary.
    *
-   * @param expr The unary symbolic expression which is added to the summary.
+   * @param pExpression The unary symbolic expression which is added to the summary.
+   *
+   * @return The {@link StringBuilder} of the created summary.
    */
-  private StringBuilder unwrap(final String operator, final UnarySymbolicExpression expr) {
-    final SymbolicExpression operand = expr.getOperand();
-    strBuilder.append(" ").append(operator);
+  private StringBuilder unwrap(final String pOperator, final UnarySymbolicExpression pExpression) {
+    final SymbolicExpression operand = pExpression.getOperand();
+    strBuilder.append(" ").append(pOperator);
     return unwrapWithParenthesis(operand);
   }
 
@@ -293,44 +296,47 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
    *
    * @see #unwrap(String, UnarySymbolicExpression)
    *
-   * @param op {@link String} representation of the operation represented by the symbolic
+   * @param pOperation {@link String} representation of the operation represented by the symbolic
    *                         expression. Added with <i>infix notation</i> in the summary.
    *
-   * @param expr The binary symbolic expression which is added to the summary.
+   * @param pExpression The binary symbolic expression which is added to the summary.
+   *
+   * @return The {@link StringBuilder} of the created summary.
    */
-  private StringBuilder unwrap(final String op, final BinarySymbolicExpression expr) {
+  private StringBuilder unwrap(
+      final String pOperation, final BinarySymbolicExpression pExpression) {
     if (!outerParenthesisAdded) {
       outerParenthesisAdded = true;
-      return unwrapWithParenthesis(expr);
+      return unwrapWithParenthesis(pExpression);
     }
 
-    unwrapWithParenthesis(expr.getOperand1());
-    strBuilder.append(" ").append(op).append(" ");
-    return unwrapWithParenthesis(expr.getOperand2());
+    unwrapWithParenthesis(pExpression.getOperand1());
+    strBuilder.append(" ").append(pOperation).append(" ");
+    return unwrapWithParenthesis(pExpression.getOperand2());
   }
 
   /**
    * Recursively continue visiting subexpressions, and wrap the current one with parenthesis.<br/>
    * Parenthesis are omitted if the subexpression contains only a single variable or constant.
    *
-   * @param expr The {@link SymbolicExpression} which is visited next, and whose value is wrapped in
-   *             parenthesis.
+   * @param pExpression The {@link SymbolicExpression} which is visited next, and whose value is
+   *                    wrapped in parenthesis.
    *
    * @return The {@link StringBuilder} of the created summary.
    */
-  private StringBuilder unwrapWithParenthesis(final SymbolicExpression expr) {
-    if (isParameter(expr)) {
-      return strBuilder.append(expr.getRepresentedLocation().get().getIdentifier());
+  private StringBuilder unwrapWithParenthesis(final SymbolicExpression pExpression) {
+    if (isParameter(pExpression)) {
+      return strBuilder.append(pExpression.getRepresentedLocation().get().getIdentifier());
     }
 
-    final boolean constant = expr instanceof ConstantSymbolicExpression;
-    final boolean cast = expr instanceof CastExpression;
+    final boolean constant = pExpression instanceof ConstantSymbolicExpression;
+    final boolean cast = pExpression instanceof CastExpression;
 
     if (constant || cast) {
-      expr.accept(this);
+      pExpression.accept(this);
     } else {
       strBuilder.append("(");
-      expr.accept(this);
+      pExpression.accept(this);
       strBuilder.append(")");
     }
 
@@ -345,11 +351,11 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
    *
    * <p>This method is used internally to begin the created summary with the function signature.
    *
-   * @param function The {@link AFunctionDeclaration} of the function for which the summary is
+   * @param pFunction The {@link AFunctionDeclaration} of the function for which the summary is
    *     created.
    */
-  private void addFunctionSignature(AFunctionDeclaration function) {
-    final String name = function.getName();
+  private void addFunctionSignature(AFunctionDeclaration pFunction) {
+    final String name = pFunction.getName();
 
     strBuilder.append(name);
     strBuilder.append(": (");
@@ -378,18 +384,19 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
    *
    * <p>Some limitations apply, see description on {@link #parameters}.
    *
-   * @param expr The expression which is checked for being a function parameter.
-   * @return true if the expression is a function parameter, false otherwise (with limitations).
+   * @param pExpression The expression which is checked for being a function parameter.
+   *
+   * @return true if the expression is a function parameter, false otherwise.
    */
-  private boolean isParameter(final SymbolicExpression expr) {
-    final Optional<MemoryLocation> location = expr.getRepresentedLocation();
+  private boolean isParameter(final SymbolicExpression pExpression) {
+    final Optional<MemoryLocation> location = pExpression.getRepresentedLocation();
 
     if (location.isEmpty()) {
       return false;
     }
 
     final ValueAndType param = this.parameters.get(location.get());
-    if (param != null && param.getValue().equals(expr)) {
+    if (param != null && param.getValue().equals(pExpression)) {
       return true;
     }
 

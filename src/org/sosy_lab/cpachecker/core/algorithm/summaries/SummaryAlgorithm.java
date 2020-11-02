@@ -98,14 +98,14 @@ public class SummaryAlgorithm implements Algorithm {
   }
 
   @Override
-  public AlgorithmStatus run(ReachedSet reachedSet) throws CPAException, InterruptedException {
-    AlgorithmStatus status = execution.run(reachedSet);
+  public AlgorithmStatus run(ReachedSet pReachedSet) throws CPAException, InterruptedException {
+    AlgorithmStatus status = execution.run(pReachedSet);
 
     logger.log(Level.INFO, "Starting function summarization ...");
 
     final Map<FunctionEntryNode, ValueAnalysisState> entryStates = new HashMap<>();
 
-    for (final AbstractState state : reachedSet) {
+    for (final AbstractState state : pReachedSet) {
       final LocationState locationState = extractStateByType(state, LocationState.class);
       final ValueAnalysisState valueState = extractStateByType(state, ValueAnalysisState.class);
 
@@ -137,22 +137,22 @@ public class SummaryAlgorithm implements Algorithm {
    * </code> and <code>exitState</code>. Summaries are currently represented as plain {@link
    * String}, and logged with Level.FINE.
    *
-   * @param function Declaration of the function for which the summary is created.
-   * @param entryState Value information of the abstract state in which the function is entered.
+   * @param pFunction Declaration of the pFunction for which the summary is created.
+   * @param pEntryState Value information of the abstract state in which the pFunction is entered.
    *     <br>
    *     If {@link LocationCPA} was active in parallel, the corresponding {@link LocationState} in
    *     the composite abstract state is a {@link FunctionEntryNode}.
-   * @param exitState Value information of the abstract state in which the function is left.<br>
+   * @param pExitState Value information of the abstract state in which the pFunction is left.<br>
    *     If {@link LocationCPA} was active in parallel, the corresponding {@link LocationState} in
    *     the composite abstract state is a {@link FunctionExitNode}.
    */
   private void createSummaryForStates(
-      final AFunctionDeclaration function,
-      final ValueAnalysisState entryState,
-      final ValueAnalysisState exitState) {
+      final AFunctionDeclaration pFunction,
+      final ValueAnalysisState pEntryState,
+      final ValueAnalysisState pExitState) {
 
     final Optional<MemoryLocation> returnValue =
-        exitState.getTrackedMemoryLocations().stream()
+        pExitState.getTrackedMemoryLocations().stream()
             .filter(memoryLocation -> memoryLocation.getIdentifier().equals("__retval__"))
             .findFirst();
 
@@ -161,13 +161,13 @@ public class SummaryAlgorithm implements Algorithm {
       return;
     }
 
-    final Value value = exitState.getValueFor(returnValue.get());
+    final Value value = pExitState.getValueFor(returnValue.get());
 
     if (value instanceof SymbolicValue) {
       final SymbolicValue symbolicValue = (SymbolicValue) value;
 
       final SymbolicValueToSummaryTransformer transformer =
-          new SymbolicValueToSummaryTransformer(function, entryState);
+          new SymbolicValueToSummaryTransformer(pFunction, pEntryState);
 
       String summary = symbolicValue.accept(transformer).toString();
       logger.log(Level.FINE, summary, "\n");
