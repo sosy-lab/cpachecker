@@ -20,10 +20,10 @@
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -45,7 +45,7 @@ public class ARGPathRestorator implements PathRestorator {
   @Override
   public ARGPath computePath(ARGState pLastElement) {
     // Temporary implementation
-    return computePath(pLastElement, Collections.emptySet());
+    return computePath(pLastElement, ImmutableSet.of());
   }
 
   @Override

@@ -13,7 +13,6 @@ import com.google.common.collect.Iterables;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -199,9 +198,9 @@ public class BlockPartitioningBuilder {
   }
 
   private Set<LockIdentifier> collectInnerLocks(Set<CFANode> pNodes) {
-    Set<LockIdentifier> result = new HashSet<>();
+    ImmutableSet.Builder<LockIdentifier> result = ImmutableSet.builder();
     if (lTransfer == null) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
     for (CFANode node : pNodes) {
       for (int i = 0; i < node.getNumLeavingEdges(); i++) {
@@ -209,14 +208,14 @@ public class BlockPartitioningBuilder {
         result.addAll(lTransfer.getAffectedLocks(e));
       }
     }
-    return result;
+    return result.build();
   }
 
   private Set<MemoryLocation> collectMemoryLocations(Set<CFANode> pNodes) {
     if (pTransfer == null) {
       return ImmutableSet.of();
     }
-    Set<MemoryLocation> result = new HashSet<>();
+    ImmutableSet.Builder<MemoryLocation> result = ImmutableSet.builder();
     PointerState fstate = PointerState.INITIAL_STATE;
     for (CFANode node : pNodes) {
       for (int i = 0; i < node.getNumLeavingEdges(); ++i) {
@@ -233,7 +232,7 @@ public class BlockPartitioningBuilder {
         }
       }
     }
-    return result;
+    return result.build();
   }
 
   /**

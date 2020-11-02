@@ -68,16 +68,14 @@ public class ThreadEffectRefiner extends ThreadModularCPARefiner {
       strategy.initializeGlobalRefinement();
     }
 
-    if (false) {
-      for (ARGState state : allStatesTrace.asStatesList()) {
-        if (state.getAppliedFrom() != null) {
-          for (ARGState projection : state.getAppliedFrom().getSecond().getProjectedFrom()) {
-            numberOfPaths.inc();
-            ARGPath pathToAppliedstate = ARGUtils.getOnePathTo(projection);
-            CounterexampleInfo inf = delegate.performRefinementForPath(pReached, pathToAppliedstate);
-            if (inf.isSpurious()) {
-              numberOfSpuriousPathes.inc();
-            }
+    for (ARGState state : allStatesTrace.asStatesList()) {
+      if (state.getAppliedFrom() != null) {
+        for (ARGState projection : state.getAppliedFrom().getSecond().getProjectedFrom()) {
+          numberOfPaths.inc();
+          ARGPath pathToAppliedstate = ARGUtils.getOnePathTo(projection);
+          CounterexampleInfo inf = delegate.performRefinementForPath(pReached, pathToAppliedstate);
+          if (inf.isSpurious()) {
+            numberOfSpuriousPathes.inc();
           }
         }
       }

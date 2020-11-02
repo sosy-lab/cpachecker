@@ -19,7 +19,6 @@
  */
 package org.sosy_lab.cpachecker.cpa.predicate;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
@@ -569,7 +568,7 @@ public class PredicateApplyOperator implements ApplyOperator {
             loc,
             fType,
             "__VERIFIER_nondet_" + retType,
-            Collections.emptyList());
+            ImmutableList.of());
     CExpression name = new CIdExpression(loc, funcDecl);
 
     return new CFunctionCallExpression(loc, type, name, ImmutableList.of(), funcDecl);

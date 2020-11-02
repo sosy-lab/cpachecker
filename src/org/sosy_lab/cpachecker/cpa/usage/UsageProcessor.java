@@ -24,10 +24,10 @@
 package org.sosy_lab.cpachecker.cpa.usage;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import de.uni_freiburg.informatik.ultimate.smtinterpol.util.IdentityHashSet;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -211,7 +211,7 @@ public class UsageProcessor {
 
       default:
         {
-        return Collections.emptySet();
+        return ImmutableSet.of();
         }
     }
   }
@@ -238,7 +238,7 @@ public class UsageProcessor {
           pChild,
           ((CFunctionCallStatement) statement).getFunctionCallExpression());
     }
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
   private Collection<Pair<AbstractIdentifier, Access>>
@@ -246,19 +246,19 @@ public class UsageProcessor {
 
     if (declEdge.getDeclaration().getClass() != CVariableDeclaration.class) {
       // not a variable declaration
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
     CVariableDeclaration decl = (CVariableDeclaration) declEdge.getDeclaration();
 
     if (decl.isGlobal()) {
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     CInitializer init = decl.getInitializer();
 
     if (init == null) {
       // no assignment
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     if (init instanceof CInitializerExpression) {
@@ -270,7 +270,7 @@ public class UsageProcessor {
       // We do not add usage for currently declared variable
       // It can not cause a race
     }
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
   private Collection<Pair<AbstractIdentifier, Access>> handleFunctionCallExpression(
@@ -331,7 +331,7 @@ public class UsageProcessor {
           ((CExpressionStatement) pStatement).getExpression(),
           Access.WRITE);
     }
-    return Collections.emptySet();
+    return ImmutableSet.of();
   }
 
   private Collection<Pair<AbstractIdentifier, Access>>

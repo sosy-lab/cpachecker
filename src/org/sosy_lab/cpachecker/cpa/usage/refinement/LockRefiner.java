@@ -22,10 +22,10 @@ package org.sosy_lab.cpachecker.cpa.usage.refinement;
 import static com.google.common.collect.FluentIterable.from;
 
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -134,11 +134,11 @@ public class LockRefiner
 
     if (firstRealState == null) {
       // The path is infeasible due to missed lock assumption
-      secondPairs = Collections.emptyList();
+      secondPairs = ImmutableList.of();
       firstPairs = extractStatesAndUpdatePrecision(firstPath, firstEdges, toPrecision);
 
     } else if (secondRealState == null) {
-      firstPairs = Collections.emptyList();
+      firstPairs = ImmutableList.of();
       secondPairs = extractStatesAndUpdatePrecision(secondPath, secondEdges, toPrecision);
 
     } else {
@@ -175,7 +175,7 @@ public class LockRefiner
       secondPairs = extractStatesAndUpdatePrecision(secondId, secondPath, secondEdges, toPrecision);
 
       if (secondPairs.equals(firstPairs)) {
-        secondPairs = Collections.emptyList();
+        secondPairs = ImmutableList.of();
       }
 
       if (firstPairs.isEmpty() && secondPairs.isEmpty()) {
@@ -214,7 +214,7 @@ public class LockRefiner
       toPrecision.addAll(newPrec);
       return extractStates(newPrec, pPath);
     }
-    return Collections.emptyList();
+    return ImmutableList.of();
   }
 
   private List<ARGState> extractStatesAndUpdatePrecision(
@@ -293,7 +293,7 @@ public class LockRefiner
   private List<ARGState>
       extractStates(Iterable<Entry<CFANode, LockIdentifier>> newPrecision, ExtendedARGPath pPath) {
     if (Iterables.isEmpty(newPrecision)) {
-      return Collections.emptyList();
+      return ImmutableList.of();
     } else {
       return getAffectedStates(newPrecision, pPath);
     }

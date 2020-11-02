@@ -18,7 +18,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -199,7 +198,7 @@ public class UsageTransferRelation extends AbstractSingleWrapperTransferRelation
     if (currentEdge == null) {
       // Abort function
       statistics.transferForEdgeTimer.stop();
-      return Collections.emptySet();
+      return ImmutableSet.of();
     }
 
     statistics.bindingTimer.start();

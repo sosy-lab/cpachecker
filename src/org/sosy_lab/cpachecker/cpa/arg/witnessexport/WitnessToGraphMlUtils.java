@@ -21,10 +21,10 @@ package org.sosy_lab.cpachecker.cpa.arg.witnessexport;
 
 import static com.google.common.base.Strings.isNullOrEmpty;
 
-import com.google.common.collect.Maps;
-import com.google.common.collect.Queues;
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.Map;
 import javax.xml.parsers.ParserConfigurationException;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -64,8 +64,8 @@ public class WitnessToGraphMlUtils {
 
   private static void writeElementsOfGraphToDoc(GraphMlBuilder doc, Witness witness) {
     String entryStateNodeId = witness.getEntryStateNodeId();
-    Map<String, Element> nodes = Maps.newHashMap();
-    Deque<String> waitlist = Queues.newArrayDeque();
+    Map<String, Element> nodes = new HashMap<>();
+    Deque<String> waitlist = new ArrayDeque<>();
     waitlist.push(entryStateNodeId);
     Element entryNode = createNewNode(doc, entryStateNodeId, witness);
     addInvariantsData(doc, entryNode, entryStateNodeId, witness);

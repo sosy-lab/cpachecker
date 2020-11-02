@@ -8,10 +8,10 @@
 
 package org.sosy_lab.cpachecker.cpa.usage.refinement;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.ForOverride;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.cpachecker.core.interfaces.AdjustablePrecision;
@@ -41,7 +41,7 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
     O iteration;
 
     totalTimer.start();
-    completePrecisions = Collections.emptySet();
+    completePrecisions = ImmutableSet.of();
     RefinementResult result = RefinementResult.createFalse();
     init(pInput);
 
@@ -65,7 +65,7 @@ public abstract class GenericIterator<I, O> extends WrappedConfigurableRefinemen
       return result;
     } finally {
       finish(pInput, result);
-      completePrecisions = Collections.emptySet();
+      completePrecisions = ImmutableSet.of();
       sendFinishSignal();
       postponedIterations.clear();
       totalTimer.stop();
