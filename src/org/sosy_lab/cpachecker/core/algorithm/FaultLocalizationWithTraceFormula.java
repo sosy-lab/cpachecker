@@ -302,10 +302,11 @@ public class FaultLocalizationWithTraceFormula
         info.sortIntended();
         if (!info.getRankedList().isEmpty()) {
           Fault first = info.getRankedList().get(0);
-          if (first instanceof ErrorInvariantsAlgorithm.Interval)
+          if (first instanceof ErrorInvariantsAlgorithm.Interval) {
             if (((ErrorInvariantsAlgorithm.Interval)first).getInvariant().equals(tf.getPrecondition())) {
               info.getRankedList().remove(0);
             }
+          }
         }
       }
 
