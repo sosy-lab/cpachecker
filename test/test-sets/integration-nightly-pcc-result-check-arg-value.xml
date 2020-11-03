@@ -72,7 +72,6 @@ SPDX-License-Identifier: Apache-2.0
     <excludesfile>integration-DeviceDriversLinux64.set</excludesfile>
     <propertyfile  expectedverdict="true">../programs/benchmarks/properties/unreach-call.prp</propertyfile>
     <option name="-skipRecursion"/>
-    <option name="-64"/>
     <!-- SV-Comp files assume that malloc always succeeds -->
     <option name="-setprop">cpa.predicate.memoryAllocationsAlwaysSucceed=true</option>
   </tasks>
