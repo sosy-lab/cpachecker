@@ -50,7 +50,7 @@ SPDX-License-Identifier: Apache-2.0
 
         <!-- Google Core Libraries for Java
              Contains a lot of helpful data structures. -->
-        <dependency org="com.google.guava" name="guava" rev="${update-lib.version}"
+        <dependency org="com.google.guava" name="guava" rev="30.0-jre"
                     conf="runtime->default; contrib->sources"/>
 
         <dependency org="org.sosy_lab" name="llvm-j" rev="0.4"
