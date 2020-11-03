@@ -94,18 +94,25 @@ public class OutputWriter {
         String filename = String.format("/testcase_%s.xml", this.testCaseNumber);
         logger.log(Level.WARNING, "Writing testcase ", filename);
 
+        // Get content
+        String inputs = writeVariablesToTestcase(values);
+        if (inputs.length() < 1) {
+            return;
+        }
+
         try (Writer testcase =
                 Files.newBufferedWriter(
                         Paths.get(this.path + filename),
                         Charset.defaultCharset())) {
+
             // Write header
             testcase.write("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n");
             testcase.write(
                     "<!DOCTYPE testcase PUBLIC \"+//IDN sosy-lab.org//DTD test-format testcase 1.0//EN\" \"https://sosy-lab.org/test-format/testcase-1.0.dtd\">\n");
             testcase.write("<testcase>\n");
 
-            // Write testcases
-            writeVariablesToTestcase(values, testcase);
+            // Add input testcases
+            testcase.write(inputs);
 
             // Footer and flush
             testcase.write("</testcase>\n");
@@ -185,11 +192,9 @@ public class OutputWriter {
     /**
      * Write variables from values to a testcase file.
      */
-    private void writeVariablesToTestcase(
-            ArrayList<Entry<MemoryLocation, ValueAndType>> values,
-            Writer testcase)
-            throws IOException {
+    private String writeVariablesToTestcase(ArrayList<Entry<MemoryLocation, ValueAndType>> values) {
 
+        StringBuilder sb = new StringBuilder();
         for (Entry<MemoryLocation, ValueAndType> v : values) {
             String name = v.getKey().toString();
             String type = v.getValue().getType().toString();
@@ -198,9 +203,11 @@ public class OutputWriter {
             String value_str = "";
             if (type.equals("int")) {
                 value_str = String.valueOf(((NumericValue) value).longValue());
+            } else {
+                value_str = value.toString();
             }
 
-            testcase.write(
+            sb.append(
                     String.format(
                             "\t<input variable=\"%s\" type=\"%s\">%s</input>\n",
                             name,
@@ -208,6 +215,7 @@ public class OutputWriter {
                             value_str));
         }
         this.testCaseNumber += 1;
+        return sb.toString();
     }
 
     /**
