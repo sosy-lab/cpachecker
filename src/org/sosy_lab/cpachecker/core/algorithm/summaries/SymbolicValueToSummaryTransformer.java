@@ -155,7 +155,7 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
     final Optional<MemoryLocation> variable = pExpression.getRepresentedLocation();
 
     if (variable.isPresent()) {
-      String identifier = variable.get().getIdentifier();
+      String identifier = variable.orElseThrow().getIdentifier();
       strBuilder.append(identifier);
     } else {
       final Value value = pExpression.getValue();
@@ -328,7 +328,7 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
    */
   private StringBuilder unwrapWithParenthesis(final SymbolicExpression pExpression) {
     if (isParameter(pExpression)) {
-      return strBuilder.append(pExpression.getRepresentedLocation().get().getIdentifier());
+      return strBuilder.append(pExpression.getRepresentedLocation().orElseThrow().getIdentifier());
     }
 
     final boolean constant = pExpression instanceof ConstantSymbolicExpression;
@@ -397,7 +397,7 @@ public class SymbolicValueToSummaryTransformer implements SymbolicValueVisitor<S
       return false;
     }
 
-    final ValueAndType param = this.parameters.get(location.get());
+    final ValueAndType param = this.parameters.get(location.orElseThrow());
     if (param != null && param.getValue().equals(pExpression)) {
       return true;
     }

@@ -159,7 +159,7 @@ public class SummaryAlgorithm implements Algorithm {
       return;
     }
 
-    final Value value = pExitState.getValueFor(returnValue.get());
+    final Value value = pExitState.getValueFor(returnValue.orElseThrow());
 
     if (value instanceof SymbolicValue) {
       final SymbolicValue symbolicValue = (SymbolicValue) value;
