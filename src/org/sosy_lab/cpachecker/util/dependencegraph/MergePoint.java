@@ -8,13 +8,13 @@
 
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
 
 public class MergePoint<T> {
