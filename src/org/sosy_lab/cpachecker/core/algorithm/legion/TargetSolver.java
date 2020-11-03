@@ -38,7 +38,6 @@ public class TargetSolver {
      * Phase targetting Solve for the given targets and return matching values.
      * 
      * @param pTarget The target formula to solve for.
-     * @throws SolverException
      */
     ArrayList<ArrayList<ValueAssignment>> target(PathFormula pTarget)
             throws InterruptedException, SolverException {

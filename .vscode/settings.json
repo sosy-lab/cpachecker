@@ -1,6 +1,0 @@
-{
-  "files.watcherExclude": {
-    "**/bin/**": true,
-    "**/lib/**": true
-  }
-}

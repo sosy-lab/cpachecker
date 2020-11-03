@@ -20,12 +20,12 @@ SPDX-License-Identifier: Apache-2.0
 
   <rundefinition name="legion"></rundefinition>
   <resultfiles>**.xml*</resultfiles>
-  <resultfiles>**/exec_info.yml</resultfiles>
+  <resultfiles>output/Statistics.txt</resultfiles>
 
 
   <tasks name="ReachSafety-Bitvector">
-    <includesfile>../../test/programs/benchmarks/ReachSafety-BitVectors.set</includesfile>
-    <propertyfile>../../test/programs/benchmarks/properties/unreach-call.prp</propertyfile>
+    <includesfile>/mnt/benchmarks/ReachSafety-BitVectors.set</includesfile>
+    <propertyfile>/mnt/benchmarks/properties/unreach-call.prp</propertyfile>
   </tasks>
 
 </benchmark>
