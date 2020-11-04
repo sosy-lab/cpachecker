@@ -76,3 +76,6 @@ a.out
 .idea/findbugs-idea.xml
 .idea/junitgenerator-prj-settings.xml
 .idea/vcs.xml
+
+# /.settings
+/.settings/org.eclipse.jdt.ui.prefs

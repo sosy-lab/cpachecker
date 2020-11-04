@@ -42,6 +42,13 @@ SPDX-License-Identifier: Apache-2.0
     <option name="-heap">10000M</option>
     <option name="-benchmark"/>
   </rundefinition>
+
+  <rundefinition name="valueAnalysisUnknownToIntLimits">
+    <option name="-config">config/valueAnalysis--overflow.properties</option>
+    <option name="-heap">10000M</option>
+    <option name="setprop">cpa.value.unknownToRangeLimits=true</option>
+    <option name="-benchmark"/>
+  </rundefinition>
   
   <rundefinition name="cex-checks">
     <option name="-config">config/cex-checks/predicateAnalysis-as-cex-check.properties</option>

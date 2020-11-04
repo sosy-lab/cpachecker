@@ -3204,6 +3204,10 @@ cpa.value.symbolic.simplifySymbolics = true
 # always be tracked, even if this value is false.
 cpa.value.trackJavaArrayValues = true
 
+# When the Value of a variable is unknown, the value is set to have the
+# possible values: unknow, INT_MAX, INT_MIN
+cpa.value.unknownToRangeLimits = false
+
 # Tells the value analysis how to handle unknown values.
 cpa.value.unknownValueHandling = DISCARD
   enum:     [DISCARD, INTRODUCE_SYMBOLIC]

@@ -11,16 +11,16 @@ package org.sosy_lab.cpachecker.cpa.value;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.math.BigDecimal;
+import com.ibm.icu.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.Optional;
+import java.util.Iterator;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.configuration.Configuration;
@@ -106,6 +106,7 @@ import org.sosy_lab.cpachecker.cpa.pointer2.util.LocationSet;
 import org.sosy_lab.cpachecker.cpa.rtt.NameProvider;
 import org.sosy_lab.cpachecker.cpa.rtt.RTTState;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisState.ValueAndType;
+import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisTransferRelation.ValueTransferOptions;
 import org.sosy_lab.cpachecker.cpa.value.symbolic.ConstraintsStrengthenOperator;
 import org.sosy_lab.cpachecker.cpa.value.type.ArrayValue;
 import org.sosy_lab.cpachecker.cpa.value.type.BooleanValue;
@@ -160,6 +161,9 @@ public class ValueAnalysisTransferRelation
 
     @Option(secure = true, description = "Use equality assumptions to assign values (e.g., (x == 0) => x = 0)")
     private boolean assignEqualityAssumptions = true;
+    
+    @Option(description = "When the Value of a variable is unknown, the value is set to have the possible values: unknow, INT_MAX, INT_MIN")
+    private boolean unknownToRangeLimits = false;
 
     public ValueTransferOptions(Configuration config) throws InvalidConfigurationException {
       config.inject(this);
@@ -179,6 +183,10 @@ public class ValueAnalysisTransferRelation
 
     boolean isIgnoreFunctionValue() {
       return ignoreFunctionValue;
+    }
+    
+    boolean isUnknownToRangeLimits() {
+      return unknownToRangeLimits;
     }
   }
 
@@ -710,6 +718,10 @@ public class ValueAnalysisTransferRelation
 
     if (initialValue.isUnknown()) {
       unknownValueHandler.handle(memoryLocation, declarationType, newElement, getVisitor());
+      if (options.isUnknownToRangeLimits()) {
+        newElement.assignConstant(memoryLocation, new NumericValue(2147483647), declarationType);
+        newElement.assignConstant(memoryLocation, new NumericValue(-2147483647), declarationType);
+      }
     } else {
       newElement.assignConstant(memoryLocation, initialValue, declarationType);
     }
@@ -1021,7 +1033,10 @@ public class ValueAnalysisTransferRelation
       // identifier to keep track of the variable.
       if (value.isUnknown()) {
         unknownValueHandler.handle(assignedVar, lType, newElement, visitor);
-
+        if (options.isUnknownToRangeLimits()) {
+          newElement.assignConstant(assignedVar, new NumericValue(2147483647), lType);
+          newElement.assignConstant(assignedVar, new NumericValue(-2147483647), lType);
+        }
       } else {
         newElement.assignConstant(assignedVar, value, lType);
       }
@@ -1384,7 +1399,7 @@ public class ValueAnalysisTransferRelation
                     new CFloatLiteralExpression(
                         functionCallExpression.getFileLocation(),
                         paramType,
-                        integralPartValue);
+                        new java.math.BigDecimal(integralPartValue.toString()));
                 newState =
                     strengthenWithPointerInformation(
                         newState,
