@@ -8,20 +8,17 @@
 
 package org.sosy_lab.cpachecker.util.dependencegraph;
 
-import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
 
 public class MergePoint<T> {
 
     private DomTree<T> tree;
-    private Function<T, Iterable<T>> treeSuccessors;
     private Function<T, Iterable<T>> actualSuccessors;
 
   /**
@@ -33,7 +30,6 @@ public class MergePoint<T> {
    */
     public MergePoint(T pExitNode, Function<T, Iterable<T>> pSuccessors, Function<T, Iterable<T>> pPredecessors) {
       tree = Dominance.createDomTree(pExitNode, pPredecessors, pSuccessors);
-      treeSuccessors = pPredecessors;
       actualSuccessors = pSuccessors;
     }
 
@@ -118,8 +114,9 @@ public class MergePoint<T> {
       return dominators;
     }
 
+    /* Debug method
     private List<List<String>> readable(List<List<Integer>> list) {
       return list.stream().map(l -> l.stream().map(t -> tree.getNode(t).toString()).collect(Collectors.toList())).collect(
           Collectors.toList());
-    }
+    }*/
 }
