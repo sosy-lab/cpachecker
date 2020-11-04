@@ -1474,7 +1474,8 @@ cpa.callstack.traverseBackwards = false
 
 # Blacklist of extern functions that will make the analysis abort if called
 cpa.callstack.unsupportedFunctions = {
-          "pthread_create", "pthread_key_create", "longjmp", "siglongjmp", "__builtin_va_arg"}
+          "pthread_create", "pthread_key_create", "longjmp", "siglongjmp", "__builtin_va_arg",
+          "atexit"}
 
 # firing relation to be used in the precision adjustment operator
 cpa.chc.firingRelation = "Always"
