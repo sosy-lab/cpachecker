@@ -26,7 +26,6 @@ import org.sosy_lab.numericdomains.coefficients.Interval;
 import org.sosy_lab.numericdomains.constraint.TreeConstraint;
 import org.sosy_lab.numericdomains.constraint.tree.TreeNode;
 import org.sosy_lab.numericdomains.environment.Environment;
-import org.sosy_lab.numericdomains.environment.Environment.Compatibility;
 import org.sosy_lab.numericdomains.environment.Variable;
 
 /**
@@ -237,24 +236,19 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
 
   @Override
   public boolean isLessOrEqual(NumericState pState2) {
-    if (value.getEnvironment().checkCompatibility(pState2.getValue().getEnvironment())
-        == Compatibility.INCOMPATIBLE) {
-      throw new AssertionError("Could not compare states with incompatible environments.");
+    ReducedValues reducedValues = ReducedValues.reduceValues(value, pState2.getValue());
+    if (reducedValues.reducedB.isPresent() && reducedValues.reducedA.isPresent()) {
+      boolean isLeq = reducedValues.reducedA.get().isLessOrEqual(reducedValues.reducedB.get());
+      reducedValues.reducedA.get().dispose();
+      reducedValues.reducedB.get().dispose();
+      return isLeq;
     } else {
-      ReducedValues reducedValues = ReducedValues.reduceValues(value, pState2.getValue());
-      if (reducedValues.reducedB.isPresent() && reducedValues.reducedA.isPresent()) {
-        boolean isLeq = reducedValues.reducedA.get().isLessOrEqual(reducedValues.reducedB.get());
-        reducedValues.reducedA.get().dispose();
+      if (reducedValues.reducedB.isPresent()) {
         reducedValues.reducedB.get().dispose();
-        return isLeq;
       } else {
-        if (reducedValues.reducedB.isPresent()) {
-          reducedValues.reducedB.get().dispose();
-        } else {
-          reducedValues.reducedA.get().dispose();
-        }
-        return false;
+        reducedValues.reducedA.get().dispose();
       }
+      return false;
     }
   }
 
@@ -359,7 +353,7 @@ public class NumericState implements AbstractState, LatticeAbstractState<Numeric
    *
    * @return a copy of the state containing a copy of the value
    */
-  public NumericState createCopy() {
+  public NumericState deepCopy() {
     return new NumericState(getValue().copy(), logger, isLoopHead);
   }
 

@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Optional;
+import java.util.logging.Level;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpressionAssignmentStatement;
@@ -97,7 +98,7 @@ public class NumericStatementVisitor
   @Override
   public Collection<NumericState> visit(CExpressionStatement pIastExpressionStatement)
       throws UnrecognizedCodeException {
-    return ImmutableSet.of(state.createCopy());
+    return ImmutableSet.of(state);
   }
 
   @Override
@@ -105,7 +106,7 @@ public class NumericStatementVisitor
       CExpressionAssignmentStatement pIastExpressionAssignmentStatement)
       throws UnrecognizedCodeException {
     if (!(pIastExpressionAssignmentStatement.getLeftHandSide() instanceof CIdExpression)) {
-      return ImmutableSet.of(state.createCopy());
+      return ImmutableSet.of(state);
     }
 
     CSimpleDeclaration declaration =
@@ -116,12 +117,12 @@ public class NumericStatementVisitor
         NumericVariable.valueOf(
             declaration, edge.getSuccessor(), precision, state.getManager(), logger);
     if (variable.isEmpty()) {
-      return ImmutableSet.of(state.createCopy());
+      return ImmutableSet.of(state);
     }
 
     final NumericState extendedState;
     if (state.getValue().getEnvironment().containsVariable(variable.get())) {
-      extendedState = state.createCopy();
+      extendedState = state.deepCopy();
     } else {
       Collection<Variable> newVariable = ImmutableSet.of(variable.get());
       if (variable.get().getSimpleType().getType().isIntegerType()) {
@@ -151,7 +152,7 @@ public class NumericStatementVisitor
       if (partialState.getConstraints().size() != 0) {
         intermediateState = extendedState.meetConstraints(partialState.getConstraints());
       } else {
-        intermediateState = Optional.of(extendedState.createCopy());
+        intermediateState = Optional.of(extendedState.deepCopy());
       }
       if (intermediateState.isPresent()) {
         if (!intermediateState.get().isBottom()) {
@@ -161,6 +162,12 @@ public class NumericStatementVisitor
           if (!newState.getValue().isBottom()) {
             successorsBuilder.add(newState);
           } else {
+            logger.log(
+                Level.WARNING,
+                "Assignment failed for",
+                variable.get(),
+                "with",
+                partialState.getPartialConstraint());
             // Dispose value that will not be used
             newState.getValue().dispose();
           }
@@ -221,7 +228,7 @@ public class NumericStatementVisitor
     }
 
     // If it can not be handled do nothing
-    return ImmutableSet.of(state.createCopy());
+    return ImmutableSet.of(state);
   }
 
   private Collection<NumericState> handleReturnVariable(Variable variable) {

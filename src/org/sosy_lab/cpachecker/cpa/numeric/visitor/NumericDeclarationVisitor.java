@@ -81,7 +81,7 @@ public class NumericDeclarationVisitor
       }
 
       if (intVar.size() == 0 && realVar.size() == 0) {
-        return ImmutableSet.of(state.createCopy());
+        return ImmutableSet.of(state);
       }
 
       // Checks the default value of the uninitialized variable
@@ -126,11 +126,11 @@ public class NumericDeclarationVisitor
         return successors;
       } else {
         // Return the state before the addition of the variable as a fallback
-        return ImmutableSet.of(state.createCopy());
+        return ImmutableSet.of(state);
       }
     }
 
-    return ImmutableSet.of(state.createCopy());
+    return ImmutableSet.of(state);
   }
 
   public static Collection<NumericState> setVariableUnsigned(
@@ -171,7 +171,7 @@ public class NumericDeclarationVisitor
 
     Collection<NumericState> successors = pSuccessorStates.build();
     if (successors.isEmpty()) {
-      return ImmutableSet.of(pState.createCopy());
+      return ImmutableSet.of(pState.deepCopy());
     } else {
       return successors;
     }
@@ -180,19 +180,19 @@ public class NumericDeclarationVisitor
   @Override
   public Collection<NumericState> visit(CFunctionDeclaration pDecl)
       throws UnrecognizedCodeException {
-    return ImmutableSet.of(state.createCopy());
+    return ImmutableSet.of(state);
   }
 
   @Override
   public Collection<NumericState> visit(CComplexTypeDeclaration pDecl)
       throws UnrecognizedCodeException {
-    return ImmutableSet.of(state.createCopy());
+    return ImmutableSet.of(state);
   }
 
   @Override
   public Collection<NumericState> visit(CTypeDefDeclaration pDecl)
       throws UnrecognizedCodeException {
-    return ImmutableSet.of(state.createCopy());
+    return ImmutableSet.of(state);
   }
 
   @Override
@@ -224,6 +224,6 @@ public class NumericDeclarationVisitor
       return ImmutableSet.of(newState);
     }
 
-    return ImmutableSet.of(state.createCopy());
+    return ImmutableSet.of(state);
   }
 }

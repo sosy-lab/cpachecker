@@ -190,7 +190,7 @@ public class NumericRightHandSideVisitor
   public Collection<PartialState> visit(CCharLiteralExpression pIastCharLiteralExpression)
       throws UnrecognizedCodeException {
     char value = pIastCharLiteralExpression.getValue();
-    Coefficient coeff = MpqScalar.of((int) value);
+    Coefficient coeff = DoubleScalar.of((int) value);
     return ImmutableSet.of(new PartialState(coeff));
   }
 

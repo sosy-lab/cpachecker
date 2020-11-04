@@ -88,7 +88,7 @@ public class NumericTransferRelation
     if (!successors.isEmpty()) {
       return successors;
     } else {
-      return ImmutableSet.of(state.createCopy());
+      return ImmutableSet.of(state);
     }
   }
 
@@ -177,7 +177,7 @@ public class NumericTransferRelation
       for (PartialState partialAssignment : partialAssignments) {
         ImmutableList.Builder<NumericState> successorCandidates = new ImmutableList.Builder<>();
         for (NumericState current : pStates) {
-          successorCandidates.add(current.createCopy());
+          successorCandidates.add(current.deepCopy());
         }
 
         if (pEnvironment.containsVariable(variable.get())) {
@@ -296,7 +296,7 @@ public class NumericTransferRelation
     }
 
     // nothing to do if return Variable was not tracked
-    return ImmutableSet.of(state.createCopy());
+    return ImmutableSet.of(state);
   }
 
   private Collection<Variable> createOutOfScopeVariables(
