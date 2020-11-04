@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.sosy_lab.cpachecker.util.dependencegraph.Dominance.DomTree;
 
 public class MergePoint<T> {
@@ -49,7 +50,11 @@ public class MergePoint<T> {
       List<List<Integer>> waitlist = new ArrayList<>();
       int assumeId = tree.getId(assume);
 
-      Objects.requireNonNull(treeSuccessors.apply(assume)).forEach(e -> waitlist.add(new ArrayList<>(ImmutableList.of(tree.getId(e)))));
+      for (T succ: actualSuccessors.apply(assume)) {
+        List<Integer> waitlistElem = new ArrayList<>();
+        waitlistElem.add(tree.getId(succ));
+        waitlist.add(waitlistElem);
+      }
 
       if (waitlist.isEmpty()) {
         throw new AssertionError("an assume edge must have branching edges");
@@ -111,5 +116,10 @@ public class MergePoint<T> {
       }
 
       return dominators;
+    }
+
+    private List<List<String>> readable(List<List<Integer>> list) {
+      return list.stream().map(l -> l.stream().map(t -> tree.getNode(t).toString()).collect(Collectors.toList())).collect(
+          Collectors.toList());
     }
 }
