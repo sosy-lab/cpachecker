@@ -35,6 +35,7 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
@@ -550,14 +551,25 @@ public class SMGExpressionEvaluator {
                 int arrayBitSize = arrayAddress.getObject().getSize();
                 int typeBitSize = getBitSizeof(cfaEdge, exp.getExpressionType(), newState, exp);
                 int maxIndex = arrayBitSize / typeBitSize;
-                int subscriptSize = getBitSizeof(cfaEdge, subscriptExpression.getExpressionType(), newState, exp);
+                CType subscriptType = subscriptExpression.getExpressionType();
+                int subscriptSize = getBitSizeof(cfaEdge, subscriptType, newState, exp);
                 if (subscriptExpression instanceof CCastExpression) {
                   CCastExpression castExpression = (CCastExpression) subscriptExpression;
                   int originSize = getBitSizeof(cfaEdge, castExpression.getOperand().getExpressionType(), newState);
                   subscriptSize = Integer.min(subscriptSize, originSize);
                 }
-                newState.addErrorPredicate(value, subscriptSize, SMGKnownExpValue.valueOf(maxIndex),
-                    subscriptSize, cfaEdge);
+                boolean isSigned = false;
+                if (subscriptType instanceof CSimpleType) {
+                  CSimpleType simpleType = (CSimpleType) subscriptType;
+                  isSigned = newState.getHeap().getMachineModel().isSigned(simpleType);
+                }
+                newState.addErrorPredicate(
+                    value,
+                    subscriptSize,
+                    isSigned,
+                    SMGKnownExpValue.valueOf(maxIndex),
+                    subscriptSize,
+                    cfaEdge);
               }
             }
           } else {

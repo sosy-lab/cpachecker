@@ -1862,9 +1862,15 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return options.trackPredicates();
   }
 
-  public void addPredicateRelation(SMGSymbolicValue pV1, int pCType1,
-                                   SMGSymbolicValue pV2, int pCType2,
-                                   BinaryOperator pOp, CFAEdge pEdge) {
+  public void addPredicateRelation(
+      SMGSymbolicValue pV1,
+      int pSize1,
+      boolean pIsSigned1,
+      SMGSymbolicValue pV2,
+      int pSize2,
+      boolean pIsSigned2,
+      BinaryOperator pOp,
+      CFAEdge pEdge) {
   if (isTrackPredicatesEnabled() && pEdge instanceof CAssumeEdge) {
     BinaryOperator temp;
     if (((CAssumeEdge) pEdge).getTruthAssumption()) {
@@ -1874,13 +1880,19 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     }
       logger.logf(
           Level.FINER, "SymValue1 %s %s SymValue2 %s AddPredicate: %s", pV1, temp, pV2, pEdge);
-      getPathPredicateRelation().addRelation(pV1, pCType1, pV2, pCType2, temp);
+      getPathPredicateRelation()
+          .addRelation(pV1, pSize1, pIsSigned1, pV2, pSize2, pIsSigned2, temp);
   }
 }
 
-  public void addPredicateRelation(SMGSymbolicValue pV1, int pCType1,
-                                   SMGExplicitValue pV2, int pCType2,
-                                   BinaryOperator pOp, CFAEdge pEdge) {
+  public void addPredicateRelation(
+      SMGSymbolicValue pV1,
+      int pSize1,
+      boolean pSigned,
+      SMGExplicitValue pV2,
+      int pSize2,
+      BinaryOperator pOp,
+      CFAEdge pEdge) {
     if (isTrackPredicatesEnabled() && pEdge instanceof CAssumeEdge) {
       BinaryOperator temp;
       if (((CAssumeEdge) pEdge).getTruthAssumption()) {
@@ -1890,7 +1902,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       }
       logger.logf(
           Level.FINER, "SymValue %s %s; ExplValue %s; AddPredicate: %s", pV1, temp, pV2, pEdge);
-      getPathPredicateRelation().addExplicitRelation(pV1, pCType1, pV2, pCType2, temp);
+      getPathPredicateRelation().addExplicitRelation(pV1, pSize1, pSigned, pV2, pSize2, temp);
     }
   }
 
@@ -1899,16 +1911,25 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     return heap.getPathPredicateRelation();
   }
 
-  public void addErrorPredicate(SMGSymbolicValue pSymbolicValue, Integer pCType1,
-                                SMGExplicitValue pExplicitValue, Integer pCType2,
-                                CFAEdge pEdge) {
+  public void addErrorPredicate(
+      SMGSymbolicValue pSymbolicValue,
+      Integer pSize1,
+      boolean isSigned,
+      SMGExplicitValue pExplicitValue,
+      Integer pSize2,
+      CFAEdge pEdge) {
     if (isTrackPredicatesEnabled()) {
       logger.log(Level.FINER, "Add Error Predicate: SymValue  ",
           pSymbolicValue, " ; ExplValue", " ",
           pExplicitValue, "; on edge: ", pEdge);
       getErrorPredicateRelation()
           .addExplicitRelation(
-              pSymbolicValue, pCType1, pExplicitValue, pCType2, BinaryOperator.GREATER_THAN);
+              pSymbolicValue,
+              pSize1,
+              isSigned,
+              pExplicitValue,
+              pSize2,
+              BinaryOperator.GREATER_THAN);
     }
   }
 

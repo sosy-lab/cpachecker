@@ -33,6 +33,7 @@ public final class PredRelation {
   private final SetMultimap<SMGValue, ExplicitRelation> smgExplicitValueRelation =
       HashMultimap.create();
   private final Map<SMGValue, Integer> smgValueSizeInBits = new HashMap<>();
+  private final Map<SMGValue, Boolean> smgValueSigned = new HashMap<>();
 
   /** Copy PredRelation */
   public void putAll(PredRelation pPred) {
@@ -40,25 +41,32 @@ public final class PredRelation {
     smgValuesDependency.putAll(pPred.smgValuesDependency);
     smgExplicitValueRelation.putAll(pPred.smgExplicitValueRelation);
     smgValueSizeInBits.putAll(pPred.smgValueSizeInBits);
+    smgValueSigned.putAll(pPred.smgValueSigned);
   }
 
-  public void addRelation(SMGSymbolicValue pOne, int pCType1,
-                          SMGSymbolicValue pTwo, int pCType2,
-                          BinaryOperator pOperator) {
+  public void addRelation(
+      SMGSymbolicValue pOne,
+      int pSize1,
+      boolean pIsSigned1,
+      SMGSymbolicValue pTwo,
+      int pSize2,
+      boolean pIsSigned2,
+      BinaryOperator pOperator) {
     // TODO: track address values
     if (!pOne.isUnknown()
         && !pTwo.isUnknown()
         && !(pOne instanceof SMGKnownAddressValue)
         && !(pTwo instanceof SMGKnownAddressValue)) {
       addRelation(pOne, pTwo, pOperator);
-      addValueSize(pOne, pCType1);
-      addValueSize(pTwo, pCType2);
+      addValueSize(pOne, pSize1, pIsSigned1);
+      addValueSize(pTwo, pSize2, pIsSigned2);
     }
   }
 
-  private void addValueSize(SMGValue pValue, Integer pCType2) {
+  private void addValueSize(SMGValue pValue, Integer pCType2, boolean isSigned) {
     if (!smgValueSizeInBits.containsKey(pValue)) {
       smgValueSizeInBits.put(pValue, pCType2);
+      smgValueSigned.put(pValue, isSigned);
     }
   }
 
@@ -77,12 +85,16 @@ public final class PredRelation {
     }
   }
 
-  public void addExplicitRelation(SMGSymbolicValue pSymbolicValue, Integer pCType1,
-                                  SMGExplicitValue pExplicitValue, Integer pCType2,
-                                  BinaryOperator pOp) {
+  public void addExplicitRelation(
+      SMGSymbolicValue pSymbolicValue,
+      Integer pCType1,
+      boolean pSinged,
+      SMGExplicitValue pExplicitValue,
+      Integer pCType2,
+      BinaryOperator pOp) {
     assert(pCType1.equals(pCType2));
     addExplicitRelation(pSymbolicValue, pExplicitValue, pOp);
-    addValueSize(pSymbolicValue, pCType1);
+    addValueSize(pSymbolicValue, pCType1, pSinged);
   }
 
   public void addExplicitRelation(
@@ -115,9 +127,13 @@ public final class PredRelation {
     }
     for (ExplicitRelation explicitRelation: smgExplicitValueRelation.removeAll(old)) {
       addExplicitRelation(fresh, explicitRelation.explicitValue, explicitRelation.getOperator());
-      addValueSize(fresh, getSymbolicSize(old));
+      addValueSize(fresh, getSymbolicSize(old), isSymbolicSigned(old));
     }
     smgValueSizeInBits.remove(old);
+  }
+
+  public boolean isSymbolicSigned(SMGValue pValue) {
+    return smgValueSigned.get(pValue);
   }
 
   public Integer getSymbolicSize(SMGValue pSymbolic) {

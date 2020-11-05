@@ -108,7 +108,9 @@ public class SMGPredicateManager {
     String nameOne = SYM_NAME + pRelation.getFirstValue();
     String nameTwo = SYM_NAME + pRelation.getSecondValue();
     Integer firstSize = pPredRelation.getSymbolicSize(pRelation.getFirstValue());
+    boolean isFirstSigned = pPredRelation.isSymbolicSigned(pRelation.getFirstValue());
     Integer secondSize = pPredRelation.getSymbolicSize(pRelation.getSecondValue());
+    boolean isSecondSigned = pPredRelation.isSymbolicSigned(pRelation.getSecondValue());
     BitvectorFormula formulaOne;
     BitvectorFormula formulaTwo;
     // Special case for NULL value
@@ -118,17 +120,21 @@ public class SMGPredicateManager {
     } else {
       formulaOne = efmgr.makeVariable(firstSize, nameOne);
     }
+    formulaOne = efmgr.extend(formulaOne, 0, isFirstSigned);
+
     if (pRelation.getSecondValue().isZero()) {
       secondSize = firstSize;
       formulaTwo = efmgr.makeBitvector(firstSize, 0);
     } else {
       formulaTwo = efmgr.makeVariable(secondSize, nameTwo);
     }
+    formulaTwo = efmgr.extend(formulaTwo, 0, isSecondSigned);
+
     if (!firstSize.equals(secondSize)) {
       if (firstSize > secondSize) {
-        formulaTwo = efmgr.extend(formulaTwo, firstSize - secondSize, true);
+        formulaTwo = efmgr.extend(formulaTwo, firstSize - secondSize, isSecondSigned);
       } else {
-        formulaOne = efmgr.extend(formulaOne, secondSize - firstSize, true);
+        formulaOne = efmgr.extend(formulaOne, secondSize - firstSize, isFirstSigned);
       }
     }
     BinaryOperator op = pRelation.getOperator();

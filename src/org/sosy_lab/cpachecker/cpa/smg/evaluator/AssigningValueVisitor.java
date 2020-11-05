@@ -25,6 +25,8 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CUnaryExpression.UnaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.DefaultCExpressionVisitor;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
+import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.TypeUtils;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressAndState;
@@ -149,6 +151,7 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
 
     SMGSymbolicValue rSymValue = smgRightHandSideEvaluator.evaluateExpressionValueV2(assignableState, edge, lValue);
 
+    CType lValueType = TypeUtils.getRealExpressionType(lValue);
     if(rSymValue.isUnknown()) {
 
       rSymValue = SMGKnownSymValue.of();
@@ -172,14 +175,17 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
               assignableState,
               addressOfField.getObject(),
               addressOfField.getOffset().getAsLong(),
-              TypeUtils.getRealExpressionType(lValue),
+              lValueType,
               rSymValue,
               edge);
     }
-    int size =
-        smgRightHandSideEvaluator.getBitSizeof(
-            edge, TypeUtils.getRealExpressionType(lValue), assignableState);
-    assignableState.addPredicateRelation(rSymValue, size, rValue, size, op, edge);
+    int size = smgRightHandSideEvaluator.getBitSizeof(edge, lValueType, assignableState);
+    boolean isSigned = false;
+    if (lValueType instanceof CSimpleType) {
+      CSimpleType simpleType = (CSimpleType) lValueType;
+      isSigned = assignableState.getHeap().getMachineModel().isSigned(simpleType);
+    }
+    assignableState.addPredicateRelation(rSymValue, size, isSigned, rValue, size, op, edge);
     if (truthValue) {
       if (op == BinaryOperator.EQUALS) {
         assignableState.putExplicit((SMGKnownSymbolicValue) rSymValue, (SMGKnownExpValue) rValue);
