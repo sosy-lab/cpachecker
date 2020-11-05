@@ -1,3 +1,11 @@
+# This file is part of CPAchecker,
+# a tool for configurable software verification:
+# https://cpachecker.sosy-lab.org
+#
+# SPDX-FileCopyrightText: 2007-2020 Dirk Beyer <https://www.sosy-lab.org>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 typedef _Bool bool;
 typedef unsigned long __kernel_ulong_t;
 typedef __kernel_ulong_t __kernel_size_t;
@@ -26,7 +34,6 @@ void *ldv_malloc(size_t size)
   return res;
 }
 static int sx9500_probe() {
-//  void *data = __devm_regmap_init_i2c();
   void *data = 18446744073709547522UL;
   if (ldv_is_err(data))
     return ldv_ptr_err(data);
@@ -34,19 +41,8 @@ static int sx9500_probe() {
   return 0;
 }
 
-//static int ldv_filter_positive_int(int val)
-//{
-//  __VERIFIER_assume(val <= 0);
-//  return val;
-//}
-//
-//int ldv_post_probe(int probe_ret_val) {
-//  return ldv_filter_positive_int(probe_ret_val);
-//}
-
 int main() {
   int emg_7_probe_retval = sx9500_probe();
-//  emg_7_probe_retval = ldv_post_probe(emg_7_probe_retval);
   if (ldv_undef_int()) {
     __VERIFIER_assume(emg_7_probe_retval == 0);
     r[1] = 1;
