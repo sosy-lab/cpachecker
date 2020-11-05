@@ -52,8 +52,10 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGField;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
@@ -654,6 +656,17 @@ public class SMGExpressionEvaluator {
 
     if (pAddressValue.isUnknown()) {
       return singletonList(SMGAddressValueAndState.of(smgState));
+    }
+
+    SMGExplicitValue explicit = smgState.getExplicit((SMGKnownSymbolicValue) pAddressValue);
+    if (explicit != null && !explicit.isUnknown()) {
+      return singletonList(
+          SMGAddressValueAndState.of(
+              smgState,
+              SMGKnownAddressValue.valueOf(
+                  (SMGKnownSymbolicValue) pAddressValue,
+                  SMGNullObject.INSTANCE,
+                  (SMGKnownExpValue) explicit)));
     }
 
     if (!smgState.getHeap().isPointer(pAddressValue)) {

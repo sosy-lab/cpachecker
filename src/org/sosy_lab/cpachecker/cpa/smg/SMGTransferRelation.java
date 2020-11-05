@@ -593,7 +593,8 @@ public class SMGTransferRelation
 
         newState = expressionEvaluator.deriveFurtherInformation(newState, truthValue, cfaEdge, expression);
         SMGPredicateRelation pathPredicateRelation = newState.getPathPredicateRelation();
-        BooleanFormula predicateFormula = smgPredicateManager.getPredicateFormula(pathPredicateRelation);
+        BooleanFormula predicateFormula =
+            smgPredicateManager.getPredicateFormula(pathPredicateRelation, newState);
         try {
           if (newState.hasMemoryErrors() || !smgPredicateManager.isUnsat(predicateFormula)) {
             result.add(newState);
