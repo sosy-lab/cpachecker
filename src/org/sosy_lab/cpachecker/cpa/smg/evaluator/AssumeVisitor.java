@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
+import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
@@ -77,6 +78,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
               // TODO: separate modifiable and unmodifiable visitor
               CType leftSideType = leftSideExpression.getExpressionType();
               boolean isSignedLeft = false;
+              boolean isLeftSideCast = leftSideExpression instanceof CCastExpression;
               if (leftSideType instanceof CSimpleType) {
                 isSignedLeft =
                     newState.getHeap().getMachineModel().isSigned((CSimpleType) leftSideType);
@@ -85,6 +87,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
                   smgExpressionEvaluator.getBitSizeof(edge, leftSideType, newState);
               CType rightSideType = rightSideExpression.getExpressionType();
               boolean isSignedRight = false;
+              boolean isRightSideCast = rightSideExpression instanceof CCastExpression;
               if (rightSideType instanceof CSimpleType) {
                 isSignedRight =
                     newState.getHeap().getMachineModel().isSigned((CSimpleType) rightSideType);
@@ -95,9 +98,11 @@ public class AssumeVisitor extends ExpressionValueVisitor {
                   leftSideVal,
                   leftSideTypeSize,
                   isSignedLeft,
+                  isLeftSideCast,
                   rightSideVal,
                   rightSideTypeSize,
                   isSignedRight,
+                  isRightSideCast,
                   binaryOperator,
                   edge);
               result.add(SMGValueAndState.of(newState, resultValue));

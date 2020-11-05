@@ -1866,9 +1866,11 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       SMGSymbolicValue pV1,
       int pSize1,
       boolean pIsSigned1,
+      boolean pIsCast1,
       SMGSymbolicValue pV2,
       int pSize2,
       boolean pIsSigned2,
+      boolean pIsCast2,
       BinaryOperator pOp,
       CFAEdge pEdge) {
   if (isTrackPredicatesEnabled() && pEdge instanceof CAssumeEdge) {
@@ -1881,7 +1883,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       logger.logf(
           Level.FINER, "SymValue1 %s %s SymValue2 %s AddPredicate: %s", pV1, temp, pV2, pEdge);
       getPathPredicateRelation()
-          .addRelation(pV1, pSize1, pIsSigned1, pV2, pSize2, pIsSigned2, temp);
+          .addRelation(pV1, pSize1, pIsSigned1, pIsCast1, pV2, pSize2, pIsSigned2, pIsCast2, temp);
   }
 }
 

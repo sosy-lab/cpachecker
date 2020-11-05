@@ -22,6 +22,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.util.Pair;
 
 public final class PredRelation {
@@ -48,25 +49,39 @@ public final class PredRelation {
       SMGSymbolicValue pOne,
       int pSize1,
       boolean pIsSigned1,
+      boolean pIsCast1,
       SMGSymbolicValue pTwo,
       int pSize2,
       boolean pIsSigned2,
+      boolean pIsCast2,
       BinaryOperator pOperator) {
     // TODO: track address values
     if (!pOne.isUnknown()
         && !pTwo.isUnknown()
         && !(pOne instanceof SMGKnownAddressValue)
         && !(pTwo instanceof SMGKnownAddressValue)) {
-      addRelation(pOne, pTwo, pOperator);
-      addValueSize(pOne, pSize1, pIsSigned1);
-      addValueSize(pTwo, pSize2, pIsSigned2);
+      if (!pOne.isZero() && !pTwo.isZero()) {
+        addRelation(pOne, pTwo, pOperator);
+        addValueSize(pOne, pSize1, pIsSigned1, pIsCast1);
+        addValueSize(pTwo, pSize2, pIsSigned2, pIsCast2);
+      }
+      if (pOne.isZero() && !pTwo.isZero()) {
+        addExplicitRelation(pTwo, SMGZeroValue.INSTANCE, pOperator.getOppositLogicalOperator());
+        addValueSize(pTwo, pSize2, pIsSigned2, pIsCast2);
+      }
+      if (pTwo.isZero() && !pOne.isZero()) {
+          addExplicitRelation(pOne, SMGZeroValue.INSTANCE, pOperator);
+        addValueSize(pOne, pSize1, pIsSigned1, pIsCast1);
+      }
     }
   }
 
-  private void addValueSize(SMGValue pValue, Integer pCType2, boolean isSigned) {
+  private void addValueSize(SMGValue pValue, Integer pCType, boolean isSigned, boolean isCast) {
     if (!smgValueSizeInBits.containsKey(pValue)) {
-      smgValueSizeInBits.put(pValue, pCType2);
+      smgValueSizeInBits.put(pValue, pCType);
       smgValueSigned.put(pValue, isSigned);
+    } else {
+      assert smgValueSizeInBits.get(pValue).equals(pCType) || isCast;
     }
   }
 
@@ -93,8 +108,10 @@ public final class PredRelation {
       Integer pCType2,
       BinaryOperator pOp) {
     assert(pCType1.equals(pCType2));
-    addExplicitRelation(pSymbolicValue, pExplicitValue, pOp);
-    addValueSize(pSymbolicValue, pCType1, pSinged);
+    if (!(pSymbolicValue.isZero() && pExplicitValue.isZero())) {
+      addExplicitRelation(pSymbolicValue, pExplicitValue, pOp);
+      addValueSize(pSymbolicValue, pCType1, pSinged, false);
+    }
   }
 
   public void addExplicitRelation(
@@ -126,8 +143,10 @@ public final class PredRelation {
       smgValuesRelation.removeAll(Pair.of(relatedValue, old));
     }
     for (ExplicitRelation explicitRelation: smgExplicitValueRelation.removeAll(old)) {
-      addExplicitRelation(fresh, explicitRelation.explicitValue, explicitRelation.getOperator());
-      addValueSize(fresh, getSymbolicSize(old), isSymbolicSigned(old));
+      if (!fresh.isZero()) {
+        addExplicitRelation(fresh, explicitRelation.explicitValue, explicitRelation.getOperator());
+        addValueSize(fresh, getSymbolicSize(old), isSymbolicSigned(old), false);
+      }
     }
     smgValueSizeInBits.remove(old);
   }
