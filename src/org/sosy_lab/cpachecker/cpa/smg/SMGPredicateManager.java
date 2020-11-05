@@ -233,7 +233,7 @@ public class SMGPredicateManager {
     }
 
     for (Entry<Pair<SMGValue, SMGValue>, SymbolicRelation> entry : pRelation.getValuesRelations()) {
-      if (entry.getKey().getSecond().compareTo(entry.getKey().getFirst()) > 0) {
+      if (entry.getKey().getSecond().compareTo(entry.getKey().getFirst()) >= 0) {
         SymbolicRelation value = entry.getValue();
         result = addPredicateToFormula(result, value, conjunction);
       }
