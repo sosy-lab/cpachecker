@@ -35,7 +35,6 @@ import org.sosy_lab.cpachecker.cfa.types.c.CCompositeType.CCompositeTypeMemberDe
 import org.sosy_lab.cpachecker.cfa.types.c.CElaboratedType;
 import org.sosy_lab.cpachecker.cfa.types.c.CFunctionType;
 import org.sosy_lab.cpachecker.cfa.types.c.CPointerType;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
@@ -44,6 +43,7 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAd
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -552,24 +552,18 @@ public class SMGExpressionEvaluator {
                 int typeBitSize = getBitSizeof(cfaEdge, exp.getExpressionType(), newState, exp);
                 int maxIndex = arrayBitSize / typeBitSize;
                 CType subscriptType = subscriptExpression.getExpressionType();
-                int subscriptSize = getBitSizeof(cfaEdge, subscriptType, newState, exp);
+                SMGType subscriptSMGType =
+                    SMGType.constructSMGType(subscriptType, newState, cfaEdge, this);
+
                 if (subscriptExpression instanceof CCastExpression) {
                   CCastExpression castExpression = (CCastExpression) subscriptExpression;
-                  int originSize = getBitSizeof(cfaEdge, castExpression.getOperand().getExpressionType(), newState);
-                  subscriptSize = Integer.min(subscriptSize, originSize);
-                }
-                boolean isSigned = false;
-                if (subscriptType instanceof CSimpleType) {
-                  CSimpleType simpleType = (CSimpleType) subscriptType;
-                  isSigned = newState.getHeap().getMachineModel().isSigned(simpleType);
+                  SMGType subscriptOriginSMGType =
+                      SMGType.constructSMGType(
+                          castExpression.getOperand().getExpressionType(), newState, cfaEdge, this);
+                  subscriptSMGType = new SMGType(subscriptSMGType, subscriptOriginSMGType);
                 }
                 newState.addErrorPredicate(
-                    value,
-                    subscriptSize,
-                    isSigned,
-                    SMGKnownExpValue.valueOf(maxIndex),
-                    subscriptSize,
-                    cfaEdge);
+                    value, subscriptSMGType, SMGKnownExpValue.valueOf(maxIndex), cfaEdge);
               }
             }
           } else {

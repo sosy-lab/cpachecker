@@ -46,8 +46,9 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAd
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMGConsistencyVerifier;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.PredRelation;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPredRelation;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValueFilter;
@@ -1864,13 +1865,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   public void addPredicateRelation(
       SMGSymbolicValue pV1,
-      int pSize1,
-      boolean pIsSigned1,
-      boolean pIsCast1,
+      SMGType pSMGType1,
       SMGSymbolicValue pV2,
-      int pSize2,
-      boolean pIsSigned2,
-      boolean pIsCast2,
+      SMGType pSMGType2,
       BinaryOperator pOp,
       CFAEdge pEdge) {
   if (isTrackPredicatesEnabled() && pEdge instanceof CAssumeEdge) {
@@ -1882,17 +1879,14 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
     }
       logger.logf(
           Level.FINER, "SymValue1 %s %s SymValue2 %s AddPredicate: %s", pV1, temp, pV2, pEdge);
-      getPathPredicateRelation()
-          .addRelation(pV1, pSize1, pIsSigned1, pIsCast1, pV2, pSize2, pIsSigned2, pIsCast2, temp);
+      getPathPredicateRelation().addRelation(pV1, pSMGType1, pV2, pSMGType2, temp);
   }
 }
 
   public void addPredicateRelation(
       SMGSymbolicValue pV1,
-      int pSize1,
-      boolean pSigned,
+      SMGType pSMGType1,
       SMGExplicitValue pV2,
-      int pSize2,
       BinaryOperator pOp,
       CFAEdge pEdge) {
     if (isTrackPredicatesEnabled() && pEdge instanceof CAssumeEdge) {
@@ -1904,21 +1898,19 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       }
       logger.logf(
           Level.FINER, "SymValue %s %s; ExplValue %s; AddPredicate: %s", pV1, temp, pV2, pEdge);
-      getPathPredicateRelation().addExplicitRelation(pV1, pSize1, pSigned, pV2, pSize2, temp);
+      getPathPredicateRelation().addExplicitRelation(pV1, pSMGType1, pV2, temp);
     }
   }
 
   @Override
-  public PredRelation getPathPredicateRelation() {
+  public SMGPredRelation getPathPredicateRelation() {
     return heap.getPathPredicateRelation();
   }
 
   public void addErrorPredicate(
       SMGSymbolicValue pSymbolicValue,
-      Integer pSize1,
-      boolean isSigned,
+      SMGType pSymbolicSMGType,
       SMGExplicitValue pExplicitValue,
-      Integer pSize2,
       CFAEdge pEdge) {
     if (isTrackPredicatesEnabled()) {
       logger.log(Level.FINER, "Add Error Predicate: SymValue  ",
@@ -1926,17 +1918,12 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
           pExplicitValue, "; on edge: ", pEdge);
       getErrorPredicateRelation()
           .addExplicitRelation(
-              pSymbolicValue,
-              pSize1,
-              isSigned,
-              pExplicitValue,
-              pSize2,
-              BinaryOperator.GREATER_THAN);
+              pSymbolicValue, pSymbolicSMGType, pExplicitValue, BinaryOperator.GREATER_THAN);
     }
   }
 
   @Override
-  public PredRelation getErrorPredicateRelation() {
+  public SMGPredRelation getErrorPredicateRelation() {
     return heap.getErrorPredicateRelation();
   }
 

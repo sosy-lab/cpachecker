@@ -19,12 +19,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cfa.ast.c.CCastExpression;
 import org.sosy_lab.cpachecker.cfa.ast.c.CExpression;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.SMGInconsistentException;
 import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
@@ -77,32 +77,34 @@ public class AssumeVisitor extends ExpressionValueVisitor {
 
               // TODO: separate modifiable and unmodifiable visitor
               CType leftSideType = leftSideExpression.getExpressionType();
-              boolean isSignedLeft = false;
-              boolean isLeftSideCast = leftSideExpression instanceof CCastExpression;
-              if (leftSideType instanceof CSimpleType) {
-                isSignedLeft =
-                    newState.getHeap().getMachineModel().isSigned((CSimpleType) leftSideType);
+              SMGType leftSideSMGType =
+                  SMGType.constructSMGType(leftSideType, newState, edge, smgExpressionEvaluator);
+              if (leftSideExpression instanceof CCastExpression) {
+                CCastExpression leftSideCastExpression = (CCastExpression) leftSideExpression;
+                CType leftSideOriginType = leftSideCastExpression.getOperand().getExpressionType();
+                SMGType leftSideOriginSMGType =
+                    SMGType.constructSMGType(
+                        leftSideOriginType, newState, edge, smgExpressionEvaluator);
+                leftSideSMGType = new SMGType(leftSideSMGType, leftSideOriginSMGType);
               }
-              int leftSideTypeSize =
-                  smgExpressionEvaluator.getBitSizeof(edge, leftSideType, newState);
+
               CType rightSideType = rightSideExpression.getExpressionType();
-              boolean isSignedRight = false;
-              boolean isRightSideCast = rightSideExpression instanceof CCastExpression;
-              if (rightSideType instanceof CSimpleType) {
-                isSignedRight =
-                    newState.getHeap().getMachineModel().isSigned((CSimpleType) rightSideType);
+              SMGType rightSideSMGType =
+                  SMGType.constructSMGType(rightSideType, newState, edge, smgExpressionEvaluator);
+              if (rightSideExpression instanceof CCastExpression) {
+                CCastExpression rightSideCastExpression = (CCastExpression) rightSideExpression;
+                CType rightSideOriginType =
+                    rightSideCastExpression.getOperand().getExpressionType();
+                SMGType rightSideOriginSMGType =
+                    SMGType.constructSMGType(
+                        rightSideOriginType, newState, edge, smgExpressionEvaluator);
+                rightSideSMGType = new SMGType(leftSideSMGType, rightSideOriginSMGType);
               }
-              int rightSideTypeSize =
-                  smgExpressionEvaluator.getBitSizeof(edge, rightSideType, newState);
               newState.addPredicateRelation(
                   leftSideVal,
-                  leftSideTypeSize,
-                  isSignedLeft,
-                  isLeftSideCast,
+                  leftSideSMGType,
                   rightSideVal,
-                  rightSideTypeSize,
-                  isSignedRight,
-                  isRightSideCast,
+                  rightSideSMGType,
                   binaryOperator,
                   edge);
               result.add(SMGValueAndState.of(newState, resultValue));

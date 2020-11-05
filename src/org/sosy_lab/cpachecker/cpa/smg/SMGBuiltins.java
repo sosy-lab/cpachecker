@@ -22,12 +22,12 @@ import org.sosy_lab.cpachecker.cfa.ast.c.CRightHandSide;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.types.MachineModel;
 import org.sosy_lab.cpachecker.cfa.types.c.CNumericTypes;
-import org.sosy_lab.cpachecker.cfa.types.c.CSimpleType;
 import org.sosy_lab.cpachecker.cfa.types.c.CType;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGAddressValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGExplicitValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGRightHandSideEvaluator;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgePointsTo;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
@@ -634,13 +634,9 @@ public class SMGBuiltins {
 
           if (!targetObject.isUnknown() && !sourceObject.isUnknown()) {
             CType expressionType = sizeExpr.getExpressionType();
-            int symbolicValueSize =
-                expressionEvaluator.getBitSizeof(pCfaEdge, expressionType, currentState);
-            boolean isSigned = false;
-            if (expressionType instanceof CSimpleType) {
-              CSimpleType simpleType = (CSimpleType) expressionType;
-              isSigned = machineModel.isSigned(simpleType);
-            }
+            SMGType symbolicValueSMGType =
+                SMGType.constructSMGType(
+                    expressionType, currentState, pCfaEdge, expressionEvaluator);
             for (SMGValueAndState sizeSymbolicValueAndState :
                 evaluateExpressionValue(currentState, pCfaEdge, sizeExpr)) {
               SMGSymbolicValue symbolicValue = sizeSymbolicValueAndState.getObject();
@@ -657,19 +653,15 @@ public class SMGBuiltins {
                 if (!currentState.getHeap().isObjectExternallyAllocated(sourceObject.getObject())) {
                   currentState.addErrorPredicate(
                       symbolicValue,
-                      symbolicValueSize,
-                      isSigned,
+                      symbolicValueSMGType,
                       SMGKnownExpValue.valueOf(availableSource),
-                      symbolicValueSize,
                       pCfaEdge);
                 }
                 if (!currentState.getHeap().isObjectExternallyAllocated(targetObject.getObject())) {
                   currentState.addErrorPredicate(
                       symbolicValue,
-                      symbolicValueSize,
-                      isSigned,
+                      symbolicValueSMGType,
                       SMGKnownExpValue.valueOf(availableTarget),
-                      symbolicValueSize,
                       pCfaEdge);
                 }
               }
