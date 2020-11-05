@@ -20,9 +20,9 @@ import org.sosy_lab.common.configuration.Option;
 import org.sosy_lab.common.configuration.Options;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPredRelation;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPredRelation.ExplicitRelation;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPredRelation.SymbolicRelation;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPredicateRelation;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPredicateRelation.ExplicitRelation;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPredicateRelation.SymbolicRelation;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -48,8 +48,8 @@ public class SMGPredicateManager {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final BitvectorFormulaManagerView efmgr;
-  private final Map<String, BitvectorFormula> variables;
-  private final Map<String, SMGType> variableSizes;
+  private final Map<SMGValue, BitvectorFormula> createdValueFormulas;
+  private final Map<SMGValue, SMGType> valueTypes;
 
   public SMGPredicateManager(Configuration pConfig, LogManager pLogger, ShutdownNotifier
       shutdownNotifier)
@@ -61,8 +61,8 @@ public class SMGPredicateManager {
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     efmgr = fmgr.getBitvectorFormulaManager();
-    variables = new HashMap<>();
-    variableSizes = new HashMap<>();
+    createdValueFormulas = new HashMap<>();
+    valueTypes = new HashMap<>();
   }
 
   private BooleanFormula createBooleanFormula(
@@ -90,16 +90,15 @@ public class SMGPredicateManager {
     BooleanFormula result;
     BigInteger explicitValue = pRelation.getExplicitValue().getValue();
     SMGType symbolicSMGType = pRelation.getSymbolicSMGType();
-    int explicitSize = symbolicSMGType.getSize();
-    boolean isExplicitSigned = symbolicSMGType.isSigned();
+    int explicitSize = symbolicSMGType.getCastedSize();
+    boolean isExplicitSigned = symbolicSMGType.isCastedSigned();
     BinaryOperator op = pRelation.getOperator();
 
     BitvectorFormula explicitValueFormula = efmgr.makeBitvector(explicitSize + 1, explicitValue);
     BitvectorFormula explicitValueFormulaCasted =
         efmgr.extract(explicitValueFormula, explicitSize - 1, 0, isExplicitSigned);
 
-    String name = SYM_NAME + pRelation.getSymbolicValue();
-    BitvectorFormula symbolicValue = getCastedVariable(name, symbolicSMGType);
+    BitvectorFormula symbolicValue = getCastedValue(pRelation.getSymbolicValue(), symbolicSMGType);
     result = createBooleanFormula(symbolicValue, explicitValueFormulaCasted, op);
 
     if (conjunction) {
@@ -110,27 +109,34 @@ public class SMGPredicateManager {
     return result;
   }
 
-  private BitvectorFormula getCastedVariable(String pName, SMGType pSMGType) {
-    BitvectorFormula variableFormula = variables.get(pName);
-    if (variableFormula == null) {
+  /**
+   * Method for getting symbolic value casted to different types
+   *
+   * @param pSMGValue symbolic value
+   * @param pSMGType casting type
+   * @return formula with variable for value casted according to pSMGType
+   */
+  private BitvectorFormula getCastedValue(SMGValue pSMGValue, SMGType pSMGType) {
+    BitvectorFormula valueFormula = createdValueFormulas.get(pSMGValue);
+    if (valueFormula == null) {
       int size = pSMGType.getOriginSize();
-      boolean isSigned = pSMGType.getOriginSigned();
-      variableFormula = efmgr.makeVariable(size, pName);
-      variableFormula = efmgr.extend(variableFormula, 0, isSigned);
-      variables.put(pName, variableFormula);
-      variableSizes.put(pName, pSMGType);
+      boolean isSigned = pSMGType.isOriginSigned();
+      valueFormula = efmgr.makeVariable(size, SYM_NAME + pSMGValue);
+      valueFormula = efmgr.extend(valueFormula, 0, isSigned);
+      createdValueFormulas.put(pSMGValue, valueFormula);
+      valueTypes.put(pSMGValue, pSMGType);
     }
-    variableFormula = cast(variableFormula, variableSizes.get(pName), pSMGType);
-    return variableFormula;
+    valueFormula = cast(valueFormula, valueTypes.get(pSMGValue), pSMGType);
+    return valueFormula;
   }
 
   private BitvectorFormula cast(
       BitvectorFormula pVariableFormula, SMGType pFromSMGType, SMGType pToSMGType) {
     BitvectorFormula result;
-    int toSize = pToSMGType.getSize();
     int fromSize = pFromSMGType.getOriginSize();
-    boolean isToSigned = pToSMGType.isSigned();
-    boolean isFromSigned = pFromSMGType.isSigned();
+    boolean isFromSigned = pFromSMGType.isOriginSigned();
+    int toSize = pToSMGType.getCastedSize();
+    boolean isToSigned = pToSMGType.isCastedSigned();
     result = pVariableFormula;
     if (toSize > fromSize) {
       result = efmgr.extend(result, toSize - fromSize, isToSigned);
@@ -144,36 +150,33 @@ public class SMGPredicateManager {
 
   private BooleanFormula addPredicateToFormula(
       BooleanFormula pFormula, SymbolicRelation pRelation, boolean conjunction) {
-    BooleanFormula result;
-    String nameOne = SYM_NAME + pRelation.getFirstValue();
-    String nameTwo = SYM_NAME + pRelation.getSecondValue();
 
     BitvectorFormula formulaOne;
     BitvectorFormula formulaTwo;
 
     SMGType firstValSMGType = pRelation.getFirstValSMGType();
-    int firstCastedSize = firstValSMGType.getSize();
+    int firstCastedSize = firstValSMGType.getCastedSize();
 
     SMGType secondValSMGType = pRelation.getSecondValSMGType();
-    int secondCastedSize = secondValSMGType.getSize();
+    int secondCastedSize = secondValSMGType.getCastedSize();
 
     // Special case for NULL value
     if (pRelation.getFirstValue().isZero()) {
       firstCastedSize = secondCastedSize;
       formulaOne = efmgr.makeBitvector(firstCastedSize, 0);
     } else {
-      formulaOne = getCastedVariable(nameOne, firstValSMGType);
+      formulaOne = getCastedValue(pRelation.getFirstValue(), firstValSMGType);
     }
 
     if (pRelation.getSecondValue().isZero()) {
       secondCastedSize = firstCastedSize;
       formulaTwo = efmgr.makeBitvector(secondCastedSize, 0);
     } else {
-      formulaTwo = getCastedVariable(nameTwo, secondValSMGType);
+      formulaTwo = getCastedValue(pRelation.getSecondValue(), secondValSMGType);
     }
 
     BinaryOperator op = pRelation.getOperator();
-    result = createBooleanFormula(formulaOne, formulaTwo, op);
+    BooleanFormula result = createBooleanFormula(formulaOne, formulaTwo, op);
     if (conjunction) {
       result = fmgr.makeAnd(pFormula, result);
     } else {
@@ -182,18 +185,18 @@ public class SMGPredicateManager {
     return result;
   }
 
-  public BooleanFormula getPredicateFormula(SMGPredRelation pRelation) {
+  public BooleanFormula getPredicateFormula(SMGPredicateRelation pRelation) {
     return getPredicateFormula(pRelation, true);
   }
 
   public BooleanFormula getErrorPredicateFormula(
-      SMGPredRelation pErrorPredicate, SMGPredRelation pPathRelation) {
+      SMGPredicateRelation pErrorPredicate, SMGPredicateRelation pPathRelation) {
     BooleanFormula errorFormula = getPredicateFormula(pErrorPredicate, false);
     BooleanFormula pathFormula = getPredicateFormula(pPathRelation, true);
     return fmgr.makeAnd(pathFormula, errorFormula);
   }
 
-  private BooleanFormula getPredicateFormula(SMGPredRelation pRelation, boolean conjunction) {
+  private BooleanFormula getPredicateFormula(SMGPredicateRelation pRelation, boolean conjunction) {
     BooleanFormula result = bfmgr.makeBoolean(conjunction);
 
     if (!verifyPredicates) {
@@ -230,7 +233,7 @@ public class SMGPredicateManager {
       return false;
     }
 
-    SMGPredRelation errorPredicate = pState.getErrorPredicateRelation();
+    SMGPredicateRelation errorPredicate = pState.getErrorPredicateRelation();
     if (!errorPredicate.isEmpty()) {
       BooleanFormula errorPredicateFormula = getErrorPredicateFormula(errorPredicate, pState.getPathPredicateRelation());
       try {

@@ -47,7 +47,7 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGVa
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.CLangSMGConsistencyVerifier;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGHasValueEdges;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPredRelation;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPredicateRelation;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.edge.SMGEdgeHasValue;
@@ -1903,7 +1903,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   @Override
-  public SMGPredRelation getPathPredicateRelation() {
+  public SMGPredicateRelation getPathPredicateRelation() {
     return heap.getPathPredicateRelation();
   }
 
@@ -1923,7 +1923,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   @Override
-  public SMGPredRelation getErrorPredicateRelation() {
+  public SMGPredicateRelation getErrorPredicateRelation() {
     return heap.getErrorPredicateRelation();
   }
 

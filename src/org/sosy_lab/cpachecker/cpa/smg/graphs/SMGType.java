@@ -15,54 +15,56 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGExpressionEvaluator;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
+/** Class for representation of casting values to different types for SMG predicate relations */
 public class SMGType {
-  private int size;
-  private boolean isSigned;
+  private int castedSize;
+  private boolean castedSigned;
   private int originSize;
-  private boolean isOriginSigned;
+  private boolean originSigned;
 
-  private SMGType(int pSize, boolean pIsSigned, int pOriginSize, boolean pIsOriginSigned) {
-    size = pSize;
-    isSigned = pIsSigned;
+  private SMGType(int pCastedSize, boolean pCastedSigned, int pOriginSize, boolean pOriginSigned) {
+    castedSize = pCastedSize;
+    castedSigned = pCastedSigned;
     originSize = pOriginSize;
-    isOriginSigned = pIsOriginSigned;
+    originSigned = pOriginSigned;
   }
 
-  public SMGType(int pSize, boolean pIsSigneds) {
-    this(pSize, pIsSigneds, pSize, pIsSigneds);
+  public SMGType(int pCastedSize, boolean pSigned) {
+    this(pCastedSize, pSigned, pCastedSize, pSigned);
   }
 
-  public SMGType(SMGType pType, SMGType pOriginType) {
-    this(pType.getSize(), pType.isSigned(), pOriginType.getOriginSize(), pOriginType.isSigned());
+  public SMGType(SMGType pCastedType, SMGType pOriginType) {
+    this(
+        pCastedType.getCastedSize(),
+        pCastedType.isCastedSigned(),
+        pOriginType.getOriginSize(),
+        pOriginType.isCastedSigned());
   }
 
   public static SMGType constructSMGType(
-      CType leftSideType,
-      SMGState newState,
-      CFAEdge edge,
-      SMGExpressionEvaluator smgExpressionEvaluator)
+      CType pType, SMGState pState, CFAEdge pEdge, SMGExpressionEvaluator smgExpressionEvaluator)
       throws UnrecognizedCodeException {
-    boolean isSignedLeft = false;
-    if (leftSideType instanceof CSimpleType) {
-      isSignedLeft = newState.getHeap().getMachineModel().isSigned((CSimpleType) leftSideType);
+    boolean isSigned = false;
+    if (pType instanceof CSimpleType) {
+      isSigned = pState.getHeap().getMachineModel().isSigned((CSimpleType) pType);
     }
-    int leftSideTypeSize = smgExpressionEvaluator.getBitSizeof(edge, leftSideType, newState);
-    return new SMGType(leftSideTypeSize, isSignedLeft);
+    int size = smgExpressionEvaluator.getBitSizeof(pEdge, pType, pState);
+    return new SMGType(size, isSigned);
   }
 
-  public int getSize() {
-    return size;
+  public int getCastedSize() {
+    return castedSize;
   }
 
-  public boolean isSigned() {
-    return isSigned;
+  public boolean isCastedSigned() {
+    return castedSigned;
   }
 
   public int getOriginSize() {
     return originSize;
   }
 
-  public boolean getOriginSigned() {
-    return isOriginSigned;
+  public boolean isOriginSigned() {
+    return originSigned;
   }
 }

@@ -88,7 +88,7 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGEx
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGExpressionEvaluator;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGRightHandSideEvaluator;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPredRelation;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPredicateRelation;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
@@ -592,7 +592,7 @@ public class SMGTransferRelation
         }
 
         newState = expressionEvaluator.deriveFurtherInformation(newState, truthValue, cfaEdge, expression);
-        SMGPredRelation pathPredicateRelation = newState.getPathPredicateRelation();
+        SMGPredicateRelation pathPredicateRelation = newState.getPathPredicateRelation();
         BooleanFormula predicateFormula = smgPredicateManager.getPredicateFormula(pathPredicateRelation);
         try {
           if (newState.hasMemoryErrors() || !smgPredicateManager.isUnsat(predicateFormula)) {

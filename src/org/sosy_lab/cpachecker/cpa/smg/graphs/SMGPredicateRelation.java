@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-import com.google.common.collect.HashMultimap;
+                                                                                                                                                                  import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
 import java.util.Collection;
 import java.util.HashSet;
@@ -17,13 +17,14 @@ import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+                                                                                                                                                                  import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
+                                                                                                                                                                  import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.util.Pair;
 
-public final class SMGPredRelation {
+/** Utility class for representation comparisons of SMGValues */
+public final class SMGPredicateRelation {
   /** The Multimap is used as Bi-Map, i.e. each pair (K,V) is also inserted as pair (V,K). */
   private final SetMultimap<Pair<SMGValue, SMGValue>, SymbolicRelation> smgValuesRelation =
       HashMultimap.create();
@@ -33,7 +34,7 @@ public final class SMGPredRelation {
       HashMultimap.create();
 
   /** Copy PredRelation */
-  public void putAll(SMGPredRelation pPred) {
+  public void putAll(SMGPredicateRelation pPred) {
     smgValuesRelation.putAll(pPred.smgValuesRelation);
     smgValuesDependency.putAll(pPred.smgValuesDependency);
     smgExplicitValueRelation.putAll(pPred.smgExplicitValueRelation);
@@ -129,7 +130,7 @@ public final class SMGPredRelation {
   }
 
   /** Returns closure list of symbolic values which affects pRelation */
-  public Set<SMGValue> closureDependencyFor(SMGPredRelation pRelation) {
+  public Set<SMGValue> closureDependencyFor(SMGPredicateRelation pRelation) {
     Set<SMGValue> toAdd = new HashSet<>();
     for (Entry<SMGValue, SMGValue> entry : pRelation.smgValuesDependency.entries()) {
       SMGValue key = entry.getKey();
@@ -166,7 +167,7 @@ public final class SMGPredRelation {
     if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
-    SMGPredRelation other = (SMGPredRelation) obj;
+    SMGPredicateRelation other = (SMGPredicateRelation) obj;
     return other.smgValuesRelation != null && smgValuesRelation.equals(other.smgValuesRelation);
   }
 
@@ -187,7 +188,7 @@ public final class SMGPredRelation {
     return smgValuesRelation.entries();
   }
 
-  public boolean isLessOrEqual(SMGPredRelation pPathPredicateRelation) {
+  public boolean isLessOrEqual(SMGPredicateRelation pPathPredicateRelation) {
     if (smgValuesDependency.size() > pPathPredicateRelation.smgValuesDependency.size()) {
       return false;
     }

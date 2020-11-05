@@ -33,9 +33,9 @@ public interface UnmodifiableSMG {
    */
   SMG copyOf();
 
-  SMGPredRelation getPathPredicateRelation();
+  SMGPredicateRelation getPathPredicateRelation();
 
-  SMGPredRelation getErrorPredicateRelation();
+  SMGPredicateRelation getErrorPredicateRelation();
 
   PersistentSet<SMGValue> getValues();
 
