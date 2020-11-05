@@ -25,9 +25,13 @@ import org.sosy_lab.cpachecker.cpa.smg.SMGState;
 import org.sosy_lab.cpachecker.cpa.smg.UnmodifiableSMGState;
 import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGValueAndState;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGType;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
@@ -219,6 +223,22 @@ public class AssumeVisitor extends ExpressionValueVisitor {
         if (isPointerOp1 && isPointerOp2) {
           isTrue = comparePointer((SMGKnownAddressValue) pV1, (SMGKnownAddressValue) pV2, pOp);
           isFalse = !isTrue;
+        } else if (isPointerOp1 && !pV2.isUnknown()) {
+          SMGExplicitValue explicit2 = pNewState.getExplicit((SMGKnownSymbolicValue) pV2);
+          if (explicit2 != null) {
+            isTrue = comparePointer((SMGKnownAddressValue) pV1,
+                (SMGKnownAddressValue) SMGKnownAddressValue
+                    .valueOf((SMGKnownSymbolicValue) pV2, SMGNullObject.INSTANCE,
+                        (SMGKnownExpValue) explicit2), pOp);
+            isFalse = !isTrue;
+          }
+        } else if (isPointerOp2 && !pV1.isUnknown()) {
+            SMGExplicitValue explicit1 = pNewState.getExplicit((SMGKnownSymbolicValue) pV1);
+            if (explicit1 != null) {
+              isTrue = comparePointer((SMGKnownAddressValue) SMGKnownAddressValue.valueOf((SMGKnownSymbolicValue) pV1, SMGNullObject.INSTANCE,
+                      (SMGKnownExpValue) explicit1), (SMGKnownAddressValue) pV2, pOp);
+              isFalse = !isTrue;
+            }
         }
       break;
     default:

@@ -50,6 +50,9 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGVa
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddress;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
@@ -115,10 +118,14 @@ class ExpressionValueVisitor
 
     BigInteger value = exp.getValue();
 
-    boolean isZero = value.equals(BigInteger.ZERO);
+    SMGKnownSymbolicValue symbolicOfExplicit =
+        getInitialSmgState().getSymbolicOfExplicit(SMGKnownExpValue.valueOf(value));
+    if (symbolicOfExplicit == null) {
+      symbolicOfExplicit = SMGKnownSymValue.of();
+      getInitialSmgState().putExplicit(symbolicOfExplicit, SMGKnownExpValue.valueOf(value));
+    }
 
-    SMGSymbolicValue val = (isZero ? SMGZeroValue.INSTANCE : SMGUnknownValue.INSTANCE);
-    return singletonList(SMGValueAndState.of(getInitialSmgState(), val));
+    return singletonList(SMGValueAndState.of(getInitialSmgState(), symbolicOfExplicit));
   }
 
   @Override
