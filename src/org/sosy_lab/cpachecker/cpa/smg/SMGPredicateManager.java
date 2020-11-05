@@ -189,7 +189,7 @@ public class SMGPredicateManager {
   public BooleanFormula getPathPredicateFormula(UnmodifiableSMGState pState) {
     SMGPredicateRelation pRelation = pState.getPathPredicateRelation();
     BooleanFormula predicateFormula = getPredicateFormula(pRelation, true);
-    predicateFormula = addExplicitFromState(predicateFormula, pState);
+    predicateFormula = fmgr.makeAnd(predicateFormula, getExplicitFormulaFromState(pState));
     return predicateFormula;
   }
 
@@ -197,13 +197,12 @@ public class SMGPredicateManager {
       SMGPredicateRelation pErrorPredicate, UnmodifiableSMGState pState) {
     BooleanFormula errorFormula = getPredicateFormula(pErrorPredicate, false);
     BooleanFormula pathFormula = getPathPredicateFormula(pState);
-    pathFormula = addExplicitFromState(pathFormula, pState);
+    pathFormula = fmgr.makeAnd(pathFormula, getExplicitFormulaFromState(pState));
     return fmgr.makeAnd(pathFormula, errorFormula);
   }
 
-  private BooleanFormula addExplicitFromState(
-      BooleanFormula pFormula, UnmodifiableSMGState pState) {
-    BooleanFormula result = pFormula;
+  private BooleanFormula getExplicitFormulaFromState(UnmodifiableSMGState pState) {
+    BooleanFormula result = bfmgr.makeBoolean(true);
     SMGPredicateRelation errorPredicateRelation = pState.getErrorPredicateRelation();
     SMGPredicateRelation pathPredicateRelation = pState.getPathPredicateRelation();
     for (Entry<SMGKnownSymbolicValue, SMGKnownExpValue> expValueEntry :

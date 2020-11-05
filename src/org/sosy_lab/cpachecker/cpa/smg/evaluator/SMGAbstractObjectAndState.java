@@ -45,7 +45,7 @@ public abstract class SMGAbstractObjectAndState<T> {
   }
 
   public static class SMGAddressValueAndState extends SMGValueAndState {
-    private SMGValue symbolicValue;
+    private final SMGValue symbolicValue;
 
     private SMGAddressValueAndState(
         SMGState pState, SMGAddressValue pValue, SMGValue pSymbolicValue) {

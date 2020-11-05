@@ -17,10 +17,10 @@ import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
 
 /** Class for representation of casting values to different types for SMG predicate relations */
 public class SMGType {
-  private int castedSize;
-  private boolean castedSigned;
-  private int originSize;
-  private boolean originSigned;
+  private final int castedSize;
+  private final boolean castedSigned;
+  private final int originSize;
+  private final boolean originSigned;
 
   private SMGType(int pCastedSize, boolean pCastedSigned, int pOriginSize, boolean pOriginSigned) {
     castedSize = pCastedSize;
