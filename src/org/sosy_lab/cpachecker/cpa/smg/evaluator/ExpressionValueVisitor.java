@@ -452,7 +452,7 @@ class ExpressionValueVisitor
           castedValueAndStates.add(
               SMGValueAndState.of(
                   valueAndState.getSmgState(),
-                  ((SMGAddressValueAndState) valueAndState).getValue()));
+                  ((SMGAddressValueAndState) valueAndState).getObject()));
         }
       }
       return castedValueAndStates;
