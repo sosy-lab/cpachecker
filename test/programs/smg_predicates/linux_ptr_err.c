@@ -30,7 +30,7 @@ static int sx9500_probe() {
   void *data = 18446744073709547522UL;
   if (ldv_is_err(data))
     return ldv_ptr_err(data);
-  r = ldv_malloc(1);
+  r = ldv_malloc(2);
   return 0;
 }
 

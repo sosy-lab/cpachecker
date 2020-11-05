@@ -46,13 +46,19 @@ int main() {
 
 long ldv_is_err(void const *ptr)
 {
-  return (long)((unsigned long)ptr > 18446744073709547521UL);
+  if ((unsigned long)ptr > 18446744073709547521UL) {
+    return 1;
+  } else {
+    return 0;
+  }
 }
 
 long ldv_ptr_err(void const *ptr)
 {
   __VERIFIER_assume((unsigned long)ptr > 18446744073709547521UL);
-  return (long)(18446744073709547521UL - (unsigned long)ptr);
+  long result = (long)(18446744073709547521UL - (unsigned long)ptr);
+  __VERIFIER_assume(result != 0);
+  return result;
 }
 
 static bool IS_ERR(void const *ptr)
