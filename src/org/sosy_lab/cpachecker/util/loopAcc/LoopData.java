@@ -814,7 +814,7 @@ public class LoopData implements Comparable<LoopData> {
                   Splitter.on(']')
                       .split(
                           Iterables.get(
-                              Splitter.on("operand2=\\[")
+                              Splitter.on("operand2=[")
                                   .split(node.getLeavingEdge(VALID_STATE).getRawAST().toString()),
                               POSITION_OF_VARIABLE_IN_ARRAY_ONE)),
                   POSITION_OF_VARIABLE_IN_ARRAY_ZERO));
@@ -853,11 +853,6 @@ public class LoopData implements Comparable<LoopData> {
         } catch (NumberFormatException | NullPointerException nfe3) {
           temp.add(true);
         }
-        /*
-         * try { BigInteger d = new BigInteger(variable); if (d.intValueExact() > pathNumber ||
-         * d.intValueExact() > outputNumber) { temp.add(true); } } catch (NumberFormatException |
-         * NullPointerException nfe4) { temp.add(true); }
-         */
       }
 
     } else if (type.contentEquals("for")) {
@@ -868,7 +863,7 @@ public class LoopData implements Comparable<LoopData> {
                   Splitter.on(']')
                       .split(
                           Iterables.get(
-                              Splitter.on("operand2=\\[")
+                              Splitter.on("operand2=[")
                                   .split(node.getLeavingEdge(VALID_STATE).getRawAST().toString()),
                               POSITION_OF_VARIABLE_IN_ARRAY_ONE)),
                   POSITION_OF_VARIABLE_IN_ARRAY_ZERO));
@@ -907,11 +902,6 @@ public class LoopData implements Comparable<LoopData> {
           } catch (NumberFormatException | NullPointerException nfe3) {
             temp.add(true);
           }
-          /*
-           * try { BigInteger d = new BigInteger(variable); if (d.intValueExact() > pathNumber ||
-           * d.intValueExact() > outputNumber) { temp.add(true); } } catch (NumberFormatException |
-           * NullPointerException nfe4) { temp.add(true); }
-           */
         }
     }
     for (Boolean b : temp) {
@@ -1035,7 +1025,7 @@ public class LoopData implements Comparable<LoopData> {
   }
 
   private void setConditionInFor(List<CFANode> tempForCondition) {
-    conditionInFor = tempForCondition;
+    conditionInFor.addAll(tempForCondition);
   }
 
   public TimeSpan getAnalyzeTime() {

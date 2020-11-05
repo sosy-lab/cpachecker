@@ -207,7 +207,6 @@ public class LoopAbstraction {
         while (line != null) {
           if (loopStarts.contains(lineNumber) && accFlag) {
             for (LoopData loopD : loopInfo.getLoopData()) {
-
               if ((loopD
                               .getLoopStart()
                               .getEnteringEdge(0)
@@ -264,7 +263,10 @@ public class LoopAbstraction {
                     }
                     line = reader.readLine();
                     line = variablesAlreadyUsed(preUsedVariables, line);
-                    boolean flagEnd = false;
+                    boolean flagEnd =
+                        closed
+                            && line.contains("}")
+                            && (!line.contains("if") || !line.contains("else"));
                     while (line != null && !flagEnd) {
                       closed = ifCaseClosed(line, closed);
                       if (!closed) {
@@ -281,6 +283,7 @@ public class LoopAbstraction {
                     closed = ifCaseClosed(line, closed);
                     content += line + System.lineSeparator();
                     lineNumber++;
+
                     while (line != null && !line.contains("}")) {
                       line = reader.readLine();
                       line = variablesAlreadyUsed(preUsedVariables, line);
@@ -299,7 +302,11 @@ public class LoopAbstraction {
                     for (int i = outerLoopTemp.size() - 1; i >= 0; i--) {
                       line = reader.readLine();
                       line = variablesAlreadyUsed(preUsedVariables, line);
-                      boolean flagEnd1 = false;
+                      boolean flagEnd1 =
+                          closed
+                              && line.contains("}")
+                              && (!line.contains("if") || !line.contains("else"));
+                      ;
                       while (line != null && !flagEnd1) {
                         closed = ifCaseClosed(line, closed);
                         if (!closed) {
@@ -365,7 +372,11 @@ public class LoopAbstraction {
                     }
                     line = reader.readLine();
                     line = variablesAlreadyUsed(preUsedVariables, line);
-                    boolean flagEnd = false;
+                    boolean flagEnd =
+                        closed
+                            && line.contains("}")
+                            && (!line.contains("if") || !line.contains("else"));
+                    ;
                     while (line != null && !flagEnd) {
                       closed = ifCaseClosed(line, closed);
                       if (!closed) {
@@ -398,7 +409,11 @@ public class LoopAbstraction {
                     for (int i = outerLoopTemp.size() - 1; i >= 0; i--) {
                       line = reader.readLine();
                       line = variablesAlreadyUsed(preUsedVariables, line);
-                      boolean flagEnd1 = false;
+                      boolean flagEnd1 =
+                          closed
+                              && line.contains("}")
+                              && (!line.contains("if") || !line.contains("else"));
+                      ;
                       while (line != null && !flagEnd1) {
                         closed = ifCaseClosed(line, closed);
                         if (!closed) {
