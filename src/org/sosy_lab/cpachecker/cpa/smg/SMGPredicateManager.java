@@ -214,6 +214,7 @@ public class SMGPredicateManager {
         SMGKnownExpValue explicitValue = expValueEntry.getValue();
         BitvectorFormula valueFormula = createdValueFormulas.get(symbolicValue);
         SMGType symbolicType = valueTypes.get(symbolicValue);
+        valueFormula = cast(valueFormula, symbolicType, symbolicType);
         BooleanFormula equality =
             fmgr.makeEqual(
                 valueFormula,
