@@ -36,7 +36,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
@@ -163,7 +162,7 @@ public class SMGBuiltins {
       CFAEdge cfaEdge,
       SMGAddressValue bufferAddress,
       SMGExplicitValue countValue,
-      SMGSymbolicValue ch,
+      SMGValue ch,
       SMGExplicitValue expValue)
       throws CPATransferException {
 
@@ -639,7 +638,7 @@ public class SMGBuiltins {
                     expressionType, currentState, pCfaEdge, expressionEvaluator);
             for (SMGValueAndState sizeSymbolicValueAndState :
                 evaluateExpressionValue(currentState, pCfaEdge, sizeExpr)) {
-              SMGSymbolicValue symbolicValue = sizeSymbolicValueAndState.getObject();
+              SMGValue symbolicValue = sizeSymbolicValueAndState.getObject();
 
               int sourceRangeOffset = sourceObject.getOffset().getAsInt() / machineModel.getSizeofCharInBits();
               int sourceSize = sourceObject.getObject().getSize() / machineModel.getSizeofCharInBits();
@@ -864,8 +863,8 @@ public class SMGBuiltins {
           symFirstValueAndState
               .getSmgState()
               .readValue(secondRegion, offset, machineModel.getSizeofCharInBits());
-      SMGSymbolicValue symFirstValue = symFirstValueAndState.getObject();
-      SMGSymbolicValue symSecondValue = symSecondValueAndState.getObject();
+      SMGValue symFirstValue = symFirstValueAndState.getObject();
+      SMGValue symSecondValue = symSecondValueAndState.getObject();
       state = symSecondValueAndState.getSmgState();
       if (!bothValuesAreDefined(symFirstValue, symSecondValue)) {
         return SMGValueAndState.of(pState, SMGUnknownValue.INSTANCE);

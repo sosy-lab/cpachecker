@@ -8,7 +8,7 @@
 
 package org.sosy_lab.cpachecker.cpa.smg.graphs;
 
-                                                                                                                                                                  import com.google.common.collect.HashMultimap;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
 import java.util.Collection;
 import java.util.HashSet;
@@ -17,8 +17,7 @@ import java.util.Objects;
 import java.util.Set;
 import org.sosy_lab.cpachecker.cfa.ast.c.CBinaryExpression.BinaryOperator;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
-                                                                                                                                                                  import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
-                                                                                                                                                                  import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -41,9 +40,9 @@ public final class SMGPredicateRelation {
   }
 
   public void addRelation(
-      SMGSymbolicValue pOne,
+      SMGValue pOne,
       SMGType pSMGTypeOne,
-      SMGSymbolicValue pTwo,
+      SMGValue pTwo,
       SMGType pSMGTypeTwo,
       BinaryOperator pOperator) {
     // TODO: track address values
@@ -86,7 +85,7 @@ public final class SMGPredicateRelation {
   }
 
   public void addExplicitRelation(
-      SMGSymbolicValue pSymbolicValue,
+      SMGValue pSymbolicValue,
       SMGType pSymbolicSMGType,
       SMGExplicitValue pExplicitValue,
       BinaryOperator pOp) {
@@ -121,7 +120,7 @@ public final class SMGPredicateRelation {
     for (ExplicitRelation explicitRelation: smgExplicitValueRelation.removeAll(old)) {
       if (!fresh.isZero()) {
         addExplicitRelation(
-            (SMGSymbolicValue) fresh,
+            fresh,
             explicitRelation.getSymbolicSMGType(),
             explicitRelation.explicitValue,
             explicitRelation.getOperator());
@@ -208,6 +207,10 @@ public final class SMGPredicateRelation {
       return false;
     }
     return true;
+  }
+
+  public boolean hasRelation(SMGValue pSymbolicValue) {
+    return smgValuesDependency.containsKey(pSymbolicValue);
   }
 
   static public class SymbolicRelation {

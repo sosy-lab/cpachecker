@@ -42,8 +42,8 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGUnknownValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 import org.sosy_lab.cpachecker.exceptions.UnrecognizedCodeException;
@@ -166,7 +166,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       SMGObject pMemoryOfField,
       long pFieldOffset,
       CType pRValueType,
-      SMGSymbolicValue pValue,
+      SMGValue pValue,
       CFAEdge pEdge)
       throws SMGInconsistentException, UnrecognizedCodeException {
 
@@ -230,7 +230,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       CFAEdge cfaEdge,
       SMGObject memoryOfField,
       long fieldOffset,
-      SMGSymbolicValue value,
+      SMGValue value,
       CType rValueType)
       throws UnrecognizedCodeException, SMGInconsistentException {
 
@@ -262,7 +262,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
       SMGObject pMemoryOfField,
       long pFieldOffset,
       CType pRValueType,
-      SMGSymbolicValue pValue,
+      SMGValue pValue,
       CFAEdge pCfaEdge)
       throws SMGInconsistentException, UnrecognizedCodeException {
 
@@ -313,7 +313,7 @@ public class SMGRightHandSideEvaluator extends SMGExpressionEvaluator {
                       pCfaEdge,
                       object,
                       offset.getAsLong(),
-                      (SMGSymbolicValue) newParamValue.getValue(),
+                      newParamValue.getValue(),
                       paramType);
             }
           }

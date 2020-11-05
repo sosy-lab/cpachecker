@@ -645,8 +645,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
             SMGEdgeHasValueFilter.objectFilter(pListSeg)
                 .filterAtOffset(nfo)
                 .filterBySize(sizeOfVoidPointerInBits));
-    SMGSymbolicValue oldPointerToRegion =
-        readValue(pListSeg, nfo, sizeOfVoidPointerInBits).getObject();
+    SMGValue oldPointerToRegion = readValue(pListSeg, nfo, sizeOfVoidPointerInBits).getObject();
     if (!oldSllFieldsToOldRegion.isEmpty()) {
       SMGEdgeHasValue oldSllFieldToOldRegion = Iterables.getOnlyElement(oldSllFieldsToOldRegion);
       heap.removeHasValueEdge(oldSllFieldToOldRegion);
@@ -766,7 +765,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
             SMGEdgeHasValueFilter.objectFilter(pListSeg)
                 .filterAtOffset(offsetPointingToRegion)
                 .filterWithoutSize());
-    SMGSymbolicValue oldPointerToRegion =
+    SMGValue oldPointerToRegion =
         readValue(pListSeg, offsetPointingToRegion, sizeOfVoidPointerInBits).getObject();
     if (!oldDllFieldsToOldRegion.isEmpty()) {
       SMGEdgeHasValue oldDllFieldToOldRegion = Iterables.getOnlyElement(oldDllFieldsToOldRegion);
@@ -1127,7 +1126,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
         stateAndNewEdge = writeValue0(pObject, pOffset, sizeInBits, newValue);
       }
       return SMGValueAndState.of(
-          stateAndNewEdge.getState(), (SMGSymbolicValue) stateAndNewEdge.getNewEdge().getValue());
+          stateAndNewEdge.getState(), stateAndNewEdge.getNewEdge().getValue());
     } else {
       return valueAndState;
     }
@@ -1170,7 +1169,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
       SMGEdgeHasValue object_edge = Iterables.getOnlyElement(matchingEdges);
       performConsistencyCheck(SMGRuntimeCheck.HALF);
       addElementToCurrentChain(object_edge);
-      return SMGValueAndState.of(this, (SMGSymbolicValue) object_edge.getValue());
+      return SMGValueAndState.of(this, object_edge.getValue());
     }
 
     SMGEdgeHasValue edge =
@@ -1201,10 +1200,10 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
    * @return the edge and the new state (may be this state)
    */
   public SMGStateEdgePair writeValue(
-      SMGObject pObject, long pOffset, long pSizeInBits, SMGSymbolicValue pValue)
+      SMGObject pObject, long pOffset, long pSizeInBits, SMGValue pValue)
       throws SMGInconsistentException {
 
-    SMGSymbolicValue value;
+    SMGValue value;
 
     // If the value is not yet known by the SMG
     // create a unconstrained new symbolic value
@@ -1864,9 +1863,9 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   public void addPredicateRelation(
-      SMGSymbolicValue pV1,
+      SMGValue pV1,
       SMGType pSMGType1,
-      SMGSymbolicValue pV2,
+      SMGValue pV2,
       SMGType pSMGType2,
       BinaryOperator pOp,
       CFAEdge pEdge) {
@@ -1884,11 +1883,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 }
 
   public void addPredicateRelation(
-      SMGSymbolicValue pV1,
-      SMGType pSMGType1,
-      SMGExplicitValue pV2,
-      BinaryOperator pOp,
-      CFAEdge pEdge) {
+      SMGValue pV1, SMGType pSMGType1, SMGExplicitValue pV2, BinaryOperator pOp, CFAEdge pEdge) {
     if (isTrackPredicatesEnabled() && pEdge instanceof CAssumeEdge) {
       BinaryOperator temp;
       if (((CAssumeEdge) pEdge).getTruthAssumption()) {
@@ -1908,7 +1903,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   public void addErrorPredicate(
-      SMGSymbolicValue pSymbolicValue,
+      SMGValue pSymbolicValue,
       SMGType pSymbolicSMGType,
       SMGExplicitValue pExplicitValue,
       CFAEdge pEdge) {
@@ -2008,7 +2003,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
   }
 
   @Override
-  public boolean areNonEqual(SMGSymbolicValue pValue1, SMGSymbolicValue pValue2) {
+  public boolean areNonEqual(SMGValue pValue1, SMGValue pValue2) {
 
     if (pValue1.isUnknown() || pValue2.isUnknown() || pValue1.equals(pValue2)) {
       return false;

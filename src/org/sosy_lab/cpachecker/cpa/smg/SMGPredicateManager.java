@@ -24,7 +24,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPredicateRelation;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPredicateRelation.ExplicitRelation;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPredicateRelation.SymbolicRelation;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGType;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.util.Pair;
@@ -88,10 +88,7 @@ public class SMGPredicateManager {
   }
 
   private BooleanFormula addPredicateToFormula(
-      BooleanFormula pFormula,
-      ExplicitRelation pRelation,
-      boolean conjunction,
-      UnmodifiableSMGState pState) {
+      BooleanFormula pFormula, ExplicitRelation pRelation, boolean conjunction) {
     BooleanFormula result;
     BigInteger explicitValue = pRelation.getExplicitValue().getValue();
     SMGType symbolicSMGType = pRelation.getSymbolicSMGType();
@@ -103,8 +100,7 @@ public class SMGPredicateManager {
     BitvectorFormula explicitValueFormulaCasted =
         efmgr.extract(explicitValueFormula, explicitSize - 1, 0, isExplicitSigned);
 
-    BitvectorFormula symbolicValue =
-        getCastedValue(pRelation.getSymbolicValue(), symbolicSMGType, pState);
+    BitvectorFormula symbolicValue = getCastedValue(pRelation.getSymbolicValue(), symbolicSMGType);
     result = createBooleanFormula(symbolicValue, explicitValueFormulaCasted, op);
 
     if (conjunction) {
@@ -122,8 +118,7 @@ public class SMGPredicateManager {
    * @param pSMGType casting type
    * @return formula with variable for value casted according to pSMGType
    */
-  private BitvectorFormula getCastedValue(
-      SMGValue pSMGValue, SMGType pSMGType, UnmodifiableSMGState pState) {
+  private BitvectorFormula getCastedValue(SMGValue pSMGValue, SMGType pSMGType) {
     BitvectorFormula valueFormula = createdValueFormulas.get(pSMGValue);
     if (valueFormula == null) {
       int size = pSMGType.getOriginSize();
@@ -133,18 +128,7 @@ public class SMGPredicateManager {
       createdValueFormulas.put(pSMGValue, valueFormula);
       valueTypes.put(pSMGValue, pSMGType);
     }
-    valueFormula = cast(valueFormula, valueTypes.get(pSMGValue), pSMGType);
-    if (!pSMGValue.isUnknown()) {
-      SMGExplicitValue explicit = pState.getExplicit((SMGKnownSymbolicValue) pSMGValue);
-      if (explicit != null) {
-        valueFormula =
-            (BitvectorFormula)
-                fmgr.makeEqual(
-                    valueFormula,
-                    efmgr.makeBitvector(pSMGType.getCastedSize(), explicit.getValue()));
-      }
-    }
-    return valueFormula;
+    return cast(valueFormula, valueTypes.get(pSMGValue), pSMGType);
   }
 
   private BitvectorFormula cast(
@@ -166,10 +150,7 @@ public class SMGPredicateManager {
   }
 
   private BooleanFormula addPredicateToFormula(
-      BooleanFormula pFormula,
-      SymbolicRelation pRelation,
-      boolean conjunction,
-      UnmodifiableSMGState pState) {
+      BooleanFormula pFormula, SymbolicRelation pRelation, boolean conjunction) {
 
     BitvectorFormula formulaOne;
     BitvectorFormula formulaTwo;
@@ -185,14 +166,14 @@ public class SMGPredicateManager {
       firstCastedSize = secondCastedSize;
       formulaOne = efmgr.makeBitvector(firstCastedSize, 0);
     } else {
-      formulaOne = getCastedValue(pRelation.getFirstValue(), firstValSMGType, pState);
+      formulaOne = getCastedValue(pRelation.getFirstValue(), firstValSMGType);
     }
 
     if (pRelation.getSecondValue().isZero()) {
       secondCastedSize = firstCastedSize;
       formulaTwo = efmgr.makeBitvector(secondCastedSize, 0);
     } else {
-      formulaTwo = getCastedValue(pRelation.getSecondValue(), secondValSMGType, pState);
+      formulaTwo = getCastedValue(pRelation.getSecondValue(), secondValSMGType);
     }
 
     BinaryOperator op = pRelation.getOperator();
@@ -205,21 +186,45 @@ public class SMGPredicateManager {
     return result;
   }
 
-  public BooleanFormula getPredicateFormula(
-      SMGPredicateRelation pRelation, UnmodifiableSMGState pState) {
-    return getPredicateFormula(pRelation, pState, true);
+  public BooleanFormula getPathPredicateFormula(UnmodifiableSMGState pState) {
+    SMGPredicateRelation pRelation = pState.getPathPredicateRelation();
+    BooleanFormula predicateFormula = getPredicateFormula(pRelation, true);
+    predicateFormula = addExplicitFromState(predicateFormula, pState);
+    return predicateFormula;
   }
 
   public BooleanFormula getErrorPredicateFormula(
       SMGPredicateRelation pErrorPredicate, UnmodifiableSMGState pState) {
-    SMGPredicateRelation pPathRelation = pState.getPathPredicateRelation();
-    BooleanFormula errorFormula = getPredicateFormula(pErrorPredicate, pState, false);
-    BooleanFormula pathFormula = getPredicateFormula(pPathRelation, pState, true);
+    BooleanFormula errorFormula = getPredicateFormula(pErrorPredicate, false);
+    BooleanFormula pathFormula = getPathPredicateFormula(pState);
+    pathFormula = addExplicitFromState(pathFormula, pState);
     return fmgr.makeAnd(pathFormula, errorFormula);
   }
 
-  private BooleanFormula getPredicateFormula(
-      SMGPredicateRelation pRelation, UnmodifiableSMGState pState, boolean conjunction) {
+  private BooleanFormula addExplicitFromState(
+      BooleanFormula pFormula, UnmodifiableSMGState pState) {
+    BooleanFormula result = pFormula;
+    SMGPredicateRelation errorPredicateRelation = pState.getErrorPredicateRelation();
+    SMGPredicateRelation pathPredicateRelation = pState.getPathPredicateRelation();
+    for (Entry<SMGKnownSymbolicValue, SMGKnownExpValue> expValueEntry :
+        pState.getExplicitValues()) {
+      SMGKnownSymbolicValue symbolicValue = expValueEntry.getKey();
+      if (errorPredicateRelation.hasRelation(symbolicValue)
+          || pathPredicateRelation.hasRelation(symbolicValue)) {
+        SMGKnownExpValue explicitValue = expValueEntry.getValue();
+        BitvectorFormula valueFormula = createdValueFormulas.get(symbolicValue);
+        SMGType symbolicType = valueTypes.get(symbolicValue);
+        BooleanFormula equality =
+            fmgr.makeEqual(
+                valueFormula,
+                efmgr.makeBitvector(symbolicType.getCastedSize(), explicitValue.getValue()));
+        result = fmgr.makeAnd(result, equality);
+      }
+    }
+    return result;
+  }
+
+  private BooleanFormula getPredicateFormula(SMGPredicateRelation pRelation, boolean conjunction) {
     BooleanFormula result = bfmgr.makeBoolean(conjunction);
 
     if (!verifyPredicates) {
@@ -229,12 +234,12 @@ public class SMGPredicateManager {
     for (Entry<Pair<SMGValue, SMGValue>, SymbolicRelation> entry : pRelation.getValuesRelations()) {
       if (entry.getKey().getSecond().compareTo(entry.getKey().getFirst()) > 0) {
         SymbolicRelation value = entry.getValue();
-        result = addPredicateToFormula(result, value, conjunction, pState);
+        result = addPredicateToFormula(result, value, conjunction);
       }
     }
 
     for (ExplicitRelation relation : pRelation.getExplicitRelations()) {
-      result = addPredicateToFormula(result, relation, conjunction, pState);
+      result = addPredicateToFormula(result, relation, conjunction);
     }
     return result;
   }

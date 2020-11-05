@@ -35,7 +35,7 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGZeroValue;
 import org.sosy_lab.cpachecker.exceptions.CPATransferException;
 
@@ -149,7 +149,8 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
       return;
     }
 
-    SMGSymbolicValue rSymValue = smgRightHandSideEvaluator.evaluateExpressionValueV2(assignableState, edge, lValue);
+    SMGValue rSymValue =
+        smgRightHandSideEvaluator.evaluateExpressionValueV2(assignableState, edge, lValue);
 
     CType lValueType = TypeUtils.getRealExpressionType(lValue);
     if(rSymValue.isUnknown()) {
@@ -240,7 +241,8 @@ class AssigningValueVisitor extends DefaultCExpressionVisitor<Void, CPATransferE
     // If this value is known, the assumption can be evaluated, therefore it should be unknown
     assert smgRightHandSideEvaluator.evaluateExplicitValueV2(assignableState, edge, lValue).isUnknown();
 
-    SMGSymbolicValue value = smgRightHandSideEvaluator.evaluateExpressionValueV2(assignableState, edge, lValue);
+    SMGValue value =
+        smgRightHandSideEvaluator.evaluateExpressionValueV2(assignableState, edge, lValue);
 
     // This symbolic value should have been added when evaluating the assume
     assert !value.isUnknown();
