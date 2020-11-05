@@ -34,7 +34,7 @@ void *ldv_malloc(size_t size)
   return res;
 }
 static int sx9500_probe() {
-  void *data = 18446744073709547522UL;
+  void *data = __devm_regmap_init_i2c();
   if (ldv_is_err(data))
     return ldv_ptr_err(data);
   r = ldv_malloc(2);
@@ -54,13 +54,19 @@ int main() {
 
 long ldv_is_err(void const *ptr)
 {
-  return (long)((unsigned long)ptr > 18446744073709547521UL);
+  if ((unsigned long)(char*)(long)ptr > 18446744073709547521UL) {
+    return 1;
+  } else {
+    return 0;
+  }
 }
 
 long ldv_ptr_err(void const *ptr)
 {
   __VERIFIER_assume((unsigned long)ptr > 18446744073709547521UL);
-  return (long)(18446744073709547521UL - (unsigned long)ptr);
+  long result = (long)(18446744073709547521UL - (unsigned long)(long)(char*)ptr);
+  __VERIFIER_assume(result != 0);
+  return result;
 }
 
 static bool IS_ERR(void const *ptr)
