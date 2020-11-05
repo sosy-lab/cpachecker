@@ -83,9 +83,11 @@ public class AssumeVisitor extends ExpressionValueVisitor {
               CType leftSideType = leftSideExpression.getExpressionType();
               SMGType leftSideSMGType =
                   SMGType.constructSMGType(leftSideType, newState, edge, smgExpressionEvaluator);
-              if (leftSideExpression instanceof CCastExpression) {
+              while (leftSideExpression instanceof CCastExpression) {
+                //TODO: rewrite as list of castings
                 CCastExpression leftSideCastExpression = (CCastExpression) leftSideExpression;
-                CType leftSideOriginType = leftSideCastExpression.getOperand().getExpressionType();
+                leftSideExpression = leftSideCastExpression.getOperand();
+                CType leftSideOriginType = leftSideExpression.getExpressionType();
                 SMGType leftSideOriginSMGType =
                     SMGType.constructSMGType(
                         leftSideOriginType, newState, edge, smgExpressionEvaluator);
@@ -95,10 +97,10 @@ public class AssumeVisitor extends ExpressionValueVisitor {
               CType rightSideType = rightSideExpression.getExpressionType();
               SMGType rightSideSMGType =
                   SMGType.constructSMGType(rightSideType, newState, edge, smgExpressionEvaluator);
-              if (rightSideExpression instanceof CCastExpression) {
+              while (rightSideExpression instanceof CCastExpression) {
                 CCastExpression rightSideCastExpression = (CCastExpression) rightSideExpression;
-                CType rightSideOriginType =
-                    rightSideCastExpression.getOperand().getExpressionType();
+                rightSideExpression = rightSideCastExpression.getOperand();
+                CType rightSideOriginType = rightSideExpression.getExpressionType();
                 SMGType rightSideOriginSMGType =
                     SMGType.constructSMGType(
                         rightSideOriginType, newState, edge, smgExpressionEvaluator);
