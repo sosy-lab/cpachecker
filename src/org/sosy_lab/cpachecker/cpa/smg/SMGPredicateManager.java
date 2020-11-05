@@ -9,6 +9,8 @@
 package org.sosy_lab.cpachecker.cpa.smg;
 
 import java.math.BigInteger;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import org.sosy_lab.common.ShutdownNotifier;
@@ -45,6 +47,7 @@ public class SMGPredicateManager {
   private final FormulaManagerView fmgr;
   private final BooleanFormulaManagerView bfmgr;
   private final BitvectorFormulaManagerView efmgr;
+  private final Map<String, BitvectorFormula> variables;
 
 
   public SMGPredicateManager(Configuration pConfig, LogManager pLogger, ShutdownNotifier
@@ -57,6 +60,7 @@ public class SMGPredicateManager {
     fmgr = solver.getFormulaManager();
     bfmgr = fmgr.getBooleanFormulaManager();
     efmgr = fmgr.getBitvectorFormulaManager();
+    variables = new HashMap<>();
   }
 
   private BooleanFormula createBooleanFormula(
@@ -85,13 +89,14 @@ public class SMGPredicateManager {
     BigInteger explicitValue = pRelation.getExplicitValue().getValue();
     int explicitSize = explicitValue.bitLength();
     int symbolicSize = pPredRelationRelation.getSymbolicSize(pRelation.getSymbolicValue());
+    boolean isSymbolicSigned = pPredRelationRelation.isSymbolicSigned(pRelation.getSymbolicValue());
     BinaryOperator op = pRelation.getOperator();
     if (explicitSize > symbolicSize && op.equals(BinaryOperator.GREATER_THAN)) {
       result = bfmgr.makeFalse();
     } else {
       BitvectorFormula explicitValueFormula = efmgr.makeBitvector(symbolicSize, explicitValue);
       String name = SYM_NAME + pRelation.getSymbolicValue();
-      Formula symbolicValue = efmgr.makeVariable(symbolicSize, name);
+      Formula symbolicValue = getVariable(symbolicSize, name, isSymbolicSigned);
       result = createBooleanFormula(symbolicValue, explicitValueFormula, op);
     }
     if (conjunction) {
@@ -100,6 +105,16 @@ public class SMGPredicateManager {
       result = bfmgr.or(result, pFormula);
     }
     return result;
+  }
+
+  private BitvectorFormula getVariable(int pSize, String pName, boolean pIsSigned) {
+    BitvectorFormula variableFormula = variables.get(pName);
+    if (variableFormula == null) {
+      variableFormula = efmgr.makeVariable(pSize, pName);
+      variableFormula = efmgr.extend(variableFormula, 0, pIsSigned);
+      variables.put(pName, variableFormula);
+    }
+    return variableFormula;
   }
 
   private BooleanFormula addPredicateToFormula(BooleanFormula pFormula, SymbolicRelation
@@ -118,17 +133,15 @@ public class SMGPredicateManager {
       firstSize = secondSize;
       formulaOne = efmgr.makeBitvector(firstSize, 0);
     } else {
-      formulaOne = efmgr.makeVariable(firstSize, nameOne);
+      formulaOne = getVariable(firstSize, nameOne, isFirstSigned);
     }
-    formulaOne = efmgr.extend(formulaOne, 0, isFirstSigned);
 
     if (pRelation.getSecondValue().isZero()) {
       secondSize = firstSize;
       formulaTwo = efmgr.makeBitvector(firstSize, 0);
     } else {
-      formulaTwo = efmgr.makeVariable(secondSize, nameTwo);
+      formulaTwo = getVariable(secondSize, nameTwo, isSecondSigned);
     }
-    formulaTwo = efmgr.extend(formulaTwo, 0, isSecondSigned);
 
     if (!firstSize.equals(secondSize)) {
       if (firstSize > secondSize) {
