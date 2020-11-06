@@ -28,7 +28,7 @@ public class LoopAbstractionHeader implements StatisticsProvider {
   @Option(
       secure = true,
       name = "shouldAbstract",
-      values = {"naiv", "advanced", "none"},
+      values = {"naive", "advanced", "none"},
       description = "AbstractLoops to be able to process them")
   private String shouldAbstract = "none";
 
