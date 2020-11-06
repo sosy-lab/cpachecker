@@ -23,7 +23,6 @@ import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGPredicateRelation;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.UnmodifiableCLangSMG;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGRegion;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymbolicValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGSymbolicValue;
@@ -157,7 +156,7 @@ public interface UnmodifiableSMGState extends LatticeAbstractState<UnmodifiableS
 
   boolean isExplicit(SMGKnownSymbolicValue value);
 
-  SMGExplicitValue getExplicit(SMGKnownSymbolicValue pKey);
+  SMGKnownExpValue getExplicit(SMGKnownSymbolicValue pKey);
 
   boolean hasMemoryErrors();
 

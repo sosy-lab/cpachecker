@@ -27,7 +27,7 @@ import org.sosy_lab.cpachecker.cpa.smg.evaluator.SMGAbstractObjectAndState.SMGVa
 import org.sosy_lab.cpachecker.cpa.smg.graphs.SMGType;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGNullObject;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.object.SMGObject;
-import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGExplicitValue;
+import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownAddressValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownExpValue;
 import org.sosy_lab.cpachecker.cpa.smg.graphs.value.SMGKnownSymValue;
@@ -138,8 +138,7 @@ public class AssumeVisitor extends ExpressionValueVisitor {
   }
 
   /** returns the comparison of two pointers, i.e. "p1 op p2". */
-  private boolean comparePointer(
-      SMGKnownAddressValue pV1, SMGKnownAddressValue pV2, BinaryOperator pOp) {
+  private boolean comparePointer(SMGAddressValue pV1, SMGAddressValue pV2, BinaryOperator pOp) {
 
     SMGObject object1 = pV1.getObject();
     SMGObject object2 = pV2.getObject();
@@ -226,19 +225,25 @@ public class AssumeVisitor extends ExpressionValueVisitor {
           isTrue = comparePointer((SMGKnownAddressValue) pV1, (SMGKnownAddressValue) pV2, pOp);
           isFalse = !isTrue;
         } else if (isPointerOp1 && !pV2.isUnknown()) {
-          SMGExplicitValue explicit2 = pNewState.getExplicit((SMGKnownSymbolicValue) pV2);
+          SMGKnownExpValue explicit2 = pNewState.getExplicit((SMGKnownSymbolicValue) pV2);
           if (explicit2 != null) {
-            isTrue = comparePointer((SMGKnownAddressValue) pV1,
-                (SMGKnownAddressValue) SMGKnownAddressValue
-                    .valueOf((SMGKnownSymbolicValue) pV2, SMGNullObject.INSTANCE,
-                        (SMGKnownExpValue) explicit2), pOp);
+            isTrue =
+                comparePointer(
+                    (SMGKnownAddressValue) pV1,
+                    SMGKnownAddressValue.valueOf(
+                        (SMGKnownSymbolicValue) pV2, SMGNullObject.INSTANCE, explicit2),
+                    pOp);
             isFalse = !isTrue;
           }
         } else if (isPointerOp2 && !pV1.isUnknown()) {
-            SMGExplicitValue explicit1 = pNewState.getExplicit((SMGKnownSymbolicValue) pV1);
+          SMGKnownExpValue explicit1 = pNewState.getExplicit((SMGKnownSymbolicValue) pV1);
             if (explicit1 != null) {
-              isTrue = comparePointer((SMGKnownAddressValue) SMGKnownAddressValue.valueOf((SMGKnownSymbolicValue) pV1, SMGNullObject.INSTANCE,
-                      (SMGKnownExpValue) explicit1), (SMGKnownAddressValue) pV2, pOp);
+            isTrue =
+                comparePointer(
+                    SMGKnownAddressValue.valueOf(
+                        (SMGKnownSymbolicValue) pV1, SMGNullObject.INSTANCE, explicit1),
+                    (SMGKnownAddressValue) pV2,
+                    pOp);
               isFalse = !isTrue;
             }
         }

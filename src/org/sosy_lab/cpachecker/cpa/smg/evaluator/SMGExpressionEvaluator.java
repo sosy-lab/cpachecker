@@ -662,15 +662,13 @@ public class SMGExpressionEvaluator {
       return singletonList(SMGAddressValueAndState.of(smgState, pAddressValue));
     }
 
-    SMGExplicitValue explicit = smgState.getExplicit((SMGKnownSymbolicValue) pAddressValue);
+    SMGKnownExpValue explicit = smgState.getExplicit((SMGKnownSymbolicValue) pAddressValue);
     if (explicit != null && !explicit.isUnknown()) {
       return singletonList(
           SMGAddressValueAndState.of(
               smgState,
               SMGKnownAddressValue.valueOf(
-                  (SMGKnownSymbolicValue) pAddressValue,
-                  SMGNullObject.INSTANCE,
-                  (SMGKnownExpValue) explicit)));
+                  (SMGKnownSymbolicValue) pAddressValue, SMGNullObject.INSTANCE, explicit)));
     }
 
     if (!smgState.getHeap().isPointer(pAddressValue)) {

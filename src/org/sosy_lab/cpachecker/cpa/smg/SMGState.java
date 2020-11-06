@@ -1973,7 +1973,7 @@ public class SMGState implements UnmodifiableSMGState, AbstractQueryableState, G
 
   @Override
   @Nullable
-  public SMGExplicitValue getExplicit(SMGKnownSymbolicValue pKey) {
+  public SMGKnownExpValue getExplicit(SMGKnownSymbolicValue pKey) {
     return explicitValues.get(pKey);
   }
 
