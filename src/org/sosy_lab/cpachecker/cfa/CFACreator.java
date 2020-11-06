@@ -437,9 +437,11 @@ public class CFACreator {
   public CFA parseFileAndCreateCFA(List<String> sourceFiles)
           throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
+    Preconditions.checkArgument(
+        !sourceFiles.isEmpty(), "At least one source file must be provided!");
+
     CFA result = null;
 
-    Preconditions.checkArgument(!sourceFiles.isEmpty(), "At least one source file must be provided!");
     if (!loopIsAutomated || automateAbstractLoopParser) {
     stats.totalTime.start();
   }
