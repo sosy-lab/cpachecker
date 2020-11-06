@@ -7,6 +7,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 
@@ -20,6 +21,7 @@ import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.c.CStatementEdge;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
+import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
 import org.sosy_lab.cpachecker.cpa.location.LocationState;
@@ -91,15 +93,19 @@ public class OutputWriter {
         searchTestCase(args, values);
 
         // Determine file to open
-        String filename = String.format("/testcase_%s.xml", this.testCaseNumber);
-        logger.log(Level.WARNING, "Writing testcase ", filename);
-
+        String violation_str = "";
+        if (pReachedSet.hasViolatedProperties()) {
+            violation_str = "_error";
+        }
+        String filename = String.format("/testcase_%s%s.xml", this.testCaseNumber, violation_str);
+        
         // Get content
         String inputs = writeVariablesToTestcase(values);
         if (inputs.length() < 1) {
             return;
         }
-
+        
+        logger.log(Level.WARNING, "Writing testcase ", filename);
         try (Writer testcase =
                 Files.newBufferedWriter(
                         Paths.get(this.path + filename),

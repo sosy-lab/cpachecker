@@ -1,13 +1,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.legion.selection;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.logging.Level;
 
-import com.google.common.collect.Lists;
-
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.cfa.model.CFAEdge;
+import org.sosy_lab.cpachecker.cfa.model.CFAEdgeType;
 import org.sosy_lab.cpachecker.cfa.model.CFANode;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.arg.ARGState;
@@ -35,7 +33,7 @@ public class UnvisitedEdgesStrategy implements Selector {
         ARGState first = (ARGState) pReachedSet.getFirstState();
         Pair<ARGState, CFAEdge> selected = depthSearch(first);
 
-        if (selected.getSecond() == null){
+        if (selected.getSecond() == null) {
             return null;
         }
 
@@ -96,47 +94,45 @@ public class UnvisitedEdgesStrategy implements Selector {
     /**
      * Checks for unvisited edges in the ARGState.
      * 
-     * Searches for CFAEdges leading to children states not contained in the states children.
+     * An unvisited edge is an edge in the CFA which leads to a node not reachable via the edges
+     * from the ARG states.
      * 
      * @return null if no unvisited edges, the first unvisited edge otherwise
      */
-    CFAEdge getUnvisitedEdge(ARGState state) {
-        LocationState ls = AbstractStates.extractStateByType(state, LocationState.class);
-        ArrayList<CFAEdge> outgoingEdges = Lists.newArrayList(ls.getOutgoingEdges());
-        ArrayList<ARGState> currentChildren = Lists.newArrayList(state.getChildren());
+    CFAEdge getUnvisitedEdge(ARGState current_state) {
 
-        // If the sizes match, there are children for all outgoing edges,
-        // so no edges hasn't been visited.
-        if (outgoingEdges.size() == currentChildren.size()) {
-            return null;
-        }
+        LocationState current_ls =
+                AbstractStates.extractStateByType(current_state, LocationState.class);
+        Iterable<CFAEdge> current_edges = current_ls.getOutgoingEdges();
 
-        // Check for every outgoing edge, if a child exists with the same
-        // CFANode
-        for (CFAEdge edge : outgoingEdges) {
-            CFANode possibleSuccessor = edge.getSuccessor();
+        for (CFAEdge edge : current_edges) {
+            // The next cfa node this edge would lead to
+            CFANode target_node = edge.getSuccessor();
 
-            Boolean found = false;
-            for (ARGState child : currentChildren) {
-                LocationState alreadyPresentLocation =
-                        AbstractStates.extractStateByType(child, LocationState.class);
+            // If the edge is anything other than a conditional edge, the fuzzer
+            // will walk it. Only if there is a conditional to solve, it should be
+            // selected.
+            if (!edge.getEdgeType().equals(CFAEdgeType.AssumeEdge)) {
+                continue;
+            }
 
-                // If the already present childs location node equals the possible successor,
-                // a match is found and search continues
-                if (alreadyPresentLocation.getLocationNode().equals(possibleSuccessor)) {
+            // Now search the currents states children if we find one which
+            // leads to target_node.
+            boolean found = false;
+            for (ARGState arg_child : current_state.getChildren()) {
+                LocationState child_ls =
+                        AbstractStates.extractStateByType(arg_child, LocationState.class);
+                CFANode cfa_actual_node = child_ls.getLocationNode();
+                if (target_node.equals(cfa_actual_node)) {
                     found = true;
                     break;
                 }
             }
 
-            // If the edge was not found in any of the currentChildren, it is an unvisited edge
             if (!found) {
-                logger.log(Level.INFO, "Found unvisited edge", edge);
                 return edge;
             }
-
         }
-
         return null;
     }
 

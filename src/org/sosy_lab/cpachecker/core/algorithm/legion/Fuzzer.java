@@ -1,13 +1,11 @@
 package org.sosy_lab.cpachecker.core.algorithm.legion;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.logging.Level;
 
 import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
-import org.sosy_lab.cpachecker.core.interfaces.Property;
 import org.sosy_lab.cpachecker.core.reachedset.ReachedSet;
 import org.sosy_lab.cpachecker.cpa.value.ValueAnalysisCPA;
 import org.sosy_lab.cpachecker.cpa.value.type.Value;
@@ -62,18 +60,13 @@ public class Fuzzer {
             // Run algorithm and collect result
             pAlgorithm.run(pReachedSet);
 
+            // Write output if new states have been reached
             if (previousSetSize < pReachedSet.size()) {
                 outputWriter.writeTestCases(pReachedSet);
             }
 
-            // If an error was found, stop execution
-            Collection<Property> violatedProperties = pReachedSet.getViolatedProperties();
-            if (!violatedProperties.isEmpty()) {
-                throw new PropertyViolationException(violatedProperties);
-            }
-
             // Check whether to shut down
-            if (this.shutdownNotifier.shouldShutdown()){
+            if (this.shutdownNotifier.shouldShutdown()) {
                 break;
             }
 
