@@ -437,7 +437,6 @@ public class CFACreator {
   public CFA parseFileAndCreateCFA(List<String> sourceFiles)
           throws InvalidConfigurationException, IOException, ParserException, InterruptedException {
 
-    boolean flag = false;
     CFA result = null;
 
     Preconditions.checkArgument(!sourceFiles.isEmpty(), "At least one source file must be provided!");
@@ -469,21 +468,20 @@ public class CFACreator {
       if (!automateAbstractLoopParser) {
         result = createCFA(c, mainFunction);
     } else {
-      flag = true;
-      CFA cfa = createCFA(c, mainFunction);
-      LoopInformation builder = new LoopInformation(config, logger, cfa);
-      builder.collectStatistics(stats.statisticsCollection);
-      LoopAbstractionHeader loopAbstraction =
-          new LoopAbstractionHeader(builder, automateAbstractLoopParser, config, logger);
+        CFA cfa = createCFA(c, mainFunction);
+        LoopInformation builder = new LoopInformation(config, logger, cfa);
+        builder.collectStatistics(stats.statisticsCollection);
+        LoopAbstractionHeader loopAbstraction =
+            new LoopAbstractionHeader(builder, automateAbstractLoopParser, config, logger);
         loopAbstraction.collectStatistics(stats.statisticsCollection);
-      automateAbstractLoopParser = false;
-      result = parseFileAndCreateCFA(sourceFiles);
+        automateAbstractLoopParser = false;
+        result = parseFileAndCreateCFA(sourceFiles);
     }
 
     return result;
 
     } finally {
-      if (flag || !loopIsAutomated) {
+      if ((loopIsAutomated && !automateAbstractLoopParser) || !loopIsAutomated) {
       stats.totalTime.stop();
         if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))
             || ((exportFunctionCallsFile != null) && exportFunctionCalls)
