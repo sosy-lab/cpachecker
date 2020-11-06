@@ -208,16 +208,15 @@ public class CFACreator {
   private Path serializeCfaFile = Paths.get("cfa.ser.gz");
 
   @Option(
-    secure = true,
-    name = "cfa.pixelGraphicFile",
-    description =
-        "Export CFA as pixel graphic to the given file name. The suffix is added"
-            + " corresponding"
-            + " to the value of option pixelgraphic.export.format"
-            + "If set to 'null', no pixel graphic is exported."
-  )
+      secure = true,
+      name = "cfa.pixelGraphicFile",
+      description =
+          "Export CFA as pixel graphic to the given file name. The suffix is added"
+              + " corresponding"
+              + " to the value of option pixelgraphic.export.format"
+              + "If set to 'null', no pixel graphic is exported.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
-  private Path exportCfaPixelFile = null; // Paths.get("cfaPixel");
+  private Path exportCfaPixelFile = Paths.get("cfaPixel");
 
   @Option(secure=true, name="cfa.checkNullPointers",
       description="while this option is activated, before each use of a "
