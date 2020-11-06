@@ -111,9 +111,6 @@ public class UnvisitedEdgesStrategy implements Selector {
             return null;
         }
 
-        // ValueAnalysisState as = AbstractStates.extractStateByType(state,
-        // ValueAnalysisState.class);
-
         // Check for every outgoing edge, if a child exists with the same
         // CFANode
         for (CFAEdge edge : outgoingEdges) {

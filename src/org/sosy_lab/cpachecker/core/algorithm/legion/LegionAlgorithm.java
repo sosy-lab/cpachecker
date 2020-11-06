@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.logging.Level;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.configuration.Configuration;
 import org.sosy_lab.common.configuration.InvalidConfigurationException;
 import org.sosy_lab.common.configuration.Option;
@@ -88,6 +89,7 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
     private final Algorithm algorithm;
     private final LogManager logger;
     private Configuration config;
+    private ShutdownNotifier shutdownNotifier;
 
     // CPAs + components
     private ValueAnalysisCPA valueCpa;
@@ -107,13 +109,17 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
             final Algorithm algorithm,
             final LogManager pLogger,
             Configuration pConfig,
-            ConfigurableProgramAnalysis cpa)
+            ConfigurableProgramAnalysis cpa,
+            ShutdownNotifier pShutdownNotifier)
             throws InvalidConfigurationException {
+
+        // General fields
         this.algorithm = algorithm;
         this.logger = pLogger;
 
-        pConfig.inject(this, LegionAlgorithm.class);
         this.config = pConfig;
+        pConfig.inject(this, LegionAlgorithm.class);
+        this.shutdownNotifier = pShutdownNotifier;
 
         // Fetch solver from predicate CPA and valueCpa (used in fuzzer)
         this.predCpa = CPAs.retrieveCPAOrFail(cpa, PredicateCPA.class, LegionAlgorithm.class);
@@ -126,7 +132,7 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
         // Set selection Strategy, targetSolver and fuzzer
         this.selectionStrategy = buildSelectionStrategy();
         this.targetSolver = new TargetSolver(logger, solver, maxSolverAsks);
-        this.fuzzer = new Fuzzer(logger, valueCpa, this.outputWriter);
+        this.fuzzer = new Fuzzer(logger, valueCpa, this.outputWriter, pShutdownNotifier);
 
         this.timings = new HashMap<>();
     }
@@ -162,6 +168,11 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
         for (int i = 0; i < maxIterations; i++) {
             logger.log(Level.INFO, "Iteration", i + 1);
 
+            // Check whether to shut down
+            if (this.shutdownNotifier.shouldShutdown()){
+                break;
+            }
+
             // Phase Selection: Select non-deterministic variables for path solving
             Instant selection_start = Instant.now();
             PathFormula target;
@@ -182,6 +193,11 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
                     Duration.between(selection_start, selection_end),
                     (oldValue, newValue) -> oldValue.plus(newValue));
 
+            // Check whether to shut down
+            if (this.shutdownNotifier.shouldShutdown()){
+                break;
+            }
+
             // Phase Targetting: Solve for the target and produce a number of values
             // needed as input to reach this target.
             Instant targetting_start = Instant.now();
@@ -198,6 +214,11 @@ public class LegionAlgorithm implements Algorithm, StatisticsProvider, Statistic
                     "targetting",
                     Duration.between(targetting_start, targetting_end),
                     (oldValue, newValue) -> oldValue.plus(newValue));
+
+            // Check whether to shut down
+            if (this.shutdownNotifier.shouldShutdown()){
+                break;
+            }
 
             // Phase Fuzzing: Run the configured number of fuzzingPasses to detect
             // new paths through the program.

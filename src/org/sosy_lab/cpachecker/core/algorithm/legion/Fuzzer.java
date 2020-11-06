@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.logging.Level;
 
+import org.sosy_lab.common.ShutdownNotifier;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.algorithm.Algorithm;
 import org.sosy_lab.cpachecker.core.interfaces.Property;
@@ -18,12 +19,15 @@ public class Fuzzer {
     private final LogManager logger;
     private final ValueAnalysisCPA valueCpa;
     private OutputWriter outputWriter;
+    private ShutdownNotifier shutdownNotifier;
 
     public Fuzzer(
             final LogManager pLogger,
             ValueAnalysisCPA pValueCPA,
-            OutputWriter pOutputWriter) {
+            OutputWriter pOutputWriter,
+            ShutdownNotifier pShutdownNotifier) {
         this.logger = pLogger;
+        this.shutdownNotifier = pShutdownNotifier;
         this.valueCpa = pValueCPA;
         this.outputWriter = pOutputWriter;
     }
@@ -66,6 +70,11 @@ public class Fuzzer {
             Collection<Property> violatedProperties = pReachedSet.getViolatedProperties();
             if (!violatedProperties.isEmpty()) {
                 throw new PropertyViolationException(violatedProperties);
+            }
+
+            // Check whether to shut down
+            if (this.shutdownNotifier.shouldShutdown()){
+                break;
             }
 
             // Otherwise, start from the beginning again

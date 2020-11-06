@@ -101,7 +101,8 @@ public class TargetSolver {
     private Model solvePathConstrains(BooleanFormula target, ProverEnvironment pProver)
             throws InterruptedException, SolverException {
 
-        logger.log(Level.INFO, "Solve path constraints. ", target.toString());
+        logger.log(Level.INFO, "Solve path constraints. ");
+        logger.log(Level.FINE, "Formula is ", target.toString());
         pProver.push(target);
         boolean isUnsat = pProver.isUnsat();
         if (isUnsat){
@@ -120,7 +121,6 @@ public class TargetSolver {
         for (ValueAssignment assignment : pConstraints.asList()) {
             String name = assignment.getName();
 
-            // TODO this prevents values passed to functions beeing computed
             if (!name.startsWith("__VERIFIER_nondet_")) {
                 continue;
             }
