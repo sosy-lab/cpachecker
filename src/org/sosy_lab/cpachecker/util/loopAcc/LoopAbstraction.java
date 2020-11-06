@@ -306,7 +306,6 @@ public class LoopAbstraction {
                           closed
                               && line.contains("}")
                               && (!line.contains("if") || !line.contains("else"));
-                      ;
                       while (line != null && !flagEnd1) {
                         closed = ifCaseClosed(line, closed);
                         if (!closed) {
@@ -376,7 +375,6 @@ public class LoopAbstraction {
                         closed
                             && line.contains("}")
                             && (!line.contains("if") || !line.contains("else"));
-                    ;
                     while (line != null && !flagEnd) {
                       closed = ifCaseClosed(line, closed);
                       if (!closed) {
@@ -413,7 +411,6 @@ public class LoopAbstraction {
                           closed
                               && line.contains("}")
                               && (!line.contains("if") || !line.contains("else"));
-                      ;
                       while (line != null && !flagEnd1) {
                         closed = ifCaseClosed(line, closed);
                         if (!closed) {
