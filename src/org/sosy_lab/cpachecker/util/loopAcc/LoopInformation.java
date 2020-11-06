@@ -40,7 +40,10 @@ import org.sosy_lab.cpachecker.util.LoopStructure.Loop;
 @Options(prefix = "LoopInfo")
 public class LoopInformation implements StatisticsProvider {
 
-  @Option(secure = true, name = "logfile", description = "Dump LoopInformation to a file.")
+  @Option(
+      secure = true,
+      name = "logfile",
+      description = "Dumps infos about the loops in the tested program to a file.")
   @FileOption(FileOption.Type.OUTPUT_FILE)
   private Path dumpfile = Paths.get("LoopInformation.log");
 

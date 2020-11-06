@@ -20,7 +20,7 @@ import org.sosy_lab.cpachecker.core.reachedset.UnmodifiableReachedSet;
 public class LoopStatistics implements Statistics {
 
   List<LoopData> loopList;
-  private static final String NAME = "LoopStatistics ";
+  private static final String NAME = "LoopStatistics";
 
   private List<String[]> loopStartAndEnd;
   private List<String[]> loopType;
@@ -93,15 +93,15 @@ public class LoopStatistics implements Statistics {
   }
 
   private String ArrayToString(List<String[]> x) {
-    String ergebnis = "";
+    StringBuilder ergebnis = new StringBuilder();
     for (String[] sa : x) {
-      ergebnis += "[";
+      ergebnis.append("[");
       for (String value : sa) {
-        ergebnis += (value + ",");
+        ergebnis.append(value + ",");
       }
-      ergebnis += "],";
+      ergebnis.append("],");
     }
-    return ergebnis;
+    return ergebnis.toString();
   }
 
   @Override
@@ -120,7 +120,6 @@ public class LoopStatistics implements Statistics {
 
   @Override
   public @Nullable String getName() {
-    // TODO Auto-generated method stub
     return NAME;
   }
 }
