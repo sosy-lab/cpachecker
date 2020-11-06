@@ -480,20 +480,20 @@ public class CFACreator {
         result = parseFileAndCreateCFA(sourceFiles);
     }
 
+      if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))
+          || ((exportFunctionCallsFile != null) && exportFunctionCalls)
+          || ((exportFunctionCallsUsedFile != null) && exportFunctionCalls)
+          || ((serializeCfaFile != null) && serializeCfa)
+          || (exportCfaPixelFile != null)
+          || (exportCfaToCFile != null && exportCfaToC)) {
+        exportCFAAsync(result);
+      }
     return result;
 
     } finally {
       if ((loopIsAutomated && !automateAbstractLoopParser) || !loopIsAutomated) {
       stats.totalTime.stop();
-        if (((exportCfaFile != null) && (exportCfa || exportCfaPerFunction))
-            || ((exportFunctionCallsFile != null) && exportFunctionCalls)
-            || ((exportFunctionCallsUsedFile != null) && exportFunctionCalls)
-            || ((serializeCfaFile != null) && serializeCfa)
-            || (exportCfaPixelFile != null)
-            || (exportCfaToCFile != null && exportCfaToC)) {
-          exportCFAAsync(result);
         }
-    }
     }
   }
 
