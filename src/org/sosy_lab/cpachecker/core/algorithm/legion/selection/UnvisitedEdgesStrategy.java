@@ -65,6 +65,7 @@ public class UnvisitedEdgesStrategy implements Selector {
 
         // If there is an unvisited edge, return it
         if (unvisitedEdge != null) {
+            logger.log(Level.SEVERE, state.toString(), unvisitedEdge.toString());
             return Pair.of(state, unvisitedEdge);
         }
 
@@ -75,7 +76,14 @@ public class UnvisitedEdgesStrategy implements Selector {
 
         // If there are children, search them for unvisited Edge
         for (ARGState child : children) {
-            Pair<ARGState, CFAEdge> searched = depthSearch(child);
+
+            Pair<ARGState, CFAEdge> searched;
+            try {
+                searched = depthSearch(child);
+            } catch (StackOverflowError e){
+                // If the stack is too deep, opt out of this path
+                return Pair.of(state, null);
+            }
 
             // If the child has a CFAEddge, return the found combination
             // If not, search continues!
