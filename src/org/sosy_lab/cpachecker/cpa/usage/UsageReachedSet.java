@@ -23,7 +23,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.logging.Level;
 import org.sosy_lab.common.log.LogManager;
 import org.sosy_lab.cpachecker.core.interfaces.AbstractState;
@@ -45,7 +44,6 @@ import org.sosy_lab.cpachecker.cpa.usage.storage.UsageContainer;
 import org.sosy_lab.cpachecker.util.AbstractStates;
 import org.sosy_lab.cpachecker.util.CPAs;
 import org.sosy_lab.cpachecker.util.Pair;
-import org.sosy_lab.cpachecker.util.identifiers.SingleIdentifier;
 import org.sosy_lab.cpachecker.util.statistics.StatCounter;
 import org.sosy_lab.cpachecker.util.statistics.StatTimer;
 import org.sosy_lab.cpachecker.util.statistics.StatisticsWriter;
@@ -64,14 +62,14 @@ public class UsageReachedSet extends PartitionedReachedSet {
       new StatCounter("Number of different reached sets with lock effects");
 
   private boolean usagesExtracted = false;
-  
+
   public static class RaceProperty implements Property {
     @Override
     public String toString() {
       return "Race condition";
     }
   }
-  
+
   private static final ImmutableSet<Property> RACE_PROPERTY = ImmutableSet.of(new RaceProperty());
 
   private final LogManager logger;
@@ -162,111 +160,47 @@ public class UsageReachedSet extends PartitionedReachedSet {
 
       while (!waitlist.isEmpty()) {
         currentPair = waitlist.pop();
-        AbstractState state = currentPair.getFirst();
         Set<LockEffect> currentEffects = currentPair.getSecond();
         processingSteps.inc();
-        LockState locks, expandedLocks;
-        Map<LockState, LockState> reduceToExpand = new HashMap<>();
         Map<AbstractState, List<UsageInfo>> stateToUsage = new HashMap<>();
-        // Not states for optimizations
-        Set<Integer> processedIds = new TreeSet<>();
         Deque<AbstractState> stateWaitlist = new ArrayDeque<>();
-        stateWaitlist.add(state);
-        processedIds.add(getId(state));
+        stateWaitlist.add(currentPair.getFirst());
 
+        // Waitlist to be sure in order (not start from the middle point)
         while (!stateWaitlist.isEmpty()) {
-          state = stateWaitlist.poll();
-          List<UsageInfo> expandedUsages = new ArrayList<>();
-          ARGState argState = (ARGState) state;
+          ARGState argState = (ARGState) stateWaitlist.poll();
           if (argState.isCovered()) {
             // Covered states has no children, we can not determine usages
             continue;
           }
-          for (ARGState covered : argState.getCoveredByThis()) {
-            if (stateToUsage.containsKey(covered)) {
-              expandedUsages.addAll(stateToUsage.get(covered));
-            }
-          }
-          for (ARGState parent : argState.getParents()) {
-            if (stateToUsage.containsKey(parent)) {
-              expandedUsages.addAll(stateToUsage.get(parent));
-            }
-          }
-          // handle state
-          boolean alreadyProcessed = processedIds.contains(getId(state));
-          if (!alreadyProcessed) {
+          List<UsageInfo> expandedUsages =
+              expandUsagesAndAdd(argState, stateToUsage, currentEffects);
 
-            List<UsageInfo> usages = usageProcessor.getUsagesForState(state);
-
-            usageExpandingTimer.start();
-            for (UsageInfo uinfo : usages) {
-              UsageInfo expandedUsage = null;
-              if (currentEffects.isEmpty()) {
-                expandedUsage = uinfo;
-              } else {
-                locks = (LockState) uinfo.getLockState();
-                if (reduceToExpand.containsKey(locks)) {
-                  expandedLocks = reduceToExpand.get(locks);
-                } else {
-                  LockStateBuilder builder = locks.builder();
-                  currentEffects.forEach(e -> e.effect(builder));
-                  expandedLocks = builder.build();
-                  reduceToExpand.put(locks, expandedLocks);
-                }
-                if (expandedLocks != null) {
-                  // means we have impossible state, do not add the usage.
-                  expandedUsage = uinfo.expand(expandedLocks);
-                }
-              }
-              if (expandedUsage != null) {
-                expandedUsages.add(expandedUsage);
-              }
-            }
-            usageExpandingTimer.stop();
-          }
-
-          PredicateAbstractState predicateState =
-              AbstractStates.extractStateByType(state, PredicateAbstractState.class);
-          if (predicateState == null
-              || (predicateState.isAbstractionState()
-                  && !predicateState.getAbstractionFormula().isFalse())) {
-
+          if (needToDumpUsages(argState)) {
             addingToContainerTimer.start();
-            for (UsageInfo usage : expandedUsages) {
-              SingleIdentifier id = usage.getId();
-              container.add(id, usage);
-            }
+            expandedUsages.forEach(container::add);
             addingToContainerTimer.stop();
-
-            expandedUsages.clear();
-            for (ARGState child : argState.getSuccessors()) {
-              if (!processedIds.contains(getId(child))) {
-                stateWaitlist.add(child);
-              }
-            }
           } else {
-            stateWaitlist.addAll(argState.getSuccessors());
-            if (argState.isCovered()) {
-              stateWaitlist.add(argState.getCoveringState());
-            }
-            stateToUsage.put(state, expandedUsages);
+            stateToUsage.put(argState, expandedUsages);
           }
-          if (!alreadyProcessed) {
-            processedIds.add(getId(argState));
+          stateWaitlist.addAll(argState.getSuccessors());
+          if (argState.isCovered()) {
+            stateWaitlist.add(argState.getCoveringState());
           }
 
           // Search state in the BAM cache
-          if (manager != null && manager.hasInitialState(state)) {
-            for (ARGState child : ((ARGState) state).getChildren()) {
+          if (manager != null && manager.hasInitialState(argState)) {
+            for (ARGState child : argState.getChildren()) {
               AbstractState reducedChild = manager.getReducedStateForExpandedState(child);
-              ReachedSet innerReached = manager.getReachedSetForInitialState(state, reducedChild);
+              ReachedSet innerReached =
+                  manager.getReachedSetForInitialState(argState, reducedChild);
 
-              process(state, innerReached, waitlist, processedSets, currentEffects);
+              processReachedSet(argState, innerReached, waitlist, processedSets, currentEffects);
             }
-          } else if (manager != null && manager.hasInitialStateWithoutExit(state)) {
-            ReachedSet innerReached = manager.getReachedSetForInitialState(state);
+          } else if (manager != null && manager.hasInitialStateWithoutExit(argState)) {
+            ReachedSet innerReached = manager.getReachedSetForInitialState(argState);
 
-            process(state, innerReached, waitlist, processedSets, currentEffects);
+            processReachedSet(argState, innerReached, waitlist, processedSets, currentEffects);
           }
         }
       }
@@ -276,7 +210,58 @@ public class UsageReachedSet extends PartitionedReachedSet {
     stableUnsafes = container.calculateStableUnsafes();
   }
 
-  private void process(
+  private boolean needToDumpUsages(AbstractState pState) {
+    PredicateAbstractState predicateState =
+        AbstractStates.extractStateByType(pState, PredicateAbstractState.class);
+
+    return predicateState == null
+        || (predicateState.isAbstractionState()
+            && !predicateState.getAbstractionFormula().isFalse());
+  }
+
+  private List<UsageInfo>
+      expandUsagesAndAdd(
+          ARGState state,
+          Map<AbstractState, List<UsageInfo>> stateToUsage,
+          Set<LockEffect> currentEffects) {
+
+    List<UsageInfo> expandedUsages = new ArrayList<>();
+
+    for (ARGState covered : state.getCoveredByThis()) {
+      expandedUsages.addAll(stateToUsage.getOrDefault(covered, ImmutableList.of()));
+    }
+    for (ARGState parent : state.getParents()) {
+      expandedUsages.addAll(stateToUsage.getOrDefault(parent, ImmutableList.of()));
+    }
+
+    LockState locks, expandedLocks;
+    List<UsageInfo> usages = usageProcessor.getUsagesForState(state);
+
+    usageExpandingTimer.start();
+    for (UsageInfo uinfo : usages) {
+      UsageInfo expandedUsage = null;
+      if (currentEffects.isEmpty()) {
+        expandedUsage = uinfo;
+      } else {
+        locks = (LockState) uinfo.getLockState();
+        LockStateBuilder builder = locks.builder();
+        currentEffects.forEach(e -> e.effect(builder));
+        expandedLocks = builder.build();
+        if (expandedLocks != null) {
+          // means we have impossible state, do not add the usage.
+          expandedUsage = uinfo.expand(expandedLocks);
+        }
+      }
+      if (expandedUsage != null) {
+        expandedUsages.add(expandedUsage);
+      }
+    }
+    usageExpandingTimer.stop();
+
+    return expandedUsages;
+  }
+
+  private void processReachedSet(
       AbstractState rootState,
       ReachedSet innerReached,
       Deque<Pair<AbstractState, Set<LockEffect>>> waitlist,
@@ -336,9 +321,5 @@ public class UsageReachedSet extends PartitionedReachedSet {
         .put(usageExpandingTimer)
         .endLevel()
         .put(processingSteps);
-  }
-
-  private int getId(AbstractState e) {
-    return ((ARGState) e).getStateId();
   }
 }

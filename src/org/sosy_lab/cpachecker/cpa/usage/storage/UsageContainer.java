@@ -16,8 +16,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.NavigableMap;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -66,8 +66,8 @@ public class UsageContainer {
     detector = new UnsafeDetector(pConfig);
   }
 
-  public void add(SingleIdentifier pId, UsageInfo pUsage) {
-    SingleIdentifier id = pId;
+  public void add(UsageInfo pUsage) {
+    SingleIdentifier id = pUsage.getId();
     searchingInCachesTimer.start();
     if (id instanceof StructureIdentifier) {
       id = ((StructureIdentifier) id).toStructureFieldIdentifier();
