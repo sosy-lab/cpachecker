@@ -125,6 +125,8 @@ public class OutputWriter {
             testcase.flush();
         } catch (IOException exc) {
             logger.log(Level.SEVERE, "Could not write test output", exc);
+        } finally {
+            this.testCaseNumber += 1;
         }
 
     }
@@ -207,7 +209,7 @@ public class OutputWriter {
             Value value = v.getValue().getValue();
 
             String value_str = "";
-            if (type.equals("int")) {
+            if (value instanceof NumericValue) {
                 value_str = String.valueOf(((NumericValue) value).longValue());
             } else {
                 value_str = value.toString();
@@ -220,7 +222,6 @@ public class OutputWriter {
                             type,
                             value_str));
         }
-        this.testCaseNumber += 1;
         return sb.toString();
     }
 
